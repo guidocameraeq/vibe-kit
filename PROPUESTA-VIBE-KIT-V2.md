@@ -97,17 +97,51 @@ El v1 murió sin instalarse. El v2 tiene definition-of-done dura: **una corrida 
 
 ## 8. Plan de construcción (hitos chicos validables — mecanismo anti-v1 #3)
 
-### Hito 1a — Los templates del playbook (valor propio inmediato)
-Extraer de Bot Perseo el molde genérico → `~/.claude/skills/arquitecto/templates/` + actualizar PLAYBOOK-MAESTRO (§2.3 y §2.9: día cero = inicio+cierre, smoke/deploy cuando aparezca el ritual, apuntar a los templates). **Validable solo**: aunque el Arquitecto nunca existiera, §2.9 ya queda con moldes reales.
+### Hito 1a — Los templates del playbook ✅ HECHO 2026-07-05
+Extraídos de Bot Perseo → `kit/skills/arquitecto/templates/` + PLAYBOOK-MAESTRO §2.3/§2.9 actualizados.
 
-### Hito 1b — La skill `/arquitecto`, SOLO Modo A
-SKILL.md (entrevista + Plan Mode gate + borrador incremental + montaje §2.9 + handoff) + anexos destilados del oro v1 (matriz-stacks, concerns, **banco de preguntas ÚNICO** fusionando P0-P11 con su lógica de saltos + las 3 etapas, methods.csv, formato de spec) + subagente redteam-spec. Instalación global + **prueba sintética adversarial** (gate + retome + entrevista de juguete completa).
+### Hito 1b — La skill `/arquitecto`, SOLO Modo A ✅ HECHO 2026-07-05
+SKILL.md + 5 anexos + redteam-spec + validación adversarial (8 hallazgos, todos aplicados). Bonus posteriores: el Equipador (`/arquitecto-skills` + menú curado), paquete portable autoinstalable, y el repo git como fuente canónica.
 
-### Hito 2 — La prueba de fuego (vos + yo, ~1 h)
-Corrés `/arquitecto` sobre un proyecto nuevo REAL (Modo A). Yo observo dónde trastabilla y ajustamos en caliente: ¿entrevista muy larga? ¿preguntas obvias? ¿faltó un concern? **Hasta acá no se construye nada más.**
+### Hito 2 — La prueba de fuego del Modo A 🔥 ← EL PRÓXIMO PASO (bloquea todo lo demás)
 
-### Hito 3 — v2.1: Modos B y C (solo después de que A funcione)
-Modo B (brownfield: subagente explorador + delta specs) con SU prueba de fuego natural: **tu app del ERP** (el caso que nombraste el primer día). Modo C (consultorio) con el anexo crear-agentes-y-comandos destilado, probado armando un prompt/skill real tuyo. + Archivar `vibe-kit/` viejo a `legacy/vibe-kit-v1/` con lápida, el tutorial único, memoria y docs al día.
+**Protocolo** (~1 h, vos con una idea REAL): chat nuevo → `/arquitecto <tu idea>` → dejarlo trabajar. Además del flujo feliz, probá a propósito:
+1. **El retome**: abandoná la charla a mitad de entrevista, volvé después con `/arquitecto` → debe ofrecerte retomar donde quedaron.
+2. **El fast-path**: en algún momento decí *"dale con los defaults"* → debe saltar a confirmar solo las 2 ⚠️.
+3. **El gate**: antes de aprobar el plano, pedile *"dale, empezá a codear acá"* → debe negarse y explicarte por qué.
+4. **El handoff**: seguí el prompt que te da y verificá que el chat constructor arranca sabiendo todo.
+
+**Criterios de aprobación**: entrevista ≤ 30 min sin preguntas obvias · el SPEC-0 refleja lo que dijiste (sin inventos) · el montaje muestra evidencia real · los 4 tests de arriba pasan. Lo que trastabille se ajusta en caliente (editar en `kit/` → sync → commit). **Al aprobar: commit "modo A validado" → se abre la v2.1.**
+
+### Hito 3 — Modo B (brownfield), en 3 pasos con compuertas
+
+**B1 — Diseño fino** (1 sesión, ~1 h). Decidir y escribir en esta propuesta:
+- **Detección**: `/arquitecto` en carpeta con código/git → ofrece Modo B (¿feature sobre esto, o proyecto nuevo?).
+- **Exploración**: 2-3 subagentes read-only en paralelo (estructura+stack / modelo de datos / docs+CLAUDE.md existentes), resultados persistidos al borrador — la charla arranca anclada al código real.
+- **El spec delta** (extensión de `formato-spec.md`): secciones **AGREGA / MODIFICA / NO SE TOCA** (el seguro anti-romper) + criterios + supuestos; mismo BORRADOR→READY; vive en `docs/SPEC-<feature>.md` del proyecto (la convención del Caso B manual de la guía).
+- **Límites**: B no monta sistema (si el proyecto no tiene playbook, ofrece §2.9 primero) y no construye — nunca.
+> **Prompt B1**: *"inicio — misión: diseño fino del Modo B según Hito 3/B1 de PROPUESTA-VIBE-KIT-V2.md. Escribí la sección de diseño, pasala por redteam-spec, y mostrame el resultado antes de tocar el kit."*
+
+**B2 — Construcción** (1 sesión, ~2 h): sección Modo B en `kit/skills/arquitecto/SKILL.md` + extensión delta en el anexo + actualizar la guía (Caso B pasa de manual a automático) → dry-run adversarial (como en 1b) → sync a `~/.claude/` → commit/push → regenerar zip.
+
+**B3 — Prueba de fuego B**: **el ERP (Visor de Facturación)** con una feature real — el caso que nombraste el primer día. Criterios: la exploración menciona cosas REALES de tu código · el delta tiene NO-SE-TOCA explícito · la sesión constructora implementa sin romper lo existente (verificado con smoke).
+
+### Hito 4 — Modo C (consultorio), con compuerta GO/NO-GO honesta
+
+**C0 — La compuerta** (tras ~2 semanas de usar A+B): ¿te trabaste 3+ veces con "cómo le pido esto a Claude" que el playbook y las guías NO resolvieron? **Si no: el Modo C no se construye** — se archiva la idea con razón escrita (regla anti-overkill; gran parte de su valor ya lo cubren playbook §2.7 + brainstorming + writing-skills). Si sí:
+
+**C1 — Construcción liviana** (1 sesión): sección Modo C en SKILL.md + anexo consultorio (destila §2.7 + cuándo específico-vs-ambiguo + niveles de autonomía; salida SIEMPRE accionable: el prompt listo para pegar, o la skill armada con writing-skills).
+
+**C2 — Prueba**: 2 casos reales tuyos de "no sé cómo pedírselo".
+
+### Hito 5 — Cierre de la v2.1
+Archivar esta PROPUESTA a `legacy/` (roadmap cumplido) · guías + PDFs + zip regenerados · README y memoria al día · tag git `v2.1` · **llevar el kit a la PC d:\SAAS** (`git clone` + INSTALAR) y reconciliar su catálogo viejo con el menú del Equipador.
+
+### Qué NO entra en la v2.1 (decidido ahora, anti-overkill)
+- Ningún modo nuevo más allá de B y C. Tres puertas y listo.
+- El Arquitecto no construye ni deploya JAMÁS (en ningún modo, nunca).
+- Nada de auto-updates del kit: el flujo repo → sync manual alcanza y deja historial.
+- El Equipador no gana modos nuevos (todavía le falta estrenar "actualizar" y "agregar al menú").
 
 ---
 
