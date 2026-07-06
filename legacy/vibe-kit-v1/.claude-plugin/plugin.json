@@ -1,0 +1,25 @@
+{
+  "name": "vibe-kit",
+  "displayName": "Vibe Kit",
+  "version": "1.0.0",
+  "description": "Kit reusable de vibe coding para Claude Code: el Arquitecto te entrevista en espanol, escribe el spec a disco y deja listos los concerns transversales (roles, listas configurables, errores, logging) sin que escribas una linea de codigo.",
+  "author": {
+    "name": "eq.chatgpt",
+    "email": "eq.chatgpt@gmail.com"
+  },
+  "homepage": "https://github.com/eq-chatgpt/vibe-kit",
+  "repository": "https://github.com/eq-chatgpt/vibe-kit",
+  "license": "MIT",
+  "keywords": [
+    "vibe-coding",
+    "no-code",
+    "arquitecto",
+    "spec-driven",
+    "espanol",
+    "nextjs",
+    "supabase",
+    "tauri",
+    "expo",
+    "orquestacion"
+  ]
+}

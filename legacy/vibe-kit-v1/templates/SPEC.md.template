@@ -1,0 +1,273 @@
+# Spec: {{NOMBRE_DE_LA_FEATURE_O_APP}}
+
+> Plantilla del SPEC del kit `vibe-kit`. La escribe el **Arquitecto** (skill `escribir-spec`) cuando el diseno ya esta aprobado.
+> Reemplaza cada `{{...}}` por contenido real, en **espanol claro (vos)**, para alguien que **NO programa** (el usuario lee este spec, no codigo).
+> Borra los comentarios `<!-- ... -->` y las lineas de ayuda cuando termines: el spec final no debe tener placeholders sin resolver.
+>
+> Esto es un `SPEC.md` chico (las 3 partes en un solo archivo). Para un cambio **grande** (app nueva, modulo entero, varias entidades) parti en `.claude/specs/{{nombre-feature}}/requirements.md`, `design.md`, `tasks.md` usando estas mismas secciones.
+
+- Estado: BORRADOR
+  <!-- Arranca en BORRADOR. Pasa a READY recien tras el auto-review Y la aprobacion del usuario. La sesion fresca SOLO ejecuta specs en READY. -->
+- Fecha: {{AAAA-MM-DD}}
+- Tipo: {{greenfield (app nueva) | brownfield (cambio sobre app existente)}}
+- Stack: {{de la matriz de stacks, ej: Next.js 15 + Supabase + RLS}}
+  <!-- Si hay project.yaml en la raiz, leelo primero: el stack del spec tiene que ser coherente con el. Apoyate en la skill matriz-de-stacks. -->
+
+---
+
+## Artefacto 1 — SPEC (el QUE y el POR QUE)
+
+> Que construimos y por que. Cero detalle tecnico todavia. Lo lee el usuario para confirmar que entendiste el problema.
+
+### 1.1 — El problema y el porque
+
+{{Dos o tres frases en lenguaje claro: que dolor resolvemos, quien lo sufre, que cambia para el usuario cuando esto funcione. Sale de la etapa Oportunidad de la entrevista.}}
+
+### 1.2 — User stories (historias de usuario), por prioridad
+
+<!-- Una por linea, lenguaje plano, marcadas P1 / P2 / P3. Empeza por la P1 que resuelve el dolor #1. Lo que no es P1 puede quedar para despues (YAGNI despiadado). -->
+
+- P1 — Como {{rol}}, quiero {{hacer algo}} para {{conseguir un beneficio}}.
+  Por que P1: {{razon en una frase}}.
+- P2 — Como {{rol}}, quiero {{hacer algo}} para {{conseguir un beneficio}}.
+- P3 — Como {{rol}}, quiero {{hacer algo}} para {{conseguir un beneficio}}.
+
+### 1.3 — Criterios de aceptacion (en EARS suavizado)
+
+> Esta es la parte que hace el spec **testeable**. Cada criterio dice, en una estructura fija, **cuando pasa que -> el sistema DEBERA hacer que**. Espanol natural, pero conservando la estructura `condicion -> DEBERA -> respuesta`.
+>
+> Las 6 formas (usa la que corresponda en cada criterio):
+> 1. **Siempre (ubicua):** `El sistema DEBERA <respuesta>.`
+> 2. **Por evento (CUANDO):** `CUANDO <pasa esto>, el sistema DEBERA <respuesta>.`
+> 3. **Por estado (MIENTRAS):** `MIENTRAS <esta en este estado>, el sistema DEBERA <respuesta>.`
+> 4. **Por feature opcional (DONDE):** `DONDE <esta activo este modulo>, el sistema DEBERA <respuesta>.`
+> 5. **Comportamiento no deseado (SI / ENTONCES):** `SI <pasa esto malo>, ENTONCES el sistema DEBERA <respuesta>.`
+> 6. **Combinada:** encadena MIENTRAS + CUANDO antes del DEBERA.
+>
+> **Regla de cobertura:** cada feature importante necesita criterios para el **camino feliz** + los **casos borde** (cero registros, nulos, maximos, datos basura) + los **fallos** (red caida, ERP que no responde, permiso denegado). Un spec que solo cubre el camino feliz esta incompleto.
+
+**Camino feliz:**
+
+- CA-1: CUANDO {{pasa esto}}, el sistema DEBERA {{respuesta esperada}}.
+- CA-2: MIENTRAS {{esta en este estado}}, el sistema DEBERA {{respuesta esperada}}.
+- CA-3: El sistema DEBERA {{respuesta que vale siempre, ej: registrar toda accion de un admin en el audit_log}}.
+
+**Casos borde:**
+
+- CA-4: MIENTRAS {{no hay registros / lista vacia}}, el sistema DEBERA {{mostrar el estado vacio con su accion, ej: un boton importar}}.
+- CA-5: CUANDO {{el usuario carga un valor en el limite (cero, maximo, nulo, dato basura)}}, el sistema DEBERA {{respuesta esperada}}.
+
+**Fallos:**
+
+- CA-6: SI {{pasa esto malo, ej: la conexion al ERP falla}}, ENTONCES el sistema DEBERA {{reintentar / avisar / loguear en Sentry}}.
+- CA-7: SI {{un usuario sin permiso intenta la accion}}, ENTONCES el sistema DEBERA {{denegar y registrar el intento}}.
+
+<!-- Agrega los criterios que hagan falta. Cada user story P1 necesita al menos un criterio EARS. -->
+
+### 1.4 — Supuestos
+
+> Ver la seccion **`## Supuestos`** mas abajo (es una seccion propia del spec). Es lo que te permite no frenarte preguntando todo: lo no critico se asume y se deja registrado con su impacto.
+
+### 1.5 — Marcadores de ambiguedad real (raro, con tope)
+
+<!--
+Solo para una ambiguedad que NO se puede salvar con una conjetura razonable (algo que cambia ramas enteras y que el usuario no respondio). Deja el marcador literal en el texto del criterio que corresponda:
+
+    El sistema DEBERA autenticar usuarios via [NEEDS CLARIFICATION: metodo no especificado - email/password, Google, SSO?].
+
+Tope sugerido: ~3 marcadores por spec. Marca SOLO lo que cambia ramas enteras; el resto se asume y va a `## Supuestos`. Si no hay ambiguedades de este tipo, deja esta seccion vacia o borrala.
+-->
+
+- {{[NEEDS CLARIFICATION: ...] — solo si hace falta. Si no hay, escribe: "Ninguno." }}
+
+---
+
+## Artefacto 2 — DESIGN (el COMO)
+
+> Como lo construimos. Aca entra lo tecnico, explicado para que el usuario igual entienda las decisiones. Se apoya en la **matriz de stacks** del kit (no inventes stacks: usa el golden path).
+
+### 2.1 — Stack elegido (de la matriz)
+
+<!-- Que se usa y por que, una linea cada uno. Apoyate en la skill matriz-de-stacks. -->
+
+- UI: {{ej: Next.js 15 + React + shadcn/ui + Tailwind (web)}}
+- Datos: {{ej: Supabase (Postgres + RLS), Server Actions}}
+- Auth: {{ej: Supabase Auth + RLS (default) | Better Auth si hay orgs}}
+- Python (solo si aplica): {{ej: FastAPI sidecar para calculo/ETL del ERP, detras de una frontera HTTP. Si NO hay calculo numerico real / ETL / IA-ML -> todo TypeScript, sin Python.}}
+- Empaquetado / deploy: {{ej: Vercel | EAS Build | bundler Tauri}}
+
+### 2.2 — Entidades y datos
+
+<!-- Las cosas principales con las que trabaja la app (facturas, clientes, objetivos...) y como se relacionan, en lenguaje claro. Si hay tablas nuevas, nombralas y deci que campos clave llevan. -->
+
+- {{Entidad}}: {{para que sirve, campos clave, con quien se relaciona}}.
+- {{Entidad}}: {{...}}.
+
+### 2.3 — Archivos y estructura
+
+<!-- Que se va a tocar o crear, a grandes rasgos (NO archivo por archivo): que pantallas, que endpoints/acciones, que tablas. -->
+
+- Pantallas: {{...}}
+- Endpoints / acciones de servidor: {{...}}
+- Tablas / migraciones: {{...}}
+
+<!--
+SOLO EN BROWNFIELD: aca va el delta de la skill brownfield-openspec.
+Si el Tipo es greenfield, borra el bloque de abajo entero.
+-->
+
+#### Delta (solo brownfield)
+
+```markdown
+## ADDED (lo que se AGREGA)
+### Requisito: {{nombre}}
+El sistema DEBERA {{comportamiento nuevo}}.
+
+## MODIFIED (lo que CAMBIA)
+### Requisito: {{nombre}}
+El sistema DEBERA {{comportamiento actualizado}}. (Previously: {{como era antes}})
+
+## REMOVED (lo que se SACA)
+### Requisito: {{nombre}}
+({{razon de la baja}})
+
+## Lo que NO cambia (queda IGUAL)
+- {{lista explicita}} -> esto delimita el blast radius y es lo que mas tranquiliza en una app andando.
+```
+
+### 2.4 — Contratos
+
+<!-- Las "fronteras" claras entre piezas: forma de los datos que entran y salen de cada endpoint/accion, el schema de validacion (zod), y la frontera del sidecar Python si lo hay (que recibe, que devuelve, por que puerto). Estos contratos evitan que la sesion fresca improvise formatos. -->
+
+- {{Endpoint / accion}}: recibe `{{...}}`, devuelve `{{...}}`. Validacion: `{{schema zod}}`.
+- Frontera Python (si aplica): recibe `{{...}}`, devuelve `{{...}}`, por el puerto `{{...}}`.
+
+### 2.5 — Concerns transversales activos
+
+> Lista cuales concerns de la **constitution** aplican a este cambio y como se cubren. **No los inventes ni te los saltees**: cruzalos con la skill **checklist-concerns**. Marca con `[x]` los que aplican y completa el "como se cubre". Deja en `[ ]` los que no aplican (y deci en una linea por que no).
+
+- [ ] **Roles / permisos (RBAC):** {{quien ve y quien puede tocar. Recorda: CASL esconde botones en la UI, RLS es la seguridad real en la base.}}
+- [ ] **Listas / catalogos configurables desde panel:** {{lo que el negocio querria cambiar sin llamarte = fila en una tabla editable, nunca hardcodeado.}}
+- [ ] **Manejo de errores estandar:** {{que ve el usuario cuando algo falla, y que se reintenta.}}
+- [ ] **Logging / observabilidad (Sentry):** {{los errores se registran para revisarlos.}}
+- [ ] **Auditoria / activity-log:** {{quien hizo que y cuando. En apps de plata/facturacion NO es opcional.}}
+- [ ] **i18n:** {{si aplica, se decide al dia 1, es carisimo de meter despues.}}
+
+---
+
+## Artefacto 3 — TASKS (el plan, en orden)
+
+> En que orden se construye. Es la lista de pasos que la **sesion fresca** va a seguir. Cada tarea: **chica, revisable y con un criterio binario** (se cumplio: si / no, sin medias tintas).
+>
+> Reglas: ordenadas por dependencia (primero datos/schema, despues backend, despues UI); criterio binario obligatorio; tamano de un commit (cerrable en una sesion corta dejando el repo en verde: lint + typecheck + test). La ultima tarea es **siempre** la verificacion end-to-end.
+
+- [ ] T1 — {{accion concreta}}.
+      Listo cuando: {{criterio binario verificable, ej: la tabla `objetivos` existe con RLS y un admin puede crear un objetivo desde el panel}}.
+- [ ] T2 — {{accion concreta}}.
+      Listo cuando: {{criterio binario verificable}}.
+      Depende de: T1.
+- [ ] T3 — {{accion concreta}}.
+      Listo cuando: {{criterio binario verificable}}.
+      Depende de: T2.
+- [ ] T{{N}} — Verificacion end-to-end (ver seccion **Verificacion end-to-end** mas abajo).
+      Listo cuando: el recorrido completo pasa y se entrega la evidencia pedida.
+
+---
+
+## Supuestos
+
+> Va en el SPEC (artefacto 1). Es lo que te permite **no frenarte preguntando todo**: lo no critico se **asume** con una conjetura razonable y se **deja registrado** para que el usuario lo corrija de un vistazo. Cada supuesto lleva su **impacto** si estuviera equivocado.
+>
+> - **ALTO** = si me equivoco, cambia ramas enteras del diseno. Conviene confirmarlos antes de marcar READY.
+> - **MEDIO** = afecta una parte, pero se ajusta sin rehacer todo.
+> - **BAJO** = detalle cosmetico o facil de cambiar despues.
+>
+> Diferencia clave: lo que cambia ramas enteras y NO se puede asumir -> va como `[NEEDS CLARIFICATION]` (seccion 1.5). Lo que se puede asumir razonablemente -> va aca, con su impacto.
+
+- [IMPACTO ALTO] {{supuesto}}. ({{por que cambia ramas enteras si esta mal}})
+- [IMPACTO MEDIO] {{supuesto}}.
+- [IMPACTO BAJO] {{supuesto}}.
+
+---
+
+## Limites para la ejecucion (3 niveles)
+
+> Va en el spec para que la **sesion fresca** sepa que puede hacer sola, que tiene que preguntar, y que tiene PROHIBIDO. Es la red de seguridad de la corrida autonoma. Ajusta cada lista al cambio concreto, pero **siempre incluí los tres niveles**. El nivel Rojo es el que evita los desastres durante la hora autonoma.
+
+### Verde — hace esto sin preguntar
+
+- Crear/editar los archivos listados en las TASKS.
+- Correr lint, typecheck y tests.
+- Instalar las dependencias del stack ya elegido.
+- {{otra accion segura propia de este cambio}}.
+
+### Ambar — PARA y pregunta antes de hacerlo
+
+- Cambiar el schema de la base de un modo no previsto en el DESIGN.
+- Agregar una dependencia que no estaba en el plan.
+- Tomar una decision de producto que no esta en el spec.
+- {{otra accion que requiera confirmacion en este cambio}}.
+
+### Rojo — NUNCA, bajo ninguna circunstancia
+
+- Tocar datos de produccion o correr migraciones destructivas.
+- Cambiar reglas de seguridad/RLS sin que esten en el spec.
+- Borrar archivos fuera del alcance de esta feature.
+- Pushear o desplegar sin aprobacion explicita.
+- {{otra accion prohibida propia de este cambio}}.
+
+---
+
+## Verificacion end-to-end (correr al terminar)
+
+> El spec cierra con un **guion de verificacion** que la sesion fresca corre al final para **auto-corregirse** sin que vos tengas que mirar codigo. Concreto y observable.
+
+Recorrido completo, como lo haria un usuario real:
+
+1. {{accion}} -> {{resultado esperado observable}}.
+2. {{accion}} -> {{resultado esperado observable}}.
+3. Caso de error: {{provoca un fallo, ej: corta el ERP}} -> el sistema {{reintenta / avisa / loguea}} como dice el criterio EARS correspondiente.
+
+Evidencia a entregar (no un "listo"):
+
+- Salida de lint + typecheck + tests en verde.
+- Captura o descripcion del recorrido feliz funcionando.
+- Confirmacion de que el caso de fallo se maneja como dice el spec.
+
+> Regla para el usuario: cuando ejecutes el spec en la sesion fresca, **pedi esta evidencia**, no aceptes un "ya esta".
+
+---
+
+## Antes de marcar READY — auto-review
+
+> Auto-revisalo y arregla inline lo que encuentres. Cuando todo esto pasa **y el usuario lo leyo y aprobo**, cambia el Estado del encabezado a `READY`.
+
+- [ ] No quedan placeholders sin resolver (busca `{{`, `TODO`, `XXX`, `<...>`, `[NEEDS CLARIFICATION]` de mas).
+- [ ] No hay contradicciones entre SPEC, DESIGN y TASKS.
+- [ ] Cada user story P1 tiene al menos un criterio EARS.
+- [ ] Los criterios cubren camino feliz + casos borde + fallos.
+- [ ] Cada concern transversal que aplica esta contemplado (cruzalo con **checklist-concerns**).
+- [ ] Cada tarea tiene un criterio binario "Listo cuando: ...".
+- [ ] Estan las tres listas de limites (Verde / Ambar / Rojo).
+- [ ] Esta el paso de verificacion end-to-end con evidencia pedida.
+- [ ] El stack es coherente con `project.yaml` (si existe).
+
+> Para un cambio grande o sensible (plata, facturacion, permisos), ademas **delega al subagente `redteam-spec`** para que ataque el spec y reporte SOLO gaps de correctitud/requisitos (no sobre-ingenieria). Integra sus hallazgos validos.
+
+---
+
+<!--
+Skills relacionadas (referencias del kit, para el Arquitecto):
+- escribir-spec      — define COMO se llena esta plantilla (fuente de esta estructura).
+- checklist-concerns — la constitution: que concern transversal no se te puede escapar (seccion 2.5 y auto-review).
+- matriz-de-stacks   — de donde sale el stack del DESIGN (seccion 2.1).
+- brownfield-openspec — el delta ADDED/MODIFIED/REMOVED y el "que NO cambia" (seccion 2.3), solo en brownfield.
+- elicitacion-avanzada — para afilar el diseno ANTES de escribirlo, si una seccion quedo floja.
+
+Recordatorios:
+- Escribis en espanol claro (vos): el usuario lee el spec, no el codigo.
+- HALT antes de tocar este archivo: pedi el "si" explicito del usuario.
+- El spec se vuelca en 3 artefactos (SPEC -> DESIGN -> TASKS), con Supuestos, limites de 3 niveles y verificacion end-to-end.
+- Criterios de aceptacion SIEMPRE en EARS suavizado (condicion -> DEBERA -> respuesta).
+- Termina en READY recien tras auto-review + aprobacion del usuario; ejecuta una sesion fresca, no vos.
+-->

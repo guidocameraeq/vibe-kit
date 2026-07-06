@@ -1,0 +1,100 @@
+{
+  "_leeme": [
+    "QUE ES ESTE ARCHIVO --------------------------------------------------------",
+    "Este es el archivo de HOOKS del plugin vibe-kit. Un 'hook' es una regla que",
+    "Claude Code ejecuta SOLO con codigo (no es un consejo que Claude puede saltarse).",
+    "Por eso aca va lo que DEBE pasar SIEMPRE: el control de calidad. Esto materializa",
+    "el Riesgo #2 del BLUEPRINT ('CLAUDE.md y constitucion son advisory'): lo",
+    "innegociable no va en el prompt, va en un hook deterministico.",
+    "",
+    "QUE TRAE ACTIVADO -----------------------------------------------------------",
+    "1) Stop hook  -> al cerrar cada turno corre la verificacion (lint + typecheck +",
+    "                 test) usando el script verify de tu proyecto. Vos pedis EVIDENCIA,",
+    "                 no un 'listo'. (BLUEPRINT seccion 2, paso 5.)",
+    "2) PostToolUse -> cuando Claude escribe/edita codigo, marca si el cambio toca",
+    "                 API/roles/comportamiento para que despues /vibe-kit:docs-check",
+    "                 lo revise. Es la capa barata anti-drift de docs (BLUEPRINT 7).",
+    "",
+    "COMO FUNCIONAN LAS RUTAS ----------------------------------------------------",
+    "${CLAUDE_PLUGIN_ROOT} es la carpeta donde quedo instalado vibe-kit (cambia con",
+    "cada update, por eso NO se hardcodea). ${CLAUDE_PROJECT_DIR} es la raiz del",
+    "proyecto donde estas trabajando. Los scripts viven en vibe-kit/hooks/scripts/.",
+    "",
+    "QUE NECESITAS PARA QUE CORRA ------------------------------------------------",
+    "Estos hooks llaman a dos scripts de PowerShell (estas en Windows). Tenes que",
+    "crear la carpeta vibe-kit/hooks/scripts/ con verify.ps1 y mark-docs.ps1 (el",
+    "comando /vibe-kit:nueva-app deja escrito el project.yaml del que estos scripts",
+    "leen los comandos de tu stack). Mientras no existan, los hooks",
+    "fallan en silencio sin romper nada: 'exit 0' = todo OK, no bloquea el turno.",
+    "",
+    "SI ALGO NO ANDA -------------------------------------------------------------",
+    "Tras editar este archivo o agregar scripts, corre /reload-plugins para que",
+    "Claude Code lo vuelva a leer. Para ver errores de un hook arranca con --debug.",
+    "Las claves en ingles (hooks, matcher, command...) son OBLIGATORIAS asi; no las",
+    "traduzcas. Las que empiezan con guion bajo (_leeme, _nota) son comentarios mios",
+    "que Claude Code ignora."
+  ],
+
+  "hooks": {
+    "Stop": [
+      {
+        "_nota": "Al terminar el turno corre la verificacion del proyecto. El script lee project.yaml para saber que comandos de lint/typecheck/test usar segun el stack (Next.js, Expo, Tauri, FastAPI...). Si la verificacion FALLA, el script sale con exit 2 y le devuelve a Claude el error para que lo arregle antes de darte el 'listo'. Stop NO usa matcher: dispara siempre.",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/verify.ps1\""
+          }
+        ]
+      }
+    ],
+
+    "PostToolUse": [
+      {
+        "_nota": "Cada vez que Claude escribe o edita un archivo, este hook chequea si el cambio toca API/roles/comportamiento y deja una marca para que /vibe-kit:docs-check despues compare docs + CLAUDE.md + project.yaml contra el codigo real. El 'matcher' filtra por nombre de herramienta: Write|Edit|MultiEdit. Es informativo: nunca bloquea (exit 0).",
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/mark-docs.ps1\""
+          }
+        ]
+      }
+    ]
+  },
+
+  "_como_activar_o_ampliar": [
+    "ACTIVAR / PROBAR ------------------------------------------------------------",
+    "1) Crea los scripts en vibe-kit/hooks/scripts/ (verify.ps1, mark-docs.ps1).",
+    "   El minimo valido para que NO bloquee mientras los armas es un script que",
+    "   solo haga 'exit 0'.",
+    "2) Corre /reload-plugins (o reinicia Claude Code) para que tome los cambios.",
+    "3) Hace que Claude edite cualquier archivo y cierre el turno: deberias ver",
+    "   correr la verificacion automaticamente.",
+    "",
+    "EJEMPLO MINIMO de verify.ps1 (pegalo tal cual para empezar):",
+    "  # vibe-kit/hooks/scripts/verify.ps1",
+    "  # De momento no verifica nada y nunca bloquea. Reemplazalo cuando tengas",
+    "  # los comandos de tu stack (los inferis del project.yaml que escribe /vibe-kit:nueva-app).",
+    "  Write-Host 'verify: sin comandos configurados todavia (project.yaml)'",
+    "  exit 0",
+    "",
+    "COMO BLOQUEA un Stop hook cuando la verificacion falla:",
+    "  Que el script salga con 'exit 2' y escriba el error por la salida de error",
+    "  (Write-Error '...'); eso frena el cierre del turno y le pasa el texto a Claude.",
+    "  'exit 0' = todo OK. Cualquier otro codigo = error que NO bloquea.",
+    "",
+    "AGREGAR un PreToolUse que bloquee escrituras peligrosas (opcional, BLUEPRINT 7):",
+    "  Sumar dentro de 'hooks' una clave \"PreToolUse\" con matcher \"Bash\" que llame",
+    "  a un script block-peligrosos.ps1; ese script lee el comando por stdin (JSON,",
+    "  campo tool_input.command) y devuelve permissionDecision 'deny' si detecta",
+    "  cosas como borrar /migrations o un rm masivo. Lo dejamos APAGADO por ahora",
+    "  para no estorbar; se enciende cuando ya tengas el script.",
+    "",
+    "NOTA SOBRE PLUGIN vs PROYECTO ----------------------------------------------",
+    "Estos hooks viajan DENTRO del plugin y aplican en todos los proyectos donde",
+    "vibe-kit este activo. Si en UN proyecto puntual queres hooks distintos, esos",
+    "van en .claude/settings.json del proyecto (ahi los hooks viven bajo la clave",
+    "'hooks', NO en un archivo hooks.json suelto: el hooks.json separado solo es",
+    "valido aca, dentro de un plugin)."
+  ]
+}

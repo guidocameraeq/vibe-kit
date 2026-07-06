@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "vibe-kit-marketplace",
+  "owner": {
+    "name": "eq.chatgpt",
+    "email": "eq.chatgpt@gmail.com"
+  },
+  "description": "Marketplace personal para instalar vibe-kit: el plugin que mete al Arquitecto, las skills, los subagentes, los comandos y los hooks de vibe coding en todos tus proyectos de Claude Code. Agregalo con /plugin marketplace add y despues instalalo con /plugin install vibe-kit.",
+  "plugins": [
+    {
+      "name": "vibe-kit",
+      "source": ".",
+      "description": "Kit reusable de vibe coding para Claude Code, en espanol rioplatense y para quien NO programa. Trae el comando /arquitecto (te entrevista, no toca codigo y escribe el spec a disco), los comandos /feature, /fix, /nueva-app, /release, /docs-check y /crear-rol, los subagentes explorador-codigo, redteam-spec, doc-keeper y reviewer, y las skills de descubrimiento, elicitacion, escritura de specs, matriz de stacks y orquestacion. Deja resueltos los concerns que siempre se olvidan: roles y permisos, listas configurables desde panel, manejo de errores y logging."
+    }
+  ]
+}

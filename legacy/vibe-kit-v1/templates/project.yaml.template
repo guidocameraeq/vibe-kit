@@ -1,0 +1,259 @@
+# ============================================================================
+#  project.yaml — el CONTRATO de tu proyecto (la fuente de verdad portable)
+# ============================================================================
+#
+#  Este archivo vive en la RAIZ de cada proyecto (al lado de tu CLAUDE.md).
+#
+#  ¿Que es? Un archivo chiquito, casi en lenguaje natural, que declara QUE es
+#  tu proyecto: como se llama, que tipo de app es, que stack usa, que "concerns"
+#  transversales tiene prendidos (roles, listas, errores, logging...) y como
+#  queres que Claude se organice.
+#
+#  ¿Por que existe? Tu memoria automatica de Claude Code es LOCAL: si cambias de
+#  PC, se pierde. Este archivo se versiona en git y viaja con el proyecto. Es lo
+#  unico que sobrevive a todo. Los comandos del kit (/vibe-kit:nueva-app, /vibe-kit:feature,
+#  /vibe-kit:docs-check) lo LEEN para saber que hacer; vos lo editas a mano si hace falta.
+#
+#  ¿Como lo lleno? Normalmente NO lo escribis a mano. La skill /nueva-app te hace
+#  6-9 preguntas y lo escribe por vos. Igual te conviene entender que dice cada
+#  campo, porque es el "panel de control" de tu proyecto.
+#
+#  Reglas para editarlo a mano:
+#   - Es formato YAML. La indentacion (los espacios) IMPORTA: usa 2 espacios,
+#     nunca tabs. Si algo se rompe, casi siempre es la indentacion.
+#   - Texto con dos puntos ":" o caracteres raros -> ponelo entre comillas "asi".
+#   - Las lineas que empiezan con # son comentarios (Claude las ignora).
+#   - Cuando no sepas un valor, dejalo en NEEDS_CLARIFICATION (ver mas abajo):
+#     es mejor marcarlo que inventarlo.
+#
+#  Convencion del kit: lo que todavia no esta decidido se escribe asi ->
+#     algun_campo: NEEDS_CLARIFICATION   # por que / que falta decidir
+#  El Arquitecto lo va a ver y te lo va a preguntar antes de avanzar.
+# ============================================================================
+
+
+# ----------------------------------------------------------------------------
+# schema_version — version del FORMATO de este archivo (no de tu app)
+# ----------------------------------------------------------------------------
+# Sirve para que las skills del kit avisen si tu project.yaml quedo viejo
+# respecto del plugin instalado. NO lo toques vos: lo maneja el kit.
+schema_version: "1.0.0"
+
+
+# ----------------------------------------------------------------------------
+# app — la identidad de tu proyecto (el "que es y para quien")
+# ----------------------------------------------------------------------------
+app:
+  # Nombre corto del proyecto (en kebab-case, sin espacios ni mayusculas).
+  # Ej: facturacion-erp, panel-objetivos, mi-tienda
+  name: "mi-app"
+
+  # Tipo de app. Esta es LA pregunta raiz: fija el carril y el stack.
+  # Valores validos (elegi UNO):
+  #   web      -> corre en el navegador desde cualquier compu (Next.js)
+  #   android  -> APK para celular Android (Expo)
+  #   windows  -> programa de escritorio para Windows (Tauri)
+  #   datos    -> sobre todo procesa datos / dashboards (caso ERP: puede entrar Python)
+  type: "web"
+
+  # Descripcion en UNA linea, en castellano claro. Esto termina siendo la
+  # primera linea de tu CLAUDE.md. Deci QUE hace y PARA QUIEN.
+  # Ej: "Levanta la facturacion del ERP, la procesa y muestra objetivos comerciales."
+  description: "Una linea que explica que hace la app y a quien le sirve."
+
+  # Las "cosas" principales con las que trabaja la app (las entidades del dominio).
+  # Alimentan el diseño de la base de datos y los specs. Listalas en castellano.
+  # Ej: [facturas, clientes, productos, objetivos]
+  entities:
+    - entidad-1
+    - entidad-2
+
+
+# ----------------------------------------------------------------------------
+# stack — las herramientas que usa la app (sale de la MATRIZ de stacks del kit)
+# ----------------------------------------------------------------------------
+# Regla de oro: cimiento JS/TypeScript. Python entra SOLO como especialista de
+# datos, detras de una frontera (nunca mezclado con la UI). Ver el campo python.
+#
+# Estos defaults son el "golden path": si no sabes que poner, dejalos. El kit
+# elige los valores correctos segun app.type cuando corre /vibe-kit:nueva-app.
+stack:
+  # Capa de interfaz (lo que el usuario ve y toca).
+  #   web     -> "nextjs"  (Next.js 15 + React + shadcn/ui + Tailwind)
+  #   android -> "expo"    (Expo + Expo Router + NativeWind)
+  #   windows -> "tauri"   (Tauri 2 + front React reusado)
+  #   datos   -> "tauri"   (Tauri 2 + React + dashboards Recharts/Tremor)
+  ui: "nextjs"
+
+  # Capa de datos (donde viven los datos).
+  #   "supabase"      -> Postgres + Auth + RLS (DEFAULT, casi siempre esto)
+  #   "supabase+duckdb" -> caso app de datos: Postgres remoto + DuckDB local
+  #   "sqlite"        -> solo local, app de una sola PC sin login
+  datos: "supabase"
+
+  # Capa de autenticacion / login (ver tambien concern auth mas abajo).
+  #   "supabase-auth" -> DEFAULT (login + permisos via RLS)
+  #   "better-auth"   -> si hay organizaciones/empresas separadas desde el dia 1
+  #   "local"         -> login local, sin nube
+  #   "ninguna"       -> la app no necesita que la gente inicie sesion
+  auth: "supabase-auth"
+
+  # Como se empaqueta / distribuye la app final.
+  #   web     -> "vercel" (o "docker" para self-host)
+  #   android -> "eas"    (EAS Build: .apk/.aab + OTA)
+  #   windows -> "tauri-bundler" (.msi/.exe + updater)
+  #   datos   -> "tauri-bundler"
+  empaquetado: "vercel"
+
+  # ¿Entra Python? (la "regla de oro Python")
+  # Prendelo (enabled: true) SOLO si hay alguna de estas tres:
+  #   1) calculo numerico/estadistico real
+  #   2) ETL de un ERP / Excel
+  #   3) IA / ML
+  # Todo lo demas (CRUD, auth, UI, paneles, dashboards simples) = TypeScript.
+  # Si lo prendes, Python vive SIEMPRE detras de una frontera (FastAPI sidecar
+  # o Edge Function), nunca pegado a la UI.
+  python:
+    enabled: false
+    # Como se conecta Python con el resto (solo importa si enabled: true):
+    #   "fastapi-sidecar" -> proceso aparte (caso Windows/datos: FastAPI + pandas/polars)
+    #   "edge-function"   -> funcion en la nube para calculo puntual
+    frontera: "fastapi-sidecar"
+    # Para que entra Python (1 linea). Ej: "Levanta facturacion del ERP y aplica formulas."
+    motivo: ""
+
+
+# ----------------------------------------------------------------------------
+# concerns — los "modulos transversales" que tu app tiene PRENDIDOS
+# ----------------------------------------------------------------------------
+# Esto es el corazon del kit: la lista de cosas que SIEMPRE te olvidas y despues
+# duelen carisimo de meter tarde (roles, listas configurables, logging...).
+# Cada concern prendido (enabled: true) se materializa en 4 lugares:
+#   constitucion + regla en .claude/rules/ + libreria recomendada + item de checklist.
+#
+# Filosofia del kit: DEFAULT ON en los que mas duelen. Apagar es una decision
+# consciente, no un olvido. Los marcados ⚠️ son "ahora o nunca" (caros de
+# retrofitear): si dudas, dejalos prendidos.
+concerns:
+
+  # --- Prendidos por default (los que mas duelen si se olvidan) ---
+
+  # Roles / permisos / RBAC. Quien puede hacer que.
+  # libreria: Supabase Auth + RLS (la verdad) + CASL en la UI (esconder botones).
+  # OJO: CASL decide que se VE; RLS decide que se puede TOCAR. Necesitas las dos.
+  roles_permisos:
+    enabled: true
+
+  # Listas / catalogos configurables desde un panel.
+  # Lo que el negocio querria cambiar sin llamarte (categorias, sucursales,
+  # vendedores, estados...) = fila en una tabla, NUNCA hardcodeado.
+  # libreria: tablas Postgres + Refine o React-Admin.
+  listas_configurables:
+    enabled: true
+
+  # Manejo de errores estandar. Que pasa cuando algo falla (ej: el ERP no responde):
+  # reintentar, avisar claro y registrar.
+  manejo_errores:
+    enabled: true
+
+  # Logging / observabilidad. Para enterarte de los errores en produccion.
+  # libreria: Sentry (anda en nextjs, react-native, tauri y python).
+  logging:
+    enabled: true
+
+  # Auditoria / activity-log. Quien hizo que y cuando.
+  # ⚠️ NO opcional en apps de facturacion / ERP / plata.
+  # libreria: triggers Postgres -> tabla audit_log.
+  auditoria:
+    enabled: true
+
+  # i18n (idiomas). ⚠️ Carisimo de meter tarde: si la app va a ser multi-idioma,
+  # se estructura desde el dia 1. Si es solo castellano, podes apagarlo.
+  # libreria: next-intl (web) / i18next + expo-localization (Android).
+  i18n:
+    enabled: false
+
+  # --- Apagados por default (prendelos solo si los necesitas) ---
+
+  # Multi-tenant: varias empresas/organizaciones separadas en una sola base.
+  # ⚠️⚠️ IRREVERSIBLE: se decide AL INICIO o nunca. Si dos clientes distintos
+  # van a usar la misma app sin verse los datos -> prendelo.
+  # libreria: columna tenant_id + RLS.
+  multi_tenant:
+    enabled: false
+
+  # Feature flags: encender/apagar funciones sin volver a publicar la app.
+  # OJO: un flag NO es lo mismo que un setting de negocio (eso va en listas_configurables).
+  feature_flags:
+    enabled: false
+
+  # Notificaciones (avisos por push / mail / in-app).
+  # libreria: Novu + expo-notifications (push) + Resend/React Email (mail).
+  notificaciones:
+    enabled: false
+
+  # Settings / preferencias de usuario y de app.
+  # Mismo panel que los catalogos. libreria: tablas user_settings/app_settings.
+  settings:
+    enabled: false
+
+  # Realtime (datos que se actualizan solos en pantalla).
+  # libreria: Supabase Realtime.
+  realtime:
+    enabled: false
+
+
+# ----------------------------------------------------------------------------
+# orquestacion — como queres que Claude se organice (el "nivel de rigor")
+# ----------------------------------------------------------------------------
+# Esto controla cuantos "frenos de seguridad" tiene tu flujo. Mas rigor = mas
+# pausas para que vos revises y apruebes (en castellano, nunca codigo).
+orquestacion:
+
+  # Nivel de rigor general. Elegi UNO:
+  #   "liviano"  -> pocos gates. Para prototipos y cosas chicas.
+  #   "estandar" -> DEFAULT. Plan + spec en las features grandes, verificacion al cerrar.
+  #   "estricto" -> maximos gates. Para apps de plata/ERP donde un error cuesta caro.
+  nivel_rigor: "estandar"
+
+  # Plan Mode: que Claude discuta y planee (read-only, sin tocar codigo) ANTES
+  # de ejecutar. Recomendado: dejalo "siempre" en tu primer mes y aflojalo despues.
+  #   "siempre"   -> Plan Mode prendido en toda feature (lo mas seguro)
+  #   "no-trivial"-> Plan Mode salvo cambios de una frase
+  #   "manual"    -> lo activas vos con Shift+Tab cuando quieras
+  plan_mode: "siempre"
+
+  # Verificacion al cerrar cada turno (el Stop hook corre lint + typecheck + test).
+  # Pedi EVIDENCIA, no un "listo". Recomendado dejarlo prendido.
+  verificacion_automatica: true
+
+  # Subagentes ayudantes que el Arquitecto puede lanzar (contexto aislado).
+  # Son read-only salvo donde se aclare. Maximo 3-5. Dejalos prendidos:
+  #   explorador-codigo -> explora el codigo existente (brownfield)
+  #   redteam-spec      -> ataca el spec buscando agujeros antes de construir
+  #   doc-keeper        -> avisa cuando las docs quedan desactualizadas
+  #   reviewer          -> revision adversarial (solo reporta, no edita)
+  subagentes:
+    - explorador-codigo
+    - redteam-spec
+    - doc-keeper
+    - reviewer
+
+
+# ----------------------------------------------------------------------------
+# deploy — donde y como sale la app a produccion
+# ----------------------------------------------------------------------------
+deploy:
+  # Destino segun el tipo de app:
+  #   web     -> "vercel" o "self-host"
+  #   android -> "eas"
+  #   windows -> "tauri-bundler"
+  #   datos   -> "tauri-bundler"
+  destino: "vercel"
+
+  # ¿Releases automaticos con GitHub? Activa /release (Conventional Commits +
+  # version semantica + CHANGELOG + PR). Necesitas el 'gh' CLI instalado.
+  github_releases: true
+
+  # Rama principal del repo (casi siempre "main").
+  rama_principal: "main"

@@ -1,0 +1,43 @@
+{
+  "_LEEME": "Renombrar a .claude/settings.json. Se versiona con el repo. Reemplazar los {{...}} por los comandos reales de las skills del proyecto (o borrar esas líneas). Allowlist MODERADA: git local + comandos de las skills + lecturas frecuentes; todo lo destructivo (reset, force-push, DROP/DELETE, restarts, ssh de escritura) queda en 'preguntar'.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/check-code.js\""
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git status)",
+      "Bash(git status:*)",
+      "Bash(git log:*)",
+      "Bash(git diff:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(git push:*)",
+      "Bash(git pull:*)",
+      "Bash(bash -n:*)",
+      "Bash({{COMANDO_SALUD_OPCIONAL}})",
+      "Bash({{COMANDOS_DE_LAS_SKILLS}})"
+    ]
+  }
+}

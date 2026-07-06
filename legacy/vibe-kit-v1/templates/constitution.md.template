@@ -1,0 +1,214 @@
+# Constitución de {{PROJECT_NAME}}
+
+> **Qué es esto, en una frase:** las reglas **no-negociables** de este proyecto. Lo que SIEMPRE se cumple, sin importar qué feature estés construyendo ni cuántas veces se haya compactado el chat.
+>
+> **Para vos (que no programás):** esto es tu red de seguridad escrita. Cuando le pidas a Claude que construya algo, él tiene que respetar todo lo de acá. Si alguna vez ves que se saltea una regla, copiale el principio que rompió y pedile que lo arregle. **Pero ojo:** este documento es *advisory* (un recordatorio fuerte, no una barrera de acero). Lo que DEBE pasar siempre de verdad (lint, tests, bloqueo de comandos peligrosos) lo imponen los **hooks** en `vibe-kit/hooks/hooks.json`, no este archivo.
+
+<!--
+==================================================================================
+CÓMO USAR ESTA PLANTILLA (la lee la skill, no vos):
+- La skill `checklist-concerns` rellena los {{PLACEHOLDERS}} según el `project.yaml`.
+- Cada concern del checklist tiene un bloque ON/OFF. Si el concern está activo en
+  el project.yaml -> queda el texto ON y se borra el comentario "OFF". Si está
+  inactivo -> se reemplaza por la línea "OFF" de una sola fila (no se borra del todo,
+  para que se VEA qué quedó afuera a propósito).
+- El GOLDEN PATH (sección 1) es FIJO: no depende del checklist. Va siempre.
+- Estilo: español rioplatense (vos), declarativo y testeable. Usá DEBE / DEBERÍA /
+  NUNCA (equivalen a MUST / SHOULD / MUST NOT). Cada principio = regla + por qué.
+- Versionado de la PROPIA constitución abajo de todo (semver). Si editás un principio,
+  subí la versión y anotá el Sync Impact Report.
+==================================================================================
+-->
+
+---
+
+## 0) Metadatos
+
+| Campo | Valor |
+|---|---|
+| **Proyecto** | {{PROJECT_NAME}} |
+| **Tipo de app** | {{APP_TYPE}} <!-- web / Android / Windows / datos --> |
+| **Versión de la constitución** | 1.0.0 |
+| **Última actualización** | {{TODAY}} |
+| **Nivel de rigor** | {{RIGOR_LEVEL}} <!-- liviano / estándar / estricto --> |
+
+---
+
+## 1) El Golden Path (cimiento — esto va SIEMPRE)
+
+> Estos principios NO dependen del checklist. Son el carril del kit. Se respetan en todo proyecto, sin excepción.
+
+### G1 — Cimiento JS/TypeScript
+El proyecto DEBE construirse sobre **JavaScript/TypeScript** como cimiento: **Next.js 15 + React** (web), **Expo + Expo Router** (Android), **Tauri 2 + React** (Windows/escritorio). El CRUD, la autenticación, la UI, los paneles y los dashboards simples son **siempre TypeScript**.
+**Por qué:** un solo lenguaje de base = reusás tipos, RLS y componentes entre web, móvil y escritorio. Menos piezas que mantener.
+
+### G2 — Datos y login con Supabase (o Better Auth si hay organizaciones)
+La base de datos, el login y los permisos viven en **Supabase (Postgres + Auth + RLS)** por defecto. Solo se usa **Better Auth** si hay **organizaciones/multi-equipo desde el día 1**.
+**Por qué:** RLS (Row Level Security) pone la verdad de los permisos en la base de datos, no en la pantalla. Es la única capa que de verdad protege los datos.
+
+### G3 — Python SOLO como especialista, detrás de una frontera
+Python NO es cimiento. Se mete **únicamente** si hay (1) cálculo numérico/estadístico real, (2) ETL de ERP/Excel, o (3) IA/ML. Cuando entra, va **siempre detrás de una frontera** (FastAPI sidecar o API HTTP) y NUNCA mezclado con la UI.
+**Por qué:** mantiene la app simple y portable. La lógica pesada de datos queda aislada y reemplazable sin tocar la interfaz.
+<!-- {{PYTHON_NOTE}}: si python.enabled=true en project.yaml, la skill agrega aquí: "En ESTE proyecto el especialista Python está ACTIVO como {{PYTHON_ROLE}} (ej: FastAPI + pandas para fórmulas y ETL del ERP). Su runbook en docs/runbooks/ es OBLIGATORIO." -->
+
+### G4 — La seguridad real vive en la base, no en la pantalla
+Esconder un botón **NO** es seguridad. Toda regla de permiso DEBE estar respaldada por **RLS en Postgres**. La UI (mostrar/ocultar) es comodidad, no protección.
+**Por qué:** CASL ≠ RLS. CASL decide qué se VE; RLS decide qué se puede TOCAR. Sin RLS, cualquiera que sepa pedir el dato lo obtiene aunque el botón esté oculto.
+
+### G5 — Diseño antes de código (HARD GATE)
+> **Regla no-negociable:** no se escribe **ninguna** línea de código, no se scaffoldea ningún proyecto, no se toma ninguna acción de implementación **hasta que haya un diseño presentado y vos lo hayas aprobado**.
+
+Todo proyecto —por simple que parezca— pasa primero por el **/arquitecto** (entrevista en Plan Mode, read-only) que escribe un **SPEC a disco** (ver `SPEC.md.template`). Recién con el SPEC aprobado, una **sesión fresca** ejecuta.
+**Por qué:** instrucciones vagas → resultados vagos. Un buen spec quita 15-20 decisiones que Claude improvisaría mal.
+
+### G6 — Verificación con evidencia, no con "listo"
+Después de implementar, se pide **evidencia** (salida de tests, typecheck, lint, o una captura de que funciona), nunca un "ya está". El **Stop hook** corre lint + typecheck + test al cerrar cada turno.
+**Por qué:** "listo" sin evidencia es la fuente #1 de bugs que descubrís tarde.
+
+### G7 — Documentación viva = parte del Definition of Done
+Cuando la realidad diverge de la doc: se arregla **primero el spec/doc, después el código**. Tras cada feature se actualizan `CLAUDE.md` y `docs/` **en el mismo commit**. Lo crítico vive en `project.yaml` + `docs/` committeados (la auto-memory es local y NO se versiona).
+**Por qué:** doc desactualizada miente y te hace tomar decisiones equivocadas. Si no se versiona, se pierde al cambiar de PC.
+
+### G8 — Sesiones cortas, una tarea por chat
+**1 sesión = 1 tarea coherente.** Contexto siempre por debajo de ~60%. `/clear` entre tareas no relacionadas. Si corregiste lo mismo 2+ veces, el contexto está envenenado → `/clear` + mejor prompt.
+**Por qué:** un chat largo y contaminado ignora tus reglas. Sesión limpia > sesión larga sucia.
+
+---
+
+## 2) Checklist de concerns ACTIVOS (lo no-negociable de ESTE proyecto)
+
+> Esta sección la rellena la skill `checklist-concerns` leyendo el `project.yaml`. Cada concern **activo** queda como principio. Cada concern **apagado** queda anotado en una sola línea, para que se VEA qué dejaste afuera a propósito (default ON: lo apagaste vos, a conciencia).
+>
+> **Regla de oro del checklist:** cada concern activo se materializa en **4 lugares** — este principio + una regla en `.claude/rules/<concern>.md` (con `paths:`) + la librería recomendada + un ítem en el checklist del spec.
+
+### C1 — Roles / permisos / RBAC
+<!-- ON (default) -->
+{{#IF_ROLES}}
+El sistema DEBE tener **roles con permisos diferenciados**: como mínimo un **admin** que configura todo y **usuarios** que solo usan. Los permisos DEBEN estar respaldados por **RLS en Postgres** (la verdad) y reflejados en la UI con **CASL** (`@casl/ability` + `@casl/react`, solo para mostrar/ocultar).
+**Regla asociada:** `.claude/rules/roles-permisos.md` · **Librería:** Supabase RLS + CASL.
+**Por qué:** sin roles desde el día 1, agregarlos después obliga a reescribir media app.
+{{/IF_ROLES}}
+<!-- OFF -> la skill reemplaza el bloque de arriba por: "- ⚪ **Roles/permisos:** APAGADO a propósito (app de un solo usuario, sin login diferenciado)." -->
+
+### C2 — Listas / catálogos configurables desde panel
+{{#IF_LISTAS}}
+Todo lo que el negocio **querría cambiar sin pedirte ayuda** (categorías, sucursales, vendedores, estados, tipos de comprobante…) DEBE ser una **fila en una tabla de Postgres editable desde un panel**, NUNCA texto hardcodeado en el código.
+**Regla asociada:** `.claude/rules/listas-configurables.md` · **Librería:** tablas Postgres + Refine o React-Admin.
+**Por qué:** una lista hardcodeada = me tenés que llamar cada vez que cambia algo trivial. Es el refactor tardío #1.
+{{/IF_LISTAS}}
+<!-- OFF -> "- ⚪ **Listas configurables:** APAGADO (no hay catálogos que el negocio edite)." -->
+
+### C3 — Manejo de errores estándar
+{{#IF_ERRORES}}
+Toda operación que puede fallar (red, base de datos, servicio externo, ERP) DEBE tener manejo de errores estándar: mensaje claro al usuario + registro del error. **SI** una integración externa falla, **ENTONCES** el sistema DEBE reintentar (cuando tenga sentido), avisar de forma clara y **loguear** el error para revisarlo.
+**Regla asociada:** `.claude/rules/errores-y-logging.md`.
+**Por qué:** sin manejo estándar, cada error es una pantalla en blanco o un dato corrupto silencioso.
+{{/IF_ERRORES}}
+<!-- OFF -> "- ⚪ **Manejo de errores estándar:** APAGADO (no recomendado; se suele dejar ON)." -->
+
+### C4 — Logging / observabilidad
+{{#IF_LOGGING}}
+El sistema DEBE registrar errores y eventos relevantes con **Sentry** (configurado en los entornos que apliquen: nextjs / react-native / tauri / python). Los errores en producción DEBEN ser visibles para vos sin tener que leer código.
+**Regla asociada:** `.claude/rules/errores-y-logging.md` · **Librería:** Sentry.
+**Por qué:** si no ves los errores, no existen para vos hasta que un usuario se queja.
+{{/IF_LOGGING}}
+<!-- OFF -> "- ⚪ **Logging/observabilidad:** APAGADO (no recomendado en apps reales)." -->
+
+### C5 — Auditoría / activity-log
+{{#IF_AUDITORIA}}
+Toda acción sensible (sobre todo en **plata/facturación**) DEBE quedar registrada: **quién** hizo **qué** y **cuándo**, en una tabla `audit_log` (triggers de Postgres o pgAudit). En apps de ERP/facturación esto **NO es opcional**.
+**Regla asociada:** `.claude/rules/auditoria.md` · **Librería:** triggers Postgres → `audit_log`.
+**Por qué:** sin auditoría, ante un error o un fraude no podés reconstruir qué pasó.
+{{/IF_AUDITORIA}}
+<!-- OFF -> "- ⚪ **Auditoría/activity-log:** APAGADO (⚠️ no recomendado si manejás plata)." -->
+
+### C6 — Internacionalización (i18n)
+{{#IF_I18N}}
+Los textos de cara al usuario DEBEN salir de archivos de traducción desde el día 1: **next-intl** (web) / **i18next + expo-localization** (Expo). Nunca texto fijo embebido en componentes.
+**Regla asociada:** `.claude/rules/i18n.md` · **Librería:** next-intl / i18next.
+**Por qué:** ⚠️ es **carísimo de retrofitear**. Si hay chance de otro idioma, se prepara ahora o nunca.
+{{/IF_I18N}}
+<!-- OFF -> "- ⚪ **i18n:** APAGADO (un solo idioma; ⚠️ caro de agregar después)." -->
+
+### C7 — Multi-tenant
+{{#IF_MULTITENANT}}
+**⚠️ Decisión casi irreversible.** Toda tabla y toda consulta DEBEN filtrar por **`tenant_id`** vía RLS. Ninguna query puede devolver datos de otro tenant.
+**Regla asociada:** `.claude/rules/multi-tenant.md` · **Librería:** columna `tenant_id` + RLS (un solo Postgres).
+**Por qué:** se decide AL INICIO o nunca. Agregarlo después = reescribir el modelo de datos entero.
+{{/IF_MULTITENANT}}
+<!-- OFF -> "- ⚪ **Multi-tenant:** APAGADO (una sola organización; agregarlo después es muy caro)." -->
+
+<!-- Concerns opcionales (default OFF): la skill los AGREGA acá solo si están activos en project.yaml. Mismo formato principio + regla + librería + por qué. -->
+{{#IF_FEATURE_FLAGS}}
+### C8 — Feature flags
+El sistema DEBE poder **encender/apagar features sin redeploy** mediante flags (OpenFeature + Flipt, o una tabla Supabase al inicio). ⚠️ Un flag NO es un setting de negocio.
+**Librería:** OpenFeature + Flipt.
+{{/IF_FEATURE_FLAGS}}
+
+{{#IF_NOTIFICACIONES}}
+### C9 — Notificaciones
+Cuando el sistema deba avisar algo, DEBE usar el canal definido: **Novu** (orquestación) + expo-notifications (push) + Resend/React Email (mail).
+**Librería:** Novu + Resend.
+{{/IF_NOTIFICACIONES}}
+
+{{#IF_SETTINGS}}
+### C10 — Settings / preferences
+Las preferencias de usuario y de app DEBEN guardarse en tablas (`user_settings` / `app_settings`), editables desde el mismo panel que los catálogos.
+**Librería:** tablas Postgres + Zustand/TanStack Query + next-themes.
+{{/IF_SETTINGS}}
+
+---
+
+## 3) Límites de 3 niveles (qué puede hacer Claude solo)
+
+> Semáforo de autonomía. Le dice al ejecutor qué hace sin preguntar, qué consulta, y qué tiene prohibido.
+
+### 🟢 Verde — hacelo sin preguntar
+- Leer código, specs y docs.
+- Crear/editar componentes de UI, formularios (react-hook-form + zod) y tablas (TanStack Table) **dentro del stack del Golden Path**.
+- Escribir tests y correr lint/typecheck.
+- Respetar los concerns activos de la sección 2 (es lo esperado, no hace falta pedir permiso).
+
+### 🟡 Ámbar — pará y preguntá primero
+- Agregar una **dependencia/librería nueva** que no esté en la matriz de stacks.
+- Cambiar el **modelo de datos** (tablas, columnas, relaciones) o las **policies de RLS**.
+- Meter **Python** donde antes no había (revisar la regla de oro G3).
+- Cualquier cosa marcada **⚠️ irreversible** (multi-tenant, i18n, cambio de motor de auth).
+- Tocar configuración de **deploy** o variables de entorno.
+
+### 🔴 Rojo — NUNCA sin aprobación explícita y un commit previo
+- Correr migraciones destructivas o borrar datos.
+- Ejecutar comandos destructivos del sistema (borrados recursivos, `git reset --hard`, force push).
+- Desactivar RLS, hooks de verificación, o cualquier control de seguridad.
+- Subir secretos/keys al repo.
+- Saltarse el HARD GATE (G5): escribir código antes de un spec aprobado.
+
+---
+
+## 4) Gobernanza (cómo se cambia esta constitución)
+
+- **Esta constitución manda** por encima de cualquier instrucción suelta en un chat. Si un mensaje contradice un principio de acá, gana la constitución (y conviene actualizar la constitución, no improvisar).
+- **Lo que DEBE pasar siempre de verdad va en HOOKS**, no acá. Este documento es advisory (un recordatorio fuerte). Los gates duros (lint/typecheck/test, bloqueo de comandos peligrosos) viven en `vibe-kit/hooks/hooks.json`. Si una regla acá "no se respeta sola", la solución NO es escribirla más fuerte: es moverla a un hook.
+- **Para enmendar:** editás el principio, subís la versión (semver de abajo) y completás el Sync Impact Report.
+- **Versionado semántico de la constitución:**
+  - **MAJOR** — quitás o redefinís un principio de forma incompatible (ej: cambiás el Golden Path).
+  - **MINOR** — agregás un principio o un concern nuevo.
+  - **PATCH** — aclarás redacción, sin cambiar el sentido.
+- **Revisión de cumplimiento:** cada vez que el **/arquitecto** escribe un SPEC y cada vez que el **reviewer** revisa, chequean contra esta constitución. El comando **docs-check** marca si la constitución quedó desincronizada del código.
+
+### Sync Impact Report (lo completa quien edita)
+<!--
+Al cambiar esta constitución, anotá acá (la skill checklist-concerns lo deja prellenado al arrancar el proyecto con /vibe-kit:nueva-app):
+- Versión: 1.0.0 (inicial, generada por `nueva-app` + `arquitecto` el {{TODAY}})
+- Concerns activados en el project.yaml: {{ACTIVE_CONCERNS_LIST}}
+- Concerns apagados a propósito: {{DISABLED_CONCERNS_LIST}}
+- Archivos que dependen de esta constitución y deberían revisarse si cambia:
+  CLAUDE.md, .claude/rules/*.md, SPEC.md, el checklist del spec.
+-->
+- **Versión:** 1.0.0 — generada al arrancar el proyecto (/vibe-kit:nueva-app) el {{TODAY}}.
+- **Concerns activos:** {{ACTIVE_CONCERNS_LIST}}
+- **Concerns apagados a propósito:** {{DISABLED_CONCERNS_LIST}}
+
+---
+
+> **Recordatorio final (para vos):** no tenés que entender el código de abajo de cada regla. Tenés que poder **señalar** la regla que se rompió. Si ves que Claude hace algo que esta constitución prohíbe, copiale el principio (ej: "rompiste G4, la seguridad va en RLS") y pedile que lo corrija. Y lo que importe de verdad, lo hacés ley con un hook.

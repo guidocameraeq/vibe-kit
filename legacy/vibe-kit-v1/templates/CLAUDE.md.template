@@ -1,0 +1,94 @@
+<!--
+  PLANTILLA: CLAUDE.md de proyecto (vibe-kit)
+  Como se usa:
+    - El comando /vibe-kit:nueva-app (y, despues, /vibe-kit:arquitecto) rellenan los {{placeholders}}
+      leyendo el project.yaml de la raiz. Vos podes editarlo a mano cuando algo cambie.
+    - Va en la RAIZ del proyecto y SE COMMITEA a git (es la memoria compartida con Claude).
+  Reglas de oro (no las borres, son para vos):
+    - CORTO: objetivo 30-80 lineas, tope duro <150. Un CLAUDE.md inflado hace que Claude
+      IGNORE tus reglas reales. Test por linea: "si la borro, Claude se equivoca?" Si no -> borrala.
+    - NO pongas: lo que Claude deduce leyendo el codigo, convenciones estandar, docs de API
+      (linkealas), nada que cambie seguido, ni reglas que un linter ya impone.
+    - Lo que DEBE pasar SIEMPRE no va aca (esto es advisory): va en hooks deterministas
+      (Stop hook de lint/test) y en la constitution.md.
+  Borra estos comentarios <!-- --> al terminar de rellenar; en el archivo final no van.
+-->
+
+# {{NOMBRE_DEL_PROYECTO}}
+
+<!-- 1) DESCRIPCION EN 1 LINEA: que es y para quien. La sale del cuestionario de arranque. -->
+{{DESCRIPCION_UNA_LINEA}}
+
+<!-- Contrato portable: las skills leen project.yaml; la constitution tiene los principios no-negociables. -->
+- Contrato del proyecto: `project.yaml` (stack + concerns activos + politica de orquestacion).
+- Principios no-negociables: `constitution.md`.
+- Reglas por tema (se cargan solas segun el archivo que tocas): `.claude/rules/*.md`.
+
+## Tech stack
+<!-- 2) STACK CON VERSIONES. Solo lo que define decisiones. Sale de la matriz de stacks (golden path). -->
+- Tipo de app: {{TIPO_APP}} <!-- web / Android / Windows / datos -->
+- UI: {{UI_STACK}} <!-- ej: Next.js 15 + React + shadcn/ui + Tailwind -->
+- Datos: {{DATOS_STACK}} <!-- ej: Supabase (Postgres + RLS), Server Actions -->
+- Auth: {{AUTH_STACK}} <!-- ej: Supabase Auth + RLS (default) / Better Auth si hay orgs -->
+- Python (solo especialista de datos, detras de una frontera): {{PYTHON_FRONTERA}} <!-- ej: FastAPI sidecar + pandas / "no aplica" -->
+- Empaquetado / deploy: {{EMPAQUETADO}} <!-- ej: Vercel / EAS / bundler Tauri -->
+
+## Comandos exactos
+<!-- 3) MAYOR ROI de todo el archivo: los comandos REALES, copiados tal cual. Si no existe alguno, ponelo en blanco o "no aplica". -->
+- Instalar deps: `{{CMD_INSTALL}}`
+- Levantar en local: `{{CMD_RUN}}`
+- Build: `{{CMD_BUILD}}`
+- Tests: `{{CMD_TEST}}`
+- Lint + typecheck: `{{CMD_LINT}}`
+- Deploy: `{{CMD_DEPLOY}}`
+<!-- (App de datos con Python) arrancar el sidecar: -->
+- Sidecar de datos: `{{CMD_SIDECAR}}` <!-- ej: uvicorn app:app --port 8001 / "no aplica" -->
+
+## Arquitectura: directorios clave
+<!-- 4) SOLO 3-5 carpetas que importan para orientarse. NO listes archivo por archivo. -->
+- `{{DIR_1}}` — {{DIR_1_QUE_ES}}
+- `{{DIR_2}}` — {{DIR_2_QUE_ES}}
+- `{{DIR_3}}` — {{DIR_3_QUE_ES}}
+- `{{DIR_4}}` — {{DIR_4_QUE_ES}} <!-- opcional, borra si no hace falta -->
+- `{{DIR_5}}` — {{DIR_5_QUE_ES}} <!-- opcional, borra si no hace falta -->
+
+## Reglas de estilo
+<!-- 5) SOLO lo NO-default (lo que un linter no impone ya). Lo obvio NO va. -->
+- {{REGLA_ESTILO_1}} <!-- ej: validacion: un schema zod por entidad = fuente unica (form + servidor + tipos) -->
+- {{REGLA_ESTILO_2}} <!-- ej: nada hardcodeado que el negocio querria cambiar -> fila en tabla, editable desde panel -->
+- {{REGLA_ESTILO_3}} <!-- ej: CASL esconde botones, RLS protege datos: SIEMPRE los dos, nunca solo CASL -->
+
+## Etiqueta de repo
+<!-- 6) Como se trabaja git aca. Sale del nivel de rigor y de si hay releases automaticos. -->
+- 1 feature = 1 spec = 1 rama = 1 PR = update de docs en el MISMO commit.
+- Conventional Commits (los genera Claude). Branch: `{{CONVENCION_RAMAS}}` <!-- ej: feat/<tema>, fix/<tema> -->
+- Releases: `{{POLITICA_RELEASES}}` <!-- ej: /vibe-kit:release -> version + CHANGELOG + PR / "manual" -->
+- Cuando la realidad diverge: arregla el spec/doc PRIMERO, despues el codigo.
+
+## Gotchas y entorno
+<!-- 7) Trampas reales del proyecto y variables de entorno. Lo que se rompe si no lo sabes. -->
+- Variables de entorno: `{{ENV_VARS}}` <!-- ej: ver .env.example (NUNCA commitear .env) -->
+- {{GOTCHA_1}} <!-- ej: el sidecar Python es lo mas fragil de empaquetar (rutas/puertos/.exe firmado) -> ver docs/runbooks -->
+- {{GOTCHA_2}} <!-- ej: migraciones en supabase/migrations/ son sensibles: nunca editar a mano una ya aplicada -->
+
+## Limites de Claude (3 niveles)
+<!-- 8) BOUNDARIES. Lo que define la autonomia. Verde = libre; Ambar = preguntame antes; Rojo = nunca. -->
+### Verde — hace solo, sin preguntar
+- {{VERDE_1}} <!-- ej: implementar tareas ya aprobadas en el SPEC con su evidencia de verificacion -->
+- {{VERDE_2}} <!-- ej: agregar tests, refactors locales dentro de un archivo, fixes de lint/types -->
+
+### Ambar — proponer y ESPERAR mi OK
+- {{AMBAR_1}} <!-- ej: cualquier cambio en schema / migraciones / politicas RLS -->
+- {{AMBAR_2}} <!-- ej: instalar dependencias nuevas o cambiar el stack -->
+- {{AMBAR_3}} <!-- ej: features multi-archivo o approach desconocido -> primero plan mode -->
+
+### Rojo — NUNCA
+- {{ROJO_1}} <!-- ej: commitear secretos / tocar .env con claves reales -->
+- {{ROJO_2}} <!-- ej: borrar datos de produccion o correr migraciones destructivas sin backup -->
+- {{ROJO_3}} <!-- ej: saltarse RLS / exponer endpoints sin chequeo de permisos -->
+
+<!--
+  Tip de mantenimiento: cuando una feature toca API, roles o comportamiento, actualiza
+  este archivo y docs/ en el MISMO commit. Para verificar drift: /vibe-kit:docs-check.
+  Para fabricar nuevos roles/comandos: /vibe-kit:crear-rol.
+-->

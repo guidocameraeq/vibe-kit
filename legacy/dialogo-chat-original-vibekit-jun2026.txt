@@ -1,0 +1,502 @@
+
+========== USER [2026-06-22 01:35] ==========
+Hola, Claude. venimos con una tarea en la cual voy a necesitar de tu particular ayuda, predisposición. Este, quiero que seas un by coder experto que trabaje con flujos de agentes, con Cloud Code al máximo nivel y le exprima lo máximo, que cree aplicaciones, web apps, apps de Android, y que sea un súper developer con inteligencia artificial y diferentes stacks y diferentes tecnologías, que sepa repositorios o cosas open source para usar, para que los proyectos que haga le sean funcionales, simples y sencillos de funcionar, con cosas de seguridad cubiertas y demás. Así que lo que vamos a hacer es, necesito investigar bien acerca de cómo está el estado actual del by coding, pero con respecto a crear apps, quiero hacer guías puntuales para ayudar a crear apps. Esto es para mí, yo en mi trabajo desarrollo aplicaciones, web apps, una app de Android, alguna app de Windows, y a veces me cuesta mucho darme cuenta de la arquitectura de la app, cómo tengo que plantearla, porque quizás, por ejemplo, a veces tengo que hacer una app con un sistema de roles, a veces tengo que hacer una app que tengo un dashboard, y siempre me encuentro en que cuando tengo que hacer una app, la tengo que hacer toda de cero y todas las cosas las tengo que ir pidiendo, es decir, un dashboard para esto, el sistema de roles, y a veces creo que muchas de esas cosas son mejores hacerlas del del principio quizás, por ejemplo, para el sistema de error ya debe haber alguna librería que tenga eso, que funcione bien, lo mismo para opciones de seguridad básicas, obviamente, dependiendo si hacés una web app, un punto Excel, una APK para Android. Así que quiero que te pongas en ese rol, que charles conmigo y empecemos a pensar diferentes formas de stacks, así como imprescindibles, que me ayudes a hacer varios super prompts para iniciar una app, dependiendo qué es lo que necesito que tenga y que armar como un sistema de preguntas que eventualmente me hagan las preguntas necesarias de cosas básicas que tiene que tener la app para que con un super ya podemos plantear toda la infraestructura bien de base, sin que yo tenga que después ir andando parcheando cosas, refractando partes del código, muchas veces me pasa, porque siempre quiero agregar algo que me olvidé poner en el principio, que cambia algo. Por ejemplo, el tema siempre me pasa de los permisos para que los usuarios puedan ver o no ver cosas, o que las listas estén configurables en un panel de configuración, me pasan esas cosas en general. Así que necesito que te pongas en una posición de entenderme a mí, de investigar, de ver qué y ver qué podemos hacer con eso, quizás podemos hacer Alguna línea app nosotros que en base a preguntas, digamos, te darme super prompts y te diga cosas mínimas que tenés, no sé, te escucho a vos, quiero que investigues y me ayudes vos a
+
+---------- ASSISTANT [2026-06-22 01:35] ----------
+Hola. Me encanta este proyecto — es exactamente el tipo de cosa que separa al que "vibe codea" parchando sin parar del que arranca con una base sólida y avanza rápido. Antes de tirarte mi visión, déjame hacer una pasada de investigación para fundamentar lo que te recomiendo en el estado actual (junio 2026), no en lo que yo "creía" en enero.
+
+Dame un momento que busco varias cosas en paralelo.
+Buen material. Una pasada más sobre desktop (Windows), librerías de auth/permisos, y backends que resuelven mucho "de fábrica".
+Listo, ya tengo el panorama actual aterrizado. Te tiro el diagnóstico y una propuesta concreta, y cierro con unas pocas preguntas para calibrar todo a *vos* (porque la recomendación de stack cambia entera según con qué te manejás).
+
+## Lo que realmente te está pasando
+
+Tu problema no es "prompteo mal". Son tres cosas, y las tres se arreglan **antes** de escribir código:
+
+1. **Empezás de cero cada vez.** El ~70% de lo que hacés (login, roles, dashboard, CRUD, panel de config) es el mismo esqueleto una y otra vez. Reconstruirlo es donde se te va el tiempo y aparecen los bugs.
+2. **No tenés un checklist de "decisiones transversales".** Hay un set *fijo* de cosas que toda app de gestión necesita —auth, permisos, panel de configuración, manejo de errores, logging, listas editables, auditoría—. Vos las descubrís tarde → por eso refactorizás.
+3. **No fijás la arquitectura antes de codear.** Le pedís features sueltas, la IA improvisa la estructura, y cuando querés meter "permisos para ver/no ver" choca con lo ya hecho.
+
+## Cómo cambió el juego (jun 2026)
+
+El campo se movió de *vibe coding* ("prompteá y rezá") a **spec-driven development**: primero una especificación, después la IA implementa. GitHub sacó **Spec Kit**, un flujo `Spec → Plan → Tasks → Implement` que corre nativo en Claude Code como slash commands. Para vos esto significa que **el super prompt no es un párrafo mágico: es un mini-documento de arranque + una "constitución" del proyecto** (reglas que la IA respeta siempre).
+
+Y lo más importante para tu dolor puntual: **casi todo lo que pedís a mano ya viene resuelto.**
+- ¿Roles/permisos? **Better Auth** trae organizaciones + RBAC + invitaciones de fábrica. **Supabase** trae Auth + Postgres + *Row Level Security* (los permisos los hace cumplir la base de datos, no tu código → adiós a la clase entera de bugs de "se me coló un usuario donde no debía").
+- ¿Dashboard + CRUD + multi-cliente + logging + i18n? Boilerplates como **ixartz/SaaS-Boilerplate** o **next-forge** ya traen todo eso armado y testeado.
+
+La respuesta a tu intuición de "esto ya debe existir como librería" es: **sí, y acá está.**
+
+## Lo que te propongo construir juntos
+
+Un **"Kit de Arranque de Apps"** tuyo, reusable, con 4 piezas:
+
+1. **Matriz de stacks (golden paths).** Un stack recomendado por tipo de app (web / Android / Windows), elegidos para *compartir el máximo de código* y que la IA los domine bien.
+2. **Catálogo de módulos transversales.** La lista *fija* de ladrillos que toda app necesita, y para cada uno: librería/repo recomendado + cuándo meterlo. **Este es tu checklist anti-refactor.**
+3. **Cuestionario de arranque.** Las ~15 preguntas a responder *antes* de codear. Tus dolores (permisos, listas configurables) pasan a ser preguntas *obligatorias* del cuestionario, así no se te olvidan nunca más.
+4. **Biblioteca de super prompts.** Plantillas listas para pegar en Claude Code (constitución + spec + plan), parametrizadas por las respuestas del cuestionario.
+
+Y en **fase 2**, si querés: la **"app de preguntas"** —una herramienta (CLI o web de una sola página) que te hace el cuestionario y te escupe el super prompt armado *y* arranca el repo desde el boilerplate.
+
+## Mi hipótesis de stack (a confirmar)
+
+Si te manejás con JS/TypeScript, el golden path que usa *un solo lenguaje en los tres mundos* sería: **Next.js** (web) + **Expo/React Native** (Android) + **Tauri** (Windows — instaladores ~25× más chicos y mucha menos RAM que Electron) + **Supabase o Better Auth** + **shadcn/ui**. Si venís de **.NET** o **Python**, la matriz cambia entera. Por eso necesito calibrar antes de cerrar nada 👇
+
+**Fuentes:** [Red Hat — Vibes, specs, skills, agents](https://developers.redhat.com/articles/2026/03/30/vibes-specs-skills-agents-ai-coding) · [GitHub Spec Kit](https://github.com/github/spec-kit) · [ixartz/SaaS-Boilerplate](https://github.com/ixartz/SaaS-Boilerplate) · [next-forge](https://vercel.com/templates/next.js/next-js-saas-starter) · [Better Auth vs Clerk (Makerkit)](https://makerkit.dev/blog/tutorials/better-auth-vs-clerk) · [Supabase vs Convex vs Firebase](https://remery.ai/blog/supabase-vs-firebase-vs-convex-ai-backend) · [Tauri vs Electron 2026](https://www.pkgpulse.com/guides/tauri-vs-electron-2026) · [KMP vs Flutter vs RN 2026](https://www.javacodegeeks.com/2026/02/kotlin-multiplatform-vs-flutter-vs-react-native-the-2026-cross-platform-reality.html) · [Claude Code subagents](https://code.claude.com/docs/en/sub-agents)
+Dale, sin problema — dejamos de lado el formulario y lo charlamos como vos prefieras. 
+
+Cuando quieras seguir, lo único que de verdad necesito para no recomendarte cualquier cosa es **con qué te manejás hoy** (¿sos más de JS/TypeScript, .NET/C#, Python, Kotlin… o medio generalista que se apoya en la IA?). Con eso solo ya puedo cerrar el golden path.
+
+El resto lo puedo asumir con valores por defecto sensatos y vos me corregís sobre la marcha. Si querés, también podemos ir directo a un **proyecto real que tengas pendiente** y armamos el kit a partir de ese caso concreto — suele ser la forma más rápida de que esto te sirva de verdad.
+
+¿Por dónde seguimos?
+
+========== USER [2026-06-22 01:41] ==========
+Depende mucho lo que vaya a hacer. La verdad es que yo no sé codear en ningún idioma, pero, por ejemplo, las web apps siempre las tiendo a hacer en React y Next.js, aunque no estoy seguro de que es eso segundo, me gustaría que me lo expliques, y la una de las que hice para Windows está principalmente en Python, con el front en React.
+
+---------- ASSISTANT [2026-06-22 01:43] ----------
+Perfecto, esto me cambia el panorama —y para bien—. Que no sepas codear **no es un problema**: significa que la base bien puesta importa *todavía más*, porque no vas a poder "rescatar" a mano una app mal arrancada. Eso es exactamente lo que el Kit te va a dar. Pero primero te explico qué es cada cosa, sin tecnicismos.
+
+### React vs Next.js (la analogía del motor y el auto)
+
+- **React** es lo que dibuja **la pantalla**: los botones, las tablas, los formularios, todo lo que el usuario ve y toca. Pensalo como **el motor** 🏎️. Es potentísimo, pero un motor solo no es un auto: no tiene volante, ni ruedas, ni tablero. React por sí solo no te dice cómo organizar las páginas, cómo hablar con la base de datos, ni cómo manejar el login.
+
+- **Next.js** es **el auto entero armado alrededor de ese motor**. Agarra React (la pantalla) y le suma todo lo que falta para tener una app de verdad:
+  - **Páginas y direcciones (URLs)** → el "mapa" navegable de tu app.
+  - **Parte de servidor** → código que corre en el servidor, no en la compu del usuario. Esto importa por **seguridad** (las claves y la lógica sensible nunca llegan al navegador) y por **velocidad**.
+  - **Backend incluido** → podés hablar con la base de datos, procesar pagos, etc. en el *mismo* proyecto. El front y el back conviven, no son dos cosas separadas que tenés que pegar.
+  - **Optimizaciones y publicación** → imágenes, performance y deploy, ya resueltos.
+
+En resumen: **vos siempre estuviste usando React + Next.js juntos, y está perfecto.** Next.js es hoy el camino más recomendado para web y —dato clave para vos— es de lo que **la IA más sabe**, así que Claude lo programa con menos errores. Para alguien que no lee el código, eso vale oro.
+
+### ¿Y el Python de tu app de Windows?
+
+Python es **otro lenguaje**, distinto de React/JavaScript. Es el rey para **datos pesados, IA, automatización, hardware y Excel/Office**. Tu app de Windows "Python + React" casi seguro es esto: **la lógica y los datos en Python por dentro, y una pantalla en React por fuera** (envuelta para que parezca una app de escritorio).
+
+Es un patrón válido, pero ojo: son **dos ecosistemas pegados con cinta**. Más piezas = más cosas que se pueden romper y más difícil para la IA mantener todo coherente. Para alguien que no codea, la regla de oro es: **un solo ecosistema como base** (JavaScript/TypeScript, que cubre web + Android + Windows) **y Python solo cuando una app puntual de verdad lo necesite** —lo llamás como "especialista", no como cimiento.
+
+Te lo dejo en un diagrama para que se fije la idea 👇
+Eso de arriba es, en una imagen, el modelo mental que te faltaba para "ver" la arquitectura. Cada vez que arranques una app vas a poder ubicar mentalmente: *pantalla (React) → app completa (Next.js) → datos/login/permisos (Supabase) → ¿necesito un especialista (Python)?*
+
+Con lo que me dijiste, tu **golden path personal** ya está casi cerrado: **JS/TypeScript como cimiento** (Next.js para web, y el mismo lenguaje te sirve para Android con Expo y Windows con Tauri), **Supabase o Better Auth** para datos+login+permisos, y **Python solo como especialista** cuando una app lo pida.
+
+Antes de cerrarlo del todo, una sola pregunta que me destraba el tema "Windows": **¿por qué creés que esa app terminó en Python?** No necesitás saber el motivo técnico exacto — elegí la que más suene:
+
+1. **"La hizo así la IA / no sé por qué"** → probablemente se podía haber hecho 100% en JS y nos conviene estandarizar.
+2. **"Procesaba datos / Excel / hacía cálculos o IA"** → ahí Python tiene sentido y lo dejamos como especialista.
+3. **"Tenía que tocar archivos, hardware o cosas del sistema operativo"** → caso legítimo de Python o de un híbrido.
+4. **"Era para correr sin internet, instalada en la PC"** → eso es más sobre *empaquetado* (Tauri/Electron) que sobre el lenguaje.
+
+Con tu respuesta te dejo la **matriz de stacks definitiva** (qué usar para web / Android / Windows según el caso) y arrancamos a armar el catálogo de módulos —que es donde van a vivir tus dolores de roles, permisos y listas configurables para no volver a olvidártelos nunca.
+
+========== USER [2026-06-22 01:49] ==========
+Bueno, a ver, vamos por varias cosas. Esa app es un sistema que levanta toda la información de facturación de mi ERP y los procesa, es para dashboards de datos, fórmulas. Tiene todo un sistema de objetivos para el área comercial y de trackeo de esos objetivos con los datos que levanta del ERP. Así que tiene sentido que tenga Python de back, me parece. Pero bueno, ahora que entendiste esto te quiero preguntar otra cosa.
+
+---------- ASSISTANT [2026-06-22 01:49] ----------
+Sí, total — ese es el caso de uso de manual para Python: levantar datos de un sistema externo (tu ERP), procesarlos, aplicar fórmulas y servir dashboards + un módulo de objetivos. Ahí Python como back tiene todo el sentido y lo dejamos marcado como **especialista para apps de datos/analítica**. (De hecho, "leo datos de un sistema externo → los proceso → muestro dashboards y tracking" es un *arquetipo* de app que después vamos a tener como plantilla lista. Lo anoto.)
+
+Entendido entonces. Te escucho: ¿qué querías preguntarme?
+
+========== USER [2026-06-22 01:51] ==========
+Y acá quiero darte libertad y creatividad, y una vez que ya, más o menos, entendiste el problema, que me ayudes a ver cuál es la posible solución a esto. Quiero que pienses y me digas, ahora que tenemos la dolencia, qué herramienta podemos crear juntos para que me ayude a mí a ser mucho más consistente y mejor en todos estos proyectos, apps, web apps, APKs para Android, para Windows, lo que sea que voy desarrollando. O sea, yo pienso, ¿no? podríamos desarrollar, por ejemplo, un agente que sea experto en esto, a su idea que se me ocurre, podríamos desarrollar una web que, digamos, me vaya haciendo preguntas básicas en base a eso, me dé prompts, me me dé los kits básicos, me dé varios prompts en secuencia, o qué deberíamos hacer, digamos? ¿Qué herramienta se te ocurre que podría ayudarme con esto? También otro tema muy importante, que no te dije, pero que me imagino que lo haces, es todo el tema de la documentación en los proyectos. Yo tengo algún sistemita armado de documentación, pero bueno, no es consistente, calculo que Cloud no lo está actualizando como debería y demás. También es importante algunas cosas extra que debería saber, creo. Yo uso vScode con Cloud Code adentro, por lo que debemos tener también la la herramienta que desarrollemos tiene que tener un sistema de muy buenas prácticas de Cloud y de, por ejemplo, el archivo Cloud MD, del sistema de documentación que Cloud debería usar y mantener actualizado y cómo asegurarnos de que eso cada tanto está actualizado, cómo es la forma correcta de codear con Cloud, si hay que tener varios chats para un proyecto. Cada chat debe hacer alguna cosa, cómo más llenas de los releases. Toda esa orquestación de Cloud Code y cómo usarlo de manera efectiva también es muy importante, Estoy contemplado esto dentro de esta herramienta que vamos a crear, que aún no sabemos cuál es el formato. Te doy superpoderes, te activo el modo ultracode y quiero que te pongas en creativo, que pienses y me ayudes.
+
+---------- ASSISTANT [2026-06-22 01:55] ----------
+¡Me encantó esto! Activaste ultracode, así que en vez de improvisarte una respuesta de una, voy a hacer **exactamente lo que querés aprender a dominar**: orquestar un equipo de agentes. Te dejo trabajando un workflow y cuando termine te traigo la propuesta completa.
+
+Antes, marco el cambio de capítulo y lanzo el equipo 👇
+Listo, el equipo ya está trabajando. 🚀
+
+**Qué lancé** (esto en sí mismo es un ejemplo de la orquestación que querés aprender):
+
+- **Fase 1 — Investigar** (5 agentes en paralelo): orquestación de Claude Code, documentación viva, spec-driven & super-prompts, herramientas que ya existen (para no reinventar), y la matriz de stacks + catálogo de módulos.
+- **Fase 2 — Diseñar** (3 agentes): cada uno diseña un concepto de herramienta distinto (kit nativo de Claude Code / web wizard / híbrido).
+- **Fase 3 — Evaluar** (panel de 3 jueces): puntúan los 3 conceptos pensando en *vos* (que no programás, bajo mantenimiento, que mantenga las docs al día).
+- **Fase 4 — Sintetizar** (arquitecto): arma el blueprint final.
+
+Podés mirar el avance en vivo con **`/workflows`**. Cuando termine te traigo la propuesta completa acá mismo. Mientras tanto guardo en memoria tu perfil y el objetivo del proyecto para no perder contexto entre sesiones.
+Listo — guardé tu perfil y el objetivo del proyecto en memoria, así que esto sobrevive entre sesiones. ✅
+
+Ahora queda esperar a que el equipo de agentes termine las 4 fases. **Te aviso y te traigo el blueprint completo apenas cierre** (podés espiar el avance con `/workflows`). Quedate tranquilo que no tenés que hacer nada hasta entonces.
+
+========== USER [2026-06-22 02:09] ==========
+<task-notification>
+<task-id>wkarco6qe</task-id>
+<tool-use-id>toolu_01XYQ2Vppx7kLMJs5ouBwMbd</tool-use-id>
+<output-file>C:\Users\Usuario\AppData\Local\Temp\claude\C--Users-Usuario-Desktop-Proyectos-Guia-de-vibe-coding\6ecda476-04fb-436a-b0e7-9ef851e66540\tasks\wkarco6qe.output</output-file>
+<status>completed</status>
+<summary>Dynamic workflow "Investigar y disenar la herramienta/kit para que un vibe coder no-programador arranque apps con base solida y orqueste Claude Code de forma efectiva" completed</summary>
+<result>{"recommendedByJudges":["Kit Nativo de Claude Code (\"CC-Kit\")","Kit Nativo de Claude Code (\"CC-Kit\")","Concepto C — Hibrido Pragmatico (Arrancador + Kit)"],"blueprint":"El blueprint no depende de la versión exacta. Tengo todo lo necesario para sintetizar. Acá va el entregable final.\n\n---\n\n# BLUEPRINT FINAL — Tu sistema reusable de vibe coding con Claude Code\n\nHola. Soy tu arquitecto de soluciones. Procesamos toda la investigación, los 3 conceptos y el veredicto del panel de jueces (3 evaluaciones independientes). Lo que sigue es el plan accionable, sin vueltas y sin inventar herramientas: todo lo que nombro existe y corre en jun-2026.\n\n**Lectura del panel (importante para entender la decisión):**\n\n| Concepto | Juez 1 | Juez 2 | Juez 3 | Veredicto |\n|---|---|---|---|---|\n| **A — CC-Kit (plugin nativo)** | 53 | 53 | 51 | Ganó 2 de 3 |\n| **C — Híbrido (Arrancador + Kit)** | 50 | 52 | **53** | Ganó 1 de 3, empate técnico |\n| **B — Forge (web wizard)** | 42 | 42 | 43 | Tercero claro, los 3 jueces |\n\nA y C terminaron en empate técnico. B quedó descartado como producto principal. La conclusión unánime de los tres jueces no es \"elegí A o C a secas\", sino **construir A e injertarle las dos mejores ideas de C (el contrato `project.yaml` y el arranque externo estático) y la mejor idea de B (la pantalla-checklist visual de concerns)**. Eso es exactamente lo que recomiendo abajo.\n\n---\n\n## 1) LA HERRAMIENTA RECOMENDADA\n\n### Qué construimos\nUn **plugin de Claude Code** —llamémoslo **`vibe-kit`**— distribuido como un **marketplace privado en un repo de GitHub tuyo**. Un plugin empaqueta en una sola unidad instalable y versionada: skills + subagents + slash commands + hooks + plantillas de CLAUDE.md + la constitución. Es el formato canónico del ecosistema para reusar \"tu manera de trabajar\".\n\nA eso le injertamos tres cosas de los conceptos perdedores:\n\n1. **El contrato `project.yaml`** (idea estrella de C): un archivo chico, casi en lenguaje natural, en la raíz de cada proyecto, que declara *qué es este proyecto* (stack + concerns activos + política de orquestación). Las skills del kit lo **leen**; vos lo podés editar a mano si algo falla. Es tu única fuente de verdad portable —sobrevive a cambiar de PC, cosa que la auto-memory NO hace.\n2. **Un Arrancador externo estático opcional** (idea de C): un `npx create-vibe-app` (o web estática en GitHub Pages, sin servidor) que hace el cuestionario y escupe el `project.yaml`. Es para el momento del arranque en frío, *antes* de tener un Claude Code con contexto. Es **opcional**: el camino canónico sigue siendo la skill `/nueva-app` adentro del editor.\n3. **La pantalla-checklist visual de concerns con default ON** (la única gran idea de B): que en el arranque VEAS y CONFIRMES los concerns transversales (roles, listas, errores, logging…) como una lista marcable, en vez de descubrir su ausencia tarde. Adentro de Claude Code esto se hace con `AskUserQuestion` multi-select; en el Arrancador externo, como cards.\n\n### El formato, y por qué este y no otro\n\n| Opción | Veredicto del panel | Por qué |\n|---|---|---|\n| **Plugin de Claude Code** ✅ | **Elegido** | Vive donde ya trabajás (VSCode). Cero servidores/web/app externa que mantener. Un solo botón de actualización: `/plugin update`. Aprovecha Claude Code al máximo (skills, subagents, hooks, Spec Kit nativo). Tu propia investigación lo recomienda como canal canónico. |\n| **Web wizard (B)** ❌ | Descartado | Es la mayor superficie de mantenimiento (una app Next.js que cuidar). Mejora solo el ~5% del tiempo (el arranque). Reintroduce copiar/pegar prompts. NO usa Claude Code, lo *envuelve*. El propio concepto admite \"la investigación recomienda el plugin\". |\n| **Híbrido puro (C)** ⚠️ | Injertado, no adoptado entero | Su idea del contrato y del arrancador estático son oro y las robamos. Pero como producto entero suma DOS piezas y un schema que se pueden desincronizar —complejidad conceptual extra para un no-programador que valora \"una sola cosa que entender\". |\n\n**Justificación final (lo que pesó):** para tu perfil, el factor decisivo a largo plazo es **mínima superficie de mantenimiento + modelo mental simple**, y ahí el plugin es imbatible: una sola pieza, en el formato nativo, sin nada corriendo afuera. Le injertamos el contrato de C para curar el punto débil de A (estado máquina-local y arranque en frío) y la checklist de B para hacer visible tu dolor #1 (concerns olvidados). Capturás casi todo el valor de los tres conceptos sin pagar el costo de B ni la complejidad de C.\n\n---\n\n## 2) CÓMO FUNCIONA, DE PUNTA A PUNTA (para alguien que NO programa)\n\nEl modelo mental: **vos dirigís y aprobás en lenguaje natural; Claude ejecuta; los hooks hacen el control de calidad por vos.** Nunca leés código.\n\n1. **Instalás el kit una sola vez (minutos).** Corrés `/plugin install vibe-kit@tu-marketplace`. Eso copia tu *golden path personal* a `~/.claude/CLAUDE.md` y deja disponibles las skills, comandos, subagents y hooks en TODOS tus proyectos futuros.\n\n2. **Arrancás un proyecto (~3-5 min).** Dos caminos, mismo resultado:\n   - **Canónico:** en una sesión fresca de Claude Code corrés la skill `/nueva-app`. Te hace 6-9 preguntas con `AskUserQuestion` (incluida la pantalla-checklist de concerns).\n   - **Opcional (arranque en frío):** corrés `npx create-vibe-app` afuera, respondés lo mismo en una web/CLI estática. Las dos escriben el mismo `project.yaml`.\n\n3. **Bootstrap del proyecto (~3-5 min).** Adentro de Claude Code corrés `/kit:bootstrap`. La skill **lee el `project.yaml`** y de forma determinista: corre el scaffolder oficial correcto (o forkea un boilerplate con RBAC ya hecho), escribe el `CLAUDE.md` adaptado al stack, crea `.claude/rules/` con tus concerns, escribe la constitución de Spec Kit, arma `docs/` (architecture, ADRs, runbooks) e instala el Stop hook de verificación.\n\n4. **Planificás una feature.** Corrés `/kit:new-feature`. Claude te **entrevista** (`AskUserQuestion`) y dispara el flujo Spec Kit: `/speckit.specify` → `/speckit.clarify` → `/speckit.plan` (en plan mode, read-only). Un subagent **arquitecto** cuestiona el diseño. **Vos revisás el SPEC y el PLAN en español, no el código**, y aprobás.\n\n5. **Implementás.** En sesiones cortas (una por tarea), Claude ejecuta `/speckit.tasks` → `/speckit.implement`. Al cerrar cada turno, un **Stop hook** corre lint + typecheck + test automáticamente. Le pedís **evidencia** (output del test, screenshot), no que diga \"listo\".\n\n6. **Las docs se mantienen solas.** Un PostToolUse hook marca cuándo un cambio toca API/roles/comportamiento visible. El subagent **doc-keeper** (lo corrés con `/kit:docs-check`) compara docs+CLAUDE.md+`project.yaml` contra el código real y reporta desincronizaciones. La auto-memory de Claude guarda descubrimientos sola.\n\n7. **Release.** Corrés `/kit:release` en su propio chat: genera Conventional Commits, calcula versión + CHANGELOG (semantic-release/git-cliff), corre `/kit:docs-check` y abre el PR con `gh`. Vos revisás el PR en lenguaje natural.\n\n---\n\n## 3) EL CUESTIONARIO DE ARRANQUE\n\nEs **adaptativo** (ramifica según respuestas) y corto. Captura SOLO decisiones que se toman una vez y casi nunca cambian. Los requisitos de cada feature NO van acá —eso lo hace `/speckit.specify` después. Regla clave robada de C: **lo ambiguo se marca `NEEDS_CLARIFICATION`** en vez de inventar, y Claude lo cierra en el bootstrap.\n\n### Preguntas núcleo y cómo ramifican\n\n| # | Pregunta | Ramifica a |\n|---|---|---|\n| 1 | **¿Qué tipo de app?** (web / APK Android / Windows / datos-analítica) | **Pregunta raíz.** Fija el \"carril\": qué preguntas siguen y qué stack se elige. |\n| 2 | Nombre + descripción de 1 línea (negocio) | Es la primera línea del `CLAUDE.md`. |\n| 3 | **Entidades del dominio** (chips: \"facturas, clientes, objetivos\") | Alimenta la sección Entities del super-prompt. |\n| 4 | **¿Necesita login?** | Si NO → sin auth. Si SÍ → pregunta 5. |\n| 5
+... (truncated 22097 chars, full result in C:\Users\Usuario\AppData\Local\Temp\claude\C--Users-Usuario-Desktop-Proyectos-Guia-de-vibe-coding\6ecda476-04fb-436a-b0e7-9ef851e66540\tasks\wkarco6qe.output)</result>
+<usage><agent_count>12</agent_count><subagent_tokens>744128</subagent_tokens><tool_uses>76</tool_uses><duration_ms>765831</duration_ms></usage>
+</task-notification>
+
+---------- ASSISTANT [2026-06-22 02:09] ----------
+El equipo terminó (12 agentes, 4 fases). Dejame leer el blueprint completo para traértelo bien.
+El equipo terminó: **12 agentes, 4 fases, ~12 min**. El veredicto del panel fue claro y la síntesis es sólida. Antes de presentártelo, lo guardo como documento durable en tu proyecto (así ya empezamos a practicar la "documentación viva") y actualizo la memoria con la decisión.
+Listo — te dejé el **blueprint completo en [BLUEPRINT.md](BLUEPRINT.md)** (raíz de tu proyecto, ~9 secciones) y guardé la decisión en memoria. Acá va el resumen ejecutivo con lo que más te importa.
+
+## El veredicto
+
+| Concepto | Jueces | |
+|---|---|---|
+| **A — Plugin nativo de Claude Code** | 53 / 53 / 51 | ✅ **Ganador** |
+| **C — Híbrido (web/CLI + kit)** | 50 / 52 / 53 | Empate técnico → le robamos lo mejor |
+| **B — Web wizard** | 42 / 42 / 43 | ❌ Descartado (mucho que mantener, poco valor) |
+
+**Construimos `vibe-kit`: un plugin de Claude Code.** No es una app aparte que tengas que cuidar — vive *adentro* de VSCode, donde ya trabajás, y se actualiza con un solo comando. Le injertamos tres ideas ganadoras de los otros conceptos:
+
+1. **`project.yaml`** → un archivo chiquito en cada proyecto que dice "qué es esto" (stack + qué concerns tiene). Es tu fuente de verdad portable: lo podés leer y editar vos, y sobrevive a cambiar de PC.
+2. **Arrancador opcional** (`npx create-vibe-app`) → para el arranque en frío, antes de abrir Claude Code.
+3. **Checklist visual de concerns con todo en ON** → la pantalla que **mata tu dolor #1**: ves y confirmás roles, listas configurables, errores, logging… en vez de descubrir que faltan tres semanas tarde.
+
+## El modelo mental (cómo cambia tu día a día)
+
+> **Vos dirigís y aprobás en español. Claude ejecuta. Los hooks hacen el control de calidad por vos. Nunca leés código.**
+
+El flujo: `/nueva-app` (cuestionario) → `/kit:bootstrap` (arma todo desde el `project.yaml`) → `/kit:new-feature` (spec → plan, **vos aprobás el plan en español**) → implementás en sesiones cortas con verificación automática → `/kit:release`.
+
+## Respuestas directas a lo que preguntaste
+
+**¿Varios chats por proyecto? ¿Qué hace cada uno?** → Sí. La regla es **1 sesión = 1 tarea**, contexto siempre por debajo del ~60%:
+
+| Chat | Qué hace | Cuándo |
+|---|---|---|
+| **Arquitectura** | spec + plan + decisiones (en plan mode) | al empezar una feature grande |
+| **Implementación** | una tarea concreta, se cierra al terminar | por cada tarea |
+| **Release** | commits + versión + changelog + PR | en cada release |
+| **Review** | revisión en contexto limpio | al revisar lo recién hecho |
+
+> Antipatrón clave para vos: si corregiste a Claude **2 veces sobre lo mismo**, no insistas — `/clear` y reescribí. Una sesión limpia gana siempre a una larga y contaminada.
+
+**Documentación que se mantenga sola y se verifique cada tanto** → un subagent **doc-keeper** que compara tus docs + `CLAUDE.md` + `project.yaml` contra el código real (lo corrés con `/kit:docs-check`), un hook que avisa por turno cuándo un cambio toca algo documentado, y una **auditoría semanal automática** (GitHub Action) que abre un PR si algo quedó viejo. Regla de oro: *cuando la realidad y la doc difieren, se arregla la doc primero*.
+
+**El `CLAUDE.md`** → **corto** (ideal 30-80 líneas; si lo inflás, Claude ignora tus reglas). Tres niveles: global (tu golden path), del proyecto (comandos exactos + arquitectura + límites ✅/⚠️/🚫) y por subcarpeta (carga sola). El detalle completo está en la sección 7 del blueprint.
+
+**Releases para no-programador** → Conventional Commits (los escribe Claude) + versionado y changelog automáticos + siempre rama y PR. Vos revisás el PR **en lenguaje natural, no el diff**.
+
+## Lo más valioso, en una imagen
+
+- **Matriz de stacks** (web / Android / Windows / datos) y **catálogo de 15 módulos transversales** con la librería recomendada para cada uno → secciones 5 y 6 del [BLUEPRINT.md](BLUEPRINT.md). Ahí está, por ejemplo: roles = Supabase RLS (la base) + CASL (la UI); listas configurables = tablas + Refine/React-Admin; errores = Sentry; tu app ERP = Tauri + FastAPI/pandas de sidecar.
+
+## Mi propuesta de arranque (Fase 0, ~1-2 h)
+
+En **una sola sesión** salís con valor real: armamos tu `CLAUDE.md` global + el esqueleto del plugin con las reglas de tus 4 concerns más dolorosos, y **corremos el flujo completo a mano sobre tu app de facturación del ERP** → terminás con su arquitectura ya planteada (CLAUDE.md + constitución + primer SPEC del módulo de objetivos), todo en español, sin escribir una línea de código.
+
+**¿Cómo seguimos?**
+
+1. **Arrancamos la Fase 0 ahora** con tu app de facturación ERP (mi recomendación — es tu caso más doloroso y el que mejor valida el kit).
+2. Preferís **leer primero el [BLUEPRINT.md](BLUEPRINT.md)** entero y me hacés ajustes/preguntas.
+3. Querés que **empiece por otra cosa** (por ej. armar el repo del plugin antes, o profundizar alguna sección).
+
+¿Cuál preferís?
+
+========== USER [2026-06-22 02:15] ==========
+no entendi cual es la herramienta que vamos a crear
+
+---------- ASSISTANT [2026-06-22 02:17] ----------
+Perdón — me fui a los tecnicismos. Te lo digo simple, sin palabras raras.
+
+**¿Te acordás que vos propusiste dos ideas: "un agente experto" o "una web que me hace preguntas"?** La herramienta es básicamente **la primera** — un asistente experto — pero en vez de ser una web aparte, **vive adentro de Claude Code**, que es donde ya trabajás. No hay que abrir nada nuevo.
+
+### Qué es, en una frase
+Es **tu Claude Code, pero ya entrenado en tu forma de hacer apps.** Hoy Claude arranca "en blanco" cada vez. Nosotros le vamos a dar, de una vez para siempre, un manual con: las preguntas que conviene hacerse al arrancar, tu stack preferido, y tu checklist de cosas que no se pueden olvidar (roles, permisos, listas configurables, errores).
+
+### Qué es *físicamente*
+No es una web, ni una app que abrís, ni un programa nuevo. Es **una carpeta con archivos de texto** (instrucciones, preguntas, listas, reglas) que se "instala" en Claude Code **una sola vez**. Vos no la programás: la armamos juntos — Claude escribe los archivos, vos aprobás.
+
+### El antes y el después
+- **Hoy:** abrís Claude, pedís "haceme una app con login y roles", vas pidiendo cada cosa suelta, te olvidás la mitad, y después refactorizás.
+- **Con la herramienta instalada:** escribís un comando (`/nueva-app`), Claude te hace 6-8 preguntas simples, y con tus respuestas **arma toda la base correcta de un saque** (arquitectura + roles + panel de config + errores + documentación). Vos seguís desde una base sólida.
+
+### La distinción que se mezcla (clave)
+- **La herramienta** = se construye **UNA vez**. Es tu caja de herramientas + tus planos.
+- **Tus apps** (la del ERP, las web, las de Android) = lo que construís **CON** la herramienta, muchas veces.
+
+Construir la herramienta es "afilar el hacha" una sola vez, para que después *cada* app salga rápida y bien.
+
+Mirá el dibujo 👇 y decime si ahora sí se entiende (si no, lo simplifico más).
+En criollo: **es Claude Code "con tu manera de trabajar ya cargada adentro".** Lo armamos una vez entre los dos y después te ahorra arrancar de cero (y olvidarte cosas) en cada proyecto.
+
+Decime si con esto te cierra o qué parte querés que aclare más, y cuando estés listo arrancamos. 👍
+
+========== USER [2026-06-22 02:21] ==========
+Y no podemos hacer un agente que haga esto? te pregunto de verdad, se sincero y dime si es o no una buena idea. 
+A mí se me ocurre un agente que yo podría llamar y que quiero que poder discutir con él mucho la app antes de empezar a hacer LINE, que entonces él me pueda armar super prompts. Quizás puede ser complementario de esto, pero a mí me gustaría tener la gente porque a mí me sirve mucho, digamos, charlar esas cosas con alguien y se va dando cuenta, explicarle cómo es el proceso que quiero resolver, el dolor. También creo que un agente me podría ayudar armar phoms digamos para hacer cosas y corregir cosas de apps que yo ya tengo funcionando, como las que tengo ahora. Este, no sé, quizás son cosas complementarias. Yo no sé muy bien cómo hacer un agente tampoco que se pueda llamar así con cosas. Eso de Claude está bueno, no sé si lo puede implementar en los proyectos que yo ya tengo, si tiene sentido o no. porque yo tengo, creo que el problema que tengo es que estoy pudiendo codear bien las apps que hago, pero hay veces que me doy cuenta que el prompt es muy importante en cómo yo pido las cosas, la solicito, no no estoy completamente certero cuando tengo que mandar a Claude con subagentes, cuando le tengo que decir que él haga algo, cuándo pedirle algo de manera superespecífica, cuándo ser más ambiguo. Entonces, a veces cuando quiero agregar cosas o resolver problemas, me trabo mucho en eso. Pero hace poco, por ejemplo, descubrí una forma de trabajar que es con specs, que voy hablando con Claude para que él hable un super spec y después se tira a trabajar como una hora y eso, por ejemplo, me da resultados buenísimos. Entonces, creo que una gente que se ha especializado en eso me podría ayudar bastante, y que tenga todos estos kits que estuvimos hablando también. A ver, pienso yo me pensarlo por ese lado. Porque no te fijas con alguna gente en paralelo, justamente, si alguien de la comunidad ya hizo esto de alguna forma, como para que le podemos robar ideas o algo así.
+
+---------- ASSISTANT [2026-06-22 02:24] ----------
+Te respondo derecho, sin vender humo: **sí, es una buenísima idea. Y te diría más — no es un complemento del kit, es LA pieza central.** Lo que describiste (un agente que llamás, con el que discutís la app a fondo *antes* de tocar una línea, y que después te arma los super prompts/specs) es exactamente el corazón de lo que conviene construir. Pensando en voz alta llegaste solo al diseño correcto.
+
+Ahora, una **corrección honesta** que te va a ahorrar frustración, porque "agente" en Claude Code significa dos cosas distintas:
+
+**1. Subagente (autónomo).** Se va, trabaja solo en su contexto, y vuelve con un resultado. **NO conversa con vos.** Sirve para tareas en paralelo o para no ensuciar el chat (investigar, revisar código). → Para "quiero discutir mucho", este es el tool *equivocado*.
+
+**2. Un "modo especialista" interactivo** (una persona que cargás en tu chat). Lo llamás —ej. `/arquitecto`— y tu chat normal se convierte en un arquitecto de software que te entrevista, te repregunta, te discute el dolor y el proceso, y cuando convergen, escribe el spec/super-prompt. → **Este es el que vos querés.** La charla pasa en vivo, con vos.
+
+Entonces lo que construimos es **el "Arquitecto": un agente interactivo que invocás, charla la app con vos, y escribe el spec.** Los subagentes autónomos (un revisor de arquitectura, el que mantiene la doc) se usan *después*, durante la construcción. Conviven; cada uno en su momento. Y sí: **eso ES el kit.** El `vibe-kit` es la cajita que contiene a este Arquitecto + sus conocimientos (tu checklist de concerns, la matriz de stacks, las reglas). No son dos proyectos: es uno, con el agente de protagonista.
+
+**¿Sirve para tus apps que YA tenés (la del ERP)?** Honesto: **sí, con una salvedad.**
+- Podés instalar el kit y dejar el Arquitecto disponible ahí. Para *agregar* features o *arreglar* cosas en una app existente, el flujo de spec es ideal — de hecho es donde más brilla.
+- La salvedad: el agente aconseja mucho mejor si la app está **documentada**. O sea, el primer paso en una app vieja es que Claude la "lea" y genere su `CLAUDE.md`/mapa (un comando, `/init`). No hace magia sobre código caótico, pero te saca la incertidumbre de "cómo le pido esto".
+
+**Tu problema de fondo —cuándo específico, cuándo ambiguo, cuándo subagentes—** es justo el criterio que el Arquitecto va a cargar por vos para que dejes de trabarte. El mapa corto, para que lo tengas ya:
+
+| Situación | Cómo pedir |
+|---|---|
+| Pensando / explorando / no sabés la solución | **Ambiguo y abierto.** Que Claude proponga. |
+| Sabés exactamente qué querés (bug, UI puntual, seguir un spec) | **Específico y cerrado.** Especificidad = control. |
+| Tarea grande / toca muchos archivos / costaría revisar el resultado | **Spec primero** (hablar → spec → ejecutar) ← lo que descubriste |
+| Trabajo en paralelo o no ensuciar el chat (investigar, revisar) | **Subagente.** |
+
+Regla de oro: **ambiguo mientras pensás, específico cuando ejecutás.** Y eso que descubriste solo —hablar hasta armar un super spec y que después trabaje una hora— no es casualidad: es *spec-driven development*, la forma que la industria adoptó en 2026. Tenés el instinto correcto; falta sistematizarlo.
+
+**Y porque dijiste que no sabés hacer un agente:** no hace falta. Un agente acá es, en el fondo, **un archivo de instrucciones en texto plano** ("sos un arquitecto, preguntá esto, nunca asumas aquello, entregá esto así"). Claude lo escribe; vos aportás el criterio de cómo te gusta laburar. Es de lo más fácil de construir — otra razón por la que es buena idea.
+
+**Y sí, hagamos lo que pediste:** lanzo un equipo en paralelo a ver qué hizo la comunidad con esto, para robar lo mejor. Te aviso cuando vuelva con "qué ya existe / qué robamos / qué construimos nosotros". 👇
+Listo, el equipo ya está buscando (5 ángulos en paralelo: BMAD y agentes que te entrevistan, subagentes de la comunidad, spec interactivo, la guía de cuándo-específico-vs-ambiguo, y agentes "arquitecto"). Mirá el avance con `/workflows` si querés.
+
+Mientras tanto, quedate con esto: **vamos hacia tu idea, no en contra de ella.** El `vibe-kit` pasa a tener nombre y cara → es **el Arquitecto**, el agente con el que vas a charlar cada app antes de codear. Apenas vuelva la investigación te traigo qué robamos de la comunidad y el diseño concreto de cómo lo invocás y cómo conduce la charla. 👌
+
+========== USER [2026-06-22 02:31] ==========
+<task-notification>
+<task-id>wq3zs7j58</task-id>
+<tool-use-id>toolu_01Vm6Acm1ZbsinnokEdYd5GA</tool-use-id>
+<output-file>C:\Users\Usuario\AppData\Local\Temp\claude\C--Users-Usuario-Desktop-Proyectos-Guia-de-vibe-coding\6ecda476-04fb-436a-b0e7-9ef851e66540\tasks\wq3zs7j58.output</output-file>
+<status>completed</status>
+<summary>Dynamic workflow "Investigar que hizo la comunidad sobre agentes que entrevistan/discuten una app y escriben specs/super-prompts, para robar ideas y disenar el Agente Arquitecto de vibe-kit" completed</summary>
+<result>{"synthesis":"Voy a sintetizar la investigación de prior-art que me pasaste. No necesito leer archivos ni buscar nada externo: tengo todo el material. Acá va la síntesis.\n\n---\n\n# Síntesis de prior-art: el \"Agente Arquitecto\" de vibe-kit\n\nArmé esto pensando en vos: un vibe coder que no programa, dirige Claude Code y quiere hablar la app a fondo antes de codear. La buena noticia es que **casi todo ya está inventado**. No hay que construir un framework: hay que robar piezas y ensamblarlas sobre lo que Claude Code ya te da nativo.\n\n---\n\n## 1) QUÉ YA EXISTE que se parece a lo que querés\n\nLos más relevantes, ordenados por cercanía a tu flujo (hablar → super-spec → Claude trabaja solo):\n\n1. **obra/superpowers — skill `brainstorming`** — el match más cercano. Es un diálogo de diseño pre-coding que tiene un *hard gate*: no escribe NADA de código hasta entrevistarte (una pregunta a la vez), proponer 2-3 alternativas, aplicar YAGNI, mostrarte el diseño por secciones con aprobación, escribir un design-doc fechado y recién ahí pasar la posta. Es literalmente la columna vertebral de lo que querés.\n   `https://github.com/obra/superpowers` (skill en `skills/brainstorming/SKILL.md`)\n\n2. **BMAD-METHOD** — el prior-art más maduro y rico (~49k stars). Modela un equipo de producto (Analyst, PM, Architect, UX, SM, Dev) como personas en markdown+YAML, con pipeline brief → PRD → arquitectura → historias. Su joya es el **\"Advanced Elicitation\"**: tras generar cualquier sección, ofrece un menú numerado 1-5 de lentes de razonamiento (pre-mortem, primeros principios, inversión, red/blue team, socrático) para refinar en loop. Pesado de más para vos (12+ agentes), pero la mecánica de elicitación es oro puro.\n   `https://github.com/bmad-code-org/BMAD-METHOD` (skill clave: `src/core-skills/bmad-advanced-elicitation/SKILL.md` + `methods.csv`)\n\n3. **piercelamb/deep-plan** — plugin que convierte un spec crudo en un plan TDD detallado vía pipeline de 5 fases: research → entrevista de 5-10 preguntas (guardada como transcript) → síntesis del spec → revisión multi-modelo (Gemini/GPT/Opus) → partir el plan en secciones autónomas. Es tu modelo de orquestación \"super-spec → Claude muele una hora\" ya empaquetado, con *resumability*.\n   `https://github.com/piercelamb/deep-plan`\n\n4. **GitHub Spec Kit** — toolkit oficial de GitHub. Formaliza Spec → Plan → Tasks → Implement con `/specify` `/clarify` `/plan` `/tasks` `/implement` y la filosofía \"intent is the source of truth\". Su `/clarify` es el mejor modelo de desambiguación: preguntas multiple-choice en tabla con opción RECOMENDADA, tope de marcadores `[NEEDS CLARIFICATION]`, y la regla \"informed guesses + sección Assumptions\".\n   `https://github.com/github/spec-kit`\n\n5. **AWS Kiro** — IDE spec-first (no integrable, es propietario, pero las ideas valen). Aporta dos cosas robables: el formato **EARS** (`WHEN/IF/WHILE ... SHALL`) para criterios de aceptación testeables, los **steering docs** (`product.md`/`tech.md`/`structure.md`) como memoria de proyecto, y el modo **Quick Plan** (front-loadeás todas las preguntas y después corre de corrido sin gates) — que es exactamente tu \"hablo una vez, trabaja una hora\".\n   `https://kiro.dev/docs/specs/`\n\nComplementos que vale nombrar: **Agent OS v3** (kits como `mission/roadmap/tech-stack.md` + `/shape-spec` anclado a standards), **OpenSpec** (delta specs ADDED/MODIFIED/REMOVED para el caso brownfield), y el **patrón oficial de Anthropic \"Let Claude interview you\"** (`https://code.claude.com/docs/en/best-practices`), que ya trae el prompt template de entrevista + escribir `SPEC.md` + ejecutar en sesión fresca.\n\n---\n\n## 2) LAS MEJORES IDEAS A ROBAR de cada uno\n\n**De Superpowers (brainstorming):**\n- Una pregunta a la vez, preferí multiple-choice (clave para alguien que no programa).\n- *Hard gate*: prohibido tocar código/scaffold hasta que el diseño esté aprobado — incluso para apps \"simples\".\n- Diseño presentado por secciones, con aprobación después de CADA sección (dos checkpoints: diseño + spec escrito).\n- YAGNI despiadado como instrucción permanente.\n- Auto-descomponer pedidos multi-subsistema en sub-proyectos antes de arrancar.\n- Pase de auto-revisión del spec (placeholders, contradicciones, ambigüedad) antes de mostrártelo.\n\n**De BMAD (Advanced Elicitation):**\n- El loop generar → ofrecer menú 1-5 de refinamiento → aplicar → confirmar, en cada sección.\n- Menú con affordances mínimas: `número`=ejecutar, `[r]`=reshuffle, `[a]`=listar todo, `[x]`=proceder.\n- Las técnicas viven en un `methods.csv` (categoría/nombre/descripción) → extensible sin tocar el agente.\n- **HALT obligatorio**: nunca modifica sin tu `y/n`. Te mantiene en el lazo.\n- Personas con voz fuerte y memorable (el PM que pregunta WHY sin parar) &gt; \"sos un arquitecto senior\" genérico.\n\n**De deep-plan:**\n- Transcript de la entrevista persistido como archivo (`claude-interview.md`) → reviewable y *resumable*.\n- Patrón \"retomar desde artefactos\": detecta archivos existentes y sigue desde la fase correcta (ideal para volver al otro día).\n- Partir el plan final en secciones autónomas para que Claude muela sin parar.\n- Validar prerequisitos (API keys) temprano, antes de pasos caros.\n\n**De Spec Kit:**\n- Marcadores `[NEEDS CLARIFICATION: pregunta]` con tope (~3), reservados solo para decisiones que mueven el alcance → evita el interrogatorio infinito.\n- Regla de oro: **\"informed guesses + sección Assumptions\"** — asumí lo razonable, escribilo, seguí.\n- Prioridad de qué preguntar: **scope &gt; seguridad/privacidad &gt; UX &gt; técnico**.\n- La `constitution` (reglas transversales que se chequean en cada feature) = tu checklist de concerns.\n\n**De Kiro:**\n- **EARS** para criterios de aceptación testeables → le da al super-prompt criterios que Claude puede auto-verificar.\n- Forzar a cubrir happy path + edge cases + modos de fallo en cada requisito.\n- **Steering docs** persistentes = memoria de proyecto (resuelve \"agregar features a apps ya andando\").\n- Modo **Quick Plan** (todas las preguntas adelante, después autónomo).\n\n**De OpenSpec (caso brownfield):**\n- Plantilla de propuesta de 4 campos: **Why / What (incluye qué NO cambia) / Scope / Success criteria**.\n- Delta specs **ADDED/MODIFIED/REMOVED** para razonar cambios sobre código vivo.\n- Que el agente liste explícitamente \"qué se queda IGUAL\" → delimita el *blast radius* y te da seguridad de no romper.\n\n**Del patrón de subagentes nativos de Claude Code (PubNub):**\n- `pm-spec` que hace preguntas y solo avanza al marcar `READY_FOR_ARCH` → gate por status.\n- Tools por rol: el Arquitecto **read-only** (no escribe código); el ejecutor con Edit/Write/Bash. La separación hablar-vs-construir impuesta a nivel de permisos.\n\n---\n\n## 3) QUÉ INTEGRAR tal cual vs ADAPTAR vs CONSTRUIR PROPIO\n\nVoy a ser honesto: **vos no tenés que construir casi nada de motor.** Lo que falta es ensamblaje y contenido (tus kits, en español, con tu tono).\n\n**INTEGRAR TAL CUAL (es plataforma o es portable directo):**\n- **Claude Code Plan Mode + ExitPlanMode** — esto es el CIMIENTO, no un competidor. Ya implementa nativo \"discutir read-only → escribir el plan a un archivo → aprobar → ejecutar solo\". El detalle técnico clave: el read-only es *inyección de prompt*, y el handoff a ejecución pasa SIEMPRE por el filesystem (ExitPlanMode lee el spec del disco). **No reinventes el gate de aprobación ni el handoff.**\n- **Docs oficiales de Anthropic** (best-practices, subagents, permission-modes) — volcá las reglas tal cual.\n- **El skill `bmad-advanced-elicitation` (SKILL.md + methods.csv)** — es lo más barato de robar y de mayor impacto. Es portable casi sin tocar; solo reescribí el `methods.csv` con técnicas afinadas a apps de negocio.\n\n**ADAPTAR (robar estructura/plantillas, reescribir para tu caso):**\n- El flujo de **Superpowers brainstorming** como columna vertebral de la conversación (traducido, con onboarding más conversacio
+... (truncated 103201 chars, full result in C:\Users\Usuario\AppData\Local\Temp\claude\C--Users-Usuario-Desktop-Proyectos-Guia-de-vibe-coding\6ecda476-04fb-436a-b0e7-9ef851e66540\tasks\wq3zs7j58.output)</result>
+<usage><agent_count>6</agent_count><subagent_tokens>308611</subagent_tokens><tool_uses>91</tool_uses><duration_ms>380342</duration_ms></usage>
+</task-notification>
+
+---------- ASSISTANT [2026-06-22 02:31] ----------
+El equipo volvió con muchísimo material (¡y la noticia es buena: casi todo ya está inventado!). El resultado es enorme, así que dejame extraer las partes clave —sobre todo el diseño del Arquitecto y la guía de cuándo-qué— para traértelas bien.
+Tengo el material completo y es **muy bueno**. Lo guardo como documento y actualizo la memoria, y te traigo lo esencial (incluida la respuesta directa a tu duda de subagentes/específico-vs-ambiguo).
+Volvió el equipo (6 agentes) y la noticia es **buenísima y honesta**: lo guardé todo en [AGENTE-ARQUITECTO.md](AGENTE-ARQUITECTO.md). Te resumo lo que importa.
+
+## La verdad incómoda (en el buen sentido): casi todo ya existe
+
+No tenemos que construir un motor. **Superpowers + la elicitación de BMAD + deep-plan, montados sobre el Plan Mode nativo de Claude Code, ya resuelven ~85% de lo que querés.** Lo que vos imaginaste —un agente que te entrevista, no toca código hasta aprobar el diseño, escribe el spec y recién ahí ejecuta— **ya está hecho por la comunidad.** Lo que es *genuinamente tuyo* (y vale la pena construir) es chico: **tus kits** (el checklist de concerns, la matriz de stacks), **en español y con tu tono**, y el **empaquetado**.
+
+Los 3 que más se parecen a tu idea:
+- **obra/superpowers** → skill `brainstorming`: el match casi exacto (entrevista una-pregunta-a-la-vez, *prohibido codear hasta aprobar*, escribe design-doc).
+- **BMAD** → su "Advanced Elicitation": después de cada sección te ofrece un menú 1-5 para refinar (pre-mortem, abogado del diablo, etc.) y nunca cambia nada sin tu OK.
+- **deep-plan** → tu flujo "hablo → super-spec → Claude muele una hora", ya empaquetado.
+
+(Y validación importante: ese flujo que descubriste solo es exactamente el patrón **Quick Plan** de Kiro + el handoff de Plan Mode. Tu instinto era correcto.)
+
+## Cómo queda el Arquitecto (lo clave que confirmó la investigación)
+
+- Es un **agente PRINCIPAL, no un subagente** — porque tenés que poder *hablarle a mitad de camino*. (A un subagente no le hablás: se va, hace y vuelve.)
+- Lo llamás con `/arquitecto`, corre en **Plan Mode** (read-only: **nunca codea** mientras charlan), te entrevista, escribe el **spec en un archivo**, y recién ahí —en una **sesión nueva y limpia**— Claude ejecuta solo.
+- Sirve para apps nuevas *y* para tus apps andando (ej. el ERP): ahí primero *lee* tu código y después te pregunta.
+
+## Respuesta directa a tu dolor (cuándo qué)
+
+| Decisión | Regla simple |
+|---|---|
+| **¿Subagente o principal?** | **Principal** para conversar/iterar/pasos encadenados (= tu Arquitecto). **Subagente** solo de ayudante en background: leer 10+ archivos, 3+ tareas independientes, o revisar con ojos frescos. |
+| **¿Específico o ambiguo?** | **Ambiguo cuando charlás, específico en el spec.** Dejá que te entreviste y proponga; todo lo que querés construido va al spec con precisión. |
+| **¿Cuánta autonomía?** | **Hablar/spec → Plan mode** (read-only). **Ejecutar → Auto** (para no clickear 50 permisos). Nunca "YOLO" fuera de un sandbox. Commiteá en git antes de la corrida. |
+| **¿Plan-first o directo?** | **Si lo describís en una frase, andá directo; si no, planeá primero.** En tu primer mes: dejá Plan mode siempre prendido. |
+
+> En criollo: **ambiguo mientras pensás, específico cuando ejecutás; agente principal para hablar, subagente solo para tareas pesadas en paralelo.**
+
+## Mi recomendación honesta de arranque
+
+Dado que el 85% ya existe, **no empieces construyendo** — empezá **probando**:
+
+**🅰️ Fast track (esta semana, mi recomendación):** instalamos **Superpowers + Spec Kit** y corremos el flujo *charlar → spec → ejecutar* **en vivo sobre tu app del ERP**. Salís con un spec real de una mejora, ves el flujo funcionando, y descubrimos exactamente qué le falta — todo sin construir nada. Aprendés haciendo, que es como te sale mejor.
+
+**🅱️ Build track (después):** con eso aprendido, montamos el layer propio `vibe-kit` (tus kits en español + el `/arquitecto` empaquetado), ya sabiendo qué vale la pena.
+
+¿Vamos con el **Fast track** (te guío paso a paso para instalar Superpowers + Spec Kit y lo probamos en el ERP), o preferís que **arranquemos a construir lo nuestro** directamente? También puedo guiarte primero en **documentar tu app del ERP** (`/init`) si querés que el Arquitecto la entienda bien antes.
+
+========== USER [2026-06-22 12:32] ==========
+antes de avanzar con eso quiero q me expliques el output q me dara el proyecyo, en criollo, de manera no tecnica, como podre usar a este agente despues en claude code o en vscode con la extension de claude code
+
+---------- ASSISTANT [2026-06-22 12:33] ----------
+Buenísima pregunta, y es la correcta antes de decidir nada. Te lo cuento en criollo.
+
+Primero, una aclaración que ordena todo: hay **dos "outputs" distintos**, y conviene no mezclarlos.
+
+## Output 1 — La herramienta en sí (lo que tenés instalado)
+
+Al final del proyecto **no vas a tener una app que abrís ni un programa nuevo**. Vas a tener **superpoderes nuevos metidos adentro de tu Claude Code**.
+
+En concreto: instalás el kit **una sola vez** (es apretar un botón / pegar un comando), y a partir de ahí, en **cualquier** proyecto que abras, vas a poder escribir comandos nuevos. El principal es tu agente:
+
+```
+/arquitecto
+```
+
+Eso es todo. No hay nada que "abrir". Es como cuando le agregás una extensión al navegador: una vez instalada, está siempre ahí, calladita, hasta que la llamás.
+
+Y ya viene **con tu cabeza adentro**: sabe tu stack preferido (Next.js, Supabase, Python para datos) y tu checklist de cosas-que-no-se-olvidan (roles, permisos, listas configurables, errores). No se lo tenés que explicar cada vez.
+
+## Output 2 — Lo que el agente te produce cada vez que lo usás
+
+Esto es lo que vas a ver y tocar en el día a día. Cada vez que lo llamás, te deja **dos cosas en español, no en código**:
+
+1. **Una charla** donde te hace preguntas tipo test (elegís a/b/c) y vas diciéndole el dolor, el proceso, lo que querés.
+2. **Un documento** (le decimos *spec*) que dice, en lenguaje claro: *"esto es lo que vamos a construir, así, con estos límites"*. **Vos lo leés y lo aprobás** — como aprobar un presupuesto antes de que empiece la obra. Nunca leés código.
+
+Recién **después** de que vos aprobás, en otro chat Claude se pone a construir solo un rato y te entrega la app (o el cambio) funcionando, con su documentación al día.
+
+## Cómo lo usás, paso a paso (en VSCode con la extensión)
+
+> Dato que despeja una duda tuya: **"Claude Code" y "la extensión de VSCode" son la misma cosa**, dos puertas a lo mismo. Lo que instalamos funciona igual en las dos. Usá la que te quede cómoda.
+
+1. Abrís tu proyecto en **VSCode** y abrís el panel de **Claude Code** (donde ya le escribís hoy).
+2. Escribís **`/arquitecto`**.
+3. Te empieza a **hacer preguntas de a una** (multiple choice, con una opción ya recomendada). Vos respondés charlando, en español.
+4. Te va mostrando el plan **por partes**; vos decís "sí, dale" o "no, cambiá esto". Va y vuelve hasta que te gusta.
+5. Cuando están de acuerdo, **escribe el spec** (el documento). Lo leés, lo aprobás.
+6. Abrís un **chat nuevo y limpio** y le decís *"ejecutá el spec"*. Claude **trabaja solo** y construye.
+7. Al final te pide que **pruebes** y te muestra que funciona. Listo.
+
+## Y para las apps que YA tenés andando (tu ERP, etc.)
+
+Igual de simple: abrís ese proyecto, escribís `/arquitecto`, y antes de preguntarte nada **lee tu código solo** para entender qué hay. Después te ayuda a agregar o arreglar cosas **sin romper lo que ya anda** (te dice explícitamente "esto NO lo toco"). Eso resuelve tu otra necesidad: mejorar apps existentes, no solo arrancar nuevas.
+
+## Lo que NUNCA vas a tener que hacer
+
+- ❌ Leer ni escribir código.
+- ❌ Copiar y pegar prompts largos (el comando ya los trae adentro).
+- ❌ Acordarte de la arquitectura o del checklist (el agente lo hace por vos).
+- ❌ Abrir una app aparte o una web.
+
+---
+
+En una frase: **el output es un comando (`/arquitecto`) que vive en tu Claude Code de siempre, que charla con vos, te deja un documento aprobable, y después construye solo.**
+
+¿Querés que te lo dibuje como tira de pasos para que quede más gráfico, o con esto ya está claro y elegimos por dónde arrancar (probar con lo que ya existe vs. construir lo nuestro)?
+
+========== USER [2026-06-22 12:36] ==========
+Y, por ejemplo, me, yo pienso, a ver, yo tengo vscode donde yo tengo varios chats y traté de hacer que cada chat haga una cosa, ¿no? Tengo un chat que es el dev que hace los releases, un chat que es de Google y un chat que hace las features con una práctica específica. Por ejemplo, yo voy a poder abrir otro chat que sea este arquitecto y usarlo ahí, que me ayude a armar prompts para los otros chats, o que me ayude a crear estos mini chats que uso yo con diferentes roles, eso me va a poder ayudar el arquitecto. Y ya que estamos, te pregunto, Yo tengo esos chats así, porque a cada sesión de Claude le doy su rol al principio, pero cuando compacta, yo a veces le digo que se vuelva a explicar el mismo el rol antes de compactar. Pasa eso cuando compacta él pierde su seteo de rol que yo le di al principio,??
+
+---------- ASSISTANT [2026-06-22 12:37] ----------
+Las dos preguntas son excelentes y están conectadas. Te las separo.
+
+## 1) Sí, y de hecho el Arquitecto es justo para eso
+
+Primero: lo que ya hacés —**un chat = una cosa, cada uno con su rol**— es *exactamente* la buena práctica. No es un truco tuyo improvisado, es lo que recomienda la gente que más le exprime a Claude Code. Vas bien.
+
+Y sí, vas a poder abrir un chat con el Arquitecto y usarlo para **dos cosas**:
+- **Armarte los prompts** para tus otros chats (el de features, el de releases, etc.).
+- **Crear esos "mini-chats con rol"** de forma que no los tengas que re-improvisar cada vez.
+
+Pero acá viene la mejora grossa, que enlaza con tu segunda pregunta 👇: hoy vos **abrís un chat y le tipeás el rol al principio**. Eso es frágil. La versión posta es convertir cada rol en un **comando guardado** —por ejemplo `/release`, `/feature`, `/arquitecto`— que **ya trae el rol adentro**. Entonces no lo escribís nunca más: lo llamás y aparece con su personalidad puesta. Eso es literalmente una de las piezas de vibe-kit, y el Arquitecto te ayuda a escribirlas.
+
+## 2) La compactación: tu observación es correcta (y por qué pasa)
+
+**Sí: cuando compacta, el rol que le diste como mensaje al principio se puede perder o debilitar.** No te lo estás imaginando.
+
+El motivo, en criollo: **compactar = resumir la charla.** Y todo resumen es "tijera": se queda con lo que *cree* importante y puede soltar el resto… incluido el rol que le pusiste al arranque, sobre todo si fue hace rato y no lo volviste a mencionar. Por eso tu parche (pedirle que repita el rol antes de compactar) funciona — pero es justamente eso, un parche que tenés que recordar hacer.
+
+**La clave que te va a cambiar la vida:** hay cosas que **NO se pierden nunca** al compactar, porque **no son parte de la charla que se resume**, sino que se le vuelven a "soplar al oído" en cada mensaje. Esas son:
+- El **`CLAUDE.md`** del proyecto.
+- Las instrucciones de sistema (el rol de un comando o agente guardado).
+
+O sea: **si el rol vive en un mensaje suelto → la compactación se lo puede comer. Si el rol vive en un lugar durable → es a prueba de compactación.**
+
+Tres formas de hacerlo durable, de la más rápida a la más definitiva:
+
+1. **Parche mejorado (ya mismo):** cuando compactes, no lo dejes a la suerte — decile qué preservar:
+   ```
+   /compact mantené mi rol de release manager y el checklist de release
+   ```
+   (`/compact` acepta instrucciones para enfocar el resumen.)
+2. **Robusto:** poné el rol en el **`CLAUDE.md`** del proyecto (o en un comando `.md` guardado). Como se re-inyecta siempre, **la compactación no lo puede perder.**
+3. **Definitivo (lo de vibe-kit):** cada rol es un **comando/agente propio** (`/release`, `/feature`…). Cada vez que lo llamás **arranca fresco con su rol intacto**, sin que vos tipees nada.
+
+Y un consejo de yapa: cuando un chat ya está largo o "contaminado", muchas veces conviene **`/clear` y volver a entrar con el comando**, en vez de `/compact`. Una sesión limpia con el rol bien puesto le gana a una sesión larga y resumida.
+
+---
+
+Fijate que tu dolor de hoy (re-tipear roles y que se pierdan al compactar) es **exactamente** lo que resuelven los comandos guardados. Así que te propongo un primer mini-experimento concreto y rápido: **convertir tus 3 chats-rol actuales (release, features, y el otro) en 3 comandos guardados**, ya mismo. Es la mejor forma de que veas el valor de todo esto en 10 minutos, sin construir el kit entero.
+
+¿Querés que arranquemos por ahí? Si va, contame qué hace cada uno de tus 3 chats (con tus palabras) y los dejamos como comandos.
+
+========== USER [2026-06-23 11:54] ==========
+Bueno. Te activo el modo ultracode; ya tienes toda la informacion de mis dolores, lo que necesito que haga el arquitecto y todo. Lanza los agentes q necesites para que investiguen tambien, le den un set de skills al arquitecto y que el tambien sepa entregarselas a los agentes que vaya creando. Tienes camino libre para crear todo el poryecto junto con tutoriales de uso. Espero los resultados
+
+---------- ASSISTANT [2026-06-23 12:00] ----------
+¡Modo ultracode activado y camino libre tomado! Voy a **construir el proyecto entero** —el plugin `vibe-kit` con el Arquitecto, sus skills, los subagentes, las plantillas y los tutoriales—. Primero marco el capítulo y dejo en disco el blueprint que ya teníamos (para que los agentes constructores tomen el contenido fiel), y enseguida lanzo el equipo de construcción.
+Perfecto, tengo el blueprint completo. Lo dejo en disco y lanzo la construcción.
+`BLUEPRINT.md` ya estaba en disco y está completo — perfecto, lo reaprovecho. Ahora lanzo el **workflow de construcción**: ~34 archivos (el plugin entero + skills + subagentes + plantillas + hooks + tutoriales), construidos por un equipo de agentes, revisados y consolidados.
+Lanzado. 🚀 Esto es un build grande, así que corre en segundo plano y te aviso cuando termine.
+
+**Qué está armando el equipo ahora mismo** (~43 agentes, 4 fases):
+
+- **Fase 1 — Investigar:** confirman el formato exacto (jun 2026) de plugins, skills, subagentes, comandos y hooks de Claude Code (leyendo la doc oficial), y minan el contenido de los repos de prior-art para adaptarlo.
+- **Fase 2 — Construir:** **34 archivos en paralelo** → el plugin `vibe-kit` entero: el comando `/arquitecto` + 6 comandos más, 4 subagentes, 9 skills, 4 plantillas, los hooks, el manifiesto, y **6 tutoriales en criollo**.
+- **Fase 3 — Revisar:** 3 revisores chequean y **corrigen** que el JSON cargue, que los formatos sean válidos, que las referencias crucen bien y que los tutoriales mencionen comandos que existen de verdad.
+- **Fase 4 — Consolidar:** verifica que no falte nada, escribe el índice del plugin y un `LEEME-PRIMERO.md`.
+
+Queda todo en `vibe-kit/` dentro de tu carpeta de proyecto, listo para instalar.
+
+Mirá el avance en vivo con **`/workflows`**. Cuando cierre, te traigo el resumen de lo que quedó construido, te muestro cómo instalarlo y probamos `/arquitecto` juntos. No tenés que hacer nada hasta entonces. 🛠️
+
+========== USER [2026-06-23 12:32] ==========
+<task-notification>
+<task-id>wm1rfj1y9</task-id>
+<tool-use-id>toolu_01XjJqstLUGtqUrTVJXoaCHj</tool-use-id>
+<output-file>C:\Users\Usuario\AppData\Local\Temp\claude\C--Users-Usuario-Desktop-Proyectos-Guia-de-vibe-coding\6ecda476-04fb-436a-b0e7-9ef851e66540\tasks\wm1rfj1y9.output</output-file>
+<status>completed</status>
+<summary>Dynamic workflow "Construir el plugin vibe-kit completo de Claude Code (Arquitecto + skills + subagentes + comandos + plantillas + hooks) y los tutoriales de uso, con investigacion de formatos, autoria, revision y consolidacion" completed</summary>
+<result>{"builtCount":34,"built":[{"path":"C:\\Users\\Usuario\\Desktop\\Proyectos\\Guia de vibe coding\\vibe-kit\\.claude-plugin\\plugin.json","status":"written","summary":"Escribi el manifest del plugin en C:\\Users\\Usuario\\Desktop\\Proyectos\\Guia de vibe coding\\vibe-kit\\.claude-plugin\\plugin.json y lo valide con node (JSON.parse OK).\n\nDECISIONES DE FORMATO (segun la investigacion oficial /plugins-reference jun-2026):\n- Solo se usaron campos REALES del esquema. `name` es el unico obligatorio (kebab-case \"vibe-kit\", define el namespace /vibe-kit:&lt;skill&gt;). Se agregaron opcionales reconocidos: displayName, version, description, author{name,email}, homepage, repository, license, keywords.\n- NO se incluyeron campos de path custom (skills/commands/agents/hooks/mcpServers). Esto es deliberado y CRITICO: el plugin usa las ubicaciones default de autodescubrimiento (commands/*.md, agents/*.md, skills/&lt;n&gt;/SKILL.md, hooks/hooks.json en la raiz del plugin), asi que declararlas seria innecesario y, peor, los campos commands/agents REEMPLAZAN el scan default (Trampa #5) y romperian el descubrimiento. Al omitirlos, Claude Code escanea las carpetas estandar que el SPEC_SHEET define, y todo cruza.\n- `version: 1.0.0` (semver) coincide con el roadmap FASE 0/1 del BLUEPRINT (release estable). Nota para el usuario: con version seteada, los updates solo llegan al subir este campo (Trampa #3); para iterar rapido se puede omitir y usar SHA de git.\n- author.email tomado del perfil del usuario (eq.chatgpt@gmail.com). homepage/repository apuntan al marketplace privado en GitHub propio descrito en BLUEPRINT seccion 1 (placeholder de owner eq-chatgpt, ajustable).\n- description en espanol rioplatense, orientada a no-programador, reflejando el rol del Arquitecto y los concerns transversales (roles, listas configurables, errores, logging) que son los dolores explicitos del BLUEPRINT/AGENTE-ARQUITECTO.\n\nVALIDACION: node -e JSON.parse =&gt; \"VALID JSON. name= vibe-kit | version= 1.0.0 | keys= name,displayName,version,description,author,homepage,repository,license,keywords\". El manifest carga sin error."},{"path":"C:\\Users\\Usuario\\Desktop\\Proyectos\\Guia de vibe coding\\vibe-kit\\.claude-plugin\\marketplace.json","status":"written","summary":"Escribi C:\\Users\\Usuario\\Desktop\\Proyectos\\Guia de vibe coding\\vibe-kit\\.claude-plugin\\marketplace.json y verifique que es JSON valido (parseado con Node, sin errores).\n\nFORMATO (siguiendo /plugin-marketplaces verbatim): incluye los 3 campos obligatorios -&gt; name \"vibe-kit-marketplace\" (kebab-case), owner {name \"eq.chatgpt\", email} y plugins[]. Una sola entry de plugin con los 2 campos minimos requeridos: name \"vibe-kit\" + source. Agregue ademas description del marketplace y $schema (ambos opcionales y validos). No inventé campos fuera del esquema.\n\nCRUCE CON EL SPEC_SHEET: el name del plugin \"vibe-kit\" coincide exacto con vibe-kit/.claude-plugin/plugin.json (que ya existe: version 1.0.0, author eq.chatgpt, repo eq-chatgpt/vibe-kit). El namespacing quedara como /vibe-kit:arquitecto, /vibe-kit:feature, etc.\n\nDECISION DE source: usé \"source\": \".\" (ruta relativa). El marketplace.json vive DENTRO de vibe-kit/.claude-plugin/, asi que el repo del marketplace ES la carpeta vibe-kit/ y el plugin esta en su raiz (mismo nivel que .claude-plugin/). Las rutas relativas resuelven contra la raiz del repo del marketplace, no contra .claude-plugin/. Esto permite el flujo pedido:\n  /plugin marketplace add \"C:\\Users\\Usuario\\Desktop\\Proyectos\\Guia de vibe coding\\vibe-kit\"\n  /plugin install vibe-kit@vibe-kit-marketplace\n  /reload-plugins\n\nAVISO (TRAMPA #4 de la investigacion): la source relativa \".\" SOLO resuelve si el marketplace se agrega via ruta local o git (como arriba). NO funcionaria si se agregara apuntando con una URL directa al marketplace.json; para distribucion por URL habria que cambiar la source a {source:\"github\", repo:\"eq-chatgpt/vibe-kit\"}. Para uso local/GitHub propio (el caso del BLUEPRINT seccion 1), la source relativa es correcta.\n\nEl contenido de cara al usuario (description del marketplace y del plugin) esta en espanol rioplatense, claro y para no-programador; los keys estructurales (name/owner/source/plugins/description) en ingles como exige el formato."},{"path":"C:\\Users\\Usuario\\Desktop\\Proyectos\\Guia de vibe coding\\vibe-kit\\README.md","status":"written","summary":"Escribi la portada del plugin vibe-kit (README.md) en espanol rioplatense para no-programador. Contenido: (1) \"Que es, en criollo\" tomado fiel del BLUEPRINT (plugin de Claude Code, vive en VSCode, sin servidores externos) y del AGENTE-ARQUITECTO (el Arquitecto como agente principal que entrevista, no codea, escribe el SPEC a disco; preguntas multiple-choice con opcion Recomendada; dolores transversales activados por default: roles/permisos, listas configurables en panel, errores, logging). (2) Tabla de los 7 comandos del SPEC_SHEET, 1 linea cada uno, con nombres exactos (arquitecto, nueva-app, feature, fix, release, docs-check, crear-rol) y nota de namespacing /vibe-kit:. (3) Instalacion en 4 pasos numerados usando la sintaxis real de plugins jun-2026: /plugin marketplace add owner/repo -&gt; /plugin install vibe-kit@vibe-kit-marketplace -&gt; /reload-plugins -&gt; verificar; mas la alternativa claude --plugin-dir ./vibe-kit. (4) Quickstart de 3 lineas (instalar -&gt; /nueva-app o /feature deja un SPEC -&gt; sesion fresca ejecuta y revisas en castellano), reflejando el handoff por filesystem del AGENTE-ARQUITECTO. (5) Links a tutoriales/ (los 6 archivos con nombres exactos del SPEC_SHEET) y a ../BLUEPRINT.md.\n\nFORMATO VERIFICADO: un README de plugin es Markdown plano (el formato de Claude Code solo exige JSON en plugin.json/marketplace.json y frontmatter YAML en SKILL.md/agents; el README no tiene reglas estructurales, asi que NO lleva frontmatter ni JSON). Headings bien anidados, code fences balanceados (4 bloques completos). El link ../BLUEPRINT.md resuelve correcto: README esta en vibe-kit/, BLUEPRINT.md esta un nivel arriba en la raiz del proyecto (confirmado por ls). Los 7 nombres de comando y los 6 tutoriales cruzan al pie con el SPEC_SHEET."},{"path":"C:\\Users\\Usuario\\Desktop\\Proyectos\\Guia de vibe coding\\vibe-kit\\commands\\arquitecto.md","status":"written","summary":"Escribí el comando estrella /arquitecto en C:\\Users\\Usuario\\Desktop\\Proyectos\\Guia de vibe coding\\vibe-kit\\commands\\arquitecto.md (a nivel raíz de commands/, sin anidar — evita el bug de discovery). Frontmatter de slash command válido y verificado (abre/cierra con ---): description, argument-hint, disable-model-invocation: true (para que Claude no lo auto-dispare), allowed-tools: Read, Grep, Glob, Write. Nota de formato: disable-model-invocation y argument-hint usan guiones porque es frontmatter de slash command/skill, no de subagente (camelCase). El comando es un AGENTE PRINCIPAL conversacional (no subagente), porque un slash command corre inline en la conversación principal y puede dialogar/preguntar; un subagente no podría hablar con el usuario.\n\nCuerpo (español rioplatense, para no-programador), construido sobre AGENTE-ARQUITECTO.md y BLUEPRINT.md:\n- REGLA #0 HARD GATE: read-only en Plan Mode, NUNCA escribe código; única escritura permitida = el SPEC en disco. Handoff por filesystem + sesión fresca.\n- REGLA #1 cómo pregunta: una pregunta por mensaje, multiple-choice con opción Recomendado, fast-path \"defaults\", reparto 30-40% problema / 60-70% diseño, lo no crítico se asume en ## Supuestos.\n- Flujo 9 pasos: (0) detecta greenfield vs brownfield — si hay código, delega PRIMERO al subagente explorador-codigo y entrevista anclado a lo encontrado, arrancando con propuesta OpenSpec (qué SÍ / qué NO cambia); (1) carga como contexto las skills checklist-concerns (constitution) y matriz-de-stacks (DESIGN, golden path JS/TS + Python solo como especialista de datos detrás de una frontera); (3) entrevista co
+... (truncated 83618 chars, full result in C:\Users\Usuario\AppData\Local\Temp\claude\C--Users-Usuario-Desktop-Proyectos-Guia-de-vibe-coding\6ecda476-04fb-436a-b0e7-9ef851e66540\tasks\wm1rfj1y9.output)</result>
+<usage><agent_count>43</agent_count><subagent_tokens>4160555</subagent_tokens><tool_uses>482</tool_uses><duration_ms>1613873</duration_ms></usage>
+</task-notification>
+
+---------- ASSISTANT [2026-06-23 12:32] ----------
+El equipo terminó: **34 archivos, 43 agentes, ~4,2M tokens.** Dejame verificar qué quedó realmente en disco antes de cantar victoria.
+Todo en disco: **34 archivos + índice + LEEME-PRIMERO**, y el `plugin.json` quedó válido y limpio. Verifico el comando estrella y los pendientes que hayan quedado.
+El `/arquitecto` quedó **excelente** — hard gate, Plan Mode read-only, entrevista, menú de elicitación con HALT, handoff y la capacidad meta de fabricar comandos. Reviso si la consolidación marcó pendientes.
+¡Está **construido y verificado**! Y no es humo: revisé el disco, no solo el reporte. Acá va lo que quedó.
+
+## ✅ Qué se construyó (y qué verifiqué de verdad)
+
+**34 archivos** + índice + guía de inicio, todo en [`vibe-kit/`](vibe-kit/). Verifiqué con mis propios ojos:
+- Los 34 archivos existen en disco (nada faltante).
+- `plugin.json`, `marketplace.json` y `hooks.json` **parsean como JSON válido**.
+- El comando estrella [`/arquitecto`](vibe-kit/commands/arquitecto.md) hace exactamente lo que diseñamos: **read-only, hard gate (no codea hasta aprobar), entrevista de a una pregunta, menú de elicitación con HALT, escribe el SPEC a disco y manda a una sesión fresca a ejecutar.**
+- Los revisores **encontraron y arreglaron bugs reales** (p. ej. referencias a un comando fantasma `/bootstrap` → corregidas a `/vibe-kit:nueva-app`), y confirmaron que todos los comandos referencian skills y agentes que **existen**.
+
+**El árbol** (resumen):
+
+| Carpeta | Qué hay |
+|---|---|
+| `commands/` | **7 comandos**: `arquitecto`, `nueva-app`, `feature`, `fix`, `release`, `docs-check`, `crear-rol` |
+| `agents/` | **4 subagentes** ayudantes: `explorador-codigo`, `redteam-spec`, `doc-keeper`, `reviewer` |
+| `skills/` | **8 skills**: entrevista, elicitación (+`methods.csv`), escribir-spec, matriz-de-stacks, checklist-concerns, playbook-orquestación, brownfield-openspec, crear-agentes-y-comandos |
+| `templates/` | CLAUDE.md, constitution, SPEC, **project.yaml** |
+| `hooks/` | `hooks.json` (verificación al cerrar turno) |
+| `tutoriales/` | **6 tutoriales en criollo** (instalación, primer uso, app ERP existente, convertir chats en comandos, compactación y roles, cuándo usar qué) |
+
+Empezá por [`LEEME-PRIMERO.md`](LEEME-PRIMERO.md) y [`vibe-kit/INDICE.md`](vibe-kit/INDICE.md).
+
+## ⚠️ Lo único que NO pude verificar (sé honesto)
+
+**No instalé ni corrí el plugin en una sesión real de Claude Code** — eso no lo puedo hacer yo desde acá. Los formatos están tomados de la doc oficial (jun-2026), pero si tu versión de Claude Code difiere en algún detalle, puede que un comando no aparezca a la primera. Es un ajuste de 2 minutos y lo hacemos juntos.
+
+## 🚀 Cómo lo instalás (probalo ahora)
+
+En una sesión de Claude Code, pegá estos 3 comandos:
+
+```
+/plugin marketplace add "C:\Users\Usuario\Desktop\Proyectos\Guia de vibe coding\vibe-kit"
+/plugin install vibe-kit@vibe-kit-marketplace
+/reload-plugins
+```
+
+Después tipeá `/vibe-kit` y deberían aparecer los comandos (probablemente como `/vibe-kit:arquitecto`). El paso a paso con troubleshooting está en [`tutoriales/00-instalacion.md`](vibe-kit/tutoriales/00-instalacion.md).
+
+## El siguiente paso que te recomiendo
+
+Hacer el **primer uso de verdad**: instalalo y corré `/vibe-kit:arquitecto` sobre tu **app del ERP** (tu caso más doloroso). En una sola sesión salís con el SPEC del módulo de objetivos comerciales planteado, sin tocar código.
+
+¿Lo instalás ahora y me contás si aparecieron los comandos (te ayudo si algo no carga)? ¿O querés que primero te haga un repaso guiado de cómo va a ser esa primera charla con el Arquitecto?
+Listo — dejé todo verificado y actualicé la memoria del proyecto con el estado "construido" y los pasos de instalación, así no se pierde entre sesiones.
+
+Quedo a la espera de que pruebes la instalación (o de hacerte el repaso guiado del Arquitecto, lo que prefieras). Si al instalar algún comando no aparece, pegame el mensaje que te tire y lo destrabamos en el momento. 🛠️
