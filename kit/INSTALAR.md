@@ -47,8 +47,10 @@ No toques nada más de esta máquina. No borres esta carpeta del zip (queda de b
 
 ## Qué es este paquete
 
-El Arquitecto: skill global de Claude Code para charlar un proyecto ANTES de codear — te
-entrevista (una pregunta por vez, con opciones), piensa lo que no ves venir (roles, listas
-configurables, multi-tenant ⚠️, i18n ⚠️), escribe el plano (SPEC-0) con gate de aprobación
-real, y monta el proyecto completo: CLAUDE.md, sistema de documentación, skills /inicio y
-/cierre, hooks y primer commit. Autocontenido: no necesita ningún otro archivo para operar.
+El Arquitecto: skill global de Claude Code para pensar ANTES de hacer, con tres puertas —
+**proyecto nuevo** (entrevista con opciones, piensa lo que no ves venir: roles, listas
+configurables, multi-tenant ⚠️, i18n ⚠️; plano SPEC-0 con gate de aprobación real + monta el
+proyecto completo: CLAUDE.md, docs, skills /inicio y /cierre, hooks y primer commit),
+**feature sobre una app que ya anda** (explora tu código real → spec delta con su "NO SE
+TOCA"), y **consultorio** (cómo pedirle algo a Claude). Viene con el Equipador
+(/arquitecto-skills), que instala las skills del menú curado. Autocontenido.

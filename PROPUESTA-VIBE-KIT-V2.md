@@ -103,7 +103,9 @@ Extraídos de Bot Perseo → `kit/skills/arquitecto/templates/` + PLAYBOOK-MAEST
 ### Hito 1b — La skill `/arquitecto`, SOLO Modo A ✅ HECHO 2026-07-05
 SKILL.md + 5 anexos + redteam-spec + validación adversarial (8 hallazgos, todos aplicados). Bonus posteriores: el Equipador (`/arquitecto-skills` + menú curado), paquete portable autoinstalable, y el repo git como fuente canónica.
 
-### Hito 2 — La prueba de fuego del Modo A 🔥 ← EL PRÓXIMO PASO (bloquea todo lo demás)
+> ⚠️ **Orden alterado por decisión de Guido (2026-07-06)**: venía usando el Modo A con buen resultado (sin romperlo a propósito aún) y pidió construir B y C primero para testear TODO junto de arriba a abajo. La compuerta del Hito 2 se movió al final como **prueba de fuego INTEGRAL**, y la compuerta C0 del Modo C quedó anulada (C se construye directo). Los protocolos de prueba de abajo siguen vigentes — solo cambia el cuándo.
+
+### Hito 2 — La prueba de fuego del Modo A 🔥 (ahora parte de la prueba integral final)
 
 **Protocolo** (~1 h, vos con una idea REAL): chat nuevo → `/arquitecto <tu idea>` → dejarlo trabajar. Además del flujo feliz, probá a propósito:
 1. **El retome**: abandoná la charla a mitad de entrevista, volvé después con `/arquitecto` → debe ofrecerte retomar donde quedaron.

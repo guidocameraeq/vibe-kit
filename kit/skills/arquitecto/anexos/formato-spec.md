@@ -1,6 +1,8 @@
-# Formato del SPEC-0 (el plano de un proyecto nuevo)
+# Formato de specs: SPEC-0 (proyecto nuevo) y SPEC delta (feature — Modo B)
 
-El SPEC-0 es **UN solo archivo** (`SPEC-0.md` en la raíz del proyecto): el puente entre la entrevista y la ejecución. Lo va a leer una **sesión fresca que no vio la charla** (patrón "specs grandes en dos sesiones": diseñar acá → guardar el SPEC → cerrar → "ejecutá el SPEC-0" en chat nuevo). Regla de oro: **si una decisión no quedó escrita, la sesión fresca la improvisa.**
+Un spec es **UN solo archivo**: el puente entre la entrevista y la ejecución. Lo va a leer una **sesión fresca que no vio la charla** (patrón "specs grandes en dos sesiones": diseñar acá → guardar el SPEC → cerrar → "ejecutá el spec" en chat nuevo). Regla de oro: **si una decisión no quedó escrita, la sesión fresca la improvisa.**
+
+Dos formatos según la puerta: **SPEC-0** para proyecto nuevo (`SPEC-0.md` en la raíz del proyecto — Modo A) y **SPEC delta** para feature sobre app existente (`docs/SPEC-<nombre>.md` — Modo B, esqueleto al final de este anexo).
 
 Se escribe en español claro (vos), para que el usuario lo lea y apruebe sin saber código. Cuando se implementa, se archiva (`docs/archive/` + marca "✅ IMPLEMENTADO <fecha>" en la línea 1) — un SPEC vivo que ya está hecho es una trampa.
 
@@ -67,10 +69,62 @@ No esperes al final para escribir. Al arrancar la entrevista, creá `SPEC-0.md` 
 
 - Al cerrar cada tanda de preguntas, **volcá lo decidido** en su sección y dejá `(pendiente)` en lo que falta.
 - Ventaja: si la sesión se corta o se compacta, el borrador en disco sobrevive y otra sesión retoma desde ahí.
-- Al terminar la entrevista, escribís la versión final completa **reemplazando el borrador** (mismo archivo).
+- La versión final completa se escribe **recién con el plano aprobado** (Paso 5 del Modo A / B4 del Modo B — nunca adentro de Plan Mode), reemplazando el borrador en el mismo archivo.
 
 ## Antes de marcar READY
 
 1. Auto-review: sin `(pendiente)` ni placeholders, criterios binarios, FUERA de alcance con contenido, cada ⚠️ con consecuencia, concerns cruzados con la checklist.
 2. Si el proyecto toca plata, permisos o datos sensibles: delegá al subagente `redteam-spec` para que lo ataque, e integrá los hallazgos válidos.
 3. El usuario lo leyó y aprobó → recién ahí Estado: READY. La sesión fresca SOLO ejecuta specs en READY.
+
+---
+
+## El SPEC delta (Modo B — feature sobre una app que ya anda)
+
+Mismas reglas de arriba (borrador incremental con `(pendiente)`, criterios binarios, supuestos vs decisiones, READY con aprobación). Cambia el esqueleto: acá el eje es **qué cambia y qué queda intacto** en algo que YA funciona.
+
+```markdown
+# SPEC: <nombre de la feature> — <proyecto>
+<1 línea: qué agrega/cambia. Ej: "Objetivos trimestrales por vendedor en el Visor.">
+- Estado: BORRADOR | READY
+- Fecha: <AAAA-MM-DD>
+
+## Por qué (el dolor)
+2-3 frases: qué falta o duele hoy con la app andando.
+
+## Contexto del código (de la exploración — nombres REALES)
+Lo relevante que existe hoy: tablas, pantallas, permisos, convenciones.
+- Tabla `objetivos` (id, vendedor_id, monto, anio) — hoy solo metas anuales.
+- El reporte mensual (`reporte_mensual.ts`) lee de esa tabla.
+
+## AGREGA (lo nuevo)
+Una línea por cosa nueva: tablas, pantallas, endpoints, permisos.
+
+## MODIFICA (lo existente que se toca)
+Una línea por cosa tocada, CON el efecto colateral a cuidar:
+- `objetivos`: se agrega columna `trimestre` — el reporte mensual debe seguir andando.
+
+## NO SE TOCA (obligatoria — el seguro de no romper)
+Explícito, una línea por ítem. Es el criterio #1 del smoke posterior:
+- El flujo de carga de facturas: intacto.
+- Los permisos actuales de los vendedores: intactos.
+- Los datos históricos de `objetivos`: ni se migran ni se renombran.
+
+## Criterios de aceptación (3-8, verificables)
+EARS simplificado, empezando SIEMPRE por el de regresión:
+- Todo lo listado en NO SE TOCA sigue funcionando igual que antes.
+- CUANDO un vendedor carga un objetivo trimestral, el sistema DEBE ...
+
+## Supuestos
+[ALTO/BAJO] Lo asumido sin preguntar, con impacto si estuviera mal.
+
+## Riesgos y decisiones ⚠️
+Las caras de revertir, con consecuencia (¿toca permisos? ¿toca datos del usuario
+— tabla cambio/preservo aprobada? ¿toca plata? ¿necesita migración?).
+```
+
+**Reglas propias del delta:**
+- **NO SE TOCA no puede quedar vacía** — si "no hay nada que proteger", no exploraste suficiente.
+- **Todo MODIFICA lleva su efecto colateral** ("se agrega columna X — el reporte Y debe seguir andando"), no solo el cambio.
+- **Si toca datos creados por el usuario**: la tabla "esto cambio / esto preservo" va ADENTRO del spec y se aprueba con él.
+- El spec vive en `docs/` del proyecto; al implementarse, el `/cierre` del proyecto lo archiva a `docs/archive/`.

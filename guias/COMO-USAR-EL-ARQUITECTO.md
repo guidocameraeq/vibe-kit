@@ -8,11 +8,12 @@
 
 ## 1. Qué es, en una frase
 
-El Arquitecto es el interlocutor con el que **charlás una app antes de construirla**: te
-entrevista de a una pregunta, piensa lo que vos no ves venir (roles, listas configurables,
-multi-tenant ⚠️, i18n ⚠️), escribe el plano (SPEC-0) con una puerta de aprobación real, y te
-deja el proyecto **montado y en régimen** — CLAUDE.md, documentación, skills `/inicio` y
-`/cierre`, hooks y primer commit.
+El Arquitecto es el interlocutor con el que **pensás antes de hacer**, con tres puertas en la
+misma conversación: **proyecto nuevo** (te entrevista, piensa lo que no ves venir — roles,
+listas configurables, multi-tenant ⚠️, i18n ⚠️ —, escribe el plano SPEC-0 y te deja el
+proyecto montado y en régimen), **feature grande sobre una app que ya anda** (explora tu
+código real y arma el spec delta con su seguro de no romper), y **consultorio** (cuando no
+sabés cómo pedirle algo a Claude). Él detecta la puerta por contexto; si duda, pregunta.
 
 **Qué NO es**: no construye la app (eso lo hace otra sesión, con contexto limpio), no es para
 features chicas ni para el trabajo del día a día.
@@ -23,9 +24,12 @@ features chicas ni para el trabajo del día a día.
 
 | Momento | ¿Arquitecto? | Qué hacés |
 |---|---|---|
-| **Proyecto nuevo de cero** | ✅ SÍ — es SU caso | `/arquitecto` en cualquier chat (caso A, abajo) |
-| **Feature grande o riesgosa en una app que ya anda** | ⚠️ Todavía no (Modo B llega en v2.1) — pero el patrón manual funciona HOY | Caso B, abajo: charlar → spec en formato SPEC-0 → sesión fresca lo ejecuta |
+| **Proyecto nuevo de cero** | ✅ SÍ — Modo A | `/arquitecto` en cualquier chat (caso A, abajo) |
+| **Feature grande o riesgosa en una app que ya anda** | ✅ SÍ — Modo B | `/arquitecto <la feature>` en un chat abierto EN la carpeta del proyecto (caso B, abajo) |
 | **Trabajo del día a día** (fix, ajuste, feature chica) | ❌ NO | El ciclo de siempre: `inicio` → pedís → verificás → `cierre` |
+
+Y hay un cuarto momento que no es de construir nada: **no sabés cómo pedirle algo a
+Claude** → también es `/arquitecto` (Modo C, el consultorio — caso C, abajo).
 
 Regla de bolsillo: si la feature se hace en una tarde y no toca permisos/datos/plata, **no
 hace falta spec** — pedila directo. Si "hacerla de a poquito puede salir mal", va con spec.
@@ -74,39 +78,71 @@ Ejemplo: se te ocurre *"una app para llevar los gastos de la casa"*.
 
 ## 4. Caso B — Feature grande en una app que YA anda ⭐
 
-*La pregunta clave: "estoy en un chat del proyecto, ya investigué, ya tengo la idea…
-¿sigo acá o abro un chat nuevo?"*
+Ejemplo: la app de gastos ya funciona y querés agregarle *"presupuestos mensuales por
+categoría"*. Eso toca datos que ya existen — va con Arquitecto.
 
-**Respuesta: te quedás en ESE chat para pensar y escribir el spec. Abrís uno nuevo SOLO
-para construir.** La investigación que ya hiciste es oro — no la tires cambiando de chat.
+1. **Abrís un chat EN la carpeta del proyecto** y decís:
+   `/arquitecto quiero agregarle presupuestos mensuales por categoría`
+   (Si lo invocás desde otra carpeta, te va a pedir que abras el chat ahí — no diseña a ciegas.)
+2. **Primero explora TU código.** Antes de opinar, manda ayudantes de solo-lectura a mirar
+   la app real: qué tablas existen (con sus nombres de verdad), cómo se corre, qué
+   decidiste antes en `docs/`. Lo decidido no te lo re-pregunta.
+3. **Te entrevista anclado a lo real.** No son preguntas genéricas: son sobre tu app —
+   *"tu tabla `gastos` ya tiene categoría — ¿el presupuesto se calcula sobre eso o es
+   aparte?"*. Es más corta que la del caso A (no hay stack que elegir), y *"dale con los
+   defaults"* funciona igual.
+4. **El spec delta** — en vez de un plano entero, el plano del CAMBIO, en tres bloques:
+   **AGREGA** (lo nuevo), **MODIFICA** (lo existente que se toca, cada ítem con el efecto
+   colateral a cuidar) y **NO SE TOCA** — la lista explícita de lo que tiene que seguir
+   andando igual que hoy. Esa última es **el seguro de no romper**: tu miedo real de
+   "arreglando esto se me rompe aquello", escrito y aprobado antes de tocar nada. Y es el
+   criterio #1 de la verificación posterior.
+5. **La puerta**: igual que en el caso A — entra en solo-lectura, te presenta el plano,
+   aprobás como un presupuesto. Si toca plata/permisos/datos de terceros, red-team antes.
+6. **Handoff y se apaga.** El spec queda READY en `docs/SPEC-<nombre>.md`. **No monta
+   nada** — el proyecto ya tiene su sistema. Te da el prompt exacto:
+   > Abrí un chat NUEVO en la misma carpeta y pegá:
+   > `inicio — ejecutá el spec docs/SPEC-<nombre>.md (está READY)`
 
-El flujo, paso a paso:
+   La sesión fresca construye, verificás con `/smoke` (primero: lo de NO SE TOCA sigue
+   andando) y `cierre` — que archiva el spec solo cuando está implementado.
 
-1. **En el chat donde venís charlando** (con la investigación ya hecha), decile:
-   > Cristalizá todo esto en un spec en formato SPEC-0 — guardalo en
-   > `docs/SPEC-<nombre-de-la-feature>.md`. Es una feature sobre la app existente:
-   > dejá explícito qué cambia y **qué NO se toca**.
-2. **Revisás el spec en español**: alcance, fuera de alcance, supuestos, riesgos. Pedís
-   cambios hasta que esté como querés. Si la feature toca plata/permisos/datos:
-   > Antes de marcarlo READY, tirale el agente redteam-spec y traeme lo que sobreviva.
-3. **Se marca READY** → cerrás la sesión como siempre (`cierre` — el spec queda commiteado).
-4. **Chat NUEVO en el proyecto** →
-   `inicio — ejecutá el spec docs/SPEC-<nombre>.md (está READY)`
-   La sesión fresca construye con contexto limpio, verificás con `/smoke`, `cierre`.
-5. Cuando la feature está implementada, `/cierre` archiva el spec a `docs/archive/` solo.
+**¿Por qué construir en un chat nuevo y no en el que pensaste?** Dos razones medidas:
+(a) el chat de diseño está lleno de ideas descartadas y callejones — la sesión fresca lee
+SOLO el plano aprobado y no se confunde; (b) es la puerta de control: entre pensar y
+construir estás VOS aprobando un archivo.
 
-**¿Por qué no construir en el mismo chat donde pensaste?** Dos razones medidas: (a) el chat
-de diseño está lleno de ideas descartadas y callejones — la sesión fresca lee SOLO el plano
-aprobado y no se confunde; (b) es la puerta de control: entre pensar y construir estás VOS
-aprobando un archivo. Es el mismo principio del Arquitecto, aplicado a mano.
+*Nota: si preferís hacerlo a mano o el Arquitecto no está instalado en esa máquina, el
+patrón manual sigue válido: charlás la feature en un chat del proyecto → "cristalizá esto
+en un spec formato SPEC-0 en `docs/`, con qué NO se toca explícito" → READY → chat nuevo lo ejecuta.*
 
-**Si todavía no investigaste nada**: la skill `brainstorming` (instalada global) te hace la
-entrevista de la feature — una pregunta por vez, igual que el Arquitecto. La regla ya está
-en tus CLAUDE.md: venga de donde venga la charla, **el spec sale SIEMPRE en formato SPEC-0**.
+---
 
-**En v2.1** esto será `/arquitecto` a secas dentro del proyecto (Modo B): explorará tu
-código primero y charlará anclado a lo que existe. Hasta entonces, el patrón manual de
-arriba es exactamente lo que hizo Perseo con sus features grandes — funciona.
+## 4b. Caso C — El consultorio (cómo pedirle cosas a Claude)
+
+El modo liviano: acá no hay spec ni puerta de aprobación — hay una duda de **cómo dirigir
+a Claude**, y salís con algo concreto en la mano. Cuándo va:
+
+- *"No sé cómo pedirle esto"* → te devuelve **el prompt listo para pegar**, con 2 líneas
+  de por qué está armado así.
+- *"¿Esto va con subagentes, en background, con spec o directo?"* → **el veredicto**, con
+  la regla que lo respalda.
+- *"Quiero una skill para…"* → **el brief listo** para armarla con `writing-skills` en el
+  proyecto (si el ritual de verdad se repitió 3+ veces; si no, te lo dice).
+
+La regla del consultorio: **siempre salís con algo accionable** — nunca solo teoría.
+
+Dos consultas reales de ejemplo:
+- *"/arquitecto — cada vez que le pido que revise el Excel de ventas me tira cualquier
+  cosa. ¿Cómo se lo pido bien?"* → te pregunta qué esperabas y qué probaste, y te arma el
+  prompt con lo que le faltaba al tuyo: el archivo exacto, qué columnas, qué significa "bien".
+- *"/arquitecto — el informe semanal se lo vengo pidiendo a mano todas las semanas,
+  ¿conviene una skill?"* → veredicto: sí (ritual repetido 3+), y te da el brief para crearla.
+
+**Cuándo NO es Modo C**: si lo que tenés es una feature ("quiero que la app haga X") →
+eso es el caso B. Si es laburo normal (un fix, un ajuste chico) → pedilo directo en el
+chat del proyecto, sin Arquitecto. Y si la consulta crece a diseño en serio, él mismo te
+avisa *"esto ya es Modo B/A"* y cambia de puerta con lo charlado.
 
 ---
 
@@ -147,21 +183,33 @@ globales según un **menú curado** (con orígenes y razones, incluso de lo desc
 
 **Hace bien**: pensar los concerns que olvidarías · elegir stack con evidencia del día
 (lo que puede envejecer está marcado `[VERIFICAR]` y lo re-chequea al usarlo) · el gate de
-aprobación · el montaje completo · retomar borradores abandonados · el red-team de specs
-sensibles.
+aprobación · el montaje completo · explorar tu código real antes de opinar (Modo B) ·
+retomar borradores abandonados · el red-team de specs sensibles · el consultorio (Modo C).
 
-**No hace (todavía o nunca)**:
-- ❌ Construir la app — NUNCA lo va a hacer; es el diseño.
-- ❌ Features sobre apps existentes (Modo B, v2.1) — usá el Caso B manual.
-- ❌ Consultorio de prompts/skills (Modo C, v2.1).
+**Estado honesto**: los 3 modos están construidos. Validados: el Modo A parcialmente
+(tests adversariales + uso real inicial); los Modos B y C **sin prueba de fuego todavía**
+— la prueba integral de los tres está pendiente. Usalos, pero con el ojo un poco más
+abierto que de costumbre.
+
+**No hace (nunca)**:
+- ❌ Construir la app ni la feature — es el diseño; eso lo hace otra sesión con el spec.
+- ❌ Deployar.
 - ⚠️ Si le pedís que "ya que está, programe algo": se va a negar y explicarte por qué.
 
 ---
 
 ## 7. Trucos y preguntas frecuentes
 
-- **"¿Mismo chat o chat nuevo?"** — Para PENSAR (proyecto o feature): el chat donde está el
-  contexto de la charla. Para CONSTRUIR: SIEMPRE chat nuevo con el spec como única fuente.
+- **"¿Mismo chat o chat nuevo?"** — Para PENSAR: donde corresponde al modo (proyecto
+  nuevo: cualquier chat; feature: chat en la carpeta del proyecto). Para CONSTRUIR:
+  SIEMPRE chat nuevo con el spec como única fuente.
+- **"¿Cómo sabe en qué modo estar?"** — Por dos señales: dónde estás parado (chat en una
+  carpeta con proyecto real → huele a B) y qué pedís ("app nueva" → A; "agregale algo a
+  esta app" → B; "¿cómo le pido…?" → C). Si duda, te pregunta antes de arrancar — nunca
+  adivina. Y podés forzarlo directo: *"modo B: quiero agregarle tal cosa"*.
+- **"¿El Modo B monta el sistema del playbook (inicio/cierre, hooks)?"** — No: el proyecto
+  ya lo tiene. Si detecta que NO lo tiene, te ofrece montarlo primero como paso aparte,
+  con su propio OK — recién después diseña la feature.
 - **"Me fui a mitad de entrevista"** — Nada se perdió: `/arquitecto` de nuevo y te ofrece
   retomar donde quedaron (el borrador vive en disco).
 - **"Quiero ir rápido"** — *"dale con los defaults"*: solo confirma las 2 ⚠️ y asume el
@@ -178,6 +226,7 @@ sensibles.
 
 ---
 
-*Estado al 2026-07-06: Modo A construido y validado adversarialmente (6 tests, 8 fixes).
-Pendiente: la prueba de fuego real. Modos B y C: v2.1. El diseño completo vive en
-`PROPUESTA-VIBE-KIT-V2.md` (Guia de vibe coding); el método madre en `PLAYBOOK-MAESTRO.md`.*
+*Estado al 2026-07-06: los 3 modos construidos. Modo A validado adversarialmente (6 tests,
+8 fixes) + uso real inicial; Modos B y C sin prueba de fuego. Pendiente: la prueba de fuego
+INTEGRAL de los tres (decisión: construir todo → testear todo junto). El diseño completo
+vive en `PROPUESTA-VIBE-KIT-V2.md` (Guia de vibe coding); el método madre en `PLAYBOOK-MAESTRO.md`.*

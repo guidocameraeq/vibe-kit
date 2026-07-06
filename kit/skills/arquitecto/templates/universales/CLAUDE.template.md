@@ -34,7 +34,7 @@ Los rituales viven en `.claude/skills/`: **`/inicio` · `/cierre`{{OTRAS_SKILLS}
 3. **En tareas aprobadas no freno a pedir permiso intermedio.** Trabajos >2 min → `run_in_background` y reporte al terminar; nunca dejar al usuario esperando sin ETA. Servidores/túneles SIEMPRE en background.
 4. **Post-compactación asumo que NO leí ningún archivo**: Read antes de cualquier Edit.
 5. Ante errores: diagnosticar root cause, no aplicar parches encima.
-6. **Toda spec se escribe en formato SPEC-0** (`~/.claude/skills/arquitecto/anexos/formato-spec.md`), venga de donde venga — incluso si la produce otra skill (ej. brainstorming). Un solo formato de plan para que `/inicio` y `/cierre` siempre sepan qué archivar.
+6. **Toda spec se escribe en un formato del anexo** `~/.claude/skills/arquitecto/anexos/formato-spec.md`, venga de donde venga (incluso si la produce otra skill, ej. brainstorming): **SPEC-0** si es un proyecto/módulo nuevo, **SPEC delta** (con su NO SE TOCA) si toca algo que ya anda. Formatos únicos para que `/inicio` y `/cierre` siempre sepan qué archivar.
 
 ## Reglas operativas del stack
 
