@@ -3,7 +3,8 @@
 > El método completo para dirigir Claude Code sin ser programador: el playbook (documentación +
 > sistema de trabajo), el Arquitecto (piensa y monta proyectos nuevos), el Equipador (equipa
 > máquinas con skills curadas). Nacido de auditorías reales sobre meses de trabajo (Hermes,
-> Perseo). Actualizado 2026-07-06.
+> Perseo). **Versión estable: `v2.1`** (tag de git, 2026-07-11 — Modo A validado con una semana
+> de uso real).
 
 ## La regla de la casa (desde que esto es un repo)
 
@@ -25,8 +26,7 @@ Nunca editar `~/.claude/` directo (queda huérfano del historial).
 | **El método** (documentación + sistema de trabajo, se lee 1 vez por proyecto) | `PLAYBOOK-MAESTRO.md` |
 | **El kit instalable** — FUENTE CANÓNICA del Arquitecto + Equipador + menú + templates + agente red-team + su instalador | `kit/` |
 | **Guías de uso** (casos de uso, cuándo sí/no) | `guias/` |
-| Diseño y roadmap del Arquitecto (Modos B y C pendientes) | `PROPUESTA-VIBE-KIT-V2.md` |
-| Archivo histórico (v1, auditorías, snapshots pre-git) | `legacy/` |
+| Archivo histórico (v1, auditorías, snapshots pre-git, la PROPUESTA-V2 ya cumplida) | `legacy/` |
 
 ## Instalar en una PC nueva
 
@@ -55,9 +55,13 @@ Nunca editar `~/.claude/` directo (queda huérfano del historial).
 - En la otra PC (d:\SAAS): clonar este repo y correr el instalador — su catálogo viejo
   (`legacy/KIT_SKILLS-maquina-dsaas-2026-07-05.md`) se reconcilia con el menú del Equipador.
 
-## Pendientes
+## Pendientes (post-v2.1)
 
-- 🔥 **Prueba de fuego del Arquitecto**: primer proyecto real con `/arquitecto` (desbloquea
-  Modos B y C — ver roadmap en `PROPUESTA-VIBE-KIT-V2.md`).
-- Equipador: probado el modo censo/instalación; faltan estrenar "actualizar" y "agregar al menú".
-- Llevar el kit a la PC d:\SAAS (clone + instalador).
+- 🔥 **Estreno real del Modo B**: primera feature grande sobre el ERP con `/arquitecto` en la
+  carpeta del proyecto (el modo está construido y validado adversarialmente; le falta su
+  primera misión de verdad).
+- **Compuerta del Modo C** (~2 semanas de uso de A+B): si no te trabaste 3+ veces pidiendo
+  cosas, C queda como está; si sí, se afina con casos reales.
+- Equipador: faltan estrenar "actualizar" y "agregar al menú".
+- Llevar el kit a la PC d:\SAAS (clone + instalador) y reconciliar su catálogo.
+- Capturas del carrusel de @sabbb.md para cerrar el tip pendiente de la tanda 2.
