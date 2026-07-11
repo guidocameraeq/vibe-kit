@@ -26,6 +26,8 @@ Nunca editar `~/.claude/` directo (queda huérfano del historial).
 | **El método** (documentación + sistema de trabajo, se lee 1 vez por proyecto) | `PLAYBOOK-MAESTRO.md` |
 | **El kit instalable** — FUENTE CANÓNICA del Arquitecto + Equipador + menú + templates + agente red-team + su instalador | `kit/` |
 | **Guías de uso** (casos de uso, cuándo sí/no) | `guias/` |
+| **El Extractor** — agente de tips: abrir Claude Code AHÍ + pegar links = extrae, evalúa y deja el informe | `extractor/` |
+| Informes de tandas de tips (outputs del Extractor) | `tips/` |
 | Archivo histórico (v1, auditorías, snapshots pre-git, la PROPUESTA-V2 ya cumplida) | `legacy/` |
 
 ## Instalar en una PC nueva
@@ -44,6 +46,8 @@ Nunca editar `~/.claude/` directo (queda huérfano del historial).
    a `docs/` → chat NUEVO la construye. Guía completa: `guias/COMO-USAR-EL-ARQUITECTO.md`.
 4. **Equipar/actualizar skills de la máquina** → `/arquitecto-skills`.
 5. **Montar el sistema en un proyecto existente** → prompt del atajo, `PLAYBOOK-MAESTRO.md` §2.9.
+6. **Tanda de tips** (TikToks guardados) → abrir Claude Code en `extractor/` + pegar los links,
+   nada más. Después, procesar el informe desde un chat en la raíz.
 
 ## Mantenimiento
 
