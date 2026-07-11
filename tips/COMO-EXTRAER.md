@@ -10,14 +10,26 @@
 ## El prompt (copiá el bloque + tus links)
 
 ```
-Procesá estos TikToks de tips de vibe coding y escribí el informe en un archivo.
-Seguí EXACTAMENTE el pipeline de tips/COMO-EXTRAER.md (leelo): extracción según
-el tipo de post, veredicto por tip con los 3 baldes, y el informe a
-tips/tanda-<fecha de hoy>.md. NO apliques ningún cambio al sistema — solo
-extraé, verificá y escribí el informe. Al final: commit + push del informe.
+Leé primero tips/COMO-EXTRAER.md y seguí ese pipeline EXACTAMENTE para procesar
+los TikToks de abajo:
+
+1. Extraé el contenido según el tipo de post (video → yt-dlp con subs, o Whisper
+   vía VPS con formato h264 explícito; carrusel de fotos → caption por navegador
+   y pedime capturas de los slides — no pelees con el visor).
+2. Evaluá cada tip con los 3 baldes del doc (ya-lo-tenemos con su dónde /
+   bueno-y-nuevo verificado contra doc oficial / humo-descartado-con-razón),
+   usando PLAYBOOK-MAESTRO.md y ~/.claude/skills/arquitecto-skills/menu-skills.md
+   como referencia de lo que el sistema ya tiene.
+3. Escribí el informe en tips/tanda-<fecha de hoy>.md con el formato del ejemplo
+   tips/tanda-2026-07-08.md, terminando con la sección "Propuestas para aprobar"
+   (checkboxes).
+4. Commit + push del informe. NO apliques NINGÚN cambio al sistema (playbook,
+   menú, skills, kit): esta sesión SOLO extrae, verifica y escribe el informe.
 
 Links:
-<pegá acá los links>
+- <link 1>
+- <link 2>
+- <link 3>
 ```
 
 ## El pipeline (para la sesión que ejecuta)
