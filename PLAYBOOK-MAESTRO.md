@@ -311,6 +311,11 @@ carpetas con espacios rompen todo lo demás).
   watchdogs avisan cuando YA está roto; la matriz permite renovar ANTES. *(7 incidentes de "el bot
   no responde" en Perseo fueron credenciales vencidas descubiertas post-mortem.)* Hábito: al
   renovar cualquier credencial, actualizar la matriz.
+- **El keystore/upload key de Android es credencial de punto único de falla**: si se pierde sin
+  backup, la app no se puede actualizar NUNCA más en Play Store. Backup en el gestor de
+  contraseñas del usuario (no solo dentro del proyecto) + documentar en RECOVERY/matriz el camino
+  de emergencia: Play Console → App integrity → Play App Signing → "Request upload key reset"
+  (verificado contra soporte oficial de Google, 2026-07-11).
 
 ## 2.7 Agentes y workflows (orquestación)
 
@@ -328,6 +333,10 @@ carpetas con espacios rompen todo lo demás).
 - **Modelo barato para batch** (censos, transformaciones mecánicas); el modelo grande se reserva
   para diseño, debugging difícil y decisiones.
 - Si el batch consume una cuota compartida (API del bot, etc.): declarar costo estimado ANTES.
+- **Agent teams nativos** (equipos de agentes que se coordinan solos, con team lead): existen en
+  Claude Code desde 2026. Anotado 2026-07-11: evaluar SOLO si aparece trabajo genuinamente
+  paralelo (varios frentes de construcción a la vez); para el flujo de una misión por chat,
+  sería complejidad sin ganancia.
 
 ## 2.8 Qué viaja con el repo y qué es por-máquina
 

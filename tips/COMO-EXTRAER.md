@@ -36,6 +36,10 @@ Links:
 
 ### 1. Extracción, por tipo de post
 
+- **Paso 0 — dedup ANTES de transcribir** (lección tanda 2: 4 de 15 links eran repetidos =
+  25% de ahorro): sacá `--dump-json` de todos los links primero y cruzá **id/título/duración**
+  contra los informes previos (`tips/tanda-*.md`) y contra la misma tanda. Duplicado → veredicto
+  heredado, sin Whisper.
 - **Video** (URL `/video/`): `~/tools/yt-dlp.exe` ya está instalado (si no: bajar de
   github.com/yt-dlp/yt-dlp/releases → yt-dlp.exe).
   1. Metadata + subs: `yt-dlp --dump-json --no-download <url>` → caption; si `subtitles`
@@ -44,6 +48,8 @@ Links:
      formato h264 explícito (`yt-dlp -F <url>` y elegir `h264_540p_*` — los h265 fallan
      en Whisper) → `scp` a `perseo-vps:~/tmp-tiktok/` → correr `tips/transcribe-vps.sh`
      (subirlo también) → borrar `~/tmp-tiktok` del VPS al terminar. Costo: centavos.
+     Para VARIOS videos: transcribí en paralelo (lección tanda 2: 9 a la vez sin pisarse) —
+     cada agente con SU archivo remoto y limpiando SOLO lo suyo, nunca el directorio entero.
 - **Foto/carrusel** (URL `/photo/`): yt-dlp NO los soporta y el visor web rota solo.
   El caption sale con el navegador (get_page_text); para los slides, PEDILE AL USUARIO
   capturas de pantalla — no gastes recursos peleando con el visor.

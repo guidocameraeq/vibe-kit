@@ -3,6 +3,8 @@
 > Curado el 2026-07-06 con investigación real (4 agentes: oficiales, comunidad, packs, plugins).
 > Reglas: se instala **clonando fresco del repo de origen** (nunca copias viejas) · nada entra
 > "por las dudas" · lo descartado queda escrito CON razón para no re-descubrirlo.
+> Vidrieras de DESCUBRIMIENTO (para mirar cuando busques algo — jamás instalar sin pasar por
+> esta curaduría): skills.sh · aitmpl.com.
 
 ## Tier 1 — Casi seguro en cualquier PC (default ON al instalar)
 
@@ -38,6 +40,9 @@
 | Vercel MCP | `mcp.vercel.com` (OAuth, read-only) | Solo proyectos deployados en Vercel: Claude lee los logs de deploy solo |
 | canvas-design | `github.com/anthropics/skills` | Solo si aparece gráfica estática real (posters, portadas) |
 | design-review | `github.com/OneRedOak/claude-code-workflows` | Experimental (mantenimiento flojo): review visual de UI renderizada. Probar en UN proyecto; si /verify + web-design-guidelines alcanzan, descartar |
+| **v0 de Vercel** (web, tier gratis) | `v0.dev` — se usa por web; el resultado entra por copy-paste o `npx shadcn add <url>` | Dirección visual inicial de una web NUEVA: genera Next.js+shadcn+Tailwind REAL (el stack exacto — sin traducción con pérdida). Antes de v0, opción gratis en casa: pedirle a Claude 3-4 variantes HTML descartables (frontend-design + theme-factory), elegir en el navegador, recién ahí codear. *(Investigado 2026-07-11: le gana a Stitch en este stack — ver Descartadas.)* |
+| emilkowalski/skill (animaciones) | ✅ VERIFICADO 2026-07-11: `npx skills add emilkowalski/skill` (autor de animations.dev) | Timing/easing de animaciones — el 10% de pulido que frontend-design/theme-factory no cubren. Para proyectos con UI que lo pida |
+| n8n MCP 💤 | ✅ VERIFICADO 2026-07-11: `github.com/czlonkowski/n8n-mcp` (MIT, mantenido, ~1000 nodos) | **DORMIDO — despierta cuando n8n entre al stack** (Guido lo planea a futuro). Automatizaciones n8n dirigidas desde Claude Code sin arrastrar nodos |
 
 ## Descartadas — CON razón (no re-evaluar sin motivo nuevo)
 
@@ -51,6 +56,8 @@
 - **sql-expert (T-SQL)**: reemplazado por supabase-postgres-best-practices. Solo tiene sentido en la PC d:\SAAS (Hermes usa SQL Server).
 - **twilio-kit, product-management, mcp-builder, internal-comms, algorithmic-art, slack-gif-creator**: sin gap en este perfil.
 - **webapp-testing** (anthropics): solape triple con Playwright MCP + Preview nativo + /verify. Elegir UNA vía de verificación visual por proyecto.
+- **Google Stitch (+ su MCP)**: evaluado a fondo 2026-07-11 (2 investigadores, reviews reales): output tiende a "AI-looking" (último en comparativas mismo-prompt), exporta HTML genérico NO-shadcn (traducción con pérdida que un no-diseñador no puede auditar), y el MCP exige proyecto de Google Cloud CON billing. v0 lo supera en este stack. Re-evaluar SOLO si sacan tier pago con export React/shadcn.
+- **Impeccable** (pbakaus, ~45k ⭐): real y vivo, pero solapa fuerte con frontend-design + theme-factory + web-design-guidelines juntas. Probar aislado antes de reemplazar la stack de diseño actual — no sumar encima.
 
 ## Integradas en Claude Code (NUNCA instalar duplicados)
 
