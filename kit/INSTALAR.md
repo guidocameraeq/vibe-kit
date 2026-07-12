@@ -27,7 +27,9 @@ Instalá el paquete "El Arquitecto" que está en esta carpeta:
    (b) mostrame la línea de carpeta de proyectos ya editada, (c) chequeá que
    node --version, bash --version y git --version anden — los proyectos que el
    Arquitecto monta usan hooks en node/bash y el Equipador clona repos;
-   si falta alguno, decime qué instalar y de dónde.
+   si falta alguno, decime qué instalar y de dónde. (d) chequeá que git tenga
+   identidad (git config user.name) — si está vacía, preguntame nombre y email
+   y configurala global: sin eso, los commits de /cierre fallan en esta máquina.
 6. Al final, ofreceme equipar la máquina: corré el modo INSTALAR de
    /arquitecto-skills (el menú curado de skills universales, con multiSelect).
 7. Cerrá con el resumen de lo instalado y recordame: reiniciar Claude Code

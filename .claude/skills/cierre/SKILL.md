@@ -12,8 +12,10 @@ Pasos en orden, mostrando evidencia de cada uno:
    - `cp kit/agents/redteam-spec.md` → `~/.claude/agents/`
    - `diff -r kit/skills/arquitecto ~/.claude/skills/arquitecto` (y el resto) → **debe dar
      limpio**; mostrar el resultado. Sin diff limpio no hay cierre.
-2. **¿Cambió el kit?** → regenerar el zip portable:
-   `powershell Compress-Archive -Path 'kit\*' -DestinationPath 'C:\Users\Usuario\Desktop\Arquitecto en otras PCs\arquitecto-portable.zip' -Force`
+2. **¿Cambió el kit?** → regenerar el zip portable, SOLO si esta máquina tiene la carpeta
+   `$HOME/Desktop/Arquitecto en otras PCs/` (existe en la PC principal; en otras PCs este
+   paso se saltea sin drama):
+   `powershell Compress-Archive -Path 'kit\*' -DestinationPath "$env:USERPROFILE\Desktop\Arquitecto en otras PCs\arquitecto-portable.zip" -Force`
 3. **Docs al día**:
    - `docs/SESSION_HANDOFF.md` — sobreescribir ENTERO (estado / próximo paso concreto /
      bloqueos / contexto que no está en otros docs).
@@ -22,8 +24,11 @@ Pasos en orden, mostrando evidencia de cada uno:
    - ¿Cambiaron los pendientes? → sección Pendientes del `README.md` (única fuente).
 4. **Memoria**: si cambió un hecho estructural del proyecto (release, pieza nueva, regla
    nueva), actualizar la memoria persistente.
-5. **Commit + push**: mensaje descriptivo en español. Verificar `git status` limpio y
-   `main...origin/main` sin diferencias. Reportar el SHA.
+5. **Commit + push**: mensaje descriptivo en español. Si la máquina no tiene identidad de
+   git configurada (`git config user.name` vacío), commitear con
+   `git -c user.name="Guido" -c user.email="eq.chatgpt@gmail.com" commit ...` y sugerir
+   configurarla global una sola vez. Verificar `git status` limpio y `main...origin/main`
+   sin diferencias. Reportar el SHA.
 6. **Cierre**: resumen de 3 líneas + "chat listo para descartar".
 
 ## Modo `cierre parcial` (emergencia pre-compactación)
