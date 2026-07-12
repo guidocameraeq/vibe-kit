@@ -52,6 +52,7 @@ entrega el prompt listo para pegar, o la skill armada.
 Abrí Claude Code en **`extractor/`** (VSCode → Abrir carpeta) → **pegá los links** — nada más.
 El agente extrae, verifica y deja el informe en `tips/`. Después, chat en la raíz de este
 repo: *"leé tips/tanda-<fecha> y procesemos las conclusiones"* — ahí decidís qué entra.
+→ Detalle completo: `guias/COMO-USAR-EL-EXTRACTOR.md`
 
 ### 💻 "Estoy en una PC nueva (o quiero actualizar la del SAAS)"
 `git clone` del repo → abrir Claude Code en `kit/` → pegar el prompt de `kit/INSTALAR.md`.
