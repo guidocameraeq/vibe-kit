@@ -1,0 +1,39 @@
+---
+name: cierre
+description: Cierre de sesión del repo vibe-kit — sincronizar kit a ~/.claude con diff verificado, regenerar zip si cambió el kit, docs al día (handoff/ADR/REJ), commit + push. Usar cuando Guido dice "cierre", "cerrá la sesión", "guardá todo" o termina una misión en este repo. Modo "cierre parcial" si hay que compactar a mitad de trabajo.
+---
+
+# /cierre — el ritual de cierre del proyecto madre
+
+Pasos en orden, mostrando evidencia de cada uno:
+
+1. **¿Se tocó `kit/`?** → sincronizar a la copia instalada y VERIFICAR:
+   - `cp -r` de `kit/skills/arquitecto` y `kit/skills/arquitecto-skills` → `~/.claude/skills/`
+   - `cp kit/agents/redteam-spec.md` → `~/.claude/agents/`
+   - `diff -r kit/skills/arquitecto ~/.claude/skills/arquitecto` (y el resto) → **debe dar
+     limpio**; mostrar el resultado. Sin diff limpio no hay cierre.
+2. **¿Cambió el kit?** → regenerar el zip portable:
+   `powershell Compress-Archive -Path 'kit\*' -DestinationPath 'C:\Users\Usuario\Desktop\Arquitecto en otras PCs\arquitecto-portable.zip' -Force`
+3. **Docs al día**:
+   - `docs/SESSION_HANDOFF.md` — sobreescribir ENTERO (estado / próximo paso concreto /
+     bloqueos / contexto que no está en otros docs).
+   - ¿Hubo decisión con alternativas? → ADR nuevo en `docs/DECISIONS.md` (correlativo).
+   - ¿Se descartó algo a nivel proyecto? → REJ nuevo en `docs/REJECTED.md`.
+   - ¿Cambiaron los pendientes? → sección Pendientes del `README.md` (única fuente).
+4. **Memoria**: si cambió un hecho estructural del proyecto (release, pieza nueva, regla
+   nueva), actualizar la memoria persistente.
+5. **Commit + push**: mensaje descriptivo en español. Verificar `git status` limpio y
+   `main...origin/main` sin diferencias. Reportar el SHA.
+6. **Cierre**: resumen de 3 líneas + "chat listo para descartar".
+
+## Modo `cierre parcial` (emergencia pre-compactación)
+
+Contexto lleno a mitad de misión → SOLO el paso 3a (handoff con el trabajo a medias y el
+próximo paso concreto) + avisar que está listo para `/compact`. Sin push obligatorio.
+
+## Reglas
+
+- Si el diff kit↔instalado da sucio y no sé por qué: FRENAR y mostrar — nunca pisar a ciegas
+  en ninguna dirección (puede haber una edición directa a `~/.claude/` que hay que rescatar
+  hacia el repo primero).
+- Los informes de `tips/` no se tocan en el cierre (son actas).

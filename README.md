@@ -28,6 +28,7 @@ Nunca editar `~/.claude/` directo (queda huérfano del historial).
 | **Guías de uso** (casos de uso, cuándo sí/no) | `guias/` |
 | **El Extractor** — agente de tips: abrir Claude Code AHÍ + pegar links = extrae, evalúa y deja el informe | `extractor/` |
 | Informes de tandas de tips (outputs del Extractor) | `tips/` |
+| Estado del proyecto madre: handoff (lo inyecta el hook), DECISIONS (12 ADRs), REJECTED | `docs/` + `CLAUDE.md` raíz + skill `/cierre` |
 | Archivo histórico (v1, auditorías, snapshots pre-git, la PROPUESTA-V2 ya cumplida) | `legacy/` |
 
 ## Instalar en una PC nueva
