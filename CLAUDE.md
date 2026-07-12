@@ -42,6 +42,7 @@ charla diseñó algo no-trivial.
 | Archivo | Rol | Regla |
 |---|---|---|
 | `README.md` | Portada + estructura + **ÚNICA fuente de pendientes** | No hay TODO.md a propósito (proyecto chico, REJ-005) |
+| `GUIA-DE-USO.md` | Recetas por situación para Guido | Anti-espejo: frases y punteros, jamás duplicar procedimientos |
 | `docs/SESSION_HANDOFF.md` | Save game — dónde quedamos | `/cierre` lo sobreescribe entero; el hook lo inyecta |
 | `docs/DECISIONS.md` | Por qué el kit es como es (ADRs) | Decisión con alternativas → ADR nuevo, correlativo |
 | `docs/REJECTED.md` | Lo descartado a nivel proyecto | Sin él, un chat futuro re-propone el plugin o el web wizard |

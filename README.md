@@ -23,6 +23,7 @@ Nunca editar `~/.claude/` directo (queda huérfano del historial).
 
 | Qué | Dónde |
 |---|---|
+| **La guía de uso** — recetas por situación + frases mágicas (empezá por acá) | `GUIA-DE-USO.md` |
 | **El método** (documentación + sistema de trabajo, se lee 1 vez por proyecto) | `PLAYBOOK-MAESTRO.md` |
 | **El kit instalable** — FUENTE CANÓNICA del Arquitecto + Equipador + menú + templates + agente red-team + su instalador | `kit/` |
 | **Guías de uso** (casos de uso, cuándo sí/no) | `guias/` |
@@ -40,15 +41,8 @@ Nunca editar `~/.claude/` directo (queda huérfano del historial).
 
 ## El día a día (una vez instalado)
 
-1. **Proyecto nuevo** → `/arquitecto` en cualquier chat: te entrevista, arma el SPEC-0 con
-   gate de aprobación, monta el proyecto en régimen y te da el prompt para el chat constructor.
-2. **Trabajo diario en un proyecto** → `inicio` → trabajás → `cierre` (vive en cada proyecto).
-3. **Feature grande en app existente** → pensás en el chat del proyecto → spec formato SPEC-0
-   a `docs/` → chat NUEVO la construye. Guía completa: `guias/COMO-USAR-EL-ARQUITECTO.md`.
-4. **Equipar/actualizar skills de la máquina** → `/arquitecto-skills`.
-5. **Montar el sistema en un proyecto existente** → prompt del atajo, `PLAYBOOK-MAESTRO.md` §2.9.
-6. **Tanda de tips** (TikToks guardados) → abrir Claude Code en `extractor/` + pegar los links,
-   nada más. Después, procesar el informe desde un chat en la raíz.
+**→ [`GUIA-DE-USO.md`](GUIA-DE-USO.md)** — todas las recetas por situación ("quiero X → hacé Y")
+y la chuleta de frases mágicas. Es LA puerta de entrada para usar el sistema.
 
 ## Mantenimiento
 
