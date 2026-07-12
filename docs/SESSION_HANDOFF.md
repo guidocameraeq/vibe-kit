@@ -3,31 +3,37 @@
 > **Save game** del proyecto madre. `/cierre` lo sobreescribe entero; el hook SessionStart lo
 > inyecta en cada chat nuevo de esta carpeta.
 
-**Última sesión cerrada:** 2026-07-11 — la sesión fundacional (la que construyó todo: de la
-auditoría de Perseo al release v2.1). Este handoff la reemplaza como fuente de contexto.
+**Última sesión cerrada:** 2026-07-12 — cierre de la sesión fundacional (auditoría de Perseo
+→ playbook → Arquitecto v2.1 → profesionalización del repo). El proyecto queda **cerrado por
+ahora**, en estado estable y autosuficiente.
 
 ## Estado
 
-- **v2.1 estable y taggeada** (tag git `v2.1`, repo privado `guidocameraeq/vibe-kit`).
-  Arquitecto (Modos A+B+C) + Equipador + templates + Extractor, todo en `kit/` (canónico) y
-  sincronizado a `~/.claude/` de esta PC. Modo A validado con 1 semana de uso real.
-- **Profesionalización del repo recién montada**: CLAUDE.md raíz, docs/ (DECISIONS con 12
-  ADRs de backfill, REJECTED con 10, este handoff), hook SessionStart, skill `/cierre`.
-- **Extractor de tips operativo** como agente-carpeta (`extractor/` — abrir Claude Code ahí
-  + pegar links). 2 tandas procesadas, 8 mejoras aplicadas al sistema desde tips.
+- **v2.1 estable** (tag git). Arquitecto (Modos A+B+C) + Equipador + templates + Extractor.
+  `kit/` = fuente canónica; copia instalada de esta PC **verificada idéntica** (diff limpio).
+- **Instalado en las 2 PCs** (esta + d:\SAAS). El repo está preparado para que cualquier
+  modelo de Claude actualice desde él en cualquier máquina (/cierre portable, INSTALAR
+  verifica identidad git, zip condicional por máquina).
+- **Repo profesionalizado y documentado**: CLAUDE.md raíz, GUIA-DE-USO (recetas + frases
+  mágicas), guías del Arquitecto y del Extractor, docs/ (12 ADRs + 10 REJ), hook SessionStart
+  (probado), skill /cierre (este cierre la estrenó). Zip del Escritorio al día (12/jul 01:31).
+- **Pipeline de tips operativo**: 2 tandas procesadas, 8 mejoras aplicadas al sistema.
 
-## Próximo paso concreto
+## Próximo paso concreto (cuando Guido retome)
 
-El que Guido elija de los pendientes del README (la única fuente de pendientes). Los dos más
-maduros: **estreno real del Modo B** (feature del ERP) y **llevar el kit a la PC d:\SAAS**
-(clone + instalador).
+Los pendientes viven en el README (única fuente). Los dos más maduros:
+1. **Estreno real del Modo B**: primera feature grande del ERP con `/arquitecto` en su carpeta.
+2. **Compuerta del Modo C** (~2 semanas de uso): si no hubo 3+ trabas de "cómo pido esto", C queda como está.
 
 ## Bloqueos
 
-Ninguno.
+Ninguno. El proyecto se sostiene solo: cualquier chat nuevo acá arranca con el hook + esta
+foto + los docs.
 
 ## Contexto que no está en otros docs
 
-- La sesión fundacional (2-11/jul) vive comprimida en la memoria persistente de Claude; su
-  historia narrada está en `docs/DECISIONS.md` (backfill) y `legacy/`.
-- El zip de `Desktop\Arquitecto en otras PCs\` está regenerado al día (11/jul, con v2.1).
+- La sesión fundacional (2-12/jul) queda descartable: su historia vive en docs/DECISIONS.md
+  (backfill de 12 ADRs), docs/REJECTED.md, los informes de tips/ y la memoria persistente.
+- En la PC d:\SAAS: al retomar allá, `git pull` + prompt de kit/INSTALAR.md la pone al día
+  (se instaló antes de los fixes multi-PC del 12/jul) + reconciliar su catálogo viejo
+  (`/arquitecto-skills` → "qué skills tengo").
