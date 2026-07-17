@@ -11,7 +11,7 @@ MANTIENE el método; las apps se construyen en sus propios proyectos.
 
 ## El ciclo de trabajo
 
-1. **Chat nuevo por misión.** El hook SessionStart inyecta el handoff. No toco nada hasta el OK.
+1. **Chat nuevo por misión.** El hook SessionStart inyecta el handoff; `/inicio` lo cruza con la realidad (git, diff kit↔instalado) y confirma en 3 líneas. No toco nada hasta el OK.
 2. Trabajar con las reglas de abajo.
 3. `/cierre` al terminar → sync + docs + commit + push → **el chat se descarta**.
 

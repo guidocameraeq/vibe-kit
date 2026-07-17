@@ -79,3 +79,17 @@ Una semana de uso real del Modo A (con una fricción encontrada y corregida: la 
 proactivo) vale más que el protocolo sintético de 1 hora. B y C están construidos y validados
 adversarialmente pero sin primera misión real — el tag lo dice honesto en sus release notes.
 "No está terminado hasta que lo usaste" se aplica por modo, no por release.
+
+## ADR-013 · El repo madre TAMBIÉN lleva `/inicio` (2026-07-12)
+En la profesionalización (11/jul) se decidió NO crear `/inicio` acá: el hook SessionStart
+inyecta el handoff y el CLAUDE.md explica el ciclo, así que la skill parecía overkill en un
+repo chico. **Revertido al día siguiente, con cicatriz**: en el primer chat post-cierre Guido
+escribió `/inicio` por reflejo y recibió "Unknown command". Tres razones: (1) el playbook §2.3
+lista `/inicio` como **"Siempre"**, sin excepción — el proyecto madre no puede contradecir el
+método que fabrica; (2) los mismos nombres en todos los proyectos ES el punto (memoria
+muscular), y acá se rompía; (3) el costo real era 5 minutos, no una decisión de arquitectura.
+La versión de este repo no es el template pelado: su chequeo de realidad incluye el **diff
+`kit/` ↔ `~/.claude/`** (el drift más peligroso acá, equivalente al health-check de un bot) y
+las tandas de `tips/` con propuestas sin procesar. Lección de fondo: aquella decisión vivió
+solo en el chat y nunca se escribió como ADR — por eso no aguantó el primer contacto con el
+uso real.
