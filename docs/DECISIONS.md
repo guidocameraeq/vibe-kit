@@ -93,3 +93,29 @@ La versión de este repo no es el template pelado: su chequeo de realidad incluy
 las tandas de `tips/` con propuestas sin procesar. Lección de fondo: aquella decisión vivió
 solo en el chat y nunca se escribió como ADR — por eso no aguantó el primer contacto con el
 uso real.
+
+## ADR-014 · El kit suma un sistema de documentación de auditoría (FyD): `/docs-fyd`, capa regenerable separada (2026-07-23)
+El proyecto se **reabrió** (venía cerrado en v2.1): la auditora **FyD Sistemas** (encargo
+2026-07) exige documentación técnica por repo para el bus-factor — *"si Guido desaparece, que
+un equipo externo levante los proyectos"* — con deadline de ~2 semanas para 2-3 apps críticas.
+**Decisión:** incorporar al método un motor **`/docs-fyd`** que **genera la doc desde el código**
+(10 artefactos: ficha, README, C4 c1/c2/c3, secuencia, ER, variables-entorno, instrucciones-IA,
+seguridad) en una carpeta **AISLADA `docs-fyd/`**, con los 4 campos de negocio humanos en una
+bóveda read-only (`_CAMPOS-NEGOCIO.md`). Se instala vía el Equipador (2da excepción a
+clonado-fresco, kit-owned, análoga a shadcn), se **siembra opt-in** desde el Arquitecto (Paso 5
+pregunta *"¿los dos sistemas o solo el mío?"*) y el `/cierre` **marca staleness** (no regenera).
+Núcleo del desvío: **`docs-fyd/` es un build-artifact regenerable, EXENTO de "lo derivable del
+código no se escribe a mano"** — porque es entregable EXTERNO para auditores que no leen código,
+y una vista regenerada no miente (el `/cierre` la marca vieja, `/docs-fyd` la reconstruye).
+**Alternativas descartadas:** (1) extender los `docs/` de trabajo existentes → mezclaba dos
+audiencias en la misma carpeta (ahí ya viven HANDOFF/CHANGELOG/TODO); (2) capa paralela mantenida
+a mano → el pecado de los espejos que se pudren (principio 6); (3) construir el Excel/inventario
+central (`/inventario-fyd`) ahora → **diferido a Fase 2** (Guido arma el Excel desde su tablero
+Kanban, que ya es su fuente de verdad de servicios/costos); (4) nombres neutros → YAGNI, se usa
+`/docs-fyd` con el cliente. **Consecuencias:** el diff canónico del repo madre pasa de 3 a 4
+rutas; la máquina anti-secretos (solo nombres/ubicación, nunca el valor, frena antes de escribir)
+es la parte más blindada; el diseño quedó en `docs/SPEC-docs-fyd.md` (READY, aprobado tras **3
+rondas de red-team**) con su contrato de contenido en `docs/referencia-prompts-fyd.md`. Reversión
+mediana (borrar la excepción + decidir qué pasa con los `docs-fyd/` ya sembrados). La Fase 2
+(inventario-fyd/Excel/Mapa/hub privado) será su propio delta con su propio red-team y su propio
+ADR. *Este ADR se escribió en el cierre del diseño; la sesión que CONSTRUYE no lo duplica.*
