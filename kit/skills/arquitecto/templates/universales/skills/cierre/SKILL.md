@@ -21,12 +21,17 @@ Dos modos:
 3. **`docs/CHANGELOG.md`** — entrada nueva al tope (Added / Changed / Fixed / Removed según corresponda).
 4. **`docs/TODO.md`** — tareas completadas AFUERA (la historia queda en CHANGELOG); nuevas con criticidad. El header es solo `YYYY-MM-DD — ver SESSION_HANDOFF.md`.
 5. **Otros docs de estado** (si el proyecto los tiene): STATUS solo si cambió el estado de un bloque (tocar la fila, nunca re-contar la sesión); DECISIONS si hubo decisión técnica con alternativas (ADR-NNN + línea en el índice); REJECTED si se descartó algo por preferencia.
-6. **SPECs**: si alguna SPEC de `docs/` quedó implementada en esta sesión → marcar el estado en su línea 1 y moverla a `docs/archive/`.
-7. **Checklist de regresión** — {{BUGS_HISTORICOS}} — *se llena cuando el proyecto los tenga: los 2-4 bugs que ya volvieron alguna vez, con su verificación de 1 línea. Verificar solo los que esta sesión pudo haber tocado.*
-8. **Consistencia de números**: verificar que ningún dato quedó duplicado en dos docs — cada número vive solo en su fuente única.
-9. **Memoria**: si cambió un hecho estructural (de cómo trabaja el usuario o del stack) → actualizar la memoria persistente de Claude.
-10. **Commit + push**: `git add -A` → mostrar `git status` al usuario → commit `docs: cierre de sesión YYYY-MM-DD — <tema>` → push.
-11. **Reporte final**: SHA · archivos actualizados · próximo paso al retomar · bloqueos · **"Chat listo para descartar — la próxima misión arranca con /inicio en un chat nuevo."**
+6. **Frescura de `docs-fyd/`** (SOLO si existe `docs-fyd/` en la raíz; si no, salteá este paso entero). Paso ≥3: **NO corre en `cierre parcial`**. Marca staleness, no regenera:
+   - Corré tu **propio** relevamiento (no reutilices el del paso 1): `git diff --name-only` (working tree) + `git log --name-only <primer-commit-de-la-sesión>..HEAD` = los archivos que la sesión tocó.
+   - Cruzalos contra la **watchlist**: migraciones/schema · manifiestos de dependencias · `.env`/config · archivos de instrucciones-IA (CLAUDE.md, etc.) · infra/deploy (Dockerfile, compose, k8s, terraform, CI).
+   - **Si hay match**: editá SOLO la línea "Frescura" de `docs-fyd/ESTADO.md` → `PENDIENTE REGENERAR (YYYY-MM-DD) — categorías tocadas: <las que matchearon>`. Sin match: no tocás nada.
+   - **Marca, no regenera**: NO corras `/docs-fyd`, NO reescribas ningún otro `.md` de `docs-fyd/`, NO toques campos `[completar]` ni `docs/`. La regeneración pesada la corre el humano con `/docs-fyd` (que limpia el flag).
+7. **SPECs**: si alguna SPEC de `docs/` quedó implementada en esta sesión → marcar el estado en su línea 1 y moverla a `docs/archive/`.
+8. **Checklist de regresión** — {{BUGS_HISTORICOS}} — *se llena cuando el proyecto los tenga: los 2-4 bugs que ya volvieron alguna vez, con su verificación de 1 línea. Verificar solo los que esta sesión pudo haber tocado.*
+9. **Consistencia de números**: verificar que ningún dato quedó duplicado en dos docs — cada número vive solo en su fuente única.
+10. **Memoria**: si cambió un hecho estructural (de cómo trabaja el usuario o del stack) → actualizar la memoria persistente de Claude.
+11. **Commit + push**: `git add -A` → mostrar `git status` al usuario → commit `docs: cierre de sesión YYYY-MM-DD — <tema>` → push.
+12. **Reporte final**: SHA · archivos actualizados · próximo paso al retomar · bloqueos · **"Chat listo para descartar — la próxima misión arranca con /inicio en un chat nuevo."**
 
 ## Edge cases
 

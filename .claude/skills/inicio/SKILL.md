@@ -14,10 +14,10 @@ ante señal de drift (fecha vieja, contradicción con git) o si el hook no apare
 1. **Cruzar el handoff con la realidad** (barato, todo local — mostrar solo lo que llame la atención):
    - `git status -sb` → ¿working tree limpio? ¿`main` = `origin/main`? ¿el último commit coincide
      con el handoff?
-   - **`diff -r kit/skills/arquitecto ~/.claude/skills/arquitecto`** (+ `arquitecto-skills` y
-     `agents/redteam-spec.md`) → **el drift más peligroso de este repo**: si da sucio, alguien
-     editó `~/.claude/` directo (prohibido) o quedó un cierre a medias. FRENAR y mostrarlo antes
-     de trabajar — nunca pisar a ciegas en ninguna dirección.
+   - **`diff -r kit/skills/arquitecto ~/.claude/skills/arquitecto`** (+ `arquitecto-skills`,
+     `docs-fyd` y `agents/redteam-spec.md` — las **4 rutas canónicas**) → **el drift más peligroso de
+     este repo**: si da sucio, alguien editó `~/.claude/` directo (prohibido) o quedó un cierre a
+     medias. FRENAR y mostrarlo antes de trabajar — nunca pisar a ciegas en ninguna dirección.
    - ¿Hay tandas en `tips/` con propuestas sin procesar (checkboxes `- [ ]` sin marcar)? → es
      trabajo pendiente que el handoff puede no mencionar.
 2. **Confirmar en 3 líneas**: **Estado** / **Próxima acción** (del handoff y los pendientes del

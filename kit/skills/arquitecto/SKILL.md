@@ -93,8 +93,14 @@ En orden, mostrando qué hacés:
    - `/smoke` y `/deploy` NO se montan (regla de 3+): quedan los contratos en los templates para cuando el ritual exista.
    - **Cero `{{` en los archivos instanciados**: reemplazá TODOS los `{{...}}` de settings.json, CLAUDE.md, inicio y cierre; si un slot no aplica (ej. no hay comando de salud), borrá la línea entera — no dejes placeholders literales.
    - En `check-code.js` activá solo los lenguajes del stack; ojo con TypeScript: `tsc --noEmit` chequea el proyecto entero en cada edición — activalo solo si el proyecto es chico.
-5. **Primer commit** y verificá con `git status` que las skills y settings quedaron **trackeadas**.
-6. **Checklist final visible**: mostrale la tabla de lo montado (✅ por ítem, con evidencia: archivo existe / commit SHA).
+5. **Siembra de `docs-fyd/` (CON PREGUNTA)** — antes del commit, preguntá con AskUserQuestion (una sola):
+   *"¿este proyecto lleva los dos sistemas —el de trabajo del método + el de documentación de auditoría `docs-fyd`— o solo el mío (solo el del método)?"*. Marcá **"los dos"** como (Recomendado) si el proyecto es para un cliente o va a producción (el caso FyD).
+   - **"Los dos" + `/docs-fyd` instalado** (mirá `~/.claude/skills/docs-fyd/`): invocá `/docs-fyd` UNA vez para sembrar `docs-fyd/`. **Pre-cargá `_CAMPOS-NEGOCIO.md` desde el SPEC-0**: función / quiénes / criticidad ya salieron de la entrevista; el 4º campo (proceso manual alternativo) va precargado si la entrevista lo capturó, o queda `[completar]` si no. Agregá la **fila-puntero** de `docs-fyd/` a la tabla "Mapa de documentación" del CLAUDE.md (donde el paso 4 resolvió `{{OTROS_DOCS}}`) — ej.: `| docs-fyd/ | Doc técnica de auditoría FyD (regenerable) | /docs-fyd la genera; /cierre la marca vieja |`. **Registrás y disparás — NO duplicás el motor**: la fila es un puntero, el molde de los artefactos vive en la skill global (single-source).
+   - **"Solo el mío"**: no sembrás nada.
+   - **"Los dos" pero `/docs-fyd` NO instalado**: dejá un stub — una nota en el handoff / CLAUDE.md: *"falta instalar /docs-fyd (Equipador) y correrlo acá"* — y **NO rompas el montaje**.
+   - **CERO `{{` en el CLAUDE.md**: sea cual sea la respuesta, verificá que no quedó ningún `{{...}}` (incluido `{{OTROS_DOCS}}`) — resuelto o borrado, como el resto.
+6. **Primer commit** y verificá con `git status` que las skills y settings quedaron **trackeadas** (y `docs-fyd/` si se sembró — confirmá que NO cayó en `.gitignore`).
+7. **Checklist final visible**: mostrale la tabla de lo montado (✅ por ítem, con evidencia: archivo existe / commit SHA).
 
 ### Paso 6 — Handoff (y te apagás)
 
@@ -106,7 +112,7 @@ Cerrá con EXACTAMENTE esto, listo para copiar:
 >
 > La sesión nueva arranca con el sistema puesto (el hook le inyecta el contexto), construye por el spec, y cierra con `cierre`. Vos aprobás y verificás — como siempre.
 
-Antes de apagarte, un chequeo de 5 segundos: si el stack elegido tiene skills del menú universal que NO están instaladas en esta máquina (ej. `shadcn` o `supabase` para un Next.js — mirá `~/.claude/skills/`), avisale: *"Para este stack te convienen las skills X e Y — corré `/arquitecto-skills` y te las instala del menú."* Solo avisás; instalar es trabajo del Equipador.
+Antes de apagarte, un chequeo de 5 segundos: si el stack elegido tiene skills del menú universal que NO están instaladas en esta máquina (ej. `shadcn` o `supabase` para un Next.js — mirá `~/.claude/skills/`), avisale: *"Para este stack te convienen las skills X e Y — corré `/arquitecto-skills` y te las instala del menú."* Y si respondiste "los dos" en el Paso 5 pero `/docs-fyd` no estaba instalada, recordáselo: *"corré `/arquitecto-skills` para instalar docs-fyd y después `/docs-fyd` acá para generar la doc de auditoría."* Solo avisás; instalar es trabajo del Equipador.
 
 No sigas trabajando después del handoff. El Arquitecto piensa y monta; no construye.
 

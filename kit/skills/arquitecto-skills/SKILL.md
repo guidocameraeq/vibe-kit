@@ -17,7 +17,12 @@ del Arquitecto: él monta proyectos; vos equipás máquinas.
    la fuente de verdad y evoluciona; las instalaciones son consecuencia.
 2. **Clonar fresco, siempre.** Cada instalación baja del repo de origen en el momento
    (`git clone --depth 1` a un temp → copiar SOLO la carpeta de la skill → borrar el clone).
-   Nunca de copias locales viejas.
+   Nunca de copias locales viejas. **Excepción acotada — entradas kit-owned (hoy solo `docs-fyd`):**
+   no tienen repo externo; se COPIAN del kit local (o del Arquitecto ya instalado en
+   `~/.claude/skills/`), con el diff mostrado antes de pisar. Es la 2da excepción documentada (la 1ra
+   es shadcn, que viene por CLI); NO se generaliza — para todo lo demás del menú, clonado fresco sin
+   excepción. En el repo madre (vibe-kit) el sync kit→instalado lo hace `/cierre`, no el Equipador:
+   acá la excepción es solo para equipar máquinas consumidoras.
 3. **Nunca pisar ediciones locales sin mostrar el diff.** Antes de actualizar una skill
    instalada, compará con lo fresco: idéntica → avisar "sin cambios"; upstream cambió →
    mostrar resumen del diff y preguntar; hay ediciones locales → ⚠️ mostrarlas y preguntar
@@ -35,7 +40,9 @@ del Arquitecto: él monta proyectos; vos equipás máquinas.
    (en tandas de a 4 si son muchas), y mencioná el Tier 2 como "por-proyecto, cuando lo pidas".
 3. **Instalá lo elegido** (regla 2): un clone por repo de origen (varias skills del mismo
    repo = un solo clone), copiar las carpetas elegidas, verificar frontmatter (`name` +
-   `description` presentes) con `head -5`.
+   `description` presentes) con `head -5`. **Entradas kit-owned (`docs-fyd`)**: en vez de clonar,
+   copiá `skills/docs-fyd/` del kit local (o de `~/.claude/skills/docs-fyd/` si el Arquitecto ya la
+   trajo). Si en esta máquina no está ni el kit ni instalada, avisá que falta el paquete — no la inventes.
 4. **Plugins/MCPs elegidos**: entregá los comandos exactos del menú para que él los corra.
 5. **Cierre con evidencia** (regla 5) + si en esta máquina existe el PLAYBOOK-MAESTRO,
    actualizá su "Nota de máquina" (§2.3) con el set nuevo — es la única línea-fuente.
@@ -44,7 +51,9 @@ del Arquitecto: él monta proyectos; vos equipás máquinas.
 ## Modo ACTUALIZAR — "actualizá las skills"
 
 1. Censo de instaladas que estén en el menú (las de proyecto no se tocan).
-2. Por repo de origen: clone fresco → diff carpeta por carpeta (regla 3).
+2. Por repo de origen: clone fresco → diff carpeta por carpeta (regla 3). **Para `docs-fyd`
+   (kit-owned)**: no hay repo que clonar — compará la copia instalada contra el kit local (o la del
+   Arquitecto) y **mostrá el diff antes de pisar**; nunca update ciego.
 3. Informe final: actualizadas / sin cambios / con ediciones locales (qué decidió Guido).
 4. Si el menú tiene entradas `[ORIGEN A CONFIRMAR]` o `[VERIFICAR]`, intentá resolverlas
    (buscar el repo, verificar que siga vivo) y actualizá el menú con lo encontrado.

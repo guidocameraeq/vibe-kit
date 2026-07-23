@@ -17,6 +17,8 @@ Instalá el paquete "El Arquitecto" que está en esta carpeta:
 2. Copiá skills/arquitecto/ COMPLETA (con anexos/ y templates/) Y
    skills/arquitecto-skills/ (con su menu-skills.md) a las skills globales
    de esta máquina: ~/.claude/skills/ (creá las carpetas que no existan).
+   Y skills/docs-fyd/ SI está presente en esta carpeta (es kit-owned; si el zip
+   es viejo y no la trae, salteala sin frenar — NO es requisito duro del paso 1).
    Si ya hay versiones instaladas, mostrame las fechas y preguntame antes de pisar.
 3. Copiá agents/redteam-spec.md a ~/.claude/agents/.
 4. Preguntame con opciones dónde guardo mis proyectos en ESTA máquina
@@ -42,7 +44,7 @@ No toques nada más de esta máquina. No borres esta carpeta del zip (queda de b
 
 ## Plan B — instalación a mano (por si preferís no usar el prompt)
 
-1. `skills/arquitecto/` y `skills/arquitecto-skills/` → copiar adentro de `C:\Users\<usuario>\.claude\skills\`
+1. `skills/arquitecto/` y `skills/arquitecto-skills/` (y `skills/docs-fyd/` si está) → copiar adentro de `C:\Users\<usuario>\.claude\skills\`
 2. `agents/redteam-spec.md` → copiar adentro de `C:\Users\<usuario>\.claude\agents\`
 3. Abrir `skills\arquitecto\SKILL.md` y ajustar la línea **"Carpeta de proyectos de esta máquina"**
 4. Reiniciar Claude Code → `/arquitecto` para proyectos, `/arquitecto-skills` para equipar la máquina

@@ -25,11 +25,11 @@ Nunca editar `~/.claude/` directo (queda huérfano del historial).
 |---|---|
 | **La guía de uso** — recetas por situación + frases mágicas (empezá por acá) | `GUIA-DE-USO.md` |
 | **El método** (documentación + sistema de trabajo, se lee 1 vez por proyecto) | `PLAYBOOK-MAESTRO.md` |
-| **El kit instalable** — FUENTE CANÓNICA del Arquitecto + Equipador + menú + templates + agente red-team + su instalador | `kit/` |
+| **El kit instalable** — FUENTE CANÓNICA del Arquitecto + Equipador + menú + templates + agente red-team + **motor `docs-fyd`** + su instalador | `kit/` |
 | **Guías de uso** (casos de uso, cuándo sí/no) | `guias/` |
 | **El Extractor** — agente de tips: abrir Claude Code AHÍ + pegar links = extrae, evalúa y deja el informe | `extractor/` |
 | Informes de tandas de tips (outputs del Extractor) | `tips/` |
-| Estado del proyecto madre: handoff (lo inyecta el hook), DECISIONS (14 ADRs), REJECTED, **SPEC `docs-fyd` (READY)** | `docs/` + `CLAUDE.md` raíz + skill `/cierre` |
+| Estado del proyecto madre: handoff (lo inyecta el hook), DECISIONS (14 ADRs), REJECTED, **SPEC `docs-fyd` (implementado → la skill vive en `kit/skills/docs-fyd/`)** | `docs/` + `CLAUDE.md` raíz + skill `/cierre` |
 | Archivo histórico (v1, auditorías, snapshots pre-git, la PROPUESTA-V2 ya cumplida) | `legacy/` |
 
 ## Instalar en una PC nueva
@@ -56,9 +56,13 @@ y la chuleta de frases mágicas. Es LA puerta de entrada para usar el sistema.
 
 ## Pendientes (post-v2.1)
 
-- 🔥 **Construir el release v2.0 del Arquitecto — sistema `docs-fyd`**: el SPEC está READY y
-  aprobado (3 rondas de red-team) en `docs/SPEC-docs-fyd.md`. Arrancar en un **chat fresco** con
-  el prompt de `docs/PROMPT-construir-docs-fyd.md` (lee el SPEC + `docs/referencia-prompts-fyd.md`).
+- ~~🔥 **Construir el release v2.0 del Arquitecto — sistema `docs-fyd`**~~ ✅ **construido
+  (2026-07-23)**: la skill `kit/skills/docs-fyd/` (motor + `deteccion.md` + `prompts-fyd.md` + 13
+  plantillas) + los 7 enganches (frescura en el cierre-plantilla, fila kit-owned en el menú,
+  copiar-si-está en INSTALAR, caso kit-owned en el Equipador, siembra CON PREGUNTA en el Paso 5 del
+  Arquitecto, diff canónico 3→4 rutas). Verificado **16/16** (workflow adversarial sobre los 14
+  criterios + anti-secretos + consistencia) y `diff -r` de las 4 rutas limpio. **Próximo real:**
+  correr `/docs-fyd` en las 2-3 apps críticas para FyD y completar el negocio en `_CAMPOS-NEGOCIO.md`.
 - **Fase 2 de `docs-fyd`**: el inventario central (`/inventario-fyd`, Excel + Mapa + hub privado)
   quedó diferido; mientras tanto el Excel lo arma Guido desde su tablero Kanban (columnas en la
   sección Fase 2 del SPEC).

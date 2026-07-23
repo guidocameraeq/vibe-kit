@@ -8,9 +8,10 @@ description: Cierre de sesión del repo vibe-kit — sincronizar kit a ~/.claude
 Pasos en orden, mostrando evidencia de cada uno:
 
 1. **¿Se tocó `kit/`?** → sincronizar a la copia instalada y VERIFICAR:
-   - `cp -r` de `kit/skills/arquitecto` y `kit/skills/arquitecto-skills` → `~/.claude/skills/`
+   - `cp -r` de `kit/skills/arquitecto`, `kit/skills/arquitecto-skills` y `kit/skills/docs-fyd` → `~/.claude/skills/`
    - `cp kit/agents/redteam-spec.md` → `~/.claude/agents/`
-   - `diff -r kit/skills/arquitecto ~/.claude/skills/arquitecto` (y el resto) → **debe dar
+   - `diff -r` de las **4 rutas canónicas** (`kit/skills/arquitecto`, `kit/skills/arquitecto-skills`,
+     `kit/skills/docs-fyd` y `kit/agents/redteam-spec.md`) contra su copia en `~/.claude/` → **debe dar
      limpio**; mostrar el resultado. Sin diff limpio no hay cierre.
 2. **¿Cambió el kit?** → regenerar el zip portable, SOLO si esta máquina tiene la carpeta
    `$HOME/Desktop/Arquitecto en otras PCs/` (existe en la PC principal; en otras PCs este

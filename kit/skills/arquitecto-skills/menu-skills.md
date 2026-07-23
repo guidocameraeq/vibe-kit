@@ -21,6 +21,7 @@
 | codebase-to-course | ✅ VERIFICADO 2026-07-06: `github.com/zarazhangrui/codebase-to-course` (misma autora que frontend-slides) — clonar y copiar la carpeta a `~/.claude/skills/` | Curso interactivo HTML de un codebase — Guido lo usa para presentaciones a gerencia |
 | supabase | `github.com/supabase/agent-skills` | Buenas prácticas oficiales de TODO Supabase (Auth, RLS, Realtime, Storage) |
 | supabase-postgres-best-practices | `github.com/supabase/agent-skills` | EL "sql-expert" de Postgres: índices, queries, tuning — el stack real de Guido |
+| docs-fyd 🔑 kit-owned | **NO se clona** — copiar `skills/docs-fyd/` del **kit local** (o del Arquitecto ya instalado en `~/.claude/skills/`). **2da excepción a "clonado fresco"** (la 1ra es shadcn); acotada a esta fila. Cicatriz: encargo FyD 2026-07 | Documentación técnica de auditoría FyD por repo: genera los 10 artefactos (ficha, README, C4, ER, variables de entorno, seguridad) DESDE el código, aislados en `docs-fyd/`, con el negocio en una bóveda read-only. Se corre por-repo con `/docs-fyd`; el Arquitecto la siembra opt-in y el `/cierre` la marca vieja |
 
 **Plugins/MCPs Tier 1** (requieren comandos interactivos DEL USUARIO — la skill da la instrucción exacta, nunca los instala sola):
 - **hookify**: `/plugin install hookify@claude-plugins-official` — guardrails dictados en criollo → hooks mecánicos. Global (no es MCP, no pesa).
