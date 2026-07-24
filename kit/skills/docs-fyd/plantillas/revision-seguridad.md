@@ -1,4 +1,4 @@
-> generado por /docs-fyd [FECHA] — se regenera, no editar a mano.
+> Documento derivado automáticamente del código de este repositorio — se regenera, no editar a mano en silencio; lo que el código no sabe va en `_ACLARACIONES.md`.
 > Relevamiento informativo (no implica corregir de inmediato). Este entregable NO incluye `archivo:línea`: ese detalle sale solo en `docs-fyd auditar` (en pantalla, transitorio).
 
 # Revisión de variables y claves en el código — [Nombre de la aplicación]

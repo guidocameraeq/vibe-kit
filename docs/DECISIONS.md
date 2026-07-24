@@ -119,3 +119,32 @@ rondas de red-team**) con su contrato de contenido en `docs/referencia-prompts-f
 mediana (borrar la excepción + decidir qué pasa con los `docs-fyd/` ya sembrados). La Fase 2
 (inventario-fyd/Excel/Mapa/hub privado) será su propio delta con su propio red-team y su propio
 ADR. *Este ADR se escribió en el cierre del diseño; la sesión que CONSTRUYE no lo duplica.*
+
+## ADR-015 · docs-fyd v2: resolver las dudas POR OPCIONES + capa humana protegida, no generar por generar (2026-07-23)
+La **primera corrida real** de `/docs-fyd` (repo Hermes, en producción) destapó el límite de v1: 9 de
+10 artefactos necesitaron corrección a mano, y las importantes eran **hechos que el código no sabe**
+(backups en un servicio externo, RLS real en la base viva, si la base es compartida). Peor, el motor
+**afirmó negativos falsos por ausencia** ("no hay backups", "falta RLS") que en un entregable de
+auditoría **acusan al propio cliente**, y esas correcciones **se perdían en la regeneración, en
+silencio**. **Decisión:** construir **docs-fyd v2** — cuando el motor duda, **pregunta por OPCIONES**
+(AskUserQuestion: el motor propone, Guido elige; no escribe documentación), con una **checklist
+proactiva fija** (backups · RLS/control de acceso · base compartida · vigencia de tokens) que se
+dispara **aunque el código calle**; **nunca afirma un negativo absoluto** (fórmula "no se encontró X
+en el código — confirmar"); lo humano vive en **`_ACLARACIONES.md`** bajo una regla `_`=read-only
+generalizada (**crear + anexar, nunca pisar contenido humano**); hay **auto-verificación con rastro**
+antes de entregar; las herramientas auxiliares corren **fuera del repo**; y un Mermaid roto **no tira
+el documento** (placeholder). Sigue siendo **regenerable** — NO se vuelve a mantenimiento incremental
+(ese es el pecado que v1 mata). **Alternativas descartadas:** (1) volver a doc mantenida a mano →
+espejos que se pudren; (2) que el humano escriba **prosa libre** → riesgo de fuga de credenciales +
+fricción (Guido no escribe doc) → se eligió **opciones** con freno bloqueante para el texto libre
+raro; (3) que el motor guarde **solo el hecho pelado** (máxima seguridad) → descartado por perder
+contexto que el auditor valora; (4) **verificación EN VIVO automática** (que el motor consulte la
+base/API) → **diferida a Fase 2** (toca producción, su propio red-team); mientras tanto la checklist
+proactiva captura ese valor vía el humano. **Consecuencias:** es un delta sobre docs-fyd que YA anda
+(NO SE TOCA protege el cepillo, el write-set, la bóveda, los 10, el contrato de contenido); el diseño
+quedó en `docs/SPEC-docs-fyd-v2.md` (READY, endurecido tras **1 ronda de red-team, 6 lentes, 26
+hallazgos foldeados** — que cazó contradicciones internas graves: la regla `_` que se contradecía, el
+cepillo que no cubre prosa, el disparo de dudas que se cancelaba con el auto-control, Mermaid vs "los
+10 siempre"); cómo se mide si mejoró está en `docs/EVALUACION-docs-fyd-v2.md` (re-correr sobre Hermes,
+señal vs ruido de las preguntas). Reversión mediana. La Fase 2 (verificación en vivo) será su propio
+delta/ADR.

@@ -1,4 +1,5 @@
-<!-- generado por /docs-fyd [FECHA] — se regenera, no editar a mano. Este comentario es el MARCADOR DE PROCEDENCIA: NO lo borres. Sin él, /docs-fyd trata el README como escrito a mano y pide confirmación antes de pisarlo. -->
+<!-- docs-fyd:marca v2 -->
+<!-- Documento derivado automáticamente del código de este repositorio — se regenera, no editar a mano en silencio. El comentario de arriba (docs-fyd:marca) es el MARCADOR DE PROCEDENCIA: NO lo borres. Sin él, /docs-fyd trata el README como escrito a mano y pide confirmación antes de pisarlo. -->
 
 # [Nombre de la aplicación]
 

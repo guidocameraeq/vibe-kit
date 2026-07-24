@@ -1,4 +1,4 @@
-> generado por /docs-fyd [FECHA] — se regenera, no editar a mano.
+> Documento derivado automáticamente del código de este repositorio — se regenera, no editar a mano en silencio; lo que el código no sabe va en `_ACLARACIONES.md`.
 > 🔒 Derivado de los configs de deploy/CI (fuente #1 de secretos inline): NINGÚN valor de credencial acá — solo nombre de contenedor, tecnología y protocolo.
 
 # Diagrama de Contenedores (C2) — [Nombre de la aplicación]

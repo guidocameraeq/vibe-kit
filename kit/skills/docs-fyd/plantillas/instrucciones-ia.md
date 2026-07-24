@@ -1,4 +1,4 @@
-> generado por /docs-fyd [FECHA] — se regenera, no editar a mano.
+> Documento derivado automáticamente del código de este repositorio — se regenera, no editar a mano en silencio; lo que el código no sabe va en `_ACLARACIONES.md`.
 > Resumen de estructura y punteros de los archivos de instrucciones-IA. NO es una copia verbatim, y pasó el cepillo anti-secretos antes de escribirse.
 
 # Instrucciones de IA utilizadas — [Nombre de la aplicación]

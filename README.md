@@ -61,8 +61,15 @@ y la chuleta de frases mágicas. Es LA puerta de entrada para usar el sistema.
   plantillas) + los 7 enganches (frescura en el cierre-plantilla, fila kit-owned en el menú,
   copiar-si-está en INSTALAR, caso kit-owned en el Equipador, siembra CON PREGUNTA en el Paso 5 del
   Arquitecto, diff canónico 3→4 rutas). Verificado **16/16** (workflow adversarial sobre los 14
-  criterios + anti-secretos + consistencia) y `diff -r` de las 4 rutas limpio. **Próximo real:**
-  correr `/docs-fyd` en las 2-3 apps críticas para FyD y completar el negocio en `_CAMPOS-NEGOCIO.md`.
+  criterios + anti-secretos + consistencia) y `diff -r` de las 4 rutas limpio.
+- ~~🔥 **docs-fyd v2 — resolver las dudas POR OPCIONES**~~ ✅ **construido (2026-07-23)**: tras la 1ª
+  corrida real (reporte de campo sobre Hermes), v2 hace que la skill **pregunte por opciones** cuando
+  duda (backups/RLS/base compartida/tokens — checklist proactiva fija), **nunca afirme un negativo
+  falso**, y la capa humana (`_ACLARACIONES.md`) **sobreviva la regeneración**. SPEC
+  `docs/SPEC-docs-fyd-v2.md` (READY, endurecido tras red-team de 6 lentes / 26 hallazgos) + ADR-015 +
+  protocolo `docs/EVALUACION-docs-fyd-v2.md`. Verificado (8 PASS + 5 PARTIAL foldeados). **Próximo real:**
+  correr `/docs-fyd` (v2) en las apps críticas de FyD, completar bóveda/aclaraciones, y pasar el
+  protocolo de evaluación sobre Hermes (señal vs ruido de las preguntas) antes de soltarlo al resto.
 - **Fase 2 de `docs-fyd`**: el inventario central (`/inventario-fyd`, Excel + Mapa + hub privado)
   quedó diferido; mientras tanto el Excel lo arma Guido desde su tablero Kanban (columnas en la
   sección Fase 2 del SPEC).
@@ -72,6 +79,9 @@ y la chuleta de frases mágicas. Es LA puerta de entrada para usar el sistema.
 - **Compuerta del Modo C** (~2 semanas de uso de A+B): si no te trabaste 3+ veces pidiendo
   cosas, C queda como está; si sí, se afina con casos reales.
 - Equipador: faltan estrenar "actualizar" y "agregar al menú".
+- 🔮 **Equipador auto-actualizable** (idea de Guido, antes de la próxima versión): que `/arquitecto-skills`
+  sea capaz de **actualizarse a sí mismo** (y a sus hermanas arquitecto/docs-fyd) bajando su versión nueva
+  del repo canónico, en vez de depender del prompt manual. Enlaza con el flujo multi-PC.
 - ~~Llevar el kit a la PC d:\SAAS~~ ✅ instalado (2026-07-11). Colita: confirmar allá la
   reconciliación del catálogo viejo (superpowers/sql-expert) con el menú — `/arquitecto-skills`
   → *"qué skills tengo"*.

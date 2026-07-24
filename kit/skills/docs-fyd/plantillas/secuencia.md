@@ -1,4 +1,4 @@
-> generado por /docs-fyd [FECHA] — se regenera, no editar a mano.
+> Documento derivado automáticamente del código de este repositorio — se regenera, no editar a mano en silencio; lo que el código no sabe va en `_ACLARACIONES.md`.
 
 # Diagramas de secuencia — [Nombre de la aplicación]
 

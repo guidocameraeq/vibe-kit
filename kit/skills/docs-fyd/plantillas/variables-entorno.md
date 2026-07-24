@@ -1,4 +1,4 @@
-> generado por /docs-fyd [FECHA] — se regenera, no editar a mano.
+> Documento derivado automáticamente del código de este repositorio — se regenera, no editar a mano en silencio; lo que el código no sabe va en `_ACLARACIONES.md`.
 > 🔒 Solo el NOMBRE de cada variable, nunca el valor (todo a la derecha del `=` se corta).
 
 # Variables de entorno y servicios externos — [Nombre de la aplicación]

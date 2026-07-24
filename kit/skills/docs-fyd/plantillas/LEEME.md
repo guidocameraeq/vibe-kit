@@ -10,11 +10,17 @@ desaparece.
 - **Auditar antes de entregar**: corré `docs-fyd auditar` (no escribe nada) — te dice qué quedó
   viejo, qué campos de negocio faltan, y el detalle de cualquier secreto hallado.
 - **Completar el negocio**: editá `_CAMPOS-NEGOCIO.md` (los 4 campos que el código no sabe).
+- **Resolver dudas / aclarar**: cuando `/docs-fyd` te pregunta algo (backups, RLS, base compartida,
+  tokens…), elegís la opción — tu respuesta queda en `_ACLARACIONES.md`. Ahí también anotás las
+  correcciones a mano. **Eso no se pierde en la regeneración.**
 
 ## Qué NO tocar a mano
 
-Todo lo demás se **regenera**: si lo editás, la próxima corrida lo pisa. Los dos únicos archivos que
-el motor respeta: `_CAMPOS-NEGOCIO.md` (la bóveda de negocio) y `ESTADO.md` (el semáforo de frescura).
+Lo derivado del código se **regenera**: si editás un artefacto derivado, la próxima corrida lo pisa
+(anotá esa corrección en `_ACLARACIONES.md` para no perderla). Lo que el motor **respeta** —lo crea si
+falta, lo amplía, pero NUNCA lo pisa— es **todo archivo que empieza con `_`**: `_CAMPOS-NEGOCIO.md` (la
+bóveda de negocio) y `_ACLARACIONES.md` (tus respuestas por opciones + las correcciones a mano). El
+`ESTADO.md` (semáforo de frescura) lo actualiza quirúrgico, no lo arrasa.
 
 ## ⚠️ Nota de desvío del método (ADR-014)
 

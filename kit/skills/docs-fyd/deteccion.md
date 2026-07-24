@@ -30,3 +30,31 @@ lista cerrada: **se amplía acá sin tocar el `SKILL.md`**. Ante cero evidencia 
   inventado que le miente a la auditora.
 - **Ampliar esta tabla** cuando aparezca un stack nuevo en el parque de Guido (Tauri, Expo, .NET,
   n8n, etc.): agregá la fila con sus señales acá — el `SKILL.md` no se toca.
+
+## Jerarquía de evidencia (v2) — cuál fuente gana
+
+Cuando dos fuentes se contradicen, gana la de más arriba; y lo que solo vive en producción NO se
+afirma como absoluto (se pregunta por opciones):
+
+**sistema vivo (testimonio humano en `_ACLARACIONES.md`, datado) > código > scripts del repo > `docs/`**
+
+- **`docs/` NO es fuente de verdad** para ningún artefacto salvo el #9. En el reporte de campo,
+  `ARCHITECTURE.md` estaba viejo en 4 conteos y contradecía al entregable en un punto de seguridad. Un
+  dato del código gana sobre un `docs/`; y un dato del código puede estar viejo respecto de la base
+  viva → si es de seguridad/continuidad, se pregunta (no se afirma).
+- **Un script versionado NO es la realidad viva.** Ej: `db_hardening.py` que habilita RLS en 6 tablas es
+  evidencia de que se corrió alguna vez, no de que la base HOY tenga RLS en 6 (podría tener 22). Para
+  esos hechos → duda por opciones, no afirmación.
+
+## Auditar el ENTORNO INSTALADO, no solo el manifiesto (v2)
+
+- Las **dependencias indirectas** no figuran en el manifiesto pero viajan en el binario/imagen (ej.
+  Pillow entra por matplotlib y viaja dentro de un `.exe` de PyInstaller). Para
+  `variables-entorno`/`revision-seguridad`, mirá el **entorno instalado real** (`pip freeze`, el
+  lockfile, el bundle), no solo `requirements.txt`.
+- **Herramientas faltantes** (`pip-audit`, `pg_dump`, PostgreSQL local): NO las instales en el proyecto
+  (rompés sus versiones fijadas). Usá un **venv / directorio temporal descartable FUERA del repo**; si
+  igual no están, marcá el chequeo "NO DETERMINADO" + qué faltó. **Ninguna herramienta auxiliar deja
+  archivos dentro del repo** (write-set + gate `git status` del SKILL).
+- **Encoding de consola** (Windows cp1252): si generás un script auxiliar que imprime, evitá emojis /
+  no-ASCII o revienta. Trivial pero real.

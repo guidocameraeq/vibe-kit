@@ -1,4 +1,4 @@
-> generado por /docs-fyd [FECHA] — se regenera, no editar a mano; los 4 campos de negocio viven en `_CAMPOS-NEGOCIO.md` (bóveda read-only).
+> Documento derivado automáticamente del código de este repositorio — se regenera, no editar a mano en silencio; los 4 campos de negocio viven en `_CAMPOS-NEGOCIO.md` (bóveda) y lo que el código no sabe en `_ACLARACIONES.md`.
 
 # [Nombre de la aplicación]
 
