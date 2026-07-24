@@ -44,9 +44,10 @@ Ninguno.
 
 ## Contexto que no está en otros docs
 
-- **Idea anotada para la próxima versión (pedido de Guido):** que el **Equipador (`/arquitecto-skills`)
-  sea auto-actualizable** — que baje su versión nueva del repo canónico y se actualice a sí mismo (y a
-  sus hermanas), en vez del prompt manual. Está en los Pendientes del README.
+- **Equipador auto-actualizable — HECHO en esta sesión (pedido de Guido):** `/arquitecto-skills` tiene el
+  Modo **AUTO-ACTUALIZAR EL KIT** — baja lo kit-owned (arquitecto / arquitecto-skills / docs-fyd + redteam)
+  del repo canónico y se actualiza a sí mismo, con diff-antes-de-pisar + preservando la ruta de proyectos
+  por-PC. Se dispara con "actualizá el kit" / "actualizate". Acotado: en el repo madre sigue mandando `/cierre`.
 - **El zip portable NO se regeneró** (esta PC no tiene `Desktop\Arquitecto en otras PCs\` — paso
   condicional). Para llevar a otra PC: mejor `git pull`, no el zip (quedó viejo).
 - **Fase 2 sigue diferida** (verificación EN VIVO automática — que el motor consulte la base/API real):

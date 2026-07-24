@@ -1,6 +1,6 @@
 ---
 name: arquitecto-skills
-description: El Equipador — instala, actualiza y poda las skills globales de Claude Code según el menú curado (hermana del Arquitecto). Usar cuando el usuario dice "preparame esta máquina", "instalame skills", "actualizá las skills", "qué skills tengo instaladas", "agregá tal skill al menú", o al estrenar una PC nueva. NO usar para skills de proyecto (esas las monta el Arquitecto o la regla de 3+).
+description: El Equipador — instala, actualiza y poda las skills globales de Claude Code según el menú curado (hermana del Arquitecto). Puede AUTO-ACTUALIZARSE: baja la última versión del Arquitecto/Equipador/docs-fyd del repo canónico y se actualiza a sí mismo. Usar cuando el usuario dice "preparame esta máquina", "instalame skills", "actualizá las skills", "actualizá el kit", "actualizate", "traé lo último del Arquitecto", "qué skills tengo instaladas", "agregá tal skill al menú", o al estrenar una PC nueva. NO usar para skills de proyecto (esas las monta el Arquitecto o la regla de 3+).
 ---
 
 # El Equipador (`/arquitecto-skills`)
@@ -51,12 +51,41 @@ del Arquitecto: él monta proyectos; vos equipás máquinas.
 ## Modo ACTUALIZAR — "actualizá las skills"
 
 1. Censo de instaladas que estén en el menú (las de proyecto no se tocan).
-2. Por repo de origen: clone fresco → diff carpeta por carpeta (regla 3). **Para `docs-fyd`
-   (kit-owned)**: no hay repo que clonar — compará la copia instalada contra el kit local (o la del
-   Arquitecto) y **mostrá el diff antes de pisar**; nunca update ciego.
+2. Por repo de origen: clone fresco → diff carpeta por carpeta (regla 3). **Lo kit-owned**
+   (`arquitecto`, `arquitecto-skills`, `docs-fyd`) NO se actualiza acá — se baja del **repo canónico**
+   con el **Modo AUTO-ACTUALIZAR EL KIT** (abajo).
 3. Informe final: actualizadas / sin cambios / con ediciones locales (qué decidió Guido).
 4. Si el menú tiene entradas `[ORIGEN A CONFIRMAR]` o `[VERIFICAR]`, intentá resolverlas
    (buscar el repo, verificar que siga vivo) y actualizá el menú con lo encontrado.
+
+## Modo AUTO-ACTUALIZAR EL KIT — "actualizá el kit" / "actualizate" / "traé lo último del Arquitecto"
+
+Actualizás las skills **kit-owned** (`arquitecto`, `arquitecto-skills` —vos mismo— y `docs-fyd`) + el
+agente `redteam-spec` desde el **repo canónico** `guidocameraeq/vibe-kit`, sin depender de un prompt a
+mano. Es la contracara del `/cierre` del repo madre: allá se editan y se pushean; acá se bajan e
+instalan en `~/.claude/`.
+
+1. **Bajá el repo canónico fresco** (regla 2): `git clone --depth 1 https://github.com/guidocameraeq/vibe-kit.git`
+   a un directorio temporal. Es **privado** → si pide credenciales, son del usuario (JAMÁS las manejás vos).
+   *(Si esta PC ya tiene un clon del repo y el usuario prefiere, un `git pull` ahí sirve igual; pero
+   clone-a-temp es lo más simple y no depende de saber dónde está el clon.)*
+2. **Actualizá cada ruta kit-owned con diff-antes-de-pisar** (regla 3), copiando del clon a `~/.claude/`:
+   `skills/arquitecto/` · `skills/arquitecto-skills/` · `skills/docs-fyd/` → `~/.claude/skills/`; y
+   `agents/redteam-spec.md` → `~/.claude/agents/`. Por cada una: idéntica → "sin cambios"; cambió →
+   mostrá el resumen del diff y copiá; ⚠️ **hay ediciones locales en `~/.claude/`** → mostralas y
+   preguntá SIEMPRE (una edición directa a `~/.claude/` está huérfana del repo — el lugar canónico es el
+   repo; conviene llevarla allá antes de pisar).
+3. **⚠️ Preservá lo que es por-PC**: la línea **"Carpeta de proyectos de esta máquina"** del
+   `arquitecto/SKILL.md` es local de cada máquina — al pisar, **conservá la ruta que ya estaba**, no la
+   del repo. Es el único slot que INSTALAR ajusta por-PC.
+4. **Auto-update**: al actualizar `arquitecto-skills` te pisás a vos mismo — está bien; la versión nueva
+   carga al **reiniciar Claude Code**.
+5. **Limpiá** el clon temporal.
+6. **Cierre con evidencia** (regla 5): `ls` de lo actualizado + fechas, y **recordá reiniciar Claude Code**.
+
+**Acotado**: este modo toca SOLO lo kit-owned, y solo desde el repo canónico. Las skills del **menú**
+(externas) se actualizan con el Modo ACTUALIZAR (clonan de SUS repos). Y **en el repo madre** (vibe-kit)
+NO se usa: allá el sync `kit/`→instalado lo hace `/cierre` (editás `kit/` y pusheás); acá bajás lo pusheado.
 
 ## Modo AUDITAR — "qué skills tengo" / "podá"
 

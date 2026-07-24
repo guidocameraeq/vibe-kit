@@ -79,9 +79,10 @@ y la chuleta de frases mágicas. Es LA puerta de entrada para usar el sistema.
 - **Compuerta del Modo C** (~2 semanas de uso de A+B): si no te trabaste 3+ veces pidiendo
   cosas, C queda como está; si sí, se afina con casos reales.
 - Equipador: faltan estrenar "actualizar" y "agregar al menú".
-- 🔮 **Equipador auto-actualizable** (idea de Guido, antes de la próxima versión): que `/arquitecto-skills`
-  sea capaz de **actualizarse a sí mismo** (y a sus hermanas arquitecto/docs-fyd) bajando su versión nueva
-  del repo canónico, en vez de depender del prompt manual. Enlaza con el flujo multi-PC.
+- ~~🔮 **Equipador auto-actualizable**~~ ✅ **hecho (2026-07-24)**: `/arquitecto-skills` tiene el Modo
+  **AUTO-ACTUALIZAR EL KIT** — baja lo kit-owned (arquitecto / arquitecto-skills / docs-fyd + redteam) del
+  repo canónico y se actualiza a sí mismo, con diff-antes-de-pisar y preservando la ruta de proyectos
+  por-PC. Se dispara con *"actualizá el kit"* / *"actualizate"*.
 - ~~Llevar el kit a la PC d:\SAAS~~ ✅ instalado (2026-07-11). Colita: confirmar allá la
   reconciliación del catálogo viejo (superpowers/sql-expert) con el menú — `/arquitecto-skills`
   → *"qué skills tengo"*.
