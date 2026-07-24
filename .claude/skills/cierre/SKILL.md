@@ -34,6 +34,12 @@ Pasos en orden, mostrando evidencia de cada uno:
    `git -c user.name="Guido" -c user.email="eq.chatgpt@gmail.com" commit ...` y sugerir
    configurarla global una sola vez. Verificar `git status` limpio y `main...origin/main`
    sin diferencias. Reportar el SHA.
+   - **Versión (si amerita):** ¿la sesión sacó una **capacidad nueva** o un cambio grande de cara al
+     usuario? → bump + **git tag anotado** sobre el commit del cierre: `vX.Y` — subí el **MINOR** para
+     capacidades nuevas compatibles (v2.1 → v2.2), un **3er número** para fixes (v2.2.1), **MAJOR**
+     para algo que cambia cómo se usa todo (v3). `git tag -a vX.Y -m "<qué trae>"` → `git push origin
+     vX.Y`, y actualizá la línea **"Versión estable"** del `README.md`. Un fix chico o doc-only **NO**
+     amerita bump — dejá el tag como está.
 6. **Cierre**: resumen de 3 líneas + "chat listo para descartar".
 
 ## Modo `cierre parcial` (emergencia pre-compactación)

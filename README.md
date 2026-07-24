@@ -3,8 +3,9 @@
 > El método completo para dirigir Claude Code sin ser programador: el playbook (documentación +
 > sistema de trabajo), el Arquitecto (piensa y monta proyectos nuevos), el Equipador (equipa
 > máquinas con skills curadas). Nacido de auditorías reales sobre meses de trabajo (Hermes,
-> Perseo). **Versión estable: `v2.1`** (tag de git, 2026-07-11 — Modo A validado con una semana
-> de uso real).
+> Perseo). **Versión estable: `v2.2`** (tag de git, 2026-07-24 — suma el sistema `docs-fyd` de
+> documentación de auditoría FyD + el Equipador auto-actualizable; v2.1 fue el Arquitecto de 3 modos
+> validado con uso real).
 
 ## La regla de la casa (desde que esto es un repo)
 
