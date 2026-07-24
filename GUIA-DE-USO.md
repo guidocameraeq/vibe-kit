@@ -42,7 +42,7 @@ Regla de bolsillo: si sale en una tarde y no toca permisos/datos/plata → direc
 ### 📋 "Necesito documentar un repo para la auditoría FyD"
 Chat nuevo **en la carpeta de esa app** → **`/docs-fyd`**. Deriva del código los 10 documentos que
 pide FyD (en `docs-fyd/`, aislado), y **cuando duda te pregunta por opciones** (backups, RLS, base
-compartida, tokens) — vos elegís, no escribís. Completás lo que falte en `_CAMPOS-NEGOCIO.md` /
+compartida, tokens — según lo que el repo tenga) — vos elegís, no escribís. Completás lo que falte en `_CAMPOS-NEGOCIO.md` /
 `_ACLARACIONES.md`, y antes de entregar corrés **`docs-fyd auditar`** (te dice qué quedó viejo, qué
 dudas faltan, y si hay secretos). Un repo por vez.
 → Detalle: `kit/skills/docs-fyd/SKILL.md` · el inventario central (Excel) es Fase 2 (a mano desde tu Kanban).

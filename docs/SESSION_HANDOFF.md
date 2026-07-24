@@ -13,8 +13,8 @@ lentes, 26 hallazgos)**, se construyó y se verificó. Todo sincronizado, diff d
 
 - **docs-fyd v2 CONSTRUIDO y sincronizado.** El motor `kit/skills/docs-fyd/` ahora, cuando duda de algo
   importante, **pregunta por OPCIONES** (el motor propone, el humano elige — no escribe documentación),
-  con una **checklist proactiva fija** (backups · RLS · base compartida · tokens) que se dispara aunque
-  el código calle; **nunca afirma un negativo por ausencia**; lo humano vive en **`_ACLARACIONES.md`**
+  con una **checklist proactiva condicionada** (backups/RLS/base-compartida si hay DB · tokens si usa
+  servicios — v2.2.1); **nunca afirma un negativo por silencio**; lo humano vive en **`_ACLARACIONES.md`**
   (regla `_`=read-only: crear+anexar, nunca pisar); hay **auto-verificación en 2 momentos** (surtidor de
   dudas + chequeo final) con git-gate; las **herramientas auxiliares corren fuera del repo**; y un
   **Mermaid roto no tira el documento** (placeholder). Sigue siendo regenerable.
@@ -34,14 +34,25 @@ lentes, 26 hallazgos)**, se construyó y se verificó. Todo sincronizado, diff d
   versionaba → se le sumaron dos pasos: **actualizar `GUIA-DE-USO`/`guias/` si la sesión sacó una
   capacidad nueva**, y **bump + git-tag de versión cuando amerita**. La `GUIA-DE-USO` quedó al día
   (receta de docs-fyd, la vía `actualizate`, frases mágicas nuevas).
+- **docs-fyd v2 EVALUADO en campo (Hermes, 2026-07-24) → PASS honesto + patch `v2.2.1`:** el dev re-corrió
+  v2 en una rama descartable y comparó contra la doc v1 corregida (el answer key). Las 4 fallas de fondo
+  cerradas — backups/RLS/base-compartida ahora son **preguntas, no mentiras**; la auto-verificación
+  aterriza el conteo sola. De las 9 correcciones a mano de v1, v2 captura ~4-5 solas + muestra el resto
+  como pendientes humanos. Reporte honesto (el dev se pasó un auditor adversarial a su propio reporte y
+  declaró que la corrida fue parcial). **Único hallazgo → fix `v2.2.1`:** la checklist proactiva era FIJA
+  → en un repo sin DB 3 de 4 preguntas eran ruido; ahora se **condiciona a lo que el repo tiene**, y la
+  regla 5 distingue silencio (→ pregunta) de ausencia comprobable (→ se afirma). Reporte del dev en
+  `Desktop\Reportes fyd\reporte-v2.md`.
 
 ## Próximo paso concreto (cuando Guido retome)
 
-**Estrenar docs-fyd v2 en una app real de FyD y medir.** Abrí Claude Code en la carpeta de una app
-crítica → corré `/docs-fyd` (v2): ahora te va a **preguntar por opciones** las dudas de continuidad/
-seguridad. Elegí (o mandalo a investigar). Después corré `docs-fyd auditar` antes de entregar. Y para
-saber si v2 mejoró de verdad, pasá el protocolo `docs/EVALUACION-docs-fyd-v2.md` sobre Hermes (el mismo
-dev del reporte v1), midiendo sobre todo **señal vs ruido de las preguntas** (el riesgo #1 es la fatiga).
+**v2 (con el patch `v2.2.1`) ya está validado en campo — quedan dos cosas:**
+1. **Confirmar el fix de fatiga en el peor caso:** correr `/docs-fyd` en un repo **sin base de datos** y
+   verificar que la checklist proactiva NO dispara las 3 preguntas de DB (cero ruido). Es la única prueba
+   que quedó pendiente del eval.
+2. **Soltar v2 al resto de las apps de FyD** (ya está listo). Por app, decidir si migrar la doc a la
+   estructura v2. **Hermes:** la doc entregada queda intacta en `main`; migrar es decisión aparte (la
+   rama `eval-docs-fyd-v2` es el preview — NO borrarla).
 
 ## Bloqueos
 

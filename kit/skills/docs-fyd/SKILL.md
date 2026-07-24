@@ -50,11 +50,15 @@ protegida que nunca pisás; te controlás solo antes de entregar; y dejás todo 
 3. **Sin stack por defecto.** Sin evidencia real → "NO DETERMINADO" + con qué lo buscaste. Nunca inventás.
 4. **No pisás lo humano.** La bóveda y **todo archivo `_`** son de escritura restringida: podés
    crearlos si faltan y anexar, pero JAMÁS pisás ni borrás lo que puso una persona (ver "zona `_`").
-5. **Evidencia con jerarquía, o "NO DETERMINADO" — nunca un negativo absoluto.** Jerarquía:
+5. **Evidencia con jerarquía, o "NO DETERMINADO" — nunca un negativo por SILENCIO.** Jerarquía:
    **sistema vivo (testimonio humano en `_ACLARACIONES`, datado) > código > scripts del repo > `docs/`.**
-   Donde el código calla sobre un hecho de seguridad/continuidad, JAMÁS escribís "no hay X": escribís
-   *"no se encontró X en el código — confirmar"* o lo convertís en duda (nada de "carece de", "sin",
-   "ausencia de" tampoco).
+   Distinguí dos negativos:
+   - **Ausencia por SILENCIO** — el hecho vive FUERA del código (backups, RLS real, rotación de tokens):
+     JAMÁS escribís "no hay X"; va a **pregunta** o *"no se encontró X en el código — confirmar"* (nada de
+     "carece de / sin / ausencia de" tampoco).
+   - **Ausencia COMPROBABLE** — mirás y no está, y si estuviera estaría EN el código (no hay `Dockerfile`,
+     no hay una FK declarada, no hay `.env.example`): eso SÍ lo afirmás como hecho ("no hay Dockerfile"),
+     porque es verificable, no inferido de un silencio. Ante la duda de cuál es → tratalo como silencio (preguntá).
 6. **Los 10 siempre se escriben.** Cada artefacto existe en cada corrida: derivado, o "no aplica + razón".
    Un diagrama Mermaid roto NO tira el documento (se escribe con un cartel — ver "diagramas"). A FyD
    nunca le falta un documento.
@@ -68,12 +72,15 @@ documentación: le presentás la duda como **pregunta de opción múltiple** (As
 
 **Dos disparadores:**
 - **Reactivo**: cuando ibas a afirmar algo no sostenido por la evidencia, o un negativo por ausencia.
-- **Proactivo — la checklist FIJA, SIEMPRE, aunque el código no diga nada** (el silencio del código NO
-  exime la pregunta; son los hechos de más valor para una auditoría de continuidad):
-  1. ¿Hay **backups** de la base/datos, y dónde viven?
-  2. ¿La base tiene **control de acceso por fila (RLS)** o equivalente?
-  3. ¿La base es **compartida** con otras apps?
-  4. ¿Los **tokens/credenciales** que usa siguen vigentes?
+- **Proactivo — la checklist de continuidad, CONDICIONADA a lo que el repo tiene** (evita la fatiga: no
+  preguntás por un subsistema que el repo NO tiene — eso sería ruido; pero si el subsistema EXISTE y el
+  código calla sobre el hecho, ahí el silencio NO exime, se pregunta). Gateá cada una por su evidencia:
+  1. ¿Hay **backups** de los datos, y dónde viven? — **solo si detectás una base de datos** (migraciones / schema / ORM / SDK de DB).
+  2. ¿La base tiene **control de acceso por fila (RLS)** o equivalente? — **solo si hay base de datos**.
+  3. ¿La base es **compartida** con otras apps? — **solo si hay base de datos**.
+  4. ¿Los **tokens/credenciales** que usa siguen vigentes? — **solo si el repo usa servicios externos con credenciales** (SDKs, API keys, connection strings).
+  Un repo **sin estado** (sin DB ni servicios) no dispara ninguna — no hay nada que custodiar. Un repo
+  CON base pero sin señal de backups en el código → ahí SÍ preguntás (el backup vive fuera del código).
 
 **Cada duda ofrece siempre estas opciones** (además de las respuestas-hecho probables que redactás vos,
 todas **sin ningún valor de credencial**):
