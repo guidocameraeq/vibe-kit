@@ -23,6 +23,10 @@ Pasos en orden, mostrando evidencia de cada uno:
    - ¿Hubo decisión con alternativas? → ADR nuevo en `docs/DECISIONS.md` (correlativo).
    - ¿Se descartó algo a nivel proyecto? → REJ nuevo en `docs/REJECTED.md`.
    - ¿Cambiaron los pendientes? → sección Pendientes del `README.md` (única fuente).
+   - **¿Esta sesión sacó una capacidad nueva de cara al usuario** (skill/modo/flujo nuevo, o cambió
+     cómo se usa algo)? → actualizá las **guías cara-al-usuario**: `GUIA-DE-USO.md` (receta por
+     situación + la chuleta de frases mágicas) y `guias/` si aplica. **Sacar un release incluye que
+     Guido pueda descubrir la capacidad nueva por la guía** — si no, el release quedó a medias.
 4. **Memoria**: si cambió un hecho estructural del proyecto (release, pieza nueva, regla
    nueva), actualizar la memoria persistente.
 5. **Commit + push**: mensaje descriptivo en español. Si la máquina no tiene identidad de
