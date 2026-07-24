@@ -29,6 +29,11 @@ lentes, 26 hallazgos)**, se construyó y se verificó. Todo sincronizado, diff d
 - **Docs de v2:** `docs/SPEC-docs-fyd-v2.md` (READY), `docs/EVALUACION-docs-fyd-v2.md` (cómo medir si
   mejoró: re-correr sobre Hermes), **ADR-015** en `docs/DECISIONS.md`.
 - **v1 y todo lo anterior siguen estables.** Diff `kit/` ↔ `~/.claude/` de las 4 rutas **limpio**.
+- **Release `v2.2` tagueado + ritual de release arreglado:** se tagueó **`v2.2`** (docs-fyd + Equipador
+  auto-update). Se descubrió que el `/cierre` del repo madre NO actualizaba las guías cara-al-usuario ni
+  versionaba → se le sumaron dos pasos: **actualizar `GUIA-DE-USO`/`guias/` si la sesión sacó una
+  capacidad nueva**, y **bump + git-tag de versión cuando amerita**. La `GUIA-DE-USO` quedó al día
+  (receta de docs-fyd, la vía `actualizate`, frases mágicas nuevas).
 
 ## Próximo paso concreto (cuando Guido retome)
 
