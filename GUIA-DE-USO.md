@@ -2,7 +2,7 @@
 
 > La guía práctica del sistema completo, organizada por situación: **"quiero X → hacé Y"**.
 > No repite procedimientos (viven en el kit y las skills — si algo difiere, ganan ellos);
-> te dice qué decir, dónde, y qué esperar. Actualizada 2026-07-24 (docs-fyd v2 + Equipador auto-update).
+> te dice qué decir, dónde, y qué esperar. Actualizada 2026-08-03 (`/relevamiento`: el tramo de ANTES del Arquitecto).
 
 ## El mapa mental en 30 segundos
 
@@ -13,6 +13,9 @@ Tu sistema tiene **3 niveles**, cada uno con su herramienta:
 | **La máquina** (esta PC, la del SAAS, cualquiera) | El Equipador (`/arquitecto-skills`) | Al estrenar una PC, actualizar skills, o traer lo último (*"actualizate"*) |
 | **Cada proyecto** (Perseo, el ERP, apps nuevas) | `inicio` / `cierre` + su CLAUDE.md | Todos los días |
 | **Este repo** (el método mismo) | El Arquitecto, el Extractor, el playbook | Al arrancar proyectos, procesar tips, o mejorar el método |
+
+Y hay un **paso previo**, que sólo aparece cuando el pedido **vino de otra persona**: `/relevamiento`
+(entender el problema con la gente, antes de que exista un plano). En lo tuyo no aparece nunca.
 
 Y la regla que gobierna todo: **el contexto vive en archivos, los chats se descartan.**
 
@@ -25,7 +28,31 @@ Chat nuevo en cualquier lado → **`/arquitecto` + tu idea en una frase**.
 Te entrevista (una pregunta por vez, con "Recomendado"), piensa lo que no ves venir, te
 muestra el plano, y con tu OK monta TODO. Al final te da el prompt exacto para el chat
 constructor. Atajo si tenés apuro: *"dale con los defaults"*.
+**Esto NO cambió con `/relevamiento`**: si la idea es tuya, seguís yendo directo al Arquitecto,
+y él no se entera de que existe ningún relevamiento. Es así por construcción, no por prolijidad.
 → Detalle completo: `guias/COMO-USAR-EL-ARQUITECTO.md` (caso A)
+
+### 📥 "Me pidieron algo en el laburo"
+Otra persona te paró en el pasillo, o te mandó un mail, y hay que averiguar de qué se trata antes
+de diseñar nada. Chat nuevo → **`relevamiento`** y contá lo que sepas, **de corrido y como te salga**
+— no te sientes a llenar un formulario, dictá y él ordena.
+Te lleva por las 4 etapas del método que armaste con tu jefe (problema → sistema actual → necesidad
+→ propuesta de valor), **te saca un PDF cada vez que cerrás una etapa** (eso es lo que llevás a la
+reunión), te arma la **hoja de campo** para cuando salís a hablar con gente, y al final decide con
+evidencia escrita si esto **termina en software o no**. Si termina en software, te da la línea exacta
+para pegarle al Arquitecto; si no, te escribe la propuesta igual — un "no construir" bien fundado es
+una entrega, no un fracaso.
+- **Si lo invocaste por error** o era algo tuyo: la primera pregunta te deja salir en **1 clic**, y
+  antes de eso no creó ni un archivo. Con la carpeta ya creada, decí **"cancelá"** y borra todo.
+- **Volvés de hablar con alguien** → decile *"volví de hablar con Marcela"* y pegale lo que anotaste.
+  Es lo único que hace que una respuesta cuente como **relevada** en vez de "de memoria".
+- **Te llena de preguntas** → *"basta de preguntas de más"*. Cada pregunta al pedo **muere en un clic
+  y no vuelve nunca**.
+- **Lo dejás 3 semanas** → no pasa nada, no te persigue. Volvés, decís `relevamiento`, y retoma en
+  3 líneas.
+- A las 6 semanas de que la cosa esté en uso te va a preguntar **si sirvió** — con el criterio que
+  vos mismo escribiste. Es el único lazo que el método en papel no cerraba.
+→ Detalle: `kit/skills/relevamiento/SKILL.md` · el porqué: ADR-016/017.
 
 ### 🔨 "Quiero trabajar en un proyecto que ya anda"
 Chat nuevo **en la carpeta del proyecto** → decís **`inicio`** → te confirma dónde están en
@@ -98,6 +125,11 @@ commits. Para el "por qué" de cualquier cosa: `docs/DECISIONS.md` (15 ADRs) y
 | Decís… | Pasa… |
 |---|---|
 | `/arquitecto` + idea | Entrevista → plano → proyecto montado (o spec delta si hay código, o consultorio) |
+| `relevamiento` | **Te pidieron algo**: dictás de corrido y sale el método de 4 etapas con PDF por etapa |
+| `cancelá` | (adentro de un relevamiento) borra todo y se apaga. Sin repreguntar |
+| `volví de hablar con <fulano>` | Lo que traés pasa a contar como **relevado**, no como "de memoria" |
+| `basta de preguntas de más` | Las lentes siguen anotando pero dejan de preguntar (`prendé las lentes` revierte) |
+| `relevamiento sirvió` | A las 6 semanas: ¿se cumplió el criterio que escribiste? Con el número, no con la sensación |
 | `inicio` | El chat del proyecto arranca sabiendo dónde están |
 | `cierre` | Docs al día, commit, push — chat descartable |
 | `cierre parcial` | Emergencia pre-compactación: guarda el estado y seguís |

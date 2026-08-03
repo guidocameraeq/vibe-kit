@@ -48,6 +48,7 @@ charla diseñó algo no-trivial.
 | `docs/REJECTED.md` | Lo descartado a nivel proyecto | Sin él, un chat futuro re-propone el plugin o el web wizard |
 | `PLAYBOOK-MAESTRO.md` | EL método (multi-proyecto) | Se toca solo con evidencia nueva |
 | `kit/skills/arquitecto-skills/menu-skills.md` | El menú curado + sus descartes de skills | Descartes de SKILLS van acá, no en REJECTED |
+| `kit/skills/relevamiento/plantillas/_fuente/` | Las 4 plantillas del método, **del jefe de Guido** | **Prístinas: NUNCA se editan**, ni un typo. Son el detector: `git diff _fuente/` muestra lo que él cambió, limpio. Ritual: `plantillas/SYNC.md`. Los `{{LINEAS:N}}` NO son placeholders del kit |
 | `tips/tanda-*.md` | Actas de las tandas de tips | Actas: no se reescriben |
 | `legacy/` | Todo lo superado, con lápida | Se archiva, no se borra |
 

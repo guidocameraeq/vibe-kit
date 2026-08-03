@@ -15,7 +15,7 @@ ante señal de drift (fecha vieja, contradicción con git) o si el hook no apare
    - `git status -sb` → ¿working tree limpio? ¿`main` = `origin/main`? ¿el último commit coincide
      con el handoff?
    - **`diff -r kit/skills/arquitecto ~/.claude/skills/arquitecto`** (+ `arquitecto-skills`,
-     `docs-fyd` y `agents/redteam-spec.md` — las **4 rutas canónicas**) → **el drift más peligroso de
+     `docs-fyd`, `relevamiento` y `agents/redteam-spec.md` — las **5 rutas canónicas**) → **el drift más peligroso de
      este repo**: si da sucio, alguien editó `~/.claude/` directo (prohibido) o quedó un cierre a
      medias. FRENAR y mostrarlo antes de trabajar — nunca pisar a ciegas en ninguna dirección.
    - ¿Hay tandas en `tips/` con propuestas sin procesar (checkboxes `- [ ]` sin marcar)? → es

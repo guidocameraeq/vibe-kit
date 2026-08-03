@@ -248,8 +248,10 @@ Mismos nombres en todos tus proyectos = memoria muscular.
 Si dos proyectos comparten carpeta raíz, sufijá (`/inicio-mobile`) y anotá en cada CLAUDE.md qué
 skills le pertenecen.
 
-> **Nota de máquina (esta PC, C:).** Set global instalado (2026-07-06, vía `/arquitecto-skills`):
-> `arquitecto` + `arquitecto-skills` (el Equipador) + el Tier 1 de su menú — `brainstorming`
+> **Nota de máquina (esta PC, C:).** Set global instalado (actualizado 2026-08-03):
+> `arquitecto` + `arquitecto-skills` (el Equipador) + las dos **kit-owned**: `docs-fyd` (doc técnica
+> de auditoría FyD por repo, desde 2026-07-23) y `relevamiento` (el tramo de ANTES del Arquitecto,
+> desde 2026-08-03) + el Tier 1 del menú — `brainstorming`
 > (specs SIEMPRE en formato SPEC-0), `writing-skills`, `systematic-debugging`,
 > `verification-before-completion`, `frontend-design`, `theme-factory`, `web-design-guidelines`,
 > `supabase`, `supabase-postgres-best-practices`, `shadcn` (symlink del CLI `skills`; se

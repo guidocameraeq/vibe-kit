@@ -39,8 +39,14 @@ TABLERO marca ese PDF **`PDF VIEJO`**.
 2. **Chrome imprime el error como si fuera el documento.** Un HTML inexistente produjo un PDF
    **válido de 23.943 bytes** con la página de error adentro. Por eso el chequeo del paso 1 es la
    única defensa real: verificar el HTML **antes**, no el PDF después.
-3. **`--no-pdf-header-footer` es obligatorio.** Sin eso Chrome estampa **la ruta del disco** en cada
-   hoja — y ese documento va a una reunión (además, rompe el criterio 5: cero `file:///`).
+3. **`--no-pdf-header-footer` es obligatorio.** Sin eso Chrome estampa **la ruta del disco** al pie de
+   cada hoja, más la fecha/hora y el `<title>` arriba — y ese documento va a una reunión.
+
+> **⚠️ Cómo se verifica que la ruta no está — y cómo NO.** `grep "file:///"` sobre el `.pdf` **da 0
+> aunque la ruta esté impresa**: el texto viaja en streams comprimidos (verificado en el build: el PDF
+> *con* la ruta estampada devolvió 0 hits igual que el limpio). **El chequeo válido es que el flag
+> `--no-pdf-header-footer` esté en el comando** — eso es determinístico y barato. Para confirmarlo con
+> los ojos, hay que abrir el PDF; ningún grep sirve.
 
 ## Encontrar Chrome, y qué hacer si no está
 

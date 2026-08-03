@@ -1,6 +1,6 @@
 ---
 name: arquitecto-skills
-description: El Equipador — instala, actualiza y poda las skills globales de Claude Code según el menú curado (hermana del Arquitecto). Puede AUTO-ACTUALIZARSE: baja la última versión del Arquitecto/Equipador/docs-fyd del repo canónico y se actualiza a sí mismo. Usar cuando el usuario dice "preparame esta máquina", "instalame skills", "actualizá las skills", "actualizá el kit", "actualizate", "traé lo último del Arquitecto", "qué skills tengo instaladas", "agregá tal skill al menú", o al estrenar una PC nueva. NO usar para skills de proyecto (esas las monta el Arquitecto o la regla de 3+).
+description: El Equipador — instala, actualiza y poda las skills globales de Claude Code según el menú curado (hermana del Arquitecto). Puede AUTO-ACTUALIZARSE: baja la última versión del Arquitecto/Equipador/docs-fyd/relevamiento del repo canónico y se actualiza a sí mismo. Usar cuando el usuario dice "preparame esta máquina", "instalame skills", "actualizá las skills", "actualizá el kit", "actualizate", "traé lo último del Arquitecto", "qué skills tengo instaladas", "agregá tal skill al menú", o al estrenar una PC nueva. NO usar para skills de proyecto (esas las monta el Arquitecto o la regla de 3+).
 ---
 
 # El Equipador (`/arquitecto-skills`)
@@ -17,7 +17,7 @@ del Arquitecto: él monta proyectos; vos equipás máquinas.
    la fuente de verdad y evoluciona; las instalaciones son consecuencia.
 2. **Clonar fresco, siempre.** Cada instalación baja del repo de origen en el momento
    (`git clone --depth 1` a un temp → copiar SOLO la carpeta de la skill → borrar el clone).
-   Nunca de copias locales viejas. **Excepción acotada — entradas kit-owned (hoy solo `docs-fyd`):**
+   Nunca de copias locales viejas. **Excepción acotada — entradas kit-owned (`docs-fyd`, `relevamiento`):**
    no tienen repo externo; se COPIAN del kit local (o del Arquitecto ya instalado en
    `~/.claude/skills/`), con el diff mostrado antes de pisar. Es la 2da excepción documentada (la 1ra
    es shadcn, que viene por CLI); NO se generaliza — para todo lo demás del menú, clonado fresco sin
@@ -40,9 +40,10 @@ del Arquitecto: él monta proyectos; vos equipás máquinas.
    (en tandas de a 4 si son muchas), y mencioná el Tier 2 como "por-proyecto, cuando lo pidas".
 3. **Instalá lo elegido** (regla 2): un clone por repo de origen (varias skills del mismo
    repo = un solo clone), copiar las carpetas elegidas, verificar frontmatter (`name` +
-   `description` presentes) con `head -5`. **Entradas kit-owned (`docs-fyd`)**: en vez de clonar,
-   copiá `skills/docs-fyd/` del kit local (o de `~/.claude/skills/docs-fyd/` si el Arquitecto ya la
-   trajo). Si en esta máquina no está ni el kit ni instalada, avisá que falta el paquete — no la inventes.
+   `description` presentes) con `head -5`. **Entradas kit-owned (`docs-fyd`, `relevamiento`)**: en vez
+   de clonar, copiá `skills/<la que sea>/` del kit local (o de `~/.claude/skills/` si el Arquitecto ya
+   la trajo) — **entera, con `anexos/` y `plantillas/`**. Si en esta máquina no está ni el kit ni
+   instalada, avisá que falta el paquete — no la inventes.
 4. **Plugins/MCPs elegidos**: entregá los comandos exactos del menú para que él los corra.
 5. **Cierre con evidencia** (regla 5) + si en esta máquina existe el PLAYBOOK-MAESTRO,
    actualizá su "Nota de máquina" (§2.3) con el set nuevo — es la única línea-fuente.
@@ -52,16 +53,16 @@ del Arquitecto: él monta proyectos; vos equipás máquinas.
 
 1. Censo de instaladas que estén en el menú (las de proyecto no se tocan).
 2. Por repo de origen: clone fresco → diff carpeta por carpeta (regla 3). **Lo kit-owned**
-   (`arquitecto`, `arquitecto-skills`, `docs-fyd`) NO se actualiza acá — se baja del **repo canónico**
-   con el **Modo AUTO-ACTUALIZAR EL KIT** (abajo).
+   (`arquitecto`, `arquitecto-skills`, `docs-fyd`, `relevamiento`) NO se actualiza acá — se baja del
+   **repo canónico** con el **Modo AUTO-ACTUALIZAR EL KIT** (abajo).
 3. Informe final: actualizadas / sin cambios / con ediciones locales (qué decidió Guido).
 4. Si el menú tiene entradas `[ORIGEN A CONFIRMAR]` o `[VERIFICAR]`, intentá resolverlas
    (buscar el repo, verificar que siga vivo) y actualizá el menú con lo encontrado.
 
 ## Modo AUTO-ACTUALIZAR EL KIT — "actualizá el kit" / "actualizate" / "traé lo último del Arquitecto"
 
-Actualizás las skills **kit-owned** (`arquitecto`, `arquitecto-skills` —vos mismo— y `docs-fyd`) + el
-agente `redteam-spec` desde el **repo canónico** `guidocameraeq/vibe-kit`, sin depender de un prompt a
+Actualizás las skills **kit-owned** (`arquitecto`, `arquitecto-skills` —vos mismo—, `docs-fyd` y
+`relevamiento`) + el agente `redteam-spec` desde el **repo canónico** `guidocameraeq/vibe-kit`, sin depender de un prompt a
 mano. Es la contracara del `/cierre` del repo madre: allá se editan y se pushean; acá se bajan e
 instalan en `~/.claude/`.
 
@@ -70,7 +71,8 @@ instalan en `~/.claude/`.
    *(Si esta PC ya tiene un clon del repo y el usuario prefiere, un `git pull` ahí sirve igual; pero
    clone-a-temp es lo más simple y no depende de saber dónde está el clon.)*
 2. **Actualizá cada ruta kit-owned con diff-antes-de-pisar** (regla 3), copiando del clon a `~/.claude/`:
-   `skills/arquitecto/` · `skills/arquitecto-skills/` · `skills/docs-fyd/` → `~/.claude/skills/`; y
+   `skills/arquitecto/` · `skills/arquitecto-skills/` · `skills/docs-fyd/` · `skills/relevamiento/`
+   (entera, con `anexos/` y `plantillas/` — **incluido `plantillas/_fuente/`**) → `~/.claude/skills/`; y
    `agents/redteam-spec.md` → `~/.claude/agents/`. Por cada una: idéntica → "sin cambios"; cambió →
    mostrá el resumen del diff y copiá; ⚠️ **hay ediciones locales en `~/.claude/`** → mostralas y
    preguntá SIEMPRE (una edición directa a `~/.claude/` está huérfana del repo — el lugar canónico es el

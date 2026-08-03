@@ -26,6 +26,10 @@ Dos modos:
    - Cruzalos contra la **watchlist**: migraciones/schema · manifiestos de dependencias · `.env`/config · archivos de instrucciones-IA (CLAUDE.md, etc.) · infra/deploy (Dockerfile, compose, k8s, terraform, CI).
    - **Si hay match**: editá SOLO la línea "Frescura" de `docs-fyd/ESTADO.md` → `PENDIENTE REGENERAR (YYYY-MM-DD) — categorías tocadas: <las que matchearon>`. Sin match: no tocás nada.
    - **Marca, no regenera**: NO corras `/docs-fyd`, NO reescribas ningún otro `.md` de `docs-fyd/`, NO toques campos `[completar]` ni `docs/`. La regeneración pesada la corre el humano con `/docs-fyd` (que limpia el flag).
+6-bis. **¿Sirvió el relevamiento?** (SOLO si existe `docs/relevamiento/*/TABLERO.md`; si no, salteá este paso entero). Paso ≥3: **NO corre en `cierre parcial`**. Mirá el `chequeo:` de cada TABLERO:
+   - **`chequeo:` con fecha ya cumplida y sin `5-sirvio.md` al lado** → imprimí **UNA línea**: *"«\<título\>» cumple sus semanas de uso — corré `relevamiento sirvió` cuando puedas."*
+   - Cualquier otro caso (`-`, `PENDIENTE`, fecha futura, o ya existe `5-sirvio.md`) → **no imprimas nada.**
+   - **No preguntes, no generes ningún archivo, no frenes el cierre.** Es un aviso de una línea y nada más.
 7. **SPECs**: si alguna SPEC de `docs/` quedó implementada en esta sesión → marcar el estado en su línea 1 y moverla a `docs/archive/`.
 8. **Checklist de regresión** — {{BUGS_HISTORICOS}} — *se llena cuando el proyecto los tenga: los 2-4 bugs que ya volvieron alguna vez, con su verificación de 1 línea. Verificar solo los que esta sesión pudo haber tocado.*
 9. **Consistencia de números**: verificar que ningún dato quedó duplicado en dos docs — cada número vive solo en su fuente única.

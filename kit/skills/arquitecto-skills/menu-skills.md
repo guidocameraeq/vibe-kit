@@ -21,7 +21,8 @@
 | codebase-to-course | ✅ VERIFICADO 2026-07-06: `github.com/zarazhangrui/codebase-to-course` (misma autora que frontend-slides) — clonar y copiar la carpeta a `~/.claude/skills/` | Curso interactivo HTML de un codebase — Guido lo usa para presentaciones a gerencia |
 | supabase | `github.com/supabase/agent-skills` | Buenas prácticas oficiales de TODO Supabase (Auth, RLS, Realtime, Storage) |
 | supabase-postgres-best-practices | `github.com/supabase/agent-skills` | EL "sql-expert" de Postgres: índices, queries, tuning — el stack real de Guido |
-| docs-fyd 🔑 kit-owned | **NO se clona** — copiar `skills/docs-fyd/` del **kit local** (o del Arquitecto ya instalado en `~/.claude/skills/`). **2da excepción a "clonado fresco"** (la 1ra es shadcn); acotada a esta fila. Cicatriz: encargo FyD 2026-07 | Documentación técnica de auditoría FyD por repo: genera los 10 artefactos (ficha, README, C4, ER, variables de entorno, seguridad) DESDE el código, aislados en `docs-fyd/`, con el negocio en una bóveda read-only. Se corre por-repo con `/docs-fyd`; el Arquitecto la siembra opt-in y el `/cierre` la marca vieja |
+| docs-fyd 🔑 kit-owned | **NO se clona** — copiar `skills/docs-fyd/` del **kit local** (o del Arquitecto ya instalado en `~/.claude/skills/`). **Entradas kit-owned**: es la 2da excepción a "clonado fresco" (la 1ra es shadcn), y ya no está acotada a una fila — abarca las skills sin repo externo que nacen en vibe-kit. Cicatriz: encargo FyD 2026-07 | Documentación técnica de auditoría FyD por repo: genera los 10 artefactos (ficha, README, C4, ER, variables de entorno, seguridad) DESDE el código, aislados en `docs-fyd/`, con el negocio en una bóveda read-only. Se corre por-repo con `/docs-fyd`; el Arquitecto la siembra opt-in y el `/cierre` la marca vieja |
+| relevamiento 🔑 kit-owned | **NO se clona** — igual que `docs-fyd`: copiar `skills/relevamiento/` del **kit local** o de `~/.claude/skills/`, **entera** (`anexos/` + `plantillas/`, incluido `plantillas/_fuente/`, que son los originales del método). Cicatriz: *"toda la parte previa de recopilación de información no ha estado funcionando bien"* — Guido, 2026-07 | El tramo de ANTES del Arquitecto: convierte una charla dictada en los 4 documentos del método de arranque que Guido diseñó con su jefe, con un **PDF al cerrar cada etapa** (el cierre oficial que un `.md` a medio llenar no puede dar), un **revisor** de 6 chequeos y **9 lentes** con gatillo por cita. Decide con evidencia si el pedido termina en software o no; si sí, le pasa el problema al Arquitecto **por token explícito**. Sólo para pedidos de otra gente — en lo personal no aparece nunca |
 
 **Plugins/MCPs Tier 1** (requieren comandos interactivos DEL USUARIO — la skill da la instrucción exacta, nunca los instala sola):
 - **hookify**: `/plugin install hookify@claude-plugins-official` — guardrails dictados en criollo → hooks mecánicos. Global (no es MCP, no pesa).
@@ -63,3 +64,9 @@
 ## Integradas en Claude Code (NUNCA instalar duplicados)
 
 code-review · verify · simplify · security-review · deep-research · pdf · xlsx · pptx · docx · dataviz · run · init · loop · schedule
+
+> ⚠️ **`docx` y `pdf` NO están disponibles en esta máquina** (verificado 2026-07-31: no aparecen en el
+> entorno, y tampoco hay pandoc, LibreOffice ni python-docx). Están en esta lista porque son integradas
+> **de la plataforma**, no porque se puedan usar acá. Por eso `/relevamiento` genera su PDF con **Chrome
+> headless** y **Word quedó afuera** (REJ-012). Esta nota existe para que no se re-litigue el `.docx`
+> cada vez que alguien lea "docx" en esta línea.

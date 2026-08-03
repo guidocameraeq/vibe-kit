@@ -44,3 +44,21 @@
   de preguntas nuevas adentro de una entrevista de una sentada no captura un proceso que dura
   semanas y pasa afuera del chat. Los toques al Arquitecto que sí sobrevivieron están en el SPEC
   (MODIFICA §1-2). Anotado 2026-08-03.
+- **REJ-014 · La Fase 2 de `/relevamiento`** — siete piezas diseñadas y **deliberadamente no
+  construidas** en la v1, cada una con su condición de reapertura escrita para que ningún chat
+  futuro las "complete" creyendo que faltan: **(a) el censo automático del código** en brownfield
+  (un agente que lee el repo y pre-llena la E2) — es la pieza más cara y su consumidor, el Modo B
+  del Arquitecto, **nunca se estrenó** (ADR-012); reabre si el Modo B tuvo su primera misión real
+  **y** Guido contestó esas preguntas a mano en 2 relevamientos. **(b) Los 3 ganchos de costura en
+  el Modo B** (que lea el HANDOFF en B0 y acorte B2) — no se pule una interfaz contra un consumidor
+  que nunca corrió; reabre con la primera misión real del Modo B. **(c) El circuito adaptativo de
+  fatiga** — un controlador con realimentación para una función usada cero veces; reabre tras 3
+  relevamientos donde el modo silencioso manual no alcanzó. **(d) El modo `listar` + poda de
+  relevamientos viejos** — simultáneos hasta hoy: cero; reabre con 4+ abiertos a la vez. **(e) Que
+  la skill aprenda entre relevamientos** qué lentes se bajaron — **nunca por sí solo, es YAGNI**: si
+  una lente se baja 3 veces se poda **a mano**, con su razón. **(f) `pdf/historico/`** — los PDF se
+  regeneran de un `.md` que sí está versionado (REJ-010); reabre si se pisó un PDF que ya había
+  circulado y dolió. **(g) La mención condicionada del relevamiento en el ruteo del Arquitecto** —
+  contaminaría el camino personal, que es justo lo que el token explícito protege; reabre tras 2
+  pedidos reales donde Guido se olvidó de invocarla. Diseño conservado en `docs/SPEC-relevamiento.md`
+  §"Fase 2". Anotado 2026-08-03.

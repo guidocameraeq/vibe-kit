@@ -2,10 +2,11 @@
 
 > El método completo para dirigir Claude Code sin ser programador: el playbook (documentación +
 > sistema de trabajo), el Arquitecto (piensa y monta proyectos nuevos), el Equipador (equipa
-> máquinas con skills curadas). Nacido de auditorías reales sobre meses de trabajo (Hermes,
-> Perseo). **Versión estable: `v2.2.1`** (tag de git, 2026-07-24 — el sistema `docs-fyd` de auditoría FyD
-> + el Equipador auto-actualizable; v2.2.1 condiciona la checklist de continuidad a lo que el repo tiene,
-> tras la evaluación de campo sobre Hermes. v2.1 fue el Arquitecto de 3 modos validado con uso real).
+> máquinas con skills curadas), y `/relevamiento` (el tramo de ANTES: entender un pedido que vino de
+> otra persona). Nacido de auditorías reales sobre meses de trabajo (Hermes, Perseo).
+> **Versión estable: `v2.3`** (tag de git, 2026-08-03 — la skill `/relevamiento`: el método de arranque
+> de 4 etapas con PDF por etapa, revisor y lentes, y la costura al Arquitecto por token explícito.
+> v2.2.1 fue `docs-fyd` con la checklist condicionada al repo; v2.1, el Arquitecto de 3 modos).
 
 ## La regla de la casa (desde que esto es un repo)
 
@@ -26,11 +27,11 @@ Nunca editar `~/.claude/` directo (queda huérfano del historial).
 |---|---|
 | **La guía de uso** — recetas por situación + frases mágicas (empezá por acá) | `GUIA-DE-USO.md` |
 | **El método** (documentación + sistema de trabajo, se lee 1 vez por proyecto) | `PLAYBOOK-MAESTRO.md` |
-| **El kit instalable** — FUENTE CANÓNICA del Arquitecto + Equipador + menú + templates + agente red-team + **motor `docs-fyd`** + su instalador | `kit/` |
+| **El kit instalable** — FUENTE CANÓNICA del Arquitecto + Equipador + menú + templates + agente red-team + **motor `docs-fyd`** + **skill `/relevamiento`** (con las plantillas del método en `_fuente/`) + su instalador | `kit/` |
 | **Guías de uso** (casos de uso, cuándo sí/no) | `guias/` |
 | **El Extractor** — agente de tips: abrir Claude Code AHÍ + pegar links = extrae, evalúa y deja el informe | `extractor/` |
 | Informes de tandas de tips (outputs del Extractor) | `tips/` |
-| Estado del proyecto madre: handoff (lo inyecta el hook), DECISIONS (14 ADRs), REJECTED, **SPEC `docs-fyd` (implementado → la skill vive en `kit/skills/docs-fyd/`)** | `docs/` + `CLAUDE.md` raíz + skill `/cierre` |
+| Estado del proyecto madre: handoff (lo inyecta el hook), DECISIONS (17 ADRs), REJECTED (14 REJ), **SPEC + PRESUPUESTO + RECORRIDO de `/relevamiento` (implementado → la skill vive en `kit/skills/relevamiento/`)** | `docs/` + `CLAUDE.md` raíz + skill `/cierre` |
 | Archivo histórico (v1, auditorías, snapshots pre-git, la PROPUESTA-V2 ya cumplida) | `legacy/` |
 
 ## Instalar en una PC nueva
@@ -57,20 +58,27 @@ y la chuleta de frases mágicas. Es LA puerta de entrada para usar el sistema.
 
 ## Pendientes (post-v2.1)
 
-- 🔥 **CONSTRUIR la skill `/relevamiento`** — el tramo de ANTES del Arquitecto, del método de
-  arranque que Guido diseñó con su jefe. **Diseñado, red-teameado, presupuestado y READY
-  (2026-08-03); NO construido — el kit sigue idéntico.** El plano es `docs/SPEC-relevamiento.md`
-  (21 criterios de aceptación); el contrato de tamaño, `docs/PRESUPUESTO-relevamiento.md` (motor
-  251/260 líneas, 26 bloques, escalera de poda cuantificada); el recorrido de uso,
-  `docs/RECORRIDO-relevamiento.md`; y el arranque, **`docs/PROMPT-construir-relevamiento.md`** —
-  pegarlo en un chat nuevo después de `/inicio`. **Primer paso del build:** extraer las 4 plantillas
-  del `.rar` de la raíz a `plantillas/_fuente/` y commitearlas; el `.rar` se borra recién ahí.
-  Decisión = ADR-016 · descartes = REJ-011/012/013.
-- **Después del build de `/relevamiento`:** el estreno real — el próximo pedido de otro sector,
-  de punta a punta. Es la única señal que vale, y hasta que pase **no se declara estable**
-  (precedente: `docs-fyd` pasó 16/16 en verificación y la primera corrida real le corrigió 9 de 10
-  artefactos). Lo que se mide en el estreno no es la calidad del documento: ¿la invocaste sin que
-  nadie te la recuerde? ¿cuántas preguntas te parecieron de más? ¿el Arquitecto repitió alguna?
+- 🔥 **EL ESTRENO REAL de `/relevamiento`** — el próximo pedido de otro sector, de punta a punta.
+  Es la única señal que vale, y hasta que pase **no se declara estable** (precedente: `docs-fyd`
+  pasó 16/16 en verificación y la primera corrida real le corrigió 9 de 10 artefactos). De los 21
+  criterios de aceptación, **10 se verificaron en el build con evidencia real** (los dos techos, el
+  pipeline del PDF, los 3 hechos de Chrome, el ritual de sync de plantillas, el token explícito);
+  **los otros 11 necesitan una corrida con Guido adentro** y están sin verificar, dichos como tales.
+  Lo que se mide en el estreno no es la calidad del documento: ¿la invocaste sin que nadie te la
+  recuerde? ¿cuántas preguntas te parecieron de más? ¿el Arquitecto repitió alguna?
+- **Llevarle al jefe, aparte y sin apuro** (de la sesión de diseño): las **7 celdas faltantes** de la
+  grilla (viven en la copia del kit, marcadas `[+fork]`, hasta que él las apruebe) · **versionar el
+  método** (hoy no tiene número de versión: la procedencia cita la fecha 2026-07-22 y el detector es
+  `git diff _fuente/`) · y el hueco estructural: **el criterio de éxito a las 4-6 semanas no tiene
+  dueño ni fecha en el método** — el papel no cierra su propio lazo. El tramo 5 de la skill lo cierra
+  del lado de Guido, pero del lado del método sigue abierto.
+- ~~🔥 **CONSTRUIR la skill `/relevamiento`**~~ ✅ **construida (2026-08-03)**: motor de 224 líneas
+  (techo 260) + 5 anexos + 12 plantillas, 51,3 KB de motor+anexos (techo 55). Los 8 enganches puestos
+  (3 toques al Arquitecto —el de "no montes todavía" al final del Paso 4, donde el red-team lo movió—,
+  las alternativas evaluadas en `formato-spec.md`, el paso 6-bis del `/cierre` universal, los 6 lugares
+  kit-owned del Equipador, el menú, `INSTALAR.md`, y el diff canónico 4→5 rutas). Se tomó el **corte 1
+  de la escalera de poda en su disparador** (5 anexos en vez de 4). Decisión = ADR-016 (diseño) +
+  **ADR-017** (construcción) · descartes = REJ-011/012/013 + **REJ-014** (la Fase 2 entera).
 - ~~🔥 **Construir el release v2.0 del Arquitecto — sistema `docs-fyd`**~~ ✅ **construido
   (2026-07-23)**: la skill `kit/skills/docs-fyd/` (motor + `deteccion.md` + `prompts-fyd.md` + 13
   plantillas) + los 7 enganches (frescura en el cierre-plantilla, fila kit-owned en el menú,

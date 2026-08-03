@@ -53,6 +53,11 @@ Las decisiones caras de revertir, tomadas EXPLÍCITO y con consecuencia:
 - ⚠️ Multi-tenant: NO. Consecuencia: agregarlo después obliga a rehacer la base.
 - ⚠️ i18n: NO. Consecuencia: traducir después es carísimo; se decide hoy que es solo español.
 - ⚠️ Login: email/password de Supabase. Consecuencia: migrar a SSO después es trabajo mediano.
+
+### Alternativas evaluadas y descartadas
+Los enfoques que se presentaron y NO se eligieron, cada uno con su razón y su número si lo tiene.
+- Módulo móvil del ERP — descartado: USD 800/año y no cubre el depósito sin señal.
+- Planilla compartida — descartado: ya se intentó en 2024 y murió cuando dejaron de completarla.
 ```
 
 ## Reglas al escribirlo
@@ -62,6 +67,7 @@ Las decisiones caras de revertir, tomadas EXPLÍCITO y con consecuencia:
 - **FUERA de alcance es obligatorio**: si no se te ocurre nada, todavía no entendiste el alcance.
 - **Toda decisión ⚠️ lleva consecuencia**: "multi-tenant: no" a secas no alcanza; hay que decir qué cuesta si cambiás de idea.
 - **Supuesto ≠ decisión**: lo que asumiste sin preguntar va en Supuestos (el usuario lo corrige de un vistazo); lo que se charló y se decidió va en Riesgos y decisiones.
+- **Las alternativas descartadas se escriben, no se tiran**: en el Paso 4 presentás 2-3 enfoques y elegís uno — los otros van a "Alternativas evaluadas y descartadas" **con su razón**. Sin eso, dentro de un año alguien re-propone lo mismo y hay que volver a averiguar por qué no iba. **Aplica siempre**, venga o no de un relevamiento (y si viene, el HANDOFF ya te trae las que se descartaron antes de diseñar: esas también van).
 
 ## El BORRADOR incremental (durante la entrevista)
 

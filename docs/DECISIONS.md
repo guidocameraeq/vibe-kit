@@ -191,3 +191,43 @@ El crítico más caro: el gancho de vuelta al relevamiento estaba **después** d
 se scaffoldeaba y commiteaba **antes** de que la propuesta llegara a la reunión — la inversión exacta del
 principio que el método defiende. Reversión mediana (borrar la skill + 8 enganches). *Este ADR se escribió
 en el cierre del diseño; la sesión que CONSTRUYE no lo duplica.*
+
+## ADR-017 · `/relevamiento` construida: las 3 desviaciones del plano, y qué se verificó de verdad (2026-08-03)
+El diseño, sus alternativas y sus razones están en **ADR-016 y no se duplican acá** (incluidos el PDF
+como cierre oficial de etapa y los dos techos de tamaño). Este ADR registra sólo lo que **la
+construcción decidió**, que es donde un plano se encuentra con la realidad.
+**(1) Cinco anexos, no cuatro.** El SPEC §1 declaraba 4. Al llegar al **bloque 15** de la tabla del
+presupuesto (el ritual de cierre) el motor marcaba **202 líneas contra el umbral de 200 decidido de
+antemano**, así que se tomó el **corte 1 de la escalera de poda en su disparador, no al final**: las 4
+etapas + E3.5 se mudaron a `anexos/etapas.md`, dejando 3 líneas de puntero. Precedente exacto: el
+Arquitecto manda su entrevista entera a `banco-de-preguntas.md` y la invoca con una línea. **El ritual
+se quedó en el motor**, así que la costura no se rompe; y **el GATE 1 de E3 y la sólo-lectura de
+`04:18` se citan TAMBIÉN en el motor** porque su modo de falla es silencioso y el anexo puede no
+abrirse. *Podar antes que después es deliberado: podar al final significa podar el tramo 5 y los
+tropiezos, que no es lo que sobra.*
+**(2) El TABLERO suma una 8ª sección.** El esquema del SPEC era cerrado (10 claves YAML + 7 secciones),
+pero tres cosas que el propio SPEC exige —`PDF pendiente`, `PDF VIEJO` y *"la última foto del contador
+con su fecha"*— no tenían dónde vivir. Se agregó `## Etapas y PDF`, marcada **DERIVADA: nunca gana
+sobre los sellos de los `.md` ni sobre el disco**. Alternativa descartada: meterlas en `## Bitácora`
+(es un log, no estado: se vuelve ilegible para el que la lee a máquina).
+**(3) El criterio 5 traía un test que no podía fallar.** Pedía que el PDF *"no contenga la cadena
+`file:///`"*, pero **`grep` sobre el `.pdf` devuelve 0 aunque la ruta esté impresa**: el texto viaja en
+streams comprimidos. Medido en el build con los dos PDF, con y sin `--no-pdf-header-footer`: **los dos
+dieron 0 hits**, y al abrirlos el de sin-flag tenía la ruta estampada al pie de cada hoja. **El chequeo
+válido es que el flag esté en el comando** — determinístico y barato. Corregido en `anexos/entregable.md`
+con su razón, para que ningún chat futuro "verifique" con el grep que siempre pasa.
+**El techo de líneas se cumplió sin usar ningún otro corte.** Después del corte 1 quedaban 317 líneas
+con **20.799 bytes** — o sea el contenido entraba holgado en el presupuesto (22,6 KB) y lo que sobraba
+era **el formato**: 65 B/línea contra las 77 de `docs-fyd` y las 104 del Arquitecto. Se reflowó a
+**92,8 B/línea sin sacar contenido**. Final: **224 líneas (techo 260) y 51,3 KB de motor + anexos
+(techo 55)**. *La lección para la próxima: el techo es de líneas pero el contenido se presupuesta en
+bytes; escribir fino infla el conteo sin ahorrar un token.*
+**Verificado con evidencia real en el build** (no declarado): el pipeline del PDF de punta a punta
+(58.173 B, `%PDF-1.4`, y **los 5 baldes distinguibles en escala de grises** — sólido / punteado /
+rayado / doble+trama / invertido); **los 3 hechos de Chrome re-confirmados a mano**, incluido que un
+HTML inexistente vuelve a dar un PDF válido de **23.943 bytes exactos**; el **ritual de sincronización
+de plantillas** (criterio 18) corrido de verdad, con el fork re-aplicado y revertido; y que el diff
+`_fuente/` ↔ plantillas de trabajo **no tiene una sola línea `<`**. **Lo NO verificado, dicho como
+tal:** los 11 criterios que necesitan una corrida real con Guido adentro. **No se declara estable
+hasta el primer relevamiento de punta a punta** (precedente: `docs-fyd` pasó 16/16 y la primera corrida
+real le corrigió 9 de 10 artefactos). Reversión: borrar `kit/skills/relevamiento/` + revertir 8 archivos.

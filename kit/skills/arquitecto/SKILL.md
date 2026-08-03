@@ -1,6 +1,6 @@
 ---
 name: arquitecto
-description: El Arquitecto — interlocutor para pensar ANTES de hacer, con tres puertas. Modo A, proyecto nuevo (entrevista → SPEC-0 → monta el sistema completo); Modo B, feature grande sobre una app que ya anda (explora el código real → spec delta con qué-NO-se-toca); Modo C, consultorio (cómo pedirle algo a Claude, armar el prompt justo, decidir orquestación). Usar cuando el usuario dice "arquitecto", quiere arrancar/planear un proyecto o app, diseñar una feature grande o riesgosa sobre algo existente, retomar un diseño a medias, o no sabe cómo pedirle algo a Claude. NO usar para features chicas, el trabajo del día a día (inicio/cierre del proyecto), ni para CREAR skills (eso es writing-skills; el consultorio a lo sumo arma el brief).
+description: El Arquitecto — interlocutor para pensar ANTES de hacer, con tres puertas. Modo A, proyecto nuevo (entrevista → SPEC-0 → monta el sistema completo); Modo B, feature grande sobre una app que ya anda (explora el código real → spec delta con qué-NO-se-toca); Modo C, consultorio (cómo pedirle algo a Claude, armar el prompt justo, decidir orquestación). Usar cuando el usuario dice "arquitecto", quiere arrancar/planear un proyecto o app, diseñar una feature grande o riesgosa sobre algo existente, retomar un diseño a medias, o no sabe cómo pedirle algo a Claude. NO usar para features chicas, el trabajo del día a día (inicio/cierre del proyecto), ni para CREAR skills (eso es writing-skills; el consultorio a lo sumo arma el brief). Y si el pedido vino de otra persona y hay que relevar antes de diseñar, eso es /relevamiento.
 ---
 
 # El Arquitecto
@@ -58,6 +58,8 @@ Si el ruteo ya resolvió el retome, salteá este paso. Si no: `Glob` de `<carpet
 
 Seguí `banco-de-preguntas.md`: etapas Oportunidad → Solución → Riesgo, reparto ~30% problema / ~70% diseño, con su lógica de saltos (sin login no hay preguntas de roles, etc.).
 
+- **Si la invocación nombró un HANDOFF de relevamiento** (ej. `usá el handoff de _relevamientos/<slug>/HANDOFF.md`): **leelo**, regenerándolo antes si los hashes de sus fuentes no coinciden. **Honrá lo que ya está contestado** —O1-O5 vienen enteras, más el criterio de éxito, la línea base, el apetito y lo ya descartado— y **arrancá en S1**. Decile en 5 líneas qué NO le vas a preguntar y por qué. Lo que el handoff no contesta se pregunta igual: la Etapa 2 queda intacta, con multi-tenant ⚠️ e i18n ⚠️ SIEMPRE explícitas.
+
 - **Persistí cada tanda al borrador** antes de la siguiente pregunta (regla de oro 3).
 - **Fast-path**: si dice "dale con los defaults" / "confío en vos", saltá directo a confirmar SOLO las dos ⚠️ (multi-tenant, i18n) y el tipo de app; todo lo demás va a Supuestos.
 - **Investigación en paralelo**: cuando ya sabés tipo de app + dominio (2-3 respuestas), lanzá 1-2 subagentes de investigación en background (`run_in_background`): estado actual de las librerías del carril (validar los [VERIFICAR] de la matriz) y prior-art de apps parecidas. Si el background no avanza mientras esperás respuestas, corré la investigación entre rondas — nunca frenes la charla más de una ronda por esto.
@@ -77,8 +79,11 @@ Persistí el resultado al borrador.
 3. Armá el plano completo (mentalmente + el plan): SPEC-0 según `formato-spec.md` + el plan de montaje.
 4. **Red-team condicional**: si el proyecto toca plata, permisos/multi-usuario o datos de terceros, lanzá el subagente `redteam-spec` con el borrador ANTES de presentar. Lo que sobreviva de sus hallazgos va **al plano que presentás** (estás en Plan Mode — al archivo se escribe recién en el Paso 5/B4).
 5. Llamá **ExitPlanMode** con el plan: el SPEC-0 resumido (qué se construye, stack, concerns, qué queda afuera) + qué va a montar el paso 5. **Su aprobación acá ES la puerta.** Si pide cambios, volvés al punto 2/3 sin salir del modo.
+6. **⚠️ Si venís de un relevamiento** (la invocación te nombró un `HANDOFF.md`): **NO montes todavía.** Devolvé el plano al dossier (`_relevamientos/<slug>/`), devolvele el control a `/relevamiento` para que escriba la **Etapa 4 — la Propuesta de Valor**, y **frená ahí**. Esa propuesta va a una reunión con la gente que lo va a usar **antes** de que exista un repo; si montás acá, el proyecto queda scaffoldeado y commiteado antes de que nadie la haya visto — la inversión exacta del principio que el método defiende. El Paso 5 corre en una pasada posterior, con la propuesta ya aprobada.
 
 ### Paso 5 — Montaje (solo con el plan aprobado)
+
+**⚠️ Guarda:** si venís de un relevamiento, el montaje corre **sólo con la propuesta aprobada** — `4-propuesta.md` con su Parte 2 llena, o un OK explícito de Guido. Si no la tenés, volvé al punto 6 del Paso 4.
 
 En orden, mostrando qué hacés:
 

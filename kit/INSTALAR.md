@@ -17,8 +17,10 @@ Instalá el paquete "El Arquitecto" que está en esta carpeta:
 2. Copiá skills/arquitecto/ COMPLETA (con anexos/ y templates/) Y
    skills/arquitecto-skills/ (con su menu-skills.md) a las skills globales
    de esta máquina: ~/.claude/skills/ (creá las carpetas que no existan).
-   Y skills/docs-fyd/ SI está presente en esta carpeta (es kit-owned; si el zip
-   es viejo y no la trae, salteala sin frenar — NO es requisito duro del paso 1).
+   Y skills/docs-fyd/ y skills/relevamiento/ SI están presentes en esta carpeta
+   (son kit-owned; si el zip es viejo y no las trae, salteálas sin frenar — NO
+   son requisito duro del paso 1). De relevamiento copiá la carpeta ENTERA:
+   anexos/ y plantillas/, incluido plantillas/_fuente/.
    Si ya hay versiones instaladas, mostrame las fechas y preguntame antes de pisar.
 3. Copiá agents/redteam-spec.md a ~/.claude/agents/.
 4. Preguntame con opciones dónde guardo mis proyectos en ESTA máquina
@@ -44,17 +46,28 @@ No toques nada más de esta máquina. No borres esta carpeta del zip (queda de b
 
 ## Plan B — instalación a mano (por si preferís no usar el prompt)
 
-1. `skills/arquitecto/` y `skills/arquitecto-skills/` (y `skills/docs-fyd/` si está) → copiar adentro de `C:\Users\<usuario>\.claude\skills\`
+1. `skills/arquitecto/` y `skills/arquitecto-skills/` (y `skills/docs-fyd/` y `skills/relevamiento/` si están) → copiar adentro de `C:\Users\<usuario>\.claude\skills\`
 2. `agents/redteam-spec.md` → copiar adentro de `C:\Users\<usuario>\.claude\agents\`
 3. Abrir `skills\arquitecto\SKILL.md` y ajustar la línea **"Carpeta de proyectos de esta máquina"**
 4. Reiniciar Claude Code → `/arquitecto` para proyectos, `/arquitecto-skills` para equipar la máquina
 
 ## Qué es este paquete
 
-El Arquitecto: skill global de Claude Code para pensar ANTES de hacer, con tres puertas —
-**proyecto nuevo** (entrevista con opciones, piensa lo que no ves venir: roles, listas
-configurables, multi-tenant ⚠️, i18n ⚠️; plano SPEC-0 con gate de aprobación real + monta el
-proyecto completo: CLAUDE.md, docs, skills /inicio y /cierre, hooks y primer commit),
-**feature sobre una app que ya anda** (explora tu código real → spec delta con su "NO SE
-TOCA"), y **consultorio** (cómo pedirle algo a Claude). Viene con el Equipador
-(/arquitecto-skills), que instala las skills del menú curado. Autocontenido.
+Cuatro piezas que trabajan juntas. Autocontenido.
+
+**El Arquitecto** (`/arquitecto`) — pensar ANTES de hacer, con tres puertas: **proyecto nuevo**
+(entrevista con opciones, piensa lo que no ves venir: roles, listas configurables, multi-tenant ⚠️,
+i18n ⚠️; plano SPEC-0 con gate de aprobación real + monta el proyecto completo: CLAUDE.md, docs,
+skills /inicio y /cierre, hooks y primer commit), **feature sobre una app que ya anda** (explora tu
+código real → spec delta con su "NO SE TOCA"), y **consultorio** (cómo pedirle algo a Claude).
+
+**El Equipador** (`/arquitecto-skills`) — instala las skills del menú curado, y sabe
+auto-actualizarse desde el repo canónico.
+
+**`/relevamiento`** — el tramo de ANTES del Arquitecto, para cuando el pedido **vino de otra
+persona**: convierte una charla dictada en los 4 documentos del método de arranque, emite un PDF al
+cerrar cada etapa, y decide con evidencia si eso termina en software o no. En proyectos personales no
+aparece nunca.
+
+**`/docs-fyd`** — la documentación técnica de auditoría por repositorio: los 10 artefactos que pide
+FyD Sistemas, generados desde el código.
