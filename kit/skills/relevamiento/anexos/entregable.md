@@ -49,10 +49,11 @@ PDF se rehacen de un `.md` que sí está versionado — REJ-010.)*
 
 ## Encontrar Chrome, y qué hacer si no está
 
-**Se detecta, no se hardcodea** (es el único camino que sirve en las dos PCs):
+**Se detecta, no se hardcodea.** En orden, y **sin frenar en el primero**:
 
-1. `where chrome` — primero, siempre.
-2. Si no, las 3 rutas conocidas: `C:/Program Files/Google/Chrome/Application/chrome.exe` ·
+1. `where chrome` — probalo, es gratis. Pero **medido acá: devuelve vacío**. No asumas que alcanza.
+2. **Las 3 rutas conocidas — esto es lo que funciona:**
+   `C:/Program Files/Google/Chrome/Application/chrome.exe` ·
    `C:/Program Files (x86)/Google/Chrome/Application/chrome.exe` ·
    `%LOCALAPPDATA%/Google/Chrome/Application/chrome.exe`
 3. Si no aparece en ninguna, o si el poll de 45 s vence: **plan B**.
