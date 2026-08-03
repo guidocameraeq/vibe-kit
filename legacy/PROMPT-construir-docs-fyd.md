@@ -1,5 +1,9 @@
 # Prompt para construir el release v2.0 del Arquitecto — sistema `docs-fyd`
 
+> **ARCHIVADO 2026-08-03.** Era el bloque de arranque de la sesion que construyo `/docs-fyd`
+> (2026-07-23). Esa sesion ya corrio. Se conserva por el mismo motivo que el de `/relevamiento`.
+
+
 > Copiá el bloque de abajo en un **chat nuevo** dentro del repo `Guia de vibe coding` (vibe-kit), **después de correr `/inicio`**.
 > El diseño ya está hecho y aprobado: esta sesión **construye**, no rediseña.
 

@@ -1,5 +1,10 @@
 # Recorrido de uso — `/relevamiento`
 
+> **📦 ARCHIVADO 2026-08-03.** Su trabajo era transmitirle el TONO y el ritmo al chat que construyó
+> la skill. Ya se construyó (`kit/skills/relevamiento/`, v2.4.2). **Nunca fue normativo**: si algo de
+> acá contradice al SPEC, manda el SPEC. Se conserva porque es el único relato de uso de punta a punta.
+
+
 > **Qué es esto y qué no.** Es el relato de cómo se siente usar la skill, de punta a punta, con un caso
 > real. Sirve para que quien la construya entienda el TONO y el ritmo que el SPEC describe en seco, y para
 > que Guido verifique que se ajusta a cómo trabaja.

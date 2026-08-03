@@ -310,3 +310,31 @@ ADR aparte, no un apriete.*
 **Verificable ahora:** las 8 secciones del TABLERO tienen quien las escriba, y los dos techos entran.
 **NO verificable hasta el estreno:** que la tarea aparezca en el momento y que el retome la nombre —
 son los criterios 1 y 2 del mini-spec, y necesitan una corrida con Guido adentro.
+
+## ADR-020 · Qué se archiva y qué se queda: la convención documental de este repo (2026-08-03)
+Tras cuatro releases en una sesión, `docs/` tenía **tres SPEC implementados que seguían diciendo
+`Estado: READY`** y cuatro documentos de diseño ya consumidos. Peor: **el propio kit enseña en
+`arquitecto/anexos/formato-spec.md` que "un SPEC vivo que ya está hecho es una trampa" y manda
+archivarlo a `docs/archive/`** — y el repo madre, que ES el método, no lo hacía. Predicar una cosa y
+practicar otra en el repo canónico es el peor lugar posible para una inconsistencia.
+**Decisión, escrita en el Mapa de documentación de `CLAUDE.md` para que no se re-litigue:**
+- **Un SPEC de este repo, al implementarse, se MARCA pero NO se archiva.** Va
+  `Estado: ✅ IMPLEMENTADO <fecha>` en su línea de estado y se queda en `docs/`. **Razón:** acá el
+  spec no es de una feature de una app —que se hace y se olvida— sino **del método mismo**, y sus
+  criterios se siguen consultando. En `SPEC-relevamiento.md` viven los **21 criterios que son la
+  checklist del estreno** y el **diseño de Fase 2** que REJ-014 referencia; archivarlo enterraba
+  exactamente lo que Guido pidió tener a mano.
+- **Lo que SÍ va a `legacy/` con lápida es el material CONSUMIDO**, medido por quién lo referencia:
+  `RECORRIDO-relevamiento.md` (**0 referencias** — su trabajo era transmitirle el tono al chat que
+  construyó, ya está construido) y los dos `PROMPT-construir-*.md` (**0 y 2 históricas** — las
+  sesiones que arrancaban ya corrieron). Precedente exacto: `legacy/PROPUESTA-VIBE-KIT-V2.md`.
+- **El criterio operativo, para no discutirlo cada vez:** *si nadie lo referencia y su trabajo ya
+  ocurrió, va a `legacy/` con lápida; si todavía se consulta, se queda marcado.*
+**Alternativa descartada:** seguir la regla del kit al pie y crear `docs/archive/`. Se descartó porque
+la regla del kit fue escrita para specs de features de apps, y aplicarla acá enterraba referencias
+vivas. **Queda la divergencia documentada en el propio Mapa**, con su porqué, en vez de resolverse en
+silencio en cualquiera de las dos direcciones.
+**En la misma limpieza:** se retiró el **zip portable** (REJ-015) y con él el paso 2 del `/cierre` del
+repo madre, que obligaba a regenerarlo en cada cierre. La evidencia que lo mató es simple: **la carpeta
+desapareció de la PC principal sin que nadie lo notara** durante al menos un release. Los pendientes
+del README se separaron en **vivos (8)** y **"Ya hecho" (5, una línea cada uno)**.

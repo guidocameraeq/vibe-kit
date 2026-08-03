@@ -1,6 +1,7 @@
 # SPEC: docs-fyd v2 — resolver las dudas por opciones, no generar por generar — vibe-kit
 El motor `/docs-fyd` deja de adivinar: cuando no está seguro de algo importante (sobre todo un "no hay X" por no encontrarlo), **le da opciones a Guido para elegir** (no un cuadro de texto), o lo manda a investigar mejor. Lo que Guido decide vive en una zona protegida que la regeneración nunca pisa; y antes de entregar, el motor se controla solo. Sigue regenerando desde el código (eso no cambia) — pero lo que el humano sabe y el código no, se captura eligiendo, se conserva, y nunca deja entrar una credencial.
-- Estado: READY
+- Estado: **✅ IMPLEMENTADO 2026-07-23** (+ patch v2.2.1 tras la evaluación de campo) — la skill vive en
+  `kit/skills/docs-fyd/`. Es la versión **vigente** de docs-fyd.
 - Fecha: 2026-07-23
 - Endurecido tras **1 ronda de red-team** (6 lentes, 26 hallazgos foldeados) + decisión de interacción de Guido.
 

@@ -26,8 +26,8 @@
   manual) no lo justifica; sería infraestructura "por las dudas". Re-evaluar si el hábito de
   guardar TikToks crece a diario. Anotado 2026-07-11.
 - **REJ-010 · PDFs versionados en el repo** — binarios que envejecen con cada edición de los
-  MD. Los MD de `guias/` son la fuente; los PDFs se generan a demanda (Chrome headless) y
-  viven en `Desktop\Arquitecto en otras PCs\`.
+  MD. Los MD de `guias/` son la fuente; los PDFs se generan a demanda (Chrome headless) al
+  Escritorio o a donde haga falta, y no vuelven al repo.
 - **REJ-011 · El método de arranque como 4º modo del Arquitecto** — mismo scope creep que mató
   el "Modo M" (REJ-003 + ADR-004), **más una razón propia**: un modo no puede sostener estado
   entre sesiones de días distintos, y un relevamiento dura semanas. Se resolvió como skill
@@ -62,3 +62,13 @@
   contaminaría el camino personal, que es justo lo que el token explícito protege; reabre tras 2
   pedidos reales donde Guido se olvidó de invocarla. Diseño conservado en `docs/SPEC-relevamiento.md`
   §"Fase 2". Anotado 2026-08-03.
+- **REJ-015 · El zip portable del kit** (`Desktop\Arquitecto en otras PCs\arquitecto-portable.zip`)
+  — era el camino de instalación para una PC **sin git**. Se retiró el 2026-08-03 con evidencia
+  simple: **la carpeta desapareció de la PC principal sin que nadie lo notara** durante al menos un
+  release, o sea que no se usaba; y mantenerlo obligaba a regenerarlo en cada cierre para siempre
+  (paso 2 del `/cierre`, ahora eliminado) contra la regla de "nada por las dudas" (regla de 3+).
+  Hoy los dos caminos vivos son: **`git clone` + el prompt de `kit/INSTALAR.md`** para una PC nueva,
+  y **`actualizate`** para una que ya lo tiene. **Re-apertura escrita:** si aparece una máquina real
+  sin git donde haya que instalar el kit, se regenera con un comando
+  (`Compress-Archive -Path 'kit/*' -DestinationPath <ruta>/arquitecto-portable.zip -Force`) y se
+  vuelve a poner el paso en el `/cierre`. Anotado 2026-08-03.

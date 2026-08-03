@@ -1,6 +1,7 @@
 # SPEC: Documentación para FyD — motor `/docs-fyd` (v1: solo el lado documentación) — vibe-kit
 Una skill global nueva, `/docs-fyd`, que arma por repo la doc técnica que pide la auditora FyD desde el código (para que no mienta), preserva lo que solo sabe el humano (negocio) en una bóveda read-only, se siembra día-cero desde el Arquitecto y se mantiene fresca sola con el /cierre — todo aislado de los docs de trabajo del método.
-- Estado: READY
+- Estado: **✅ IMPLEMENTADO 2026-07-23** — la skill vive en `kit/skills/docs-fyd/`.
+  **⚠️ SUPERADO por `SPEC-docs-fyd-v2.md`**: lo vigente es el v2. Este queda como historia del v1.
 - Fecha: 2026-07-23
 
 ## Por qué (el dolor)

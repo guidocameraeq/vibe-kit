@@ -72,6 +72,27 @@ suma **es** el peor caso real).
 **⚠️ Tercera vez consecutiva que el techo se resuelve podando. Ya no queda grasa evidente.** El
 próximo agregado necesita una decisión sobre el número, y esa decisión es un ADR aparte.
 
+## Orden final: la sesión terminó ordenando el repo (ADR-020 · REJ-015)
+
+Antes de dejarlo reposar hasta el estreno, se juntaron **todas las cositas sueltas** y se resolvieron:
+
+- **Los 3 SPEC implementados** (`relevamiento`, `docs-fyd`, `docs-fyd v2`) decían `Estado: READY`.
+  Ahora dicen **`✅ IMPLEMENTADO <fecha>`** y **se quedan en `docs/`** — no se archivan, porque los 21
+  criterios son la checklist del estreno y §Fase 2 la referencia REJ-014. **La convención quedó escrita
+  en el Mapa de documentación de `CLAUDE.md`**, incluida la divergencia con `formato-spec.md` del kit
+  y su porqué. `docs-fyd` v1 quedó marcado como superado por el v2.
+- **Archivados a `legacy/` con lápida**, medidos por quién los referencia: `RECORRIDO-relevamiento.md`
+  (0 refs), `PROMPT-construir-relevamiento.md` y `PROMPT-construir-docs-fyd.md`. Las 2 referencias que
+  quedaban apuntando a `docs/` se corrigieron.
+- **El zip portable se retiró** (REJ-015) junto con el paso 2 del `/cierre` del repo madre, que
+  obligaba a regenerarlo para siempre. **La evidencia que lo mató: la carpeta desapareció de la PC
+  principal sin que nadie lo notara.** Los caminos vivos son `git clone` + `INSTALAR.md`, y
+  `actualizate`. Se limpiaron las 4 menciones y se renumeraron los pasos del `/cierre` (ahora son 5).
+- **Los pendientes del README** quedaron separados: **8 vivos** y un bloque **"Ya hecho"** de 5 líneas.
+- **La revisión del release dio limpia**: los 44 mecanismos del SPEC presentes, los 8 enganches en su
+  lugar, cero referencias rotas, cero huérfanos. Se corrigieron 3 números desincronizados y se enlazó
+  la hoja de mano, que había quedado suelta en `guias/`.
+
 ## Estado
 
 - **La skill está instalada y registrada** (aparece en el listado de skills de este chat, con su
@@ -144,12 +165,8 @@ Ninguno.
 
 ## Contexto que no está en otros docs
 
-- **El zip portable NO se regeneró: la carpeta `Desktop\Arquitecto en otras PCs\` ya no existe en esta
-  máquina** (se buscó por nombre en todo el `$HOME`, incluido OneDrive). El paso 2 del `/cierre` la
-  declara opcional, así que no frenó el cierre — pero **la otra PC (d:\SAAS) no tiene forma de recibir
-  `/relevamiento` por zip**. El camino que sí funciona es `actualizate` (Modo AUTO-ACTUALIZAR EL KIT del
-  Equipador), que ya la conoce en los 6 lugares. Si Guido quiere el zip de vuelta, hay que recrear la
-  carpeta y correr el paso 2.
+- **El zip portable quedó retirado** (REJ-015, con su condición de reapertura). La otra PC recibe la
+  skill con **`actualizate`**, que ya la conoce en los 6 lugares del Equipador.
 - **La lección de tamaño, para la próxima skill:** el techo es **de líneas** pero el contenido se
   presupuesta **en bytes**, y las dos cosas se desacoplan. Tras el corte 1 el archivo tenía 317 líneas
   con 20.799 bytes — o sea el contenido entraba holgado en el presupuesto (22,6 KB) y lo que sobraba era
@@ -161,7 +178,7 @@ Ninguno.
   celdas faltantes** (viven en la copia del kit, marcadas `[+fork]`) · **versionar el método** · y el
   hueco estructural — **el criterio de éxito a las 4-6 semanas no tiene dueño ni fecha en el método**.
   El tramo 5 lo cierra del lado de Guido; del lado del papel sigue abierto.
-- **`docs/PROMPT-construir-relevamiento.md` ya cumplió su función** (era el arranque de esta sesión).
-  No se archivó a `legacy/` a propósito: es barato y documenta cómo se encaró el build.
+- **Archivados a `legacy/` con su lápida** (ya cumplieron): `RECORRIDO-relevamiento.md`,
+  `PROMPT-construir-relevamiento.md` y `PROMPT-construir-docs-fyd.md`.
 - **Fase 2 de `docs-fyd` sigue diferida** y **el Modo B del Arquitecto sigue sin estrenarse** (ADR-012)
   — por eso `/relevamiento` v1 no lo toca, y sus 3 ganchos de costura están en REJ-014.

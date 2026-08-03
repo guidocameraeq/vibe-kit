@@ -2,7 +2,9 @@
 
 Una skill global nueva, `/relevamiento`, que convierte una charla dictada y desordenada en los 4 documentos del método "Cómo Arrancar un Proyecto" (el que Guido diseñó con su jefe), con **un PDF al cerrar cada etapa**, agregando dos cosas que el papel no puede: un **revisor** que cobra las deudas de la planilla y unas **lentes** que traen los ángulos que la planilla no contempla. Termina decidiendo, con evidencia escrita, si el pedido **termina en software o no** — y solo si termina en software le pasa el problema entendido al Arquitecto.
 
-- Estado: READY
+- Estado: **✅ IMPLEMENTADO 2026-08-03** — la skill vive en `kit/skills/relevamiento/` (v2.4.2).
+  *Se conserva acá, no se archiva: los 21 criterios son la checklist del estreno y §Fase 2 es el diseño
+  conservado que REJ-014 referencia.*
 - Fecha: 2026-07-31 · aprobado por Guido 2026-08-03
 - Diseño previo: 3 workflows (análisis 11 agentes · diseño 8 · cierre 7), informe holístico aprobado por Guido el 2026-07-31.
 - **Endurecido tras 1 ronda de red-team (6 lentes / 93 hallazgos crudos → 79 verificados: 4 críticos, 24 graves, 34 medios, 17 menores). Todos los críticos y graves foldeados. Ver "Qué cambió tras el red-team".**
@@ -664,7 +666,7 @@ Los **graves** más estructurales: la mitigación de privacidad se reescribió d
 2. ~~Presupuesto por bloque~~ **HECHO** (`docs/PRESUPUESTO-relevamiento.md` — 3 estimaciones independientes reconciliadas; motor 251/260).
 3. ~~Aprobación explícita de Guido~~ **HECHO 2026-08-03.** → `Estado: READY`.
 
-**El prompt para la sesión que construye:** `docs/PROMPT-construir-relevamiento.md`.
+**El prompt para la sesión que construye:** `legacy/PROMPT-construir-relevamiento.md` (archivado: la sesión ya corrió).
 
 ## Referencias
 

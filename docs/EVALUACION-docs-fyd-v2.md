@@ -1,5 +1,8 @@
 # Evaluación: ¿docs-fyd v2 mejoró de verdad? — protocolo — vibe-kit
 
+> **✅ EJECUTADO 2026-07-24 sobre Hermes → PASS + patch `v2.2.1`** (la checklist proactiva pasó a
+> condicionarse a lo que el repo tiene). El protocolo se conserva: sirve para la próxima evaluación.
+
 > Cómo sabemos, **con evidencia y no con opinión**, si los cambios del SPEC `docs-fyd v2` arreglaron
 > lo que el reporte de campo (Hermes Desktop, 2026-07-23) señaló. La idea es simple: **re-correr v2
 > sobre el MISMO repo real y puntuar contra las MISMAS fallas concretas de v1.** Cada falla de v1 es

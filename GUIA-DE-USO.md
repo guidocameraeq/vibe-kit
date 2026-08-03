@@ -104,7 +104,7 @@ repo: *"leé tips/tanda-<fecha> y procesemos las conclusiones"* — ahí decidí
 ### 💻 "Estoy en una PC nueva (o quiero actualizar la del SAAS)"
 **PC nueva:** `git clone` del repo → abrir Claude Code en `kit/` → pegar el prompt de
 `kit/INSTALAR.md`. Se instala solo y al final te ofrece equipar la máquina con el menú curado.
-Sin git: el zip de `Desktop\Arquitecto en otras PCs\`.
+*(Hace falta git. Si alguna vez hay una PC sin git, ver REJ-015.)*
 **Actualizar una PC que ya lo tiene:** decile al Equipador **`actualizate`** (o *"actualizá el
 kit"*) — baja lo último del repo canónico y se actualiza a sí mismo (con diff antes de pisar).
 Reiniciás Claude Code y listo. *(La 1ra vez en una PC con el Equipador viejo va con el prompt

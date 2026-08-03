@@ -1,5 +1,10 @@
 # Prompt para construir la skill `/relevamiento`
 
+> **ARCHIVADO 2026-08-03.** Era el bloque de arranque de la sesion que construyo `/relevamiento`.
+> Esa sesion ya corrio y la skill existe (`kit/skills/relevamiento/`, v2.4.2). Se conserva porque
+> documenta como se encaro el build.
+
+
 > Copiá el bloque de abajo en un **chat nuevo** dentro del repo `Guia de vibe coding` (vibe-kit), **después de correr `/inicio`**.
 > El diseño ya está hecho, red-teameado y presupuestado: esta sesión **construye**, no rediseña.
 
