@@ -231,3 +231,52 @@ de plantillas** (criterio 18) corrido de verdad, con el fork re-aplicado y rever
 tal:** los 11 criterios que necesitan una corrida real con Guido adentro. **No se declara estable
 hasta el primer relevamiento de punta a punta** (precedente: `docs-fyd` pasó 16/16 y la primera corrida
 real le corrigió 9 de 10 artefactos). Reversión: borrar `kit/skills/relevamiento/` + revertir 8 archivos.
+
+## ADR-018 · `/relevamiento` v2.4: se recupera lo que el SPEC perdió del informe de diseño (2026-08-03)
+Guido comparó el artefacto de diseño (publicado 2026-07-31, **anterior al red-team**) contra lo
+construido y preguntó qué había quedado afuera. La mayor parte de las diferencias eran **correcciones
+deliberadas del red-team** (los números inflados, el orden de la entrada, la mudanza, el gate 3
+simetrizado) y no se tocan. Pero aparecieron **cuatro cosas que nadie decidió sacar: se traspapelaron
+al comprimir el informe en el SPEC.**
+**(1) El abanico de 6 familias de salida — era el hueco grave.** El SPEC lo declara IN en su §Alcance
+(línea 40) y **después nunca lo detalla**; el presupuesto no le asignó una línea en sus 26 bloques, así
+que la construcción, que escribió contra esa tabla, no lo hizo. **Consecuencia real:** la E3.5 decidía
+bien *quién piensa* la propuesta (la skill o el Arquitecto) pero no ofrecía **qué hacer que no fuera
+software** — o sea que la skill heredaba el defecto #3 del método en papel, que es el que el propio
+SPEC pone como motivo de existir (*"en la práctica A y B terminan siendo dos formas de construir lo
+mismo"*). Ahora va **antes** de la regla binaria: 6 familias con su condición de oferta, las que no
+aplican **se descartan con la razón escrita** al TABLERO, y de ahí salen a las alternativas del
+documento 4 y a la sección 3 del HANDOFF. **"Construir software nuevo" está siempre disponible y nunca
+es el default.**
+**(2) *"No expliques la solución. Preguntá cómo lo hace hoy."*** Una línea, impresa arriba de la hoja
+de campo. Si contás la idea te dicen que sí, construís, y no la usa nadie. **(3) *"Ninguna alternativa
+nombra una tecnología"***: si "Alternativa A" dice Next.js, se dejó de comparar caminos y se empezó a
+comparar herramientas delante de gente que no sabe qué son. **(4) El orden de la hoja de campo por
+peso** (el que puede tumbar el proyecto → el que tiene información única → el que sólo confirma) y el
+**esfuerzo escrito contra el apetito** (`ENTRA` / `ENTRA con plata a aprobar` / `NO ENTRA` / `NO SE
+SABE`) — este último **sin tocar la celda del jefe**: se completa así, no se renombra.
+**Y una capacidad nueva, pedida por Guido en esta sesión: arrancar desde material que ya existe.**
+Una planilla del método ya llena, un Word, una cadena de mails. Entra **por el mismo volcado**, no por
+un camino aparte. Dos reglas propias, y las dos tapan una falla silenciosa: **(a) se pregunta UNA vez
+quién lo llenó**, porque de eso depende el sello — *"lo llenó `<persona>` hablando con la gente"* es un
+**acto de carga** (escribe `notas/<persona>.md` con medio `planilla escrita` → `RELEVADA`), *"lo llené
+yo"* o *"no sé"* → `DE MEMORIA`, que es el conservador; sin esta regla el contador de la portada miente
+sobre cuánto del documento está verificado. **(b) Que una etapa venga llena NO la cierra**: corre el
+ritual igual, porque una planilla que llenó otro es justo donde más deudas hay (adjetivos donde va
+número, la solución colada en el por qué, bloques extra en blanco) — y ahí es donde la skill le agrega
+valor al papel. *Alternativa descartada: un 6º balde `DE PLANILLA`. Habría tocado el CSS, el contador,
+la cabecera y los cinco badges de la prueba de la fotocopiadora, para expresar algo que los baldes
+existentes ya distinguen bien.*
+**El techo de KB se llenó, y se resolvió podando duplicación, no subiéndolo.** Con las cinco adiciones
+el conjunto motor+anexos dio **56.814 B contra el techo de 56.320**. Se cortaron **cinco repeticiones
+literales** en las que el motor ya era la copia autoritativa (las 3 razones de la cinta · la regla
+madre y la de reparto · nombres estables y `PDF VIEJO` · qué se muda y qué no) y quedó en **56.126 B —
+194 de margen**. Cero contenido perdido: lo podado eran segundas copias que, de quedar, tarde o
+temprano se desincronizan. **El motor quedó en 231 líneas (margen 29).** *Señal para la próxima
+sesión: el techo de KB está esencialmente lleno; la adición que siga necesita una decisión sobre el
+número, no más deduplicación.*
+**⚠️ Lo que hay que decir de estas cinco: ninguna pasó por red-team, y se agregaron a una skill que
+todavía no corrió nunca de verdad.** Las cuatro recuperadas tapan agujeros ya diagnosticados por
+escrito, así que el riesgo es bajo. **La quinta (importar material) es una apuesta nueva** — Guido la
+pidió con su caso a la vista (trabaja con planillas de su jefe) y decidió incluirla sabiendo esto.
+Se mide en el estreno como todo lo demás.

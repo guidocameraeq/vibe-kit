@@ -1,8 +1,7 @@
 # El revisor — los 6 chequeos
 
 El revisor mira **hacia adentro del documento**: cobra las deudas que la propia planilla del método
-dejó abiertas. No trae ángulos nuevos — eso es de las lentes. **Regla de reparto: si la planilla lo
-pide, es del revisor; si la planilla no lo pide, es de la lente.**
+dejó abiertas. No trae ángulos nuevos — eso es de las lentes (la regla de reparto está en el motor).
 
 **Cuándo corre:** cuando la Parte 1 de la etapa está completa **salvo lo que es tarea de campo**
 (no esperes al cierre: un hueco detectado tarde ya viajó a la etapa siguiente).

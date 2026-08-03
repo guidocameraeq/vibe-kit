@@ -1,15 +1,9 @@
 # Las lentes — los ángulos que la planilla no contempla
 
-> **REGLA MADRE: si no podés citar la línea del dossier que la dispara, la lente NO dispara.**
-> Nada de "me parece que puede haber un tema de X". Y **toda lente muestra su cita al preguntar** —
-> Guido tiene que poder ver de dónde salió y bajarla en un clic si es al pedo.
->
-> **REGLA DE REPARTO: si la planilla lo pide, es del revisor. Si la planilla no lo pide, es de la
-> lente.** Por eso tres lentes tienen condición negativa contra un bloque de la planilla: cuando esa
-> casilla está tildada, el bloque ya hace la pregunta y la lente sería un duplicado.
->
-> **El revisor corre SIEMPRE antes**, porque apaga lentes: si R2 logra que "muchos" sea "34 por
-> semana con fuente", L4 deja de disparar.
+> **Las dos reglas madre están en el motor** (sin cita no dispara · si la planilla lo pide es del
+> revisor). Acá van sus consecuencias: por eso tres lentes tienen **condición negativa** contra un
+> bloque de la planilla —casilla tildada = el bloque ya pregunta y la lente sería un duplicado—, y
+> por eso **el revisor corre siempre antes**: si R2 consigue el número con fuente, L4 deja de disparar.
 
 ## Las 9 (10 filas, porque L5 se parte en dos)
 

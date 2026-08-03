@@ -48,11 +48,40 @@
 - **Cierran acá: L1 (Reloj), L5b (Comprar afuera), L6 (Choque), L7 (El día después)** — las cuatro que
   esperaban el apetito.
 
-## Etapa 3.5 — El ruteo
+## Etapa 3.5 — El abanico de salidas, y después el ruteo
 
-No es una etapa del método del jefe: es el momento en que se decide si esto termina en software.
-**Cuenta dentro de las interrupciones de E3.** Todo el detalle está en **el motor**, sección
-"La costura con el Arquitecto" — la regla binaria, los 3 tramos de apetito y el token explícito.
+No es una etapa del método del jefe: es el momento en que se decide **qué se hace** y, recién
+después, **quién lo piensa**. **Cuenta dentro de las interrupciones de E3.**
+
+### Primero el abanico — las 6 familias
+
+**Construir software nuevo es UNA de seis, y nunca es el default.** Este paso existe porque la
+planilla pide "2 alternativas + seguir igual" pero no obliga a que ninguna sea distinta de
+construir — y en la práctica A y B terminan siendo dos formas de construir lo mismo.
+
+| Familia | Se ofrece si… |
+|---|---|
+| **Seguir igual / no hacer nada** | **siempre** — ya está en la planilla (`04:28`), con su costo escrito |
+| **Arreglar lo que ya usan** | `02:18` nombra una herramienta (el Excel, la planilla compartida) |
+| **Cambiar el proceso o quién lo hace** | la lista de roles tiene 2+ |
+| **Prender algo que ya pagamos y nadie usa** | `02:18` o `02:30` nombran un sistema comprado (lo mismo que gatilla L5a) |
+| **Comprar o contratar** | la investigación trajo algo. Si no se miró, se escribe **"no se investigó el mercado"** — **nunca "no hay nada"** |
+| **Construir software nuevo** | **siempre disponible, nunca por default** |
+
+**Las que no aplican se descartan solas, pero CON la razón escrita** al lado, y van a
+`## Descartados` del TABLERO. De ahí salen a dos lados: a las alternativas del documento 4, y a
+la sección 3 del HANDOFF (*"ya decidido, no lo re-propongas"*). Una familia descartada sin razón
+escrita vuelve a proponerse dentro de un año y hay que averiguar todo de nuevo.
+
+**Se ofrecen las que quedan** con `AskUserQuestion` (≤4 por tanda). Si quedan más de 4, van las 4
+mejor apoyadas por evidencia y el resto se nombra en una línea.
+
+### Después el ruteo
+
+Sólo si la elegida es **construir software nuevo** hay algo que rutear. Todo el detalle está en
+**el motor**, sección "La costura con el Arquitecto": la regla binaria, los 3 tramos de apetito y
+el token explícito. Si la elegida es cualquier otra, **la skill escribe el documento 4 sola** y el
+Arquitecto no se entera de nada.
 
 ## Etapa 4 — La Propuesta de Valor (`4-propuesta.md`)
 
@@ -64,9 +93,18 @@ No es una etapa del método del jefe: es el momento en que se decide si esto ter
   apetito: *"copiado de 3-necesidad P3/P4 el `<fecha>`"*. **Nunca lo edites acá.** Si la reunión los
   ajusta, se edita en `3-necesidad.md` —lo que marca `PDF VIEJO` en E3— y `04:18` se regenera.
   Editarlo acá parte el criterio en dos versiones y el tramo 5 chequea la equivocada.
-- **Las alternativas (`04:22`, `04:28`)**: al menos 2 + **"seguir igual" con su costo**. Que una de
-  ellas **no sea construir** (comprar, usar lo que ya está, cambiar el proceso) — si A y B son dos
-  formas de construir lo mismo, no se evaluó nada.
+- **Las alternativas (`04:22`, `04:28`)**: salen del abanico de E3.5, al menos 2 + **"seguir igual"
+  con su costo**. Que una de ellas **no sea construir** — si A y B son dos formas de construir lo
+  mismo, no se evaluó nada.
+- **⚠️ Ninguna alternativa nombra una tecnología.** Si "Alternativa A" dice Next.js, Supabase o
+  "una app web con login", es un bug: dejaste de comparar **caminos** y empezaste a comparar
+  herramientas, delante de gente que no sabe qué es ninguna. Las alternativas se escriben por lo
+  que **cambia para la gente**. Lo técnico entra recién en `04:35` (*"cómo funcionaría, en
+  criollo"*) y, si hay que precisarlo, es del Arquitecto — no de este documento.
+- **El "esfuerzo" de cada alternativa se escribe contra el apetito, no en abstracto**: `ENTRA` ·
+  `ENTRA (con plata a aprobar)` · `NO ENTRA` · `NO SE SABE — falta averiguar <qué>`. Comparar
+  contra un número que ya se decidió (`03:24`) es discutible; inventar una estimación absoluta
+  antes de diseñar, no. *(La celda de la planilla no se toca: se completa así.)*
 - **Lo que vino de una lente va fundido pero marcado `[fp]`.**
 - **Parte 2 es la reunión**, y se llena **después** de tenerla: se presentó a quiénes, objeciones,
   ajustes acordados, aprobada sí/con ajustes/no.

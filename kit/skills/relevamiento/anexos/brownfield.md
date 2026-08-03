@@ -69,11 +69,9 @@ pieza más cara y su consumidor —el Modo B del Arquitecto— nunca se estrenó
 
 ## La mudanza en brownfield
 
-**El repo destino ya se conoce, así que se hace EN EL MOMENTO** al cerrar E4 con veredicto software
-(en greenfield queda pendiente en el TABLERO). Van a `<repo>/docs/relevamiento/<slug>/`: los 4 `.md`
-+ `TABLERO.md` + `5-sirvio.md`. **`notas/` y `pdf/` NO se mudan nunca** — `notas/` es material crudo
-con citas sin editar; `pdf/` son vistas regenerables (REJ-010). Queda la línea de reenvío en
-`INDICE.md` con **las dos rutas**.
+Lo único que cambia respecto del motor: **el repo destino ya se conoce, así que la mudanza se hace
+EN EL MOMENTO** al cerrar E4 con veredicto software (en greenfield queda pendiente en el TABLERO).
+Qué se muda y qué no, igual que siempre — está en el motor, sección "La mudanza".
 
 **Si el proyecto es viejo y su `/cierre` no tiene el paso 6-bis** (los montados antes de esta versión
 tienen una copia instanciada y no lo reciben nunca), avisar una vez y **dar la línea para pegar**:

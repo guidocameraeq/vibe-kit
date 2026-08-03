@@ -4,8 +4,9 @@
 > sistema de trabajo), el Arquitecto (piensa y monta proyectos nuevos), el Equipador (equipa
 > máquinas con skills curadas), y `/relevamiento` (el tramo de ANTES: entender un pedido que vino de
 > otra persona). Nacido de auditorías reales sobre meses de trabajo (Hermes, Perseo).
-> **Versión estable: `v2.3`** (tag de git, 2026-08-03 — la skill `/relevamiento`: el método de arranque
-> de 4 etapas con PDF por etapa, revisor y lentes, y la costura al Arquitecto por token explícito.
+> **Versión estable: `v2.4`** (tag de git, 2026-08-03 — la skill `/relevamiento`: el método de arranque
+> de 4 etapas con PDF por etapa, revisor y lentes, la costura al Arquitecto por token explícito, el
+> abanico de 6 salidas —construir es sólo una— y el arranque desde material que ya existe.
 > v2.2.1 fue `docs-fyd` con la checklist condicionada al repo; v2.1, el Arquitecto de 3 modos).
 
 ## La regla de la casa (desde que esto es un repo)
@@ -31,7 +32,7 @@ Nunca editar `~/.claude/` directo (queda huérfano del historial).
 | **Guías de uso** (casos de uso, cuándo sí/no) | `guias/` |
 | **El Extractor** — agente de tips: abrir Claude Code AHÍ + pegar links = extrae, evalúa y deja el informe | `extractor/` |
 | Informes de tandas de tips (outputs del Extractor) | `tips/` |
-| Estado del proyecto madre: handoff (lo inyecta el hook), DECISIONS (17 ADRs), REJECTED (14 REJ), **SPEC + PRESUPUESTO + RECORRIDO de `/relevamiento` (implementado → la skill vive en `kit/skills/relevamiento/`)** | `docs/` + `CLAUDE.md` raíz + skill `/cierre` |
+| Estado del proyecto madre: handoff (lo inyecta el hook), DECISIONS (18 ADRs), REJECTED (14 REJ), **SPEC + PRESUPUESTO + RECORRIDO de `/relevamiento` (implementado → la skill vive en `kit/skills/relevamiento/`)** | `docs/` + `CLAUDE.md` raíz + skill `/cierre` |
 | Archivo histórico (v1, auditorías, snapshots pre-git, la PROPUESTA-V2 ya cumplida) | `legacy/` |
 
 ## Instalar en una PC nueva
@@ -66,19 +67,28 @@ y la chuleta de frases mágicas. Es LA puerta de entrada para usar el sistema.
   **los otros 11 necesitan una corrida con Guido adentro** y están sin verificar, dichos como tales.
   Lo que se mide en el estreno no es la calidad del documento: ¿la invocaste sin que nadie te la
   recuerde? ¿cuántas preguntas te parecieron de más? ¿el Arquitecto repitió alguna?
+- 💡 **Las opciones guardadas de `/relevamiento` (la "Fase 2")** — siete piezas **diseñadas y no
+  construidas todavía**, no descartadas: que la skill **lea sola el código** de la app cuando el
+  pedido cae sobre algo que ya existe (la que más interés despertó) · que el **Modo B** del Arquitecto
+  use el dossier · Word como entregable · que se dé cuenta sola de que está cansando · un modo para
+  listar y podar relevamientos viejos · que aprenda entre relevamientos · guardar los PDF viejos.
+  **Cada una tiene escrita la condición exacta que la despierta** en **REJ-014**, y el diseño completo
+  quedó en `docs/SPEC-relevamiento.md` §"Fase 2" para no re-pensarlo. Casi todas esperan **evidencia
+  de uso**, no tiempo de desarrollo. *(Están en REJECTED.md por convención del repo — es donde viven
+  las cosas con condición de reapertura; esta línea existe para que se encuentren desde acá.)*
 - **Llevarle al jefe, aparte y sin apuro** (de la sesión de diseño): las **7 celdas faltantes** de la
   grilla (viven en la copia del kit, marcadas `[+fork]`, hasta que él las apruebe) · **versionar el
   método** (hoy no tiene número de versión: la procedencia cita la fecha 2026-07-22 y el detector es
   `git diff _fuente/`) · y el hueco estructural: **el criterio de éxito a las 4-6 semanas no tiene
   dueño ni fecha en el método** — el papel no cierra su propio lazo. El tramo 5 de la skill lo cierra
   del lado de Guido, pero del lado del método sigue abierto.
-- ~~🔥 **CONSTRUIR la skill `/relevamiento`**~~ ✅ **construida (2026-08-03)**: motor de 224 líneas
-  (techo 260) + 5 anexos + 12 plantillas, 51,3 KB de motor+anexos (techo 55). Los 8 enganches puestos
+- ~~🔥 **CONSTRUIR la skill `/relevamiento`**~~ ✅ **construida (2026-08-03)**: motor de 231 líneas
+  (techo 260) + 5 anexos + 12 plantillas, 54,8 KB de motor+anexos (techo 55). Los 8 enganches puestos
   (3 toques al Arquitecto —el de "no montes todavía" al final del Paso 4, donde el red-team lo movió—,
   las alternativas evaluadas en `formato-spec.md`, el paso 6-bis del `/cierre` universal, los 6 lugares
   kit-owned del Equipador, el menú, `INSTALAR.md`, y el diff canónico 4→5 rutas). Se tomó el **corte 1
   de la escalera de poda en su disparador** (5 anexos en vez de 4). Decisión = ADR-016 (diseño) +
-  **ADR-017** (construcción) · descartes = REJ-011/012/013 + **REJ-014** (la Fase 2 entera).
+  **ADR-017** (construcción) + **ADR-018** (v2.4: el abanico de 6 salidas y el arranque desde material que ya existe) · descartes = REJ-011/012/013 + **REJ-014** (la Fase 2 entera).
 - ~~🔥 **Construir el release v2.0 del Arquitecto — sistema `docs-fyd`**~~ ✅ **construido
   (2026-07-23)**: la skill `kit/skills/docs-fyd/` (motor + `deteccion.md` + `prompts-fyd.md` + 13
   plantillas) + los 7 enganches (frescura en el cierre-plantilla, fila kit-owned en el menú,

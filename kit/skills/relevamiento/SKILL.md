@@ -1,6 +1,6 @@
 ---
 name: relevamiento
-description: El tramo de ANTES del Arquitecto — convierte una charla dictada y desordenada en los 4 documentos del método "Cómo Arrancar un Proyecto" (problema → sistema actual → necesidad → propuesta de valor), emite un PDF al cerrar cada etapa, y decide con evidencia escrita si el pedido termina en software o no. Usar cuando el usuario dice "relevamiento", "me pidieron algo en el laburo", "hay un pedido nuevo", "volví de hablar con X", "seguimos con el relevamiento de X", "armá la propuesta de valor" o "relevamiento sirvió". NO usar para — proyectos personales de Guido o cualquier cosa que quiera para sí mismo (eso es /arquitecto directo, sin proceso); la doc de auditoría (/docs-fyd); arrancar la sesión del día (/inicio); diseñar o elegir stack (/arquitecto).
+description: El tramo de ANTES del Arquitecto — convierte una charla dictada y desordenada en los 4 documentos del método "Cómo Arrancar un Proyecto" (problema → sistema actual → necesidad → propuesta de valor), emite un PDF al cerrar cada etapa, y decide con evidencia escrita si el pedido termina en software o no. Usar cuando el usuario dice "relevamiento", "me pidieron algo en el laburo", "hay un pedido nuevo", "volví de hablar con X", "seguimos con el relevamiento de X", "armá la propuesta de valor", "tengo la planilla ya llena / te paso lo que ya tenemos" o "relevamiento sirvió". NO usar para — proyectos personales de Guido o cualquier cosa que quiera para sí mismo (eso es /arquitecto directo, sin proceso); la doc de auditoría (/docs-fyd); arrancar la sesión del día (/inicio); diseñar o elegir stack (/arquitecto).
 ---
 
 # El relevamiento
@@ -88,6 +88,11 @@ Creás la carpeta, el TABLERO y los 4 `.md`, **lo mostrás en 4 renglones**, y r
 - **Fast-path:** *"dale con lo que dicté"* → todo lo no crítico va a supuesto de una.
 - **Un campo en `SUPUESTO` cuenta como respondido** a efectos del gate 2.
 
+**Si ya viene material escrito** (una planilla del método llena, un Word, una cadena de mails, las notas de una reunión): **entra por este mismo volcado**, no por un camino aparte. Si es una planilla del método, el mapeo es celda a celda; si es otra cosa, la parseás igual que un dictado. Dos reglas propias, y las dos importan:
+
+- **Preguntá UNA vez quién lo llenó** — de eso depende el sello, y sin eso el contador de la portada miente. 3 opciones: *"lo llenó `<persona>` hablando con la gente"* → es un **acto de carga**: escribís `notas/<persona>.md` con medio `planilla escrita` y esos campos quedan **`RELEVADA`** · *"lo llené yo de memoria"* → **`DE MEMORIA`** · *"mezcla / no sé"* → **`DE MEMORIA`**, que es el conservador.
+- **⚠️ Que una etapa venga llena NO la cierra.** Corré el ritual igual: revisor, lentes, gates, PDF. **Un campo lleno no es un campo bien lleno** — y una planilla que llenó otro es justo donde más deudas vas a encontrar (adjetivos donde va número, la solución colada en el por qué, bloques extra en blanco). Ahí es donde la skill le agrega valor al papel.
+
 ## La entrada, paso 3 — la clasificación (DESPUÉS del volcado, PRE-TILDADA)
 
 La tildás vos con lo que dictó y **mostrás la cita de cada tilde**:
@@ -173,6 +178,8 @@ Se emite al cerrar cada etapa (pipeline, detección de Chrome, CSS y cabecera: `
 **Nombres estables, la fecha adentro, regenerar pisa sin histórico.** Si el `.md` cambia después de emitido, el TABLERO marca ese PDF **`PDF VIEJO`**.
 
 ## La costura con el Arquitecto (E3.5)
+
+**⚠️ Primero el abanico, después el ruteo.** Antes de preguntarte quién piensa la propuesta, mostrá **las 6 familias de salida** (`anexos/etapas.md` §E3.5). Las que no aplican **se descartan solas pero CON su razón escrita** al TABLERO; las que quedan se ofrecen. **"Construir software nuevo" está siempre disponible y NUNCA es el default** — si es la elegida, recién ahí corre la regla de abajo. Si gana cualquier otra, escribís el documento 4 sola y el Arquitecto no se entera.
 
 **La regla binaria, resuelta al cerrar E3:**
 

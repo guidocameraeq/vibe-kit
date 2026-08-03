@@ -1,9 +1,18 @@
 # Hoja de campo — {{titulo}}
 
 <!-- Esto se imprime y se camina. Una hoja por salida. Regla de redacción: los juicios sobre
-     conducta van POR ROL y como riesgo, nunca por nombre (ver anexos/entregable.md). -->
+     conducta van POR ROL y como riesgo, nunca por nombre (ver anexos/entregable.md).
+
+     ORDEN DE LAS PERSONAS, por peso — no por cargo ni por orden de aparición:
+       1º el que puede TUMBAR el proyecto (si contesta distinto, el diseño se cae)
+       2º el que tiene información que NADIE MÁS tiene (el dato vive en su cabeza)
+       3º el que sólo CONFIRMA lo que ya sabés
+     Si sólo llegás a hablar con uno, que sea el primero. -->
 
 **Relevamiento:** {{slug}} · **Etapa:** {{etapa}} · **Fecha de la hoja:** {{fecha}}
+
+> ## REGLA DE ORO: no expliques la solución. Preguntá cómo lo hace hoy.
+> Si contás la idea, te van a decir que sí. Y después no la usa nadie.
 
 ---
 

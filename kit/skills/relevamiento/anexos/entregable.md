@@ -13,9 +13,8 @@ un `.md` a medio llenar no alcanzaba. Todo lo de acá se lee **cuando ya decidis
 | Derivaciones nuevas a campo | `pdf/hoja-de-campo.pdf` |
 | Tramo 5 | `pdf/5-sirvio.pdf` |
 
-**Nombres estables, la fecha adentro del documento. Regenerar pisa siempre, sin histórico** (los PDF
-se rehacen de un `.md` que sí está versionado — REJ-010). Si el `.md` cambia después de emitido, el
-TABLERO marca ese PDF **`PDF VIEJO`**.
+*(La regla de nombres estables y `PDF VIEJO` está en el motor. La razón de no guardar histórico: los
+PDF se rehacen de un `.md` que sí está versionado — REJ-010.)*
 
 ## El pipeline
 
@@ -149,9 +148,8 @@ además **la cinta con el motivo impreso** — nunca una cinta muda:
 
 > **BORRADOR** — falta el criterio de éxito (03:21) · se habló con 1 de 3 roles: falta depósito y compras.
 
-**La cinta prende por 3 razones, y sólo por esas 3:** (a) un campo crítico `SIN RESPONDER` ·
-(b) **el asimétrico** (la lista de roles tiene alguno sin testimonio y `caracter` no es `personal`) ·
-(c) un chequeo R1/R2/R3 sin resolver. *(Un campo en `SUPUESTO` cuenta como respondido.)*
+**Las 3 razones que prenden la cinta viven en el motor** (sección "Los 3 gates"). No se repiten acá
+a propósito: si estuvieran en los dos lados, tarde o temprano dicen cosas distintas.
 
 ## El documento "no construir"
 

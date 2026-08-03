@@ -3,21 +3,59 @@
 > **Save game** del proyecto madre. `/cierre` lo sobreescribe entero; el hook SessionStart lo
 > inyecta en cada chat nuevo de esta carpeta.
 
-**Última sesión cerrada:** 2026-08-03 — **`/relevamiento` CONSTRUIDA. Release `v2.3`.** El tramo de
-ANTES del Arquitecto existe: motor de **224 líneas** (techo 260) + **5 anexos** + **12 plantillas**, con
-los **8 enganches** puestos y el `diff -r` de las **5 rutas canónicas** limpio. Se construyó contra el
-SPEC READY y la tabla de 26 bloques del presupuesto, sin re-abrir el diseño.
+**Última sesión cerrada:** 2026-08-03 — **`/relevamiento` CONSTRUIDA y ampliada. Release `v2.4`.** El
+tramo de ANTES del Arquitecto existe: motor de **231 líneas** (techo 260) + **5 anexos** + **12
+plantillas**, con los **8 enganches** puestos y el `diff -r` de las **5 rutas canónicas** limpio.
+Se construyó contra el SPEC READY y la tabla de 26 bloques del presupuesto (→ v2.3), y después Guido
+comparó contra el artefacto de diseño y se recuperó lo que el SPEC había perdido (→ v2.4).
+
+## Lo que sumó v2.4 (ADR-018) — leer esto antes que nada
+
+Guido cruzó el **artefacto de diseño** (publicado 2026-07-31, *anterior al red-team*) contra lo
+construido. La mayoría de las diferencias eran **correcciones deliberadas del red-team** y se
+confirmaron. Pero **cuatro cosas se habían traspapelado** al comprimir el informe en el SPEC, más una
+capacidad nueva que pidió él:
+
+1. **⚠️ El abanico de 6 familias de salida — era un hueco grave.** El SPEC lo declaraba IN en su
+   línea 40 y **nunca lo detallaba**; el presupuesto no le dio una línea, así que el build (que
+   escribió contra esa tabla) no lo hizo. Sin él, la E3.5 decidía *quién piensa* la propuesta pero no
+   ofrecía **qué hacer que no fuera software** — o sea que la skill heredaba el defecto #3 del método
+   en papel, que es su propio motivo de existir. Ahora corre **antes** de la regla binaria.
+2. ***"No expliques la solución. Preguntá cómo lo hace hoy."*** Impreso arriba de la hoja de campo.
+3. ***"Ninguna alternativa nombra una tecnología."*** En el anexo de etapas, junto a las alternativas.
+4. **El orden de la hoja de campo por peso** + el **esfuerzo escrito contra el apetito**
+   (`ENTRA` / `ENTRA con plata a aprobar` / `NO ENTRA` / `NO SE SABE`), **sin tocar la celda del jefe**.
+5. **NUEVO — arrancar desde material que ya existe** (planilla llena, Word, mails). Entra por el mismo
+   volcado. Dos reglas: **se pregunta UNA vez quién lo llenó** (de eso depende el sello: "lo llenó X
+   hablando con la gente" es acto de carga → `RELEVADA`; "lo llené yo" o "no sé" → `DE MEMORIA`), y
+   **que una etapa venga llena NO la cierra** — corre el ritual igual, que es donde están las deudas.
+
+**⚠️ Ninguna de las cinco pasó por red-team**, y se agregaron a una skill que nunca corrió. Las cuatro
+recuperadas tapan agujeros ya diagnosticados por escrito (riesgo bajo); **la quinta es una apuesta
+nueva** que Guido pidió con su caso a la vista, sabiendo esto.
+
+**El techo de KB se llenó y se resolvió podando duplicación, no subiéndolo:** las adiciones lo
+llevaron a 56.814 B contra 56.320; se cortaron **cinco repeticiones literales** donde el motor ya era
+la copia autoritativa y quedó en **56.126 B — 194 de margen**. Cero contenido perdido.
+**Señal para la próxima sesión: el techo de KB está esencialmente lleno. Lo que se agregue después
+necesita una decisión sobre el número, no más deduplicación.**
 
 ## Estado
 
 - **La skill está instalada y registrada** (aparece en el listado de skills de este chat, con su
-  `description` entero). El Arquitecto ya muestra la cláusula de deslinde.
-- **Los dos techos, medidos:** `SKILL.md` **224 líneas** (260) · **motor + anexos 51,3 KB** (55).
+  `description` entero y el disparador nuevo). El Arquitecto ya muestra la cláusula de deslinde.
+- **Los dos techos, medidos:** `SKILL.md` **231 líneas** (260, margen 29) · **motor + anexos 56.126 B**
+  (techo 56.320, margen 194).
+- **Sale por `actualizate`**: el Equipador conoce `relevamiento` en los 6 lugares donde lleva la lista
+  kit-owned, así que la otra PC la baja del repo canónico sin tocar nada a mano.
 - **`plantillas/_fuente/` commiteado y el `.rar` borrado** (en ese orden, como mandaba el paso 0).
   277 líneas / 8.097 bytes / 61 `{{LINEAS:N}}` — clavó la medición, y las 5 referencias de celda del
   SPEC verificaron contra el archivo real.
-- **Gobierno:** **ADR-017** (la construcción: las 3 desviaciones del plano) · **REJ-014** (la Fase 2
-  entera, 7 diferidos con su condición de reapertura). ADR-016 ya tenía el diseño — **no se duplicó**.
+- **Gobierno:** **ADR-017** (la construcción: las 3 desviaciones del plano) · **ADR-018** (v2.4: lo
+  recuperado del artefacto + el arranque desde material existente) · **REJ-014** (la Fase 2 entera,
+  7 diferidos con su condición de reapertura). ADR-016 ya tenía el diseño — **no se duplicó**.
+- **Fase 2 ahora se encuentra desde el README** (pedido de Guido: le interesa sobre todo que la skill
+  lea sola el código). Sigue viviendo en REJ-014 por convención del repo; el README sólo apunta.
 - **`GUIA-DE-USO.md` al día**: receta **📥 "Me pidieron algo en el laburo"** + 5 frases nuevas en la
   chuleta + la línea que aclara que **el camino de `/arquitecto` no cambió**.
 

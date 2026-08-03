@@ -38,10 +38,21 @@ de diseñar nada. Chat nuevo → **`relevamiento`** y contá lo que sepas, **de 
 — no te sientes a llenar un formulario, dictá y él ordena.
 Te lleva por las 4 etapas del método que armaste con tu jefe (problema → sistema actual → necesidad
 → propuesta de valor), **te saca un PDF cada vez que cerrás una etapa** (eso es lo que llevás a la
-reunión), te arma la **hoja de campo** para cuando salís a hablar con gente, y al final decide con
-evidencia escrita si esto **termina en software o no**. Si termina en software, te da la línea exacta
-para pegarle al Arquitecto; si no, te escribe la propuesta igual — un "no construir" bien fundado es
-una entrega, no un fracaso.
+reunión) y te arma la **hoja de campo** para cuando salís a hablar con gente — con una regla impresa
+arriba que vale el papel entero: *no expliques la solución, preguntá cómo lo hace hoy* (si contás la
+idea, te dicen que sí, y después no la usa nadie).
+Al final te muestra **seis caminos posibles, y construir software es sólo uno**: seguir igual,
+arreglar lo que ya usan, cambiar el proceso, prender algo que ya pagaron y nadie usa, comprar, o
+construir. Las que no aplican las descarta **con la razón escrita** — eso es lo que evita que dentro
+de un año alguien re-proponga lo mismo. Sólo si elegís construir te da la línea exacta para pegarle
+al Arquitecto; si no, te escribe la propuesta igual — un "no construir" bien fundado es una entrega,
+no un fracaso.
+- **Si ya tenés algo escrito** (una planilla del método llena, un Word, la cadena de mails, las notas
+  de una reunión) → **pasásela**: *"te paso lo que ya tenemos"*. La mapea campo por campo y sigue
+  desde ahí. Te va a preguntar **una sola cosa: quién la llenó** — porque no es lo mismo que la haya
+  llenado alguien hablando con la gente que vos de memoria, y de eso depende cuánto de ese documento
+  está realmente verificado. **Ojo: que una etapa venga llena no la da por cerrada** — le pasa el
+  revisor igual, que es justo donde va a encontrar las deudas.
 - **Si lo invocaste por error** o era algo tuyo: la primera pregunta te deja salir en **1 clic**, y
   antes de eso no creó ni un archivo. Con la carpeta ya creada, decí **"cancelá"** y borra todo.
 - **Volvés de hablar con alguien** → decile *"volví de hablar con Marcela"* y pegale lo que anotaste.
@@ -128,6 +139,7 @@ commits. Para el "por qué" de cualquier cosa: `docs/DECISIONS.md` (15 ADRs) y
 | `relevamiento` | **Te pidieron algo**: dictás de corrido y sale el método de 4 etapas con PDF por etapa |
 | `cancelá` | (adentro de un relevamiento) borra todo y se apaga. Sin repreguntar |
 | `volví de hablar con <fulano>` | Lo que traés pasa a contar como **relevado**, no como "de memoria" |
+| `te paso lo que ya tenemos` | Arranca desde una planilla ya llena, un Word o unos mails, en vez de cero |
 | `basta de preguntas de más` | Las lentes siguen anotando pero dejan de preguntar (`prendé las lentes` revierte) |
 | `relevamiento sirvió` | A las 6 semanas: ¿se cumplió el criterio que escribiste? Con el número, no con la sensación |
 | `inicio` | El chat del proyecto arranca sabiendo dónde están |
