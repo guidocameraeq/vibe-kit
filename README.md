@@ -57,6 +57,20 @@ y la chuleta de frases mágicas. Es LA puerta de entrada para usar el sistema.
 
 ## Pendientes (post-v2.1)
 
+- 🔥 **CONSTRUIR la skill `/relevamiento`** — el tramo de ANTES del Arquitecto, del método de
+  arranque que Guido diseñó con su jefe. **Diseñado, red-teameado, presupuestado y READY
+  (2026-08-03); NO construido — el kit sigue idéntico.** El plano es `docs/SPEC-relevamiento.md`
+  (21 criterios de aceptación); el contrato de tamaño, `docs/PRESUPUESTO-relevamiento.md` (motor
+  251/260 líneas, 26 bloques, escalera de poda cuantificada); el recorrido de uso,
+  `docs/RECORRIDO-relevamiento.md`; y el arranque, **`docs/PROMPT-construir-relevamiento.md`** —
+  pegarlo en un chat nuevo después de `/inicio`. **Primer paso del build:** extraer las 4 plantillas
+  del `.rar` de la raíz a `plantillas/_fuente/` y commitearlas; el `.rar` se borra recién ahí.
+  Decisión = ADR-016 · descartes = REJ-011/012/013.
+- **Después del build de `/relevamiento`:** el estreno real — el próximo pedido de otro sector,
+  de punta a punta. Es la única señal que vale, y hasta que pase **no se declara estable**
+  (precedente: `docs-fyd` pasó 16/16 en verificación y la primera corrida real le corrigió 9 de 10
+  artefactos). Lo que se mide en el estreno no es la calidad del documento: ¿la invocaste sin que
+  nadie te la recuerde? ¿cuántas preguntas te parecieron de más? ¿el Arquitecto repitió alguna?
 - ~~🔥 **Construir el release v2.0 del Arquitecto — sistema `docs-fyd`**~~ ✅ **construido
   (2026-07-23)**: la skill `kit/skills/docs-fyd/` (motor + `deteccion.md` + `prompts-fyd.md` + 13
   plantillas) + los 7 enganches (frescura en el cierre-plantilla, fila kit-owned en el menú,

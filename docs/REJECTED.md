@@ -28,3 +28,19 @@
 - **REJ-010 · PDFs versionados en el repo** — binarios que envejecen con cada edición de los
   MD. Los MD de `guias/` son la fuente; los PDFs se generan a demanda (Chrome headless) y
   viven en `Desktop\Arquitecto en otras PCs\`.
+- **REJ-011 · El método de arranque como 4º modo del Arquitecto** — mismo scope creep que mató
+  el "Modo M" (REJ-003 + ADR-004), **más una razón propia**: un modo no puede sostener estado
+  entre sesiones de días distintos, y un relevamiento dura semanas. Se resolvió como skill
+  hermana `/relevamiento` (ADR-016). Anotado 2026-08-03.
+- **REJ-012 · Word / `.docx` como entregable del kit** — no hay con qué generarlo (verificado:
+  ni pandoc, ni LibreOffice, ni python-docx, ni skills docx/pdf disponibles), o sea dependencia
+  nueva por algo que nadie pidió. Y un `.docx` es **editable**: ahí nace el espejo — a la semana
+  la verdad está en el Word y el `.md` miente (principio 6 del playbook). El entregable es PDF
+  vía Chrome headless. **Re-apertura escrita:** si alguien externo pide editar y devolver 3+
+  veces, se instala pandoc y el `.docx` se **genera**, jamás se edita. Anotado 2026-08-03.
+- **REJ-013 · La absorción mínima al Arquitecto** (meterle al banco 3-4 preguntas sueltas —
+  apetito, norte medible, supuesto crítico— en vez de la skill) — se queda corta contra el dolor
+  real: lo que falla no es que falten preguntas, es que **el relevamiento no ocurre**. Un puñado
+  de preguntas nuevas adentro de una entrevista de una sentada no captura un proceso que dura
+  semanas y pasa afuera del chat. Los toques al Arquitecto que sí sobrevivieron están en el SPEC
+  (MODIFICA §1-2). Anotado 2026-08-03.

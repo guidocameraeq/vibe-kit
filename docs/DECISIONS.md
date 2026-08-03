@@ -148,3 +148,46 @@ cepillo que no cubre prosa, el disparo de dudas que se cancelaba con el auto-con
 10 siempre"); cómo se mide si mejoró está en `docs/EVALUACION-docs-fyd-v2.md` (re-correr sobre Hermes,
 señal vs ruido de las preguntas). Reversión mediana. La Fase 2 (verificación en vivo) será su propio
 delta/ADR.
+
+## ADR-016 · El kit suma el tramo de ANTES del Arquitecto: la skill `/relevamiento` (2026-08-03)
+Guido trajo el **método de arranque de proyectos que diseñó con su jefe** en FyD (4 etapas en papel/Word:
+Problema → Sistema Actual → Necesidad → Propuesta de Valor, con 7 casillas de clasificación que activan
+bloques extra). Dolor declarado, textual: *"toda la parte previa de recopilación de información no ha
+estado funcionando bien"*. **Decisión:** construir una **skill hermana `/relevamiento`** que lleva las
+etapas 1-3, **escribe siempre** el documento 4, emite **un PDF al cerrar cada etapa** (el cierre oficial),
+y decide con evidencia escrita si el pedido **termina en software o no** — sólo si termina en software le
+pasa el problema al Arquitecto, **por token explícito** (el Arquitecto lee un dossier si y sólo si la
+invocación le nombra la ruta; cero glob, cero juicio semántico). Aporta dos cosas que el papel no puede:
+un **revisor** de 6 chequeos que cobra las deudas de la planilla, y **9 lentes** con gatillo por cita que
+traen los ángulos que la planilla no contempla (plazo, intentos previos, quién pierde control, volumen,
+comprar en vez de construir, choque, el día después, dos verdades, el caso raro).
+**Alternativas descartadas:** (1) un **4º modo del Arquitecto** → REJ-011 (scope creep, precedente
+REJ-003/ADR-004, más una razón nueva: un modo no sostiene estado entre sesiones de días distintos, y este
+proceso dura semanas); (2) **absorción mínima** de 3-4 preguntas al banco del Arquitecto → se queda corta
+contra el dolor declarado, que es que el relevamiento **no ocurre**, no que falten preguntas; (3) hacerla
+**específica de FyD** (`relevamiento-fyd`) → decisión de Guido: es **su** herramienta, opt-in, sirve igual
+para un proyecto personal, y el filtro anti-fatiga es que **no existe hasta que se la invoca**.
+**Ocho decisiones de Guido** quedan en el SPEC (§"Las decisiones de Guido"), entre ellas: el chequeo
+"¿sirvió?" **automático** (dos disparadores, para que funcione también sin proyecto montado); la v1 **sin
+censo automático del código**; **git como detector** de cambios del jefe (con `_fuente/` prístino +
+`FORK.md` + `SYNC.md`, corregido tras el red-team); **los nombres propios van a todos lados** (consecuencia
+asumida: el historial de git no se borra — se prohíbe el dato sensible de personas y los **juicios** van
+por rol); y **la mudanza al proyecto la hace la skill**, no el Arquitecto, para que el tramo 5 funcione
+también en brownfield sin tocar el Modo B (que sigue sin estrenarse, ADR-012).
+**El PDF como cierre oficial de etapa** es requisito duro de Guido y quedó verificado en la máquina:
+Chrome headless (`--headless=new --no-pdf-header-footer --print-to-pdf`), `%PDF-1.4`, ~1,2 s, con CSS y
+acentos. NO hay pandoc/LibreOffice/python-docx → Word queda afuera (REJ-012). Tres hechos medidos mandan
+sobre el diseño: el **exit code de Chrome no vale** (puede escribir 20-40 s después → poll acotado de 45 s),
+**Chrome imprime el error como si fuera el documento** (un HTML inexistente da un PDF válido de 23.943 B →
+la única defensa es verificar ANTES), y **sin `--no-pdf-header-footer` estampa la ruta del disco** en cada hoja.
+**Dos techos, y sólo uno tiene mecanismo:** `SKILL.md` **≤260 líneas** (el motor se carga entero en cada
+invocación; si es largo, Claude se saltea pasos en silencio) y **motor + anexos ≤55 KB** (es lo único que
+entra a una ventana de contexto). **Las plantillas quedan excluidas** — se copian a disco, no se leen; el
+techo original de "60 KB del conjunto" incluía plantillas y **nunca se derivó de nada**, así que se corrigió
+con su razón, no se levantó. El presupuesto por bloque vive en `docs/PRESUPUESTO-relevamiento.md` y es el
+contrato de construcción. **Proceso:** SPEC → **red-team de 6 lentes (93 hallazgos crudos → 79 verificados:
+4 críticos y 24 graves foldeados)** → presupuesto con 3 estimaciones independientes reconciliadas → READY.
+El crítico más caro: el gancho de vuelta al relevamiento estaba **después** del montaje, o sea que el repo
+se scaffoldeaba y commiteaba **antes** de que la propuesta llegara a la reunión — la inversión exacta del
+principio que el método defiende. Reversión mediana (borrar la skill + 8 enganches). *Este ADR se escribió
+en el cierre del diseño; la sesión que CONSTRUYE no lo duplica.*
