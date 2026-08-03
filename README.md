@@ -30,7 +30,7 @@ Nunca editar `~/.claude/` directo (queda huérfano del historial).
 | **La guía de uso** — recetas por situación + frases mágicas (empezá por acá) | `GUIA-DE-USO.md` |
 | **El método** (documentación + sistema de trabajo, se lee 1 vez por proyecto) | `PLAYBOOK-MAESTRO.md` |
 | **El kit instalable** — FUENTE CANÓNICA del Arquitecto + Equipador + menú + templates + agente red-team + **motor `docs-fyd`** + **skill `/relevamiento`** (con las plantillas del método en `_fuente/`) + su instalador | `kit/` |
-| **Guías de uso** (casos de uso, cuándo sí/no) | `guias/` |
+| **Guías de uso** (casos de uso, cuándo sí/no) — incluye **`HOJA-DE-MANO-relevamiento.md`**, la hoja de una página para tener a mano cuando te piden algo | `guias/` |
 | **El Extractor** — agente de tips: abrir Claude Code AHÍ + pegar links = extrae, evalúa y deja el informe | `extractor/` |
 | Informes de tandas de tips (outputs del Extractor) | `tips/` |
 | Estado del proyecto madre: handoff (lo inyecta el hook), DECISIONS (19 ADRs), REJECTED (14 REJ), **SPEC + PRESUPUESTO + RECORRIDO de `/relevamiento` (implementado → la skill vive en `kit/skills/relevamiento/`)** | `docs/` + `CLAUDE.md` raíz + skill `/cierre` |
@@ -83,8 +83,8 @@ y la chuleta de frases mágicas. Es LA puerta de entrada para usar el sistema.
   `git diff _fuente/`) · y el hueco estructural: **el criterio de éxito a las 4-6 semanas no tiene
   dueño ni fecha en el método** — el papel no cierra su propio lazo. El tramo 5 de la skill lo cierra
   del lado de Guido, pero del lado del método sigue abierto.
-- ~~🔥 **CONSTRUIR la skill `/relevamiento`**~~ ✅ **construida (2026-08-03)**: motor de 231 líneas
-  (techo 260) + 5 anexos + 12 plantillas, 54,8 KB de motor+anexos (techo 55). Los 8 enganches puestos
+- ~~🔥 **CONSTRUIR la skill `/relevamiento`**~~ ✅ **construida (2026-08-03)**: motor de 232 líneas
+  (techo 260) + 5 anexos + 12 plantillas, 54,9 KB de motor+anexos (techo 55). Los 8 enganches puestos
   (3 toques al Arquitecto —el de "no montes todavía" al final del Paso 4, donde el red-team lo movió—,
   las alternativas evaluadas en `formato-spec.md`, el paso 6-bis del `/cierre` universal, los 6 lugares
   kit-owned del Equipador, el menú, `INSTALAR.md`, y el diff canónico 4→5 rutas). Se tomó el **corte 1

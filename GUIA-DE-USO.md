@@ -63,7 +63,8 @@ no un fracaso.
   3 líneas.
 - A las 6 semanas de que la cosa esté en uso te va a preguntar **si sirvió** — con el criterio que
   vos mismo escribiste. Es el único lazo que el método en papel no cerraba.
-→ Detalle: `kit/skills/relevamiento/SKILL.md` · el porqué: ADR-016/017.
+→ **La hoja de una página, para tener a mano**: `guias/HOJA-DE-MANO-relevamiento.md`
+→ Detalle: `kit/skills/relevamiento/SKILL.md` · el porqué: ADR-016 a 019.
 
 ### 🔨 "Quiero trabajar en un proyecto que ya anda"
 Chat nuevo **en la carpeta del proyecto** → decís **`inicio`** → te confirma dónde están en
@@ -157,6 +158,7 @@ commits. Para el "por qué" de cualquier cosa: `docs/DECISIONS.md` (15 ADRs) y
 
 - **El método completo** (por qué de todo): `PLAYBOOK-MAESTRO.md`
 - **El Arquitecto y el Equipador a fondo**: `guias/COMO-USAR-EL-ARQUITECTO.md`
+- **`/relevamiento` en una hoja** (para tener a mano cuando te piden algo): `guias/HOJA-DE-MANO-relevamiento.md`
 - **Instalar en otra PC**: `kit/INSTALAR.md` (o la carpeta del Escritorio con los PDFs)
 - **Por qué el kit es como es**: `docs/DECISIONS.md` · lo que se descartó: `docs/REJECTED.md`
 - **Qué está pendiente**: sección Pendientes del `README.md` (única fuente)
