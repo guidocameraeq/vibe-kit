@@ -4,10 +4,11 @@
 > sistema de trabajo), el Arquitecto (piensa y monta proyectos nuevos), el Equipador (equipa
 > máquinas con skills curadas), y `/relevamiento` (el tramo de ANTES: entender un pedido que vino de
 > otra persona). Nacido de auditorías reales sobre meses de trabajo (Hermes, Perseo).
-> **Versión estable: `v2.4`** (tag de git, 2026-08-03 — la skill `/relevamiento`: el método de arranque
+> **Versión estable: `v2.4.1`** (tag de git, 2026-08-03 — la skill `/relevamiento`: el método de arranque
 > de 4 etapas con PDF por etapa, revisor y lentes, la costura al Arquitecto por token explícito, el
-> abanico de 6 salidas —construir es sólo una— y el arranque desde material que ya existe.
-> v2.2.1 fue `docs-fyd` con la checklist condicionada al repo; v2.1, el Arquitecto de 3 modos).
+> abanico de 6 salidas —construir es sólo una— y el arranque desde material que ya existe; v2.4.1
+> corrige la detección de Chrome con lo medido).
+> v2.2.1 fue `docs-fyd` con la checklist condicionada al repo; v2.1, el Arquitecto de 3 modos.
 
 ## La regla de la casa (desde que esto es un repo)
 

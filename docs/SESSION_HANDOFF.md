@@ -40,12 +40,27 @@ la copia autoritativa y quedó en **56.126 B — 194 de margen**. Cero contenido
 **Señal para la próxima sesión: el techo de KB está esencialmente lleno. Lo que se agregue después
 necesita una decisión sobre el número, no más deduplicación.**
 
+## El cierre de la sesión sumó un hallazgo real (v2.4.1)
+
+Al generar el PDF de la hoja de mano —usando **el mismo pipeline que la skill**— se encontró un error
+en el anexo: decía que **`where chrome` era "el único camino que sirve en las dos PCs"**. Medido acá:
+**devuelve vacío**. Lo que resuelve es el **fallback a las 3 rutas conocidas**. La skill ya lo hacía
+bien (tiene el fallback), pero el texto le daba autoridad al camino equivocado y un chat futuro podía
+frenar ahí creyendo que sin `where` no hay Chrome. **Corregido con lo medido.**
+*Fue, sin querer, la primera vez que algo de la skill se usó sobre un caso real — y le encontró un bug.*
+
+**La hoja de mano quedó en tres lados:** `guias/HOJA-DE-MANO-relevamiento.md` (versionada, viaja con el
+kit) · un PDF en el Escritorio de Guido (168.681 B, `%PDF-1.4`, con fuentes embebidas — **no** es la
+página de error de Chrome, que pesa ~24 KB; **no se pudo verificar visualmente**: falta `pdftoppm` en
+esta máquina, así que la verificación es estructural) · y el artefacto publicado en claude.ai.
+**El PDF no entra al repo (REJ-010).**
+
 ## Estado
 
 - **La skill está instalada y registrada** (aparece en el listado de skills de este chat, con su
   `description` entero y el disparador nuevo). El Arquitecto ya muestra la cláusula de deslinde.
-- **Los dos techos, medidos:** `SKILL.md` **231 líneas** (260, margen 29) · **motor + anexos 56.126 B**
-  (techo 56.320, margen 194).
+- **Los dos techos, medidos:** `SKILL.md` **231 líneas** (260, margen 29) · **motor + anexos 56.213 B**
+  (techo 56.320, margen 107 tras el fix de Chrome).
 - **Sale por `actualizate`**: el Equipador conoce `relevamiento` en los 6 lugares donde lleva la lista
   kit-owned, así que la otra PC la baja del repo canónico sin tocar nada a mano.
 - **`plantillas/_fuente/` commiteado y el `.rar` borrado** (en ese orden, como mandaba el paso 0).
