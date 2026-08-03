@@ -55,12 +55,29 @@ página de error de Chrome, que pesa ~24 KB; **no se pudo verificar visualmente*
 esta máquina, así que la verificación es estructural) · y el artefacto publicado en claude.ai.
 **El PDF no entra al repo (REJ-010).**
 
+## Y un último cable suelto, encontrado al final (v2.4.2 · ADR-019)
+
+Guido preguntó si la doc por relevamiento **se va actualizando**. Sí en lo esencial —los 4 `.md` se
+escriben antes de cada pregunta— **pero cuatro secciones del TABLERO estaban declaradas por el SPEC y
+sin nadie que las escribiera**: `Casillas`, `Hoja de campo`, `Tareas de Guido` y el `INDICE.md`.
+**La peor: el retome LEE "tareas suyas" y nada las guardaba nunca.** Cableadas las cuatro.
+**La decisión que importa: las tareas se escriben CUANDO APARECEN** (regla de oro 1), no al cerrar la
+etapa — si no, abandonar tres semanas con la etapa abierta era justo el caso que las perdía.
+
+**Dos recomendaciones mías en esa charla eran erróneas y están corregidas en ADR-019**: "borrar las 3
+secciones redundantes" (no: el HANDOFF imprime las casillas y están en el contrato aprobado) y "el
+techo de KB se puede aflojar" (no: al cerrar etapa en brownfield se abren los 5 anexos, así que la
+suma **es** el peor caso real).
+
+**⚠️ Tercera vez consecutiva que el techo se resuelve podando. Ya no queda grasa evidente.** El
+próximo agregado necesita una decisión sobre el número, y esa decisión es un ADR aparte.
+
 ## Estado
 
 - **La skill está instalada y registrada** (aparece en el listado de skills de este chat, con su
   `description` entero y el disparador nuevo). El Arquitecto ya muestra la cláusula de deslinde.
-- **Los dos techos, medidos:** `SKILL.md` **231 líneas** (260, margen 29) · **motor + anexos 56.213 B**
-  (techo 56.320, margen 107 tras el fix de Chrome).
+- **Los dos techos, medidos:** `SKILL.md` **232 líneas** (260, margen 28) · **motor + anexos 56.240 B**
+  (techo 56.320, margen 80).
 - **Sale por `actualizate`**: el Equipador conoce `relevamiento` en los 6 lugares donde lleva la lista
   kit-owned, así que la otra PC la baja del repo canónico sin tocar nada a mano.
 - **`plantillas/_fuente/` commiteado y el `.rar` borrado** (en ese orden, como mandaba el paso 0).

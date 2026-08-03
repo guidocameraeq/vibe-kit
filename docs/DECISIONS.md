@@ -280,3 +280,33 @@ todavía no corrió nunca de verdad.** Las cuatro recuperadas tapan agujeros ya 
 escrito, así que el riesgo es bajo. **La quinta (importar material) es una apuesta nueva** — Guido la
 pidió con su caso a la vista (trabaja con planillas de su jefe) y decidió incluirla sabiendo esto.
 Se mide en el estreno como todo lo demás.
+
+## ADR-019 · `v2.4.2`: se cablean las 4 secciones del TABLERO que nadie escribía (2026-08-03)
+Guido preguntó si la documentación por relevamiento **se va actualizando** — su caso es abandonar algo
+tres semanas y retomarlo. La respuesta era **sí en lo esencial** (los 4 `.md` se escriben antes de cada
+pregunta; el TABLERO se sella en cada cierre de etapa) **y no en cuatro lugares**: `## Casillas`,
+`## Hoja de campo`, `## Tareas de Guido` y el `INDICE.md` estaban **declarados en el contrato del SPEC
+§2 y sin nadie que los escribiera**. El peor: **el retome LEE `tareas suyas`** (guardia de entrada,
+paso 4) y **nada las guardaba nunca** — un cable que entra por un lado y no sale por el otro, justo en
+el flujo que a Guido le importa.
+**Dos recomendaciones mías anteriores eran erróneas y la investigación las corrigió** — quedan
+escritas porque el proceso importa más que quedar bien: **(1) "borrar las 3 secciones redundantes"**
+estaba mal: el HANDOFF imprime las casillas, las 4 están en el contrato cerrado que Guido aprobó, y
+borrarlas era desviarse de un plano aprobado para ahorrar trabajo. **(2) "el techo de KB está mal
+medido y se puede aflojar"** estaba mal: se verificó que **al cerrar una etapa en brownfield se abren
+los 5 anexos a la vez**, así que "motor + todos los anexos" **sí es el peor caso realista**. El número
+no se tocó.
+**La única decisión de diseño real: las tareas se escriben CUANDO APARECEN, no al cerrar la etapa.**
+Por eso el cable va en la **regla de oro 1** —la línea más leída de la skill— y no en el ritual de
+cierre. Si fuera al cierre, el caso que motivó todo esto (abandonar tres semanas con una etapa abierta)
+sería exactamente el que **no** guarda las tareas.
+**Presupuesto:** las 4 ediciones costaron ~460 B contra 328 libres. Se resolvió, otra vez, **podando y
+apretando, no subiendo el techo**: tres duplicaciones más (el costo de 1 clic · "Lo que no
+preguntamos" · la re-derivación del contador · "cuenta dentro de las interrupciones de E3") y las
+propias frases nuevas, escritas sueltas y reescritas cortas. **Quedó en 56.240 B (80 de margen) y 232
+líneas (28 de margen).** *Es la tercera vez consecutiva que el techo se resuelve con dedup. Ya no
+queda grasa evidente: el próximo agregado necesita una decisión sobre el número, y esa decisión es un
+ADR aparte, no un apriete.*
+**Verificable ahora:** las 8 secciones del TABLERO tienen quien las escriba, y los dos techos entran.
+**NO verificable hasta el estreno:** que la tarea aparezca en el momento y que el retome la nombre —
+son los criterios 1 y 2 del mini-spec, y necesitan una corrida con Guido adentro.

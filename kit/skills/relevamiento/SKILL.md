@@ -35,7 +35,7 @@ Sos el tramo de **antes** del Arquitecto. A Guido le pidieron algo en el laburo,
 
 ## Reglas de oro (no negociables)
 
-1. **Cada tanda se vuelca al `.md` ANTES de la siguiente pregunta.** Si la charla muere, no se perdió nada. Es LA regla: todo lo demás se puede rehacer, una charla perdida no.
+1. **Cada tanda se vuelca al `.md` ANTES de la siguiente pregunta.** Si la charla muere, no se perdió nada. Es LA regla: todo lo demás se puede rehacer, una charla perdida no. **Lo que quede pendiente de él** (un listado, un llamado, probar el supuesto) va a `## Tareas de Guido` **en el momento**, no al cerrar la etapa: si no, el que abandona con la etapa abierta las pierde.
 2. **Una pregunta por vez**, con `AskUserQuestion`, **≤4 opciones** y **`header` ≤12 caracteres**.
 3. **Re-preguntar algo que el volcado ya contestó es un bug**, no una confirmación amable.
 4. **Negativo por silencio ≠ ausencia comprobable.** Que no lo haya dicho no significa que no exista: se escribe `SIN RESPONDER`, jamás "no hay" / "no existe" / "ninguno".
@@ -99,7 +99,7 @@ La tildás vos con lo que dictó y **mostrás la cita de cada tilde**:
 
 > *"Por lo que contaste tildé 'toca plata' (dijiste «las facturas quedan sin cruzar») y 'reemplaza un proceso manual' (dijiste «hoy lo hacen a mano»). Destildá lo que no vaya."*
 
-Va en **2 tandas multiSelect (4 + 3)** para respetar el tope de 4 opciones, y cuenta como **2 interrupciones**. La advertencia *"lo que tildes activa preguntas extra en las 4 etapas; no tildes por las dudas"* va **una sola vez**.
+Va en **2 tandas multiSelect (4 + 3)** para respetar el tope de 4 opciones, y cuenta como **2 interrupciones**. La advertencia *"lo que tildes activa preguntas extra en las 4 etapas; no tildes por las dudas"* va **una sola vez**. El resultado va a `## Casillas`.
 
 ## La entrada, paso 4 — la lista de roles (esto hace computable el asimétrico)
 
@@ -111,6 +111,7 @@ Va en **2 tandas multiSelect (4 + 3)** para respetar el tope de 4 opciones, y cu
 - **De `plantillas/1..4-*.md`, nunca de `_fuente/`.**
 - **Los 61 `{{LINEAS:N}}` se reemplazan por el marcador de estado del campo** (`[pendiente]`, el contenido, o el contenido con su sello). En el dossier no queda **ningún** `{{`.
 - El TABLERO sale de `plantillas/TABLERO.md`: **el esquema es cerrado, no inventes claves.** Las 5 que rutean: `caracter` · `carril` · `etapa` · `apto` · `chequeo`.
+- **Agregá su línea al `INDICE.md`** de `_relevamientos/` (crealo si no existe) y actualizala al cambiar de etapa.
 
 ## Los 5 baldes — sello por RESPUESTA, no por documento
 
@@ -152,7 +153,7 @@ Va en **2 tandas multiSelect (4 + 3)** para respetar el tope de 4 opciones, y cu
 4. **Re-derivá el contador** de los sellos de los `.md`. No copies el del TABLERO.
 5. **Chequeá los 3 gates** (abajo) y decidí el chip: `CERRADA` o `BORRADOR` **con el motivo impreso**.
 6. **Emití el PDF** (`anexos/entregable.md`). Si Chrome falla, **la etapa cierra igual**.
-7. **Sellá** en el TABLERO: `etapa:` a la siguiente, la fila de la etapa en `## Etapas y PDF`, la foto del contador con su fecha, y la línea de la sesión en `## Bitácora`.
+7. **Sellá** en el TABLERO: `etapa:` a la siguiente, la fila de la etapa en `## Etapas y PDF`, la foto del contador, lo derivado a caminar en `## Hoja de campo`, y la línea de la sesión en `## Bitácora`.
 
 ## Las lentes — el gobierno (el catálogo está en `anexos/lentes.md`)
 

@@ -69,10 +69,7 @@ Toda repregunta del revisor sale con estas cuatro, ni una menos (`header` ≤12 
 4. **"Dejalo así"** → se marca `[el revisor lo señaló, Guido lo dejó]` y **no se re-pregunta nunca más**,
    ni al retomar, ni en otra etapa, ni aunque llegue información nueva.
 
-**Costo de responder o de bajar cualquiera: 1 clic.**
-
 ## Cuando el cupo se agota
 
-Lo que no entró **no se pierde y no se re-ofrece solo**: va al TABLERO con su chequeo y su prioridad,
-y aparece en el documento 4 bajo **"Lo que no preguntamos"**, cada uno con su riesgo en una línea.
-Se puede re-ofrecer **una sola vez** al retomar, y esa re-oferta **consume cupo**.
+Lo que no entró **no se pierde y no se re-ofrece solo**: va al TABLERO con su chequeo y su prioridad.
+Adónde va después, en el motor. Se re-ofrece **una sola vez** al retomar, y esa re-oferta **consume cupo**.

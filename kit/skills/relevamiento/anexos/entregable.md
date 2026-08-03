@@ -127,8 +127,7 @@ habló de verdad. Un `3 de 5` esconde justo lo que hay que mostrar.
 - **Denominador del contador:** los campos de Parte 1 de la etapa **+** los bloques de las casillas
   **tildadas**. Los no tildados no entran — no son "sin responder": no aplican.
   *E1 sin casillas = 5 (`01:28,32,36,40,43`); con dos tildadas = 7.*
-- **Se re-deriva de los sellos** de los `.md` en cada apertura y **antes de cada emisión**. Lo del
-  TABLERO es una foto con fecha y **nunca gana**. El `INDICE.md` no lleva contadores.
+- **Cuándo se re-deriva, en el motor.** Acá sólo: el `INDICE.md` **no lleva contadores**.
 
 ## La regla de redacción — los juicios van por ROL
 

@@ -50,14 +50,13 @@
 
 ## Etapa 3.5 — El abanico de salidas, y después el ruteo
 
-No es una etapa del método del jefe: es el momento en que se decide **qué se hace** y, recién
-después, **quién lo piensa**. **Cuenta dentro de las interrupciones de E3.**
+No es una etapa del método del jefe: es donde se decide **qué se hace** y, recién después, **quién lo
+piensa**.
 
 ### Primero el abanico — las 6 familias
 
-**Construir software nuevo es UNA de seis, y nunca es el default.** Este paso existe porque la
-planilla pide "2 alternativas + seguir igual" pero no obliga a que ninguna sea distinta de
-construir — y en la práctica A y B terminan siendo dos formas de construir lo mismo.
+Existe porque la planilla pide "2 alternativas + seguir igual" pero no obliga a que ninguna sea
+distinta de construir — y en la práctica A y B terminan siendo dos formas de construir lo mismo.
 
 | Familia | Se ofrece si… |
 |---|---|
