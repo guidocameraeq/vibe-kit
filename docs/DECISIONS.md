@@ -338,3 +338,37 @@ silencio en cualquiera de las dos direcciones.
 repo madre, que obligaba a regenerarlo en cada cierre. La evidencia que lo mató es simple: **la carpeta
 desapareció de la PC principal sin que nadie lo notara** durante al menos un release. Los pendientes
 del README se separaron en **vivos (8)** y **"Ya hecho" (5, una línea cada uno)**.
+
+## ADR-021 · Investigar el uso real antes de rediseñar el pack — y vibe-kit sigue público (2026-10-12)
+El kit quedó **70 días sin tocarse** (último cierre 2026-08-03) mientras Guido lo usaba muchísimo
+(Arquitecto, `/relevamiento`, `docs-fyd`, Equipador) y en paralelo construía en Hermes un **método
+entero nuevo**: director/obrero/tramo, mesa entre directores de proyectos que comparten ecosistema
+(Desktop ↔ Mobile ↔ Devoluciones), y contagio de reglas entre directores. Ese método está documentado
+**desde adentro de Hermes** (`METODO_PROYECTO_LARGO.md` con F1-F50, `CAMBIOS.md` con CM-1..62, dos
+bitácoras) — pero nada mira lo que se repite **en todos** los proyectos, y el costo ("~15×") es una
+estimación que el propio método dice que no se midió.
+**Decisión:** antes de diseñar nada, una investigación de los chats de las dos PCs, con su propio SPEC
+(`docs/SPEC-investigacion-chats.md`, READY tras 1 ronda de red-team: 2 críticos, 2 altos, 1 medio,
+todos foldeados). Es la misión 1 de 5 de una hoja de ruta (README → Pendientes). Tres reglas que salen
+de acá y gobiernan las misiones siguientes:
+- **El repo es PÚBLICO** (verificado con `gh repo view`, 2026-10-12). Lo que se pushea no se despublica.
+  Los hallazgos crudos viajan por un **repo privado aparte** (`vibe-research`, se crea y se borra con la
+  misión 2); el informe entra en paráfrasis, con escáner de secretos y el diff mirado por Guido. Y el
+  método de Hermes **entra al pack destilado y genérico, nunca crudo** — que es además lo que lo hace
+  regalable.
+- **La misión 4 (diseñar el pack) es de Guido**: se recorre el material con él pieza por pieza; no se
+  le presenta un diseño cerrado.
+- **Hermes no se migra a mitad de un tramo.** El pack se diseña aparte; Hermes adopta (con una "ficha"
+  del proyecto) o no, recién al cerrar un tramo grande.
+**Alternativas descartadas:**
+- *Rediseñar directo desde el método de Hermes* — sobreajusta al 85% del volumen (Hermes), y deja sin
+  ver el uso real del kit en los demás proyectos (incluida la evidencia del estreno de `/relevamiento`).
+- *Hacer vibe-kit privado mientras dure la investigación y reabrirlo* (propuesta de Guido) — rompe el
+  `actualizate` del Equipador para la gente a la que se le compartió el Arquitecto, y al reabrir, los
+  commits de ramas borradas pueden seguir accesibles por SHA.
+- *Leer los chats crudos con agentes* — 1,9 GB + 941 transcripts de subagentes en esta PC, la mayoría
+  salidas de herramientas: se condensa primero con un script (Etapa 0).
+**Excepción conocida del diff kit↔instalado:** en la PC `clientes` (`D:`), la línea
+"Carpeta de proyectos de esta máquina" del Arquitecto dice `D:/` y en `kit/` dice la ruta de la PC
+principal. Es el slot por-máquina que `kit/INSTALAR.md` manda ajustar: **no es una edición prohibida**,
+y en esta PC el `diff -r` del Arquitecto nunca va a dar limpio por esa sola línea.

@@ -59,7 +59,20 @@ y la chuleta de frases mágicas. Es LA puerta de entrada para usar el sistema.
 
 ## Pendientes (post-v2.1)
 
-- 🔥 **EL ESTRENO REAL de `/relevamiento`** — el próximo pedido de otro sector, de punta a punta.
+- 🧭 **LA HOJA DE RUTA DE OTOÑO-2026 — 5 misiones, una por chat** (ADR-021). Tras 70 días de uso
+  intenso sin volver al kit, se investiga antes de rediseñar:
+  1. ✅ Planear la investigación → `docs/SPEC-investigacion-chats.md` (READY, 2026-10-12).
+  2. ⏭️ **La investigación de los chats** de las dos PCs (script + Workflow de lectores Sonnet +
+     síntesis Opus) → `tips/tanda-2026-10-chats.md` + tabla de costos reales por rol y modelo.
+  3. Profesionalizar vibe-kit: pasar el Arquitecto por este repo (norte, estructura, docs, README).
+  4. **Diseñar el pack con Guido adentro** (Base con el "norte" del proyecto y manual por módulo ·
+     Dirección: director/obrero/tramo + política de modelos · Mesa entre directores y entre PCs · el
+     Arquitecto como puerta, también para proyectos que ya andan). Fuentes: el informe + los métodos
+     de Hermes Desktop y Mobile.
+  5. Construirlo por piezas.
+- 🔥 **EL ESTRENO REAL de `/relevamiento`** — *(probablemente ya ocurrió en la práctica entre agosto y
+  octubre: Guido la usó "mucho". La misión 2 busca esa evidencia en los chats — pregunta Q4 del SPEC.)*
+  El próximo pedido de otro sector, de punta a punta.
   Es la única señal que vale, y hasta que pase **no se declara estable** (precedente: `docs-fyd`
   pasó 16/16 en verificación y la primera corrida real le corrigió 9 de 10 artefactos). De los 21
   criterios de aceptación, **10 se verificaron en el build con evidencia real** (los dos techos, el

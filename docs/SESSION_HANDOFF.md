@@ -3,94 +3,66 @@
 > **Save game** del proyecto madre. `/cierre` lo sobreescribe entero; el hook SessionStart lo
 > inyecta en cada chat nuevo de esta carpeta.
 
-**Última sesión cerrada:** 2026-08-03 — **`/relevamiento` CONSTRUIDA, ampliada y el repo ordenado.
-Versión estable `v2.4.2`.** El tramo de ANTES del Arquitecto existe y está instalado. Nueve commits,
-cuatro tags, y una limpieza final para llegar al estreno sin frentes abiertos.
+**Última sesión cerrada:** 2026-10-12, en la PC `clientes` (`D:\vibe-kit`) — **la vuelta después de
+70 días.** Se planeó la investigación de los chats, misión 1 de 5. Hay un solo archivo nuevo de peso:
+`docs/SPEC-investigacion-chats.md` (**READY**). Versión del kit sin cambios: `v2.4.2`.
 
-## Estado en una pantalla
+## Qué pasó en los 70 días (contado por Guido, no está en git)
 
-| | |
-|---|---|
-| La skill | `kit/skills/relevamiento/` — **232 líneas** de motor (techo 260) + **5 anexos** + **12 plantillas** |
-| Tamaño | motor+anexos **56.240 B** (techo 56.320 · **margen 80**) |
-| Enganches | **8**, verificados uno por uno |
-| Rutas canónicas | **5**, `diff -r` limpio |
-| Gobierno | **20 ADRs** · **15 REJ** |
-| Tags | `v2.3` → `v2.4` → `v2.4.1` → `v2.4.2` |
+- **Usó muchísimo el kit**: el Arquitecto (arrancar proyectos, preparar skills, equivalencias), también
+  invocado adentro de proyectos, más `/relevamiento` y `docs-fyd`. *"Me ha ido muy, muy bien."*
+- **Armó un método propio en Hermes**: director / obrero / tramo con subagentes (implementador Sonnet,
+  revisor Opus sin Bash, explorador Haiku) + red-team. Está en Hermes Desktop y en Hermes Mobile.
+- **Mesa entre directores**: los directores de proyectos que comparten base y usuarios
+  (Desktop ↔ Mobile ↔ Devoluciones) **se hablan entre ellos**, se ponen de acuerdo y **se contagian
+  mejoras del método**. *"Me salva la vida."*
+- **Comunicación entre PCs por Remote Control**: Guido ya la usó, ida y vuelta, y la quiere en el pack.
+- Su balance: más tokens y más lento, pero **mucha consistencia, muy pocos errores y mucha menos
+  participación suya**.
 
-## Próximo paso concreto — y es uno solo
+## Próximo paso concreto: la misión 2, la investigación
 
-**El estreno real.** Cuando llegue el próximo pedido de otro sector: chat nuevo → `relevamiento` →
-dictar de corrido. **Lo que se mide no es la calidad del documento:**
+Abrir un chat nuevo acá → `/inicio` → *"ejecutá el SPEC de la investigación"*. El spec trae todo:
 
-1. ¿La invocaste sin que nadie te la recuerde? *(no hay ningún mecanismo que lo haga, a propósito)*
-2. ¿Cuántas preguntas te parecieron de más?
-3. ¿El Arquitecto repitió alguna que ya estaba en el dossier?
-4. ¿Dictar fue más cómodo que llenar el Word? — **es la apuesta central de todo el diseño**
+- **Etapa 0** — un script local (`investigacion/condensar.py`, a escribir) que condensa los `.jsonl`,
+  enmascara secretos y saca el costo real por rol y modelo. **Primero se prueba con 3 chats elegidos
+  a mano** y se mira la salida.
+- **Etapa 1** — lectores en Sonnet, por lotes. **Guido ya pidió la Workflow (D1)**, pero conviene
+  reconfirmarla en ese chat, porque el permiso es por sesión.
+- **Etapa 2** — síntesis en Opus → `tips/tanda-2026-10-chats.md`.
+- **El presupuesto (D4) se fija después de la Etapa 0**, con el tamaño condensado en la mano.
+- **La otra PC** corre su propia Etapa 0+1 y una mini-síntesis, coordinada por Remote Control. La
+  mini-síntesis vuelve por el repo **privado** `vibe-research`, que hay que crear al arrancar.
 
-Precedente que manda: `docs-fyd` pasó **16/16** en verificación y **la primera corrida real le corrigió
-9 de 10 artefactos**. Acá el ciclo es peor: validar tarda un pedido de trabajo completo, semanas.
+## Cosas que muerden y no están en ningún otro doc
 
-## Qué está verificado y qué no
+- 🔴 **vibe-kit es PÚBLICO** (`gh repo view` lo dice). Nada de los chats entra crudo. Antes de cada
+  push hay que correr un escáner de secretos y Guido tiene que mirar el diff. Viene del red-team del
+  spec (ADR-021).
+- **En esta PC hay 941 transcripts de subagentes** en `projects/*/*/subagents/`. El `usage` se repite
+  en varias líneas por cada respuesta: hay que agruparlo por `message.id`. El rol de cada sesión está en
+  `custom-title.json`. Todo verificado por el red-team.
+- **Volumen medido en esta PC:** 1,9 GB y ~230 chats principales. El 85% es Hermes (Desktop 90 chats,
+  Mobile 94).
+- **Las fuentes del método** que leen los agentes:
+  - Desktop: `d:\Hermes\Hermes.exe\docs\metodo\`. La bitácora al día está en
+    `D:\Hermes-bitacora\docs\metodo\bitacora\`, no en `main`.
+  - Mobile: `d:\Hermes\Hermes mobile\docs\v4\METODO.md` y `docs\WORKFLOW.md`.
+- **El "capataz"** es un agente que Guido arma para regalarle a oficinistas no-dev. En esta PC solo
+  están los chats de sus pruebas (`*kit-eq-pruebas-capataz*`); el código no está acá. Preguntarle a
+  Guido dónde vive.
+- **El diff kit↔instalado en esta PC no da limpio por una sola línea**: la "carpeta de proyectos" del
+  Arquitecto. Es el slot por máquina y está documentado como excepción en ADR-021. No es drift.
+- **Dos alertas de seguridad de Hermes** que aparecieron leyendo su bitácora. Son de Hermes, no de acá:
+  - un merge corrió sin el clic de Guido, porque `git -C <ruta> merge` esquiva la regla `ask`;
+  - `/smoke` tiene una contraseña de producción desactualizada.
 
-**Verificado con evidencia real (10 de 21 criterios):** el pipeline del PDF de punta a punta (58.173 B,
-`%PDF-1.4`, los 5 baldes distinguibles en escala de grises — se abrió el PDF y se miró) · los 3 hechos
-de Chrome re-confirmados a mano (el HTML inexistente vuelve a dar **23.943 bytes exactos**) · el ritual
-de sincronización de plantillas corrido y revertido · cero glob en el Arquitecto (el token explícito es
-cierto por construcción) · el fork de plantillas sin una sola línea `<` · los dos techos · las 8
-secciones del TABLERO con quien las escriba · los 44 mecanismos del SPEC presentes.
-
-**NO verificado — necesita una corrida con Guido adentro:** los criterios **2, 3, 4, 7, 8, 9, 10, 11,
-12, 15, 17, 19**. Clics contados, contradicciones reales, lentes que se bajan, el asimétrico
-prendiendo, la mudanza. **No se declara estable hasta el primer relevamiento de punta a punta.**
-
-## Los tres riesgos que más me preocupan (opinión, no dato)
-
-1. **El tope de 24 interrupciones no tiene mecanismo.** Es un número declarado: nada lo cuenta, lo
-   tiene que contar Claude solo a lo largo de semanas. El red-team ya encontró una vez 56 reales
-   contra 20 declaradas. **Si algo arruina el estreno, es esto.**
-2. **El volcado es la apuesta central y sigue sin probar.** Si el mapeo sale mediocre, Guido va a
-   sentir que corrige a un mal secretario — peor que el Word.
-3. **Mucha maquinaria para algo que se usa 4-5 veces al año.** Lo que se usa poco se pudre en silencio.
-
-## Contexto que no está en otros docs
-
-- **⚠️ El techo de KB está lleno: 80 bytes.** Es la **tercera vez consecutiva** que se salva podando
-  duplicación, y ya no queda grasa evidente. **Lo próximo que se agregue necesita una decisión sobre
-  el número, con su razón escrita en un ADR** — no alcanza con limpiar. Los 7 cortes restantes de la
-  escalera (−35 líneas) siguen sin gastar, en `docs/PRESUPUESTO-relevamiento.md`.
-- **La lección de tamaño:** el techo es **de líneas** pero el contenido se presupuesta **en bytes**, y
-  se desacoplan. En el build, tras el corte 1, el archivo tenía 317 líneas con 20.799 B — el contenido
-  entraba holgado y lo que sobraba era **el formato** (65 B/línea contra 77 de `docs-fyd` y 104 del
-  Arquitecto). Reflowar a 92,8 lo bajó a 224 sin sacar nada. **Escribir fino infla el conteo sin
-  ahorrar un token.**
-- **La primera vez que algo de la skill tocó un caso real, encontró un bug.** Generando el PDF de la
-  hoja de mano se descubrió que **`where chrome` devuelve vacío en esta máquina** y lo que funciona es
-  el fallback a las 3 rutas. La skill ya lo hacía bien, pero el anexo le daba autoridad al camino
-  equivocado. Corregido en `v2.4.1`. *Es exactamente lo que se espera del estreno.*
-- **⚠️ El criterio 5 del SPEC estaba mal instrumentado y quedó corregido en el anexo:** `grep "file:///"`
-  sobre un `.pdf` **da 0 aunque la ruta esté impresa** (streams comprimidos). El chequeo válido es que
-  `--no-pdf-header-footer` esté en el comando.
-- **`docs/` quedó en 9 archivos**, todos con razón de estar. La convención documental está escrita en
-  el Mapa de `CLAUDE.md` (**ADR-020**): un SPEC implementado **se marca y se queda**; lo consumido va a
-  `legacy/` con lápida. Incluye la divergencia deliberada con `formato-spec.md` del kit y su porqué.
-- **El zip portable se retiró** (**REJ-015**) con el paso del `/cierre` que lo regeneraba. La evidencia
-  que lo mató: la carpeta desapareció de la PC principal **sin que nadie lo notara**. Los caminos vivos
-  son `git clone` + `kit/INSTALAR.md`, y **`actualizate`** para una PC que ya lo tiene.
-- **La hoja de mano está en tres lados:** `guias/HOJA-DE-MANO-relevamiento.md` (versionada), un PDF en
-  el Escritorio, y el artefacto en claude.ai. Enlazada desde el README y la guía.
-- **De las 5 cosas que se agregaron en `v2.4`, ninguna pasó por red-team.** Cuatro se recuperaron del
-  artefacto de diseño y tapan agujeros ya diagnosticados por escrito (riesgo bajo). **La quinta —
-  arrancar desde material que ya existe— es una apuesta nueva** que Guido pidió con su caso a la vista.
-- **Lo que hay que llevarle al jefe, sin apuro:** las 7 celdas faltantes (viven en la copia del kit,
-  marcadas `[+fork]`) · versionar el método · y el hueco estructural: **el criterio de éxito a las 4-6
-  semanas no tiene dueño ni fecha en el método**. El tramo 5 lo cierra del lado de Guido; del lado del
-  papel sigue abierto.
-- **Fase 2 de `/relevamiento`** (7 piezas, la más pedida: que lea sola el código) vive en **REJ-014**
-  con su condición de reapertura, y se encuentra desde los Pendientes del README.
-- **Sin estrenar todavía:** el **Modo B** del Arquitecto (ADR-012) y los modos "actualizar"/"agregar al
-  menú" del Equipador.
+  Además: si la contraseña de producción que salió en pantalla en un transcript no se cambió, conviene
+  cambiarla.
+- **El estreno de `/relevamiento` seguramente ya pasó en la práctica.** Su evidencia está en los chats,
+  y la busca la pregunta Q4 del spec.
 
 ## Bloqueos
 
-Ninguno.
+Ninguno. Para la otra PC hace falta que Guido abra allá una sesión de Claude Code con Remote Control,
+con vibe-kit al día (`git pull`).
