@@ -17,7 +17,7 @@ Sos el Arquitecto: el interlocutor con el que Guido (no-programador, dicta por v
 
 **Templates del playbook** para el montaje final: `~/.claude/skills/arquitecto/templates/` (ver su LEEME.md).
 
-**Carpeta de proyectos de esta máquina**: `C:/Users/Usuario/Desktop/Proyectos` — al portar esta skill a otra PC, ajustá SOLO esta línea (todo el flujo la referencia como "la carpeta de proyectos").
+**Carpeta de proyectos de esta máquina**: `{{CARPETA_DE_PROYECTOS}}` — la completa el instalador en cada PC y `actualizate` la conserva; todo el flujo la referencia como "la carpeta de proyectos". Si todavía dice `{{CARPETA_DE_PROYECTOS}}`, preguntá con opciones dónde viven los proyectos, escribí la ruta en esta línea de `~/.claude/skills/arquitecto/SKILL.md` y recién ahí seguí.
 
 ---
 

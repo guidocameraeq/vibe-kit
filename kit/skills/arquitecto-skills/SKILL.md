@@ -78,8 +78,8 @@ instalan en `~/.claude/`.
    preguntá SIEMPRE (una edición directa a `~/.claude/` está huérfana del repo — el lugar canónico es el
    repo; conviene llevarla allá antes de pisar).
 3. **⚠️ Preservá lo que es por-PC**: la línea **"Carpeta de proyectos de esta máquina"** del
-   `arquitecto/SKILL.md` es local de cada máquina — al pisar, **conservá la ruta que ya estaba**, no la
-   del repo. Es el único slot que INSTALAR ajusta por-PC.
+   `arquitecto/SKILL.md` es local de cada máquina — al pisar, **conservá la ruta que ya estaba**: el repo
+   trae `{{CARPETA_DE_PROYECTOS}}`, un lugar vacío. Es el único slot que INSTALAR ajusta por-PC.
 4. **Auto-update**: al actualizar `arquitecto-skills` te pisás a vos mismo — está bien; la versión nueva
    carga al **reiniciar Claude Code**.
 5. **Limpiá** el clon temporal.

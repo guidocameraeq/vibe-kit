@@ -1,5 +1,9 @@
 # Presupuesto de líneas — `/relevamiento`
 
+> **📦 ARCHIVADO 2026-10-13** (misión 3, ADR-023). Era el contrato de líneas del build de
+> `/relevamiento`; el build ya ocurrió (`kit/skills/relevamiento/`, v2.4.2). Criterio de ADR-020:
+> nadie lo consulta y su trabajo ya ocurrió. Vivía en `docs/PRESUPUESTO-relevamiento.md`.
+
 > Reconciliación de tres estimaciones independientes (bottom-up · analogía · pesimista), cruzada contra el SPEC y contra los archivos reales del kit medidos con `wc -l -c` el 2026-08-03. Este documento es **el contrato**: el que construya escribe contra la tabla del motor, no contra su criterio.
 
 ---

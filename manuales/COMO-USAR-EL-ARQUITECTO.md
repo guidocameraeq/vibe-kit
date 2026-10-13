@@ -226,7 +226,6 @@ abierto que de costumbre.
 
 ---
 
-*Estado al 2026-07-06: los 3 modos construidos. Modo A validado adversarialmente (6 tests,
-8 fixes) + uso real inicial; Modos B y C sin prueba de fuego. Pendiente: la prueba de fuego
-INTEGRAL de los tres (decisión: construir todo → testear todo junto). El diseño completo
-vive en `PROPUESTA-VIBE-KIT-V2.md` (Guia de vibe coding); el método madre en `PLAYBOOK-MAESTRO.md`.*
+*Qué está probado y qué falta de cada modo: `docs/TODO.md` (los estrenos pendientes) y
+`docs/CHANGELOG.md`. El diseño original vive en `legacy/PROPUESTA-VIBE-KIT-V2.md`; el método madre,
+en `PLAYBOOK-MAESTRO.md`.*

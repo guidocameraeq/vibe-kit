@@ -1,6 +1,6 @@
 # Templates del sistema de trabajo — qué es cada cosa
 
-Moldes extraídos de las instancias reales de Perseo, materializan el PLAYBOOK-MAESTRO (Guia de vibe coding). **Quién los instancia**: el Arquitecto al montar un proyecto nuevo, o el prompt de aplicación del §2.9 del playbook pegado a mano en un chat del proyecto. Instanciar = copiar al proyecto, reemplazar los `{{...}}`, borrar lo que no aplique.
+Moldes extraídos de las instancias reales de Perseo, materializan el PLAYBOOK-MAESTRO (repo vibe-kit). **Quién los instancia**: el Arquitecto al montar un proyecto nuevo, o el prompt de aplicación del §2.9 del playbook pegado a mano en un chat del proyecto. Instanciar = copiar al proyecto, reemplazar los `{{...}}`, borrar lo que no aplique.
 
 ## `universales/` — van en TODO proyecto, desde el día cero
 

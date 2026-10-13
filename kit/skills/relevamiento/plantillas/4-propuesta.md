@@ -1,6 +1,6 @@
 <!-- fuente: _fuente/04-propuesta-de-valor.md · versión del método: 2026-07-22 (el método
-     no está versionado — ver Riesgos del SPEC) · dueño humano: el jefe de Guido.
-     Si él cambia una pregunta, GANA ÉL: ver plantillas/SYNC.md -->
+     no está versionado — ver Riesgos del SPEC) · autor: Guido; aprobadas por su jefe.
+     La versión aprobada manda; la cambia Guido con el OK de su jefe: ver plantillas/SYNC.md -->
 
 # Propuesta de Valor
 

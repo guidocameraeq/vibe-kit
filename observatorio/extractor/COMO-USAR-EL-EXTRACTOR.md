@@ -1,7 +1,7 @@
 # Cómo usar el Extractor (mini guía)
 
 > El agente que convierte tus TikToks guardados en mejoras curadas del sistema. Su cerebro
-> vive en `extractor/CLAUDE.md` (si esta guía y aquel difieren, gana aquel). v2026-07-11.
+> vive en el `CLAUDE.md` de esta misma carpeta (si esta guía y aquel difieren, gana aquel). v2026-07-11.
 
 ## Qué es, en una frase
 
@@ -11,7 +11,7 @@ toca el sistema — por diseño.
 
 ## Cómo se usa (3 pasos)
 
-1. **VSCode → Archivo → Abrir carpeta** → `Desktop\Proyectos\Guia de vibe coding\extractor`
+1. **VSCode → Archivo → Abrir carpeta** → `vibe-kit\observatorio\extractor` (la carpeta del repo en tu PC)
 2. Abrí el chat de Claude Code ahí. **Modelo: Opus o Sonnet van perfecto** — es trabajo
    mecánico de extracción, no hace falta gastar el modelo grande.
 3. **Pegá los links y nada más.** El CLAUDE.md de la carpeta ya le dio el rol, el pipeline
@@ -33,7 +33,7 @@ toca el sistema — por diseño.
 
 ## Después — procesar el informe (la etapa 2)
 
-Chat nuevo en la **raíz** del repo (`Guia de vibe coding`) →
+Chat nuevo en la **raíz** del repo (`vibe-kit`) →
 > **"leé tips/tanda-<fecha>.md y procesemos las conclusiones"**
 
 Ahí se discuten las propuestas una por una y, con tu OK, se aplican (playbook, menú, kit).

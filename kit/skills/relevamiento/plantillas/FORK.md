@@ -1,16 +1,16 @@
-# FORK — qué agrega el kit sobre las plantillas del jefe
+# FORK — qué agrega el kit sobre las plantillas aprobadas
 
 > **El original manda.** `_fuente/01..04-*.md` son las 4 plantillas del método "Cómo Arrancar un
-> Proyecto" tal como las repartió el jefe de Guido (2026-07-22). **Nunca se editan.** Las de trabajo
+> Proyecto", de Guido, en la versión que aprobó su jefe (2026-07-22). **Nunca se editan.** Las de trabajo
 > (`1..4-*.md`) son esos mismos archivos **más lo de esta lista, y nada más**.
 >
 > **Todo el fork es agregado puro**: `diff _fuente/0N-*.md N-*.md` no tiene una sola línea `<`.
-> Por eso se re-aplica a mano en 5 minutos cuando el jefe cambie algo (ver `SYNC.md`).
+> Por eso se re-aplica a mano en 5 minutos cuando cambie la versión aprobada (ver `SYNC.md`).
 
 ## 1. La cabecera de procedencia (los 4 archivos)
 
 3 líneas de comentario HTML al tope, antes del `#`. Dice de qué `_fuente/` sale, la fecha del método,
-que el dueño humano es el jefe y que si él cambia una pregunta **gana él**. No se imprime en el PDF.
+que el autor es Guido con aprobación de su jefe y que **la versión aprobada manda**. No se imprime en el PDF.
 
 ## 2. Las 7 celdas faltantes de la grilla
 
@@ -40,5 +40,5 @@ porque ahí las lentes van fundidas y marcadas `[fp]`.
 ## Lo que el kit NO cambió
 
 Ni una pregunta del original · ni el orden · ni los `{{LINEAS:N}}` (ver `LEEME.md`) · ni los títulos ·
-ni los textos de ayuda en `>`. **Las plantillas que el jefe ya repartió no se tocan**: las 7 celdas
-son una propuesta para llevarle aparte, y hasta que él las apruebe viven sólo en la copia del kit.
+ni los textos de ayuda en `>`. **La versión aprobada no se toca**: las 7 celdas
+son una propuesta para llevarle al jefe aparte, y hasta que él las apruebe viven sólo en la copia del kit.

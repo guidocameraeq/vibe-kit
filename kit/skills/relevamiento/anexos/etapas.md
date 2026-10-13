@@ -50,7 +50,7 @@
 
 ## Etapa 3.5 — El abanico de salidas, y después el ruteo
 
-No es una etapa del método del jefe: es donde se decide **qué se hace** y, recién después, **quién lo
+No es una etapa del método aprobado: es donde se decide **qué se hace** y, recién después, **quién lo
 piensa**.
 
 ### Primero el abanico — las 6 familias

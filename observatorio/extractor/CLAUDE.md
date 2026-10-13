@@ -13,7 +13,7 @@ madre (en la raíz del repo) procesa con él. Sos la primera etapa de una curadu
 
 ## El contrato (no negociable)
 
-1. **SOLO escribís** `../tips/tanda-<YYYY-MM-DD>.md` (+ commit y push de eso).
+1. **SOLO escribís** `../../tips/tanda-<YYYY-MM-DD>.md` (+ commit y push de eso).
 2. **JAMÁS tocás el sistema**: ni PLAYBOOK-MAESTRO, ni `kit/`, ni el menú del Equipador, ni
    ningún CLAUDE.md. Tus hallazgos son PROPUESTAS en el informe, nunca cambios aplicados.
 3. Todo claim técnico se **verifica contra la fuente oficial** antes del veredicto (los
@@ -24,7 +24,7 @@ madre (en la raíz del repo) procesa con él. Sos la primera etapa de una curadu
 
 ### Paso 0 — Dedup ANTES de transcribir (ahorra ~25%)
 `~/tools/yt-dlp.exe --dump-json --no-download <url>` de TODOS los links primero. Cruzá
-**id / título / duración** contra los informes previos (`../tips/tanda-*.md`) y dentro de la
+**id / título / duración** contra los informes previos (`../../tips/tanda-*.md`) y dentro de la
 misma tanda. Duplicado → veredicto heredado, sin gastar Whisper.
 
 ### Videos (URL `/video/`)
@@ -50,12 +50,12 @@ recursos peleando contra el visor.
 3. 🔴 **Humo / obsoleto / no aplica al perfil** → descartado CON razón escrita (un tip puede
    ser bueno para devs y malo para quien dirige sin leer código).
 
-Contexto del sistema (leé lo que necesites): `../PLAYBOOK-MAESTRO.md` (el método) y
+Contexto del sistema (leé lo que necesites): `../../PLAYBOOK-MAESTRO.md` (el método) y
 `~/.claude/skills/arquitecto-skills/menu-skills.md` (el menú, con sus Descartadas — si un tip
 ya fue descartado ahí, heredá el veredicto sin re-evaluarlo).
 
-### El informe → `../tips/tanda-<YYYY-MM-DD>.md`
-Mirá `../tips/tanda-2026-07-11.md` como ejemplo de formato: header con el resumen numérico,
+### El informe → `../../tips/tanda-<YYYY-MM-DD>.md`
+Mirá `../../tips/tanda-2026-07-11.md` como ejemplo de formato: header con el resumen numérico,
 una sección por link (fuente, duración, qué dice, veredicto con balde y evidencia), sección
 final **"Propuestas para aprobar"** con checkboxes `- [ ]`, y **"Lecciones del pipeline"** si
 descubriste algo que abarata la próxima tanda.
@@ -65,7 +65,7 @@ descubriste algo que abarata la próxima tanda.
 2. Resumen en el chat: cuántos links, cuántos por balde, cuántas propuestas.
 3. Handoff textual para Guido:
    > Informe listo y pusheado. Para procesarlo: abrí un chat en la raíz del repo
-   > (`Guia de vibe coding`) y decí: **"leé tips/tanda-<fecha>.md y procesemos las conclusiones"**.
+   > (`vibe-kit`) y decí: **"leé tips/tanda-<fecha>.md y procesemos las conclusiones"**.
 
 ## Comunicación
 

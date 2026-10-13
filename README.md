@@ -1,119 +1,78 @@
-# vibe-kit — mi método de vibe coding con Claude Code
+# vibe-kit
 
-> El método completo para dirigir Claude Code sin ser programador: el playbook (documentación +
-> sistema de trabajo), el Arquitecto (piensa y monta proyectos nuevos), el Equipador (equipa
-> máquinas con skills curadas), y `/relevamiento` (el tramo de ANTES: entender un pedido que vino de
-> otra persona). Nacido de auditorías reales sobre meses de trabajo (Hermes, Perseo).
-> **Versión estable: `v2.4.2`** (tag de git, 2026-08-03 — la skill `/relevamiento`: el método de arranque
-> de 4 etapas con PDF por etapa, revisor y lentes, la costura al Arquitecto por token explícito, el
-> abanico de 6 salidas —construir es sólo una— y el arranque desde material que ya existe; v2.4.1
-> corrige la detección de Chrome con lo medido; v2.4.2 cablea las secciones del tablero que nadie escribía).
-> v2.2.1 fue `docs-fyd` con la checklist condicionada al repo; v2.1, el Arquitecto de 3 modos.
+**Un método para dirigir Claude Code sin saber programar, y las herramientas que lo vuelven
+mecánico.** Son skills de Claude Code que planean y montan proyectos, preparan cada PC y
+mantienen el orden de trabajo de un chat a otro, más el playbook que explica por qué.
 
-## La regla de la casa (desde que esto es un repo)
+> **Repo personal y en evolución.** Es el taller de Guido: lo usa todos los días en sus proyectos y
+> lo cambia cuando la evidencia lo pide. Es público para que cualquiera lo mire o lo copie, pero
+> **no es un producto ni tiene soporte**. Algunas cosas son propias de su trabajo (sus carpetas,
+> su método de relevamiento).
 
-**La fuente canónica es ESTE repo.** La copia instalada en `~/.claude/` de cada máquina se
-sincroniza DESDE acá. El flujo de cambios:
+## Misión y visión
 
-```
-editar en kit/ (este repo) → sincronizar a ~/.claude/ → commit + push
-```
+- **Para qué existe:** juntar en un solo lugar el método para dirigir Claude Code sin escribir código,
+  probado en proyectos reales, donde cada regla lleva escrito dónde dolió.
+- **Adónde va:** a un pack que otra persona pueda instalar y usar con sus propios proyectos.
+- **Qué NO hace:** no construye apps (eso pasa en la carpeta de cada proyecto), no es un plugin y no
+  promete soporte.
 
-Para cambiar algo del Arquitecto/Equipador, en un chat de esta carpeta:
-*"actualizá el arquitecto: [el cambio] — editá en kit/, sincronizá a ~/.claude y commiteá"*.
-Nunca editar `~/.claude/` directo (queda huérfano del historial).
+Completo, en una pantalla: [`docs/MISION-Y-VISION.md`](docs/MISION-Y-VISION.md).
 
-## Estructura
+## Cómo se usa, en 4 pasos
 
-| Qué | Dónde |
+1. **Instalar** el kit en la PC (abajo). Copia las skills a `~/.claude/`.
+2. **Arrancar un proyecto con `/arquitecto`**: te entrevista, escribe el plano (SPEC) y monta el
+   proyecto con su CLAUDE.md, sus docs y sus rituales.
+3. **Trabajar con `inicio` y `cierre`**: un chat por tarea; el chat se descarta, lo que importa queda
+   escrito en archivos.
+4. **El observatorio propone mejoras**: mira tips y chats reales y deja actas en `tips/`; qué entra
+   al kit se decide acá, con evidencia.
+
+**Las piezas** (cada una es una *skill*: instrucciones que Claude Code carga cuando las llamás):
+
+| Pieza | Qué hace |
 |---|---|
-| **La guía de uso** — recetas por situación + frases mágicas (empezá por acá) | `GUIA-DE-USO.md` |
-| **El método** (documentación + sistema de trabajo, se lee 1 vez por proyecto) | `PLAYBOOK-MAESTRO.md` |
-| **El kit instalable** — FUENTE CANÓNICA del Arquitecto + Equipador + menú + templates + agente red-team + **motor `docs-fyd`** + **skill `/relevamiento`** (con las plantillas del método en `_fuente/`) + su instalador | `kit/` |
-| **Guías de uso** (casos de uso, cuándo sí/no) — incluye **`HOJA-DE-MANO-relevamiento.md`**, la hoja de una página para tener a mano cuando te piden algo | `guias/` |
-| **El Extractor** — agente de tips: abrir Claude Code AHÍ + pegar links = extrae, evalúa y deja el informe | `extractor/` |
-| Informes de tandas de tips (outputs del Extractor) | `tips/` |
-| Estado del proyecto madre: handoff (lo inyecta el hook), DECISIONS (20 ADRs), REJECTED (15 REJ), **SPEC + PRESUPUESTO + RECORRIDO de `/relevamiento` (implementado → la skill vive en `kit/skills/relevamiento/`)** | `docs/` + `CLAUDE.md` raíz + skill `/cierre` |
-| Archivo histórico (v1, auditorías, snapshots pre-git, la PROPUESTA-V2 ya cumplida) | `legacy/` |
+| `/arquitecto` | Planea antes de hacer: proyecto nuevo, feature grande sobre una app que ya anda, o "cómo le pido esto a Claude" |
+| `/arquitecto-skills` (el Equipador) | Instala y actualiza en la PC las skills de un menú curado |
+| `/relevamiento` | Cuando el pedido viene de otra persona: ordena la charla en 4 documentos y decide si hace falta software |
+| `/docs-fyd` | Documentación técnica de auditoría de un repo, derivada del código |
+| `inicio` / `cierre` | Los rituales de cada chat de trabajo: arrancar sabiendo dónde quedaste, cerrar con todo guardado |
 
-## Instalar en una PC nueva
+Las recetas por situación ("quiero X → hacé Y") están en **[`GUIA-DE-USO.md`](GUIA-DE-USO.md)**:
+es la puerta de entrada para usarlo.
 
-1. Clonar este repo (necesita git — ver REJ-015 si la máquina no lo tiene).
-2. Abrir Claude Code en `kit/` y pegar el prompt de `kit/INSTALAR.md`. Se instala solo:
-   copia skills y agente a `~/.claude/`, pregunta dónde viven tus proyectos, verifica todo.
-3. Al final ofrece equipar la máquina (`/arquitecto-skills` — el menú curado de skills).
+## Qué hay en cada carpeta
 
-## El día a día (una vez instalado)
+| Carpeta / archivo | Qué es |
+|---|---|
+| [`GUIA-DE-USO.md`](GUIA-DE-USO.md) | Recetas por situación y frases para decirle a Claude. **Empezá por acá** |
+| [`PLAYBOOK-MAESTRO.md`](PLAYBOOK-MAESTRO.md) | El método completo: documentación y sistema de trabajo, con su porqué |
+| [`kit/`](kit/) | **La fuente** de lo instalable: el Arquitecto, el Equipador (`/arquitecto-skills`), `/docs-fyd`, `/relevamiento`, el agente red-team y el instalador |
+| [`manuales/`](manuales/) | El detalle a fondo de cada pieza: el Arquitecto y el Equipador, y la hoja de mano de `/relevamiento` |
+| [`observatorio/`](observatorio/) | Los que miran y anotan, no tocan: el Extractor de tips y la investigación de chats |
+| [`tips/`](tips/) | Las actas del observatorio, con propuestas para aprobar |
+| [`docs/`](docs/) | El estado del repo: pendientes, versiones, decisiones, descartes y planos ([índice](docs/README.md)) |
+| [`legacy/`](legacy/) | Lo superado, archivado con su lápida (no se borra) |
+| `CLAUDE.md` · `.claude/` | Las reglas para Claude en este repo y sus rituales `/inicio` y `/cierre` |
 
-**→ [`GUIA-DE-USO.md`](GUIA-DE-USO.md)** — todas las recetas por situación ("quiero X → hacé Y")
-y la chuleta de frases mágicas. Es LA puerta de entrada para usar el sistema.
+## Instalar en una PC
 
-## Mantenimiento
+Hace falta: [Claude Code](https://claude.com/claude-code) funcionando y git.
 
-- Cambio al kit → editar en `kit/` → sincronizar a `~/.claude/` → commit + push (una sola
-  fuente, historial completo). Los snapshots de `legacy/snapshots/` quedaron para la era
-  pre-git; ahora versiona git.
-- PDFs de las guías: se generan a demanda (los MD de `guias/` son la fuente).
-- En la otra PC (d:\SAAS): clonar este repo y correr el instalador — su catálogo viejo
-  (`legacy/KIT_SKILLS-maquina-dsaas-2026-07-05.md`) se reconcilia con el menú del Equipador.
+1. Clonar este repo.
+2. Abrir Claude Code en `kit/` y pegar el prompt de [`kit/INSTALAR.md`](kit/INSTALAR.md). Copia las
+   skills y el agente a `~/.claude/`, pregunta dónde viven tus proyectos y verifica todo.
+3. Al final ofrece equipar la máquina con el menú curado de skills (`/arquitecto-skills`).
 
-## Pendientes (post-v2.1)
+Para actualizar una PC que ya lo tiene: decirle al Equipador **`actualizate`**.
 
-- 🧭 **LA HOJA DE RUTA DE OTOÑO-2026 — 5 misiones, una por chat** (ADR-021). Tras 70 días de uso
-  intenso sin volver al kit, se investiga antes de rediseñar:
-  1. ✅ Planear la investigación → `docs/SPEC-investigacion-chats.md` (READY, 2026-10-12).
-  2. ✅ **La investigación de los chats** (2026-10-13) → `tips/tanda-2026-10-chats.md` (68 hallazgos
-     de las 2 PCs de Guido + anexo de la PC del compañero; **57 propuestas con checkbox**) +
-     `investigacion/costos.md`. Lo hallado se guarda en `D:\vibe-hallazgos\` hasta el final de la
-     hoja de ruta (ADR-022); la fecha de corte para la próxima investigación está en el informe §0.
-  3. ⏭️ Profesionalizar vibe-kit: pasar el Arquitecto por este repo (norte, estructura, docs, README).
-  4. **Diseñar el pack con Guido adentro** (Base con el "norte" del proyecto y manual por módulo ·
-     Dirección: director/obrero/tramo + política de modelos · Mesa entre directores y entre PCs · el
-     Arquitecto como puerta, también para proyectos que ya andan). Fuentes: el informe + los métodos
-     de Hermes Desktop y Mobile.
-  5. Construirlo por piezas.
-- 🔥 **EL ESTRENO REAL de `/relevamiento`** — *(ocurrió, pero no en las PCs de Guido: **7 chats del
-  compañero de trabajo**, 2026-09-08 a 10-07, ninguno cerrado de punta a punta; evidencia y fricciones
-  en el Anexo A1 de `tips/tanda-2026-10-chats.md`. Con eso se pueden revisar los 11 criterios; el
-  cierre completo de las 4 etapas y el chequeo de vencimiento siguen sin probarse.)*
-  El próximo pedido de otro sector, de punta a punta.
-  Es la única señal que vale, y hasta que pase **no se declara estable** (precedente: `docs-fyd`
-  pasó 16/16 en verificación y la primera corrida real le corrigió 9 de 10 artefactos). De los 21
-  criterios de aceptación, **10 se verificaron en el build con evidencia real** (los dos techos, el
-  pipeline del PDF, los 3 hechos de Chrome, el ritual de sync de plantillas, el token explícito);
-  **los otros 11 necesitan una corrida con Guido adentro** y están sin verificar, dichos como tales.
-  Lo que se mide en el estreno no es la calidad del documento: ¿la invocaste sin que nadie te la
-  recuerde? ¿cuántas preguntas te parecieron de más? ¿el Arquitecto repitió alguna?
-- 💡 **Las opciones guardadas de `/relevamiento` (la "Fase 2")** — siete piezas **diseñadas y no
-  construidas todavía**, no descartadas: que la skill **lea sola el código** de la app cuando el
-  pedido cae sobre algo que ya existe (la que más interés despertó) · que el **Modo B** del Arquitecto
-  use el dossier · Word como entregable · que se dé cuenta sola de que está cansando · un modo para
-  listar y podar relevamientos viejos · que aprenda entre relevamientos · guardar los PDF viejos.
-  **Cada una tiene escrita la condición exacta que la despierta** en **REJ-014**, y el diseño completo
-  quedó en `docs/SPEC-relevamiento.md` §"Fase 2" para no re-pensarlo. Casi todas esperan **evidencia
-  de uso**, no tiempo de desarrollo. *(Están en REJECTED.md por convención del repo — es donde viven
-  las cosas con condición de reapertura; esta línea existe para que se encuentren desde acá.)*
-- **Llevarle al jefe, aparte y sin apuro** (de la sesión de diseño): las **7 celdas faltantes** de la
-  grilla (viven en la copia del kit, marcadas `[+fork]`, hasta que él las apruebe) · **versionar el
-  método** (hoy no tiene número de versión: la procedencia cita la fecha 2026-07-22 y el detector es
-  `git diff _fuente/`) · y el hueco estructural: **el criterio de éxito a las 4-6 semanas no tiene
-  dueño ni fecha en el método** — el papel no cierra su propio lazo. El tramo 5 de la skill lo cierra
-  del lado de Guido, pero del lado del método sigue abierto.
-- **Fase 2 de `docs-fyd`**: el inventario central (`/inventario-fyd`, Excel + Mapa + hub privado)
-  quedó diferido; mientras tanto el Excel lo arma Guido desde su tablero Kanban (columnas en la
-  sección Fase 2 del SPEC).
-- 🔥 **Estreno real del Modo B**: primera feature grande sobre el ERP con `/arquitecto` en la
-  carpeta del proyecto (el modo está construido y validado adversarialmente; le falta su
-  primera misión de verdad).
-- **Compuerta del Modo C** (~2 semanas de uso de A+B): si no te trabaste 3+ veces pidiendo
-  cosas, C queda como está; si sí, se afina con casos reales.
-- Equipador: faltan estrenar "actualizar" y "agregar al menú".
-- Capturas del carrusel de @sabbb.md para cerrar el tip pendiente de la tanda 2.
+**La regla de la casa:** este repo es la fuente; `~/.claude/` es una copia. Los cambios se hacen en
+`kit/`, se sincronizan a `~/.claude/` y se commitean. Nunca se edita `~/.claude/` directo.
 
-### Ya hecho (la historia, en una línea cada uno)
+## Versiones, pendientes, licencia
 
-- ~~**CONSTRUIR la skill `/relevamiento`**~~ ✅ **2026-08-03** — `v2.4.2`. ADR-016 a 019 · REJ-011 a 014.
-- ~~**Release v2.0: el sistema `docs-fyd`**~~ ✅ **2026-07-23** — 16/16 verificado. ADR-014.
-- ~~**docs-fyd v2: dudas por opciones**~~ ✅ **2026-07-23**, evaluado en campo → PASS + `v2.2.1`. ADR-015.
-- ~~**Equipador auto-actualizable**~~ ✅ **2026-07-24** — el modo `actualizate`.
-- ~~**Llevar el kit a la PC d:\SAAS**~~ ✅ **2026-07-11**.
+- **Versiones:** los tags de git (`git tag`); qué trajo cada una, en [`docs/CHANGELOG.md`](docs/CHANGELOG.md).
+- **Qué falta:** [`docs/TODO.md`](docs/TODO.md) (la única lista de pendientes).
+- **Licencia:** [MIT](LICENSE), salvo `docs/consulta/referencia-prompts-fyd.md`, que reproduce texto
+  de FyD Sistemas y no está cubierto.

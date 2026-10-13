@@ -5,7 +5,7 @@ description: Ritual de inicio de sesión del repo vibe-kit — cruzar el handoff
 
 # /inicio — arrancar una sesión en el proyecto madre
 
-El hook SessionStart ya inyectó `SESSION_HANDOFF.md` + los pendientes del README + los últimos
+El hook SessionStart ya inyectó `SESSION_HANDOFF.md` + los pendientes de `docs/TODO.md` + los últimos
 commits al abrir este chat. **NO los releas** — es costo puro de contexto. Releé el archivo solo
 ante señal de drift (fecha vieja, contradicción con git) o si el hook no aparece en el contexto.
 
@@ -14,14 +14,14 @@ ante señal de drift (fecha vieja, contradicción con git) o si el hook no apare
 1. **Cruzar el handoff con la realidad** (barato, todo local — mostrar solo lo que llame la atención):
    - `git status -sb` → ¿working tree limpio? ¿`main` = `origin/main`? ¿el último commit coincide
      con el handoff?
-   - **`diff -r kit/skills/arquitecto ~/.claude/skills/arquitecto`** (+ `arquitecto-skills`,
-     `docs-fyd`, `relevamiento` y `agents/redteam-spec.md` — las **5 rutas canónicas**) → **el drift más peligroso de
-     este repo**: si da sucio, alguien editó `~/.claude/` directo (prohibido) o quedó un cierre a
-     medias. FRENAR y mostrarlo antes de trabajar — nunca pisar a ciegas en ninguna dirección.
+   - **`bash .claude/scripts/kit-sync.sh`** (compara las 5 rutas canónicas kit↔`~/.claude/`, ignorando
+     la carpeta de proyectos de cada PC) → **el drift más peligroso de este repo**: si no da `LIMPIO`,
+     alguien editó `~/.claude/` directo (prohibido) o quedó un cierre a medias. FRENAR y mostrarlo
+     antes de trabajar — nunca pisar a ciegas en ninguna dirección.
    - ¿Hay tandas en `tips/` con propuestas sin procesar (checkboxes `- [ ]` sin marcar)? → es
      trabajo pendiente que el handoff puede no mencionar.
-2. **Confirmar en 3 líneas**: **Estado** / **Próxima acción** (del handoff y los pendientes del
-   README) / **Bloqueos**. Si no dio la misión, preguntarla.
+2. **Confirmar en 3 líneas**: **Estado** / **Próxima acción** (del handoff y los pendientes de
+   `docs/TODO.md`) / **Bloqueos**. Si no dio la misión, preguntarla.
 3. **NO tocar nada hasta el OK explícito de Guido.**
 
 ## Reglas

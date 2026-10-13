@@ -2,7 +2,7 @@
 
 > La guía práctica del sistema completo, organizada por situación: **"quiero X → hacé Y"**.
 > No repite procedimientos (viven en el kit y las skills — si algo difiere, ganan ellos);
-> te dice qué decir, dónde, y qué esperar. Actualizada 2026-08-03 (`/relevamiento`: el tramo de ANTES del Arquitecto).
+> te dice qué decir, dónde, y qué esperar. Actualizada 2026-10-13 (el repo se reordenó: el Extractor y la investigación viven en `observatorio/`).
 
 ## El mapa mental en 30 segundos
 
@@ -30,13 +30,13 @@ muestra el plano, y con tu OK monta TODO. Al final te da el prompt exacto para e
 constructor. Atajo si tenés apuro: *"dale con los defaults"*.
 **Esto NO cambió con `/relevamiento`**: si la idea es tuya, seguís yendo directo al Arquitecto,
 y él no se entera de que existe ningún relevamiento. Es así por construcción, no por prolijidad.
-→ Detalle completo: `guias/COMO-USAR-EL-ARQUITECTO.md` (caso A)
+→ Detalle completo: `manuales/COMO-USAR-EL-ARQUITECTO.md` (caso A)
 
 ### 📥 "Me pidieron algo en el laburo"
 Otra persona te paró en el pasillo, o te mandó un mail, y hay que averiguar de qué se trata antes
 de diseñar nada. Chat nuevo → **`relevamiento`** y contá lo que sepas, **de corrido y como te salga**
 — no te sientes a llenar un formulario, dictá y él ordena.
-Te lleva por las 4 etapas del método que armaste con tu jefe (problema → sistema actual → necesidad
+Te lleva por las 4 etapas de tu método, el que aprobó tu jefe (problema → sistema actual → necesidad
 → propuesta de valor), **te saca un PDF cada vez que cerrás una etapa** (eso es lo que llevás a la
 reunión) y te arma la **hoja de campo** para cuando salís a hablar con gente — con una regla impresa
 arriba que vale el papel entero: *no expliques la solución, preguntá cómo lo hace hoy* (si contás la
@@ -63,7 +63,7 @@ no un fracaso.
   3 líneas.
 - A las 6 semanas de que la cosa esté en uso te va a preguntar **si sirvió** — con el criterio que
   vos mismo escribiste. Es el único lazo que el método en papel no cerraba.
-→ **La hoja de una página, para tener a mano**: `guias/HOJA-DE-MANO-relevamiento.md`
+→ **La hoja de una página, para tener a mano**: `manuales/HOJA-DE-MANO-relevamiento.md`
 → Detalle: `kit/skills/relevamiento/SKILL.md` · el porqué: ADR-016 a 019.
 
 ### 🔨 "Quiero trabajar en un proyecto que ya anda"
@@ -96,10 +96,10 @@ ofrecer solo — es regla de tus CLAUDE.md.)
 entrega el prompt listo para pegar, o la skill armada.
 
 ### 📱 "Guardé TikToks con tips de vibe coding"
-Abrí Claude Code en **`extractor/`** (VSCode → Abrir carpeta) → **pegá los links** — nada más.
+Abrí Claude Code en **`observatorio/extractor/`** (VSCode → Abrir carpeta) → **pegá los links** — nada más.
 El agente extrae, verifica y deja el informe en `tips/`. Después, chat en la raíz de este
 repo: *"leé tips/tanda-<fecha> y procesemos las conclusiones"* — ahí decidís qué entra.
-→ Detalle completo: `guias/COMO-USAR-EL-EXTRACTOR.md`
+→ Detalle completo: `observatorio/extractor/COMO-USAR-EL-EXTRACTOR.md`
 
 ### 💻 "Estoy en una PC nueva (o quiero actualizar la del SAAS)"
 **PC nueva:** `git clone` del repo → abrir Claude Code en `kit/` → pegar el prompt de
@@ -118,7 +118,7 @@ skill al menú"* (la investiga primero — nada entra sin curaduría).
 
 ### 🔧 "Quiero cambiar algo del método / del Arquitecto / del menú"
 Chat nuevo **en la raíz de este repo** → pedilo. La regla la sabe Claude: se edita en `kit/`,
-se sincroniza a `~/.claude/`, y `cierre` deja todo commiteado, pusheado y con el zip al día.
+se sincroniza a `~/.claude/`, y `cierre` deja todo commiteado y pusheado.
 NUNCA editar `~/.claude/` directo.
 
 ### 😤 "Claude repitió un error / le expliqué lo mismo 3 veces"
@@ -127,12 +127,12 @@ una skill"*. Cada corrección repetida que no se escribe es una que vas a repeti
 
 ### 🕰️ "Vuelvo a este repo después de semanas (o sin Fable)"
 Abrí un chat acá y listo: el hook te inyecta el handoff, los pendientes y los últimos
-commits. Para el "por qué" de cualquier cosa: `docs/DECISIONS.md` (15 ADRs) y
-`docs/REJECTED.md`. Ningún chat viejo hace falta.
+commits. Para el "por qué" de cualquier cosa: `docs/DECISIONS.md` (los ADRs) y
+`docs/REJECTED.md`; el mapa de `docs/` está en `docs/README.md`. Ningún chat viejo hace falta.
 
 ### 🔎 "Quiero volver a investigar mis chats (o los de otra PC)"
-Chat nuevo acá → *"investigación de chats, desde el último corte, seguí `investigacion/METODO.md`"*.
-El método paso a paso está en `investigacion/METODO.md`; los scripts al lado; la fecha de corte
+Chat nuevo acá → *"investigación de chats, desde el último corte, seguí `observatorio/investigacion/METODO.md`"*.
+El método paso a paso está en `observatorio/investigacion/METODO.md`; los scripts al lado; la fecha de corte
 de la anterior en `tips/tanda-2026-10-chats.md` §0; lo ya hallado en `D:\vibe-hallazgos\` (PC
 `clientes`). Otra PC se suma por Remote Control: su dueño da el OK en su pantalla.
 
@@ -158,13 +158,14 @@ de la anterior en `tips/tanda-2026-10-chats.md` §0; lo ya hallado en `D:\vibe-h
 | `/docs-fyd` | Documenta el repo para la auditoría FyD (te pregunta por opciones lo que el código no sabe) |
 | `docs-fyd auditar` | Chequeo antes de entregar a FyD: qué quedó viejo, dudas abiertas, secretos — no escribe |
 | `actualizate` | El Equipador baja lo último del repo y se actualiza a sí mismo |
-| *(pegar links en `extractor/`)* | Informe de tips con veredictos, listo para procesar |
+| *(pegar links en `observatorio/extractor/`)* | Informe de tips con veredictos, listo para procesar |
 
 ## Dónde profundizar
 
 - **El método completo** (por qué de todo): `PLAYBOOK-MAESTRO.md`
-- **El Arquitecto y el Equipador a fondo**: `guias/COMO-USAR-EL-ARQUITECTO.md`
-- **`/relevamiento` en una hoja** (para tener a mano cuando te piden algo): `guias/HOJA-DE-MANO-relevamiento.md`
+- **El Arquitecto y el Equipador a fondo**: `manuales/COMO-USAR-EL-ARQUITECTO.md`
+- **`/relevamiento` en una hoja** (para tener a mano cuando te piden algo): `manuales/HOJA-DE-MANO-relevamiento.md`
 - **Instalar en otra PC**: `kit/INSTALAR.md` (o la carpeta del Escritorio con los PDFs)
 - **Por qué el kit es como es**: `docs/DECISIONS.md` · lo que se descartó: `docs/REJECTED.md`
-- **Qué está pendiente**: sección Pendientes del `README.md` (única fuente)
+- **Para qué existe todo esto** (y qué NO hace): `docs/MISION-Y-VISION.md`
+- **Qué está pendiente**: `docs/TODO.md` (única fuente) · qué trajo cada versión: `docs/CHANGELOG.md`

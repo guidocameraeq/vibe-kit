@@ -143,4 +143,4 @@ motor aplica encima (nacen del SPEC y su red-team) — **prevalecen sobre la let
 ## ~~11. Mapa de Aplicaciones y Servicios~~ → **Fase 2, NO lo hace `/docs-fyd`**
 No se ejecuta dentro de un repositorio: cruza todas las aplicaciones. Lo hará la skill
 `/inventario-fyd` (cross-proyecto) cuando se construya la Fase 2. Se conserva el prompt original en
-`docs/referencia-prompts-fyd.md` del repo vibe-kit. Acá queda fuera de alcance a propósito.
+`docs/consulta/referencia-prompts-fyd.md` del repo vibe-kit. Acá queda fuera de alcance a propósito.

@@ -16,9 +16,12 @@
   agrupación mental sin inventar mecanismos.
 - **REJ-005 · TODO.md para este repo** — los pendientes viven en el README (proyecto chico,
   §1.5 del playbook: un dato, un lugar). Si el volumen de pendientes crece 3×, se re-evalúa.
+  **↩️ Reabierto 2026-10-13 → ADR-023**: la condición se cumplió (~5 → ~60 líneas); los pendientes
+  viven ahora en `docs/TODO.md`.
 - **REJ-006 · `/inicio` para este repo** — el hook SessionStart + el README alcanzan; el
   ritual de inicio acá nunca se dictó 3 veces. `/cierre` sí existe (el ritual de cierre se
   repitió ~10 veces en una semana).
+  **↩️ Reabierto 2026-07-12 → ADR-013**: el repo madre sí lleva `/inicio` (marcado 2026-10-13, ADR-023).
 - **REJ-007 · Snapshots de carpeta post-repo** — reemplazados por tags de git (ADR-008).
 - **REJ-008 · Google Stitch** — ver ADR-009 y el menú (Descartadas). Condición de re-apertura
   escrita: export React/shadcn nativo.

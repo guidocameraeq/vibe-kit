@@ -80,12 +80,12 @@ No improvises el texto: **la pregunta improvisada trae el sesgo puesto.** Adapt�
 
 ## El mensaje de encuadre — uno por cierre de etapa
 
-Va en ASCII, y su trabajo es que Guido sepa que **esto no es el método de su jefe**:
+Va en ASCII, y su trabajo es que Guido sepa que **esto no es la planilla aprobada**:
 
 ```
 Etapa 2 cerrada — la planilla está completa.
 
-FUERA DE PLANILLA (esto no es del método de tu jefe: es la máquina mirando
+FUERA DE PLANILLA (esto no es de la planilla aprobada: es la máquina mirando
 este proyecto en particular). Me quedaron 2 preguntas:
 
   · Comprar     — porque escribiste "lo llevamos en Tango" (P2.2)
@@ -97,7 +97,7 @@ Van de a una. Si alguna es al pedo, elegí "bajala" y no vuelve.
 ## Dónde aterriza lo que contestó
 
 - **En `1/2/3-*.md`: un anexo separable al final**, bajo `## Fuera de planilla`, en el marcador que ya
-  trae la plantilla. **Se borra entero y lo que queda es la planilla del jefe** (criterio 13).
+  trae la plantilla. **Se borra entero y lo que queda es la planilla aprobada** (criterio 13).
 - **En `4-propuesta.md`: fundido en el texto**, porque es el documento que va a la reunión — pero cada
   párrafo que salió de una lente va marcado **`[fp]`**, para poder rastrearlo.
 - **La regla de redacción manda en los dos**: los juicios sobre conducta van **por ROL y como riesgo**

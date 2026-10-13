@@ -2,15 +2,15 @@
 
 **Dos capas, y la de abajo no se toca:**
 
-- **`_fuente/01..04-*.md`** — los 4 originales del jefe de Guido (método "Cómo Arrancar un Proyecto",
-  2026-07-22). **Prístinos: no se editan NUNCA**, ni para arreglar un typo. Son la referencia contra la
-  que `git diff` detecta un cambio de él, limpio y sin mezclar. Ver `SYNC.md`.
+- **`_fuente/01..04-*.md`** — la versión aprobada de las 4 plantillas (método "Cómo Arrancar un Proyecto",
+  de Guido, aprobadas por su jefe, 2026-07-22). **Prístinos: no se editan NUNCA**, ni para arreglar un typo. Son la referencia contra la
+  que `git diff` detecta un cambio de versión aprobada, limpio y sin mezclar. Ver `SYNC.md`.
 - **`1..4-*.md`** — los de trabajo. Son los mismos, más la cabecera de procedencia y las 7 celdas
   `[+fork]`. **El dossier se instancia SIEMPRE de estos, nunca de `_fuente/`.** Ver `FORK.md`.
 
 ## ⚠️ Los `{{LINEAS:N}}` NO son placeholders del kit
 
-Los 61 `{{LINEAS:1}}` / `{{LINEAS:3}}` / `{{LINEAS:4}}` son del método del jefe: en la versión impresa
+Los 61 `{{LINEAS:1}}` / `{{LINEAS:3}}` / `{{LINEAS:4}}` son del método original: en la versión impresa
 marcan **cuántos renglones dejar para escribir a mano**. Chocan de frente con la convención `{{SLOT}}`
 del Arquitecto y con su regla "cero `{{` en los archivos instanciados", pero **acá se quedan igual**.
 
@@ -27,4 +27,4 @@ del Arquitecto y con su regla "cero `{{` en los archivos instanciados", pero **a
 | `INDICE.md` | Una línea por relevamiento, en la raíz de `_relevamientos/` |
 | `hoja-de-campo.md` | Con quién hablar, qué preguntar, qué escuchar. Se imprime y se camina |
 | `5-sirvio.md` | El documento del tramo 5, a las 4-6 semanas del primer uso |
-| `FORK.md` · `SYNC.md` | Qué agrega el kit · qué hacer cuando el jefe cambie algo |
+| `FORK.md` · `SYNC.md` | Qué agrega el kit · qué hacer cuando cambie la versión aprobada |

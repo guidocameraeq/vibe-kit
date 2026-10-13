@@ -4,6 +4,36 @@
 > construyó todo esto), desde la historia real: auditoría de Perseo (2/jul) → playbook →
 > Arquitecto v2 (4-5/jul) → repo canónico y Equipador (6/jul) → v2.1 (11/jul).
 
+## Índice
+
+- ADR-001 · El kit es una SKILL GLOBAL, no un plugin (2026-07-04)
+- ADR-002 · El Arquitecto corre en el LOOP PRINCIPAL, no como subagente (2026-07-04)
+- ADR-003 · El repo git es LA fuente canónica; `~/.claude/` es la copia instalada (2026-07-06)
+- ADR-004 · El Equipador es skill HERMANA (`/arquitecto-skills`), no un modo del Arquitecto (2026-07-06)
+- ADR-005 · SPEC-0 = UN archivo con `Estado: BORRADOR → READY` en la raíz del proyecto (2026-07-05)
+- ADR-006 · El gate de aprobación es Plan Mode NATIVO, no una promesa de prompt (2026-07-05)
+- ADR-007 · Templates estratificados: universales vs adaptables; smoke/deploy NO nacen el día cero (2026-07-05)
+- ADR-008 · Tags de git reemplazan los snapshots de carpeta (2026-07-11)
+- ADR-009 · v0 de Vercel (y no Google Stitch) para dirección visual de webs (2026-07-11)
+- ADR-010 · Curaduría de tips en DOS etapas separadas (2026-07-08)
+- ADR-011 · El Extractor es un AGENTE-CARPETA (2026-07-11)
+- ADR-012 · v2.1 se declaró estable con el Modo A validado por USO REAL; B y C esperan su estreno (2026-07-11)
+- ADR-013 · El repo madre TAMBIÉN lleva `/inicio` (2026-07-12)
+- ADR-014 · El kit suma un sistema de documentación de auditoría (FyD): `/docs-fyd`, capa regenerable separada (2026-07-23)
+- ADR-015 · docs-fyd v2: resolver las dudas POR OPCIONES + capa humana protegida, no generar por generar (2026-07-23)
+- ADR-016 · El kit suma el tramo de ANTES del Arquitecto: la skill `/relevamiento` (2026-08-03)
+- ADR-017 · `/relevamiento` construida: las 3 desviaciones del plano, y qué se verificó de verdad (2026-08-03)
+- ADR-018 · `/relevamiento` v2.4: se recupera lo que el SPEC perdió del informe de diseño (2026-08-03)
+- ADR-019 · `v2.4.2`: se cablean las 4 secciones del TABLERO que nadie escribía (2026-08-03)
+- ADR-020 · Qué se archiva y qué se queda: la convención documental de este repo (2026-08-03)
+- ADR-021 · Investigar el uso real antes de rediseñar el pack — y vibe-kit sigue público (2026-10-12)
+- ADR-022 · Cómo se ejecutó la investigación: lo que se apartó del SPEC (2026-10-13)
+- ADR-023 · Profesionalizar el repo madre: portada, misión y visión, observatorio, TODO y licencia (2026-10-13)
+
+*Cada ADR nuevo suma su línea acá (lo pide `/cierre`).*
+
+---
+
 ## ADR-001 · El kit es una SKILL GLOBAL, no un plugin (2026-07-04)
 El v1 (jun-2026) se construyó como plugin de Claude Code con marketplace propio: 35 archivos,
 7 comandos… y **nunca se instaló** — murió en la fricción de `/plugin marketplace add` + la
@@ -401,3 +431,71 @@ investigación no las re-litigue:
 la próxima lee solo lo posterior (`condensar.py --desde`).
 **El método quedó escrito en `investigacion/METODO.md`** (a pedido de Guido, al cerrar): **receta,
 no skill** — se hizo una sola vez y la regla de 3+ manda esperar. Si a la tercera duele, es skill.
+
+## ADR-023 · Profesionalizar el repo madre: portada, misión y visión, observatorio, TODO y licencia (2026-10-13)
+Misión 3 de la hoja de ruta (`docs/SPEC-profesionalizar-repo.md`). El repo creció de a capas y solo lo
+entendía quien lo vivió: el README era portada, historial y lista de pendientes a la vez, y el repo es
+público. Se ordenó con 11 decisiones de Guido (detalle y descartes en el SPEC, D1-D11):
+- **Para quién (D1):** Guido primero, otros después. La portada avisa "repo personal en evolución, sin
+  soporte". *Descartado:* "solo para mí" y "producto para otros ya" (eso es la misión 4).
+- **Misión y visión (D2):** el norte vive en `docs/MISION-Y-VISION.md` (prueba en casa de P7). El
+  nombre lo eligió Guido; el archivo aclara que no es "misión = un chat".
+- **`observatorio/` (D3, D4):** el Extractor y la investigación se mudan juntos ("miran y anotan, no
+  tocan"), con un README del patrón común. `tips/` se queda en la raíz. *Descartado:* dejarlos sueltos
+  y mover también `tips/` (rompe las citas).
+- **`docs/` (D5):** los SPEC se quedan arriba (el Arquitecto los busca en `docs/SPEC-*.md`); lo de
+  consulta va a `docs/consulta/`; índice en `docs/README.md`; `PRESUPUESTO-relevamiento.md` a `legacy/`
+  con lápida (criterio ADR-020). *Postergado a la misión 4:* `docs/specs/` para todos los proyectos.
+- **Guías (D6):** `GUIA-DE-USO.md` sigue en la raíz; la guía del Extractor se muda al lado de su
+  herramienta.
+- **Pendientes → `docs/TODO.md` (D7), REJ-005 reabierto:** su condición ("si crecen 3×") se cumplió
+  (~5 líneas en julio → ~60 en octubre). El hook SessionStart lee el TODO. El README queda 100% portada.
+- **Versiones → `docs/CHANGELOG.md` (D8):** una entrada por tag; el README dice solo la versión estable.
+- **Licencia MIT (D9)**, titular `guidocameraeq`. Las plantillas de `_fuente/` entran (son de Guido);
+  queda afuera `docs/consulta/referencia-prompts-fyd.md` (texto de FyD Sistemas).
+- **Corrección de autoría (D10, D11):** las 4 plantillas de `/relevamiento` son **de Guido, aprobadas
+  por su jefe** — no del jefe, como decían los textos de la skill desde que se construyó. Se corrigió en todo lo vivo (la
+  skill, sus plantillas de trabajo, anexos, menú, CLAUDE.md, la guía). `_fuente/` no se tocó y pasa a
+  significar "la versión aprobada": la cambia Guido con el OK de su jefe, y `SYNC.md` es ahora
+  "cambiaste una versión aprobada". *Descartado:* sin aprobación (se pierde la marca de lo aprobado) y
+  "gana el jefe" (contradice la autoría real). Los ADR, SPEC implementados, actas y legacy que dicen
+  "del jefe" **no se reescriben**: son historia, y este ADR es la corrección.
+
+**Tabla de rutas viejas → nuevas.** Las actas de `tips/`, los ADR-001 a 022, los SPEC implementados y
+`legacy/` citan las rutas viejas y no se reescriben; se leen con esta tabla:
+
+| Ruta vieja | Ruta nueva |
+|---|---|
+| `extractor/` | `observatorio/extractor/` |
+| `investigacion/` | `observatorio/investigacion/` |
+| `guias/COMO-USAR-EL-EXTRACTOR.md` | `observatorio/extractor/COMO-USAR-EL-EXTRACTOR.md` |
+| `guias/` (el resto) | `manuales/` |
+| `docs/referencia-prompts-fyd.md` | `docs/consulta/referencia-prompts-fyd.md` |
+| `docs/EVALUACION-docs-fyd-v2.md` | `docs/consulta/EVALUACION-docs-fyd-v2.md` |
+| `docs/PRESUPUESTO-relevamiento.md` | `legacy/PRESUPUESTO-relevamiento.md` |
+| Sección "Pendientes" del `README.md` | `docs/TODO.md` |
+| Párrafo de versiones y "Versión estable" del `README.md` | `docs/CHANGELOG.md` + `git tag` |
+
+Sin bump de versión: en el kit solo cambiaron textos (la autoría y una ruta en `docs-fyd`).
+
+**Ampliación del mismo día (pedido de Guido: "coherente con mis propios proyectos").** Tras ejecutar
+el SPEC se revisó el repo contra el molde que el Arquitecto monta en cada proyecto, y se cerraron las
+diferencias que no tenían razón de ser:
+- **`guias/` → `manuales/`**: la guía de uso es la puerta; los manuales, el detalle por pieza (y el
+  nombre anticipa el "manual por módulo" de la misión 4). *Descartado:* meter todo en `guias/` (la
+  raíz pierde su puerta) y dejarlo igual.
+- **CHANGELOG por fecha**, como en los proyectos (una entrada por sesión, con el tag si lo hubo).
+  Reemplaza a D8 ("una por tag"). *Descartado:* por versión (distinto de los proyectos, y las sesiones
+  sin tag no dejan rastro).
+- **El README no lleva versión** (playbook §1: sin números que roten). `/cierre` ya no la toca.
+- **TODO con el formato del molde**: casillas, corto, lo completado sale (la historia, al CHANGELOG).
+  Reemplaza el "contenido tal cual" de D7: el detalle largo ya vivía en el SPEC, REJ-014 y el acta.
+- **El hook, `/inicio` y `/cierre`** siguen el molde de los proyectos, más lo propio del repo madre.
+  **DECISIONS con índice** al tope, como pide el `/cierre` de los proyectos.
+- **La carpeta de proyectos sale del kit**: `kit/` trae `{{CARPETA_DE_PROYECTOS}}` (lo llena el
+  instalador; `actualizate` lo conserva) y el sync pasa a un script, `.claude/scripts/kit-sync.sh`, que
+  compara ignorando esa línea y al copiar conserva la ruta de cada PC. *Por qué el script:* el `cp -r`
+  que mandaba el `/cierre` pisaba esa ruta, y "no editar a mano" escrito en prosa ya se rompió antes
+  (la idea fuerza de la tanda de chats: solo frena lo mecánico). Con esto **se acaba la excepción de
+  ADR-021**: el diff da limpio en todas las PCs. *Descartado por ahora:* un archivo local por PC fuera
+  de la skill (cambia el flujo del kit: insumo de la misión 4).

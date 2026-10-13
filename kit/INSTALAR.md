@@ -24,9 +24,9 @@ Instalá el paquete "El Arquitecto" que está en esta carpeta:
    Si ya hay versiones instaladas, mostrame las fechas y preguntame antes de pisar.
 3. Copiá agents/redteam-spec.md a ~/.claude/agents/.
 4. Preguntame con opciones dónde guardo mis proyectos en ESTA máquina
-   (ej: D:\SAAS, Desktop\Proyectos, otra) y actualizá la línea
+   (ej: D:\SAAS, Desktop\Proyectos, otra) y en la línea
    "Carpeta de proyectos de esta máquina" del SKILL.md del arquitecto
-   recién instalado con esa ruta.
+   recién instalado reemplazá {{CARPETA_DE_PROYECTOS}} por esa ruta.
 5. Verificá con evidencia real: (a) listá los archivos instalados,
    (b) mostrame la línea de carpeta de proyectos ya editada, (c) chequeá que
    node --version, bash --version y git --version anden — los proyectos que el
@@ -48,7 +48,7 @@ No toques nada más de esta máquina. No borres esta carpeta del zip (queda de b
 
 1. `skills/arquitecto/` y `skills/arquitecto-skills/` (y `skills/docs-fyd/` y `skills/relevamiento/` si están) → copiar adentro de `C:\Users\<usuario>\.claude\skills\`
 2. `agents/redteam-spec.md` → copiar adentro de `C:\Users\<usuario>\.claude\agents\`
-3. Abrir `skills\arquitecto\SKILL.md` y ajustar la línea **"Carpeta de proyectos de esta máquina"**
+3. Abrir `skills\arquitecto\SKILL.md` y en la línea **"Carpeta de proyectos de esta máquina"** reemplazar `{{CARPETA_DE_PROYECTOS}}` por la carpeta donde viven tus proyectos
 4. Reiniciar Claude Code → `/arquitecto` para proyectos, `/arquitecto-skills` para equipar la máquina
 
 ## Qué es este paquete
