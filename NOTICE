@@ -1,0 +1,10 @@
+vibe-kit
+Copyright (c) 2026 guidocameraeq — licenciado bajo MIT (ver LICENSE).
+
+Excepción: docs/consulta/referencia-prompts-fyd.md reproduce textual los prompts
+de documentación de FyD Sistemas, como referencia. NO está cubierto por la
+licencia MIT; sus derechos son de sus autores.
+
+Exception: docs/consulta/referencia-prompts-fyd.md reproduces verbatim text
+written by FyD Sistemas, for reference. It is NOT covered by the MIT license;
+its rights belong to its authors.

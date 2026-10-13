@@ -12,7 +12,11 @@ ADR-023). Kit sin bump (`v2.4.2`): solo textos.
 - **El repo ahora tiene el mismo sistema que los proyectos de Guido**: README solo portada (sin
   pendientes, historial ni versión) · `docs/TODO.md` (casillas, única fuente) · `docs/CHANGELOG.md`
   (por fecha) · `docs/MISION-Y-VISION.md` · `docs/README.md` (índice) · DECISIONS con índice · hook,
-  `/inicio` y `/cierre` con el molde del Arquitecto · `LICENSE` MIT (excluye el texto de FyD).
+  `/inicio` y `/cierre` con el molde del Arquitecto · `LICENSE` MIT + `NOTICE` (excluye el texto de FyD).
+- **La portada de GitHub se vistió**: banner + diagrama estilo plano (`assets/*.svg`), insignias, un día
+  de trabajo de ejemplo. **El nombre está abierto**: a Guido no le cerró ninguno (Obrador, Andamio,
+  Batuta, Cimientos, Plano); quedó vibe-kit hasta que elija. Cambiarlo toca el banner, el README y la
+  URL del Equipador (`kit/skills/arquitecto-skills/SKILL.md`; GitHub redirige la vieja).
 - **Mudanzas** (la tabla vieja → nueva está en ADR-023): `extractor/` e `investigacion/` →
   `observatorio/` · `guias/` → `manuales/` · `docs/consulta/` · el presupuesto de `/relevamiento` a
   `legacy/`. **El Extractor ahora se abre en `observatorio/extractor/`.**

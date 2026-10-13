@@ -1,78 +1,141 @@
-# vibe-kit
+<p align="center">
+  <img src="assets/banner.svg" alt="vibe-kit — Dirigí Claude Code sin escribir código" width="100%">
+</p>
 
-**Un método para dirigir Claude Code sin saber programar, y las herramientas que lo vuelven
-mecánico.** Son skills de Claude Code que planean y montan proyectos, preparan cada PC y
-mantienen el orden de trabajo de un chat a otro, más el playbook que explica por qué.
+<p align="center">
+  <a href="docs/CHANGELOG.md"><img alt="versión" src="https://img.shields.io/github/v/tag/guidocameraeq/vibe-kit?sort=semver&style=flat-square&label=versi%C3%B3n&color=1d5aa6"></a>
+  <a href="https://github.com/guidocameraeq/vibe-kit/commits/main"><img alt="último cambio" src="https://img.shields.io/github/last-commit/guidocameraeq/vibe-kit?style=flat-square&label=%C3%BAltimo%20cambio&color=1d5aa6"></a>
+  <a href="LICENSE"><img alt="licencia" src="https://img.shields.io/github/license/guidocameraeq/vibe-kit?style=flat-square&label=licencia&color=1d5aa6"></a>
+  <img alt="hecho para Claude Code" src="https://img.shields.io/badge/hecho%20para-Claude%20Code-d97757?style=flat-square">
+  <img alt="en castellano" src="https://img.shields.io/badge/idioma-castellano-1d5aa6?style=flat-square">
+</p>
 
-> **Repo personal y en evolución.** Es el taller de Guido: lo usa todos los días en sus proyectos y
-> lo cambia cuando la evidencia lo pide. Es público para que cualquiera lo mire o lo copie, pero
-> **no es un producto ni tiene soporte**. Algunas cosas son propias de su trabajo (sus carpetas,
-> su método de relevamiento).
+<p align="center">
+  <b>Un método para dirigir Claude Code sin saber programar</b>, y las skills que lo vuelven mecánico.<br>
+  Probado en proyectos reales: cada regla lleva escrito dónde dolió.
+</p>
 
-## Misión y visión
+<p align="center">
+  <a href="#cómo-funciona">Cómo funciona</a> ·
+  <a href="#las-piezas">Las piezas</a> ·
+  <a href="#un-día-de-trabajo">Un día de trabajo</a> ·
+  <a href="#instalar">Instalar</a> ·
+  <a href="GUIA-DE-USO.md">Guía de uso</a> ·
+  <a href="docs/TODO.md">Hoja de ruta</a>
+</p>
 
-- **Para qué existe:** juntar en un solo lugar el método para dirigir Claude Code sin escribir código,
-  probado en proyectos reales, donde cada regla lleva escrito dónde dolió.
-- **Adónde va:** a un pack que otra persona pueda instalar y usar con sus propios proyectos.
-- **Qué NO hace:** no construye apps (eso pasa en la carpeta de cada proyecto), no es un plugin y no
-  promete soporte.
+---
 
-Completo, en una pantalla: [`docs/MISION-Y-VISION.md`](docs/MISION-Y-VISION.md).
+> [!NOTE]
+> **Repo personal y en evolución.** Es el taller de Guido: lo usa todos los días y lo cambia cuando la
+> evidencia lo pide. Es público para que cualquiera lo mire o lo copie, pero **no es un producto ni
+> tiene soporte**. Algunas cosas son propias de su trabajo (sus carpetas, su método de relevamiento).
 
-## Cómo se usa, en 4 pasos
+## El problema
 
-1. **Instalar** el kit en la PC (abajo). Copia las skills a `~/.claude/`.
-2. **Arrancar un proyecto con `/arquitecto`**: te entrevista, escribe el plano (SPEC) y monta el
-   proyecto con su CLAUDE.md, sus docs y sus rituales.
-3. **Trabajar con `inicio` y `cierre`**: un chat por tarea; el chat se descarta, lo que importa queda
-   escrito en archivos.
-4. **El observatorio propone mejoras**: mira tips y chats reales y deja actas en `tips/`; qué entra
-   al kit se decide acá, con evidencia.
+Dirigir Claude Code sin escribir código funciona… hasta que se rompe, y siempre por los mismos lados:
+chats eternos que se compactan y se olvidan, el "estado actual" escrito en seis lugares que se
+contradicen, la misma corrección explicada diez veces, proyectos que arrancan sin plano.
 
-**Las piezas** (cada una es una *skill*: instrucciones que Claude Code carga cuando las llamás):
+**vibe-kit parte de una idea: el contexto vive en archivos, no en la conversación.** El chat se
+descarta; lo que importa queda escrito y cualquier chat nuevo lo retoma. Sobre eso, un puñado de
+skills que hacen el trabajo ordenado sin que tengas que acordarte.
 
-| Pieza | Qué hace |
-|---|---|
-| `/arquitecto` | Planea antes de hacer: proyecto nuevo, feature grande sobre una app que ya anda, o "cómo le pido esto a Claude" |
-| `/arquitecto-skills` (el Equipador) | Instala y actualiza en la PC las skills de un menú curado |
-| `/relevamiento` | Cuando el pedido viene de otra persona: ordena la charla en 4 documentos y decide si hace falta software |
-| `/docs-fyd` | Documentación técnica de auditoría de un repo, derivada del código |
-| `inicio` / `cierre` | Los rituales de cada chat de trabajo: arrancar sabiendo dónde quedaste, cerrar con todo guardado |
+## Cómo funciona
 
-Las recetas por situación ("quiero X → hacé Y") están en **[`GUIA-DE-USO.md`](GUIA-DE-USO.md)**:
-es la puerta de entrada para usarlo.
+<p align="center">
+  <img src="assets/flujo.svg" alt="Cómo se conectan las piezas: relevamiento, arquitecto, tu proyecto, observatorio, kit y equipador" width="100%">
+</p>
 
-## Qué hay en cada carpeta
+1. **Antes de construir, un plano.** Si el pedido viene de otra persona, `/relevamiento` lo entiende
+   primero; si es una idea tuya, vas directo a `/arquitecto`, que te entrevista y monta el proyecto.
+2. **Cada proyecto trabaja igual**: un chat por misión, que arranca con `inicio` y termina con
+   `cierre`. El chat se tira; el proyecto recuerda.
+3. **El sistema aprende del uso real.** El observatorio mira los chats y los tips, deja actas con
+   propuestas, y lo que aprobás entra al kit. El Equipador lo lleva a cada PC.
 
-| Carpeta / archivo | Qué es |
-|---|---|
-| [`GUIA-DE-USO.md`](GUIA-DE-USO.md) | Recetas por situación y frases para decirle a Claude. **Empezá por acá** |
-| [`PLAYBOOK-MAESTRO.md`](PLAYBOOK-MAESTRO.md) | El método completo: documentación y sistema de trabajo, con su porqué |
-| [`kit/`](kit/) | **La fuente** de lo instalable: el Arquitecto, el Equipador (`/arquitecto-skills`), `/docs-fyd`, `/relevamiento`, el agente red-team y el instalador |
-| [`manuales/`](manuales/) | El detalle a fondo de cada pieza: el Arquitecto y el Equipador, y la hoja de mano de `/relevamiento` |
-| [`observatorio/`](observatorio/) | Los que miran y anotan, no tocan: el Extractor de tips y la investigación de chats |
-| [`tips/`](tips/) | Las actas del observatorio, con propuestas para aprobar |
-| [`docs/`](docs/) | El estado del repo: pendientes, versiones, decisiones, descartes y planos ([índice](docs/README.md)) |
-| [`legacy/`](legacy/) | Lo superado, archivado con su lápida (no se borra) |
-| `CLAUDE.md` · `.claude/` | Las reglas para Claude en este repo y sus rituales `/inicio` y `/cierre` |
+## Las piezas
 
-## Instalar en una PC
+Cada pieza es una *skill*: instrucciones que Claude Code carga cuando las llamás.
+
+| | Pieza | Qué hace |
+|---|---|---|
+| 📐 | **`/arquitecto`** | Piensa antes de hacer. Proyecto nuevo → entrevista, plano y montaje completo. Feature grande sobre algo que ya anda → explora el código y escribe qué cambia y qué no. ¿No sabés cómo pedir algo? → te arma el pedido |
+| 📋 | **`/relevamiento`** | Cuando te piden algo en el laburo: ordena la charla en 4 documentos con un PDF por etapa, y decide con evidencia si hace falta software (construir es solo una de seis salidas) |
+| 🧰 | **`/arquitecto-skills`** · el Equipador | Prepara la PC: instala las skills de un menú curado, las actualiza y se actualiza a sí mismo (`actualizate`) |
+| 🔁 | **`inicio` / `cierre`** | Los rituales de cada chat: arrancar sabiendo dónde quedaste, cerrar con todo guardado, commiteado y listo para tirar el chat |
+| 🗂️ | **`/docs-fyd`** | La documentación técnica de auditoría de un repo, sacada del código; lo que el código no sabe, te lo pregunta con opciones |
+| 🔭 | **El observatorio** | Mira y anota, no toca: extrae tips de videos e investiga los chats reales para proponer mejoras ([más](observatorio/)) |
+
+## Un día de trabajo
+
+```text
+vos      /arquitecto quiero una app para controlar los remitos del depósito
+claude   (te entrevista de a una pregunta, te muestra el plano, y con tu OK monta el proyecto)
+
+         ── al otro día, chat nuevo en la carpeta del proyecto ──
+
+vos      inicio
+claude   Estado: plano listo, nada construido · Próximo: la carga de remitos · Bloqueos: ninguno
+vos      dale, arrancá con la carga de remitos
+claude   (trabaja, prueba, te muestra la evidencia)
+vos      cierre
+claude   (deja los docs al día, commitea y sube) Chat listo para descartar.
+```
+
+Las recetas para cada situación ("me pidieron algo", "quiero una feature grande", "estoy en una PC
+nueva"…) están en la **[guía de uso](GUIA-DE-USO.md)**.
+
+## Instalar
 
 Hace falta: [Claude Code](https://claude.com/claude-code) funcionando y git.
 
 1. Clonar este repo.
 2. Abrir Claude Code en `kit/` y pegar el prompt de [`kit/INSTALAR.md`](kit/INSTALAR.md). Copia las
-   skills y el agente a `~/.claude/`, pregunta dónde viven tus proyectos y verifica todo.
-3. Al final ofrece equipar la máquina con el menú curado de skills (`/arquitecto-skills`).
+   skills a `~/.claude/`, pregunta dónde viven tus proyectos y verifica todo.
+3. Al final ofrece equipar la máquina con el menú curado de skills.
 
-Para actualizar una PC que ya lo tiene: decirle al Equipador **`actualizate`**.
+¿Ya lo tenés? Decile **`actualizate`** al Equipador y baja lo último.
 
-**La regla de la casa:** este repo es la fuente; `~/.claude/` es una copia. Los cambios se hacen en
-`kit/`, se sincronizan a `~/.claude/` y se commitean. Nunca se edita `~/.claude/` directo.
+> [!IMPORTANT]
+> **La regla de la casa:** este repo es la fuente; `~/.claude/` es una copia. Los cambios se hacen en
+> `kit/` y se sincronizan; nunca se edita `~/.claude/` directo.
 
-## Versiones, pendientes, licencia
+## Principios
 
-- **Versiones:** los tags de git (`git tag`); qué trajo cada una, en [`docs/CHANGELOG.md`](docs/CHANGELOG.md).
-- **Qué falta:** [`docs/TODO.md`](docs/TODO.md) (la única lista de pendientes).
-- **Licencia:** [MIT](LICENSE), salvo `docs/consulta/referencia-prompts-fyd.md`, que reproduce texto
-  de FyD Sistemas y no está cubierto.
+- **El contexto vive en archivos.** Un chat por misión; el que retoma lee, no recuerda.
+- **Cada regla lleva su cicatriz.** Nada entra sin la evidencia de dónde dolió.
+- **Lo mecánico frena; la prosa no.** Lo que se sigue rompiendo escrito en prosa se vuelve script, hook
+  o campo obligatorio.
+- **Evidencia o "no verificado".** Nunca "listo" a secas.
+- **Vos decidís.** Las herramientas proponen con opciones y una recomendación; nada se aplica sin tu OK.
+
+## En qué anda
+
+- 🧭 **Hoja de ruta y pendientes:** [`docs/TODO.md`](docs/TODO.md) — ahora: diseñar el pack para que
+  otra persona lo pueda usar.
+- 📜 **Qué cambió y cuándo:** [`docs/CHANGELOG.md`](docs/CHANGELOG.md) · **por qué es como es:**
+  [`docs/DECISIONS.md`](docs/DECISIONS.md) · **para qué existe:** [`docs/MISION-Y-VISION.md`](docs/MISION-Y-VISION.md)
+
+<details>
+<summary><b>Qué hay en cada carpeta</b></summary>
+
+| Carpeta / archivo | Qué es |
+|---|---|
+| [`GUIA-DE-USO.md`](GUIA-DE-USO.md) | Recetas por situación y frases para decirle a Claude. **Empezá por acá** |
+| [`PLAYBOOK-MAESTRO.md`](PLAYBOOK-MAESTRO.md) | El método completo: documentación y sistema de trabajo, con su porqué |
+| [`kit/`](kit/) | **La fuente** de lo instalable: las skills, el agente red-team y el instalador |
+| [`manuales/`](manuales/) | El detalle a fondo de cada pieza |
+| [`observatorio/`](observatorio/) | El Extractor de tips y la investigación de chats |
+| [`tips/`](tips/) | Las actas del observatorio, con propuestas para aprobar |
+| [`docs/`](docs/) | Pendientes, historia, decisiones, descartes y planos ([índice](docs/README.md)) |
+| [`assets/`](assets/) | El banner y los diagramas |
+| [`legacy/`](legacy/) | Lo superado, archivado con su lápida (no se borra) |
+| `CLAUDE.md` · `.claude/` | Las reglas para Claude en este repo y sus rituales |
+
+</details>
+
+## Licencia
+
+[MIT](LICENSE), salvo `docs/consulta/referencia-prompts-fyd.md`, que reproduce texto de FyD Sistemas y
+no está cubierto ([`NOTICE`](NOTICE)).

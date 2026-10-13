@@ -5,8 +5,11 @@
 ## 2026-10-13 — Misión 3: el repo se ordena
 
 ### Added
+- **La portada se viste**: banner y diagrama con estilo de plano de arquitecto (`assets/`), insignias
+  que se actualizan solas, un día de trabajo de ejemplo y los principios. El nombre del proyecto queda
+  abierto (Guido lo decide más adelante).
 - `docs/MISION-Y-VISION.md` (para qué existe, para quién, qué NO hace) · `docs/TODO.md` · este CHANGELOG ·
-  `docs/README.md` (índice de `docs/`) · índice al tope de `DECISIONS.md` · `LICENSE` (MIT) · ADR-023.
+  `docs/README.md` (índice de `docs/`) · índice al tope de `DECISIONS.md` · `LICENSE` (MIT pura, para que GitHub la reconozca) + `NOTICE` (la excepción del texto de FyD) · ADR-023.
 - `observatorio/` con su README: el Extractor y la investigación, juntos.
 - `.claude/scripts/kit-sync.sh`: compara y sincroniza kit↔`~/.claude/` conservando la carpeta de
   proyectos de cada PC (antes, el `cp -r` del `/cierre` la pisaba).

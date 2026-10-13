@@ -36,7 +36,7 @@ Material de referencia que no cambia con el trabajo diario.
 
 | Archivo | Qué es |
 |---|---|
-| [`consulta/referencia-prompts-fyd.md`](consulta/referencia-prompts-fyd.md) | Los prompts originales de FyD Sistemas, textuales. **No está bajo la licencia MIT** (ver `LICENSE`) |
+| [`consulta/referencia-prompts-fyd.md`](consulta/referencia-prompts-fyd.md) | Los prompts originales de FyD Sistemas, textuales. **No está bajo la licencia MIT** (ver `NOTICE`) |
 | [`consulta/EVALUACION-docs-fyd-v2.md`](consulta/EVALUACION-docs-fyd-v2.md) | El protocolo para evaluar `docs-fyd` (corrido 2026-07-24: PASS); sirve para la próxima evaluación |
 
 Lo ya consumido (prompts de arranque, presupuestos, relatos de uso) no vive acá: está en

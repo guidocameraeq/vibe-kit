@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 480" width="1280" height="480" role="img" aria-labelledby="t d">
+  <title id="t">Cómo se conectan las piezas de vibe-kit</title>
+  <desc id="d">Un pedido pasa por el relevamiento; si es software, o si la idea es tuya, va al Arquitecto, que monta el proyecto. En el proyecto se trabaja con inicio y cierre. El observatorio mira el uso real y deja actas; lo que aprobás entra al kit, y el Equipador lo lleva a cada PC.</desc>
+  <defs>
+    <pattern id="g1" width="16" height="16" patternUnits="userSpaceOnUse">
+      <path d="M16 0H0V16" fill="none" stroke="#ffffff" stroke-opacity=".05"/>
+    </pattern>
+    <pattern id="g2" width="80" height="80" patternUnits="userSpaceOnUse">
+      <rect width="80" height="80" fill="url(#g1)"/>
+      <path d="M80 0H0V80" fill="none" stroke="#ffffff" stroke-opacity=".1"/>
+    </pattern>
+    <radialGradient id="glow" cx="45%" cy="40%" r="80%">
+      <stop offset="0" stop-color="#1d5aa6"/>
+      <stop offset="1" stop-color="#0f3466"/>
+    </radialGradient>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10Z" fill="#e8f1ff"/>
+    </marker>
+  </defs>
+
+  <rect width="1280" height="480" fill="url(#glow)"/>
+  <rect width="1280" height="480" fill="url(#g2)"/>
+  <rect x="16" y="16" width="1248" height="448" fill="none" stroke="#e8f1ff" stroke-opacity=".55"/>
+  <rect x="24" y="24" width="1232" height="432" fill="none" stroke="#e8f1ff" stroke-opacity=".9" stroke-width="2"/>
+
+  <g fill="#e8f1ff" font-family="'Cascadia Mono',Consolas,'SFMono-Regular',Menlo,monospace">
+    <text x="44" y="56" font-size="13" letter-spacing="3" fill-opacity=".72">PLANO Nº 02 · CÓMO SE CONECTAN LAS PIEZAS</text>
+  </g>
+
+  <!-- cajas -->
+  <g fill="#ffffff" fill-opacity=".06" stroke="#e8f1ff" stroke-width="2">
+    <rect x="270" y="130" width="190" height="64"/>
+    <rect x="580" y="130" width="190" height="64"/>
+    <rect x="860" y="100" width="360" height="190"/>
+    <rect x="860" y="360" width="360" height="64"/>
+    <rect x="580" y="360" width="190" height="64"/>
+    <rect x="270" y="360" width="190" height="64" stroke-width="3"/>
+    <rect x="40" y="360" width="170" height="64"/>
+  </g>
+
+  <g fill="#e8f1ff" text-anchor="middle" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-weight="700" font-size="17" letter-spacing=".5">
+    <text x="365" y="160">/relevamiento</text>
+    <text x="675" y="160">/arquitecto</text>
+    <text x="1040" y="134">TU PROYECTO</text>
+    <text x="1040" y="390">OBSERVATORIO</text>
+    <text x="675" y="390">ACTA + TU OK</text>
+    <text x="365" y="390">kit/</text>
+    <text x="125" y="390">EQUIPADOR</text>
+  </g>
+  <g fill="#e8f1ff" fill-opacity=".75" text-anchor="middle" font-family="'Cascadia Mono',Consolas,'SFMono-Regular',Menlo,monospace" font-size="11.5">
+    <text x="365" y="180">entender el pedido</text>
+    <text x="675" y="180">plano + montaje</text>
+    <text x="1040" y="154">CLAUDE.md · docs · rituales</text>
+    <text x="1040" y="410">extractor de tips · investigación</text>
+    <text x="675" y="410">tips/ · propuestas [ ]</text>
+    <text x="365" y="410">la fuente: este repo</text>
+    <text x="125" y="410">actualizate</text>
+  </g>
+
+  <!-- el ciclo de trabajo adentro del proyecto -->
+  <g fill="none" stroke="#e8f1ff" stroke-width="1.5">
+    <rect x="884" y="186" width="92" height="32" rx="16"/>
+    <rect x="994" y="186" width="92" height="32" rx="16"/>
+    <rect x="1104" y="186" width="92" height="32" rx="16"/>
+    <path d="M976 202H990" marker-end="url(#a)"/>
+    <path d="M1086 202H1100" marker-end="url(#a)"/>
+    <path d="M1150 218C1150 262 930 262 930 222" stroke-dasharray="4 4" marker-end="url(#a)"/>
+  </g>
+  <g fill="#e8f1ff" text-anchor="middle" font-family="'Cascadia Mono',Consolas,Menlo,monospace" font-size="13" font-weight="700">
+    <text x="930" y="207">inicio</text>
+    <text x="1040" y="207">misión</text>
+    <text x="1150" y="207">cierre</text>
+  </g>
+  <text x="1040" y="276" text-anchor="middle" fill="#e8f1ff" fill-opacity=".75" font-family="'Cascadia Mono',Consolas,Menlo,monospace" font-size="11.5">chat nuevo por misión</text>
+
+  <!-- flechas -->
+  <g fill="none" stroke="#e8f1ff" stroke-width="1.8">
+    <path d="M44 162H266" marker-end="url(#a)"/>
+    <path d="M460 162H576" marker-end="url(#a)"/>
+    <path d="M675 72V126" marker-end="url(#a)"/>
+    <path d="M770 162H856" marker-end="url(#a)"/>
+    <path d="M1040 290V356" marker-end="url(#a)"/>
+    <path d="M860 392H774" marker-end="url(#a)"/>
+    <path d="M580 392H464" marker-end="url(#a)"/>
+    <path d="M270 392H214" marker-end="url(#a)"/>
+    <path d="M125 360V236H675V198" marker-end="url(#a)"/>
+    <path d="M365 236V198" marker-end="url(#a)"/>
+  </g>
+  <g fill="#e8f1ff" font-family="'Cascadia Mono',Consolas,'SFMono-Regular',Menlo,monospace" font-size="12">
+    <text x="60" y="152">te piden algo</text>
+    <text x="518" y="138" text-anchor="middle">si es</text>
+    <text x="518" y="152" text-anchor="middle">software</text>
+    <text x="687" y="96">una idea tuya</text>
+    <text x="813" y="138" text-anchor="middle">monta</text>
+    <text x="813" y="152" text-anchor="middle">todo</text>
+    <text x="1052" y="328">el uso real</text>
+    <text x="817" y="382" text-anchor="middle">actas</text>
+    <text x="522" y="382" text-anchor="middle">lo aprobado</text>
+    <text x="400" y="256" fill-opacity=".85">las skills, al día en cada PC (~/.claude/)</text>
+  </g>
+</svg>

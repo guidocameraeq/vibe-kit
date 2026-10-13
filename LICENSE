@@ -19,13 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-Exclusion: the file docs/consulta/referencia-prompts-fyd.md reproduces text
-written by FyD Sistemas (their documentation prompts, copied verbatim for
-reference). It is NOT covered by this license; its rights belong to its authors.
-
-Exclusión: el archivo docs/consulta/referencia-prompts-fyd.md reproduce textual
-los prompts de documentación de FyD Sistemas, como referencia. NO está cubierto
-por esta licencia; sus derechos son de sus autores.

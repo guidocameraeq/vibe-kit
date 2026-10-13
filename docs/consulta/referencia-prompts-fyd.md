@@ -1,5 +1,7 @@
 # Referencia — Prompts de documentación técnica de FyD (encargo 2026-07)
 
+> ⚖️ **Texto de FyD Sistemas, no de este repo: NO está bajo la licencia MIT** (ver `NOTICE` en la raíz).
+
 > **Qué es esto:** el contenido tal cual del `.docx` que mandó FyD Sistemas (`Prompts_Documentacion_Tecnica.docx`),
 > extraído verbatim. Es el **contrato de contenido** de la skill `/docs-fyd`: define qué secciones y campos
 > lleva cada uno de los 10 artefactos por-repo, para que la sesión de construcción NO invente el formato.

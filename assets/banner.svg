@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 400" width="1280" height="400" role="img" aria-labelledby="t d">
+  <title id="t">vibe-kit</title>
+  <desc id="d">Dirigí Claude Code sin escribir código. El kit dibujado como un plano: relevamiento, arquitecto, equipador, tu proyecto y el observatorio.</desc>
+  <defs>
+    <pattern id="g1" width="16" height="16" patternUnits="userSpaceOnUse">
+      <path d="M16 0H0V16" fill="none" stroke="#ffffff" stroke-opacity=".05" stroke-width="1"/>
+    </pattern>
+    <pattern id="g2" width="80" height="80" patternUnits="userSpaceOnUse">
+      <rect width="80" height="80" fill="url(#g1)"/>
+      <path d="M80 0H0V80" fill="none" stroke="#ffffff" stroke-opacity=".11" stroke-width="1"/>
+    </pattern>
+    <radialGradient id="glow" cx="30%" cy="45%" r="75%">
+      <stop offset="0" stop-color="#1d5aa6"/>
+      <stop offset="1" stop-color="#0f3466"/>
+    </radialGradient>
+    <marker id="tick" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="10" markerHeight="10" orient="auto">
+      <path d="M2 8L8 2" stroke="#e8f1ff" stroke-width="1.4"/>
+    </marker>
+  </defs>
+
+  <rect width="1280" height="400" fill="url(#glow)"/>
+  <rect width="1280" height="400" fill="url(#g2)"/>
+  <rect x="16" y="16" width="1248" height="368" fill="none" stroke="#e8f1ff" stroke-opacity=".55" stroke-width="1"/>
+  <rect x="24" y="24" width="1232" height="352" fill="none" stroke="#e8f1ff" stroke-opacity=".9" stroke-width="2"/>
+
+  <g fill="#e8f1ff" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif">
+    <text x="64" y="92" font-family="'Cascadia Mono',Consolas,'SFMono-Regular',Menlo,monospace" font-size="14" letter-spacing="3" fill-opacity=".72">PLANO Nº 01 · MÉTODO DE TRABAJO</text>
+    <text x="60" y="196" font-size="108" font-weight="700" letter-spacing="-2">vibe-kit</text>
+    <text x="64" y="246" font-size="29" font-weight="600">Dirigí Claude Code sin escribir código.</text>
+    <text x="64" y="282" font-size="18" fill-opacity=".78">Un método probado en proyectos reales + las skills que lo vuelven mecánico.</text>
+    <text x="64" y="348" font-family="'Cascadia Mono',Consolas,'SFMono-Regular',Menlo,monospace" font-size="12.5" letter-spacing="2.5" fill-opacity=".6">ESC. 1:1 · CADA REGLA LLEVA SU CICATRIZ</text>
+  </g>
+
+  <!-- cota superior de la planta -->
+  <g stroke="#e8f1ff" stroke-opacity=".7" stroke-width="1" fill="none">
+    <path d="M720 50H1220" marker-start="url(#tick)" marker-end="url(#tick)"/>
+    <path d="M720 44V58M1220 44V58"/>
+  </g>
+  <text x="970" y="42" text-anchor="middle" fill="#e8f1ff" fill-opacity=".7" font-family="'Cascadia Mono',Consolas,Menlo,monospace" font-size="11.5" letter-spacing="2">PLANTA GENERAL</text>
+
+  <!-- la planta: un ambiente por pieza -->
+  <g fill="#ffffff" fill-opacity=".04">
+    <rect x="720" y="64" width="180" height="116"/>
+    <rect x="900" y="64" width="320" height="106"/>
+    <rect x="900" y="170" width="180" height="120"/>
+  </g>
+  <g stroke="#e8f1ff" stroke-width="4" stroke-linecap="square" fill="none">
+    <path d="M775 290H720V64H1220V290H835"/>
+    <path d="M900 64V150M900 186V290"/>
+    <path d="M720 180H782M818 180H900"/>
+    <path d="M900 170H1030M1066 170H1220"/>
+    <path d="M1080 170V214M1080 250V290"/>
+  </g>
+  <!-- puertas -->
+  <g stroke="#e8f1ff" stroke-width="1.2" stroke-opacity=".75" fill="none">
+    <path d="M900 150L936 150M900 150A36 36 0 0 1 936 186" stroke-dasharray="3 3"/>
+    <path d="M782 180L782 144M782 180A36 36 0 0 1 818 144" stroke-dasharray="3 3"/>
+    <path d="M1030 170L1030 206M1030 170A36 36 0 0 0 1066 206" stroke-dasharray="3 3"/>
+    <path d="M1080 214L1116 214M1080 214A36 36 0 0 1 1116 250" stroke-dasharray="3 3"/>
+  </g>
+  <!-- entrada -->
+  <g stroke="#e8f1ff" stroke-width="1.2" fill="none" stroke-opacity=".8">
+    <path d="M805 330V298M799 306L805 298L811 306"/>
+  </g>
+  <text x="805" y="346" text-anchor="middle" fill="#e8f1ff" fill-opacity=".75" font-family="'Cascadia Mono',Consolas,Menlo,monospace" font-size="10" letter-spacing="1.5">ENTRADA</text>
+
+  <g fill="#e8f1ff" text-anchor="middle" font-family="'Cascadia Mono',Consolas,'SFMono-Regular',Menlo,monospace">
+    <text x="810" y="118" font-size="13" font-weight="700" letter-spacing="1.5">RELEVAMIENTO</text>
+    <text x="810" y="137" font-size="10.5" fill-opacity=".7">te piden algo</text>
+    <text x="810" y="232" font-size="13" font-weight="700" letter-spacing="1.5">EQUIPADOR</text>
+    <text x="810" y="251" font-size="10.5" fill-opacity=".7">prepara la PC</text>
+    <text x="1060" y="112" font-size="15" font-weight="700" letter-spacing="2">ARQUITECTO</text>
+    <text x="1060" y="132" font-size="10.5" fill-opacity=".7">el plano antes que la obra</text>
+    <text x="990" y="226" font-size="13" font-weight="700" letter-spacing="1.5">TU PROYECTO</text>
+    <text x="990" y="245" font-size="10.5" fill-opacity=".7">inicio · cierre</text>
+    <text x="1150" y="226" font-size="11.5" font-weight="700" letter-spacing="1">OBSERVA-</text>
+    <text x="1150" y="241" font-size="11.5" font-weight="700" letter-spacing="1">TORIO</text>
+    <text x="1150" y="259" font-size="10.5" fill-opacity=".7">mira y anota</text>
+  </g>
+
+  <!-- norte -->
+  <g transform="translate(650 92)" stroke="#e8f1ff" fill="none" stroke-width="1.2">
+    <circle r="20" stroke-opacity=".6"/>
+    <path d="M0 -26V26M-26 0H26" stroke-opacity=".35"/>
+    <path d="M0 -17L6 6L0 1L-6 6Z" fill="#e8f1ff" stroke="none"/>
+  </g>
+  <text x="650" y="58" text-anchor="middle" fill="#e8f1ff" font-family="'Cascadia Mono',Consolas,Menlo,monospace" font-size="12" font-weight="700">N</text>
+
+  <!-- rótulo -->
+  <g stroke="#e8f1ff" stroke-width="1.2" fill="none">
+    <rect x="900" y="306" width="340" height="62"/>
+    <path d="M900 337H1240M1070 306V368"/>
+  </g>
+  <g fill="#e8f1ff" font-family="'Cascadia Mono',Consolas,Menlo,monospace">
+    <text x="908" y="318" font-size="8.5" fill-opacity=".6" letter-spacing="1.5">PROYECTO</text>
+    <text x="908" y="331" font-size="12" font-weight="700">vibe-kit</text>
+    <text x="1078" y="318" font-size="8.5" fill-opacity=".6" letter-spacing="1.5">PLANO</text>
+    <text x="1078" y="331" font-size="12" font-weight="700">01 · EL MÉTODO</text>
+    <text x="908" y="349" font-size="8.5" fill-opacity=".6" letter-spacing="1.5">AUTOR</text>
+    <text x="908" y="362" font-size="12" font-weight="700">guidocameraeq</text>
+    <text x="1078" y="349" font-size="8.5" fill-opacity=".6" letter-spacing="1.5">LICENCIA</text>
+    <text x="1078" y="362" font-size="12" font-weight="700">MIT</text>
+  </g>
+</svg>
