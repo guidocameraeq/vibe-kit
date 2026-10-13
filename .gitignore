@@ -1,2 +1,5 @@
 .claude/settings.local.json
 .claude/launch.json
+
+# imagen para compartir: se genera desde assets/banner.svg y se sube a mano (Settings > Social preview). REJ-010
+assets/social-preview.png
