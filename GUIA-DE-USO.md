@@ -130,6 +130,12 @@ Abrí un chat acá y listo: el hook te inyecta el handoff, los pendientes y los 
 commits. Para el "por qué" de cualquier cosa: `docs/DECISIONS.md` (15 ADRs) y
 `docs/REJECTED.md`. Ningún chat viejo hace falta.
 
+### 🔎 "Quiero volver a investigar mis chats (o los de otra PC)"
+Chat nuevo acá → *"investigación de chats, desde el último corte"*. El cómo está en
+`docs/SPEC-investigacion-chats.md` + ADR-022; los scripts en `investigacion/`; la fecha de corte
+de la anterior en `tips/tanda-2026-10-chats.md` §0; lo ya hallado en `D:\vibe-hallazgos\` (PC
+`clientes`). Otra PC se suma por Remote Control: su dueño da el OK en su pantalla.
+
 ---
 
 ## Las frases mágicas (chuleta)

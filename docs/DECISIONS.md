@@ -372,3 +372,30 @@ de acá y gobiernan las misiones siguientes:
 "Carpeta de proyectos de esta máquina" del Arquitecto dice `D:/` y en `kit/` dice la ruta de la PC
 principal. Es el slot por-máquina que `kit/INSTALAR.md` manda ajustar: **no es una edición prohibida**,
 y en esta PC el `diff -r` del Arquitecto nunca va a dar limpio por esa sola línea.
+
+## ADR-022 · Cómo se ejecutó la investigación: lo que se apartó del SPEC (2026-10-13)
+La misión 2 se hizo (`tips/tanda-2026-10-chats.md`). Cinco decisiones de Guido durante la ejecución
+cambian lo que decía `docs/SPEC-investigacion-chats.md`, y quedan acá para que una próxima
+investigación no las re-litigue:
+- **Lo hallado NO se borra al cerrar** (cambia el criterio 9 y D5). Hallazgos, síntesis, condensados
+  de la PC `clientes`, índice de lo ya sabido y la fecha de corte viven en `D:\vibe-hallazgos\` (fuera
+  de todo repo) **hasta el final de la hoja de ruta**; el repo privado `vibe-research` también queda
+  como respaldo. Sí se borró `vibe-research` local (los condensados de las otras PCs). *Por qué:* los
+  hallazgos costaron ~37 M tokens medidos y los condensados son lo único que queda si Claude Code borra chats
+  viejos (`cleanupPeriodDays`, NO VERIFICADO si corre). *Descartado:* borrar todo como decía el SPEC.
+- **Las alertas de seguridad no van al informe público**: se movieron a
+  `D:\vibe-hallazgos\ALERTAS-SEGURIDAD.md`. Aunque no tengan valores, son un mapa de puntos débiles de
+  sistemas reales. *Descartado:* dejarlas en paráfrasis en el repo público.
+- **El control positivo de secretos (criterio 2) no se hizo**, por decisión de Guido ("no hay cosas que
+  se me puedan filtrar"). Queda solo el detector independiente (gitleaks, 0 reales en las 3 PCs).
+- **Presupuesto (D4):** plan A completo (8,2 M de contenido en esta PC; la bitácora de Desktop marca
+  cambios casi todos los días, así que D3 casi no recortó) y lectura completa en la PC del compañero
+  (~3,4 M de contenido, ~9,5 M reales). *Descartado:* recortar Desktop a ~6 M, y un paso `recortar.py`
+  (saltear subagentes + recortar textos de Claude, −40%) — Guido prefirió leer "normal" por el valor
+  de la data. La regla de costo aprendida: **el gasto real de un lector es ~3× su contenido** por la
+  relectura; lotes más chicos y entradas recortadas son la palanca si hace falta ahorrar.
+- **Se sumó una tercera PC (la del compañero de trabajo)** con su consentimiento explícito, acotado a
+  "cómo usa el kit". Como su cuenta no tenía acceso al canal privado, **los scripts se publicaron en
+  `investigacion/`** (son código) y su resumen volvió por Remote Control.
+**La fecha de corte** de esta investigación está en el informe (§0) y en `D:\vibe-hallazgos\CORTE.md`:
+la próxima lee solo lo posterior.

@@ -3,66 +3,51 @@
 > **Save game** del proyecto madre. `/cierre` lo sobreescribe entero; el hook SessionStart lo
 > inyecta en cada chat nuevo de esta carpeta.
 
-**Última sesión cerrada:** 2026-10-12, en la PC `clientes` (`D:\vibe-kit`) — **la vuelta después de
-70 días.** Se planeó la investigación de los chats, misión 1 de 5. Hay un solo archivo nuevo de peso:
-`docs/SPEC-investigacion-chats.md` (**READY**). Versión del kit sin cambios: `v2.4.2`.
+**Última sesión cerrada:** 2026-10-13, PC `clientes` (`D:\vibe-kit`) — **misión 2 de 5 hecha: la
+investigación de los chats.** Kit sin cambios (`v2.4.2`). Nuevo en el repo:
+`tips/tanda-2026-10-chats.md` (el informe), `investigacion/` (scripts + `costos.md` + `LECTOR.md`),
+ADR-022.
 
-## Qué pasó en los 70 días (contado por Guido, no está en git)
+## Qué salió
 
-- **Usó muchísimo el kit**: el Arquitecto (arrancar proyectos, preparar skills, equivalencias), también
-  invocado adentro de proyectos, más `/relevamiento` y `docs-fyd`. *"Me ha ido muy, muy bien."*
-- **Armó un método propio en Hermes**: director / obrero / tramo con subagentes (implementador Sonnet,
-  revisor Opus sin Bash, explorador Haiku) + red-team. Está en Hermes Desktop y en Hermes Mobile.
-- **Mesa entre directores**: los directores de proyectos que comparten base y usuarios
-  (Desktop ↔ Mobile ↔ Devoluciones) **se hablan entre ellos**, se ponen de acuerdo y **se contagian
-  mejoras del método**. *"Me salva la vida."*
-- **Comunicación entre PCs por Remote Control**: Guido ya la usó, ida y vuelta, y la quiere en el pack.
-- Su balance: más tokens y más lento, pero **mucha consistencia, muy pocos errores y mucha menos
-  participación suya**.
+- **68 hallazgos de las 2 PCs de Guido** (26 nuevos, 42 ya sabidos por las bitácoras de Hermes) +
+  **un anexo de la PC del compañero de trabajo** (30 hallazgos, con su consentimiento, acotado a
+  "cómo usa el kit"). **57 propuestas con checkbox** (P1-P57) → insumo de la misión 4.
+- La idea fuerza: **las reglas escritas en prosa se siguen rompiendo; solo frenó lo mecánico**
+  (script, hook, campo obligatorio). Y 13 problemas de Guido **se repiten en el compañero** → son del
+  kit, no de Guido.
+- **El estreno de `/relevamiento` existió, en la PC del compañero**: 7 chats, ninguno de punta a
+  punta (Anexo A1). En las PCs de Guido: 0 invocaciones.
+- **Costo (Q1)**: el 98% es relectura de caché; el director Opus relee ~370 mil tokens por respuesta.
+  La investigación costó ~37 M tokens medidos (esta PC ~27 M + la del compañero ~9,5 M; la Etapa 1 de la otra PC de Guido, NO MEDIDA).
 
-## Próximo paso concreto: la misión 2, la investigación
+## Próximo paso concreto: la misión 3
 
-Abrir un chat nuevo acá → `/inicio` → *"ejecutá el SPEC de la investigación"*. El spec trae todo:
-
-- **Etapa 0** — un script local (`investigacion/condensar.py`, a escribir) que condensa los `.jsonl`,
-  enmascara secretos y saca el costo real por rol y modelo. **Primero se prueba con 3 chats elegidos
-  a mano** y se mira la salida.
-- **Etapa 1** — lectores en Sonnet, por lotes. **Guido ya pidió la Workflow (D1)**, pero conviene
-  reconfirmarla en ese chat, porque el permiso es por sesión.
-- **Etapa 2** — síntesis en Opus → `tips/tanda-2026-10-chats.md`.
-- **El presupuesto (D4) se fija después de la Etapa 0**, con el tamaño condensado en la mano.
-- **La otra PC** corre su propia Etapa 0+1 y una mini-síntesis, coordinada por Remote Control. La
-  mini-síntesis vuelve por el repo **privado** `vibe-research`, que hay que crear al arrancar.
+Abrir un chat nuevo acá → `/inicio` → *"misión 3: profesionalizar vibe-kit"* (pasar el Arquitecto
+por este repo: norte, estructura, docs, README). La misión 4 (diseñar el pack **con Guido adentro**,
+recorriendo las 57 propuestas) viene después.
 
 ## Cosas que muerden y no están en ningún otro doc
 
-- 🔴 **vibe-kit es PÚBLICO** (`gh repo view` lo dice). Nada de los chats entra crudo. Antes de cada
-  push hay que correr un escáner de secretos y Guido tiene que mirar el diff. Viene del red-team del
-  spec (ADR-021).
-- **En esta PC hay 941 transcripts de subagentes** en `projects/*/*/subagents/`. El `usage` se repite
-  en varias líneas por cada respuesta: hay que agruparlo por `message.id`. El rol de cada sesión está en
-  `custom-title.json`. Todo verificado por el red-team.
-- **Volumen medido en esta PC:** 1,9 GB y ~230 chats principales. El 85% es Hermes (Desktop 90 chats,
-  Mobile 94).
-- **Las fuentes del método** que leen los agentes:
-  - Desktop: `d:\Hermes\Hermes.exe\docs\metodo\`. La bitácora al día está en
-    `D:\Hermes-bitacora\docs\metodo\bitacora\`, no en `main`.
-  - Mobile: `d:\Hermes\Hermes mobile\docs\v4\METODO.md` y `docs\WORKFLOW.md`.
-- **El "capataz"** es un agente que Guido arma para regalarle a oficinistas no-dev. En esta PC solo
-  están los chats de sus pruebas (`*kit-eq-pruebas-capataz*`); el código no está acá. Preguntarle a
-  Guido dónde vive.
-- **El diff kit↔instalado en esta PC no da limpio por una sola línea**: la "carpeta de proyectos" del
-  Arquitecto. Es el slot por máquina y está documentado como excepción en ADR-021. No es drift.
-- **Dos alertas de seguridad de Hermes** que aparecieron leyendo su bitácora. Son de Hermes, no de acá:
-  - un merge corrió sin el clic de Guido, porque `git -C <ruta> merge` esquiva la regla `ask`;
-  - `/smoke` tiene una contraseña de producción desactualizada.
-
-  Además: si la contraseña de producción que salió en pantalla en un transcript no se cambió, conviene
-  cambiarla.
-- **El estreno de `/relevamiento` seguramente ya pasó en la práctica.** Su evidencia está en los chats,
-  y la busca la pregunta Q4 del spec.
+- 📦 **`D:\vibe-hallazgos\` NO SE BORRA** hasta el final de la hoja de ruta (decisión de Guido,
+  ADR-022): hallazgos de las 3 PCs, síntesis parciales, condensados de esta PC (51 MB, secretos
+  tapados), `ya-sabido.md` (índice F/CM de Hermes), `CORTE.md` (fecha de corte),
+  `ALERTAS-SEGURIDAD.md` (privado: **no** va al repo público). El repo privado
+  `guidocameraeq/vibe-research` también queda como respaldo.
+- 📅 **Fecha de corte**: clientes 2026-10-12 21:59 UTC · Usuario 2026-10-13 12:04 UTC · compañero
+  2026-10-13. La próxima investigación lee solo lo posterior (a `condensar.py` le falta `--desde`).
+- 🔴 **vibe-kit sigue PÚBLICO**: los nombres reales (el compañero, clientes, cuentas) no entran.
+- 🔐 **Alertas de seguridad abiertas** (detalle solo en el archivo privado): credenciales que pasaron
+  por chats de Hermes, la skill `/smoke` de Hermes Desktop con un login real de producción, rotaciones
+  pendientes hace un mes. **Rotar: NO VERIFICADO.** Son de Hermes, no de acá.
+- 🖥️ **Mesa entre PCs, probada**: Remote Control anduvo ida y vuelta con 2 PCs. Lo que muerde: el
+  permiso del usuario no viaja con el mensaje (cada PC necesita su OK y reglas propias); la
+  herramienta de borrado de una sesión no borra en la raíz de `C:`; el clasificador puede frenar copias
+  de material "sensible" → el humano corre esos pasos a mano. Va a la misión 4 (P34).
+- La otra PC de Guido se llama `Usuario` (`C:\Users\Usuario\Desktop\Proyectos\vibe-kit`, sin disco
+  D, Python 3.14). El capataz: código **no está en esta PC** y no se ubicó (P41).
+- **El diff kit↔instalado en esta PC** sigue sucio por una sola línea (carpeta de proyectos, ADR-021).
 
 ## Bloqueos
 
-Ninguno. Para la otra PC hace falta que Guido abra allá una sesión de Claude Code con Remote Control,
-con vibe-kit al día (`git pull`).
+Ninguno.

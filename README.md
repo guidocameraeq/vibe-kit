@@ -62,16 +62,20 @@ y la chuleta de frases mágicas. Es LA puerta de entrada para usar el sistema.
 - 🧭 **LA HOJA DE RUTA DE OTOÑO-2026 — 5 misiones, una por chat** (ADR-021). Tras 70 días de uso
   intenso sin volver al kit, se investiga antes de rediseñar:
   1. ✅ Planear la investigación → `docs/SPEC-investigacion-chats.md` (READY, 2026-10-12).
-  2. ⏭️ **La investigación de los chats** de las dos PCs (script + Workflow de lectores Sonnet +
-     síntesis Opus) → `tips/tanda-2026-10-chats.md` + tabla de costos reales por rol y modelo.
-  3. Profesionalizar vibe-kit: pasar el Arquitecto por este repo (norte, estructura, docs, README).
+  2. ✅ **La investigación de los chats** (2026-10-13) → `tips/tanda-2026-10-chats.md` (68 hallazgos
+     de las 2 PCs de Guido + anexo de la PC del compañero; **57 propuestas con checkbox**) +
+     `investigacion/costos.md`. Lo hallado se guarda en `D:\vibe-hallazgos\` hasta el final de la
+     hoja de ruta (ADR-022); la fecha de corte para la próxima investigación está en el informe §0.
+  3. ⏭️ Profesionalizar vibe-kit: pasar el Arquitecto por este repo (norte, estructura, docs, README).
   4. **Diseñar el pack con Guido adentro** (Base con el "norte" del proyecto y manual por módulo ·
      Dirección: director/obrero/tramo + política de modelos · Mesa entre directores y entre PCs · el
      Arquitecto como puerta, también para proyectos que ya andan). Fuentes: el informe + los métodos
      de Hermes Desktop y Mobile.
   5. Construirlo por piezas.
-- 🔥 **EL ESTRENO REAL de `/relevamiento`** — *(probablemente ya ocurrió en la práctica entre agosto y
-  octubre: Guido la usó "mucho". La misión 2 busca esa evidencia en los chats — pregunta Q4 del SPEC.)*
+- 🔥 **EL ESTRENO REAL de `/relevamiento`** — *(ocurrió, pero no en las PCs de Guido: **7 chats del
+  compañero de trabajo**, 2026-09-08 a 10-07, ninguno cerrado de punta a punta; evidencia y fricciones
+  en el Anexo A1 de `tips/tanda-2026-10-chats.md`. Con eso se pueden revisar los 11 criterios; el
+  cierre completo de las 4 etapas y el chequeo de vencimiento siguen sin probarse.)*
   El próximo pedido de otro sector, de punta a punta.
   Es la única señal que vale, y hasta que pase **no se declara estable** (precedente: `docs-fyd`
   pasó 16/16 en verificación y la primera corrida real le corrigió 9 de 10 artefactos). De los 21

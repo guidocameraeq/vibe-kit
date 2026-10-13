@@ -4,7 +4,9 @@ Leer, con agentes y sin quemar el contexto de nadie, todo lo que Guido trabajó 
 PCs desde agosto, y convertirlo en **un informe con propuestas** (formato tanda) que alimente el
 rediseño del pack: Arquitecto, skills, agentes, el método director/obrero y la documentación de proyectos.
 
-- Estado: **✅ READY 2026-10-12** — D1-D5 decididas; red-team 1 ronda (NO READY: 2 críticos, 2 altos,
+- Estado: **✅ IMPLEMENTADO 2026-10-13** → `tips/tanda-2026-10-chats.md` + `investigacion/costos.md`.
+  Lo que se apartó de este spec (criterio 9, D5, control positivo de secretos, una tercera PC): ADR-022.
+- Estado anterior: **✅ READY 2026-10-12** — D1-D5 decididas; red-team 1 ronda (NO READY: 2 críticos, 2 altos,
   1 medio — **todos foldeados**). Aprobado por Guido.
 - Fecha: 2026-10-12
 - Origen: charla del 2026-10-12 (sesión de `/inicio` del proyecto madre). Guido: *"que mandes varios
