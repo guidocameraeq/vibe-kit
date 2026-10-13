@@ -24,7 +24,6 @@
 ## 🟡 Cuando se pueda
 - [ ] **Elegir el nombre del proyecto** (descartados: Obrador, Andamio, Batuta, Cimientos, Plano). Al
   cambiarlo: banner, README, About de GitHub y la URL del Equipador.
-- [ ] **Subir la imagen para compartir**: `assets/social-preview.png` en GitHub → Settings → Social preview.
 - [ ] **Llevarle al jefe**, sin apuro: aprobar las 7 celdas `[+fork]` de las plantillas · versionar el
   método · darle dueño y fecha al chequeo de éxito a las 4-6 semanas.
 - [ ] **Compuerta del Modo C**: tras ~2 semanas de uso de A+B, si te trabaste 3+ veces pidiendo cosas,

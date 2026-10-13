@@ -9,7 +9,8 @@
   que se actualizan solas, un día de trabajo de ejemplo y los principios. El nombre del proyecto queda
   abierto (Guido lo decide más adelante).
 - En GitHub: la descripción "About" nueva y las etiquetas `claude-code`, `vibe-coding`, `claude-skills`,
-  `metodo`. La imagen para compartir se genera aparte (no se versiona, REJ-010).
+  `metodo`; la imagen para compartir (Social preview) subida. Se genera desde el banner y no se versiona
+  (REJ-010).
 - `docs/MISION-Y-VISION.md` (para qué existe, para quién, qué NO hace) · `docs/TODO.md` · este CHANGELOG ·
   `docs/README.md` (índice de `docs/`) · índice al tope de `DECISIONS.md` · `LICENSE` (MIT pura, para que GitHub la reconozca) + `NOTICE` (la excepción del texto de FyD) · ADR-023.
 - `observatorio/` con su README: el Extractor y la investigación, juntos.
