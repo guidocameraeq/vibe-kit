@@ -35,7 +35,9 @@ recorriendo las 57 propuestas) viene después.
   `ALERTAS-SEGURIDAD.md` (privado: **no** va al repo público). El repo privado
   `guidocameraeq/vibe-research` también queda como respaldo.
 - 📅 **Fecha de corte**: clientes 2026-10-12 21:59 UTC · Usuario 2026-10-13 12:04 UTC · compañero
-  2026-10-13. La próxima investigación lee solo lo posterior (a `condensar.py` le falta `--desde`).
+  2026-10-13. La próxima investigación lee solo lo posterior (`condensar.py --desde`, probado).
+- 🔁 **La investigación ya es un método**: `investigacion/METODO.md` (receta, no skill todavía —
+  regla de 3+). En la misión 3 hay que ubicarlo en la estructura del repo profesionalizado.
 - 🔴 **vibe-kit sigue PÚBLICO**: los nombres reales (el compañero, clientes, cuentas) no entran.
 - 🔐 **Alertas de seguridad abiertas** (detalle solo en el archivo privado): credenciales que pasaron
   por chats de Hermes, la skill `/smoke` de Hermes Desktop con un login real de producción, rotaciones

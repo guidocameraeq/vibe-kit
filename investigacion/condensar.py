@@ -191,8 +191,11 @@ def rol_de(titulo):
     return "otro"
 
 
-def condensar(ruta, enm, es_sub=False):
-    """Devuelve (lineas_condensadas, filas_de_costo, meta)."""
+def condensar(ruta, enm, es_sub=False, desde=""):
+    """Devuelve (lineas_condensadas, filas_de_costo, meta).
+
+    `desde` (ISO UTC, ej. "2026-10-12T21:59"): se saltea todo mensaje anterior — el corte de la
+    investigación previa. Vale también para el costo."""
     lineas = []
     usos = {}  # message.id -> (modelo, usage)  — la ÚLTIMA línea gana
     nombres_tool = {}
@@ -211,6 +214,11 @@ def condensar(ruta, enm, es_sub=False):
         if tipo not in ("user", "assistant"):
             continue  # attachment, queue-operation, file-history-*, system, etc.
         ts = o.get("timestamp")
+        if desde and (not ts or ts < desde):
+            continue
+        if ts:
+            ts_ini = ts_ini or ts
+            ts_fin = ts
         origen = o.get("origin") if isinstance(o.get("origin"), dict) else {}
         if origen.get("kind") == "peer":
             # Mensaje de OTRA sesión (la Mesa entre directores / director↔obrero). Viene isMeta,
@@ -223,9 +231,6 @@ def condensar(ruta, enm, es_sub=False):
             continue
         if o.get("isMeta"):
             continue
-        if ts:
-            ts_ini = ts_ini or ts
-            ts_fin = ts
         cwd = cwd or o.get("cwd")
         msg = o.get("message") or {}
         cont = msg.get("content")
@@ -364,6 +369,8 @@ def main():
     ap.add_argument("--pedir-secretos", action="store_true")
     ap.add_argument("--excluir", nargs="*", default=[],
                     help="ids de sesión a saltear (la sesión de la investigación misma: se cita a sí misma)")
+    ap.add_argument("--desde", default="",
+                    help='solo mensajes desde esta fecha/hora UTC (el corte anterior), ej. "2026-10-12T21:59"')
     ap.add_argument("--verificar", action="store_true")
     ap.add_argument("--donde-estan", action="store_true",
                     help="lista en qué transcripts CRUDOS aparece cada secreto real (solo conteos)")
@@ -395,7 +402,9 @@ def main():
         proyecto, sesion, es_sub, agente, carpeta = describir_ruta(ruta)
         if sesion in a.excluir:
             continue
-        lineas, por_modelo, meta = condensar(ruta, enm, es_sub)
+        lineas, por_modelo, meta = condensar(ruta, enm, es_sub, a.desde)
+        if a.desde and meta["ts_ini"] is None:
+            continue  # chat entero anterior al corte
         titulo = titulo_de_carpeta(carpeta) or meta["titulo"]
         nombre = sesion + (f"__sub-{os.path.basename(ruta)[:-6]}" if es_sub else "")
         destino = os.path.join(salida, "condensados", proyecto, nombre + ".md")

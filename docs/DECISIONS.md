@@ -398,4 +398,6 @@ investigación no las re-litigue:
   "cómo usa el kit". Como su cuenta no tenía acceso al canal privado, **los scripts se publicaron en
   `investigacion/`** (son código) y su resumen volvió por Remote Control.
 **La fecha de corte** de esta investigación está en el informe (§0) y en `D:\vibe-hallazgos\CORTE.md`:
-la próxima lee solo lo posterior.
+la próxima lee solo lo posterior (`condensar.py --desde`).
+**El método quedó escrito en `investigacion/METODO.md`** (a pedido de Guido, al cerrar): **receta,
+no skill** — se hizo una sola vez y la regla de 3+ manda esperar. Si a la tercera duele, es skill.
