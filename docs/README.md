@@ -30,6 +30,12 @@ siguen consultando (ADR-020). El Arquitecto busca borradores en `docs/SPEC-*.md`
 | [`SPEC-investigacion-chats.md`](SPEC-investigacion-chats.md) | La investigación de los chats (misión 2) y la hoja de ruta |
 | [`SPEC-profesionalizar-repo.md`](SPEC-profesionalizar-repo.md) | El orden de este repo (misión 3) |
 
+## La misión en curso — [`mision-4/`](mision-4/)
+
+| Archivo | Qué es |
+|---|---|
+| [`mision-4/PLAN.md`](mision-4/PLAN.md) | El plan de la misión 4 (diseñar el pack): objetivos, pilares, tramos y el brief del próximo tramo. Cada tramo deja acá su salida |
+
 ## De consulta — [`consulta/`](consulta/)
 
 Material de referencia que no cambia con el trabajo diario.
