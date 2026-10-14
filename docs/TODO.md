@@ -5,8 +5,8 @@
 2026-10-13 — ver SESSION_HANDOFF.md
 
 ## 🔴 Crítico
-- [ ] **Misión 4 — diseñar el pack con Guido adentro, SOLO DISEÑO** (hoja de ruta: ADR-021; plan de 5
-  tramos y foco en los 5 objetivos: en el handoff). Tramo 0 (biblioteca) ✅. Base con el norte del
+- [ ] **Misión 4 — diseñar el pack con Guido adentro, SOLO DISEÑO** (hoja de ruta: ADR-021; plan de 6
+  tramos, 7 objetivos y la flota: en el handoff). Tramo 0 (biblioteca) ✅. Base con el norte del
   proyecto y manual por módulo · Dirección: director/obrero/tramo + política de modelos · Mesa entre
   directores y entre PCs · el Arquitecto como puerta, también para proyectos que ya andan. Fuentes:
   las 57 propuestas de `tips/tanda-2026-10-chats.md` + los métodos de Hermes Desktop y Mobile.
