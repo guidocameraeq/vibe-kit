@@ -53,7 +53,7 @@ tramos y el brief del tramo 1 (la radiografía de director/obrero, ~450 mil toke
 - 🖥️ **Mesa entre PCs** por Remote Control: anduvo, pero el permiso no viaja con el mensaje (cada PC
   da su OK) y el clasificador puede frenar copias "sensibles". Va a la misión 4 (P34).
 - La otra PC se llama `Usuario` (`C:\Users\Usuario\Desktop\Proyectos\vibe-kit`, sin disco D, Python
-  3.14). El capataz: código **no está en esta PC** y no se ubicó (P41).
+  3.14). El capataz (P41) no es parte del workflow: fue una idea para un compañero.
 
 ## Bloqueos
 
