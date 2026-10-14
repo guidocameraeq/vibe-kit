@@ -47,7 +47,7 @@ charla diseñó algo no-trivial.
 |---|---|---|
 | `README.md` | Portada para quien llega de afuera: qué es, para quién, carpetas, instalar | 100% portada: sin pendientes, historial ni número de versión (ADR-023, playbook §1) |
 | `docs/MISION-Y-VISION.md` | Para qué existe el repo, para quién, qué NO hace | ~1 pantalla; se toca solo si cambia el rumbo |
-| `docs/TODO.md` | **ÚNICA fuente de pendientes** | REJ-005 reabierto (ADR-023). Lo inyecta el hook hasta "Ya hecho" |
+| `docs/TODO.md` | **ÚNICA fuente de pendientes** | REJ-005 reabierto (ADR-023). El hook inyecta sus primeras 40 líneas: lo urgente va arriba |
 | `docs/CHANGELOG.md` | Historia: una entrada por sesión, con el tag si lo hubo | `/cierre` la agrega al tope |
 | `docs/README.md` | El índice de `docs/` | Archivo nuevo en `docs/` → una fila acá |
 | `GUIA-DE-USO.md` | La puerta: recetas por situación para Guido | Anti-espejo: frases y punteros, jamás duplicar procedimientos |
