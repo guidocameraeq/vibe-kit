@@ -26,42 +26,62 @@ ADR-023). Kit sin bump (`v2.4.2`): solo textos.
   verifica). El kit trae `{{CARPETA_DE_PROYECTOS}}` en el Arquitecto y el script conserva la ruta de
   cada PC. **Se acabó la excepción de ADR-021: el diff da LIMPIO también en esta PC.**
 
-## Próximo paso concreto: la misión 4
+## Próximo paso concreto: la misión 4 — SOLO DISEÑO
 
-Chat nuevo acá → `/inicio` → Guido dice **"misión 4, tramo 1"** → se sigue el brief de abajo
-(lo diseñó Guido el 2026-10-14; no hace falta que lo pegue).
+Chat nuevo acá → `/inicio` → Guido dice **"misión 4, tramo 1"** → se sigue el brief de abajo (lo
+diseñó Guido el 2026-10-14; no hace falta pegarlo). **Orden fijo: diseño → spec → construcción.** La
+misión 4 no toca `kit/` ni ningún proyecto; construir es la misión 5, en chats aparte.
 
-### Cómo se encara la misión 4 (3 tramos, varios chats)
+### El foco (pedido de Guido, 2026-10-14)
+No "profesionalizar lo que ya hace", sino **mejorar el proceso**, medido contra 5 objetivos:
+1. **Menos tokens** · 2. **Mejor calidad de código** (menos fallas repetidas) · 3. **Proyectos más
+documentables y estables** · 4. **Procesos estables** (menos trabajo a mano) · 5. **Trabajar bien entre
+3 PCs y 2 personas**. Toda mejora dice qué objetivo mueve, **contra qué línea base medida** (el acta las
+trae: ~370 mil tokens por respuesta del director, ~290 ediciones fallidas, ~120 pedidos de estado…) y
+cómo se va a saber si funcionó. **La información de la investigación no se pierde**: se usa de verdad.
 
-1. **Tramo 1 — el mapa** (1 chat): las 57 propuestas repartidas en entra / se discute / afuera-después.
-2. **Tramo 2 — el diseño por capa** (un chat por capa, ~4): Base (inicio/cierre/handoff, norte, manual
-   por módulo) · Dirección (director/obrero/tramo + política de modelos) · Mesa (directores y PCs) ·
-   el Arquitecto como puerta, también sobre proyectos que ya andan. De a una decisión.
-3. **Tramo 3 — el armado** (1 chat): un solo SPEC del pack → red-team → Guido lo aprueba (READY) →
-   orden de construcción para la misión 5.
+### Modelos y tokens
+- El chat donde Guido decide: **Opus**. Lectores de volumen: **Sonnet**, con salida corta y techo.
+  **Opus lee cuando vale la pena** (poco volumen, mucho criterio: los métodos de director/obrero).
+- Un lector gasta ~3× lo que lee. **Antes de toda lectura de más de ~100 KB: decir el costo y esperar
+  el OK.** Nunca se leen enteros los hallazgos crudos (1,7 MB) ni los condensados (49 MB): solo grep.
+- El acta (78 KB) se consulta por partes; los lectores devuelven resúmenes, no texto crudo.
 
-### Brief del tramo 1 — el mapa
+### Los tramos
+| Tramo | Qué | Sale con |
+|---|---|---|
+| ✅ 0 · Biblioteca | Hecho el 2026-10-14: todo `D:ibe-hallazgos\` respaldado en el repo privado `vibe-research/biblioteca/` (1.362 archivos) con un `LEEME.md` de capas y costos de lectura | Nada se pierde; accesible desde las 3 PCs |
+| **1 · Radiografía director/obrero** | Cómo está armado el sistema de Guido de verdad | `docs/mision-4/RADIOGRAFIA-director-obrero.md` |
+| 2 · Mapa por objetivos | P1-P57 + barrido de lo que quedó afuera, repartido por los 5 objetivos | `docs/mision-4/TABLERO.md` |
+| 3 · Diseño por capa | Base · Dirección · Mesa · el Arquitecto como puerta. De a una decisión | Cada parte del plano |
+| 4 · El spec | Un SPEC del pack → red-team → Guido lo aprueba | El plano READY + orden de construcción |
 
-- **Cómo participa Guido** (lo eligió él): **Claude recomienda, Guido corrige**. Por tema, Claude
-  muestra cada propuesta con su recomendación ya puesta y Guido aprueba el tema en bloque o cambia
-  las que no le cierran. Las que se discuten: **opciones con pros/contras + UNA recomendación**.
-- **Material**: `tips/tanda-2026-10-chats.md` (P1-P57 con su evidencia) + el índice de los métodos
-  de Hermes en `D:\vibe-hallazgos\ya-sabido.md` (alcanza para el mapa). Los métodos completos se abren
-  recién en las capas Dirección y Mesa, solo lo que toque — sus rutas están en ese índice.
-- **Reglas**:
-  1. Solo diseño: no se toca `kit/` ni ningún proyecto.
-  2. Antes de mostrar nada, marcar lo que la misión 3 ya hizo o probó (P13 resuelta con
-     `kit-sync.sh`; P7 probada como `docs/MISION-Y-VISION.md`; revisar el resto contra ADR-023).
-  3. Agrupar las 57 en ~8 temas. Por propuesta, una línea: qué es · evidencia corta ·
-     recomendación (entra / se discute / afuera-después) con razón.
-  4. Toda pieza que entra dice **qué la frena mecánicamente** (script, hook, campo obligatorio); si no
-     hay freno, se declara "regla blanda". Es la idea fuerza de la investigación.
-  5. **El pack tiene que quedar liviano**: decir también qué NO entra, con razón.
-  6. Destilado y genérico: el repo es público, nada de Hermes crudo (nombres, rutas, negocio).
-  7. No cargar el acta entera en el chat: subagentes por tema que devuelven el resumen.
-  8. Lo decidido va a `docs/mision-4/TABLERO.md` (la memoria entre chats; fila en `docs/README.md`).
-- **Sale con**: el tablero repartido + el orden de los chats de capa. Sumar los 3 insumos de la
-  misión 3 (TODO 🟢).
+**Cómo participa Guido** (lo eligió él): Claude recomienda, Guido corrige (aprueba temas en bloque o
+cambia); lo que se discute va con opciones + pros/contras + UNA recomendación.
+
+### Brief del tramo 1 — la radiografía de director/obrero
+- **Qué es**: un apartado propio (pedido de Guido) que analiza **cómo está armado su sistema** de
+  director y obreros: roles, cómo se abre una pestaña, cómo se hablan (mensajes, suscripciones), el
+  relevo de director, el tramo, el gate, qué modelo usa cada uno. Y por cada parte: qué funciona
+  (acta Q8), qué cuesta (Q1), qué falla (Q2, Q6), qué es propio de Hermes y qué sirve para cualquier
+  proyecto, y qué mejora movería cuál de los 5 objetivos.
+- **Fuentes** (medidas el 2026-10-14):
+  - Desktop `D:\Hermes\Hermes.exe`: skills `director` (39 KB), `obrero` (22 KB), `tramo` (40 KB) +
+    `docs/metodo/RELEVO_DIRECTOR.md` (10 KB) = ~111 KB.
+  - Mobile `D:\Hermes\Hermes mobile`: skills `director` (39 KB), `obrero` (31 KB), `tramo` (28 KB), `gate`
+    (15 KB) + `docs/v4/METODO.md` (80 KB) = ~193 KB. ⚠️ Ese checkout está en una rama de trabajo
+    (`v4/m13-cronos-app`): el método vigente es el de `main` (leer con `git show main:<ruta>`).
+  - El acta: solo Q1, Q2, Q6 y Q8. Y `ya-sabido.md` para no redescubrir lo escrito.
+  - **NO se leen**: `METODO_PROYECTO_LARGO.md` (216 KB), `CAMBIOS.md` (121 KB) ni las bitácoras (~470 KB)
+    — ya están resumidos en `ya-sabido.md`; se abren por grep si hace falta un detalle.
+- **Cómo**: 2 subagentes **Opus** en paralelo (uno Desktop, uno Mobile) con la misma plantilla de
+  salida (anatomía · flujo · mensajes · modelos · costo · fallas · qué funciona · propio vs genérico) y
+  techo de ~4 KB cada uno. El chat principal cruza los dos con el acta y arma el documento con Guido.
+  **Costo estimado: ~300 mil tokens.** Decirlo y esperar el OK antes de lanzar.
+- **Reglas**: solo diseño · destilado y genérico (el repo es público: nada de nombres, rutas ni
+  negocio de Hermes en lo que se escribe) · lo que es un hallazgo nuevo se marca como tal.
+- **Sale con**: la radiografía + una lista corta de "qué mejoraría y por qué", que entra al mapa del
+  tramo 2. Fila nueva en `docs/README.md` para `docs/mision-4/`.
 
 ## Cosas que muerden y no están en ningún otro doc
 
