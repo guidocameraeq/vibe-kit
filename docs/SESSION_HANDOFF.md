@@ -50,7 +50,7 @@ cómo se va a saber si funcionó. **La información de la investigación no se p
 ### Los tramos
 | Tramo | Qué | Sale con |
 |---|---|---|
-| ✅ 0 · Biblioteca | Hecho el 2026-10-14: todo `D:ibe-hallazgos\` respaldado en el repo privado `vibe-research/biblioteca/` (1.362 archivos) con un `LEEME.md` de capas y costos de lectura | Nada se pierde; accesible desde las 3 PCs |
+| ✅ 0 · Biblioteca | Hecho el 2026-10-14: todo `D:\vibe-hallazgos\` respaldado en el repo privado `vibe-research/biblioteca/` (1.362 archivos) con un `LEEME.md` de capas y costos de lectura | Nada se pierde; accesible desde las 3 PCs |
 | **1 · Radiografía director/obrero** | Cómo está armado el sistema de Guido de verdad | `docs/mision-4/RADIOGRAFIA-director-obrero.md` |
 | 2 · Mapa por objetivos | P1-P57 + barrido de lo que quedó afuera, repartido por los 5 objetivos | `docs/mision-4/TABLERO.md` |
 | 3 · Diseño por capa | Base · Dirección · Mesa · el Arquitecto como puerta. De a una decisión | Cada parte del plano |
