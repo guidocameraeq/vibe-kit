@@ -7,10 +7,19 @@
 ## 🔴 Crítico
 - [ ] **Misión 4 — diseñar el pack con Guido adentro, SOLO DISEÑO** (hoja de ruta: ADR-021; plan de 6
   tramos, 7 objetivos y el Arquitecto como agente único: en docs/mision-4/PLAN.md). Tramo 0 (biblioteca) ✅ ·
-  Tramo 1 (radiografía director/obrero) ✅ · **sigue el tramo 2 (la evidencia de afuera)**. Base con el norte del
+  Tramo 1 (radiografía director/obrero) ✅ · Tramo 2 (flota, repos, plataforma) ✅ · **sigue el tramo 3 (el mapa
+  por objetivos, `TABLERO.md`)**. Base con el norte del
   proyecto y manual por módulo · Dirección: director/obrero/tramo + política de modelos · Mesa entre
   directores y entre PCs · el Arquitecto como puerta, también para proyectos que ya andan. Fuentes:
   las 57 propuestas de `tips/tanda-2026-10-chats.md` + los métodos de Hermes Desktop y Mobile.
+- [ ] **Tope al hook de arranque del molde** (arreglo chico, fuera de la misión 4, que solo diseña).
+  - **El problema**: el molde hace `cat` del handoff entero, y la plataforma corta lo inyectado a 10.000
+    caracteres. Lo que se pasa, la sesión no lo ve.
+  - **Hoy**: Hub inyecta ~43 KB y el Panel del bot ~18 KB, así que arrancan sin ver su estado (deducido).
+    vibe-kit está al 87% del tope.
+  - **El arreglo**: poner un tope en `kit/…/hooks/session-start.sh`. Hub y el Panel se arreglan en sus
+    propios chats.
+  - **Evidencia**: `docs/mision-4/FLOTA.md` §3.
 - [ ] **Misión 5 — construir el pack por piezas** (después de la 4).
 - [ ] **Misión 6 — escribir el ciclo de mejora del método** (al terminar la misión 5, con todo fresco).
   Juntar en un documento reusable lo que hoy está repartido (ADR-021, SPEC-investigacion-chats,

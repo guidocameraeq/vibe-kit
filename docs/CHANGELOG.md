@@ -2,6 +2,30 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-14 — Misión 4, tramo 2: la evidencia de afuera
+
+### Added
+- `docs/mision-4/FLOTA.md`: el inventario de los proyectos, armado por script sobre GitHub. Muestra:
+  - 3 dialectos de director/obrero;
+  - que ningún proyecto marca su versión del método;
+  - que el hook de arranque del molde no tiene tope (dos proyectos se pasan del corte de la plataforma);
+  - que el molde no trae reglas `deny`;
+  - que `/smoke` y `/release` ya pasaron la regla de 3+.
+- `docs/mision-4/REPOS.md`: lo que cuenta el historial de git de 10 proyectos (arreglo del arreglo: 26%
+  de mediana; arreglos con prueba: 0-45%; commits de solo documentos: 51-82%). Son las líneas base del
+  objetivo 2.
+- `docs/mision-4/PLATAFORMA.md`: qué de lo armado a mano ya es nativo de Claude Code (abrir sesiones,
+  avisos, estado, mensajes entre PCs, frontmatter de subagentes, barreras, plugins, esfuerzo y caché).
+  Lo hizo el agente `claude-code-guide`: ~312 mil tokens, 3× lo estimado. El chat principal verificó las
+  2 páginas clave.
+- `observatorio/investigacion/`: `flota.py`, `huella.py` y `repos.py`, para repetir la medición.
+- TODO 🔴: ponerle tope al hook de arranque del molde (fuera de la misión 4).
+
+### Changed
+- `PLAN.md`: el tramo 2 quedó ✅, el brief del tramo 3 dice qué entra del tramo 2, y hay 2 lecciones
+  nuevas para el ciclo.
+- `docs/README.md` y `observatorio/investigacion/METODO.md`: sus filas nuevas.
+
 ## 2026-10-14 — Misión 4, tramo 1: la radiografía de director/obrero
 
 ### Added

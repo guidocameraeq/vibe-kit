@@ -20,6 +20,7 @@
 | `lotes.py` | Arma los lotes (500 KB) con el muestreo declarado y semilla fija |
 | `LECTOR.md` | Las instrucciones de cada lector: 8 preguntas, plantilla de hallazgo, prohibiciones |
 | `costos.py` | La tabla de Q1, solo números, proyectos agrupados en familias |
+| `flota.py` · `huella.py` · `repos.py` | (Misión 4, tramo 2.) El inventario de la flota por `gh` (qué trae cada repo del método, hooks, permisos); la huella de su `/inicio` y `/cierre` contra el molde del kit; y la evidencia del historial de git (arreglos, arreglo del arreglo, arreglos con prueba, solo documentos). Gratis; para la medición mensual |
 | `D:\vibe-hallazgos\` (PC clientes) | Lo hallado (privado, fuera de todo repo): hallazgos, síntesis, condensados, `ya-sabido.md`, `CORTE.md`, alertas |
 
 ## Los pasos
