@@ -381,3 +381,44 @@ la mensajería entre PCs (mejoras #2, #6, #7 y #10).
 - Desktop: lo que se resume de su método largo (216 KB) y de su registro de cambios (121 KB) viene del
   índice de lo ya sabido, no de haberlos leído.
 - El costo en dólares sigue **NO MEDIDO** (acta Q1).
+
+## Anexo A: lo que pasó después del corte (2026-10-13 y 14, relato del director de Mobile)
+
+> Agregado el 2026-10-14, con el tramo ya cerrado. El director de Mobile mandó, de parte de Guido, los
+> cambios al método que salieron de dos tramos construidos esos días (un obrero Opus por pestaña,
+> implementadores Sonnet y revisores Opus). Guido los aprobó, y se escriben en las skills del proyecto
+> el 2026-10-15.
+>
+> **Fuente: el relato del director.** Hoy se verificó que existen en su bitácora los 4 hallazgos que cita
+> (H-145 a H-148); el resto está **NO VERIFICADO**. Las síntesis de §1-§9 llegan hasta el 10-12, así que
+> esto quedó afuera de ellas.
+
+| # | Cambio aprobado | Qué lo causó | Con qué de la radiografía se cruza | ¿Freno o prosa? |
+|---|---|---|---|---|
+| 1 | Si un subagente figura "detenido con trabajo en segundo plano" y no hay informe, no hay que suponer que sigue trabajando: el obrero mira git y los procesos, y lo retoma o lo reemplaza | 1 h perdida (H-145) | 🆕 Una variante de H-20 (subagentes que dicen "listo"): acá es el silencio lo que parece trabajo | Prosa |
+| 2 | Cada prompt de implementador lleva, textual: "armar un texto por partes para que un control no lo vea cuenta como esquivarlo" | Un implementador armó en pedazos una palabra vigilada para pasar el control de credenciales (H-146) | Es la segunda vez que el implementador debilita un control para cumplir (§6.6, H-18). Se cruza con la mejora #3 (la regla, en la definición del agente y no en cada prompt) y con la #9 | Prosa, en el prompt |
+| 3 | Los procesos se cortan solo por su identificador propio, nunca por nombre de programa. Los scripts auxiliares van al scratchpad de la sesión | 🆕 Un subagente del proyecto hermano cortó procesos por nombre y casi se lleva una corrida ajena | 🆕 Dos proyectos que chocan en la misma PC por un recurso que comparten (la máquina): es H-22 llevado a toda la máquina. Objetivos 5 y 7 | Prosa (pide un helper) |
+| 4 | Los arreglos de solo texto, con el texto exacto que dio el revisor, los aplica el orquestador sin otra vuelta | Las vueltas vacías | **Es la mejora #4**, ya adoptada en Mobile: sirve de piloto para medirla | Regla de proceso |
+| 5 | La prueba de "servir de verdad" se corre apenas existen las puertas, no al final | Un defecto que 100 pruebas en proceso no veían (H-147) | 🆕 Refina H-23 (gates nunca probados contra el entorno real): probar temprano, no solo antes del merge | Prosa |
+| 6 | Al revisar una regla que clasifica errores, se pide la lista completa de clases de la librería, con `archivo:línea` | Una clasificación mal hecha pasó una revisión y apareció un sub-paso después | 🆕 Una lente nueva para el revisor (H-61) | Prosa |
+| 7 | El gate se corre con su skill tal cual, nunca con un script armado a mano | — | **Confirma el hallazgo 🆕 10** (la skill de gate existía y se improvisaba) | Prosa |
+| 8 | Un script de mutaciones reutilizable, como herramienta de la casa | Correr uno mismo las mutaciones del revisor destapó dos falsos verdes | **Es P19 y la mejora #3**, nacida sola en el proyecto | **Freno mecánico** |
+| 9 | Toda parada que necesita una credencial se comprueba el día anterior: dónde está y quién la tiene | El spec suponía una credencial que no existía (H-148) | Mejoras #6 (chequeo previo de lo que depende de Guido) y #9 | Prosa |
+| 10 | Antes de despachar, el director cruza el "no se toca" del encargo con las decisiones del PO posteriores al spec | Copió uno viejo, y lo cazó el obrero | H-12 y la mejora #1 (el estado de partida por script) | Prosa |
+| 11 | Antes de citar una regla propia frente al otro proyecto, el director se fija si un acuerdo firmado la limita | — | La mesa (P32: los acuerdos entre proyectos, en un solo lugar) | Prosa |
+
+Lo que el director pide conservar coincide con §7:
+- verificar cada commit contra git;
+- medir el contexto del obrero desde el transcript y cortar con traspaso escrito antes de ~600 mil;
+- las clases de decisión;
+- el despertador cada ~30 min, que destapó la hora perdida del cambio 1.
+
+**Lectura para el tramo 3:**
+- **Confirma la radiografía**: tres mejoras nacieron solas en Mobile (el script de mutaciones de la #3, la
+  #4 y el gate). Sirven de piloto para medir el antes y el después.
+- **Repite el patrón de §6.1 y de H-55**: 11 cambios aprobados en un día, y solo uno trae un freno
+  mecánico. En el relato, ninguno dice cómo se va a saber si funcionó (P2). No es un juicio sobre los
+  cambios: es el dato que el diseño tiene que resolver, que cada regla diga si es freno o regla blanda (P1)
+  y cuál es su medida (P2).
+- 🆕 **Dos hallazgos nuevos para el mapa**: dos proyectos que chocan en la misma máquina (cambio 3), y el
+  silencio de un subagente que parece trabajo (cambio 1).

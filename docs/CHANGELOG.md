@@ -2,6 +2,14 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-14 — Misión 4: anexo de la radiografía (novedades de Mobile)
+
+### Added
+- `RADIOGRAFIA-director-obrero.md`, Anexo A: los 11 cambios al método que Mobile aprobó el 10-14, que
+  mandó su director de parte de Guido. Cada uno está cruzado con la radiografía (3 mejoras ya en piloto,
+  2 hallazgos nuevos) y marcado como freno o prosa (solo 1 es freno). El brief del tramo 3 en `PLAN.md`
+  ya lo incluye.
+
 ## 2026-10-14 — Misión 4, tramo 2: la evidencia de afuera
 
 ### Added
