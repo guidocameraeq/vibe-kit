@@ -34,7 +34,7 @@ misión 4 no toca `kit/` ni ningún proyecto; construir es la misión 5, en chat
 
 Todo el plan está en **[`docs/mision-4/PLAN.md`](mision-4/PLAN.md)**: el foco (7 objetivos), los
 pilares (incluido **el Arquitecto como agente único**: prepara la PC, arranca y mantiene al día todos los proyectos), modelos y tokens, los 6
-tramos y el brief del tramo 1 (la radiografía de director/obrero, ~300 mil tokens: confirmar antes).
+tramos y el brief del tramo 1 (la radiografía de director/obrero, ~450 mil tokens: confirmar antes).
 
 ## Cosas que muerden y no están en ningún otro doc
 
