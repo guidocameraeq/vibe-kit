@@ -21,12 +21,20 @@ Toda mejora dice qué objetivo mueve, **contra qué línea base medida** y cómo
 - Las 4 capas del pack: **Base** (inicio/cierre/handoff, norte, manual por módulo) · **Dirección**
   (director/obrero/tramo + política de modelos) · **Mesa** (directores y PCs) · **el Arquitecto como
   puerta**, también sobre proyectos que ya andan.
-- **La flota — mantener los proyectos al día** (idea de Guido): un agente global (¿modo del Arquitecto,
-  extensión del Equipador o agente aparte? → se decide en el diseño) que mira todos los proyectos, sabe
-  qué versión del método tiene cada uno y propone actualizar skills, sistema de docs y CLAUDE.md, de a
-  uno y con OK. Lo que lo hace posible: **P31** (skills canónicas en el kit + una ficha por proyecto →
-  actualizar = regenerar desde el molde sin tocar lo propio) y **P44** (versión del kit visible en
-  cada proyecto). A decidir: cómo marca su versión cada proyecto, qué toca solo y qué con OK.
+- **El Arquitecto como agente único — la visión de Guido** (2026-10-14): Guido lo piensa como **un solo
+  agente**, portable a cualquier PC, que hace todo: **prepara la PC** (hoy lo hace el Equipador),
+  **arranca proyectos con todo el armado inicial** (ya lo hace), **mantiene la flota al día** (nuevo:
+  mira todos los proyectos, sabe qué versión del método tiene cada uno y propone actualizar skills,
+  sistema de docs y CLAUDE.md, de a uno y con OK) y responde igual en otra PC.
+  - ⚠️ **Choca con ADR-004 y REJ-003** (jul-2026: el Equipador se separó como skill hermana y se
+    descartó un "modo máquina" dentro del Arquitecto, porque lo inflaba). El diseño lo tiene que
+    resolver de frente, no pisarlo. **Camino propuesto, a decidir en el tramo 4: una sola puerta,
+    varios módulos** — Guido habla siempre con el Arquitecto y él deriva adentro a la pieza
+    (máquina · proyecto nuevo · proyecto existente · flota); por dentro siguen siendo piezas chicas.
+    Chequear en el tramo 2 qué ofrece la plataforma para esto (agentes, plugins: ojo REJ-001).
+  - Lo que hace posible la flota: **P31** (skills canónicas en el kit + una ficha por proyecto →
+    actualizar = regenerar desde el molde sin tocar lo propio) y **P44** (versión del kit visible en
+    cada proyecto). A decidir: cómo marca su versión cada proyecto, qué toca solo y qué con OK.
 - **Niveles del método por tamaño de proyecto** (liviano · estándar · proyecto largo con director) y
   **camino de adopción** (un proyecto piloto → medir → extender; Hermes no se migra a mitad de un tramo).
 - **Medición repetible**: los scripts de la investigación corridos cada mes sobre lo nuevo
