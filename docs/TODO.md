@@ -7,8 +7,8 @@
 ## 🔴 Crítico
 - [ ] **Misión 4 — diseñar el pack con Guido adentro, SOLO DISEÑO** (hoja de ruta: ADR-021; plan de 6
   tramos, 7 objetivos y el Arquitecto como agente único: en docs/mision-4/PLAN.md). Tramo 0 (biblioteca) ✅ ·
-  Tramo 1 (radiografía director/obrero) ✅ · Tramo 2 (flota, repos, plataforma) ✅ · **sigue el tramo 3 (el mapa
-  por objetivos, `TABLERO.md`)**. Base con el norte del
+  Tramo 1 (radiografía director/obrero) ✅ · Tramo 2 (flota, repos, plataforma) ✅ · Tramo 3 (el mapa por objetivos,
+  `TABLERO.md`) ✅ · **sigue el tramo 4 (diseño por pilar, de a una decisión)**. Base con el norte del
   proyecto y manual por módulo · Dirección: director/obrero/tramo + política de modelos · Mesa entre
   directores y entre PCs · el Arquitecto como puerta, también para proyectos que ya andan. Fuentes:
   las 57 propuestas de `tips/tanda-2026-10-chats.md` + los métodos de Hermes Desktop y Mobile.

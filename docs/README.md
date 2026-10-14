@@ -39,6 +39,7 @@ siguen consultando (ADR-020). El Arquitecto busca borradores en `docs/SPEC-*.md`
 | [`mision-4/FLOTA.md`](mision-4/FLOTA.md) | Tramo 2 (0): todos los proyectos — dónde viven, qué traen del método, sus skills propias, el tope del hook y las barreras |
 | [`mision-4/REPOS.md`](mision-4/REPOS.md) | Tramo 2 (b): lo que cuenta el historial de git — arreglo del arreglo, arreglos con prueba, solo documentos; líneas base |
 | [`mision-4/PLATAFORMA.md`](mision-4/PLATAFORMA.md) | Tramo 2 (a): qué de lo armado a mano ya es nativo de Claude Code (abrir sesiones, avisos, estado, entre PCs) |
+| [`mision-4/TABLERO.md`](mision-4/TABLERO.md) | Tramo 3: el mapa por objetivos — todo lo investigado repartido por los 7 objetivos con su línea base, las 10 mejoras como construir o adoptar y 8 racimos para el diseño |
 
 ## De consulta — [`consulta/`](consulta/)
 

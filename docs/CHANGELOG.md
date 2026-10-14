@@ -2,6 +2,22 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-14 — Misión 4, tramo 3: el mapa por objetivos
+
+### Added
+- `docs/mision-4/TABLERO.md` reparte todo lo investigado entre los 7 objetivos, cada cosa con su línea base:
+  P1-P57, las 10 mejoras de la radiografía, el tramo 2, el Anexo A y 50 hallazgos nuevos del barrido.
+  - Una tabla de líneas base que se repiten cada mes con los scripts de `observatorio/investigacion/`.
+  - Las 10 mejoras marcadas: 4 adoptar, 4 construir y 2 mixtas.
+  - 8 racimos como entrada al tramo 4.
+  - Lo que no se rompe y lo que queda afuera.
+- El barrido: 3 lectores Sonnet sobre las 5 síntesis, contra un índice de lo ya cubierto. Costó ~405 mil
+  tokens (1,6× lo estimado).
+
+### Changed
+- `PLAN.md`: el tramo 3 quedó ✅ y hay 2 lecciones nuevas para el ciclo.
+- `docs/README.md`: fila de `TABLERO.md`.
+
 ## 2026-10-14 — Misión 4: anexo de la radiografía (novedades de Mobile)
 
 ### Added
