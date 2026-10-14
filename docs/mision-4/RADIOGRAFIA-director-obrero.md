@@ -422,3 +422,30 @@ Lo que el director pide conservar coincide con §7:
   y cuál es su medida (P2).
 - 🆕 **Dos hallazgos nuevos para el mapa**: dos proyectos que chocan en la misma máquina (cambio 3), y el
   silencio de un subagente que parece trabajo (cambio 1).
+
+### A.1 La lista final aprobada (2026-10-14, más tarde)
+
+El director de Mobile mandó la versión final. Es la decisión **D-192**, con los cambios C-87 a C-90, y se
+aplica en un bloque que arrancó ese mismo día. Que estén escritos: **NO VERIFICADO**; se encuentran con
+`git log` por esos números. Sobre la tabla de arriba suma lo siguiente:
+
+- **Los subagentes ya no cortan procesos**: solo el obrero, y por su identificador propio (cambio 3, más
+  duro que antes).
+- **La credencial se comprueba el día anterior, también si se puede usar**, y el encargo lo dice. Y el
+  paso "la pega el PO" se escribe con el camino real (cambio 9).
+- **El director también cruza las reglas que cita el encargo**, no solo el "no se toca" (cambio 10).
+- **Notas de los cierres**, que ya nacen como reglas:
+  - las recetas propias del teléfono: cuentas de prueba cargadas antes, y leer la pantalla antes de cada
+    toque;
+  - la receta de la rama temporal (cómo subir a la rama principal cuando la tiene otro worktree), escrita
+    en `/cierre`; se cruza con D·32 (`/cierre` choca con lo que la rama no puede tocar);
+  - normalizar los finales de línea al leer (H-13);
+  - un spec que pide un paso en el teléfono comprueba que el guion lo puede hacer (H-23).
+- **Las dos sugerencias de esta radiografía, aceptadas**:
+  - **cada regla nueva dice si es freno mecánico o regla blanda, y cómo se va a saber si funcionó**. Es
+    P1 + P2 en piloto: el dato más útil para medir la mejora #3 y la regla de crecimiento;
+  - **la regla contra armar textos por partes va en la definición del implementador**, no solo en cada
+    prompt. Es la mejora #3 tal como la propone §10.
+
+**Para el tramo 4**: Mobile ahora es piloto de las mejoras #3 (en parte) y #4, del gate con su skill y de
+P1 + P2. Antes de diseñar esos racimos, medir ahí el antes y el después.

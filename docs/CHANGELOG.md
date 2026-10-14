@@ -2,6 +2,14 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-14 — Misión 4: la lista final de Mobile en la radiografía
+
+### Changed
+- `RADIOGRAFIA-director-obrero.md` suma el Anexo A.1, con la lista final que aprobó Mobile (D-192). Las
+  dos sugerencias de la radiografía quedaron aceptadas: cada regla dice si es freno o regla blanda, y cómo
+  se sabrá si funcionó (P1 + P2), y la regla contra esquivar controles va en la definición del
+  implementador. El handoff lo anota como piloto para el tramo 4.
+
 ## 2026-10-14 — Misión 4, tramo 3: el mapa por objetivos
 
 ### Added

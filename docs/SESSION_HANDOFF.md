@@ -48,8 +48,16 @@ o Fable para las decisiones grandes.
   **El nombre de esa cuenta no entra al repo.**
 - 🔐 **Alertas de seguridad abiertas** de Hermes. El detalle está solo en
   `D:\vibe-hallazgos\ALERTAS-SEGURIDAD.md`. Las arregla Guido en el chat de cada Hermes. **NO VERIFICADO**.
-- 🧪 **Mobile ya está probando** la mejora #4, parte de la #3 y el gate con su skill (se escriben en sus
-  skills el 2026-10-15). Antes de diseñar esos racimos, medir ahí el antes y el después.
+- 🧪 **Mobile ya está probando**:
+  - la mejora #4;
+  - parte de la #3: el script de mutaciones y la regla contra esquivar controles, metida en la definición
+    del implementador;
+  - el gate con su skill;
+  - **P1 + P2**: cada regla nueva dice si es freno o regla blanda, y cómo se va a saber si funcionó.
+
+  Es su decisión D-192 (cambios C-87 a C-90), aplicada en un bloque desde el 2026-10-14; los SHA, por
+  `git log` con esos números. Antes de diseñar esos racimos, medir ahí el antes y el después. Detalle en
+  la radiografía, Anexo A.
 - 🖥️ **Mesa entre PCs**: el permiso no viaja (es así por diseño); Remote Control tiene que estar prendido en
   las dos sesiones. Hipótesis **NO VERIFICADA**: si solo una está en bypass, la app tira el mensaje.
 - 📏 **Hermes Mobile**: el método vigente vive en `main`; la bitácora y los documentos grandes, en su rama.
