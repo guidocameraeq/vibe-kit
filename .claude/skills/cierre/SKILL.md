@@ -17,7 +17,8 @@ mostrando evidencia de cada uno:
      en `LIMPIO`**; mostrar la salida. Sin LIMPIO no hay cierre. La carpeta de proyectos de cada PC
      la conserva el script: no se toca a mano.
 2. **`docs/SESSION_HANDOFF.md`** — sobreescribir ENTERO (estado / próximo paso concreto / bloqueos /
-   contexto que no está en otros docs). Es la única narrativa de la sesión.
+   contexto que no está en otros docs). Es la única narrativa de la sesión. El próximo paso lleva el
+   **título exacto de la sesión siguiente** (`vibe-kit M<n> · <qué hace>`), que `/inicio` le pone.
 3. **`docs/CHANGELOG.md`** — entrada nueva AL TOPE: `## YYYY-MM-DD — <tema>` (+ ` · vX.Y` si hubo tag),
    con Added / Changed / Fixed / Removed según corresponda.
 4. **`docs/TODO.md`** — lo completado SALE (la historia queda en el CHANGELOG); lo nuevo entra con su

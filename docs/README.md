@@ -35,6 +35,7 @@ siguen consultando (ADR-020). El Arquitecto busca borradores en `docs/SPEC-*.md`
 | Archivo | Qué es |
 |---|---|
 | [`mision-4/PLAN.md`](mision-4/PLAN.md) | El plan de la misión 4 (diseñar el pack): objetivos, pilares, tramos y el brief del próximo tramo. Cada tramo deja acá su salida |
+| [`mision-4/RADIOGRAFIA-director-obrero.md`](mision-4/RADIOGRAFIA-director-obrero.md) | Tramo 1: cómo está armado de verdad el sistema director/obrero (lo escrito contra lo que pasó), qué cuesta, qué falla, qué anda y 10 mejoras con su línea base |
 
 ## De consulta — [`consulta/`](consulta/)
 

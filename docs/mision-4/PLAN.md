@@ -61,7 +61,7 @@ Toda mejora dice qué objetivo mueve, **contra qué línea base medida** y cómo
 | Tramo | Qué | Sale con |
 |---|---|---|
 | ✅ 0 · Biblioteca | Hecho el 2026-10-14: todo `D:\vibe-hallazgos\` respaldado en el repo privado `vibe-research/biblioteca/` (1.362 archivos) con un `LEEME.md` de capas y costos de lectura | Nada se pierde; accesible desde las 3 PCs |
-| **1 · Radiografía director/obrero** | Cómo está armado el sistema de Guido de verdad (brief abajo) | `docs/mision-4/RADIOGRAFIA-director-obrero.md` |
+| ✅ 1 · Radiografía director/obrero | Hecho el 2026-10-14 (~452 mil tokens, 2 lectores Opus): anatomía, flujo, mensajes, modelos, costo, fallas, qué anda, los dos dialectos del método y 10 mejoras con su línea base. Trajo 10 hallazgos nuevos, entre ellos una alerta de seguridad (al archivo privado) | [`RADIOGRAFIA-director-obrero.md`](RADIOGRAFIA-director-obrero.md) |
 | 2 · Evidencia de afuera | **(0) Inventario de la flota** (script, casi gratis): todos los proyectos de las 3 PCs — dónde viven, su repo, qué skills/docs/CLAUDE.md tienen y de qué versión del método son. Visto el 2026-10-14 en esta PC: 8 repos (6 en la organización `eQ-Repositorio`, accesible con `gh` desde cualquier PC) y **skills nacidas en los proyectos** que pueden ser candidatas al kit (en el Hub: actualizar, estimar horas, horas por commit, viernes, backup; en un bot: reporte mensual, deploy). La otra PC y la del compañero: por `gh` si están en GitHub, si no por Remote Control. **El capataz (P41) queda afuera**: fue una idea de proyecto para un compañero, no es parte del workflow de Guido (lo aclaró él, 2026-10-14). **(a) Qué ofrece hoy la plataforma**: el agente `claude-code-guide` chequea contra la doc oficial qué de lo armado a mano ya es nativo (equipos de agentes y mensajes, worktrees, workflows, memoria, Remote Control, agentes en segundo plano) — ~100 mil tokens. **(b) Evidencia de los repos**: scripts sobre el historial de git de los proyectos (commits de arreglo, reversiones, lo que se rompió dos veces, si hay pruebas) — casi gratis | `docs/mision-4/FLOTA.md` + `PLATAFORMA.md` + `REPOS.md` |
 | 3 · Mapa por objetivos | P1-P57 + barrido de lo que quedó afuera (Sonnet sobre las síntesis, ~250 mil tokens) + lo de los tramos 1 y 2, repartido por los 7 objetivos con su línea base | `docs/mision-4/TABLERO.md` |
 | 4 · Diseño por pilar | Las 4 capas + la flota + niveles/adopción + medición. De a una decisión | Cada parte del plano |
@@ -96,4 +96,21 @@ cambia); lo que se discute va con opciones + pros/contras + UNA recomendación.
 - **Reglas**: solo diseño · destilado y genérico (el repo es público: nada de nombres, rutas ni
   negocio de Hermes en lo que se escribe) · lo que es un hallazgo nuevo se marca como tal.
 - **Sale con**: la radiografía + una lista corta de "qué mejoraría y por qué", que entra al mapa del
-  tramo 2. Fila nueva en `docs/README.md` para `docs/mision-4/`.
+  tramo 3 (el mapa por objetivos). Fila nueva en `docs/README.md` para `docs/mision-4/`.
+
+## Lecciones para el ciclo
+> Materia prima de la misión 6 (escribir el ciclo de mejora del método). Cuando Guido dice "anotá esto
+> para el ciclo", va acá: una línea por lección, con su fecha.
+- **(misión 3)** La información de la investigación casi se pierde por no tener respaldo; se resolvió
+  con la biblioteca en el repo privado (tramo 0).
+- **(misión 3)** El plan cambió tres veces porque los objetivos no estaban escritos de entrada.
+- **(misión 3)** Faltaba el inventario de proyectos (entró como el paso 0 del tramo 2).
+- **(misión 3)** Opus 5.5 viene con esfuerzo `medium` por defecto; para trabajo de criterio hace falta
+  `high`.
+- **(tramo 1, 2026-10-14)** Verificar en disco los hallazgos fuertes de los lectores antes de escribirlos
+  costó 4 comandos y los confirmó todos. Un número que parecía mal estaba en otra rama: mirar dónde vive
+  cada documento antes de medirlo.
+- **(tramo 1, 2026-10-14)** **Convención de nombres de sesión**: `vibe-kit M<n> · <qué hace>` (por
+  ejemplo, "vibe-kit M3b · Profesionalizar repo + portada + plan M4"). Guido renombró todas las sesiones
+  de la hoja de ruta en esta PC. Así, en la misión 6 se sabe qué hizo cada una sin abrirla. El handoff
+  trae el título de la sesión siguiente y `/inicio` se lo pone solo.

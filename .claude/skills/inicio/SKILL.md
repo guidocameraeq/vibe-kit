@@ -23,6 +23,10 @@ ante señal de drift (fecha vieja, contradicción con git) o si el hook no apare
 2. **Confirmar en 3 líneas**: **Estado** / **Próxima acción** (del handoff y los pendientes de
    `docs/TODO.md`) / **Bloqueos**. Si no dio la misión, preguntarla.
 3. **NO tocar nada hasta el OK explícito de Guido.**
+4. **Con la misión confirmada, ponerle nombre a esta sesión**: el título exacto que trae el "próximo
+   paso" del handoff (si no trae, armarlo con la convención `vibe-kit M<n> · <qué hace>`). Se pone con
+   `mcp__ccd_session_mgmt__set_session_title`, con `session_id` `"self"`, para que en la misión 6 se
+   sepa qué hizo cada sesión. Si la herramienta no está (CLI u otra app), avisarlo en una línea y seguir.
 
 ## Reglas
 

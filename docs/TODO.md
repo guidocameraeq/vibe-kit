@@ -2,15 +2,27 @@
 
 > ÚNICA fuente de pendientes del proyecto. Completado → SE BORRA (la historia vive en `CHANGELOG.md` y git). Header de 1 línea, sin narrativa de sesión.
 
-2026-10-13 — ver SESSION_HANDOFF.md
+2026-10-14 — ver SESSION_HANDOFF.md
 
 ## 🔴 Crítico
 - [ ] **Misión 4 — diseñar el pack con Guido adentro, SOLO DISEÑO** (hoja de ruta: ADR-021; plan de 6
-  tramos, 7 objetivos y el Arquitecto como agente único: en docs/mision-4/PLAN.md). Tramo 0 (biblioteca) ✅. Base con el norte del
+  tramos, 7 objetivos y el Arquitecto como agente único: en docs/mision-4/PLAN.md). Tramo 0 (biblioteca) ✅ ·
+  Tramo 1 (radiografía director/obrero) ✅ · **sigue el tramo 2 (la evidencia de afuera)**. Base con el norte del
   proyecto y manual por módulo · Dirección: director/obrero/tramo + política de modelos · Mesa entre
   directores y entre PCs · el Arquitecto como puerta, también para proyectos que ya andan. Fuentes:
   las 57 propuestas de `tips/tanda-2026-10-chats.md` + los métodos de Hermes Desktop y Mobile.
 - [ ] **Misión 5 — construir el pack por piezas** (después de la 4).
+- [ ] **Misión 6 — escribir el ciclo de mejora del método** (al terminar la misión 5, con todo fresco).
+  Juntar en un documento reusable lo que hoy está repartido (ADR-021, SPEC-investigacion-chats,
+  observatorio/investigacion/METODO.md, docs/mision-4/PLAN.md):
+  - cuándo arranca una vuelta y cada cuánto (el disparador: la medición mensual o X meses);
+  - los 5 pasos: investigar → ordenar la casa → diseñar con Guido → construir con piloto → medir;
+  - qué sale de cada paso y cuánto costó;
+  - plantillas genéricas del SPEC de investigación y del PLAN de diseño;
+  - la fecha de corte de la próxima vuelta;
+  - las lecciones de esta vuelta (se juntan en `docs/mision-4/PLAN.md` §Lecciones para el ciclo).
+
+  Es una receta, no una skill (regla de 3+).
 
 ## 🟠 Importante
 - [ ] **Estreno real de `/relevamiento`**: un pedido de otro sector, de punta a punta. Hasta que pase

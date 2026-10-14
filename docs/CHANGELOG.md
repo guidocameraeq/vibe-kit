@@ -2,6 +2,24 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-14 — Misión 4, tramo 1: la radiografía de director/obrero
+
+### Added
+- `docs/mision-4/RADIOGRAFIA-director-obrero.md`: cómo está armado de verdad el sistema director/obrero
+  de los dos proyectos largos, comparando lo escrito con lo comportado. Trae costo, fallas por causa, lo
+  que no hay que romper, los dos dialectos del método, 10 hallazgos nuevos y 10 mejoras con su línea base
+  (para el mapa del tramo 3). Costó ~452 mil tokens, con 2 lectores Opus.
+- `docs/mision-4/PLAN.md`: la sección "Lecciones para el ciclo", con 4 lecciones de la misión 3 y una
+  del tramo 1. El plan mismo, el tramo 0 (la biblioteca privada) y el inventario de la flota se habían
+  armado antes ese día, en los commits `21eee8c`..`da07786`.
+- TODO: la **misión 6, escribir el ciclo de mejora del método** (pedido de Guido).
+
+### Changed
+- `PLAN.md`: el tramo 1 quedó ✅, y el brief ahora apunta al mapa del tramo 3 (decía "tramo 2").
+- `docs/README.md`: la fila de la radiografía.
+- `/inicio` y `/cierre` del repo (no los del kit): el handoff trae el título de la sesión siguiente
+  (`vibe-kit M<n> · <qué hace>`) y `/inicio` lo pone al confirmar la misión. Lo pidió Guido.
+
 ## 2026-10-13 — Misión 3: el repo se ordena
 
 ### Added
