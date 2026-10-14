@@ -28,9 +28,40 @@ ADR-023). Kit sin bump (`v2.4.2`): solo textos.
 
 ## Próximo paso concreto: la misión 4
 
-Abrir un chat nuevo acá → `/inicio` → *"misión 4: diseñar el pack"* — con Guido adentro, recorriendo
-las 57 propuestas de `tips/tanda-2026-10-chats.md` (P1-P57) + los métodos de Hermes Desktop y Mobile.
-Llevar también los 3 insumos que dejó la misión 3 (en el TODO, 🟢).
+Chat nuevo acá → `/inicio` → Guido dice **"misión 4, tramo 1"** → se sigue el brief de abajo
+(lo diseñó Guido el 2026-10-14; no hace falta que lo pegue).
+
+### Cómo se encara la misión 4 (3 tramos, varios chats)
+
+1. **Tramo 1 — el mapa** (1 chat): las 57 propuestas repartidas en entra / se discute / afuera-después.
+2. **Tramo 2 — el diseño por capa** (un chat por capa, ~4): Base (inicio/cierre/handoff, norte, manual
+   por módulo) · Dirección (director/obrero/tramo + política de modelos) · Mesa (directores y PCs) ·
+   el Arquitecto como puerta, también sobre proyectos que ya andan. De a una decisión.
+3. **Tramo 3 — el armado** (1 chat): un solo SPEC del pack → red-team → Guido lo aprueba (READY) →
+   orden de construcción para la misión 5.
+
+### Brief del tramo 1 — el mapa
+
+- **Cómo participa Guido** (lo eligió él): **Claude recomienda, Guido corrige**. Por tema, Claude
+  muestra cada propuesta con su recomendación ya puesta y Guido aprueba el tema en bloque o cambia
+  las que no le cierran. Las que se discuten: **opciones con pros/contras + UNA recomendación**.
+- **Material**: `tips/tanda-2026-10-chats.md` (P1-P57 con su evidencia) + el índice de los métodos
+  de Hermes en `D:\vibe-hallazgos\ya-sabido.md` (alcanza para el mapa). Los métodos completos se abren
+  recién en las capas Dirección y Mesa, solo lo que toque — sus rutas están en ese índice.
+- **Reglas**:
+  1. Solo diseño: no se toca `kit/` ni ningún proyecto.
+  2. Antes de mostrar nada, marcar lo que la misión 3 ya hizo o probó (P13 resuelta con
+     `kit-sync.sh`; P7 probada como `docs/MISION-Y-VISION.md`; revisar el resto contra ADR-023).
+  3. Agrupar las 57 en ~8 temas. Por propuesta, una línea: qué es · evidencia corta ·
+     recomendación (entra / se discute / afuera-después) con razón.
+  4. Toda pieza que entra dice **qué la frena mecánicamente** (script, hook, campo obligatorio); si no
+     hay freno, se declara "regla blanda". Es la idea fuerza de la investigación.
+  5. **El pack tiene que quedar liviano**: decir también qué NO entra, con razón.
+  6. Destilado y genérico: el repo es público, nada de Hermes crudo (nombres, rutas, negocio).
+  7. No cargar el acta entera en el chat: subagentes por tema que devuelven el resumen.
+  8. Lo decidido va a `docs/mision-4/TABLERO.md` (la memoria entre chats; fila en `docs/README.md`).
+- **Sale con**: el tablero repartido + el orden de los chats de capa. Sumar los 3 insumos de la
+  misión 3 (TODO 🟢).
 
 ## Cosas que muerden y no están en ningún otro doc
 
