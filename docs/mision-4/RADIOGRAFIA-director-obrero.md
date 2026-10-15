@@ -470,3 +470,24 @@ P1 + P2. Antes de diseñar esos racimos, medir ahí el antes y el después.
   con un test de coherencia (mejora #8).
 - **Dónde seguirlo**: su `git log`, buscando por los números de decisión (D-192, D-194…), y su bitácora de
   hallazgos desde H-145. No hace falta que el director avise cada uno.
+
+### A.3 Desktop adoptó parte del mismo cambio (2026-10-15, CM-63)
+
+El director de Desktop avisó de parte de Guido, y lo verifiqué en git: el cambio está en la rama principal
+ya subida, y en la definición del implementador.
+- **Qué entró**:
+  - ningún subagente cierra procesos, y el orquestador cierra solo los suyos, por su identificador;
+  - todo Python va en un archivo del scratchpad, nunca por entrada directa ni heredoc;
+  - tres reglas de Mobile: el subagente detenido sin informe, no esquivar controles armando el texto por
+    partes, y cruzar el "no se toca" con las decisiones posteriores.
+- **El dato más útil para la mejora #3, medido por ellos.** La regla de no cerrar procesos, dicha por
+  mensaje, se cumplió. La de no correr Python por entrada directa, avisada en cada encargo, falló ~5 veces
+  en un día. Por eso las pasaron a las definiciones fijas. **Es la primera comparación directa entre una
+  regla en el encargo y una en la definición**, y confirma §6.1.
+- **La mesa anduvo**: la falla de un proyecto (cortar procesos por nombre, cambio 3) se volvió regla en
+  los dos en un día.
+- **Pero quedaron dos dialectos** (§8). La misma regla se escribió dos veces y distinta en cada proyecto:
+  Desktop sumó la de Python, Mobile la del script de mutaciones y la de servir temprano.
+- **Desktop no adoptó P1 + P2**: en la ficha de CM-63 no hay ni una mención a freno, regla blanda o cómo
+  se mide (verificado). Es un argumento para P31 (una sola fuente), y deja **un contraste para medir el
+  piloto**: el mismo cambio, en un proyecto con medida y en otro sin.

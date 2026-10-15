@@ -2,6 +2,14 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-15 — Misión 4: Desktop adopta parte del cambio (CM-63)
+
+### Changed
+- `RADIOGRAFIA-director-obrero.md`, Anexo A.3: Desktop adoptó en un día las reglas de procesos de Mobile y
+  pasó una regla a la definición del agente, porque avisada en cada encargo había fallado ~5 veces.
+  Quedaron dos dialectos de la misma regla, y Desktop no adoptó P1 + P2, lo que deja un contraste para
+  medir el piloto. Verificado en git. El handoff apunta ahí.
+
 ## 2026-10-15 — Misión 4: primeros datos del piloto de Mobile
 
 ### Changed
