@@ -61,9 +61,11 @@ o Fable para las decisiones grandes.
   radiografía, Anexo A.2: H-152 (el cambio de método rompió otro control en un día) y H-151 (una regla
   quedó con dos definiciones).
 - 🧪 **Desktop adoptó parte del mismo cambio el 2026-10-15** (CM-63, verificado en git), **sin P1 + P2**.
-  Eso deja un contraste para medir: el mismo cambio, con medida en un proyecto y sin medida en el otro. Su
-  dato: la regla avisada en cada encargo falló ~5 veces en un día, y por eso la pasaron a la definición del
-  agente. Detalle en la radiografía, Anexo A.3.
+  Su dato: la regla avisada en cada encargo falló ~5 veces en un día, y por eso la pasaron a la definición
+  del agente. **Guido decidió igualarlo** (2026-10-15): se le pidió al director de Desktop que agregue a la
+  ficha de CM-63, en su próximo cierre, la tabla "freno o regla blanda · cómo se mide" (solo documento).
+  Que esté hecho: **NO VERIFICADO**; se busca en su `git log` por CM-63. Detalle en la radiografía, Anexo
+  A.3.
 - 🖥️ **Mesa entre PCs**: el permiso no viaja (es así por diseño); Remote Control tiene que estar prendido en
   las dos sesiones. Hipótesis **NO VERIFICADA**: si solo una está en bypass, la app tira el mensaje.
 - 📏 **Hermes Mobile**: el método vigente vive en `main`; la bitácora y los documentos grandes, en su rama.

@@ -2,6 +2,14 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-15 — Misión 4: Desktop también va a medir sus reglas nuevas
+
+### Changed
+- Decisión de Guido: Desktop no queda como contraste. En su próximo cierre agrega a la ficha de CM-63 la
+  tabla "freno o regla blanda · cómo se mide", así los dos proyectos juntan datos comparables. El pedido
+  salió por la mesa. Que esté hecho: no verificado. Quedó registrado en la radiografía (Anexo A.3) y en
+  el handoff.
+
 ## 2026-10-15 — Misión 4: Desktop adopta parte del cambio (CM-63)
 
 ### Changed

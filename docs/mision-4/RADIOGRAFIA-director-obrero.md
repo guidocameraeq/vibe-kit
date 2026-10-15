@@ -489,5 +489,10 @@ ya subida, y en la definición del implementador.
 - **Pero quedaron dos dialectos** (§8). La misma regla se escribió dos veces y distinta en cada proyecto:
   Desktop sumó la de Python, Mobile la del script de mutaciones y la de servir temprano.
 - **Desktop no adoptó P1 + P2**: en la ficha de CM-63 no hay ni una mención a freno, regla blanda o cómo
-  se mide (verificado). Es un argumento para P31 (una sola fuente), y deja **un contraste para medir el
-  piloto**: el mismo cambio, en un proyecto con medida y en otro sin.
+  se mide (verificado). Es un argumento para P31 (una sola fuente).
+- **Decisión de Guido (2026-10-15): igualarlo, en versión liviana.** Se descartó dejarlo como contraste:
+  el proyecto sin medida es justo el que no puede contar cómo le fue, así que no daría datos para comparar.
+  Se le pidió al director de Desktop que, en su próximo cierre, agregue a la ficha de CM-63 la tabla
+  "freno o regla blanda · cómo se va a saber si funcionó", y que cada CM nuevo la traiga. Es solo
+  documento: los obreros siguen trabajando igual. Que esté hecho: **NO VERIFICADO** (se busca en su
+  `git log` por CM-63).
