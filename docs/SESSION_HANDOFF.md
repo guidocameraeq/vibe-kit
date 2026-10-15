@@ -56,8 +56,10 @@ o Fable para las decisiones grandes.
   - **P1 + P2**: cada regla nueva dice si es freno o regla blanda, y cómo se va a saber si funcionó.
 
   Es su decisión D-192 (cambios C-87 a C-90), aplicada en un bloque desde el 2026-10-14; los SHA, por
-  `git log` con esos números. Antes de diseñar esos racimos, medir ahí el antes y el después. Detalle en
-  la radiografía, Anexo A.
+  `git log` con esos números (está escrito: verificado). Antes de diseñar esos racimos, medir ahí el antes
+  y el después. Los datos del piloto están en su bitácora de hallazgos desde H-145. Los primeros, en la
+  radiografía, Anexo A.2: H-152 (el cambio de método rompió otro control en un día) y H-151 (una regla
+  quedó con dos definiciones).
 - 🖥️ **Mesa entre PCs**: el permiso no viaja (es así por diseño); Remote Control tiene que estar prendido en
   las dos sesiones. Hipótesis **NO VERIFICADA**: si solo una está en bypass, la app tira el mensaje.
 - 📏 **Hermes Mobile**: el método vigente vive en `main`; la bitácora y los documentos grandes, en su rama.

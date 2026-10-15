@@ -2,6 +2,13 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-15 — Misión 4: primeros datos del piloto de Mobile
+
+### Changed
+- `RADIOGRAFIA-director-obrero.md`, Anexo A.2: D-192 está escrito (verificado en git). Trae la primera
+  falla del piloto (H-152: el cambio de método rompió otro control en un día; la cazó la medición de la
+  línea base) y una regla que quedó con dos definiciones (H-151). El handoff apunta ahí.
+
 ## 2026-10-14 — Misión 4: la lista final de Mobile en la radiografía
 
 ### Changed

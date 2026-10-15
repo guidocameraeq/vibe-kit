@@ -449,3 +449,24 @@ aplica en un bloque que arrancó ese mismo día. Que estén escritos: **NO VERIF
 
 **Para el tramo 4**: Mobile ahora es piloto de las mejoras #3 (en parte) y #4, del gate con su skill y de
 P1 + P2. Antes de diseñar esos racimos, medir ahí el antes y el después.
+
+### A.2 Primeros datos del piloto (2026-10-15)
+
+- **D-192 está escrito: verificado en git.** Lo aplicó el bloque del 10-14, que incluye la tabla de su
+  método donde cada regla nueva dice si es freno mecánico o regla blanda y cómo se mide.
+- **H-152, la primera falla del piloto.** El mismo bloque guardó la prueba del script de mutaciones en una
+  carpeta que otro control descubre solo y cuenta contra un número fijo. Ese control dio rojo.
+  - **No lo vieron** ni el gate del bloque, ni su revisor, ni la verificación del director. Lo cazó el paso
+    que mide la línea de base del tramo siguiente.
+  - **Se corrigió con D-194**: la prueba se mudó de carpeta.
+  - **Regla propuesta, todavía no aprobada**: antes de poner un archivo nuevo en una carpeta, buscar qué
+    control la descubre, y que el gate del bloque corra ese control.
+
+  Se cruza con H-17 y `REPOS.md` (1 de cada 4 arreglos arregla otro arreglo): **el cambio de método
+  también generó su arreglo del arreglo en un día**. A favor del método: medir la línea base antes de
+  empezar funcionó como detector.
+- **H-151**: ese mismo día, una regla escrita en dos skills salió con dos definiciones distintas. Es la
+  falla de §6.4 repetida dentro del piloto, y un argumento más para que cada regla viva en un solo lugar,
+  con un test de coherencia (mejora #8).
+- **Dónde seguirlo**: su `git log`, buscando por los números de decisión (D-192, D-194…), y su bitácora de
+  hallazgos desde H-145. No hace falta que el director avise cada uno.
