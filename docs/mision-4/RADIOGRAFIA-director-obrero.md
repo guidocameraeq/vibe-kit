@@ -517,6 +517,9 @@ los archivos de la rama principal; el resto es su relato.
     obrero no corrió el control de coherencia del registro de cambios (verificado). Es el segundo caso en
     una semana y en los dos proyectos (antes, H-152 en Mobile). El gate de un cambio de método tiene que
     correr los controles del propio método.
+- **Aprobado por Guido y todavía sin aplicar: un guardián de atribuciones que no deja crecer el número.**
+  Es el "trinquete" de H-68 (contadores que solo bajan) aplicado a las atribuciones en el código, la regla
+  que en prosa se cumplió 0 de 2 veces (H-10). Que esté aplicado: **NO VERIFICADO**.
 - **En curso: un segundo freno con el mismo molde**, para los comandos destructivos de git que el método ya
   prohíbe. Lo dispara un subagente que el 18/10 descartó todos los cambios de su worktree. Medido contra el
   historial, habría frenado 1 caso entre ~36.000 comandos (dato del director; **NO VERIFICADO**).
