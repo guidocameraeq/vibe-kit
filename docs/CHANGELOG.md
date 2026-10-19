@@ -2,6 +2,16 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-19 — Misión 4: el primer freno mecánico medido (Desktop)
+
+### Changed
+- `RADIOGRAFIA-director-obrero.md`, Anexo A.4. La tabla de CM-63 está hecha (verificado). CM-64 convirtió
+  una regla blanda en un hook: contra 37.842 comandos reales dio 0 falsos positivos y habría frenado
+  ~2.500, o sea que la regla blanda se rompía en ~6,6% de los comandos. Nace la receta "medir el freno
+  contra el historial antes de instalarlo". Además, un cambio de método rompió un control propio, por
+  segunda vez en la semana. El handoff apunta ahí; la alerta de caída a producción, ahora ocurrida, va
+  solo al archivo privado.
+
 ## 2026-10-15 — Misión 4: Desktop también va a medir sus reglas nuevas
 
 ### Changed

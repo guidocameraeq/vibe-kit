@@ -62,10 +62,13 @@ o Fable para las decisiones grandes.
   quedó con dos definiciones).
 - 🧪 **Desktop adoptó parte del mismo cambio el 2026-10-15** (CM-63, verificado en git), **sin P1 + P2**.
   Su dato: la regla avisada en cada encargo falló ~5 veces en un día, y por eso la pasaron a la definición
-  del agente. **Guido decidió igualarlo** (2026-10-15): se le pidió al director de Desktop que agregue a la
-  ficha de CM-63, en su próximo cierre, la tabla "freno o regla blanda · cómo se mide" (solo documento).
-  Que esté hecho: **NO VERIFICADO**; se busca en su `git log` por CM-63. Detalle en la radiografía, Anexo
-  A.3.
+  del agente. **Guido decidió igualarlo** (2026-10-15), y la tabla "freno o regla blanda · cómo se mide"
+  ya está en la ficha de CM-63 (**verificado**).
+- 🧪 **Desktop tiene el primer freno mecánico medido** (CM-64, 2026-10-18, verificado en git). Un hook
+  deniega correr Python leyendo de la entrada. Contra 37.842 comandos reales dio 0 falsos positivos, y
+  habría frenado ~2.500: la regla blanda se rompía en ~6,6% de los comandos. Hay un segundo freno en
+  curso, para los comandos destructivos de git. Detalle en la radiografía, Anexo A.4, con la receta nueva
+  "medir el freno contra el historial antes de instalarlo".
 - 🖥️ **Mesa entre PCs**: el permiso no viaja (es así por diseño); Remote Control tiene que estar prendido en
   las dos sesiones. Hipótesis **NO VERIFICADA**: si solo una está en bypass, la app tira el mensaje.
 - 📏 **Hermes Mobile**: el método vigente vive en `main`; la bitácora y los documentos grandes, en su rama.

@@ -494,5 +494,43 @@ ya subida, y en la definición del implementador.
   el proyecto sin medida es justo el que no puede contar cómo le fue, así que no daría datos para comparar.
   Se le pidió al director de Desktop que, en su próximo cierre, agregue a la ficha de CM-63 la tabla
   "freno o regla blanda · cómo se va a saber si funcionó", y que cada CM nuevo la traiga. Es solo
-  documento: los obreros siguen trabajando igual. Que esté hecho: **NO VERIFICADO** (se busca en su
-  `git log` por CM-63).
+  documento: los obreros siguen trabajando igual. **Hecho el 2026-10-15: verificado en git** (tabla por
+  regla en la ficha de CM-63; ver A.4).
+
+### A.4 Desktop: la medida y el primer freno mecánico (2026-10-15 a 19)
+
+El director de Desktop avisó de parte de Guido. Lo marcado "verificado" se comprobó en su `git log` y en
+los archivos de la rama principal; el resto es su relato.
+- **La tabla de CM-63 está hecha** (verificado, 2026-10-15). Cada regla dice si es freno o regla blanda y
+  cómo se mide. Desktop ya mide igual que Mobile.
+- **CM-64 (2026-10-18): la regla de Python dejó de ser blanda.** Ahora un hook deniega correr Python
+  leyendo de la entrada (heredoc, tubería), por Bash y por PowerShell, con una prueba de ~160 casos
+  (verificado: el hook está registrado y la prueba existe).
+  - **El dato más fuerte del piloto.** Antes de instalarlo, lo corrieron contra **37.842 comandos reales**
+    de los transcripts, con **0 falsos positivos** (verificado en el commit). Habría frenado **2.482**
+    (dato del director). O sea, **la regla blanda se rompió ~2.500 veces, ~6,6% de los comandos**. Es la
+    línea base de la mejora #3 y de P1, medida.
+  - **La primera instalación frenaba un caso legítimo** (un commit con heredoc). Lo cazó el revisor (H-60
+    rinde otra vez), y se retiró, se arregló y se reinstaló con el mismo texto que había aprobado Guido.
+  - **Ya frenó un caso real** el 19/10, sin daño (dato del director).
+  - 🆕 **Otra vez, un cambio de método rompió un control propio**: una prueba quedó en rojo porque el
+    obrero no corrió el control de coherencia del registro de cambios (verificado). Es el segundo caso en
+    una semana y en los dos proyectos (antes, H-152 en Mobile). El gate de un cambio de método tiene que
+    correr los controles del propio método.
+- **En curso: un segundo freno con el mismo molde**, para los comandos destructivos de git que el método ya
+  prohíbe. Lo dispara un subagente que el 18/10 descartó todos los cambios de su worktree. Medido contra el
+  historial, habría frenado 1 caso entre ~36.000 comandos (dato del director; **NO VERIFICADO**).
+- **Hallazgos de la noche del 18/10** (dato del director, **NO VERIFICADO**):
+  - el checklist de antes de que el PO se vaya no preguntaba qué permisos con "ask" va a necesitar la
+    noche, y un obrero quedó 1,5 h trabado (H-09; mejoras #6 y #7);
+  - 🔐 **la alerta de §6.6 pasó de verdad**: un script de un subagente, sin su archivo de config, cayó en
+    los valores de producción. Se está arreglando en el código. El detalle va en el archivo privado de
+    alertas.
+
+**Lectura para el tramo 4:**
+- **Desktop pasó de contraste a ser el mejor dato del piloto**: el primer freno mecánico con su antes y
+  después medido.
+- 🆕 **Nace una receta para el racimo A (frenos)**: antes de instalar un freno, correrlo contra el
+  historial real de comandos, contando cuántos habría frenado y cuántos falsos positivos dio.
+- **"El cambio de método rompe un control propio" ya pasó dos veces en una semana.** Va al diseño del
+  gate de los cambios de método.
