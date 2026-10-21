@@ -15,6 +15,20 @@ documentables y estables** · 4. **Procesos estables** (menos trabajo a mano) ·
 lectura; ej.: 39 de 115 turnos de un director eran ruido) · 7. **Seguridad por defecto** (hay alertas
 reales abiertas).
 Toda mejora dice qué objetivo mueve, **contra qué línea base medida** y cómo se va a saber si funcionó.
+
+**El norte para todas las decisiones del diseño** (lo pidió Guido el 2026-10-21, en el tramo 4):
+- **Un workflow ágil en el que Guido casi no interviene.** Él decide el diseño y las reglas de negocio;
+  la ejecución queda en manos de los obreros y los agentes.
+- **Los frenos no traban el trabajo.** En Hermes, muchos frenos entorpecían el desarrollo y le pedían
+  intervención a Guido. Varios estaban "de adorno" para el tamaño de los trabajos, y en este contexto
+  tocar producción no es tan riesgoso.
+- Las reglas que salen de eso:
+  - **un freno corrige al agente sin despertar a Guido**: le niega la acción y le dice qué hacer en su
+    lugar;
+  - **a Guido solo se le pregunta lo irreversible de verdad**, y esa lista corta la decide él;
+  - **un freno que molesta más de lo que salva, se saca.**
+- **La primera pregunta de toda pieza es si le baja la intervención a Guido o se la sube.**
+- Las decisiones se le presentan en criollo, cortas, diciendo qué cambia para él en el día a día.
 **La información de la investigación no se pierde**: se usa de verdad.
 
 ## Los pilares que el diseño tiene que cubrir
@@ -35,6 +49,23 @@ Toda mejora dice qué objetivo mueve, **contra qué línea base medida** y cómo
   - Lo que hace posible la flota: **P31** (skills canónicas en el kit + una ficha por proyecto →
     actualizar = regenerar desde el molde sin tocar lo propio) y **P44** (versión del kit visible en
     cada proyecto). A decidir: cómo marca su versión cada proyecto, qué toca solo y qué con OK.
+- **Mensajería multiagente — pedido de Guido (2026-10-21)**: es un buzón entre agentes de distintas
+  cuentas, distintas PCs y también **de otros LLM**, montado sobre una carpeta compartida de la
+  organización. **Va al racimo G (Mesa y PCs)** y se diseña recién ahí, no antes. Toca también otros
+  racimos:
+  - **F**: la firma por agente y el arnés de lo que pide OK humano;
+  - **E**: la skill canónica más el hook del molde;
+  - **B**: lo que inyecta el hook va con tope.
+
+  Lo que se decide en G:
+  - **reabre `PLATAFORMA.md` §6.2**: hoy el canal oficial es Remote Control + `SendMessage` y el canal
+    por archivo es solo un respaldo;
+  - **cambia una regla de la mesa**: hoy entre directores viajan hechos y nunca decisiones; con encargos
+    autónomos entre proyectos, eso deja de ser así.
+
+  El material está fuera de este repo: un SPEC-0 en borrador, con su red team, y el protocolo v0 que
+  hizo otra sesión. **Ninguna ruta, ningún nombre ni ningún contenido del buzón entra acá** (ADR-021).
+  El v0 corre mientras tanto como piloto, igual que los de Hermes.
 - **Niveles del método por tamaño de proyecto** (liviano · estándar · proyecto largo con director) y
   **camino de adopción** (un proyecto piloto → medir → extender; Hermes no se migra a mitad de un tramo).
 - **Medición repetible**: los scripts de la investigación corridos cada mes sobre lo nuevo
@@ -64,7 +95,7 @@ Toda mejora dice qué objetivo mueve, **contra qué línea base medida** y cómo
 | ✅ 1 · Radiografía director/obrero | Hecho el 2026-10-14 (~452 mil tokens, 2 lectores Opus): anatomía, flujo, mensajes, modelos, costo, fallas, qué anda, los dos dialectos del método y 10 mejoras con su línea base. Trajo 10 hallazgos nuevos, entre ellos una alerta de seguridad (al archivo privado) | [`RADIOGRAFIA-director-obrero.md`](RADIOGRAFIA-director-obrero.md) |
 | ✅ 2 · Evidencia de afuera | Hecho el 2026-10-14. **Costo: ~312 mil tokens** (el agente de la plataforma, 3× lo estimado); los scripts, casi gratis (`observatorio/investigacion/`: `flota.py`, `huella.py`, `repos.py`). Lo fuerte: 3 dialectos de director/obrero (Deptos, el corto); ningún proyecto marca su versión; **el hook de arranque del kit no tiene tope y la plataforma corta a 10.000 caracteres** (2 proyectos arrancan sin ver su estado); el molde no trae `deny`; 1 de cada 4 arreglos es arreglo de otro y casi nunca trae su prueba; abrir, avisar, ver estado y mensajear entre PCs ya son nativos (con huecos). **Pregunta abierta**: a quién pertenece la segunda cuenta que firma 3 proyectos (FLOTA §8). Brief original: **(0) Inventario de la flota** (script, casi gratis): todos los proyectos de las 3 PCs — dónde viven, su repo, qué skills/docs/CLAUDE.md tienen y de qué versión del método son. Visto el 2026-10-14 en esta PC: 8 repos (6 en la organización `eQ-Repositorio`, accesible con `gh` desde cualquier PC) y **skills nacidas en los proyectos** que pueden ser candidatas al kit (en el Hub: actualizar, estimar horas, horas por commit, viernes, backup; en un bot: reporte mensual, deploy). La otra PC y la del compañero: por `gh` si están en GitHub, si no por Remote Control. **El capataz (P41) queda afuera**: fue una idea de proyecto para un compañero, no es parte del workflow de Guido (lo aclaró él, 2026-10-14). **(a) Qué ofrece hoy la plataforma**: el agente `claude-code-guide` chequea contra la doc oficial qué de lo armado a mano ya es nativo (equipos de agentes y mensajes, worktrees, workflows, memoria, Remote Control, agentes en segundo plano) — ~100 mil tokens. **(b) Evidencia de los repos**: scripts sobre el historial de git de los proyectos (commits de arreglo, reversiones, lo que se rompió dos veces, si hay pruebas) — casi gratis | [`FLOTA.md`](FLOTA.md) · [`PLATAFORMA.md`](PLATAFORMA.md) · [`REPOS.md`](REPOS.md) |
 | ✅ 3 · Mapa por objetivos | Hecho el 2026-10-14. **Costo: ~405 mil tokens** en el barrido (3 lectores Sonnet sobre las 5 síntesis; 1,6× lo estimado). Todo repartido por los 7 objetivos: P1-P57, las 10 mejoras, el tramo 2, el Anexo A y **50 hallazgos del barrido que no habían llegado a ninguna conclusión** (código `S-`, sobre todo de seguridad y calidad). Las 10 mejoras: 4 adoptar, 4 construir, 2 mixtas. Una tabla de líneas base que se repiten cada mes con los scripts. **8 racimos** como entrada al tramo 4; la recomendación: arrancar por frenos y verificación (A), una salida hacia Guido (C) y el molde único (E). Falta medir: el tiempo entre PCs y el costo en dólares | [`TABLERO.md`](TABLERO.md) |
-| 4 · Diseño por pilar | Las 4 capas + la flota + niveles/adopción + medición. De a una decisión | Cada parte del plano |
+| 4 · Diseño por pilar | Las 4 capas + la flota + niveles/adopción + medición. De a una decisión. **Orden** (2026-10-21): A → C → E → F → B → D → G → H, por racimo del tablero. Cada racimo trae sus ideas de [`REFERENCIAS-EXTERNAS.md`](REFERENCIAS-EXTERNAS.md). **✅ A · ✅ C** (2026-10-21) | Un `DISENO-<racimo>.md` por racimo: [A · frenos](DISENO-A-frenos.md) · [C · salida hacia Guido](DISENO-C-salida-hacia-Guido.md) |
 | 5 · El spec | Un SPEC del pack con **el top 10**, métricas, niveles, piloto y adopción → red-team → **revisor frío independiente** (un agente sin contexto de las charlas) → Guido lo aprueba | El plano READY + orden de construcción para la misión 5 |
 
 **Cómo participa Guido** (lo eligió él): Claude recomienda, Guido corrige (aprueba temas en bloque o

@@ -199,6 +199,7 @@ dólares (sigue **NO MEDIDO**, acta Q1). El resto ya tiene número.
 | Dos cuentas de GitHub firman los commits | F§8 | ❓ Pregunta abierta para Guido |
 | Tablero que junte las 3 PCs | PLATAFORMA §6.7 | No existe nativo |
 | 🆕 Dos proyectos chocan en la misma máquina: los procesos se cortan por su identificador, nunca por nombre | A-3 (7) | Un subagente casi corta la corrida del proyecto hermano |
+| 🆕 **Mensajería multiagente**: un buzón por carpeta compartida (un JSON por mensaje), entre cuentas, PCs y también agentes de otros LLM. Viene con firma por agente y un arnés mínimo para los encargos autónomos | Pedido de Guido + borrador externo (2026-10-21) (7, 6) | `SendMessage` no cruza cuentas; 5 días inalcanzable; Guido de cartero |
 
 ## 7. Objetivo 6 · El tiempo y la atención de Guido
 
@@ -296,8 +297,24 @@ entrada al tramo 4, que diseña de a un pilar, y al top 10 del spec.
 | **D · Modelos, ruido y revisión** | #2, #4, #5, P26-P29; S-U-1 | 1 · 6 | Dirección |
 | **E · Un molde y la flota** | #8 (molde), P31, P44 (versión), P13, `/smoke` y `/release`; S-D-3, S-D-4, S-M-1 | 3 · 4 · 5 | El Arquitecto como puerta |
 | **F · Seguridad por defecto** | #9, P8, P12, P14, P20, P49; S-C-2, S-D-5, S-M-4, S-M-7, S-M-8, S-D-12 | 7 | Base (molde) |
-| **G · Mesa y PCs** | #10, P32, P34, P42, P44-P46; S-R-3, S-C-1, S-M-12, S-D-7 | 5 | Mesa |
-| **H · Niveles y puertas del Arquitecto** | P6, P7, P9, P10, P35, P51, P52, P57; S-R-6 | 4 · 3 · 6 | El Arquitecto como puerta |
+| **G · Mesa y PCs** | #10, P32, P34, P42, P44-P46; S-R-3, S-C-1, S-M-12, S-D-7; 🆕 el buzón multiagente (2026-10-21) | 5 | Mesa |
+| **H · Niveles y puertas del Arquitecto** | P6, P7, P9, P10, P35, P51, P52, P57; S-R-6; 🆕 **los subproyectos** (2026-10-21) | 4 · 3 · 6 | El Arquitecto como puerta |
+
+🆕 **Subproyectos dentro de un proyecto** (pedido de Guido, 2026-10-21, mientras se diseñaba el racimo C).
+Un proyecto grande, como Hermes, tiene adentro subproyectos (por ejemplo, el tramo "una sola identidad").
+Cada uno lleva su nombre y su propio:
+- sistema de documentación y carpetas;
+- historial;
+- reporte (`/estado <subproyecto>`);
+- estimación y registro de tiempos;
+- consumo de tokens.
+
+El Arquitecto abre cada subproyecto. Va en el **racimo H**, porque es la forma del nivel "proyecto largo".
+Toca también:
+- **B**: cada subproyecto con sus documentos propios corta el tablero único de ~900 KB;
+- **C**: el reporte por subproyecto;
+- **E**: el molde lo trae;
+- el **objetivo 1**: el consumo por subproyecto se mide con `costos.py`.
 
 **Mi lectura para el tramo 4** (recomendación, no decisión): los racimos **A, C y E** son los que mueven
 más objetivos a la vez y tienen la línea base más firme. **F** es chico de construir y cierra alertas

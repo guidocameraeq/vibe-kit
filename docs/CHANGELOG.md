@@ -2,6 +2,39 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-21 — Misión 4, tramo 4: el norte del diseño y los racimos A y C
+
+### Added
+- `docs/mision-4/DISENO-A-frenos.md`, el racimo A.
+  - **Decisión de Guido**: un agente le pregunta solo 4 cosas (borrar datos reales, tocar plata, manejar
+    claves, mandar algo hacia afuera a su nombre).
+  - Hay correctores y hay preguntas. Un corrector se pone recién a la segunda vez que se repite un
+    error, y se saca si molesta más de lo que salva.
+  - La receta de un freno sale del piloto de Desktop.
+  - El molde trae de fábrica las 4 preguntas y el freno contra git destructivo.
+  - El director verifica con scripts y los encargos van por referencia.
+- `docs/mision-4/DISENO-C-salida-hacia-Guido.md`, el racimo C.
+  - Silencio por defecto y un resumen de fin de día.
+  - `/estado <proyecto>` y `/estado <subproyecto>`; sin nombre, sale del contexto de la pestaña.
+  - La tabla de tiempos tiene estimado, real de máquina, real con Guido, tokens y complejidad.
+  - **Estima el director, no un script** (corrección de Guido).
+- `docs/mision-4/REFERENCIAS-EXTERNAS.md`, el mapa de gentle-ai, agency-agents y MetaGPT.
+  - 8 ideas nuevas, cada una con su racimo.
+  - Los descartes, con su razón. Engram quedó en espera para el racimo B.
+
+### Changed
+- `PLAN.md`:
+  - **el norte para todas las decisiones** (Guido casi no interviene; ningún freno de adorno; decisiones
+    en criollo);
+  - el orden de los racimos (A → C → E → F → B → D → G → H);
+  - la mensajería multiagente como pilar del racimo G.
+- `TABLERO.md`: el buzón multiagente (objetivo 5, racimo G) y los **subproyectos dentro de un proyecto**
+  (racimo H).
+- `docs/README.md`: las filas de los 3 archivos nuevos.
+- Fuera del repo:
+  - vibe-kit se registró en el buzón piloto de la organización y contestó;
+  - el kit se sincronizó en la notebook (`kit-sync` en LIMPIO).
+
 ## 2026-10-21 — Misión 4: checkpoint para mudarse de PC
 
 ### Changed

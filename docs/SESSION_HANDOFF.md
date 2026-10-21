@@ -3,82 +3,73 @@
 > **Save game** del proyecto madre. `/cierre` lo sobreescribe entero; el hook SessionStart lo
 > inyecta en cada chat nuevo de esta carpeta.
 
-**Última sesión cerrada:** 2026-10-21, PC `clientes` (`D:\vibe-kit`). **Checkpoint para mudarse a la PC
-`Usuario`.** La misión 4 tiene hechos los tramos 0 a 3, y la radiografía suma el estado del piloto al 21/10
-(Anexo A.5). Fue solo diseño: kit sin bump (`v2.4.2`). Todo quedó pusheado: este repo y el privado.
+**Última sesión cerrada:** 2026-10-21, en la **notebook** (una tercera PC: ni `clientes` ni `Usuario`).
+Fue la misión 4, tramo 4: **racimos A y C diseñados**. Solo diseño, sin cambios al kit (sigue en `v2.4.2`).
+Todo quedó pusheado (la cuenta de GitHub de la notebook recibió permiso de escritura el 21/10).
 
 ## Dónde estamos
 
-- **Misión 4, solo diseño** ([`PLAN.md`](mision-4/PLAN.md)):
-  - ✅ tramo 0, la biblioteca;
-  - ✅ tramo 1, la radiografía;
-  - ✅ tramo 2, flota, repos y plataforma;
-  - ✅ tramo 3, el tablero.
+- **Misión 4**: los tramos 0 a 3 están hechos ([`PLAN.md`](mision-4/PLAN.md)). **El tramo 4 va por
+  racimos**, en este orden: A → C → E → F → B → D → G → H.
+  - ✅ **A · Frenos** ([`DISENO-A-frenos.md`](mision-4/DISENO-A-frenos.md)). Un agente le pregunta a
+    Guido **solo 4 cosas**: borrar datos reales, tocar plata, manejar claves y mandar algo hacia afuera a
+    su nombre. Lo demás son correctores que no lo molestan.
+  - ✅ **C · Salida hacia Guido** ([`DISENO-C-...`](mision-4/DISENO-C-salida-hacia-Guido.md)).
+    - Silencio por defecto.
+    - `/estado <proyecto>` y `/estado <subproyecto>`, que sin nombre sale del contexto.
+    - Una tabla de tiempos con tokens. **Estima el director, no un script.**
+- 🧭 **El norte de todo el diseño** (PLAN, §El foco): un workflow ágil en el que Guido casi no
+  interviene. Decide el diseño y el negocio; los agentes ejecutan. Ningún freno de adorno.
+  **Presentarle cada decisión en criollo y corta, diciendo qué cambia para él.** Un primer intento con
+  siglas y opciones técnicas no se entendió.
+- 🆕 Se sumó al mapa:
+  - **subproyectos dentro de un proyecto**, cada uno con sus documentos, reporte, estimación y consumo
+    (racimo H);
+  - **la mensajería multiagente**, el buzón (racimo G);
+  - [`REFERENCIAS-EXTERNAS.md`](mision-4/REFERENCIAS-EXTERNAS.md): gentle-ai, agency-agents y MetaGPT,
+    con 8 ideas nuevas, cada una con su racimo.
 
-  **Faltan el 4 (diseño por pilar) y el 5 (el spec).** Construir es la misión 5.
-- **El piloto ya corre solo en los dos Hermes**, sin que el pack exista:
-  - **Desktop**:
-    - 2 frenos mecánicos: Python por la entrada y los comandos de git que borran trabajo;
-    - un trinquete, el de atribuciones;
-    - cada freno se midió contra el historial antes de instalarlo (37.842 comandos, 0 falsos positivos);
-    - cada regla nueva dice si es freno o regla blanda, y cómo se mide.
-  - **Mobile**: D-192 (C-87 a C-90), más 8 hallazgos con reglas blandas propuestas. En H-161, un
-    subagente rodeó un freno cambiando de herramienta.
-  - El detalle y los SHA están en la radiografía, Anexos A.1 a A.5.
+## Próximo paso: racimo E (el molde y la flota)
 
-## Próximo paso: misión 4, tramo 4 (diseño por pilar), en la PC `Usuario`
+**Título de la sesión: `vibe-kit M4 · Tramo 4: racimo E`** (`/inicio` se lo pone al confirmar).
+**Esfuerzo `xhigh`, o Fable**: trae la decisión grande.
 
-**Título de la sesión: `vibe-kit M4 · Tramo 4: diseño por pilar`** (`/inicio` se lo pone al confirmar).
-
-**Antes, una sola vez, en la PC `Usuario`:**
-1. `git pull` en `C:\Users\Usuario\Desktop\Proyectos\vibe-kit`.
-2. `bash .claude/scripts/kit-sync.sh`. Ahí **va a dar sucio, y es lo esperado**: esa PC no tiene la misión
-   3. Corré `bash .claude/scripts/kit-sync.sh sync` hasta que dé `LIMPIO`, y fijate que el Arquitecto
-   conserve su "Carpeta de proyectos".
-3. Si no está gitleaks, `winget install gitleaks`: hace falta antes de cada push.
-
-**Después**: chat nuevo → `/inicio` → **"misión 4, tramo 4"**. El esfuerzo: `high` como mínimo; `xhigh` o
-Fable para las decisiones grandes.
-- **Lee**: `PLAN.md`, `TABLERO.md` y, de la radiografía, §10 y los Anexos A.4 y A.5 (el piloto).
-- **Primera decisión con Guido: el orden de los pilares.** El tablero recomienda arrancar por:
-  - **A · Frenos y verificación**;
-  - **C · Una salida hacia Guido**;
-  - **E · Un molde y la flota**. Este trae la decisión grande: el Arquitecto como agente único, contra
-    ADR-004 y REJ-003.
-
-  **F · Seguridad** es el mejor primer paso del piloto.
-- **El racimo A ya trae recetas medidas en el piloto**:
-  - medir el freno contra el historial antes de instalarlo;
-  - cubrir todas las herramientas que logran lo mismo (H-161);
-  - chequear que los permisos no desmientan la regla.
-- **Cómo**: de a una decisión, con opciones, pros y contras y UNA recomendación. Cada parte del plano va a
-  `docs/mision-4/`. Probablemente lleve más de una sesión.
+- **Lee**:
+  - el norte del `PLAN.md`;
+  - `TABLERO.md` §5, §10 (la fila E) y §12;
+  - de `FLOTA.md`, §1, §6, §7 y §9;
+  - de `REFERENCIAS-EXTERNAS.md`, las filas E.
+- **La decisión grande: el Arquitecto como agente único**, que prepara la PC, arranca proyectos y mantiene
+  la flota. **Choca con ADR-004 y REJ-003.** El camino propuesto: una sola puerta, varios módulos.
+- **Lo demás del racimo**:
+  - las skills canónicas más una ficha por proyecto (P31);
+  - la versión visible en cada proyecto (0 de 10 la marcan);
+  - `/smoke` y `/release` al molde;
+  - `AGENTS.md` y "una fuente → cada herramienta", para el multi-LLM;
+  - `doctor` y `--dry-run` en el Equipador.
+- **Cómo**: una ficha de una pantalla, después decisiones de a una (en criollo), después
+  `DISENO-E-*.md`, y al final se marca en el PLAN.
 
 ## Cosas que muerden y no están en ningún otro doc
 
-- 🖥️ **En la PC `Usuario` no está `D:\vibe-hallazgos\`** (no tiene disco D). Lo privado está en el repo
-  privado `guidocameraeq/vibe-research`, en `biblioteca/`, con las alertas al día al 21/10. Clonarlo con
-  `gh` solo si hace falta un detalle.
-- 🖥️ **Los directores de los dos Hermes corren en la PC `clientes`.** Desde la otra PC, lo mejor es leer su
-  git con `gh`: los dos repos están en GitHub y pusheados, y Mobile tiene la bitácora en la rama
-  `v4/bitacora`. Remote Control anda si está prendido en las dos puntas. Para pedirles novedades, un mensaje
-  con formato fijo (la lección del 21/10 en el PLAN).
-- ❓ **Pregunta abierta para Guido** (FLOTA §8): una segunda cuenta de GitHub firma casi todo lo reciente en
-  Portal, Devoluciones y Hub. ¿Es el compañero o es otra PC de Guido? Frena el racimo G. **El nombre de esa
-  cuenta no entra al repo.**
-- 🔐 **Alertas abiertas de Hermes**, con el detalle solo en el archivo privado:
-  - credenciales que pasaron por chats;
-  - el `/smoke` de Desktop con un login de producción;
-  - rotaciones pendientes;
-  - las barreras de permisos de Desktop;
-  - un login desde el código fuente que todavía va a producción.
-
-  Las arregla Guido en el chat de cada Hermes. **NO VERIFICADO.**
-- 🖥️ **Mesa entre PCs**: que el permiso no viaje es por diseño. Hipótesis **NO VERIFICADA**: si solo una de
-  las dos sesiones está en bypass, la app tira el mensaje.
-- 📦 **`D:\vibe-hallazgos\` NO SE BORRA** hasta el final de la hoja de ruta (ADR-022).
-- 🔴 **vibe-kit es PÚBLICO**: los proyectos van con alias (los de `FLOTA.md`). Antes de cada push, gitleaks.
-- 👥 Con varias sesiones sobre el repo, mirar `git log` antes de cerrar.
+- 📬 **El buzón multiagente**:
+  - lo diseña otra sesión, el proyecto `buzon-agentes` de esta PC, con un SPEC-0 en borrador;
+  - el v0 corre como piloto en una carpeta compartida de la organización;
+  - vibe-kit está registrado ahí como director y ya contestó;
+  - **se diseña recién en el racimo G**;
+  - **ninguna ruta, ningún nombre de PC ni ningún contenido del buzón entra a este repo** (ADR-021);
+  - la primera prueba fue en la misma PC y con la misma cuenta, así que **el cruce real no se probó**.
+- 🧠 La memoria de Claude **no viaja entre PCs**: el norte está escrito en el PLAN por eso.
+- 🖥️ En la notebook hay Node 24 y gitleaks, y `kit-sync` quedó en LIMPIO. En la PC `Usuario` no está
+  `D:\vibe-hallazgos\`: lo privado está en `guidocameraeq/vibe-research`.
+- 🖥️ **Los directores de los dos Hermes corren en la PC `clientes`**: se los lee por `gh`. No hace falta
+  preguntarles si anotan los tiempos por tarea: se oficializa en sus skills, en la misión 5.
+- ❓ **Pregunta abierta** (FLOTA §8): la segunda cuenta de GitHub. Frena el racimo G. **Su nombre no
+  entra al repo.**
+- 🔐 **Alertas abiertas de Hermes**, con el detalle solo en el archivo privado. Las arregla Guido.
+  **NO VERIFICADO.**
+- 🔴 **vibe-kit es PÚBLICO**: antes de cada push, gitleaks. Con varias sesiones sobre el repo, mirar
+  `git log` antes de cerrar.
 
 ## Bloqueos
 

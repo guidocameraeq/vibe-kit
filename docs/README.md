@@ -40,6 +40,9 @@ siguen consultando (ADR-020). El Arquitecto busca borradores en `docs/SPEC-*.md`
 | [`mision-4/REPOS.md`](mision-4/REPOS.md) | Tramo 2 (b): lo que cuenta el historial de git — arreglo del arreglo, arreglos con prueba, solo documentos; líneas base |
 | [`mision-4/PLATAFORMA.md`](mision-4/PLATAFORMA.md) | Tramo 2 (a): qué de lo armado a mano ya es nativo de Claude Code (abrir sesiones, avisos, estado, entre PCs) |
 | [`mision-4/TABLERO.md`](mision-4/TABLERO.md) | Tramo 3: el mapa por objetivos — todo lo investigado repartido por los 7 objetivos con su línea base, las 10 mejoras como construir o adoptar y 8 racimos para el diseño |
+| [`mision-4/DISENO-A-frenos.md`](mision-4/DISENO-A-frenos.md) | Tramo 4, racimo A: las 4 cosas que se le preguntan a Guido, correctores contra preguntas, la receta de un freno, qué trae el molde y cómo se mide |
+| [`mision-4/DISENO-C-salida-hacia-Guido.md`](mision-4/DISENO-C-salida-hacia-Guido.md) | Tramo 4, racimo C: silencio por defecto, `/estado` por proyecto y por subproyecto, la tabla de tiempos y quién estima |
+| [`mision-4/REFERENCIAS-EXTERNAS.md`](mision-4/REFERENCIAS-EXTERNAS.md) | Tramo 4: qué hacen otros métodos agénticos (gentle-ai, agency-agents, MetaGPT), qué idea sirve a qué racimo y qué se descarta con su razón |
 
 ## De consulta — [`consulta/`](consulta/)
 
