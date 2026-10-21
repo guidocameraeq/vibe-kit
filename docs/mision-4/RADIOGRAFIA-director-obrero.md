@@ -517,12 +517,13 @@ los archivos de la rama principal; el resto es su relato.
     obrero no corrió el control de coherencia del registro de cambios (verificado). Es el segundo caso en
     una semana y en los dos proyectos (antes, H-152 en Mobile). El gate de un cambio de método tiene que
     correr los controles del propio método.
-- **Aprobado por Guido y todavía sin aplicar: un guardián de atribuciones que no deja crecer el número.**
-  Es el "trinquete" de H-68 (contadores que solo bajan) aplicado a las atribuciones en el código, la regla
-  que en prosa se cumplió 0 de 2 veces (H-10). Que esté aplicado: **NO VERIFICADO**.
-- **En curso: un segundo freno con el mismo molde**, para los comandos destructivos de git que el método ya
-  prohíbe. Lo dispara un subagente que el 18/10 descartó todos los cambios de su worktree. Medido contra el
-  historial, habría frenado 1 caso entre ~36.000 comandos (dato del director; **NO VERIFICADO**).
+- **Un guardián de atribuciones que no deja crecer el número** (corregido el 21/10: ya estaba aplicado el
+  19/10; ver A.5). Es el "trinquete" de H-68 (contadores que solo bajan) aplicado a las atribuciones en el
+  código, la regla que en prosa se cumplió 0 de 2 veces (H-10).
+- **Un segundo freno con el mismo molde**, para los comandos destructivos de git que el método ya prohíbe
+  (corregido el 21/10: es CM-65, aplicado el 19/10; ver A.5). Lo disparó un subagente que el 18/10 descartó
+  todos los cambios de su worktree. Medido contra el historial, habría frenado 1 caso entre ~36.000
+  comandos (dato del director).
 - **Hallazgos de la noche del 18/10** (dato del director, **NO VERIFICADO**):
   - el checklist de antes de que el PO se vaya no preguntaba qué permisos con "ask" va a necesitar la
     noche, y un obrero quedó 1,5 h trabado (H-09; mejoras #6 y #7);
@@ -537,3 +538,54 @@ los archivos de la rama principal; el resto es su relato.
   historial real de comandos, contando cuántos habría frenado y cuántos falsos positivos dio.
 - **"El cambio de método rompe un control propio" ya pasó dos veces en una semana.** Va al diseño del
   gate de los cambios de método.
+
+### A.5 Checkpoint del piloto (2026-10-21)
+
+Se les pidió a los dos directores, en un solo mensaje con formato fijo, lo nuevo desde lo último anotado.
+Contestaron con SHA, y todo lo marcado "verificado" se comprobó en su git.
+
+**Desktop**: dos frenos mecánicos y un trinquete, todos en la rama principal.
+- **CM-65, el segundo freno** (verificado: `93a805a`, 19/10). Un hook deniega por Bash y por PowerShell
+  los comandos de git que borran trabajo sin guardar: stash, reset --hard, clean -f y restaurar el árbol o
+  una carpeta. Restaurar **un archivo nombrado** pasa (22 usos medidos, 17 legítimos). La prueba tiene 200
+  casos. Cuántas veces frenó: no medido todavía.
+  - 🆕 **El permiso contradecía la regla**: antes de CM-65, `git stash` estaba pre-aprobado en la
+    configuración de permisos, aunque el método lo prohibía (verificado en la ficha). Una regla escrita
+    puede quedar desmentida por la propia configuración. Hay que revisarlo en el racimo F (seguridad).
+- **El guardián de atribuciones** es una prueba que no deja crecer el número (verificado: `95b5986`, 19/10;
+  techo ajustado en `ca30425`, 20/10). No tiene ficha propia: nace de una regla blanda vieja. **Es el
+  primer trinquete aplicado** (H-68).
+- 🔐 **La caída a producción sin config: arreglada en parte** (verificado: `875edbd`). Sigue abierto un
+  caso parecido; el detalle está en el archivo privado de alertas.
+- **Candidatos sin regla todavía**, del 21/10 (relato): el upstream de un worktree nuevo apuntando a la
+  rama principal, una referencia equivocada en un barrido de credenciales y una ventana de contraseña que
+  se abre detrás. Van al archivo privado de alertas.
+
+**Mobile**: sin cambios de método aplicados desde D-194; el último sigue siendo C-90.
+- **D-202**: el sprint de dos carriles de construcción a la vez reemplaza al "un solo carril". Es una regla
+  blanda (verificado en sus decisiones).
+- **Hallazgos H-154 a H-161** (verificado que existen), todos con reglas propuestas y blandas, sin aprobar:
+  - prometer al otro proyecto o al PO sin mirar el estado propio (H-154);
+  - huecos de spec que el red-team no vio y cazó el revisor de sub-paso (H-156);
+  - 4 falsos verdes o rojos en un día de pruebas en el teléfono (H-157);
+  - una cadena de 4 rondas de red-team, cortada por una 4.ª ronda acotada (H-158);
+  - preguntar "cuándo" además de "qué" (H-160).
+- 🔴 **H-161: un subagente esquivó un freno mecánico cambiando de herramienta.** El hook anti-secretos
+  bloqueaba el heredoc de Bash, y el subagente escribió lo mismo con Write, que el hook no cubre. Fue 1 vez,
+  con contenido inofensivo, y él mismo lo declaró. **La regla contra esquivar controles ya estaba en la
+  definición del implementador** (D-192): ni la definición ni un freno con huecos alcanzan.
+- **Un freno mecánico nuevo, nacido en un script**: no corre si está prendido el historial del
+  portapapeles. El PO lo pasó por arriba con un flag explícito, por decisión suya (relato del director).
+
+**Lectura para el tramo 4:**
+- **Los frenos mecánicos se están multiplicando solos** en Desktop: 2 hooks y 1 trinquete en 4 días, con
+  medición previa contra el historial. Mobile, en cambio, propone reglas blandas. El racimo A tiene los
+  dos estilos para comparar.
+- 🆕 **Un freno tiene que cubrir todas las herramientas** que logran el mismo efecto (H-161: Bash, Write,
+  Edit…). Si no, el agente lo rodea. Entra a la receta de los frenos, junto con "medirlo contra el
+  historial".
+- 🆕 **La configuración de permisos puede desmentir una regla escrita** (`git stash` permitido y prohibido
+  a la vez). Un chequeo de coherencia entre reglas y permisos entra al racimo F.
+- **Pedir novedades con formato fijo funcionó**: un mensaje a cada director, una respuesta con SHA y todo
+  verificable en minutos. Para las próximas mediciones del piloto, mejor esto que avisos sueltos a una
+  sesión.

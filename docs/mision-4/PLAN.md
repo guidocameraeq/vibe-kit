@@ -129,3 +129,9 @@ cambia); lo que se discute va con opciones + pros/contras + UNA recomendación.
 - **(tramo 3, 2026-10-14)** Mientras se armaba el tablero, otra sesión commiteó un anexo con novedades de
   un proyecto. `/cierre` lo detectó por el `git log`. Con dos sesiones sobre el mismo repo, **mirar el log
   antes de cerrar** (es P46 en carne propia).
+- **(checkpoint, 2026-10-21)** Durante una semana, los directores de los proyectos mandaron sus cambios de
+  método como avisos sueltos a una sesión ya cerrada (la del tramo 1). Hubo avisos repetidos y uno quedó mal
+  anotado ("aprobado, sin aplicar", cuando ya estaba aplicado). Lo que anduvo fue **un pedido con formato
+  fijo a cada director** (número · qué cambió · freno o blanda · SHA · pusheado · dato medido) y verificar
+  cada línea en su git: dos respuestas, todo comprobado en minutos. Para medir el piloto en la misión 5,
+  así.

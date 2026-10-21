@@ -2,7 +2,7 @@
 
 > ÚNICA fuente de pendientes del proyecto. Completado → SE BORRA (la historia vive en `CHANGELOG.md` y git). Header de 1 línea, sin narrativa de sesión.
 
-2026-10-14 — ver SESSION_HANDOFF.md
+2026-10-21 — ver SESSION_HANDOFF.md
 
 ## 🔴 Crítico
 - [ ] **Misión 4 — diseñar el pack con Guido adentro, SOLO DISEÑO** (hoja de ruta: ADR-021; plan de 6
@@ -40,8 +40,9 @@
   más? ¿el Arquitecto repitió alguna? (Hubo un estreno parcial en la PC del compañero: Anexo A1 del acta.)
 - [ ] **Estreno real del Modo B**: primera feature grande sobre el ERP con `/arquitecto` en la carpeta
   del proyecto.
-- [ ] **PC `Usuario`**: decirle `actualizate` al Equipador para traer la misión 3 (conserva sola su
-  carpeta de proyectos).
+- [ ] **PC `Usuario`**: traer la misión 3 antes de trabajar ahí. `git pull` y después
+  `bash .claude/scripts/kit-sync.sh sync` hasta que dé LIMPIO (el script conserva solo su carpeta de
+  proyectos), o decirle `actualizate` al Equipador. Los pasos están en el handoff del 2026-10-21.
 
 ## 🟡 Cuando se pueda
 - [ ] **Elegir el nombre del proyecto** (descartados: Obrador, Andamio, Batuta, Cimientos, Plano). Al

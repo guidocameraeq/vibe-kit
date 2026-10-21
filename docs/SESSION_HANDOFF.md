@@ -3,80 +3,82 @@
 > **Save game** del proyecto madre. `/cierre` lo sobreescribe entero; el hook SessionStart lo
 > inyecta en cada chat nuevo de esta carpeta.
 
-**Última sesión cerrada:** 2026-10-14, PC `clientes` (`D:\vibe-kit`). **Misión 4, tramo 3 hecho: el mapa
-por objetivos.** Fue solo diseño: no se tocó `kit/` ni ningún proyecto. El kit sigue sin bump (`v2.4.2`).
+**Última sesión cerrada:** 2026-10-21, PC `clientes` (`D:\vibe-kit`). **Checkpoint para mudarse a la PC
+`Usuario`.** La misión 4 tiene hechos los tramos 0 a 3, y la radiografía suma el estado del piloto al 21/10
+(Anexo A.5). Fue solo diseño: kit sin bump (`v2.4.2`). Todo quedó pusheado: este repo y el privado.
 
-## Qué salió
+## Dónde estamos
 
-- **[`docs/mision-4/TABLERO.md`](mision-4/TABLERO.md)**: ~140 cosas repartidas por los 7 objetivos, cada
-  una en uno solo y con su línea base. Trae además:
-  - las líneas base que se repiten cada mes (§1);
-  - las 10 mejoras: 4 adoptar, 4 construir, 2 mixtas (§9);
-  - 8 racimos para el diseño (§10);
-  - lo que no se rompe y lo que queda afuera.
-- **El barrido**: 3 lectores Sonnet, **~405 mil tokens** (1,6× lo estimado). Encontraron 50 cosas que no
-  habían llegado a ninguna conclusión (código `S-`), sobre todo de seguridad y calidad.
-- **Un anexo que entró en paralelo**: otra sesión agregó a la radiografía los 11 cambios que aprobó Mobile
-  (commit `e82538f`). Ya está en el tablero: 2 hallazgos nuevos y 3 mejoras que Mobile ya está probando.
-- `PLAN.md`: el tramo 3 quedó ✅, con 2 lecciones nuevas para el ciclo.
+- **Misión 4, solo diseño** ([`PLAN.md`](mision-4/PLAN.md)):
+  - ✅ tramo 0, la biblioteca;
+  - ✅ tramo 1, la radiografía;
+  - ✅ tramo 2, flota, repos y plataforma;
+  - ✅ tramo 3, el tablero.
 
-## Próximo paso concreto: misión 4, tramo 4 (diseño por pilar)
+  **Faltan el 4 (diseño por pilar) y el 5 (el spec).** Construir es la misión 5.
+- **El piloto ya corre solo en los dos Hermes**, sin que el pack exista:
+  - **Desktop**:
+    - 2 frenos mecánicos: Python por la entrada y los comandos de git que borran trabajo;
+    - un trinquete, el de atribuciones;
+    - cada freno se midió contra el historial antes de instalarlo (37.842 comandos, 0 falsos positivos);
+    - cada regla nueva dice si es freno o regla blanda, y cómo se mide.
+  - **Mobile**: D-192 (C-87 a C-90), más 8 hallazgos con reglas blandas propuestas. En H-161, un
+    subagente rodeó un freno cambiando de herramienta.
+  - El detalle y los SHA están en la radiografía, Anexos A.1 a A.5.
+
+## Próximo paso: misión 4, tramo 4 (diseño por pilar), en la PC `Usuario`
 
 **Título de la sesión: `vibe-kit M4 · Tramo 4: diseño por pilar`** (`/inicio` se lo pone al confirmar).
 
-Chat nuevo acá → `/inicio` → Guido dice **"misión 4, tramo 4"**. El esfuerzo: `high` como mínimo; `xhigh`
-o Fable para las decisiones grandes.
-- **Lee**: `PLAN.md` y `TABLERO.md`. La radiografía y los documentos del tramo 2, solo por la sección
-  que haga falta.
-- **Primera decisión con Guido: el orden de los pilares.** La recomendación del tablero es arrancar por
-  tres racimos:
+**Antes, una sola vez, en la PC `Usuario`:**
+1. `git pull` en `C:\Users\Usuario\Desktop\Proyectos\vibe-kit`.
+2. `bash .claude/scripts/kit-sync.sh`. Ahí **va a dar sucio, y es lo esperado**: esa PC no tiene la misión
+   3. Corré `bash .claude/scripts/kit-sync.sh sync` hasta que dé `LIMPIO`, y fijate que el Arquitecto
+   conserve su "Carpeta de proyectos".
+3. Si no está gitleaks, `winget install gitleaks`: hace falta antes de cada push.
+
+**Después**: chat nuevo → `/inicio` → **"misión 4, tramo 4"**. El esfuerzo: `high` como mínimo; `xhigh` o
+Fable para las decisiones grandes.
+- **Lee**: `PLAN.md`, `TABLERO.md` y, de la radiografía, §10 y los Anexos A.4 y A.5 (el piloto).
+- **Primera decisión con Guido: el orden de los pilares.** El tablero recomienda arrancar por:
   - **A · Frenos y verificación**;
   - **C · Una salida hacia Guido**;
-  - **E · Un molde y la flota**. Este trae la decisión grande: el Arquitecto como agente único ("una
-    puerta, varios módulos", contra ADR-004 y REJ-003; y el plugin contra el Equipador).
+  - **E · Un molde y la flota**. Este trae la decisión grande: el Arquitecto como agente único, contra
+    ADR-004 y REJ-003.
 
   **F · Seguridad** es el mejor primer paso del piloto.
-- **Cómo**: de a una decisión, con opciones, pros y contras y UNA recomendación. Cada parte del plano se
-  escribe en `docs/mision-4/`. Probablemente lleve más de una sesión.
-
-**Orden fijo: diseño → spec → construcción** (la construcción es la misión 5).
+- **El racimo A ya trae recetas medidas en el piloto**:
+  - medir el freno contra el historial antes de instalarlo;
+  - cubrir todas las herramientas que logran lo mismo (H-161);
+  - chequear que los permisos no desmientan la regla.
+- **Cómo**: de a una decisión, con opciones, pros y contras y UNA recomendación. Cada parte del plano va a
+  `docs/mision-4/`. Probablemente lleve más de una sesión.
 
 ## Cosas que muerden y no están en ningún otro doc
 
-- ❓ **Pregunta abierta para Guido** (FLOTA §8): una segunda cuenta de GitHub firma casi todo lo reciente
-  en Portal, Devoluciones y Hub. ¿Es el compañero o es otra PC de Guido? Frena el racimo G (mesa y PCs).
-  **El nombre de esa cuenta no entra al repo.**
-- 🔐 **Alertas de seguridad abiertas** de Hermes. El detalle está solo en
-  `D:\vibe-hallazgos\ALERTAS-SEGURIDAD.md`. Las arregla Guido en el chat de cada Hermes. **NO VERIFICADO**.
-- 🧪 **Mobile ya está probando**:
-  - la mejora #4;
-  - parte de la #3: el script de mutaciones y la regla contra esquivar controles, metida en la definición
-    del implementador;
-  - el gate con su skill;
-  - **P1 + P2**: cada regla nueva dice si es freno o regla blanda, y cómo se va a saber si funcionó.
+- 🖥️ **En la PC `Usuario` no está `D:\vibe-hallazgos\`** (no tiene disco D). Lo privado está en el repo
+  privado `guidocameraeq/vibe-research`, en `biblioteca/`, con las alertas al día al 21/10. Clonarlo con
+  `gh` solo si hace falta un detalle.
+- 🖥️ **Los directores de los dos Hermes corren en la PC `clientes`.** Desde la otra PC, lo mejor es leer su
+  git con `gh`: los dos repos están en GitHub y pusheados, y Mobile tiene la bitácora en la rama
+  `v4/bitacora`. Remote Control anda si está prendido en las dos puntas. Para pedirles novedades, un mensaje
+  con formato fijo (la lección del 21/10 en el PLAN).
+- ❓ **Pregunta abierta para Guido** (FLOTA §8): una segunda cuenta de GitHub firma casi todo lo reciente en
+  Portal, Devoluciones y Hub. ¿Es el compañero o es otra PC de Guido? Frena el racimo G. **El nombre de esa
+  cuenta no entra al repo.**
+- 🔐 **Alertas abiertas de Hermes**, con el detalle solo en el archivo privado:
+  - credenciales que pasaron por chats;
+  - el `/smoke` de Desktop con un login de producción;
+  - rotaciones pendientes;
+  - las barreras de permisos de Desktop;
+  - un login desde el código fuente que todavía va a producción.
 
-  Es su decisión D-192 (cambios C-87 a C-90), aplicada en un bloque desde el 2026-10-14; los SHA, por
-  `git log` con esos números (está escrito: verificado). Antes de diseñar esos racimos, medir ahí el antes
-  y el después. Los datos del piloto están en su bitácora de hallazgos desde H-145. Los primeros, en la
-  radiografía, Anexo A.2: H-152 (el cambio de método rompió otro control en un día) y H-151 (una regla
-  quedó con dos definiciones).
-- 🧪 **Desktop adoptó parte del mismo cambio el 2026-10-15** (CM-63, verificado en git), **sin P1 + P2**.
-  Su dato: la regla avisada en cada encargo falló ~5 veces en un día, y por eso la pasaron a la definición
-  del agente. **Guido decidió igualarlo** (2026-10-15), y la tabla "freno o regla blanda · cómo se mide"
-  ya está en la ficha de CM-63 (**verificado**).
-- 🧪 **Desktop tiene el primer freno mecánico medido** (CM-64, 2026-10-18, verificado en git). Un hook
-  deniega correr Python leyendo de la entrada. Contra 37.842 comandos reales dio 0 falsos positivos, y
-  habría frenado ~2.500: la regla blanda se rompía en ~6,6% de los comandos. Hay un segundo freno en
-  curso, para los comandos destructivos de git. Detalle en la radiografía, Anexo A.4, con la receta nueva
-  "medir el freno contra el historial antes de instalarlo".
-- 🖥️ **Mesa entre PCs**: el permiso no viaja (es así por diseño); Remote Control tiene que estar prendido en
-  las dos sesiones. Hipótesis **NO VERIFICADA**: si solo una está en bypass, la app tira el mensaje.
-- 📏 **Hermes Mobile**: el método vigente vive en `main`; la bitácora y los documentos grandes, en su rama.
-- 🖥️ **PC `Usuario` desfasada** hasta que le diga `actualizate` al Equipador (**NO VERIFICADO**).
-- 📦 **`D:\vibe-hallazgos\` NO SE BORRA** hasta el final de la hoja de ruta (ADR-022). Respaldo: el repo
-  privado `guidocameraeq/vibe-research`.
+  Las arregla Guido en el chat de cada Hermes. **NO VERIFICADO.**
+- 🖥️ **Mesa entre PCs**: que el permiso no viaje es por diseño. Hipótesis **NO VERIFICADA**: si solo una de
+  las dos sesiones está en bypass, la app tira el mensaje.
+- 📦 **`D:\vibe-hallazgos\` NO SE BORRA** hasta el final de la hoja de ruta (ADR-022).
 - 🔴 **vibe-kit es PÚBLICO**: los proyectos van con alias (los de `FLOTA.md`). Antes de cada push, gitleaks.
-- 👥 **Dos sesiones commitearon hoy sobre este repo.** Antes de cerrar, mirar `git log`.
+- 👥 Con varias sesiones sobre el repo, mirar `git log` antes de cerrar.
 
 ## Bloqueos
 

@@ -2,6 +2,23 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-21 — Misión 4: checkpoint para mudarse de PC
+
+### Changed
+- `RADIOGRAFIA-director-obrero.md`, Anexo A.5: el estado del piloto, pedido a los dos directores en un
+  mensaje con formato fijo y verificado en su git.
+  - **Desktop**: el segundo freno (CM-65, git destructivo) y el trinquete de atribuciones, los dos ya
+    aplicados; el A.4 se corrigió, porque los daba "en curso" y "sin aplicar".
+  - **Mobile**: sin cambios de método desde D-194, con 8 hallazgos de reglas blandas. En H-161, un subagente
+    rodeó un freno cambiando de herramienta.
+  - Dos recetas nuevas para el racimo A: cubrir todas las herramientas, y que los permisos no desmientan la
+    regla.
+- `PLAN.md`: una lección para el ciclo. Pedir novedades con formato fijo anda; los avisos sueltos a una
+  sesión cerrada, no.
+- El handoff, reescrito para arrancar el tramo 4 en la PC `Usuario` (pull, sync del kit, gitleaks). El TODO
+  quedó al día.
+- El repo privado `vibe-research` subió las alertas al 21/10, así la otra PC las tiene.
+
 ## 2026-10-19 — Misión 4: el primer freno mecánico medido (Desktop)
 
 ### Changed
