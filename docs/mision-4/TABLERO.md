@@ -343,8 +343,9 @@ quedó decidido para que el camino esté allanado:
   puerta que consume el kit es `registro` (una llave de lectura; forma `{version, fichas, conexiones}`); el detalle de
   ficha y las notas son `ecosistema` (llaves propias), y el spec del Hub dice explícito que **el agente de ecosistema es
   una pieza del Hub y el kit solo consume el registro**. Así, la regla "el Arquitecto solo lee el Hub" de DISENO-E §9
-  **se mantiene**: las notas las escribe el agente de ecosistema, firmadas con su nombre. Probado en local por el Hub;
-  todavía sin publicar.
+  **se mantiene**: las notas las escribe el agente de ecosistema, firmadas con su nombre. **Publicado el 2026-10-22**: el
+  registro responde en producción (77 fichas, 8 conexiones; la mayoría todavía "falta clasificar"). La llave de lectura
+  la tiene Guido y se pide a él, nunca por chat. La URL y la llave **no entran a este repo**: van en la capa privada.
 
 🆕 **Para el racimo B, las carpetas de `docs/`** (evidencia: el director del Hub lo preguntó el 2026-10-22, mientras
 ordenaba sus carpetas, para no chocar con lo que el kit estandarice). Quedan abiertas: **`docs/specs/`** para los specs
