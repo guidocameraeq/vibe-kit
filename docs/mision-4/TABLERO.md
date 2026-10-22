@@ -335,8 +335,9 @@ quedó decidido para que el camino esté allanado:
   deja el enchufe genérico ("leer un registro de proyectos" por adaptador). Se decide en el racimo I.
 - **Cómo lo está diseñando el Hub** (su spec en borrador, 2026-10-22; se construye en su tanda 4): el registro cubre
   proyectos **y sistemas**; `repos` es una lista por ficha; "se conecta con" es una tabla con tipos editables; la
-  credencial es **una puerta HTTP del Hub con llave propia** (variable de entorno, fuera de todo repo), no una llave
-  de la base; y **el dueño amplió el pedido**: el Arquitecto lee el detalle de cada ficha y tiene un apartado propio
+  credencial es **una puerta HTTP del Hub con dos llaves propias** (una de lectura para el registro y la ficha, otra
+  solo para agregar notas; las dos en variables de entorno fuera de todo repo, siempre en cabecera y nunca en la URL;
+  **el actualizador de la flota solo necesita la de lectura**), no una llave de la base; y **el dueño amplió el pedido**: el Arquitecto lee el detalle de cada ficha y tiene un apartado propio
   de notas (solo agregar, firmadas). vibe-kit pidió una lista plana con `clase`, nombres estables con `version`, y
   que el registro sea chico y rápido. **La regla "el Arquitecto solo lee el Hub" de DISENO-E §9 queda ampliada a
   "lee, y agrega notas en su apartado"** — se revisa en el racimo I.
