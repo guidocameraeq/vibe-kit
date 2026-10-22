@@ -31,6 +31,50 @@ Toda mejora dice qué objetivo mueve, **contra qué línea base medida** y cómo
 - Las decisiones se le presentan en criollo, cortas, diciendo qué cambia para él en el día a día.
 **La información de la investigación no se pierde**: se usa de verdad.
 
+**La forma de pensar que pidió Guido** (puesta en limpio el 2026-10-22, al cerrar el racimo E; vale para todo el
+diseño y después para la construcción). Es pragmática: **mejorar su workflow**, no "profesionalizar" ni sumar piezas.
+- **El filtro de cuatro preguntas, antes de aplicar cualquier mejora o ajuste**: ¿corrige un error real o es "por las
+  dudas"? · ¿lo hace más consistente (una sola verdad, sin contradicciones entre piezas)? · ¿lo hace menos propenso a
+  errores? · ¿da mejores resultados **sin que Guido tenga que estar al tanto**? Lo que no pasa ninguna, no entra. Lo
+  que pasa a medias, se recorta: **no se aplica "todo" porque venga en una lista**.
+- **Partir de lo que ya existe y de lo medido.** Si el dato ya vive en un lugar (el Hub, GitHub, la lista de carpetas
+  que Claude Code anota sola), se lee de ahí; nunca se crea un segundo registro. Un diseño arranca de un número
+  medido, no de una intuición.
+- **Cortar los roles por la pregunta que responden**, no por lo que "podrían" hacer. Si una pieza responde dos
+  preguntas distintas, son dos piezas que se hablan.
+- **Lo genérico, en el kit; lo de la empresa, aparte.** vibe-kit sigue siendo infraestructura general; la conexión
+  con las cosas de Guido es una capa privada que se enchufa.
+- **Cada decisión, de a una, en criollo, con "qué cambia para vos"**, opciones con pros y contras y **una**
+  recomendación; Guido aprueba en bloque o corrige. Las listas largas se clasifican antes de mostrarlas: qué rompe,
+  qué está flojo, qué mejora, qué sobra.
+- **Un revisor frío después de decidir y antes de escribir el spec.** Las decisiones tomadas en la charla tienen
+  puntos ciegos que solo ve alguien que no estuvo.
+- **Decir la verdad sobre el costo**: cuántas preguntas nuevas le suma a Guido una pieza, contadas; qué es
+  suposición (**NO VERIFICADO**) y qué se probó.
+
+### Los 11 criterios de cada racimo (definidos con Guido el 2026-10-22)
+
+Son la vara fija para lo que falta del tramo 4, para el spec del tramo 5 y para la construcción. **Cada
+`DISENO-<racimo>.md` cierra con una tabla corta, criterio por criterio: cómo lo cumple, o por qué no aplica.** Los
+criterios 1, 2, 4 y 5 son los que **deciden**; los demás son condiciones que una pieza no puede romper. **Al terminar el
+tramo 4, antes del spec, se hace una revisión integral de todas las decisiones de todos los racimos con esta vara.**
+Más adelante, estos criterios tienen que verse reflejados en el `CLAUDE.md` del molde y en el sistema de documentación
+(racimo B): es donde van a brillar en el día a día.
+
+| # | Criterio | La pregunta que se le hace a cada pieza | Hoy (línea base) |
+|---|---|---|---|
+| 1 | **Menos intervención de Guido** | ¿Le baja la intervención o se la sube? Solo se le pregunta lo irreversible | 39 de 115 turnos de un director eran ruido; ~110 "¿cómo vamos?" |
+| 2 | **Pragmático, recortado** | El filtro de las cuatro preguntas (arriba). ¿Es "por las dudas"? ¿Pasa la regla de 3+? | — |
+| 3 | **Medible** | ¿Qué objetivo mueve, contra qué línea base, y cómo se va a saber si funcionó? | Tabla de líneas base del `TABLERO.md` §1 |
+| 4 | **Software que anda y se sostiene: consistente, seguro y escalable** | ¿Baja las fallas que vuelven y los arreglos del arreglo? ¿Deja cada cambio con su prueba y una verificación mecánica antes de "listo"? ¿Piensa la infraestructura (base, entornos, deploy, respaldos) y no solo la pantalla? | 26% de los arreglos arreglan otro arreglo; 0-45% traen su prueba; backups vacíos en verde |
+| 5 | **Tokens y el modelo justo** | ¿Quién hace esto, y es el más barato que lo hace bien? Opus o Fable solo donde hay criterio; Sonnet para volumen; Haiku para lo mecánico; script donde no hace falta modelo. ¿Relee algo que podría no releer? | 98% del costo de un director es releer; ~370 mil tokens releídos por respuesta |
+| 6 | **El script antes que el modelo** | Lo determinístico (estado, versión, chequeos, inventarios) ¿lo calcula un programa? Sale igual siempre, casi gratis y no se equivoca | El estado "ESPERO / TE NECESITO" lo decía el modelo y se equivocaba |
+| 7 | **Seguro por defecto** | ¿Qué pasa si esta pieza se corre en el peor momento? Barreras de fábrica; secretos nunca en un repo ni impresos; el kit es público | 8 de 10 proyectos sin `deny`; 12 alertas abiertas |
+| 8 | **Portable: igual en cualquier PC y para cualquier persona** | ¿Funciona en la notebook y en la PC del compañero sin explicación? Nada depende de la memoria de una máquina ni de quién está sentado | ~6 h de explicación a un usuario nuevo; una sesión 5 días inalcanzable |
+| 9 | **Lo chico no paga el costo de lo grande** | ¿Se ajusta al tamaño del trabajo, o le pone el traje de Hermes a todo? Una feature chica sin spec, chat nuevo ni director | Un hotfix de 15 líneas pasó por 3 auditores; un spec READY se ejecutó en 2 min |
+| 10 | **Autónomo pero con rastro** | Los agentes hacen solos y en silencio, pero cada cosa deja una marca verificable (commit, línea, tabla). Si salió mal, ¿se ve dónde y se deshace? | Avisos sueltos a una sesión cerrada; "aprobado, sin aplicar" mal anotado |
+| 11 | **Piloto antes de flota, y lo aprendido vuelve al método** | ¿Se probó en un proyecto y se midió antes de soltarlo a los 10? ¿La lección volvió al kit o se quedó en un chat? | 36 cambios de método en 5 días sin saber si anduvieron |
+
 ## Los pilares que el diseño tiene que cubrir
 - Las 4 capas del pack: **Base** (inicio/cierre/handoff, norte, manual por módulo) · **Dirección**
   (director/obrero/tramo + política de modelos) · **Mesa** (directores y PCs) · **el Arquitecto como
@@ -66,6 +110,11 @@ Toda mejora dice qué objetivo mueve, **contra qué línea base medida** y cómo
   El material está fuera de este repo: un SPEC-0 en borrador, con su red team, y el protocolo v0 que
   hizo otra sesión. **Ninguna ruta, ningún nombre ni ningún contenido del buzón entra acá** (ADR-021).
   El v0 corre mientras tanto como piloto, igual que los de Hermes.
+- **El agente de ecosistema, aparte — decisión de Guido (2026-10-22)**: la idea de un agente que conozca todos
+  los proyectos a la vez (el mapa, la salud de la flota, "¿esto es nuevo o va adentro de algo?") **no es parte
+  del Arquitecto**. El Arquitecto queda en lo que venía: la PC, el proyecto nuevo, la feature, el consultorio y
+  poner al día la flota. El ecosistema es propio de la empresa y vibe-kit se mantiene genérico: va al
+  **racimo I, el último**, y probablemente viva en el Hub. Detalle y lo ya decidido: `TABLERO.md` §10.
 - **Niveles del método por tamaño de proyecto** (liviano · estándar · proyecto largo con director) y
   **camino de adopción** (un proyecto piloto → medir → extender; Hermes no se migra a mitad de un tramo).
 - **Medición repetible**: los scripts de la investigación corridos cada mes sobre lo nuevo
@@ -95,7 +144,7 @@ Toda mejora dice qué objetivo mueve, **contra qué línea base medida** y cómo
 | ✅ 1 · Radiografía director/obrero | Hecho el 2026-10-14 (~452 mil tokens, 2 lectores Opus): anatomía, flujo, mensajes, modelos, costo, fallas, qué anda, los dos dialectos del método y 10 mejoras con su línea base. Trajo 10 hallazgos nuevos, entre ellos una alerta de seguridad (al archivo privado) | [`RADIOGRAFIA-director-obrero.md`](RADIOGRAFIA-director-obrero.md) |
 | ✅ 2 · Evidencia de afuera | Hecho el 2026-10-14. **Costo: ~312 mil tokens** (el agente de la plataforma, 3× lo estimado); los scripts, casi gratis (`observatorio/investigacion/`: `flota.py`, `huella.py`, `repos.py`). Lo fuerte: 3 dialectos de director/obrero (Deptos, el corto); ningún proyecto marca su versión; **el hook de arranque del kit no tiene tope y la plataforma corta a 10.000 caracteres** (2 proyectos arrancan sin ver su estado); el molde no trae `deny`; 1 de cada 4 arreglos es arreglo de otro y casi nunca trae su prueba; abrir, avisar, ver estado y mensajear entre PCs ya son nativos (con huecos). **Pregunta abierta**: a quién pertenece la segunda cuenta que firma 3 proyectos (FLOTA §8). Brief original: **(0) Inventario de la flota** (script, casi gratis): todos los proyectos de las 3 PCs — dónde viven, su repo, qué skills/docs/CLAUDE.md tienen y de qué versión del método son. Visto el 2026-10-14 en esta PC: 8 repos (6 en la organización `eQ-Repositorio`, accesible con `gh` desde cualquier PC) y **skills nacidas en los proyectos** que pueden ser candidatas al kit (en el Hub: actualizar, estimar horas, horas por commit, viernes, backup; en un bot: reporte mensual, deploy). La otra PC y la del compañero: por `gh` si están en GitHub, si no por Remote Control. **El capataz (P41) queda afuera**: fue una idea de proyecto para un compañero, no es parte del workflow de Guido (lo aclaró él, 2026-10-14). **(a) Qué ofrece hoy la plataforma**: el agente `claude-code-guide` chequea contra la doc oficial qué de lo armado a mano ya es nativo (equipos de agentes y mensajes, worktrees, workflows, memoria, Remote Control, agentes en segundo plano) — ~100 mil tokens. **(b) Evidencia de los repos**: scripts sobre el historial de git de los proyectos (commits de arreglo, reversiones, lo que se rompió dos veces, si hay pruebas) — casi gratis | [`FLOTA.md`](FLOTA.md) · [`PLATAFORMA.md`](PLATAFORMA.md) · [`REPOS.md`](REPOS.md) |
 | ✅ 3 · Mapa por objetivos | Hecho el 2026-10-14. **Costo: ~405 mil tokens** en el barrido (3 lectores Sonnet sobre las 5 síntesis; 1,6× lo estimado). Todo repartido por los 7 objetivos: P1-P57, las 10 mejoras, el tramo 2, el Anexo A y **50 hallazgos del barrido que no habían llegado a ninguna conclusión** (código `S-`, sobre todo de seguridad y calidad). Las 10 mejoras: 4 adoptar, 4 construir, 2 mixtas. Una tabla de líneas base que se repiten cada mes con los scripts. **8 racimos** como entrada al tramo 4; la recomendación: arrancar por frenos y verificación (A), una salida hacia Guido (C) y el molde único (E). Falta medir: el tiempo entre PCs y el costo en dólares | [`TABLERO.md`](TABLERO.md) |
-| 4 · Diseño por pilar | Las 4 capas + la flota + niveles/adopción + medición. De a una decisión. **Orden** (2026-10-21): A → C → E → F → B → D → G → H, por racimo del tablero. Cada racimo trae sus ideas de [`REFERENCIAS-EXTERNAS.md`](REFERENCIAS-EXTERNAS.md). **✅ A · ✅ C** (2026-10-21) | Un `DISENO-<racimo>.md` por racimo: [A · frenos](DISENO-A-frenos.md) · [C · salida hacia Guido](DISENO-C-salida-hacia-Guido.md) |
+| 4 · Diseño por pilar | Las 4 capas + la flota + niveles/adopción + medición. De a una decisión. **Orden** (2026-10-21): A → C → E → F → B → D → G → H → **I** (el ecosistema, sumado el 2026-10-22), por racimo del tablero. **Desde el 2026-10-22, cada racimo se diseña con los 11 criterios de §El foco y cierra con su tabla; al terminar los nueve, una revisión integral de todas las decisiones con esa vara, antes del spec.** Cada racimo trae sus ideas de [`REFERENCIAS-EXTERNAS.md`](REFERENCIAS-EXTERNAS.md). **✅ A · ✅ C** (2026-10-21) · **✅ E** (2026-10-22: la puerta única, la ficha del kit, el actualizador que nunca pisa una adaptación, el Hub como registro) | Un `DISENO-<racimo>.md` por racimo: [A · frenos](DISENO-A-frenos.md) · [C · salida hacia Guido](DISENO-C-salida-hacia-Guido.md) · [E · molde y flota](DISENO-E-molde-y-flota.md) |
 | 5 · El spec | Un SPEC del pack con **el top 10**, métricas, niveles, piloto y adopción → red-team → **revisor frío independiente** (un agente sin contexto de las charlas) → Guido lo aprueba | El plano READY + orden de construcción para la misión 5 |
 
 **Cómo participa Guido** (lo eligió él): Claude recomienda, Guido corrige (aprueba temas en bloque o
@@ -160,6 +209,11 @@ cambia); lo que se discute va con opciones + pros/contras + UNA recomendación.
 - **(tramo 3, 2026-10-14)** Mientras se armaba el tablero, otra sesión commiteó un anexo con novedades de
   un proyecto. `/cierre` lo detectó por el `git log`. Con dos sesiones sobre el mismo repo, **mirar el log
   antes de cerrar** (es P46 en carne propia).
+- **(tramo 4, racimo E, 2026-10-22)** Después de aprobar las 9 decisiones con Guido, **un revisor frío** (agente sin
+  contexto de las charlas) encontró **4 errores que rompían el diseño** tal como estaba escrito (una palabra con dos
+  sentidos, una dependencia circular, dos merges que pisaban adaptaciones) y 11 ajustes más; una lectura dirigida de
+  un repo parecido (gentle-ai) sumó 3 piezas chicas. Costó ~210 mil tokens entre los dos. **Regla para el ciclo: el
+  revisor frío va después de las decisiones y antes de escribir el spec, en cada racimo**, no solo al final del tramo 5.
 - **(checkpoint, 2026-10-21)** Durante una semana, los directores de los proyectos mandaron sus cambios de
   método como avisos sueltos a una sesión ya cerrada (la del tramo 1). Hubo avisos repetidos y uno quedó mal
   anotado ("aprobado, sin aplicar", cuando ya estaba aplicado). Lo que anduvo fue **un pedido con formato

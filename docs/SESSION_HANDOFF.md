@@ -3,73 +3,69 @@
 > **Save game** del proyecto madre. `/cierre` lo sobreescribe entero; el hook SessionStart lo
 > inyecta en cada chat nuevo de esta carpeta.
 
-**Última sesión cerrada:** 2026-10-21, en la **notebook** (una tercera PC: ni `clientes` ni `Usuario`).
-Fue la misión 4, tramo 4: **racimos A y C diseñados**. Solo diseño, sin cambios al kit (sigue en `v2.4.2`).
-Todo quedó pusheado (la cuenta de GitHub de la notebook recibió permiso de escritura el 21/10).
+**Última sesión cerrada:** 2026-10-22, misión 4, tramo 4: **racimo E diseñado y revisado**. Solo diseño, sin cambios
+al kit (sigue en `v2.4.2`). Guido trabajó por Remote Control; la PC es la que firma con **la segunda cuenta de GitHub**
+(FLOTA §8): los commits de hoy salen con esa firma. `kit-sync` LIMPIO.
 
 ## Dónde estamos
 
-- **Misión 4**: los tramos 0 a 3 están hechos ([`PLAN.md`](mision-4/PLAN.md)). **El tramo 4 va por
-  racimos**, en este orden: A → C → E → F → B → D → G → H.
-  - ✅ **A · Frenos** ([`DISENO-A-frenos.md`](mision-4/DISENO-A-frenos.md)). Un agente le pregunta a
-    Guido **solo 4 cosas**: borrar datos reales, tocar plata, manejar claves y mandar algo hacia afuera a
-    su nombre. Lo demás son correctores que no lo molestan.
-  - ✅ **C · Salida hacia Guido** ([`DISENO-C-...`](mision-4/DISENO-C-salida-hacia-Guido.md)).
-    - Silencio por defecto.
-    - `/estado <proyecto>` y `/estado <subproyecto>`, que sin nombre sale del contexto.
-    - Una tabla de tiempos con tokens. **Estima el director, no un script.**
-- 🧭 **El norte de todo el diseño** (PLAN, §El foco): un workflow ágil en el que Guido casi no
-  interviene. Decide el diseño y el negocio; los agentes ejecutan. Ningún freno de adorno.
-  **Presentarle cada decisión en criollo y corta, diciendo qué cambia para él.** Un primer intento con
-  siglas y opciones técnicas no se entendió.
-- 🆕 Se sumó al mapa:
-  - **subproyectos dentro de un proyecto**, cada uno con sus documentos, reporte, estimación y consumo
-    (racimo H);
-  - **la mensajería multiagente**, el buzón (racimo G);
-  - [`REFERENCIAS-EXTERNAS.md`](mision-4/REFERENCIAS-EXTERNAS.md): gentle-ai, agency-agents y MetaGPT,
-    con 8 ideas nuevas, cada una con su racimo.
+- **Misión 4**: tramos 0 a 3 hechos ([`PLAN.md`](mision-4/PLAN.md)). **Tramo 4 por racimos**: ✅ A · ✅ C · ✅ **E** ·
+  siguen **F → B → D → G → H → I**.
+- ✅ **E · Molde y flota** ([`DISENO-E-molde-y-flota.md`](mision-4/DISENO-E-molde-y-flota.md)), en una línea: el
+  Arquitecto es **puerta única** (skill que rutea; agentes como manos; scripts como ojos; sin memoria propia); cada
+  repo lleva una **ficha del kit** (`.claude/kit.md`: versión, `vars`, estado y hash por pieza, frenos, sensible); el
+  **actualizador** regenera el molde sin pisar adaptaciones (4 estados: molde · molde+propio · adaptada · propia), en
+  clon temporal, mezcla a `main` si pasa el chequeo mecánico; **adoptar** es una pantalla y un "dale"; `VERSION` con
+  notas de migración; **el Hub es el registro de la empresa** pero el actualizador no lo necesita; el Equipador queda
+  atrás de la puerta con `doctor`. Revisado por un revisor frío y contra gentle-ai: 17 hallazgos, 15 aplicados enteros
+  y 2 recortados (§16).
+- 🆕 **Decisiones de Guido de hoy que cambian el mapa**:
+  - **El agente de ecosistema NO es parte del Arquitecto**: es propio de la empresa, va al **racimo I (el último)** y
+    probablemente viva en el Hub. Lo ya decidido está en `TABLERO.md` §10.
+  - **Los 11 criterios de cada racimo** (`PLAN.md` §El foco): menos intervención · pragmático · medible · software
+    consistente, seguro y escalable · tokens y modelo justo · script antes que modelo · seguro por defecto ·
+    portable · lo chico no paga lo grande · autónomo con rastro · piloto antes de flota. **Cada `DISENO-*` cierra
+    con su tabla de criterios** (E ya la tiene, §17). **Al terminar los nueve racimos, revisión integral de todas las
+    decisiones con esa vara, antes del spec.** Guido quiere verlos reflejados después en el `CLAUDE.md` del molde y
+    el sistema de documentación (racimo B).
+  - **Regla para el ciclo** (PLAN §Lecciones): el revisor frío va después de las decisiones de cada racimo, no
+    solo al final.
 
-## Próximo paso: racimo E (el molde y la flota)
+## Próximo paso: racimo F (seguridad por defecto)
 
-**Título de la sesión: `vibe-kit M4 · Tramo 4: racimo E`** (`/inicio` se lo pone al confirmar).
-**Esfuerzo `xhigh`, o Fable**: trae la decisión grande.
+**Título de la sesión: `vibe-kit M4 · Tramo 4: racimo F`** (`/inicio` se lo pone al confirmar). Esfuerzo `high`
+alcanza; es más chico que E.
 
-- **Lee**:
-  - el norte del `PLAN.md`;
-  - `TABLERO.md` §5, §10 (la fila E) y §12;
-  - de `FLOTA.md`, §1, §6, §7 y §9;
-  - de `REFERENCIAS-EXTERNAS.md`, las filas E.
-- **La decisión grande: el Arquitecto como agente único**, que prepara la PC, arranca proyectos y mantiene
-  la flota. **Choca con ADR-004 y REJ-003.** El camino propuesto: una sola puerta, varios módulos.
-- **Lo demás del racimo**:
-  - las skills canónicas más una ficha por proyecto (P31);
-  - la versión visible en cada proyecto (0 de 10 la marcan);
-  - `/smoke` y `/release` al molde;
-  - `AGENTS.md` y "una fuente → cada herramienta", para el multi-LLM;
-  - `doctor` y `--dry-run` en el Equipador.
-- **Cómo**: una ficha de una pantalla, después decisiones de a una (en criollo), después
-  `DISENO-E-*.md`, y al final se marca en el PLAN.
+- **Lee**: el norte y **los 11 criterios** del `PLAN.md` · `TABLERO.md` §8 (objetivo 7) y §10 (la fila F) ·
+  `FLOTA.md` §5 · de `REFERENCIAS-EXTERNAS.md`, las filas F (gentle-ai trae la lista concreta de `deny`) ·
+  `DISENO-A-frenos.md` entero (las 4 preguntas y los correctores) · de `DISENO-E`, §6 (los permisos de los agentes de
+  fondo como pieza) y §9 (dónde vive una credencial).
+- **Lo central**: qué barreras `deny` trae el molde de fábrica (8 de 10 proyectos no tienen ninguna) · qué pasa con
+  las 12 alertas abiertas (el detalle está en el archivo privado; las arregla Guido) · secretos: nunca en repo, nunca
+  impresos, dónde viven por PC · el guardián de atribuciones de Desktop (radiografía A.4) como corrector del molde ·
+  `docs-fyd` con resumen de exposición entra solo como idea (TABLERO §12).
+- **Cómo**: ficha de una pantalla → decisiones de a una, en criollo, con "qué cambia para vos" → revisor frío →
+  `DISENO-F-*.md` con su tabla de criterios → marcar en el PLAN.
 
 ## Cosas que muerden y no están en ningún otro doc
 
-- 📬 **El buzón multiagente**:
-  - lo diseña otra sesión, el proyecto `buzon-agentes` de esta PC, con un SPEC-0 en borrador;
-  - el v0 corre como piloto en una carpeta compartida de la organización;
-  - vibe-kit está registrado ahí como director y ya contestó;
-  - **se diseña recién en el racimo G**;
-  - **ninguna ruta, ningún nombre de PC ni ningún contenido del buzón entra a este repo** (ADR-021);
-  - la primera prueba fue en la misma PC y con la misma cuenta, así que **el cruce real no se probó**.
-- 🧠 La memoria de Claude **no viaja entre PCs**: el norte está escrito en el PLAN por eso.
-- 🖥️ En la notebook hay Node 24 y gitleaks, y `kit-sync` quedó en LIMPIO. En la PC `Usuario` no está
-  `D:\vibe-hallazgos\`: lo privado está en `guidocameraeq/vibe-research`.
-- 🖥️ **Los directores de los dos Hermes corren en la PC `clientes`**: se los lee por `gh`. No hace falta
-  preguntarles si anotan los tiempos por tarea: se oficializa en sus skills, en la misión 5.
-- ❓ **Pregunta abierta** (FLOTA §8): la segunda cuenta de GitHub. Frena el racimo G. **Su nombre no
-  entra al repo.**
-- 🔐 **Alertas abiertas de Hermes**, con el detalle solo en el archivo privado. Las arregla Guido.
-  **NO VERIFICADO.**
-- 🔴 **vibe-kit es PÚBLICO**: antes de cada push, gitleaks. Con varias sesiones sobre el repo, mirar
-  `git log` antes de cerrar.
+- 📬 **El Hub**: su director (sesión `director-orden-hub`, en esta PC; no aparece en la lista de la app, sí en
+  `ListAgents`) recibió el brief con los 4 pedidos (campo `repo`, `tipo`, "se conecta con", credencial de solo lectura)
+  y el concepto del agente de ecosistema. Lo guardó como misión aparte en su repo. Ese mismo día ordenó sus carpetas
+  (rama `refactor/orden-de-directorios`, sin mergear) y le puso tope al hook (de ~43 KB a 7.400 caracteres). Preguntó
+  por `docs/specs/` y la carpeta de referencia: quedó anotado para el racimo B (TABLERO §10). El brief completo está en
+  el escritorio de esta PC, `pedidos-al-hub-desde-el-arquitecto.md`, y en el repo del Hub.
+- 📬 **El buzón multiagente**: se diseña recién en el racimo G; nada de rutas, nombres ni contenido entra acá
+  (ADR-021). El cruce real entre PCs no se probó.
+- 🧠 La memoria de Claude **no viaja entre PCs**: por eso el norte, la forma de pensar y los 11 criterios están en el
+  PLAN. En esta PC quedaron además en la memoria del proyecto.
+- ❓ **Pregunta abierta** (FLOTA §8): la segunda cuenta de GitHub. **Dato nuevo: es la identidad de git de esta PC.**
+  Si Guido operaba por Remote Control desde acá, los commits "de la segunda cuenta" pueden ser suyos. Falta que lo
+  confirme. Su nombre no entra al repo.
+- 🔐 **Alertas abiertas de Hermes**, detalle solo en el archivo privado. Las arregla Guido. **NO VERIFICADO.**
+- 🔴 **vibe-kit es PÚBLICO**: gitleaks antes de cada push (hoy: limpio sobre `docs/mision-4`). Con varias sesiones
+  sobre el repo, mirar `git log` antes de cerrar.
+- 🖥️ Los directores de los dos Hermes corren en la PC `clientes`; se los lee por `gh`.
 
 ## Bloqueos
 

@@ -42,6 +42,7 @@ siguen consultando (ADR-020). El Arquitecto busca borradores en `docs/SPEC-*.md`
 | [`mision-4/TABLERO.md`](mision-4/TABLERO.md) | Tramo 3: el mapa por objetivos — todo lo investigado repartido por los 7 objetivos con su línea base, las 10 mejoras como construir o adoptar y 8 racimos para el diseño |
 | [`mision-4/DISENO-A-frenos.md`](mision-4/DISENO-A-frenos.md) | Tramo 4, racimo A: las 4 cosas que se le preguntan a Guido, correctores contra preguntas, la receta de un freno, qué trae el molde y cómo se mide |
 | [`mision-4/DISENO-C-salida-hacia-Guido.md`](mision-4/DISENO-C-salida-hacia-Guido.md) | Tramo 4, racimo C: silencio por defecto, `/estado` por proyecto y por subproyecto, la tabla de tiempos y quién estima |
+| [`mision-4/DISENO-E-molde-y-flota.md`](mision-4/DISENO-E-molde-y-flota.md) | Tramo 4, racimo E: el Arquitecto como puerta única (skill + agentes + scripts), la ficha del kit por repo, el actualizador que nunca pisa una adaptación, adoptar proyectos, el Hub como registro y las dos capas (kit genérico · capa EQ privada) |
 | [`mision-4/REFERENCIAS-EXTERNAS.md`](mision-4/REFERENCIAS-EXTERNAS.md) | Tramo 4: qué hacen otros métodos agénticos (gentle-ai, agency-agents, MetaGPT), qué idea sirve a qué racimo y qué se descarta con su razón |
 
 ## De consulta — [`consulta/`](consulta/)

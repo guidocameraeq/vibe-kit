@@ -2,6 +2,41 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-22 — Misión 4, tramo 4: el racimo E (molde y flota), los 11 criterios y el ecosistema aparte
+
+### Added
+- `docs/mision-4/DISENO-E-molde-y-flota.md`, el racimo E, aprobado por Guido decisión por decisión y revisado.
+  - **El Arquitecto como puerta única**: una skill que rutea 5 entradas (PC · proyecto nuevo · feature · consultorio ·
+    flota) y deriva a piezas chicas; agentes como manos, scripts como ojos, sin memoria propia. Resuelve de frente el
+    choque con ADR-004 y REJ-003 (el ADR se escribe al construir).
+  - **La ficha del kit** por repo (`.claude/kit.md`): versión, `vars` de instanciación, estado y hash por pieza
+    (`molde` · `molde+propio` · `adaptada` · `propia`), los frenos y lo sensible que pedía el racimo A. Una sola ficha.
+  - **El actualizador**: clon temporal, regenera el molde sin pisar adaptaciones (zona `<!-- kit:propio -->`, archivo
+    hermano para hooks, `settings.json` a tres puntas con `quitado:`), chequeo mecánico, mezcla a `main` si pasa, una
+    línea en el CHANGELOG del proyecto, tabla final. Sin preguntas: reversible.
+  - **Adoptar** un proyecto que ya anda (una pantalla y un "dale"), `kit/VERSION` con notas de migración, el hook que
+    avisa versión nueva en las dos direcciones, el Equipador atrás de la puerta con `doctor`, `/smoke` y `/release`
+    como contrato que no nace el día cero, `AGENTS.md` opt-in.
+  - **El Hub como registro de la empresa** (4 pedidos: `repo`, `tipo`, "se conecta con", credencial de solo lectura)
+    y las dos capas: kit genérico público · capa privada de la empresa. El actualizador no necesita el Hub.
+  - **§16, la revisión**: un revisor frío (Opus) y una lectura del instalador de gentle-ai trajeron 17 hallazgos
+    (4 que rompían el diseño); Guido aprobó 15 enteros y 2 recortados. **§17**: la tabla de los 11 criterios.
+- `PLAN.md` §El foco: **la forma de pensar que pidió Guido** (filtro de 4 preguntas, recortar en vez de aplicar todo,
+  partir de lo que existe, roles por la pregunta que responden) y **los 11 criterios de cada racimo**, con la regla
+  de que cada `DISENO-*` cierra con su tabla y de la revisión integral al terminar el tramo 4.
+
+### Changed
+- `PLAN.md`: **el agente de ecosistema no es parte del Arquitecto** (decisión de Guido): va al racimo I, el último;
+  orden A → C → E → F → B → D → G → H → I; el tramo 4 marca ✅ E; una lección nueva para el ciclo (el revisor frío va
+  después de las decisiones de cada racimo).
+- `TABLERO.md` §10: fila del **racimo I** con lo ya decidido (Hub como registro, dos agentes que se hablan, dónde
+  vive); nota para el **racimo B** con las preguntas de carpetas del Hub (`docs/specs/`, carpeta de referencia) y cómo
+  las resolvió ese mismo día.
+- `DISENO-A-frenos.md` §6: apunta a la ficha del kit de E como la misma ficha que pedía.
+- `docs/README.md`: fila del DISENO-E. `docs/TODO.md`: el Hub ya le puso tope a su hook; falta el Panel.
+- Fuera del repo: brief entregado al director del Hub (sesión en esta PC) con los 4 pedidos y el concepto del agente
+  de ecosistema; respondidas sus 5 preguntas de convención de carpetas separando lo firme del kit de lo abierto.
+
 ## 2026-10-21 — Misión 4, tramo 4: el norte del diseño y los racimos A y C
 
 ### Added

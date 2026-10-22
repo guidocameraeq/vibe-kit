@@ -69,7 +69,7 @@ cuenta. Se construye con la misma receta.
 
 | Pieza | Clase | Por qué |
 |---|---|---|
-| **Las 4 preguntas de §2**, con la ficha del proyecto diciendo qué es "dato real", qué toca plata y qué sale afuera | Pregunta | Es la lista de Guido. Lo concreto (qué base, qué servicio) cambia por proyecto, así que el molde trae el mecanismo y la ficha lo completa |
+| **Las 4 preguntas de §2**, con la ficha del proyecto diciendo qué es "dato real", qué toca plata y qué sale afuera (es la misma ficha del kit, `.claude/kit.md`, campo `sensible:`; definida en [DISENO-E](DISENO-E-molde-y-flota.md) §4 el 2026-10-22) | Pregunta | Es la lista de Guido. Lo concreto (qué base, qué servicio) cambia por proyecto, así que el molde trae el mecanismo y la ficha lo completa |
 | Git que borra trabajo sin guardar (`reset --hard`, `clean -f`, `stash`, restaurar todo el árbol) | Corrector | Pasó en los dos proyectos largos, y un subagente tiró todos los cambios de su worktree. Alternativa: commit de trabajo en curso |
 | El registro de frenos (§4) | — | Sin él, la regla 3 no se puede aplicar |
 

@@ -299,6 +299,7 @@ entrada al tramo 4, que diseña de a un pilar, y al top 10 del spec.
 | **F · Seguridad por defecto** | #9, P8, P12, P14, P20, P49; S-C-2, S-D-5, S-M-4, S-M-7, S-M-8, S-D-12 | 7 | Base (molde) |
 | **G · Mesa y PCs** | #10, P32, P34, P42, P44-P46; S-R-3, S-C-1, S-M-12, S-D-7; 🆕 el buzón multiagente (2026-10-21) | 5 | Mesa |
 | **H · Niveles y puertas del Arquitecto** | P6, P7, P9, P10, P35, P51, P52, P57; S-R-6; 🆕 **los subproyectos** (2026-10-21) | 4 · 3 · 6 | El Arquitecto como puerta |
+| **I · El agente de ecosistema** 🆕 (2026-10-22) | Conocer todos los proyectos a la vez y pensar entre ellos: el mapa (qué se conecta con qué), la salud de la flota, el reporte semanal, y "¿esto es proyecto nuevo, subproyecto o feature de otro?" | 5 · 6 · 3 | **Fuera del kit, o como adaptador**: es propio de la empresa de Guido. Se diseña último |
 
 🆕 **Subproyectos dentro de un proyecto** (pedido de Guido, 2026-10-21, mientras se diseñaba el racimo C).
 Un proyecto grande, como Hermes, tiene adentro subproyectos (por ejemplo, el tramo "una sola identidad").
@@ -315,6 +316,35 @@ Toca también:
 - **C**: el reporte por subproyecto;
 - **E**: el molde lo trae;
 - el **objetivo 1**: el consumo por subproyecto se mide con `costos.py`.
+
+🆕 **El agente de ecosistema, aparte del Arquitecto** (decisión de Guido, 2026-10-22, mientras se diseñaba el
+racimo E). Se cortó por la pregunta que responde cada uno: el Arquitecto responde **"¿cómo hago esto bien?"**
+(una PC, un proyecto, una feature, ponerlos al día); el agente de ecosistema responde **"¿qué tenemos y cómo
+se cruza?"** (muchos proyectos a la vez). Meter los dos en uno repetía el scope-creep de ADR-004. Lo que ya
+quedó decidido para que el camino esté allanado:
+- **el registro de proyectos es el tablero interno de la empresa** (el Hub de la flota), no un segundo
+  registro: ahí se dan de alta los proyectos y se cargan novedades cada semana. Se le piden 4 cosas: la URL
+  del repo, el tipo (código · parcial · sin código), "se conecta con" y una credencial de **solo lectura**
+  para un script. La credencial vive en cada PC, fuera de todo repo;
+- **los dos agentes miran los mismos datos** (el Hub, la ficha del kit de cada repo y un mismo script) y
+  ninguno guarda nada propio;
+- **se hablan en las dos direcciones**: el ecosistema diagnostica y reparte un plano de conjunto que el
+  Arquitecto ejecuta proyecto por proyecto; el Arquitecto, antes de entrevistar por un proyecto nuevo, mira
+  el mapa y avisa si algo parecido ya existe;
+- **dónde vive**: probablemente dentro del propio Hub (es de la empresa), no en vibe-kit. El kit, a lo sumo,
+  deja el enchufe genérico ("leer un registro de proyectos" por adaptador). Se decide en el racimo I.
+
+🆕 **Para el racimo B, las carpetas de `docs/`** (evidencia: el director del Hub lo preguntó el 2026-10-22, mientras
+ordenaba sus carpetas, para no chocar con lo que el kit estandarice). Quedan abiertas: **`docs/specs/`** para los specs
+vivos (ADR-023 lo postergó a esta misión; hoy el Arquitecto retoma borradores con `docs/SPEC-*.md`), el nombre de la
+**carpeta de referencia** (`docs/consulta/` es propio de vibe-kit; el Hub propone `docs/referencia/`), y si el mapa de
+documentación del `CLAUDE.md` lista también carpetas. Las migraciones SQL **no** se estandarizan: son por stack.
+**Cómo lo resolvió el Hub ese mismo día** (primer caso real, para comparar cuando se diseñe B): `docs/` raíz solo con
+handoff, TODO, CHANGELOG y README; `docs/specs/` para los vivos (archivo o carpeta si tiene satélites, con su ciclo de
+vida en un README); `docs/archive/{specs,planes,historial}/` para lo terminado; `docs/referencia/` con un `trampas.md`;
+el SQL en `db/`; el mapa del `CLAUDE.md` con el formato del molde más una fila que declara que `docs/specs/` manda
+sobre el Glob del Arquitecto; y **un test que falla** si aparece un archivo suelto, una ruta citada que no existe o un
+handoff pasado del tope. También le puso tope al hook: de ~43 KB a 7.400 caracteres (tope de 6.000 bytes al handoff).
 
 **Mi lectura para el tramo 4** (recomendación, no decisión): los racimos **A, C y E** son los que mueven
 más objetivos a la vez y tienen la línea base más firme. **F** es chico de construir y cierra alertas
