@@ -37,7 +37,8 @@ existir.
 1. **Un corrector nuevo se pone recién cuando el error se repite y costó caro.** La primera vez no se
    agrega nada, ni siquiera una regla escrita: se anota el caso. La segunda vez, corrector.
 2. **Cada freno se mide: cuántas veces salvó y cuántas molestó.** Cada vez que frena, deja una línea en
-   un registro (fecha, qué frenó, por qué herramienta).
+   un registro (fecha, qué frenó, por qué herramienta). *Ubicación propuesta por F (§21, 2026-10-22):
+   `docs/frenos.log`, versionado, de solo agregar, commiteado en el cierre. Se decide en la revisión integral.*
 3. **El que molesta más de lo que salva, se saca.** Lo mismo con el que lleva 3 meses sin frenar nada:
    o era de adorno, o el problema ya no existe.
 

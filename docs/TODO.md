@@ -8,8 +8,8 @@
 - [ ] **Misión 4 — diseñar el pack con Guido adentro, SOLO DISEÑO** (hoja de ruta: ADR-021; plan de 6
   tramos, 7 objetivos y el Arquitecto como puerta única: en docs/mision-4/PLAN.md). Tramo 0 (biblioteca) ✅ ·
   Tramo 1 (radiografía director/obrero) ✅ · Tramo 2 (flota, repos, plataforma) ✅ · Tramo 3 (el mapa por objetivos,
-  `TABLERO.md`) ✅ · **Tramo 4 en curso, por racimos**: A ✅, C ✅, E ✅ (molde y flota), **sigue el F** (seguridad por
-  defecto), después B, D, G (con el buzón multiagente), H (con los subproyectos) e I (el agente de ecosistema, propio de
+  `TABLERO.md`) ✅ · **Tramo 4 en curso, por racimos**: A ✅, C ✅, E ✅ (molde y flota), F ✅ (seguridad por defecto), **sigue el B**
+  (documentos con tope), después D, G (con el buzón multiagente), H (con los subproyectos) e I (el agente de ecosistema, propio de
   la empresa). **Cada racimo se diseña con los 11 criterios del PLAN y cierra con su tabla; al terminar los nueve,
   revisión integral de todas las decisiones con esa vara, antes del spec.** Fuentes: las 57 propuestas de
   `tips/tanda-2026-10-chats.md` + los métodos de Hermes Desktop y Mobile + `REFERENCIAS-EXTERNAS.md`.

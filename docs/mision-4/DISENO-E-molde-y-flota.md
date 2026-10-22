@@ -96,7 +96,7 @@ piezas:                    # estado · hash de lo que el molde escribió (para s
   inicio: {estado: molde+propio, hash: 3f9a…}
   cierre: {estado: molde+propio, hash: b71c…}
   hook-arranque: {estado: molde, hash: 90e2…}
-  settings: {estado: molde+propio, hash: 5d04…, quitado: [deny:git stash]}
+  settings: {estado: molde+propio, hash: 5d04…}   # lo quitado va en frenos.quitados (unificado por F §14, 2026-10-22)
   docs: molde              # handoff, TODO, CHANGELOG
   smoke: propia
   release: propia
@@ -135,7 +135,7 @@ multi-llm: no              # si es "sí", se genera AGENTS.md desde el CLAUDE.md
 |---|---|
 | Skills y textos (`/inicio`, `/cierre`) | Una zona entre `<!-- kit:propio -->` y `<!-- /kit:propio -->`, con un título visible adentro ("Lo propio de este proyecto"). Todo lo de afuera es molde. Puede haber más de una zona. Si una marca está suelta o repetida, no se toca el archivo y se informa |
 | Hooks y scripts | No se marcan. El molde queda intacto y llama al final a un archivo hermano si existe (`session-start.propio.sh`). Lo propio vive en el hermano |
-| `settings.json` | **A tres puntas por regla** (molde viejo, molde nuevo, proyecto): solo se agrega lo nuevo de esta versión; lo que el proyecto quitó a propósito está en `quitado:` de la ficha con su razón y **no vuelve** (regla 3 del racimo A). Lo del proyecto gana, incluso una lista vacía |
+| `settings.json` | **A tres puntas por regla** (molde viejo, molde nuevo, proyecto): solo se agrega lo nuevo de esta versión; lo que el proyecto quitó a propósito está en `frenos.quitados` de la ficha (un solo campo para todo freno, con id, razón y `hasta:`; lo unificó F §14) y **no vuelve** (regla 3 del racimo A). Lo del proyecto gana, incluso una lista vacía |
 | `CLAUDE.md` y todo `docs/` | Del proyecto. El actualizador no los toca, con una sola excepción: **una línea en el CHANGELOG** por actualización ("kit 2.4.2 → 2.5: piezas X, Y") |
 
 ## 6. El actualizador (decisión 3) y los cuatro casos
@@ -146,7 +146,7 @@ Guido dice "poné al día Hub y Devoluciones", o "toda la flota". Entonces:
    qué cambió entre versiones. El procedimiento y los templates se leen del clon fresco, no de la copia de la PC.
 2. **Un agente por proyecto, en paralelo, siempre en un clon temporal o un worktree**: nunca en la carpeta donde
    Guido trabaja. Si la rama `kit/v<versión>` ya existe en el remoto, saltea ese proyecto y lo informa; si está
-   marcada rota, la rehace desde `main`.
+   marcada rota, **la borra y la sube de nuevo** desde `main` (sin `push --force`, que el hook de git de F §6 frena).
 3. Por cada pieza, según la ficha:
    - **`molde`** → la reemplaza por la nueva, instanciada con `vars:`.
    - **`molde+propio`** → regenera lo de afuera de la zona; la zona queda intacta.

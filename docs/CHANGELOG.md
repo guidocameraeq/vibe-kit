@@ -2,6 +2,46 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-22 — Misión 4, tramo 4: el racimo F (seguridad por defecto), revisado y con tres correcciones de Guido
+
+### Added
+- `docs/mision-4/DISENO-F-seguridad.md`, el racimo F, aprobado por Guido en bloque, corregido por él en tres puntos y
+  revisado por dos lectores.
+  - **Nueve barreras de archivos de fábrica** en el `settings.json` del molde (`.env`, `secrets/`, `*.pem`, `*.key`,
+    `~/.ssh`, `~/.aws`, la config de `gh`), verificadas contra la doc oficial: frenan en todos los modos, incluido
+    bypass; ningún nivel las anula. Sin reglas `ask` ni `Bash(...)`. Lo público va a un archivo con nombre no secreto.
+  - **Un solo corrector de secretos por PC**: el hook que Guido armó a mano en esta PC, extendido a Write y Edit
+    (cerraba H-161), instalado por el Equipador, con mensaje que da la alternativa, medido contra el historial antes
+    de instalar, y leyendo la ficha para las excepciones.
+  - **Usar sin ver** (corrección de Guido): comandos del proyecto (`db consulta`, `db migrar`, `db foto`) que cargan
+    la credencial por adentro; Claude conoce el nombre de la variable, nunca el valor. `cargar-secreto` con entrada
+    oculta para el humano. Las consultas y migraciones pasan de Guido a los obreros.
+  - **Niveles de base** en la ficha (`entornos:` dummy · prueba · real), `secretos:`, `publicas:`,
+    `datos-de-prueba:`, `push-publica:`. Una base dummy se declara en una línea.
+  - **Las barreras son del proyecto** (corrección de Guido): `frenos.quitados` con id, razón y `hasta:` (`siempre` o
+    fecha); los hooks y el actualizador lo leen; el vencimiento va a la salida única de C.
+  - **Con permiso, igual con red** (corrección de Guido): foto verificada, transacción, rastro y revisión del plan
+    (director o subagente fresco) antes de tocar una base real. Escribir en real no es pregunta; borrar sí (A §2).
+  - gitleaks en el pre-commit versionado (`core.hooksPath` lo setea el arranque), `.gitleaksignore` vigilado, el
+    arranque declara modo y barreras por lista de reglas, el bypass no se traba, una página de runbook "se filtró una
+    credencial", tabla de medición y los 11 criterios con honestidad.
+  - **§22, la revisión**: revisor frío (Opus, ~136 mil tokens) y lector de gentle-ai (Sonnet, ~128 mil): 26 hallazgos,
+    9 que rompían (entre ellos una pregunta a Guido escondida); Guido pidió pasarlos por el criterio de diseño antes de
+    aplicar: 24 aplicados, 1 fundido, 1 descartado por "por las dudas". Mecánica de `deny`, hooks y modos verificada
+    contra la doc oficial con el agente `claude-code-guide` (2 tandas, ~234 mil tokens), con fuentes en §4.
+
+### Changed
+- `PLAN.md`: el tramo 4 marca ✅ F; una lección nueva (la regla de Guido de filtrar los hallazgos por el criterio
+  establecido; verificar la plataforma contra la doc antes de decidir).
+- `DISENO-E-molde-y-flota.md`: lo quitado pasa a un solo campo (`frenos.quitados`, unificado por F §14); el
+  actualizador rehace una rama rota borrándola y subiéndola de nuevo, sin `push --force`.
+- `DISENO-A-frenos.md` §4: ubicación propuesta por F para el registro de frenos (`docs/frenos.log`), a decidir en la
+  revisión integral.
+- `docs/README.md`: fila del DISENO-F. `docs/TODO.md`: F ✅, sigue B.
+- El kit instalado en esta PC estaba viejo (del 3 de agosto; nadie había corrido el sync después de la misión 3): se
+  sincronizó con `kit-sync.sh sync`, LIMPIO. Y la sesión arrancó con los dos commits del director del Hub ya en
+  `origin/main` (contrato del registro, dos llaves): traídos con avance limpio antes de cerrar.
+
 ## 2026-10-22 — Misión 4, tramo 4: el racimo E (molde y flota), los 11 criterios y el ecosistema aparte
 
 ### Added
