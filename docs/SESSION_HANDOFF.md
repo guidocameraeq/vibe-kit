@@ -54,7 +54,10 @@ alcanza; es más chico que E.
   y el concepto del agente de ecosistema. Lo guardó como misión aparte en su repo. Ese mismo día ordenó sus carpetas
   (rama `refactor/orden-de-directorios`, sin mergear) y le puso tope al hook (de ~43 KB a 7.400 caracteres). Preguntó
   por `docs/specs/` y la carpeta de referencia: quedó anotado para el racimo B (TABLERO §10). El brief completo está en
-  el escritorio de esta PC, `pedidos-al-hub-desde-el-arquitecto.md`, y en el repo del Hub.
+  el escritorio de esta PC, `pedidos-al-hub-desde-el-arquitecto.md`, y en el repo del Hub. **Después del cierre**, otra
+  sesión del Hub mandó el contrato del registro (API HTTP con llave propia; proyectos y sistemas; notas del Arquitecto,
+  ampliación del dueño); se le contestó y quedó anotado en TABLERO §10, racimo I. Si vuelve a preguntar, la respuesta
+  está en esa nota.
 - 📬 **El buzón multiagente**: se diseña recién en el racimo G; nada de rutas, nombres ni contenido entra acá
   (ADR-021). El cruce real entre PCs no se probó.
 - 🧠 La memoria de Claude **no viaja entre PCs**: por eso el norte, la forma de pensar y los 11 criterios están en el
