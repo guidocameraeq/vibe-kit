@@ -2,6 +2,36 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-22 — Misión 4, tramo 4: el racimo B (documentos con tope), con el modelo de módulos de Guido y revisado dos veces
+
+### Added
+- `docs/mision-4/DISENO-B-documentos.md`, el racimo B: el sistema de documentación de cada proyecto. Nació de dos lectores
+  pedidos por Guido antes de decidir (Opus sobre Hermes por `gh`, ~80 mil tokens; Sonnet sobre gentle-ai, ~45 mil): el de
+  Hermes mostró que el tablero de un tramo pesa 1,7 MB con ~70 mil caracteres vivos, y cambió el diseño de "adoptar lo del
+  Hub" a **una carpeta por módulo con la ficha (estado, con tope) y la historia (bitácora de archivos chicos) separadas**.
+  - `docs/` en cuatro capas: el plano de la app (`NORTE.md`, `MAPA.md` con diagrama a nivel módulos) · la capa de sesión con tope
+    (handoff de 5.000 bytes, secciones fijas; cabecera del TODO) · `modulos/<x>/` (ficha, spec con el pedido textual, y con
+    director `tiempos.md`, `planes/`, `bitacora/`) · `referencia/` y `archive/`. Seis archivos y tres carpetas en la raíz.
+  - Tres tamaños, una estructura: chico (en el chat), módulo solo, módulo con director. La prueba de dos preguntas la hace el
+    Arquitecto; lo que creció lo convierte `/cierre`. El módulo nace en `main` y se construye donde se construye el código.
+  - El hook de arranque en node, con presupuesto de 9.500 caracteres, orden de recorte, aviso "CORTADO" y huella; las líneas de F
+    y de E adentro. El TODO con edad por `git blame` (lo de 90 días baja a 🟢 solo; 🔴 nunca). El cierre cruza lo anunciado con lo
+    anotado y lee los registros solo por sus primeras 20 líneas. El candado de estructura por script, con cinco ids quitables
+    por proyecto, en el hook de escritura, en el cierre y en `doctor`. El `CLAUDE.md` del molde reordenado por los 11 criterios.
+    Engram queda en espera con dos medidas para el piloto.
+  - Revisor frío (Opus): 33 hallazgos, 30 aplicados, 1 recortado, 2 descartados con razón. Revisión de coherencia de Fable
+    contra A, C, E y F, pedida por Guido: 20 correcciones (entre ellas, la fecha a mano en el TODO contra el criterio 6, la
+    tercera pregunta que hacía módulo a un hotfix, y el módulo que nacía en una rama que `main` no veía).
+
+### Changed
+- `docs/mision-4/PLAN.md`: B ✅ en la tabla del tramo 4; lección nueva (un lector barato mide los repos reales antes de diseñar;
+  subagentes nunca en Fable). `docs/README.md`: la fila de DISENO-B.
+- Notas cruzadas de B: `DISENO-A` §4 (`.claude/frenos.log` y el choque al mezclar desde varias ramas), `DISENO-C` §2
+  (ficha + `tiempos.md`), `DISENO-E` §4, §5 y §7 (piezas nuevas; el adoptador migra `docs/` y trae seis documentos), `DISENO-F`
+  §5 y §9 (`referencia/PRUEBA.md`), `TABLERO.md` §10 (sin `docs/specs/`).
+- Mezclados dos commits del director del Hub en `TABLERO.md` §10: el registro separado del ecosistema, publicado en producción.
+- Memoria de Claude: regla "subagentes nunca en Fable".
+
 ## 2026-10-22 — Misión 4, tramo 4: el racimo F (seguridad por defecto), revisado y con tres correcciones de Guido
 
 ### Added

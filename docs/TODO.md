@@ -8,20 +8,21 @@
 - [ ] **Misión 4 — diseñar el pack con Guido adentro, SOLO DISEÑO** (hoja de ruta: ADR-021; plan de 6
   tramos, 7 objetivos y el Arquitecto como puerta única: en docs/mision-4/PLAN.md). Tramo 0 (biblioteca) ✅ ·
   Tramo 1 (radiografía director/obrero) ✅ · Tramo 2 (flota, repos, plataforma) ✅ · Tramo 3 (el mapa por objetivos,
-  `TABLERO.md`) ✅ · **Tramo 4 en curso, por racimos**: A ✅, C ✅, E ✅ (molde y flota), F ✅ (seguridad por defecto), **sigue el B**
-  (documentos con tope), después D, G (con el buzón multiagente), H (con los subproyectos) e I (el agente de ecosistema, propio de
+  `TABLERO.md`) ✅ · **Tramo 4 en curso, por racimos**: A ✅, C ✅, E ✅ (molde y flota), F ✅ (seguridad por defecto), B ✅ (documentos con tope), **sigue el D**
+  (modelos, ruido y revisión), después G (con el buzón multiagente), H (con los subproyectos y los nombres de los tamaños de B) e I (el agente de ecosistema, propio de
   la empresa). **Cada racimo se diseña con los 11 criterios del PLAN y cierra con su tabla; al terminar los nueve,
   revisión integral de todas las decisiones con esa vara, antes del spec.** Fuentes: las 57 propuestas de
   `tips/tanda-2026-10-chats.md` + los métodos de Hermes Desktop y Mobile + `REFERENCIAS-EXTERNAS.md`.
 - [ ] **Tope al hook de arranque del molde** (arreglo chico, fuera de la misión 4, que solo diseña).
   - **El problema**: el molde hace `cat` del handoff entero, y la plataforma corta lo inyectado a 10.000
     caracteres. Lo que se pasa, la sesión no lo ve.
-  - **Hoy**: Hub inyecta ~43 KB y el Panel del bot ~18 KB, así que arrancan sin ver su estado (deducido).
-    vibe-kit está al 87% del tope.
-  - **El arreglo**: poner un tope en `kit/…/hooks/session-start.sh`. Hub y el Panel se arreglan en sus
-    propios chats. **El Hub ya lo hizo (2026-10-22)**: tope de 6.000 bytes al handoff, de ~43 KB a 7.400
-    caracteres (en su rama `refactor/orden-de-directorios`, sin mergear al momento de anotarlo). Falta el Panel.
-  - **Evidencia**: `docs/mision-4/FLOTA.md` §3.
+  - **Hoy** (medido 2026-10-22): Bot inyecta 15.500 caracteres y el Panel del bot ~18.000: arrancan sin ver su estado.
+    Arte está al 92%, vibe-kit al 88%. **El Hub ya lo arregló** (tope de 5.500 bytes al handoff, aviso "CORTADO", test;
+    mergeado a su `main` el 2026-10-22).
+  - **El arreglo**: solo el tope y la huella en `kit/…/hooks/session-start.sh` (bash) y "si dice CORTADO, leé el resto" en el
+    `/inicio` del molde → `kit-sync.sh sync` LIMPIO → tag `v2.4.3`. **Guía: `DISENO-B-documentos.md` §9** y el hook del Hub.
+    El diseño completo (node, presupuesto, módulos) llega con la misión 5. Bot y el Panel se arreglan en sus propios chats.
+  - **Evidencia**: `docs/mision-4/FLOTA.md` §3 · DISENO-B §3.
 - [ ] **Misión 5 — construir el pack por piezas** (después de la 4).
 - [ ] **Misión 6 — escribir el ciclo de mejora del método** (al terminar la misión 5, con todo fresco).
   Juntar en un documento reusable lo que hoy está repartido (ADR-021, SPEC-investigacion-chats,
@@ -62,6 +63,6 @@
   `docs/SPEC-relevamiento.md` §Fase 2. Esperan evidencia de uso, no tiempo.
 - [ ] **Fase 2 de `docs-fyd`**: `/inventario-fyd` (Excel + Mapa + hub privado). Mientras, el Excel sale
   del Kanban (columnas en `docs/SPEC-docs-fyd.md` §Fase 2).
-- [ ] **Insumos para la misión 4** (de la misión 3, ADR-023): `docs/specs/` como carpeta de SPEC en
-  todos los proyectos · "misión y visión" como nombre de P7 · lo que es de cada PC (hoy una línea con
-  lugar vacío en el Arquitecto) quizá en un archivo local aparte.
+- [ ] **Insumo para la misión 4** (de la misión 3, ADR-023): lo que es de cada PC (hoy una línea con lugar vacío en el
+  Arquitecto) quizá en un archivo local aparte. (`docs/specs/` y el nombre de P7 quedaron resueltos en `DISENO-B` §4 y §12:
+  sin `specs/`, los specs viven con su módulo; el norte se llama `NORTE.md`.)

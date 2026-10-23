@@ -3,58 +3,48 @@
 > **Save game** del proyecto madre. `/cierre` lo sobreescribe entero; el hook SessionStart lo inyecta en cada chat
 > nuevo de esta carpeta. **Tope**: con el TODO y git, lo inyectado tiene que quedar bajo 10.000 caracteres.
 
-**Última sesión cerrada:** 2026-10-22, misión 4, tramo 4: **racimo F diseñado, corregido por Guido y revisado**. Solo
-diseño, sin cambios al kit (`v2.4.2`). PC `Usuario`. `kit-sync` LIMPIO (el kit instalado acá estaba del 3 de agosto;
-se sincronizó al arrancar).
+**Última sesión cerrada:** 2026-10-22, misión 4, tramo 4: **racimo B (documentos con tope) diseñado, revisado dos veces y
+cerrado**. Solo diseño, sin cambios al kit (`v2.4.2`). PC `Usuario`. `kit-sync` LIMPIO.
 
 ## Dónde estamos
 
-- **Misión 4**: tramos 0 a 3 hechos ([`PLAN.md`](mision-4/PLAN.md)). **Tramo 4**: ✅ A · ✅ C · ✅ E · ✅ **F** ·
-  siguen **B → D → G → H → I**.
-- ✅ **F · Seguridad** ([`DISENO-F-seguridad.md`](mision-4/DISENO-F-seguridad.md)): Claude con los ojos tapados y las
-  manos libres. 9 barreras de archivos (frenan también en bypass, verificado en la doc) · un corrector de secretos por
-  PC · "usar sin ver" (`db consulta/migrar/foto`, `cargar-secreto`) · niveles de base dummy/prueba/real · las barreras
-  son del proyecto (`frenos.quitados` con `hasta:`) · "con permiso, igual con red" · gitleaks en el pre-commit. Revisión:
-  26 hallazgos, 24 aplicados (§22).
-- 🆕 **Reglas de Guido de hoy** (en PLAN §Lecciones): los hallazgos de un revisor **se pasan por el criterio de diseño
-  antes de aplicarse**; y **ninguna barrera se impone para siempre**: se quita por proyecto con rastro.
-- F dejó a **A** la ubicación del registro de frenos (propuesta `docs/frenos.log`, nota en DISENO-A §4) y a **B** el
-  nombre del archivo público de datos de prueba y las 3 líneas que suma al hook de arranque. **E quedó corregido**:
-  un solo campo `frenos.quitados`; el actualizador rehace una rama rota sin `push --force`.
+- **Misión 4**: tramos 0 a 3 hechos ([`PLAN.md`](mision-4/PLAN.md)). **Tramo 4**: ✅ A · ✅ C · ✅ E · ✅ F · ✅ **B** ·
+  siguen **D → G → H → I**, después la revisión integral de los nueve con los 11 criterios, y el spec (tramo 5).
+- ✅ **B · Documentos** ([`DISENO-B-documentos.md`](mision-4/DISENO-B-documentos.md), 62 KB): `docs/` en cuatro capas (plano
+  `NORTE.md` + `MAPA.md` · sesión con tope · `modulos/<x>/` con la ficha y la historia separadas · `referencia/` y `archive/`) ·
+  tres tamaños (chico / módulo solo / con director) con una sola estructura · el hook en node con presupuesto de 9.500 y huella ·
+  el TODO con edad por `git blame` · el cierre cruza lo anunciado con lo anotado · el candado de estructura por script con ids ·
+  el `CLAUDE.md` del molde por los 11 criterios · Engram en espera. Revisor frío: 33 hallazgos, 30 aplicados; revisión de
+  coherencia de Fable contra A, C, E y F: 20 correcciones (§22).
+- B dejó **notas cruzadas**: en A (el registro de frenos va a `.claude/frenos.log`, y el choque al mezclar desde varias ramas,
+  para la revisión integral), C (ficha + `tiempos.md`), E (el adoptador migra `docs/` y trae seis documentos; piezas nuevas en
+  la ficha del kit), F (`referencia/PRUEBA.md`) y TABLERO §10 (sin `docs/specs/`; los specs viven con su módulo).
+- 🆕 **Reglas de Guido de hoy** (PLAN §Lecciones): **los subagentes van en Sonnet u Opus, nunca en Fable** (está en memoria); y
+  antes de diseñar una pieza, un lector barato mide cómo se usa hoy en los repos reales (el de Hermes cambió B de fondo).
 
-## Próximo paso: racimo B (documentos con tope)
+## Próximo paso: el tope al hook del molde (`v2.4.3`)
 
-**Título de la sesión: `vibe-kit M4 · Tramo 4: racimo B`** (`/inicio` se lo pone al confirmar). Esfuerzo `high`.
-
-- **Lee**: el norte, la forma de pensar y los 11 criterios del `PLAN.md` · `TABLERO.md` §4, §2 (filas del hook y los
-  documentos), §10 (la fila B, **la nota "Para el racimo B"** con cómo resolvió el Hub sus carpetas, y la de
-  subproyectos) · `FLOTA.md` §3 y §4 · `DISENO-E` §4 y §5 (la ficha y la zona propia) · `DISENO-C` (qué muestra la
-  salida y qué inyecta el hook) · `DISENO-F` §9, §15 y §21 · el ítem "Tope al hook" del TODO · el molde actual en
-  `kit/skills/arquitecto/templates/`.
-- **Lo central**: qué carpetas tiene `docs/` (specs, referencia, archivo) · documentos con tope: el hook inyecta solo
-  estado, próxima acción y bloqueos (hoy: handoff de 503 KB, CHANGELOG de 260-440 KB) · el TODO que no miente (S-U-8)
-  · `/cierre` cruza lo anunciado con lo anotado (S-U-7) · `docs/NORTE.md` · estados del entregable · `AGENTS.md` opt-in
-  · un test que falla ante archivo suelto o ruta citada inexistente (lo tiene el Hub) · subproyectos con docs propios ·
-  **los 11 criterios reflejados en el `CLAUDE.md` del molde** (pedido de Guido).
-- **Cómo**: ficha de una pantalla → decisiones de a una, en criollo → revisor frío + lector de gentle-ai → pasar los
-  hallazgos por el criterio → `DISENO-B-*.md` con su tabla → marcar en el PLAN.
+**Título de la sesión: `vibe-kit · Tope al hook del molde (v2.4.3)`**. Esfuerzo `medium`. Es el arreglo chico del TODO, fuera de
+la misión 4 (que solo diseña); Guido delegó el cuándo y la recomendación es **ahora**, para que Bot (15.500 caracteres) y el Panel
+del bot (~18.000) dejen de arrancar ciegos antes de la misión 5.
+- **Guía**: DISENO-B §9 (presupuesto, orden de recorte, "CORTADO", la huella) y el hook del Hub (`.claude/hooks/session-start.sh`
+  en su `main`: tope de 5.500 bytes al handoff más aviso). **Solo el tope y la huella**, en bash, en
+  `kit/skills/arquitecto/templates/universales/hooks/session-start.sh` y en el `/inicio` del molde ("si dice CORTADO, leé el
+  resto"); node y el resto del diseño llegan con la misión 5. Cierra con `kit-sync.sh sync` LIMPIO, CHANGELOG y tag `v2.4.3`.
+- **La sesión siguiente**: `vibe-kit M4 · Tramo 4: racimo D` (modelos, ruido y revisión), esfuerzo `high`. Lee PLAN §El foco,
+  TABLERO §2, §7 y §9, RADIOGRAFIA §5-§6, DISENO-A §7, DISENO-F §13, REFERENCIAS §1 y §4 (delegar con razón, revisión
+  congelada en un SHA, una sola corrección).
 
 ## Cosas que muerden y no están en ningún otro doc
 
-- 🔑 **Esta PC no tiene identidad de git** (ni global ni del repo). El cierre commitea con el `-c` de respaldo del
-  `/cierre`. Los commits de E y los del director del Hub de hoy salieron con **la segunda cuenta** (FLOTA §8); cómo,
-  **NO VERIFICADO**. Guido todavía no dijo con qué cuenta firma esta PC.
-- 📬 **El Hub**: su director (sesión `director-orden-hub`, esta PC) tiene el brief de los 4 pedidos; después del
-  cierre de E mandó **el contrato del registro** (API HTTP con dos llaves, lectura y notas; el actualizador usa solo la
-  de lectura; el Arquitecto lee cada ficha y agrega notas firmadas). Anotado en TABLERO §10, racimo I. **Pushea a este
-  repo desde otra sesión**: antes de cerrar, `git fetch` y mirar `origin/main`.
-- 🧪 **Lo que F manda al piloto** (misión 5): el hook en bypass en vivo · `Get-Content .env` contra el `deny` ·
-  falsos positivos de Write/Edit contra el historial (el JWT de Supabase dispara) · `push --force` medido · el
-  pre-commit en las 3 PCs · el 3+ del contrato `db`. Esta PC no tiene el comando `claude` suelto: no se prueba acá.
-- 📬 **El buzón multiagente** se diseña en G (ADR-021); la firma por agente y el arnés del OK humano van a G.
-- 🧠 La memoria de Claude no viaja entre PCs: el norte y los criterios viven en el PLAN.
-- 🔐 **12 alertas abiertas** (archivo privado), las arregla Guido; F le deja el runbook a escribir en la misión 5.
-- 🔴 **vibe-kit es PÚBLICO**: gitleaks antes de cada push (hoy: limpio).
+- 🔑 **Esta PC no tiene identidad de git**; el cierre commitea con el `-c` de respaldo. Con qué cuenta firma, **NO VERIFICADO**.
+- 📬 **El Hub pushea a este repo desde otra sesión**: hoy, 2 commits en TABLERO §10 mientras se diseñaba B (el registro ya responde
+  en producción: 77 fichas, 8 conexiones; URL y llave en la capa privada, la llave la tiene Guido). Se mezclaron en este cierre.
+  **Antes de cerrar, `git fetch` siempre.**
+- 🧪 **Lo que B manda al piloto** (misión 5): cómo cuenta caracteres la plataforma (emoji = 2 en JS), el hook de escritura en
+  Windows y con worktrees, la ficha del kit legible en node sin librerías, los falsos positivos del hook de escritura.
+- 🔴 **vibe-kit es PÚBLICO**: gitleaks antes de cada push (hoy limpio). En los diseños, alias (Desktop, Mobile, Hub, Devoluciones).
+- 🔐 **12 alertas abiertas** (archivo privado), las arregla Guido.
 - 🖥️ Los directores de los dos Hermes corren en la PC `clientes`; se los lee por `gh`.
 
 ## Bloqueos
