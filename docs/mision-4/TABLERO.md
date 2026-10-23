@@ -339,8 +339,13 @@ quedó decidido para que el camino esté allanado:
   solo para agregar notas; las dos en variables de entorno fuera de todo repo, siempre en cabecera y nunca en la URL;
   **el actualizador de la flota solo necesita la de lectura**), no una llave de la base; y **el dueño amplió el pedido**: el Arquitecto lee el detalle de cada ficha y tiene un apartado propio
   de notas (solo agregar, firmadas). vibe-kit pidió una lista plana con `clase`, nombres estables con `version`, y
-  que el registro sea chico y rápido. **La regla "el Arquitecto solo lee el Hub" de DISENO-E §9 queda ampliada a
-  "lee, y agrega notas en su apartado"** — se revisa en el racimo I.
+  que el registro sea chico y rápido. **Separación hecha en nombres y en texto** (pedido de Guido, mismo día): la
+  puerta que consume el kit es `registro` (una llave de lectura; forma `{version, fichas, conexiones}`); el detalle de
+  ficha y las notas son `ecosistema` (llaves propias), y el spec del Hub dice explícito que **el agente de ecosistema es
+  una pieza del Hub y el kit solo consume el registro**. Así, la regla "el Arquitecto solo lee el Hub" de DISENO-E §9
+  **se mantiene**: las notas las escribe el agente de ecosistema, firmadas con su nombre. **Publicado el 2026-10-22**: el
+  registro responde en producción (77 fichas, 8 conexiones; la mayoría todavía "falta clasificar"). La llave de lectura
+  la tiene Guido y se pide a él, nunca por chat. La URL y la llave **no entran a este repo**: van en la capa privada.
 
 🆕 **Para el racimo B, las carpetas de `docs/`** (evidencia: el director del Hub lo preguntó el 2026-10-22, mientras
 ordenaba sus carpetas, para no chocar con lo que el kit estandarice). Quedan abiertas: **`docs/specs/`** para los specs
