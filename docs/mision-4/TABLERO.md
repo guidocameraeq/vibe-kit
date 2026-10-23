@@ -294,7 +294,7 @@ entrada al tramo 4, que diseña de a un pilar, y al top 10 del spec.
 | **A · Frenos y verificación** | #1, #3, P1, P17-P19, P23; S-M-2, S-M-3, S-U-4, S-U-5, S-D-9 | 2 · 1 · 4 | Dirección |
 | **B · Documentos con tope** | #8 (tope), P47, el tope del hook; S-U-7, S-U-8, S-M-10 | 1 · 3 | Base |
 | **C · Una salida hacia Guido** | #7, P15, P30, P33, P36, P38; S-C-5, S-R-9, S-U-6, S-M-5 | 6 | Base + Dirección |
-| **D · Modelos, ruido y revisión** | #2, #4, #5, P26-P29; S-U-1 | 1 · 6 | Dirección |
+| **D · Modelos, ruido y revisión** → 🆕 **D · El método director/obrero y el workflow diario** (ampliado el 2026-10-23, pedido de Guido) | #2, #4, #5, P26-P29; S-U-1; más la anatomía canónica de director/obrero/tramo (radiografía §7-§8, los 3 dialectos de FLOTA §2), la revisión de las skills de sus repos, qué skills faltan (FLOTA §6) y las mejoras a su día a día | 1 · 6 · 2 · 4 | Dirección |
 | **E · Un molde y la flota** | #8 (molde), P31, P44 (versión), P13, `/smoke` y `/release`; S-D-3, S-D-4, S-M-1 | 3 · 4 · 5 | El Arquitecto como puerta |
 | **F · Seguridad por defecto** | #9, P8, P12, P14, P20, P49; S-C-2, S-D-5, S-M-4, S-M-7, S-M-8, S-D-12 | 7 | Base (molde) |
 | **G · Mesa y PCs** | #10, P32, P34, P42, P44-P46; S-R-3, S-C-1, S-M-12, S-D-7; 🆕 el buzón multiagente (2026-10-21) | 5 | Mesa |

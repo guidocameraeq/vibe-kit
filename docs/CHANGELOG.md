@@ -2,6 +2,16 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-23 — Nota post-cierre: el racimo D se amplía al método director/obrero y al workflow diario de Guido
+
+### Changed
+- Guido preguntó en qué racimo se diseñaba el método director/obrero y la respuesta fue "en ninguno con ese nombre": estaba
+  repartido entre A (qué pregunta y verifica), C (cómo reporta), B (qué escribe), D (modelos y revisión), G (cómo se hablan) y H
+  (cuándo hay director). Pidió que **D** lo tome entero: la anatomía canónica de director, obrero y tramo (un solo dialecto de
+  los tres), la revisión de las skills que viven en sus repos, qué skills faltan o sobran, cómo estandarizar sin perder lo propio,
+  y las mejoras a su día a día. "Es lo que más uso para codear; acá es donde más quiero participar." Anotado en `PLAN.md`
+  (tabla del tramo 4), `TABLERO.md` §10 (fila D), el TODO y el handoff, que trae el brief de D.
+
 ## 2026-10-22 — Misión 4, tramo 4: el racimo B (documentos con tope), con el modelo de módulos de Guido y revisado dos veces
 
 ### Added

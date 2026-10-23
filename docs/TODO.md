@@ -9,7 +9,8 @@
   tramos, 7 objetivos y el Arquitecto como puerta única: en docs/mision-4/PLAN.md). Tramo 0 (biblioteca) ✅ ·
   Tramo 1 (radiografía director/obrero) ✅ · Tramo 2 (flota, repos, plataforma) ✅ · Tramo 3 (el mapa por objetivos,
   `TABLERO.md`) ✅ · **Tramo 4 en curso, por racimos**: A ✅, C ✅, E ✅ (molde y flota), F ✅ (seguridad por defecto), B ✅ (documentos con tope), **sigue el D**
-  (modelos, ruido y revisión), después G (con el buzón multiagente), H (con los subproyectos y los nombres de los tamaños de B) e I (el agente de ecosistema, propio de
+  (ampliado el 2026-10-23: el método director/obrero y el workflow diario de Guido, más modelos, ruido y revisión; es donde él
+  más participa), después G (con el buzón multiagente), H (con los subproyectos y los nombres de los tamaños de B) e I (el agente de ecosistema, propio de
   la empresa). **Cada racimo se diseña con los 11 criterios del PLAN y cierra con su tabla; al terminar los nueve,
   revisión integral de todas las decisiones con esa vara, antes del spec.** Fuentes: las 57 propuestas de
   `tips/tanda-2026-10-chats.md` + los métodos de Hermes Desktop y Mobile + `REFERENCIAS-EXTERNAS.md`.
