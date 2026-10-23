@@ -38,7 +38,10 @@ existir.
    agrega nada, ni siquiera una regla escrita: se anota el caso. La segunda vez, corrector.
 2. **Cada freno se mide: cuántas veces salvó y cuántas molestó.** Cada vez que frena, deja una línea en
    un registro (fecha, qué frenó, por qué herramienta). *Ubicación propuesta por F (§21, 2026-10-22):
-   `docs/frenos.log`, versionado, de solo agregar, commiteado en el cierre. Se decide en la revisión integral.*
+   `docs/frenos.log`, versionado, de solo agregar, commiteado en el cierre. **B lo corrige (§4, 2026-10-22): `.claude/frenos.log`**, porque
+   `docs/` es del proyecto y su raíz tiene seis archivos fijos; el registro es del método, como la ficha del kit. **Y un choque que destapó B** (B §20): un archivo de solo agregar escrito desde varias
+   ramas y worktrees a la vez choca al mezclar, y el actualizador de E mezcla sin preguntar; salidas: un archivo por mes, uno por rama, o
+   `merge=union` en `.gitattributes`. Se decide en la revisión integral.*
 3. **El que molesta más de lo que salva, se saca.** Lo mismo con el que lleva 3 meses sin frenar nada:
    o era de adorno, o el problema ya no existe.
 

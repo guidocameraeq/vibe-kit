@@ -97,7 +97,9 @@ piezas:                    # estado · hash de lo que el molde escribió (para s
   cierre: {estado: molde+propio, hash: b71c…}
   hook-arranque: {estado: molde, hash: 90e2…}
   settings: {estado: molde+propio, hash: 5d04…}   # lo quitado va en frenos.quitados (unificado por F §14, 2026-10-22)
-  docs: molde              # handoff, TODO, CHANGELOG
+  docs: molde              # solo las PLANTILLAS del nacimiento (handoff, TODO, CHANGELOG, NORTE, MAPA, README); docs/ es del proyecto (§5)
+  hook-escritura: molde    # B §7: frena archivos sueltos en docs/ al escribirlos
+  candado: molde           # B §14: el chequeo de estructura; se prende cuando el árbol cumple
   smoke: propia
   release: propia
   director-obrero: no
@@ -136,7 +138,7 @@ multi-llm: no              # si es "sí", se genera AGENTS.md desde el CLAUDE.md
 | Skills y textos (`/inicio`, `/cierre`) | Una zona entre `<!-- kit:propio -->` y `<!-- /kit:propio -->`, con un título visible adentro ("Lo propio de este proyecto"). Todo lo de afuera es molde. Puede haber más de una zona. Si una marca está suelta o repetida, no se toca el archivo y se informa |
 | Hooks y scripts | No se marcan. El molde queda intacto y llama al final a un archivo hermano si existe (`session-start.propio.sh`). Lo propio vive en el hermano |
 | `settings.json` | **A tres puntas por regla** (molde viejo, molde nuevo, proyecto): solo se agrega lo nuevo de esta versión; lo que el proyecto quitó a propósito está en `frenos.quitados` de la ficha (un solo campo para todo freno, con id, razón y `hasta:`; lo unificó F §14) y **no vuelve** (regla 3 del racimo A). Lo del proyecto gana, incluso una lista vacía |
-| `CLAUDE.md` y todo `docs/` | Del proyecto. El actualizador no los toca, con una sola excepción: **una línea en el CHANGELOG** por actualización ("kit 2.4.2 → 2.5: piezas X, Y") |
+| `CLAUDE.md` y todo `docs/` | Del proyecto. El actualizador no los toca, con una sola excepción: **una línea en el CHANGELOG** por actualización ("kit 2.4.2 → 2.5: piezas X, Y"). *Nota de B (2026-10-22): por eso la migración del árbol de `docs/` al modelo de módulos la hace **el adoptador de §7**, no el actualizador ([DISENO-B](DISENO-B-documentos.md) §17).* |
 
 ## 6. El actualizador (decisión 3) y los cuatro casos
 
@@ -186,7 +188,9 @@ Para Portal, el Bot, y cualquier repo que nunca pasó por el Arquitecto.
   pantalla la oferta de `docs-fyd` si el proyecto es de un cliente. **Es una de las dos preguntas nuevas del
   racimo**, porque es una decisión de diseño sobre un proyecto suyo, no una operación.
 - **Trae siempre**: la ficha · `/inicio` y `/cierre` si faltan · el hook de arranque con tope · las barreras base ·
-  los tres documentos del método si faltan (handoff, TODO, CHANGELOG), vacíos con su cabecera.
+  los tres documentos del método si faltan (handoff, TODO, CHANGELOG), vacíos con su cabecera. *Nota de B (2026-10-22): pasan a ser
+  los seis de la raíz de `docs/` (más `NORTE.md`, `MAPA.md` y `README.md`) y `referencia/trampas.md` y `referencia/PRUEBA.md`; y el
+  adoptador es quien migra el árbol de `docs/` al modelo de módulos, mostrando el plano dentro de este mismo OK ([DISENO-B](DISENO-B-documentos.md) §17).*
 - **No trae**: `/smoke`, `/release`, director/obrero, `/estado`. Se anotan como existentes si están; si no, recién
   cuando el ritual exista (regla de 3+).
 - **Copias del kit adentro del proyecto** (Portal): las lista y propone sacarlas.

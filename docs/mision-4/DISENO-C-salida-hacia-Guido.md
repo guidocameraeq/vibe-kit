@@ -71,6 +71,10 @@ iniciativa que arranca nace sola con su ficha de estado**, sin que Guido configu
 - La estructura de **subproyectos dentro del proyecto**, cada uno con sus documentos, su historial, su
   reporte, su estimación y su consumo, se diseña en el racimo H (`TABLERO.md` §10).
 
+> **Nota de B (2026-10-22)**: la ficha del subproyecto vive en `docs/modulos/<x>/README.md` (el estado, con tope de 5.000 bytes) y la
+> tabla de tiempos de §2.6 en `docs/modulos/<x>/tiempos.md` (registro sin tope, para acumular y estimar mejor). En una iniciativa con
+> hijos, la tabla vive solo en las hojas y la ficha de la iniciativa agrega. Detalle: [DISENO-B](DISENO-B-documentos.md) §5 y §5bis.
+
 ### 2.6 La tabla, los nombres y el contexto (decidido 2026-10-21)
 - **Las columnas de la tabla de tiempos**: tarea · estimado (antes de empezar) · real de máquina · real con
   Guido · tokens · ¿más o menos compleja de lo previsto, y por qué?

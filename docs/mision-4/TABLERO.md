@@ -352,7 +352,9 @@ handoff, TODO, CHANGELOG y README; `docs/specs/` para los vivos (archivo o carpe
 vida en un README); `docs/archive/{specs,planes,historial}/` para lo terminado; `docs/referencia/` con un `trampas.md`;
 el SQL en `db/`; el mapa del `CLAUDE.md` con el formato del molde más una fila que declara que `docs/specs/` manda
 sobre el Glob del Arquitecto; y **un test que falla** si aparece un archivo suelto, una ruta citada que no existe o un
-handoff pasado del tope. También le puso tope al hook: de ~43 KB a 7.400 caracteres (tope de 6.000 bytes al handoff).
+handoff pasado del tope. También le puso tope al hook: de ~43 KB a 7.400 caracteres (tope de 6.000 bytes al handoff). **Resuelto en
+[DISENO-B](DISENO-B-documentos.md) §4 (2026-10-22)**: `referencia/` y `archive/` como el Hub; **sin `docs/specs/`**: los specs viven con su
+módulo en `docs/modulos/<x>/`, y el Hub es piloto de la migración.
 
 **Mi lectura para el tramo 4** (recomendación, no decisión): los racimos **A, C y E** son los que mueven
 más objetivos a la vez y tienen la línea base más firme. **F** es chico de construir y cierra alertas

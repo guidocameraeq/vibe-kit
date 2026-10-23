@@ -102,7 +102,7 @@ para las 4 cosas del [racimo A](DISENO-A-frenos.md) §2) y sin reglas `Bash(...)
   monorepo (`apps/web/.env`); si hay monorepos en la flota hoy es **NO VERIFICADO**, el patrón no cuesta nada.
 - **Me aparto de S-C-2** ("el `deny` de `.env*` deja legible el `.env.example`"): el `deny` no admite excepciones, y
   además Claude no podría crear ni mantener ese archivo. Lo público y lo de prueba vive en **un archivo con nombre
-  no secreto** (`docs/PRUEBA.md`; el nombre lo fija el racimo B), que es lo que pedía S-D-2 ("4 'ya la tenés' en una
+  no secreto** (`docs/referencia/PRUEBA.md`; nombre fijado por B §4 el 2026-10-22), que es lo que pedía S-D-2 ("4 'ya la tenés' en una
   noche"); los **nombres** de las variables viven en la ficha (`secretos:`, §9). Un `.env.example` o un
   `.env.development` con valores públicos (Vite, Next) puede seguir existiendo para los humanos y las herramientas;
   Claude no lo lee ni lo mantiene.
@@ -222,7 +222,7 @@ publicas: [SUPABASE_ANON_KEY]        # lo que parece secreto y no lo es: el corr
 entornos:                            # cada base o servicio, con su nivel (§12)
   - {nombre: supabase-prod, nivel: real,  acceso: "db (solo lectura)"}
   - {nombre: dummy-local,   nivel: dummy, acceso: "db (todo)"}
-datos-de-prueba: docs/PRUEBA.md      # cuentas de prueba, llaves públicas: nombre no secreto (S-D-2)
+datos-de-prueba: docs/referencia/PRUEBA.md   # cuentas de prueba, llaves públicas: nombre no secreto (S-D-2); ruta fijada por B §4
 push-publica: no                     # si es sí, /cierre lo dice antes de pushear (P49); nunca pregunta
 ```
 
