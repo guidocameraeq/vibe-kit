@@ -2,17 +2,18 @@
 
 > ÚNICA fuente de pendientes del proyecto. Completado → SE BORRA (la historia vive en `CHANGELOG.md` y git). Header de 1 línea, sin narrativa de sesión.
 
-2026-10-22 — ver SESSION_HANDOFF.md
+2026-10-23 — ver SESSION_HANDOFF.md
 
 ## 🔴 Crítico
 - [ ] **Misión 4 — diseñar el pack con Guido adentro, SOLO DISEÑO** (hoja de ruta: ADR-021; plan de 6
   tramos, 7 objetivos y el Arquitecto como puerta única: en docs/mision-4/PLAN.md). Tramo 0 (biblioteca) ✅ ·
   Tramo 1 (radiografía director/obrero) ✅ · Tramo 2 (flota, repos, plataforma) ✅ · Tramo 3 (el mapa por objetivos,
-  `TABLERO.md`) ✅ · **Tramo 4 en curso, por racimos**: A ✅, C ✅, E ✅ (molde y flota), F ✅ (seguridad por defecto), B ✅ (documentos con tope), **sigue el D**
-  (ampliado el 2026-10-23: el método director/obrero y el workflow diario de Guido, más modelos, ruido y revisión; es donde él
-  más participa), después G (con el buzón multiagente), H (con los subproyectos y los nombres de los tamaños de B) e I (el agente de ecosistema, propio de
-  la empresa). **Cada racimo se diseña con los 11 criterios del PLAN y cierra con su tabla; al terminar los nueve,
-  revisión integral de todas las decisiones con esa vara, antes del spec.** Fuentes: las 57 propuestas de
+  `TABLERO.md`) ✅ · **Tramo 4 en curso, por racimos**: A ✅, C ✅, E ✅ (molde y flota), F ✅ (seguridad por defecto), B ✅ (documentos con tope),
+  D ✅ (2026-10-23: el método director/obrero y el workflow diario; **su decisión 5, ramas y escritores, queda provisoria**), **sigue el G**
+  (mesa, PCs y el buzón multiagente), después H (con los subproyectos, los nombres de ramas y worktrees, el entorno de prueba que verifica
+  el Arquitecto y el criterio "más de una pestaña ejecutando") e I (el agente de ecosistema, propio de la empresa). **Cada racimo se diseña
+  con los 11 criterios del PLAN y cierra con su tabla; al terminar los nueve, revisión integral de todas las decisiones con esa vara, antes
+  del spec** (Guido la pidió especialmente para D). Fuentes: las 57 propuestas de
   `tips/tanda-2026-10-chats.md` + los métodos de Hermes Desktop y Mobile + `REFERENCIAS-EXTERNAS.md`.
 - [ ] **Tope al hook de arranque del molde** (arreglo chico, fuera de la misión 4, que solo diseña).
   - **El problema**: el molde hace `cat` del handoff entero, y la plataforma corta lo inyectado a 10.000
@@ -24,7 +25,8 @@
     `/inicio` del molde → `kit-sync.sh sync` LIMPIO → tag `v2.4.3`. **Guía: `DISENO-B-documentos.md` §9** y el hook del Hub.
     El diseño completo (node, presupuesto, módulos) llega con la misión 5. Bot y el Panel se arreglan en sus propios chats.
   - **Evidencia**: `docs/mision-4/FLOTA.md` §3 · DISENO-B §3.
-- [ ] **Misión 5 — construir el pack por piezas** (después de la 4).
+- [ ] **Misión 5 — construir el pack por piezas** (después de la 4). **Piloto del canon director/obrero en Deptos** (decisión de Guido,
+  2026-10-23: "no ahora; puede ser en la semana"), con las 10 pruebas NO VERIFICADO de `DISENO-D` §7.7, §11 y §20.
 - [ ] **Misión 6 — escribir el ciclo de mejora del método** (al terminar la misión 5, con todo fresco).
   Juntar en un documento reusable lo que hoy está repartido (ADR-021, SPEC-investigacion-chats,
   observatorio/investigacion/METODO.md, docs/mision-4/PLAN.md):

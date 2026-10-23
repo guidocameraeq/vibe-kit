@@ -372,7 +372,7 @@ sacarlas. Las más cercanas a lo que se toca:
 - el director verifica contra git: **se automatiza, no se saca** (racimo A);
 - el revisor Opus sin shell en la 1.ª vuelta: la revisión proporcional (#4) solo toca las vueltas 2 y 3;
 - las clases de decisión con el clic del PO;
-- la bitácora en su propia rama y un solo escritor por checkout.
+- la bitácora en su propia rama y un solo escritor por checkout. *Enmendado el 2026-10-23 por decisión de Guido ([DISENO-D](DISENO-D-director-obrero.md) §8): la rama aparte la reemplazó B (la bitácora es una carpeta del módulo, en la rama del módulo); lo que se conserva es **un escritor por checkout, por rama y por archivo**.*
 
 Y del barrido: el **prototipo antes del spec** (acta A3) y la **regla de "arreglo con su prueba"**, que en
 un proyecto está viva (94%).

@@ -80,6 +80,7 @@ que las tienen las agregaron por su cuenta. Es la causa de fondo de la mejora #9
 - **`/smoke` está en 9 proyectos** y **`/release` o `/deploy` en 8**. El kit las deja afuera a propósito ("regla de 3+": se
   montan cuando el ritual exista). El ritual ya existe en casi todos: son candidatas firmes a molde.
 - **Para la mejora #7** (el `/estado` de solo lectura): Deptos ya tiene un `/estado` de solo lectura.
+- *Corregido por D (2026-10-23, lector sobre las skills en disco): el `/verificar` y el `/estado` de Deptos son skills **del negocio** (deudas en portales, semáforo de pagos), no del método; no cuentan para la regla de 3+. El verificador mecánico real de Deptos es `scripts/check_mision.py`. [DISENO-D](DISENO-D-director-obrero.md) §12.*
 - **Para la mejora #1** (el verificador mecánico): Deptos tiene un `/verificar`, y un script de chequeo de la misión que se
   arregló 5 veces.
 - **Propias de un negocio, se quedan donde están**: horas por commits, la carga de los viernes, estimar horas, backup y

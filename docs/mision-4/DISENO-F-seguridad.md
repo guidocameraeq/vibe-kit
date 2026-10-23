@@ -298,7 +298,7 @@ proyecto) no se hace a mano ni con un comando suelto. Pasa por el comando del pr
 4. **alguien revisa el plan antes de aplicarlo** (el archivo de migración, el SQL): **el director si el proyecto lo
    tiene; si no (nivel liviano, §14), un subagente fresco** que solo lee el plan y la foto. Nunca se traba ni sube a
    Guido. Dummy pasa directo; prueba, con foto; real, con revisión. El mecanismo de la revisión por riesgo lo fija el
-   racimo D; F fija que para `real` es obligatoria y quién la hace cuando no hay director.
+   racimo D; F fija que para `real` es obligatoria y quién la hace cuando no hace falta director. *D (2026-10-23): es un sub-paso de **riesgo alto** y lo revisa el **revisor Opus** congelado en el SHA, no el director a mano ([DISENO-D](DISENO-D-director-obrero.md) §10).*
 
 El "sí" de Guido saca la pregunta, no la red. Y si una de las 4 preguntas de A se contesta "sí" para un proyecto de
 forma permanente ("en Hub, borrar datos reales no se pregunta"), queda en la ficha (§14) y entra por acá.
@@ -357,7 +357,7 @@ vencimientos **no** van acá (§14).
 ## 16. El bypass no se traba (decisión 12)
 
 Las barreras de fábrica valen igual en bypass (§4, verificado), así que no hace falta trabarlo.
-`disableBypassPermissionsMode` se descarta: los obreros nocturnos corren en bypass y cerraría de más. La barrera que
+`disableBypassPermissionsMode` se descarta: los obreros nocturnos corren en bypass y cerraría de más. *D (2026-10-23): el obrero nocturno corre en el modo que fija su encargo, con el hook debajo, y para las 5 preguntas de A el hook devuelve `deny` + PARADA, porque el bypass saltea las `ask` ([DISENO-D](DISENO-D-director-obrero.md) §7).* La barrera que
 el bypass esquivó en un proyecto (radiografía §6.6) era "preguntar": pasa a `deny` o a corrector. El modo `auto`
 (el de esta PC) sigue: con `deny` y hooks debajo, el clasificador decide sobre lo demás.
 

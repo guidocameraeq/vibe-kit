@@ -102,7 +102,7 @@ piezas:                    # estado · hash de lo que el molde escribió (para s
   candado: molde           # B §14: el chequeo de estructura; se prende cuando el árbol cumple
   smoke: propia
   release: propia
-  director-obrero: no
+  director-obrero: no       # D (2026-10-23): pasa a piezas con estado: director, obrero, tramo, nucleo (molde+propio), subagentes (molde+propio), scripts (molde + .propio); DISENO-D §14
   estado: no
   docs-fyd: sí
 frenos:                    # lo que pide el racimo A

@@ -99,7 +99,7 @@ iniciativa que arranca nace sola con su ficha de estado**, sin que Guido configu
 | Medida | Hoy | Meta |
 |---|---|---|
 | "¿Cómo vamos?" de Guido | ~110 | Que los reemplace `/estado` (se cuenta en el piloto) |
-| Textos pegados a mano entre pestañas | ~55 problemas | 0 |
+| Textos pegados a mano entre pestañas | ~55 problemas | 0 (*nota de D, 2026-10-23: la **línea de apertura** de un obrero que Guido pega por default no cuenta como texto pegado; se mide aparte, [DISENO-D](DISENO-D-director-obrero.md) §7*) |
 | Desvío entre lo estimado y lo real por subproyecto | Un tramo: ~20 h estimadas, ~100 h reales | Que el desvío baje de un subproyecto al siguiente |
 | Mensajes de los agentes a Guido que no eran suyos | Sin medir | 0 (la lista de 4 + diseño y negocio) |
 

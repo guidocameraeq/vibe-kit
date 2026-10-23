@@ -2,6 +2,38 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-23 — Misión 4, tramo 4: el racimo D (el método director/obrero y el workflow diario), con Guido adentro y revisado
+
+### Added
+- `docs/mision-4/DISENO-D-director-obrero.md`: el racimo D, once decisiones tomadas de a una con Guido (es el racimo que más usa: "lo quiero
+  en todos los proyectos"). Nació de una entrevista a él y de dos lectores antes de decidir: uno Opus sobre las skills reales de Desktop,
+  Mobile y Deptos en disco (~365 mil tokens; mostró que **Deptos, la versión corta, es la más cerca del canon**: 97% genérica, 0 rutas
+  clavadas, verificador por script, y que el `/estado` y el `/verificar` de Deptos son del negocio, no del método) y uno Sonnet sobre las
+  trabas registradas (~215 mil). La mecánica de la plataforma se verificó contra la doc oficial (~118 mil): Guido trabaja en VS Code, una
+  sesión puede lanzar otra con nombre y modelo desde el CLI, un hook puede aprobar por regla propia, y **un mensaje nunca aprueba un permiso**.
+  - Director **por tamaño**, con triage en la puerta y el Arquitecto como ruteador; **sin agente PO** (lo que Guido le pedía ya tiene dueño).
+  - `/obrero` y `/tramo` **separados con un núcleo común** (Guido pidió repensar la unificación y tenía razón); delegar solo con razón con nombre.
+  - Tabla de roles: Sonnet por defecto en obrero y tramo, Opus si el director lo decide; red team con `model:` fijo y criterio de salida (máx. 3
+    rondas); tres herramientas nuevas (`subpaso-cierre`, lector de capturas, red team de construcción) y seis descartadas con razón.
+  - **Guido abre las pestañas por default** (una línea en vez de tres renglones); el director solo si se lo pide o de noche; un hook aprueba la
+    sección AUTORIZADO del encargo leída desde la rama del módulo; **las 5 de A** piden clic de día y `deny` + PARADA de noche.
+  - Una rama por módulo con el director dueño, un escritor por rama y por archivo, el director mergea, `/cierre` del proyecto solo al mergear a
+    `main` (**provisoria**, a revisar en la integral del tramo 4).
+  - Silencio entre agentes, una suscripción por obrero, el despertador nocturno **afuera** del director; revisión congelada en un SHA con tres
+    niveles y ≤2 vueltas; "**compactar es una falla**", dos umbrales por script, el obrero termina si le falta poco y se reutiliza; el gate como
+    script, `/smoke` con contrato, cero datos clavados con candado; tres clases de decisión y la alarma de intervenciones por script; el canon
+    entra por el módulo nuevo, **piloto en Deptos**.
+  - La ficha canónica del ciclo de punta a punta, con "lo que hace Guido y nada más".
+
+### Changed
+- **Revisor frío** (Opus, ~158 mil): 25 hallazgos; 21 aplicados en el texto (entre ellos: el obrero podía escribirse su propio AUTORIZADO; de
+  noche en bypass las 4 de A no frenaban; `/cierre` en la rama del módulo pisaba el handoff de `main`), 1 rechazado con razón, 3 decididos por
+  Guido: **"publicar un release" entra como quinta pregunta de A §2**; TABLERO §11 enmendado (la bitácora ya no es rama aparte; se conserva
+  "un escritor por checkout"); la mensajería en VS Code, confirmada por él.
+- Notas cruzadas en `DISENO-A` §2, `DISENO-B` §5 y §6, `DISENO-C` §4, `DISENO-E` §4, `DISENO-F` §13 y §16, `FLOTA.md`, `TABLERO.md` §11,
+  `PLAN.md` (tabla del tramo 4, lección nueva para el ciclo) y `docs/README.md`.
+- Memoria: Guido trabaja en la extensión de VS Code; la mensajería entre sesiones le funciona con `/rename`.
+
 ## 2026-10-23 — Nota post-cierre: el racimo D se amplía al método director/obrero y al workflow diario de Guido
 
 ### Changed

@@ -15,7 +15,8 @@
 1. borrar datos reales;
 2. tocar plata;
 3. manejar claves;
-4. mandar algo hacia afuera a su nombre (por ejemplo, mails a clientes).
+4. mandar algo hacia afuera a su nombre (por ejemplo, mails a clientes);
+5. 🆕 **publicar un release** (decisión de Guido, 2026-10-23, en el racimo D: un OK por release, agrupado; lo pedían ya los tres `/release` y él lo prefirió. [DISENO-D](DISENO-D-director-obrero.md) §8).
 
 **Todo lo demás lo resuelven los agentes solos, producción incluida.** Ninguna pieza del pack puede
 sumarle a Guido una pregunta que esté fuera de esta lista. Si algo de afuera de la lista parece necesitar

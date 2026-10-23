@@ -144,7 +144,7 @@ iniciativa con hijos, la tabla vive solo en las hojas**; la ficha de la iniciati
   y las fichas de tramo dentro del tablero son exactamente lo que se prohíbe.
 - **La bitácora es una carpeta de archivos chicos**, no un archivo que crece: `bitacora/2026-10-22-encargo-07.md`,
   `bitacora/2026-10-22-relevo.md`. Nadie la lee entera; el obrero lee **su** encargo (3 KB) en vez de 336 KB para encontrarlo, y
-  **escribe su evidencia en ese mismo archivo**: es lo único de `docs/` que toca un obrero. Un índice de una línea por archivo lo
+  **escribe su evidencia en ese mismo archivo**: es lo único de `docs/` que toca un obrero. *Corregido por D (2026-10-23, revisor frío): la evidencia va a un archivo **hermano** (`<fecha>-evidencia-<ID>.md`), porque el encargo lo escribe el director y un archivo tiene un solo escritor; además el hook de autorizaciones lee el encargo desde la rama del módulo, que el obrero no escribe ([DISENO-D](DISENO-D-director-obrero.md) §7-§8).* Un índice de una línea por archivo lo
   arma un script si hace falta; no se escribe a mano.
 - **Dónde nace y dónde se construye.** El módulo **nace en `main`**: un commit con la carpeta, la ficha y el spec en `BORRADOR`, así
   el hook, el TODO y `/estado` de cualquier sesión lo ven desde el primer día. **Se construye donde se construye el código**: en `main`
@@ -181,7 +181,7 @@ se pierde en un archivo, queda como su documentación.
   `git diff`? ¿lleva más de una sesión? **Si alguna es sí, es módulo**; si ninguna, chico. Contar archivos o líneas no decide (criterio
   de gentle-ai, medido por ellos: n=1, NO VERIFICADO). **Que toque datos reales, plata o producción no lo hace módulo**: eso lo cuidan
   las 4 preguntas de A y la red de F ("con permiso, igual con red"), no un spec. Si fuera módulo por eso, un hotfix en producción pagaría
-  carpeta y spec, que es lo que el criterio 9 prohíbe. Cuándo un módulo lleva director lo decide H, y lo decide el Arquitecto con Guido
+  carpeta y spec, que es lo que el criterio 9 prohíbe. Cuándo un módulo lleva director lo decide H con la regla de D ("más de una pestaña ejecutando", [DISENO-D](DISENO-D-director-obrero.md) §4; la sesión plana solo pregunta "¿es chico?"), y lo decide el Arquitecto con Guido
   al armar el módulo.
 - **Si algo arrancó chico y creció** (ya lleva dos sesiones), **`/cierre` aplica la misma prueba** y crea el módulo desde el molde, con
   lo que haya: el pedido original y lo hecho hasta ahí. No hace falta volver al Arquitecto.
