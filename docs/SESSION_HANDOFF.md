@@ -47,7 +47,7 @@ propuesta con el brief; si venció, el brief está en G §18). **Sesión corta a
 
 ## Cosas que muerden y no están en ningún otro doc
 
-- 🔑 **Esta PC no tiene identidad de git**; el cierre commitea con el `-c` de respaldo. Con qué cuenta firma, **NO VERIFICADO**.
+- 🔑 **Identidad de git**: la cuenta de Guido es `guido.camera.eq@gmail.com` (configurada global en esta PC el 2026-10-24; `gh` está logueado como `guidocameraeq`). Los commits anteriores de esta PC salieron con `eq.chatgpt@gmail.com`, la del plugin v1: no se reescriben (repo público).
 - 📬 **El Hub pushea a este repo desde otra sesión.** **Antes de cerrar, `git fetch` siempre** (hoy no había nada nuevo).
 - 🧪 **NO VERIFICADO que van al piloto de Hermes (G §23)**: que `gh api` lea el archivo del otro repo a un SHA de rutina; que GitHub conserve un
   commit citado si la rama se borró; la memoria de G: las tres PCs de Guido con la misma cuenta de claude.ai. Los 10 de D (§7.7, §11, §20) siguen.

@@ -29,6 +29,11 @@
 - `docs/TODO.md`: G ✅; el orden que fijó Guido: **H → I → G.1 al final**, después la revisión integral y el spec.
 - Memoria: nueva nota de feedback (el cuadro conceptual antes de las decisiones).
 
+### Fixed
+- **La identidad de git**: la cuenta de Guido es `guido.camera.eq@gmail.com`, no `eq.chatgpt@gmail.com` (la del plugin v1), que era la de
+  respaldo de la skill `/cierre` y con la que salieron los commits de esta PC. Configurada global en la PC `Usuario`; la skill corregida; los
+  commits viejos no se reescriben (repo público).
+
 ## 2026-10-23 — Misión 4, tramo 4: el racimo D (el método director/obrero y el workflow diario), con Guido adentro y revisado
 
 ### Added

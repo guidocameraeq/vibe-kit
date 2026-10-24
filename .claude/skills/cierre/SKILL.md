@@ -38,7 +38,7 @@ mostrando evidencia de cada uno:
    nueva), actualizar la memoria persistente.
 7. **Commit + push**: mensaje descriptivo en español. Si la máquina no tiene identidad de
    git configurada (`git config user.name` vacío), commitear con
-   `git -c user.name="Guido" -c user.email="eq.chatgpt@gmail.com" commit ...` y sugerir
+   `git -c user.name="Guido" -c user.email="guido.camera.eq@gmail.com" commit ...` (la cuenta de Guido; **nunca** `eq.chatgpt@gmail.com`, que es la del plugin v1) y sugerir
    configurarla global una sola vez. Verificar `git status` limpio y `main...origin/main`
    sin diferencias. Reportar el SHA.
    - **Versión (si amerita):** ¿la sesión sacó una **capacidad nueva** o un cambio grande de cara al
