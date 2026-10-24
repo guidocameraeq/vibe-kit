@@ -114,6 +114,8 @@ sensible:                  # las 4 preguntas del racimo A, bajadas a este repo
   sale-afuera: [mails a gerencia]
 multi-llm: no              # si es "sí", se genera AGENTS.md desde el CLAUDE.md
 ---
+
+*Nota de G (2026-10-24): la ficha suma `aprueba: <alias>` (el PO: a quién van las 5 de A y el "te espera") y `mesa:` con, por alias, `contacto:` y `transporte: git | buzon`; nada más sobre personas ni repos, que ya viven en el MAPA y en el Hub ([DISENO-G](DISENO-G-mesa-y-pcs.md) §12, §15).*
 ## Cómo se adaptó el kit a este proyecto
 - `/inicio`: suma el chequeo de Vercel antes de arrancar, porque dos veces se trabajó sobre un deploy roto (2026-08).
 - `settings`: se quitó el `deny` de `git stash` porque el flujo de release lo necesita (2026-09).
@@ -242,6 +244,8 @@ entorno del sistema de cada PC: nunca en `~/.claude/` (la vería `kit-sync`), nu
   que falló), copias del kit en repos remotos (Portal está en otra PC), y **"X aparece en N proyectos"**: la regla de
   3+ medida por script, que alimenta la curaduría del kit en la sesión madre. La salud general de la flota
   (documentos pasados de tamaño, proyectos sin barreras) es del racimo I.
+
+*Nota de G (2026-10-24): "preparame esta PC" suma cuatro cosas: versión ≥ 2.1.234 en Windows nativo · `crossSessionInbound: accept` en los settings de usuario (en el proyecto la plataforma lo ignora) · que `gh` lea cada repo de la `mesa:` · "reiniciá después de instalar". El archivo local por PC guarda el entorno (nativo o WSL), la cuenta de `gh` y la carpeta de proyectos ([DISENO-G](DISENO-G-mesa-y-pcs.md) §10, §15).*
 
 ## 11. `/smoke` y `/release` al molde, y `AGENTS.md` (decisiones 8 y la cerrada por extensión)
 

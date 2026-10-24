@@ -91,7 +91,8 @@ justo lo que P31 tiene que evitar: las skills del kit viven en un solo lugar.
 
 **8. 🆕 Dos cuentas de GitHub firman los commits.** La segunda firma casi todo lo reciente en Portal,
 Devoluciones y Hub. **NO VERIFICADO**: ¿es el compañero o es otra PC de Guido? Cambia a quién le toca
-cada proyecto en la mesa y en el mantenimiento de la flota. *(Pregunta para Guido.)*
+cada proyecto en la mesa y en el mantenimiento de la flota. *(Pregunta para Guido.)* **Resuelta (2026-10-24): es el
+compañero, y ahora tiene su propia cuenta de Claude Code ([DISENO-G](DISENO-G-mesa-y-pcs.md) §2).**
 
 **9. Cuatro proyectos usan también `AGENTS.md`** (Devoluciones, Hub, Bot, Deptos): en Deptos es el
 manual del agente que opera el negocio. Es otra convención junto al `CLAUDE.md`, y el kit no dice nada

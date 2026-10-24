@@ -186,8 +186,8 @@ dólares (sigue **NO MEDIDO**, acta Q1). El resto ya tiene número.
 | Qué | De dónde | Línea base |
 |---|---|---|
 | **Multi-PC de verdad**: sin rutas absolutas; estado y lecciones al repo | #10 = P42, P34 (3) | 5 días inalcanzable; una lección que vivía en una sola PC |
-| Remote Control prendido en todas las sesiones de la mesa (canal oficial, con cola) | PLATAFORMA §4 | La trampa del bypass (hipótesis, **NO VERIFICADO**) |
-| Carpeta `mesa/`: contrato, ~18 tipos de mensaje, plantilla hecho/decisión/pregunta | P32 | 10 tipos escritos, ~18 en uso |
+| Remote Control prendido en todas las sesiones de la mesa (canal oficial, con cola) | PLATAFORMA §4 | La trampa del bypass (hipótesis, **NO VERIFICADO**). *Resuelto por G (2026-10-24): Remote Control opcional; el contenido va por git ([DISENO-G](DISENO-G-mesa-y-pcs.md) §4, §10)* |
+| Carpeta `mesa/`: contrato, ~18 tipos de mensaje, plantilla hecho/decisión/pregunta | P32 | 10 tipos escritos, ~18 en uso. *Resuelto por G (2026-10-24): sin carpeta `mesa/`; un archivo por mensaje dentro del módulo, 6 tipos de mesa, acuerdos que viven una vez ([DISENO-G](DISENO-G-mesa-y-pcs.md) §5-§7)* |
 | Onboarding: receta de bienvenida y bloque "Máquinas y personas" | P44 (6) | ~6 h de explicación de palabra |
 | Instalar con chequeo previo | P45 (4) | ~35 min de tropiezos en Windows |
 | "¿Hay versión nueva del kit?" y la línea por PC fuera del update | P13 (4) | El Equipador casi no se usa |
@@ -196,10 +196,10 @@ dólares (sigue **NO MEDIDO**, acta Q1). El resto ya tiene número.
 | Carriles paralelos: el director reserva los números de decisión | S-M-12 (2) | 6 rondas extra en 36 h |
 | Quién opera y quién aprueba no son la misma persona | P44 (parte) | 8 lotes |
 | La memoria automática no viaja entre PCs: lo que importa va por git | PLATAFORMA §5 | — |
-| Dos cuentas de GitHub firman los commits | F§8 | ❓ Pregunta abierta para Guido |
+| Dos cuentas de GitHub firman los commits | F§8 | ✅ Resuelta (2026-10-24): es el compañero, hoy con su propia cuenta de Claude Code ([DISENO-G](DISENO-G-mesa-y-pcs.md) §2) |
 | Tablero que junte las 3 PCs | PLATAFORMA §6.7 | No existe nativo |
 | 🆕 Dos proyectos chocan en la misma máquina: los procesos se cortan por su identificador, nunca por nombre | A-3 (7) | Un subagente casi corta la corrida del proyecto hermano |
-| 🆕 **Mensajería multiagente**: un buzón por carpeta compartida (un JSON por mensaje), entre cuentas, PCs y también agentes de otros LLM. Viene con firma por agente y un arnés mínimo para los encargos autónomos | Pedido de Guido + borrador externo (2026-10-21) (7, 6) | `SendMessage` no cruza cuentas; 5 días inalcanzable; Guido de cartero |
+| 🆕 **Mensajería multiagente**: un buzón por carpeta compartida (un JSON por mensaje), entre cuentas, PCs y también agentes de otros LLM. Viene con firma por agente y un arnés mínimo para los encargos autónomos | Pedido de Guido + borrador externo (2026-10-21) (7, 6) | `SendMessage` no cruza cuentas; 5 días inalcanzable; Guido de cartero. *G (2026-10-24): git ya cruza cuentas; el buzón queda opt-in para agentes sin acceso al repo u otros LLM, racimo **G.1** ([DISENO-G](DISENO-G-mesa-y-pcs.md) §4, §18)* |
 
 ## 7. Objetivo 6 · El tiempo y la atención de Guido
 
@@ -297,7 +297,7 @@ entrada al tramo 4, que diseña de a un pilar, y al top 10 del spec.
 | **D · Modelos, ruido y revisión** → 🆕 **D · El método director/obrero y el workflow diario** (ampliado el 2026-10-23, pedido de Guido) | #2, #4, #5, P26-P29; S-U-1; más la anatomía canónica de director/obrero/tramo (radiografía §7-§8, los 3 dialectos de FLOTA §2), la revisión de las skills de sus repos, qué skills faltan (FLOTA §6) y las mejoras a su día a día | 1 · 6 · 2 · 4 | Dirección |
 | **E · Un molde y la flota** | #8 (molde), P31, P44 (versión), P13, `/smoke` y `/release`; S-D-3, S-D-4, S-M-1 | 3 · 4 · 5 | El Arquitecto como puerta |
 | **F · Seguridad por defecto** | #9, P8, P12, P14, P20, P49; S-C-2, S-D-5, S-M-4, S-M-7, S-M-8, S-D-12 | 7 | Base (molde) |
-| **G · Mesa y PCs** | #10, P32, P34, P42, P44-P46; S-R-3, S-C-1, S-M-12, S-D-7; 🆕 el buzón multiagente (2026-10-21) | 5 | Mesa |
+| **G · Mesa y PCs** | #10, P32, P34, P42, P44-P46; S-R-3, S-C-1, S-M-12, S-D-7; 🆕 el buzón multiagente (2026-10-21) | 5 | Mesa. ✅ [DISENO-G](DISENO-G-mesa-y-pcs.md) (2026-10-24); el buzón pasa a **G.1**, opt-in |
 | **H · Niveles y puertas del Arquitecto** | P6, P7, P9, P10, P35, P51, P52, P57; S-R-6; 🆕 **los subproyectos** (2026-10-21) | 4 · 3 · 6 | El Arquitecto como puerta |
 | **I · El agente de ecosistema** 🆕 (2026-10-22) | Conocer todos los proyectos a la vez y pensar entre ellos: el mapa (qué se conecta con qué), la salud de la flota, el reporte semanal, y "¿esto es proyecto nuevo, subproyecto o feature de otro?" | 5 · 6 · 3 | **Fuera del kit, o como adaptador**: es propio de la empresa de Guido. Se diseña último |
 

@@ -118,6 +118,8 @@ Verificado en cross-session-messaging ✅:
 2. **Entre PCs, el canal oficial es Remote Control + `SendMessage`, con cola si la otra PC está
    apagada.** El "canal por archivo versionado" de la mejora #10 queda como respaldo, no como base. La
    regla de oro: **Remote Control prendido en todas las sesiones de la mesa**.
+   *Reabierto por G (2026-10-24): el contenido de la mesa va siempre por git (un archivo por mensaje en el
+   repo) y el aviso por `SendMessage` es opcional; Remote Control deja de ser requisito ([DISENO-G](DISENO-G-mesa-y-pcs.md) §4).*
 3. **Los roles pasan a definiciones de subagente** con `model`, `effort`, `tools`, `hooks` y
    `isolation`. Así las reglas van dentro del agente que las tiene que cumplir (mejoras #3 y #5).
 4. **El `deny` frena incluso en bypass.** El molde del kit tiene que traerlo, y `/inicio` puede

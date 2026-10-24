@@ -248,6 +248,7 @@ ficha. H nombra ramas y worktrees.
 *Alternativas descartadas*: rama de bitácora aparte · el obrero mergea con clic (un clic más por encargo) · Guido mergea (16 h de espera
 medidas por una frase). *Qué cambia para Guido*: no mergea ni cliquea merges; un OK por release; deja de explicar la rama de bitácora.
 **NO VERIFICADO**: por qué el director de Desktop no puede escribir `main` hoy; se mira al adoptar (E §7).
+*Nota de G (2026-10-24): las ramas de módulo se mergean sin squash, para que los SHA que cita la mesa sigan existiendo; y el director escribe también `docs/modulos/<x>/mesa/`, que es parte del módulo ([DISENO-G](DISENO-G-mesa-y-pcs.md) §5).*
 
 ## 9. Ruido y noche: silencio entre agentes, una suscripción por obrero, el despertador afuera (decisión 6)
 
@@ -276,6 +277,7 @@ eran avisos sin novedad, cada uno releyendo 300-600 mil; la causa es una regla (
 turnos vacíos. *Qué cambia para Guido*: de día no lee avisos; de noche duerme sabiendo que lo parado amanece anotado, no colgado.
 **El historial de estimado vs real** (pedido de Guido): lo mecánico lo llena el script desde git y la estimación la escribe el director en
 `tiempos.md` al cerrar cada tramo (C §2.6, §3; B §5bis); la lección va al histórico al cerrar el módulo. D no agrega nada: dice cuándo.
+*Nota de G (2026-10-24): la tabla de tipos de mensaje (los ocho de director/obrero y los seis de la mesa) la fija G y D la usa; `PRESENTACION` y `RESPUESTA` quedan definidos ahí ([DISENO-G](DISENO-G-mesa-y-pcs.md) §6).*
 
 ## 10. La revisión: Opus siempre en la 1.ª vuelta del código, profundidad por riesgo, congelada en un commit, una corrección (decisión 7)
 

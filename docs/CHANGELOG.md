@@ -2,6 +2,33 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-24 — Misión 4, tramo 4: el racimo G (la mesa entre directores, las PCs y el buzón), con Guido adentro y revisado
+
+### Added
+- `docs/mision-4/DISENO-G-mesa-y-pcs.md`: el racimo G, doce decisiones aprobadas en bloque por Guido. Antes de decidir, un lector Sonnet
+  midió la mesa real en disco (~245 mil tokens: `mesa/` no existe; la mesa son dos contratos de 527 y 317 KB escritos a mano, tres
+  vocabularios de 13, 5 y 6 tipos, ninguna configuración de mensajería en esta PC) y un agente guía verificó 25 afirmaciones contra la doc
+  oficial (~155 mil: `SendMessage` entre PCs solo con la misma cuenta y Remote Control; VS Code tira un mensaje retenido a los 5 minutos;
+  `crossSessionInbound: accept` solo vale en los settings de usuario; WSL y Windows nativo no se ven; entre cuentas no hay camino nativo).
+  Lo central: **el contenido de la mesa va siempre por git** (un archivo ≤2 KB por mensaje dentro del módulo, que nunca se edita; abierto o
+  acordado lo calcula un script) y el aviso por `SendMessage` es opcional; seis tipos de mesa en una tabla única; acuerdos que viven una vez
+  y van al PO solo si cambian el alcance; recursos compartidos con dueño; "trabado por mesa" calculado y, por decisión de Guido, **nadie le
+  avisa: lo ve al abrir el otro proyecto**; `crossSessionInbound: accept` lo pone el Equipador; dos personas con `fetch`, aviso de commits
+  ajenos y commit por rutas; números de decisión por módulo; lecciones al repo por script; `aprueba:` por alias. Revisor frío Opus: 34
+  hallazgos (10 rompe), 32 aplicados tal cual y 2 con otro arreglo. El más importante dio vuelta el planteo: **git ya cruza cuentas** (el
+  compañero lee los repos con su GitHub), así que **el buzón multiagente pasa al racimo G.1, opt-in**, con su brief de siete decisiones,
+  investigación en internet y piloto de un mes (§18). Guido eligió el enfoque C ("la mesa se queda y es lo más importante; el buzón, aparte")
+  y pidió que los diseños se le presenten con el cuadro conceptual antes de las decisiones.
+- Fila de G en `docs/README.md`.
+
+### Changed
+- Notas de G en `DISENO-B` (§5, §12, §14: la carpeta `mesa/` del módulo, el contrato viejo como histórico, `candado:mesa`), `DISENO-D` (§8
+  merge sin squash; §9 la tabla de tipos la fija G), `DISENO-E` (§4 `aprueba:` y `mesa:` en la ficha; §10 cuatro chequeos nuevos del
+  Equipador), `TABLERO.md` (cinco filas resueltas, entre ellas la segunda cuenta de GitHub: es el compañero), `PLATAFORMA.md` §6.2
+  (reabierto: Remote Control deja de ser requisito), `FLOTA.md` §8 (cerrada) y `PLAN.md` (G ✅; el buzón a G.1).
+- `docs/TODO.md`: G ✅; el orden que fijó Guido: **H → I → G.1 al final**, después la revisión integral y el spec.
+- Memoria: nueva nota de feedback (el cuadro conceptual antes de las decisiones).
+
 ## 2026-10-23 — Misión 4, tramo 4: el racimo D (el método director/obrero y el workflow diario), con Guido adentro y revisado
 
 ### Added

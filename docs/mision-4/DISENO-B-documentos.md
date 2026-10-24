@@ -127,7 +127,7 @@ esto está en uno y se encuentra.
 
 **Un solo dueño por ficha**: el director si lo hay; si no, el `/cierre` de la sesión que trabajó el módulo. Nunca los dos: si Guido
 trabaja en una sesión suya sobre un módulo con director, su `/cierre` **no toca la ficha**; deja un archivo en `bitacora/` ("lo que hizo
-esta sesión") que el director lee y vuelca. Cómo se entera el director es del buzón de G.
+esta sesión") que el director lee y vuelca. Cómo se entera el director es del buzón de G. *Resuelto por G (2026-10-24): sin mensaje; el `/inicio` de cualquier sesión del proyecto y el cierre de tramo del director listan por script lo nuevo en `bitacora/` y en la mesa. Los mensajes de mesa de un módulo viven en `docs/modulos/<x>/mesa/<alias>/`, un archivo por mensaje que nunca se edita; y cuando la ficha llega al tope, las decisiones viejas pasan a `bitacora/decisiones.md` ([DISENO-G](DISENO-G-mesa-y-pcs.md) §5, §9, §10, §13).*
 
 ### 5bis. `tiempos.md`: la tabla de C, como registro (solo con director)
 
@@ -329,7 +329,7 @@ Tres reglas nuevas en la skill del molde:
   **El hook no los inyecta**: los lee el Arquitecto en Modo B y quien dude del "para qué".
 - **Los contratos entre apps** (hoy 314 y 524 KB, en espejo en dos repos) se parten: los acuerdos vigentes van cortos al `MAPA.md` de
   cada lado; el registro de mensajes entre directores es historia y va a `referencia/contrato-<app>/` como bitácora (archivos chicos
-  por fecha, §5). El director deja de releer 314 KB antes de cada mensaje. Cómo viajan esos mensajes en adelante es del buzón de G.
+  por fecha, §5). El director deja de releer 314 KB antes de cada mensaje. Cómo viajan esos mensajes en adelante es del buzón de G. *Resuelto por G (2026-10-24): los mensajes nuevos son archivos del módulo (`docs/modulos/<x>/mesa/<alias>/`) con el puntero por `SendMessage`; `referencia/contrato-<app>/` queda solo para el histórico anterior al método; los acuerdos vigentes los lista `mesa acordados` y el MAPA los copia al cerrar el módulo ([DISENO-G](DISENO-G-mesa-y-pcs.md) §5, §7).*
 - **Lo que no es de la app**: la vista de toda la flota ("qué tenemos y cómo se cruza") es del racimo I y vive en el Hub. `MAPA.md` es
   de **una** app.
 
@@ -365,6 +365,7 @@ poder quitarlo por proyecto en `frenos.quitados` con razón y `hasta:` (F §14):
 | `candado:raiz` | La raíz de `docs/` tiene solo los 6 archivos y 3 carpetas de §4 (el MAPA puede faltar), y cada carpeta de `modulos/` tiene su `README.md` con `Estado:` |
 | `candado:rutas` | Las rutas que citan `CLAUDE.md`, `docs/README.md`, el TODO, el handoff, las fichas y `referencia/` existen (excluye lo marcado `> Histórico` y el CHANGELOG, que son registro). Las carpetas del repo salen de `git ls-files`, no de una lista escrita a mano |
 | `candado:topes` | El handoff y cada ficha `EN OBRA` o `PAUSADO` entran en su tope; lo que inyectaría el hook entra en 9.500 (lo calcula llamando al mismo script del hook) |
+| `candado:mesa` *(agregado por G, 2026-10-24)* | Cada archivo de `modulos/*/mesa/*/` pesa ≤ 2 KB, tiene cabecera válida y un tipo de la tabla del kit. Además, `candado:rutas` saltea las citas `<alias>:` (son de otro repo) y `candado:topes` incluye `MAPA.md` ≤ 5 KB ([DISENO-G](DISENO-G-mesa-y-pcs.md) §5, §21) |
 | `candado:estados` | Ningún spec más nuevo de un módulo está `COMPLETO` con el módulo `EN OBRA`, ni al revés; **un módulo no pasa a `COMPLETO` con tareas sin tildar** (se chequea en el cierre que lo marca; después la lista ya no está) |
 | `candado:lecturas` | Lista los documentos de más de 100 KB citados por alguna skill del proyecto (§11.3). Solo lista, nunca frena |
 
