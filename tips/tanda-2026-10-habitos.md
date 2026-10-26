@@ -124,41 +124,41 @@ la última columna: ✅ ya lo absorbe · 🟡 en parte · 🆕 nuevo · ⚪ prop
 
 ### Molde / skills del proyecto
 
-- [ ] **P58 · La sesión propone el cierre sola**, en una línea, cuando pasa una de tres: la tarea pedida
+- [x] **P58 · La sesión propone el cierre sola**, en una línea, cuando pasa una de tres: la tarea pedida
   quedó hecha y verificada, el contexto pasa el umbral de D §11, o Guido dice que se va ("me voy",
   "cortemos por hoy"). La línea dice **qué surgió en la charla y dónde quedó anotado** (TODO, ficha,
   bandeja), así no hace falta el "anotalo en algún lado". No cierra sola: propone (el cierre commitea).
   Evidencia: hábito 6 (~26 pedidos en ~15 chats, 5 proyectos, del 2026-08-19 al 10-25) + hábito 13 (~13
-  en ~8); H-44 ya lo había visto ("4 de 4 cierres arrancaron por pregunta de Guido") sin propuesta.
-- [ ] **P59 · Toda recomendación trae "por qué hace falta" y "qué pasa si no lo hacemos"**, en una línea
+  en ~8); H-44 ya lo había visto ("4 de 4 cierres arrancaron por pregunta de Guido") sin propuesta. *(✅ Revisión integral 2026-10-26: entró a DISENO-B §11.5.)*
+- [x] **P59 · Toda recomendación trae "por qué hace falta" y "qué pasa si no lo hacemos"**, en una línea
   cada una, en cualquier proyecto (no solo en los diseños de vibe-kit, que ya pasan los 11 criterios).
   Es la pregunta "¿es capricho?" contestada antes de que la haga. Evidencia: hábito 9 (~22 en ~12 chats:
-  vibe-kit, Perseo, Deptos, del 2026-09-21 al 10-25) + la corrección "volvé a pensarlo" (3 en 2 chats).
-- [ ] **P60 · Prueba a mano con guion**: cuando la prueba la tiene que hacer Guido (el celular, WhatsApp,
+  vibe-kit, Perseo, Deptos, del 2026-09-21 al 10-25) + la corrección "volvé a pensarlo" (3 en 2 chats). *(✅ Revisión integral 2026-10-26: entró a DISENO-E §2.6.)*
+- [x] **P60 · Prueba a mano con guion**: cuando la prueba la tiene que hacer Guido (el celular, WhatsApp,
   el navegador, una consulta que Claude no puede correr), Claude le da **los pasos numerados, qué tiene
   que ver en cada uno y cómo avisar** ("listo" alcanza), y al "listo" **va a leer el resultado solo**
   (logs, base, respuestas del bot), con esa lectura ya autorizada en el `CLAUDE.md` del proyecto, sin
   pedir permiso cada vez. Evidencia: hábito 3 (~35 en ~12 chats: Perseo, Deptos y Hermes, del 2026-08-20
   al 10-23), con "te doy permiso para que leas las respuestas" repetido; H-63 y S-U-9 cubren el "Claude
-  prepara, Guido aprieta" y la simulación, no el guion.
+  prepara, Guido aprieta" y la simulación, no el guion. *(✅ Revisión integral 2026-10-26: entró a DISENO-F §8 y DISENO-E §2.6.)*
 
 ### Arquitecto / diseño
 
-- [ ] **P61 · "¿Cómo lo resuelven otros?" como paso fijo antes de diseñar** algo con alternativas (Modo B
+- [x] **P61 · "¿Cómo lo resuelven otros?" como paso fijo antes de diseñar** algo con alternativas (Modo B
   del Arquitecto y los racimos de vibe-kit): un investigador Sonnet con tope de búsquedas, que deja
   "qué robar y qué no" en una sección del diseño, **antes** de las decisiones. Hoy se hace solo cuando
   Guido lo pide (H §18 se hizo así). Evidencia: hábito 16 (9 en 7 chats: vibe-kit 5, del 2026-10-22 al
-  25, en casi cada racimo; Perseo 4, del 2026-09-21 al 10-23).
+  25, en casi cada racimo; Perseo 4, del 2026-09-21 al 10-23). *(✅ Revisión integral 2026-10-26: entró a DISENO-E §3 y DISENO-H §8 (obligatorio en Modo B largo, opcional en el corto).)*
 
 ### Director / obrero
 
-- [ ] **P62 · Volver de un corte sin tipear lo mismo en cada pestaña**: (a) al reanudar (hook
+- [x] **P62 · Volver de un corte sin tipear lo mismo en cada pestaña**: (a) al reanudar (hook
   `SessionStart` con origen `resume`), el obrero **se vuelve a presentar solo** al director con el
   núcleo común de D §5; (b) el director, al ver que el corte fue de toda la cuenta (límite de uso), le
   dice a Guido **una sola vez** qué pestañas reanudar. Que el hook vea el origen `resume` en la extensión
   de VS Code: **NO VERIFICADO**. Evidencia: hábito 11 (~18 en ~12 chats; en Hermes, "inténtalo de nuevo"
   en 2 pestañas en el mismo minuto, dos noches (2026-10-22 y 24), y "presentate al director" en 3
-  pestañas en el mismo minuto el 2026-10-25); H-37 ya contaba ~12 "continue" sin propuesta.
+  pestañas en el mismo minuto el 2026-10-25); H-37 ya contaba ~12 "continue" sin propuesta. *(✅ Revisión integral 2026-10-26: la regla entró a DISENO-D §5; el hook de resume al piloto.)*
 
 ## 4. Lo que NO se propone, y por qué
 

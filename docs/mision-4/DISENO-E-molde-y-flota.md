@@ -20,7 +20,16 @@ usaba porque nada avisaba que había versión nueva (P13).
 ## 2. Lo que decidió Guido (2026-10-21 y 22)
 
 1. **Una sola puerta, varias piezas adentro.** Guido le habla siempre al Arquitecto; él reconoce el pedido y deriva.
-   Las piezas siguen siendo archivos chicos y separados (§3).
+   Las piezas siguen siendo archivos chicos y separados (§3). *Revisión integral (2026-10-26; decisión reabierta con el acta de contraste
+   y rearmada con Guido)*: la puerta existe, pero **Guido casi no la cruza** (11 de 41 lotes; Mobile 0 de 18): en los proyectos con
+   director le habla al director, que dicta "spec, dos rondas de red team" con un molde propio. Guido: "quiero que el Arquitecto juegue
+   más; yo me olvido de llamarlo; planeo con el director y después meto al director". Lo decidido no es cambiar la puerta sino **que la
+   puerta venga a él**: (1) **la sesión invoca sola la skill del Arquitecto, en la misma pestaña**, cuando el pedido no es chico (plana o
+   `/director`, como paso fijo); (2) **Modo B corto** cuando ya hay un plan charlado: toma el plan, explora el código, escribe el "qué NO se
+   toca", corre los chequeos, decide director y arma "Ejecución"; la entrevista larga queda para proyecto nuevo o sin plan; (3) **candado
+   por script**: sin el sello del Arquitecto no hay READY ni obrero que arranque ([DISENO-H](DISENO-H-niveles-y-puertas.md) §8,
+   [DISENO-A](DISENO-A-frenos.md) §6). Descartado: forzar otra pestaña (sube la intervención) y reconocer al director como puerta sin el
+   Arquitecto (cada director inventa su molde). Métrica: specs con sello, de 11/41 a 100%; tiempo del Modo B corto, medido en Deptos.
 2. **El Arquitecto responde "¿cómo hago esto bien?"**: una PC, un proyecto, una feature, ponerlos al día. **El agente
    de ecosistema** ("¿qué tenemos y cómo se cruza?") **no es parte del Arquitecto**: es propio de la empresa, va al
    racimo I y probablemente viva en el Hub ([`TABLERO.md`](TABLERO.md) §10).
@@ -29,7 +38,16 @@ usaba porque nada avisaba que había versión nueva (P13).
 4. **Cada repo lleva una ficha del kit** que dice qué versión tiene y cómo se adaptó cada pieza (§4), y una
    actualización **nunca pisa una adaptación** (§5 y §6).
 5. **`/inicio` y `/cierre` varían por proyecto y está bien**; `/smoke` y `/release` son de cada repo, "a como dé lugar".
-6. **Las decisiones se presentan en criollo, cortas, diciendo qué cambia para él.**
+6. **Las decisiones se presentan en criollo, cortas, diciendo qué cambia para él.** *Revisión integral (2026-10-26; E-4 reabierta,
+   ✘155 / ✔107: "me mareé, no entendí", "preguntame acá con opciones"; donde hubo botones con una recomendada, Guido contestó "sí")*: deja
+   de ser una regla en prosa (A-2) y pasa a **tres clases con formato**: **diseño y negocio, charlando** (Guido presente, opciones y
+   recomendación en conversación, sin botones de prepo); **lo rutinario del desarrollo no se pregunta**: se aplica la recomendada y se
+   avisa en una línea con veto (7 de 8 consultas volvían con la recomendada; Guido: "casi siempre le doy el recomendado"); **lo que queda**,
+   con una línea de contexto, una RECOMENDADA primera, "qué cambia para vos", "por qué hace falta y qué pasa si no" (P59) y **siempre el
+   botón "explicámelo en criollo"**, que contesta qué decide, qué le cambia y un ejemplo concreto del proyecto, y recién después re-pregunta.
+   Las pruebas a mano van con guion numerado y el dato exacto (P60; en el chat ★ 408a3c0d la única prueba que salió mal fue una pregunta sin
+   control: vendedor real y $15.000 en producción); lo que no entra en botones (rutas, pasos) va como guion. Detalle en
+   [DISENO-D](DISENO-D-director-obrero.md) §13.
 
 ## 3. Qué es el Arquitecto: skill, agentes y scripts
 
@@ -47,6 +65,11 @@ usaba porque nada avisaba que había versión nueva (P13).
 3. **Feature sobre uno que anda**: el Modo B de hoy.
 4. **Consultorio**: el Modo C de hoy.
 5. **La flota**: "¿cómo está la flota?" (el script), "poné al día X" (el Equipador, §6), "adoptá X" (el adoptador, §7).
+
+*Revisión integral (2026-10-26)*: **las entradas 2, 3 y 4 las cruza también la sesión sola**, no solo Guido: cualquier sesión del proyecto
+que reciba un pedido más que chico invoca la skill (la Skill tool la puede invocar el modelo; verificado en uso en esta misma sesión). La
+entrada 3 gana el **Modo B corto** (§2.1) y, en el largo, el paso fijo **"¿cómo lo resuelven otros?"** (P61: investigador Sonnet con tope
+de ~15 búsquedas, sección "qué robar y qué no" antes de las decisiones; hoy se hacía solo cuando Guido lo pedía: 9 veces en 7 chats).
 
 **El `SKILL.md` del Arquitecto pasa a ser ruteo más reglas de oro** (de ~20 KB a ~5): cada puerta es un anexo que
 se lee bajo demanda, como ya pasa con el banco de preguntas y los concerns. Menos tokens en cada arranque
@@ -108,6 +131,9 @@ piezas:                    # estado · hash de lo que el molde escribió (para s
 frenos:                    # lo que pide el racimo A
   opcionales: [rama-nueva-por-mision]
   quitados: []
+autorizado:                # revisión integral 2026-10-26 (A-1): lo que NO es pregunta y la plataforma o el proyecto no deben volver a preguntar
+  merge-a-main: con-gate-verde   # liviano: libre · con director: solo si el gate por script dio verde (D §12)
+  escribir-produccion: por-comando-con-foto   # F §13; leer producción es libre (F §8)
 sensible:                  # las 4 preguntas del racimo A, bajadas a este repo
   datos-reales: [tabla proyectos en Supabase]
   plata: no
@@ -247,6 +273,12 @@ entorno del sistema de cada PC: nunca en `~/.claude/` (la vería `kit-sync`), nu
   3+ medida por script, que alimenta la curaduría del kit en la sesión madre. La salud general de la flota
   (documentos pasados de tamaño, proyectos sin barreras) es del racimo I.
 
+*Revisión integral (2026-10-26; F-1)*: "preparame esta PC" y `doctor` suman **el bloque `autoMode` de la PC**: el clasificador del modo
+`auto` ignora el `autoMode` del proyecto y solo lee el de `~/.claude/settings.json` (verificado en la doc oficial), así que el Equipador
+escribe ahí `autoMode.environment` / `autoMode.allow` generado desde las fichas de los proyectos de esa PC (bases y servicios `dummy` y
+`prueba`), dentro de la zona propia de §5 para no pisar lo de Guido; `doctor` avisa si una ficha cambió y el bloque quedó viejo
+([DISENO-F](DISENO-F-seguridad.md) §14).
+
 *Nota de G (2026-10-24): "preparame esta PC" suma cuatro cosas: versión ≥ 2.1.234 en Windows nativo · `crossSessionInbound: accept` en los settings de usuario (en el proyecto la plataforma lo ignora) · que `gh` lea cada repo de la `mesa:` · "reiniciá después de instalar". El archivo local por PC guarda el entorno (nativo o WSL), la cuenta de `gh` y la carpeta de proyectos ([DISENO-G](DISENO-G-mesa-y-pcs.md) §10, §15).*
 
 ## 11. `/smoke` y `/release` al molde, y `AGENTS.md` (decisiones 8 y la cerrada por extensión)
@@ -298,6 +330,8 @@ Dos puertas que hablan con Guido (`/arquitecto`, `/relevamiento`), más el ecosi
 | Quién toca qué con dos cuentas | G | FLOTA §8 sigue abierta |
 | Migrar Hermes | Misión 5, nunca a mitad de un tramo | Regla del PLAN |
 | El piloto sugerido (recomendación, no decisión) | Misión 5 | El Hub (es el registro y acaba de ordenarse) y Portal (la copia del Arquitecto adentro) |
+| Lo que el clasificador del modo `auto` necesita saber (bases y servicios de prueba) | **F §14** y §10 (2026-10-26) | Vive en la PC, no en el proyecto: lo escribe el Equipador desde las fichas |
+| Llevar un cambio de método de un proyecto a otro (E-3: "poner al día es un pedido" no cubre ese caso; bloques enteros a mano, 79d9f992) | **El apartado director/obrero de la revisión integral** (sesión 2) | Es el flujo proyecto ↔ kit: si el registro de cambios de método por proyecto es pieza del canon y lo que se repite en 3+ sube al kit |
 
 ## 15. Límites de este diseño
 
@@ -354,3 +388,23 @@ revisión integral del final del tramo 4 la vuelve a mirar.
 producto), las plantillas históricas de todas las versiones (con el hash de la anterior alcanza), la telemetría, el
 backup comprimido (la rama y git ya lo dan) y el manifest con posiciones (frágil; mejor marcas explícitas). Nuestro
 `doctor` compara fichas y drift; el de ellos chequea binarios y estado, no archivos contra una versión.
+
+## 18. Revisión integral con el acta de contraste (2026-10-26)
+
+Con [`tips/tanda-2026-11-contraste.md`](../../tips/tanda-2026-11-contraste.md) abierta. Lo que cambió en E:
+
+| Qué | Veredicto del acta | Qué se hizo | Dónde |
+|---|---|---|---|
+| E-1 · una sola puerta | contradicha (✘84 / ✔11; Mobile 0/18) | Rearmada con Guido: la sesión invoca sola al Arquitecto; Modo B corto; candado por script | §2.1, §3 |
+| E-4 · decisiones en criollo | contradicha (✘155 / ✔107) | Tres clases con formato; botón "explicámelo en criollo" | §2.6 |
+| E-2 · `/inicio` y `/cierre` distintos por proyecto | mixta (16 lotes) | Nada; la fricción es por el alcance del cierre, no por que sean distintos | — |
+| E-3 · poner al día es un pedido | contradicha (base): bloques enteros para poner al día método propio | El caso que no cubre (llevar un cambio de método de un proyecto a otro) va al apartado director/obrero de la sesión 2 | §14 |
+| A-1 · merge y producción | contradicha en A | Campo `autorizado:` en la ficha | §4 |
+| F-1 · el clasificador | contradicha en F | El bloque `autoMode` de la PC lo escribe el Equipador | §10, §14 |
+| P61 · "¿cómo lo resuelven otros?" | hábito 16 (9 en 7 chats) | Paso fijo del Modo B largo, opcional en el corto | §3 |
+| El contrato del registro (lo que quedó de I) | ADR-024 | Sigue como nota en §9; se completa en la sesión 2 | §9 |
+
+Los 11 criterios de §17 no cambian de veredicto; el criterio 1 mejora (menos preguntas rutinarias) y el 6 gana dos scripts (el sello y el
+bloque `autoMode`). **NO VERIFICADO nuevo**: que la skill invocada por la sesión pueda sostener la entrevista corta con Guido en la misma
+pestaña sin perder el hilo del director (piloto).
+

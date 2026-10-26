@@ -142,6 +142,9 @@ líneas no ve más auditores; una feature de 3 archivos no abre chat nuevo; nunc
 
 *Alternativas descartadas*: director por cantidad de tareas o de archivos (puso el traje de Hermes a todo) · director siempre en nivel largo.
 *Qué cambia para Guido*: nada que decidir; si quiere director igual, lo dice y queda anotado.
+*Revisión integral (2026-10-26; E-1)*: la regla no cambia, pero **quién llama al Arquitecto, sí**: no Guido con otra pestaña, sino **la sesión
+misma** (plana o `/director`) cuando el pedido no es chico; y si el director ya tiene un plan charlado con Guido, el Arquitecto entra en
+**Modo B corto** y decide esto con el plan en la mano ([DISENO-E](DISENO-E-molde-y-flota.md) §3, [DISENO-D](DISENO-D-director-obrero.md) §4).
 
 ## 7. Subproyecto = módulo, con nombre (decisión 4) `[workflow · consistencia · acordarse de menos]`
 
@@ -168,7 +171,11 @@ los tiene solo lo que llevó director.
 1. **Todo spec READY lleva una sección "Ejecución"** (P6): tamaño (módulo solo o con director); sesiones (una, o director con sus obreros);
    **solo el desvío del modelo por defecto**, con su razón (los defaults viven en la definición de los roles, D §6.3; repetirlos en cada spec es
    lo que D vio fallar; R-41); rama y worktree si hay director; **la línea única para abrir** (D §7); y un puntero a la sección "Entorno de
-   prueba" (§9), que es la que dice cómo se prueba antes de producción (una sola sección, R-43). **"Spec + red team cuando corresponde + READY"
+   prueba" (§9), que es la que dice cómo se prueba antes de producción (una sola sección, R-43). *Revisión integral (2026-10-26; E-1)*: y
+   **el sello del Arquitecto**, una línea que escriben sus scripts, no el modelo (`arquitecto: <fecha> · kit <versión> · chequeos: tamaño ✅
+   entorno ✅ tope ✅`). **Sin sello no hay READY** (el script que marca READY se niega) **y ningún obrero arranca** con un spec sin sello
+   (corrector "spec sin Arquitecto: corré Modo B", [DISENO-A](DISENO-A-frenos.md) §6). Es el candado que hace que el Arquitecto juegue aunque
+   Guido o el director se olviden: hoy aparecía en 11 de 41 lotes del acta de contraste, y en Mobile en 0 de 18. **"Spec + red team cuando corresponde + READY"
    es el disparador**: el red team sigue siendo condicional (plata, permisos, datos de terceros; `SKILL.md:80`, R-24).
 2. **Antes de dar la línea, el Arquitecto deja armado el mini ecosistema, en este orden** (R-36): **un commit en `main`** con la carpeta
    `docs/modulos/<x>/`, la ficha (con `rama:` si va a haber director), el `SPEC.md` y, si hace falta, las piezas del kit (director/obrero/tramo
@@ -181,6 +188,12 @@ los tiene solo lo que llevó director.
 
 *Alternativas descartadas*: construir en el mismo chat del Arquitecto · dejar la ejecución a la sesión fresca (es lo de hoy: ~6 dictados).
 *Qué cambia para Guido*: pega una línea y arranca; no dicta más "planeá → spec → red team → ¿cuántas sesiones?".
+*Revisión integral (2026-10-26)*: **el Modo B corto.** Cuando el pedido llega con un plan ya charlado (Guido: "planeo con el director y
+después meto al director"), el Arquitecto no entrevista de cero: toma el plan como entrada y hace solo lo que el director no hace: explorar
+el código real con su subagente, escribir el "qué NO se toca", correr los chequeos por script (tamaño, entorno, tope), decidir director sí o
+no (§6) y armar "Ejecución" con el sello. La entrevista larga queda para proyecto nuevo o sin plan. **Cuánto tarda se mide en Deptos**: si
+molesta, se recorta, porque si molesta se esquiva y el candado no alcanza. El paso "¿cómo lo resuelven otros?" (P61: un investigador Sonnet
+con tope de ~15 búsquedas que deja "qué robar y qué no" antes de las decisiones) es **obligatorio en el Modo B largo y opcional en el corto**.
 
 ## 9. El entorno de prueba: declarado en el spec, verificado por el Arquitecto y chequeado al abrir (decisión 6) `[mejor código · acordarse de menos]`
 
@@ -188,7 +201,15 @@ Pedido de Guido (D §2, §12.8): "que el Arquitecto verifique que el proyecto te
 (§18); lo más cercano es el harness de Anthropic (levantar el entorno y correr una prueba de punta a punta al abrir cada sesión).
 
 1. **El spec READY lleva una sección fija "Entorno de prueba"**: cómo se levanta (un comando), qué datos semilla usa, cómo se resetea, cuál es
-   **el chequeo base** que tiene que dar verde, y **si el entorno es compartido entre carriles o por worktree** (R-16).
+   **el chequeo base** que tiene que dar verde, y **si el entorno es compartido entre carriles o por worktree** (R-16). *Revisión integral
+   (2026-10-26; H-5 reabierta y cerrada con Guido)*: **y la lista de herramientas que el módulo necesita**: VPN, binario o `.exe`, APK y
+   versión, MCP del navegador, Python, archivos que tienen que estar cerrados (un Excel abierto), puertos. El acta contradijo esta decisión
+   176 a 100 y **lo que aparece roto tarde no es la base: son las herramientas** (el MCP del navegador no conectó en dos obreros y el ensayo
+   quedó vacío, 85e17f12, 2026-10-19; un recorrido de teléfono de 67 min contra 40-60 previstos, L70). **Cada herramienta tiene su chequeo
+   de una línea en el script** (verde o rojo) y se corre con el chequeo base (6.3). Lo que **solo Guido puede poner** (la VPN, el teléfono
+   físico, la oficina, lo que pide administrador) **se declara en el encargo como "necesita a Guido de día"**: el director lo programa en su
+   franja, primero y en orden de valor, y un obrero nocturno nunca depende de eso (absorbe P69; 15 lotes del acta). Si el MCP del navegador
+   no conecta, el molde de `smoke` trae el fallback que cada obrero hoy reinventa: un Chrome o un puerto por obrero ("otras" 17 del acta).
 2. **Un script del Arquitecto lo verifica antes del READY**, con una regla proporcional: **por cada entorno `clase: real` que el módulo toca**,
    la ficha (`entornos:`, F §9) tiene que declarar un `dummy` o `prueba` (R-15); **sin `real`, alcanza con que `comando-test` exista y corra**
    (un proyecto sin base no monta nada); si la feature es de pantalla, hay **corredor de pruebas del front y su navegador instalado en esta PC**
@@ -202,6 +223,8 @@ Pedido de Guido (D §2, §12.8): "que el Arquitecto verifique que el proyecto te
    alcance y lo anota al TODO; si lo toca, el obrero hace CONSULTA al director y la plana lo dice y sigue con otra cosa. **Con entorno
    compartido, el chequeo base es de solo lectura** y nadie resetea sin acuerdo (G §8: los recursos compartidos tienen dueño). Para el obrero
    que es subagente, la orden va en su definición, no en el hook (R-35, §16). En Modo A y adoptar, lo mismo como parte del montaje. Chico: nada.
+   *Revisión integral (2026-10-26)*: con las herramientas en la lista, **un rojo de herramienta no traba al obrero**: lo reporta en el primer
+   AVANCE y sigue con lo que no depende de ella; lo que sí depende queda en "parado" de la ficha hasta que la herramienta vuelva.
 
 *Alternativas descartadas*: una pregunta fija al arrancar (P8: preguntar no monta nada) · exigir dummy a todo proyecto (sin base, paga algo
 inútil). *Qué cambia para Guido*: no vuelve a probar con un usuario real porque "ensayo" no existía (3 veces en un día); nunca se confunde "lo
@@ -287,6 +310,16 @@ sesión). Director y obreros nunca preguntan: la línea de apertura ya los deja 
 - **El spec no crece durante la obra.** Un cambio de pedido **aprobado** va como `SPEC-2.md` en el mismo módulo (B §4, §13) y reescribe solo
   la parte afectada (B §5) **mientras el conjunto quepa en el tope**; lo que lo pasa, es otro módulo (R-13). Es la regla de Kiro ("el spec de
   un bug no crece; lo nuevo es otro spec") y la nuestra de S-M-14 ("el sí vale solo para lo que se preguntó": 2 ensanches medidos).
+  *Revisión integral (2026-10-26; H-6 reabierta y cerrada con Guido).* El acta la contradijo 222 a 21: en Hermes el archivo READY no se
+  edita, pero **la obra crece igual**: 9 a 12 desvíos declarados por tramo y sub-pasos nuevos (2b, 7b, 10b) a mitad de obra (497e15dd,
+  2026-09-24/25). La regla era prosa, y A-2 (confirmada) dice que la prosa no frena fallas repetidas. Lo decidido: **el archivo sigue sin
+  tocarse, el desvío declarado es el canal legal, y un script los cuenta** por módulo (desvíos de clase 1 de D §13 y sub-pasos nuevos, que
+  son siempre clase 2 y los decide el director contra el spec; si el spec no alcanza, `SPEC-2`). **El contador nunca frena al obrero ni le
+  habla** (Guido: "casi todos los obreros se desvían y siguen trabajando; que ese clic no me parta las cosas a la mitad"): va al director y a
+  `/estado`. La pregunta "¿partimos el módulo?" aparece **solo en un corte natural** (encargo cerrado, el director armando el siguiente) y
+  **solo si lo agregado cambia el alcance**; muchos desvíos técnicos son un dato para el cierre del módulo, sin pregunta. Cuando aparece,
+  es el mismo mecanismo del tope de arriba: el script dice el número, el director propone (delta o módulo hermano) y Guido decide con un
+  clic. Tope orientativo: 5 desvíos o 2 sub-pasos nuevos por módulo, **NO VERIFICADO**, se calibra en Deptos.
 - **Al `formato-spec.md`, en la misión 5**: READY = aprobado por el dueño **después** del red team cuando corresponde, sobre la versión final
   (hoy se revirtió 3 veces); **sin secciones nuevas** (R-42): "Contexto del código" lleva `archivo:línea` obligatorio (es el "verificado en el
   sistema vivo" que pedía P52) y "Supuestos" admite la marca `[SIN CONTRASTAR]`.
@@ -515,3 +548,24 @@ prototipo, y "¿hay entorno de prueba?" (lo chequea un script).
 | 9 | Lo chico no paga lo grande | Es el racimo: chico sin spec, chat nuevo, director ni carpeta; módulo solo sin rama, worktree, `tiempos.md` ni bitácora; tiempos y tokens solo con director; sin dummy si no hay `real`; worktree solo con segunda sesión viva en el mismo checkout |
 | 10 | Autónomo pero con rastro | Cada módulo nace con un commit en `main`; cada encargo es una rama con nombre mergeada `--no-ff`; el prototipo queda en la carpeta; "ya estaba roto" queda en el AVANCE y el TODO; el `gate:entorno-prueba` quitado queda en `frenos.quitados` |
 | 11 | Piloto antes de flota | Deptos primero (como D); 10 NO VERIFICADO con su prueba y su camino sin ellos (§22-§23); los números del tope se calibran antes de la flota; la lectura de contraste contrasta estas decisiones con los chats antes de la revisión integral |
+
+## 25. Revisión integral con el acta de contraste (2026-10-26)
+
+Con [`tips/tanda-2026-11-contraste.md`](../../tips/tanda-2026-11-contraste.md) abierta. Lo que cambió en H:
+
+| Qué | Veredicto del acta | Qué se hizo | Dónde |
+|---|---|---|---|
+| H-6 · el spec no crece | contradicha (✘222 / ✔21): 9-12 desvíos por tramo | El desvío declarado es el canal legal; contador por script que nunca frena al obrero; partir solo en corte natural y por alcance; tope orientativo NO VERIFICADO | §12 |
+| H-5 · el entorno se verifica antes | contradicha (✘176 / ✔100): lo roto tarde son las herramientas | "Entorno" = base + herramientas, una línea de chequeo por herramienta; "necesita a Guido de día" en el encargo; fallback del navegador en `smoke`; absorbe P69 | §9 |
+| E-1 · la puerta | contradicha (✘84 / ✔11) | El sello del Arquitecto en "Ejecución"; sin sello no hay READY ni obrero; Modo B corto; P61 obligatorio en el largo | §6, §8 |
+| H-1 · lo chico no pasa por el Arquitecto | contradicha (base, 15 lotes) | Nada: H-2 es el remedio | — |
+| H-2 · el arreglo del arreglo sigue chico, con prueba primero | confirmada (✔239 / ✘0) | Nada; el conteo justifica la prueba primero | §5.6 |
+| H-3 · varias sesiones seguidas no justifican director | contradicha (base + premisa chica): el director en serie también lleva la mesa y el relevo | Quién lo hace sin director: `/cierre` mantiene la ficha (relevo) y la mesa la lleva la sesión plana con el aviso por mensaje de G; se mide en el piloto qué directores de Mobile dejan de existir (D-1) | §6 |
+| H-4 · el Arquitecto termina armando | contradicha (base, ✘201) | Nada; es el mismo hecho que el ✔ de D-4 | — |
+| H-7 · prototipo antes del spec | confirmada (✔103 / ✘15) | Nada; quedan 1-2 ajustes de rótulos, normal | §13 |
+| H-8 · el Arquitecto monta en la carpeta real | sin evidencia (4 lotes) | Nada | — |
+| B-2 · tres tamaños | confirmada, con un pedido: dónde caen release, relevamiento de solo lectura, bloque de mesa o documentos, tarea operativa recurrente | Para el spec: release es un pedido chico de `/release`; relevamiento y bloque de documentos son módulo solo si llevan más de una sesión; la tarea recurrente es chica y se repite | §4-§5 |
+
+Los 11 criterios de §24 no cambian de veredicto. El criterio 9 (lo chico no paga lo grande) es el que Guido defendió en H-6: el contador
+informa y no frena. **NO VERIFICADO nuevo para el piloto**: el tope de desvíos y sub-pasos; cuánto tarda el Modo B corto.
+

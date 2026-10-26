@@ -2,6 +2,28 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-26 — Misión 4, tramo 4: revisión integral con el acta de contraste, sesión 1 (las 10 decisiones reabiertas, cerradas con Guido)
+
+### Changed
+- **Los 7 `DISENO-*` corregidos con el acta abierta** (cada uno cierra con una sección "Revisión integral" con tabla veredicto → qué se hizo → dónde,
+  y notas fechadas en las decisiones tocadas). Las 10 decisiones reabiertas, en 4 charlas en criollo: **A-1** (merge y producción no entran a la
+  lista de 5: `autorizado:` por proyecto, gate verde y comando con foto; cicatriz: 13 clics de merge a las 00:26 por una `ask` propia de Hermes),
+  **F-1** (capa del clasificador del modo `auto`: AUTORIZADO como `allow` estrechas por script, hook solo `deny`, `autoMode` por el Equipador en
+  la PC, noche nunca `auto`; verificado contra la doc oficial), **H-6** (el desvío declarado es el canal legal, contado por script, **nunca frena
+  al obrero**), **D-5** (sin número fijo; duro ~80%; D §2 corregido), **D-8** (tope 2 se queda; paquete del revisor por script, afirmaciones en
+  prosa a un corrector de A con P18 reabierto, la 3.ª para al director), **E-1 rearmada por pedido de Guido** ("el Arquitecto viene a vos": la
+  sesión lo invoca sola en la misma pestaña, Modo B corto, candado por script con sello), **H-5** (entorno = base + herramientas; "necesita a Guido
+  de día"), **E-4 rearmada** (diseño charlando · rutinario sin pregunta con veto · formato fijo con botón "explicámelo en criollo"), **B-6/B-7**
+  (edad del estado por `git blame`, `candado:estado-viejo`), **D-10** (sin agente: `/estado` suma % medido, "podés cerrar", esperas y uso, solo
+  información).
+- **Triage de P58-P77**: 16 entraron a los diseños (marcadas en `tips/tanda-2026-10-habitos.md` y `tips/tanda-2026-11-contraste.md` con su
+  puntero), 3 a la misión 5 (P70, P72, P19), 1 al piloto (hook de `resume`). Refuerzos: "sin config no arranca" mecánica (F §12); `taskkill`
+  por nombre al hook (F §6). 4 chats ★ releídos por lectores Sonnet (relevo a 834k, rondas del revisor, opción-trampa, permisos de noche).
+- **Verificado**: en la app de escritorio una sesión lee el uso del plan y el contexto propio y de otras sesiones (D §11, C §2.5). Hermes medido:
+  38 commits de método desde el 20/10, CM-103 aprobado sin aplicar. `PLAN.md` §4 con el estado; memoria `guido-como-decidir` nueva.
+- **Queda para la sesión 2**: el apartado director/obrero (CM-72 a CM-103 contra D), el flujo proyecto ↔ kit, la nota del contrato en E, el revisor
+  frío y la charla final con Guido sobre el método director/obrero.
+
 ## 2026-10-26 — La hoja de ruta reordenada: v3.0 sin mensajería, el ciclo como misión 6, la mensajería como v3.1 (ADR-025)
 
 ### Changed

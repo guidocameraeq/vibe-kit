@@ -26,7 +26,9 @@ De la entrevista y de las once decisiones, lo que es de él:
 - **Por default, él abre las pestañas de los obreros.** El director las abre solo si él se lo pide, de noche o cuando no está. "Tengo la
   chance de pedírselo y probarlo; si me encuentro que se lo pido todo el tiempo, veré qué hago."
 - **Compactar es una falla.** "Hace meses que ninguna sesión compacta." El obrero con contexto útil termina lo que le falta aunque pase
-  de 800 mil, y se reutiliza en vez de descartarse.
+  el umbral blando, y se reutiliza en vez de descartarse. *(Decía "aunque pase de 800 mil"; corregido el 2026-10-26 para que diga lo mismo
+  que §11: ningún número fijo, porcentaje de la ventana real medido por script. Un obrero de Mobile "quedó sin contexto" a 834 mil, ~83%
+  de un millón, y hubo que relevarlo con cierre PARCIAL: chat ★ 6a9b5771.)*
 - **La decisión 5 queda provisoria** y al final del tramo 4 va una revisión integral de D: "es el más complejo y el más importante".
 - **"Publicar un release" entra como quinta pregunta de su lista** (A §2), agrupada: un OK por release.
 - **Cada proyecto lleva su ficha del kit con todas las adaptaciones y su razón**, y cuando el Arquitecto actualiza, pregunta (E §4, §6).
@@ -82,8 +84,16 @@ mil). Lo que cambió la mirada:
   preguntas de B §6), y lo dice en una línea: "chico, lo hago acá" o "esto es más que chico: llamo al Arquitecto". Lo demás (módulo solo
   o con director, la carpeta, el spec) lo decide **el Arquitecto, única puerta de los módulos** (E §2). *Nota a B §6: la sesión plana solo
   pregunta "¿es chico?"; "con Guido" sobra en la prueba de director, que es del Arquitecto con la regla de arriba.*
-- El molde (`CLAUDE.md` y `/inicio`) manda **llamar al Arquitecto cuando el tamaño no está claro**. El Arquitecto rutea, decide si hay
-  director y **arma el mini ecosistema**: carpeta del módulo, ficha, `SPEC.md`, `tiempos.md`, `bitacora/`, rama y worktree, nombres, y en
+- El molde (`CLAUDE.md` y `/inicio`) manda **llamar al Arquitecto cuando el tamaño no está claro**. *Revisión integral (2026-10-26;
+  decisión E-1 reabierta y rearmada con Guido: "quiero que el Arquitecto juegue más; yo me olvido de llamarlo; planeo con el director y
+  después meto al director")*: **"llamar" no es pedirle a Guido que abra otra pestaña: la sesión invoca sola la skill del Arquitecto, en
+  la misma pestaña**, cuando el pedido no es chico; con director, es **un paso fijo de `/director`** cuando nace algo nuevo en su proyecto.
+  Si ya hay un plan charlado con el director, el Arquitecto entra en **Modo B corto**: toma el plan como entrada y hace solo lo que el
+  director no hace (explorar el código real con su subagente, "qué NO se toca", los chequeos por script, director sí o no, la sección
+  "Ejecución") y le devuelve el spec. **El candado es por script**: ningún spec pasa a READY sin el sello del Arquitecto y ningún obrero
+  arranca con un spec sin sello (corrector de A §6). Hoy el Arquitecto aparecía en 11 de 41 lotes (Mobile 0 de 18): el director dictaba
+  "spec, dos rondas de red team" con un molde propio. Detalle: [DISENO-E](DISENO-E-molde-y-flota.md) §2, [DISENO-H](DISENO-H-niveles-y-puertas.md) §8.
+  El Arquitecto rutea, decide si hay director y **arma el mini ecosistema**: carpeta del módulo, ficha, `SPEC.md`, `tiempos.md`, `bitacora/`, rama y worktree, nombres, y en
   la ficha del kit el default de apertura y las preguntas de A bajadas al proyecto.
 - **Guido puede pisar el default** ("quiero director igual"): queda anotado en la ficha del módulo. **Y puede bajar**: se mergea lo que
   esté verde y se saca `director: sí` de la ficha; el módulo sigue como módulo solo.
@@ -91,6 +101,11 @@ mil). Lo que cambió la mirada:
   momentos automáticos y el candado); la vista completa → `/estado` (C), `NORTE.md` y `MAPA.md` (B §12), el ecosistema (I); "alguien que
   conozca el proyecto" → los documentos que inyecta el hook, en cualquier PC. Un agente vivo pierde lo que sabe al mudarse y no existe en la
   otra PC (criterio 8); responde preguntas que ya tienen dueño (scope creep, ADR-004); y es otra pestaña Opus que abrir y mantener.
+  *Revisión integral (2026-10-26; D-10 reabierta)*: el acta encontró **dos vistas que Guido pide y nadie da**: "% de completado" (4 veces en
+  un lote) y "¿qué obreros puedo cerrar?" (~10 chats). Sigue sin agente: **son dos líneas más de `/estado`** (C §2.5): el % de avance medido
+  por script (tareas terminadas sobre el plan del módulo, de la ficha y los commits) y "podés cerrar: obrero-07, obrero-12" (los obreros cuyo
+  CIERRE el director verificó, de la lista de sesiones vivas de la ficha, §7.6). Y las líneas propias del `/estado` se suman en cualquier
+  momento pidiéndoselo al director; quedan en la configuración del proyecto.
 
 *Alternativas descartadas*: director siempre (relee ~370 mil por respuesta; suma pestañas; pone el traje de Hermes a un hotfix) · agente
 PO vivo por proyecto. *Qué cambia para Guido*: una sola puerta por proyecto; no elige él la herramienta; el medio deja de ir al director
@@ -111,6 +126,14 @@ de más.
   estado de partida; el director no lanza dos que se pisen), **un encargo que cruza dos módulos se parte en uno por módulo**, **cancelar**
   (CORRECCIÓN "cancelado": la rama queda sin mergear y el script de worktrees la desmonta), y **si el verificador por script falla** (error,
   no rojo): NO VERIFICADO, no se mergea, PARADA.
+- *Revisión integral (2026-10-26)*: **cinco líneas más al núcleo común**, de las propuestas del acta aprobadas por Guido: (P65) antes de
+  pedirle a Guido un paso a mano, una línea con por qué no lo puede hacer el agente, y si puede, lo hace; (P75) **todo texto a Guido o a otra
+  sesión, narración incluida, en español** (5 de 7 casos en inglés fueron del obrero Sonnet; el piloto mide si baja); (P62) **al reanudar
+  tras un corte, el obrero se vuelve a presentar solo** al director (hoy Guido tipea "presentate al director" en 3 pestañas en el mismo
+  minuto); que el hook vea el origen `resume` en VS Code: NO VERIFICADO, piloto; (P66) **el andamiaje del propio proyecto** (CLAUDE.md,
+  skills, agentes, workflow de CI) **lo editan los agentes**, con el diff mostrado y su commit (clase 1 o 2 de §13); cambiar barreras sigue
+  siendo por pedido de Guido (F §14); hoy ~13 autorizaciones por archivo en un lote; (P73) "CI sin máquina dos veces: correr local,
+  declararlo y seguir".
 - **Delegar solo con razón con nombre** (gentle-ai, REFERENCIAS §1): escritores en paralelo sobre archivos distintos · verificador
   independiente · relevo de contexto · exploración de un árbol grande. Sin razón, no hay subagente. **El código de `/obrero` lanza el
   revisor** (razón: verificador independiente, §10); lo demás lo hace él. Antes de lanzar N subagentes por la misma ruta, uno de prueba
@@ -152,6 +175,17 @@ bifurcación grande adentro son dos skills disfrazadas. Deptos no era evidencia 
    revisor antes de pasarlo al implementador** (S-D-1).
 6. **Haiku ubica, Sonnet lee.** El "lector Haiku en bulk" que pidió Guido se parte: explorador Haiku (ubicar) + lector Sonnet (leer y
    resumir); 12 lectores baratos dijeron "completé" con error adentro.
+7. *Revisión integral (2026-10-26; P71 del acta)*: **todo subagente tiene tope de tiempo y latido**: tope con aviso a la hora; latido visible
+   (archivos tocados); **"stopped with background work" sin informe cuenta como "no entregó"**: se reemplaza por uno nuevo con encargo
+   autocontenido y **nunca se reanuda** (uno murió de nuevo al reanudarlo, ~3 h sin aviso, L52; 3 h 20 sin señal, L30); el cierre del sub-paso
+   exige "ningún proceso vivo del subagente"; antes de un "¿qué pasó?", el director mira si hay subagentes en curso. Los números (corte de
+   contexto del implementador, ~250-450 mil medido) se calibran en el piloto.
+8. *Revisión integral (2026-10-26; P76, transformada)*: los dos "modos" de `/obrero` que el acta vio en uso no se agregan como modos: el modo
+   **"spec"** (6 de 6 sesiones de spec abiertas con `/obrero`) lo reemplaza E-1: el spec lo escribe el Arquitecto invocado por la sesión (§4);
+   el modo **"decisiones"** (cola de decisiones de Guido en tandas cortas) lo cubren la clase 2 de E-4 (lo rutinario no se pregunta) y la
+   cola "te espera" de §13.4.
+9. *Revisión integral (2026-10-26)*: **el paquete del revisor lo arma un script** (hueco 8 del acta): diff contra el SHA base, status y la
+   tabla de mutaciones con su rojo. El revisor sin shell que no lo recibe pide papeles en vez de revisar código (§10).
 
 **Herramientas nuevas que entran** (pasaron el filtro de cuatro preguntas): **`subpaso-cierre`**, un script para el contrato de cierre del
 sub-paso (~12 llamadas iguales por sub-paso; 10-13 scripts rearmados a mano por tramo; S-M-2), que además comprueba que una corrección tocó
@@ -189,7 +223,12 @@ cross-session-messaging,headless,hooks,permissions,permission-modes,sub-agents,v
    encargo fija al lanzar, (c) **la sección AUTORIZADO del encargo** (comandos y rutas), que un hook `PreToolUse` aprueba. El hook lee
    AUTORIZADO con `git show <rama-del-módulo>:…`, **que el obrero no puede escribir** (así no se da permisos solo). Aclaración: "reglas
    `ask`" son las 5 de A; el modo `default` además pregunta por todo comando fuera de `allow`, y eso es lo que AUTORIZADO cubre.
-4. **De noche** (`apertura: director`), el hook devuelve **`deny`** en las 5 de A (frena también en bypass, F §4) y el obrero hace PARADA:
+   *Revisión integral (2026-10-26; F-1)*: **el hook ya no aprueba: AUTORIZADO se vuelve reglas `allow` estrechas** que un script escribe en el
+   `settings.local.json` del worktree del obrero, leyendo la sección del encargo commiteado. Razón verificada contra la doc oficial: una
+   `allow` estrecha se resuelve antes del clasificador del modo `auto` y vale igual en `default`; que un hook `allow` evite al clasificador
+   **no está documentado**. El hook queda solo para **negar** las 5 de A, que sí frena en todos los modos ([DISENO-F](DISENO-F-seguridad.md) §14).
+4. **De noche** (`apertura: director`), el hook devuelve **`deny`** en las 5 de A (frena también en bypass, F §4) y el obrero hace PARADA
+   (*y nunca corre en `auto`: tres negaciones del clasificador lo apagan y la sesión vuelve a preguntar; revisión integral 2026-10-26*):
    lo de Guido amanece anotado, nunca pasa solo. *Nota a F §16: el obrero nocturno corre en el modo que fija su encargo, con el hook
    debajo.* Mientras no se verifique que un obrero headless pueda mandar mensajes, **su PARADA es un archivo commiteado** que ve el
    verificador.
@@ -275,6 +314,13 @@ eran avisos sin novedad, cada uno releyendo 300-600 mil; la causa es una regla (
 5. **Antes de irse, un checklist que arma un script** desde los encargos de la noche: qué va a preguntar `default` (→ AUTORIZADO), qué
    vence (VPN, credenciales), qué dispositivos; y **si el director pasa de ~40% de su ventana, se muda primero** (§11). Lo que Guido hace:
    decir "me voy" y resolver lo que vence. Una frase por noche. Que el script prediga los permisos: **NO VERIFICADO**.
+   *Revisión integral (2026-10-26; P63 + P68 del acta, aprobadas por Guido)*: **"me voy" tiene respuesta fija y vale también de día.** Cuando
+   Guido dice que se va ("me voy en 30'", "corto a las 15:30", "¿me puedo ir?", "me quedo sin internet") o llega la hora que dejó dicha, el
+   director contesta **un solo bloque**: (1) qué necesita de él **ahora**, todo junto (clics, autorizaciones con su vencimiento); (2) qué queda
+   andando y hasta cuándo; (3) con qué se va a encontrar al volver; (4) el checkpoint si hay que cortar. Y si la pausa es de todo el equipo,
+   deja a cada obrero con commit wip declarado, árbol limpio, sin procesos, "paso exacto donde retomás" y la lista de archivos fuera del
+   repo; al volver, cada uno se re-presenta solo (§5). Es el hábito más repetido de Guido que ningún racimo tenía: ~50 veces en ~21 chats
+   ("decime mañana con qué me debería encontrar", "¿me puedo ir tranquilo?"); un obrero parado ~3 h tras un corte de internet (L54).
 6. **Un resumen por hito, al director.** A Guido solo las 5 de A y diseño/negocio (C §2.1). "Qué hacés vos: nada" no se escribe. **El
    encargo viaja por referencia** (la ruta en `bitacora/`), nunca los 7-9 KB en el mensaje (A §7; Deptos ya lo hace).
 
@@ -309,6 +355,19 @@ saltea la revisión" (Desktop); Mobile la sacó y nunca falló. 26% de los arreg
 
 *Qué cambia para Guido*: nada que haga él; los tramos cierran más rápido y más baratos, y los arreglos dejan de volver.
 
+*Revisión integral (2026-10-26; D-8 reabierta y cerrada con Guido).* El acta partió D-8 en dos: "Opus en la 1.ª vuelta" se confirma (casi
+siempre halló un CORREGIR real); **"una sola corrección" no se cumple**: lotes enteros con 3 y 4 vueltas (L19: seis sub-pasos con CORREGIR →
+CORREGIR → APROBADO; L35: siete casos de 3-4). El chat ★ 76bfe51b (obrero-identidad-53, 2026-10-19) muestra la causa: 3 vueltas sobre el
+mismo guardián, **11 hallazgos sobre el test y 2 sobre prosa, cero bugs en el código de producción**, el paquete armado a mano sin diff ni
+status ("un revisor sin git ni shell pide siempre el diff como comando"), y el orquestador cerrando solo con "tres rondas ya dan rendimiento
+decreciente". **El tope de 2 vueltas (10.4) se queda, y se atacan las tres causas**: (a) **el paquete del revisor lo arma un script**
+(`subpaso-cierre` o hermano): diff contra el SHA base, status, tabla de mutaciones con su rojo (P23, hueco 8); (b) **las afirmaciones en
+prosa** (docstrings, comentarios, textos de error que prometen más de lo medido) **salen de la revisión y van a un corrector de A** sobre las
+líneas agregadas (P18 reabierto, A §6): son la primera causa de vueltas en 11 lotes ("cuatro revisiones, cero hallazgos en el código y nueve
+en la prosa"); (c) **la tercera vuelta es PARADA al director, que decide una de dos**: cerrar con lo pendiente anotado como deuda en la ficha
+del módulo y que lo mire el revisor final del cierre, o encargo nuevo. Nunca sube a Guido. Y **un script cuenta las vueltas por sub-paso**:
+es la métrica del piloto (hoy 3-4; meta ≤2). Lo mismo vale para el red team de construcción (§6.4): paquete por script y tope.
+
 *Nota de H (2026-10-25): al `gate:fix-sin-prueba` (10.5) se le suma una condición: si el arreglo toca un archivo de un fix de los últimos N días (el arreglo del arreglo, 26% en la flota), **revisor Opus congelado en el commit antes del push**, por archivo (no `log -L`). Sigue siendo chico: sin spec ni módulo ([DISENO-H](DISENO-H-niveles-y-puertas.md) §5.6).*
 
 ## 11. La mudanza del director y el contexto: medido por script, compactar es una falla, el obrero se administra (decisión 8)
@@ -320,7 +379,13 @@ se abren otros que recargan 62-75 KB.
 1. **Dos umbrales medidos por un script** que lee el transcript de la propia sesión **y la ventana real** del modelo (Sonnet y Opus no tienen
    la misma): **blando, ~65%** → mudarse al cerrar el tramo en curso · **duro, antes del punto donde la plataforma compacta** → mudarse ya,
    con relevo, aunque sea a mitad de encargo. **Compactar es una falla**, no una señal: si pasa, va como incidente a las notas para el
-   método. Dónde está el punto exacto por ventana: **NO VERIFICADO**, piloto (arranca en ~85%).
+   método. Dónde está el punto exacto por ventana: **NO VERIFICADO**, piloto (arranca en ~85%). *Revisión integral (2026-10-26; D-5)*:
+   **arranca en ~80%**, no 85: el obrero del Bloque AK de Mobile "quedó sin contexto" a 834 mil (~83% de un millón) y hubo relevo con cierre
+   PARCIAL (chat ★ 6a9b5771; la causa exacta no está en ese chat). Los directores de Hermes cortan obreros entre 460 y 700 mil "por las dudas"
+   (acta, D-5): con las dos cifras del script el director decide con datos, no por instinto. **VERIFICADO el 2026-10-26 en la app de
+   escritorio**: una sesión lee su ventana (tokens usados, %, dónde compacta: 97% en una ventana de un millón) **y la de otras sesiones**,
+   con una herramienta de la app (`get_usage`). El director puede medir el contexto de cada obrero sin que el obrero lo diga; el AVANCE deja
+   de traer el porcentaje si la plataforma lo da. En la terminal pelada y en VS Code: NO VERIFICADO, piloto.
 2. **El obrero no se corta a un número fijo.** El director decide con dos datos del script: **contexto usado** y **lo que falta**. Si falta
    poco (un sub-paso, el cierre), **termina aunque pase del umbral blando**; si falta mucho, traspaso escrito ahora. El umbral duro es el
    mismo. El AVANCE trae las dos cifras. El porcentaje **sí** se da, pero sale del script, nunca de la cabeza del modelo (resuelve la
@@ -386,6 +451,16 @@ mirara. ~40 pedidos repetidos al pie de cada mensaje; una decisión recordada 4 
    - **Clase 3 · diseño, negocio y las 5 de A** → **Guido**. Diseño y negocio las lleva el director con opciones y una recomendación, en
      criollo; las 5 de A son el clic en la pestaña que actúa.
 2. **La regla del "ya lo sé"**: si el obrero tiene una recomendación y es clase 1, actúa.
+   *Revisión integral (2026-10-26; H-6 y E-4 reabiertas con Guido)*: **(a) los desvíos de clase 1 se cuentan por script**, por módulo, junto
+   con los sub-pasos nuevos (un sub-paso nuevo es siempre clase 2). **El contador nunca frena al obrero ni le habla**: va al director y a
+   `/estado`. La pregunta "¿partimos el módulo?" solo aparece en un corte natural (encargo cerrado, el director armando el siguiente), nunca
+   a mitad de un encargo, y solo si lo agregado cambia el alcance; muchos desvíos técnicos son un dato para el cierre, sin pregunta (Guido:
+   "casi todos los obreros se desvían, y siguen trabajando; que ese clic no me parta las cosas a la mitad"). Detalle en [DISENO-H](DISENO-H-niveles-y-puertas.md) §12.
+   **(b) La clase 2 que hoy sube a Guido como pregunta rutinaria no se pregunta más**: el agente aplica la recomendada y avisa en una línea
+   ("hice X por Y; si querías otra, decímelo"); 7 de 8 consultas volvían con la recomendada (Guido: "durante el desarrollo casi siempre le
+   doy el recomendado"). Reversible por definición; las 5 de A siguen con clic. **(c) La clase 3 tiene formato fijo** (E §2.6): diseño y
+   negocio, charlando; lo demás con una línea de contexto, una RECOMENDADA primera, "qué cambia para vos", y **siempre el botón "explicámelo
+   en criollo"** (qué decido · qué cambia para mí · un ejemplo concreto del proyecto).
 3. **El "sí" vale solo para lo que se preguntó** (S-M-14): un OK a una opción no autoriza el ensanche.
 4. **Lo pendiente vive en un solo lugar, en dos campos de la ficha**: **"te espera"** (solo clase 3: decisiones, clics pendientes de las 5
    de A) y **"parado"** (PARADAs técnicas y clase 2, del director). `/estado` pone arriba solo el primero. Nunca al pie de cada mensaje.
@@ -550,3 +625,34 @@ sobre lo ya autorizado, y las decisiones de clase 1 y 2.
 | 9 | Lo chico no paga lo grande | Tres tamaños con triage en la puerta; `/obrero` no carga el ritual del equipo; lo chico sin sesión como subagente; sin revisor en texto (§4, §5, §7, §10) |
 | 10 | Autónomo pero con rastro | Encargo, evidencia y relevo commiteados en la bitácora; desvío declarado con cómo se deshace; revisión atada a un SHA; PARADA anotada en la ficha (§8, §10, §13) |
 | 11 | Piloto antes de flota | Deptos primero, un módulo nuevo, tres escalones que se deshacen; 10 NO VERIFICADO con su prueba nombrada; el canon entra por el módulo nuevo (§7, §14) |
+
+## 22. Revisión integral con el acta de contraste (2026-10-26)
+
+Con [`tips/tanda-2026-11-contraste.md`](../../tips/tanda-2026-11-contraste.md) abierta y tres chats ★ releídos por lectores Sonnet
+(6a9b5771, 76bfe51b, 23f8dd9f). D es "el más complejo y el más importante" (§2) y el que más decisiones reabrió. Lo que cambió:
+
+| Qué | Veredicto del acta | Qué se hizo | Dónde |
+|---|---|---|---|
+| D-5 · el umbral de 800 mil | confirmada, con la premisa del umbral tocada: los directores cortan a 460-700 mil; uno murió a 834 mil | §2 corregido para decir lo de §11 (sin número fijo); el duro arranca en ~80%; **la lectura del contexto propio y ajeno está verificada en la app de escritorio** | §2, §11 |
+| D-8 · una sola corrección | mixta (✔696 / ✘332): Opus en la 1.ª queda; 3-4 vueltas son la norma | Tope 2 se queda; paquete por script, afirmaciones en prosa a un corrector, la 3.ª para al director; conteo por script | §10, §6.9 |
+| D-10 · sin agente PO | contradicha (✘43 / ✔23): % de avance y qué pestañas cerrar | Dos líneas más en `/estado`, sin agente | §4, C §2.5 |
+| E-1 · la puerta | contradicha (✘84 / ✔11) | La sesión invoca sola al Arquitecto; Modo B corto; candado por script; paso fijo de `/director` | §4, E §2, H §8 |
+| E-4 · decisiones en criollo | contradicha (✘155 / ✔107) | Tres clases: diseño charlando · rutinaria sin pregunta con veto · formato fijo con "explicámelo en criollo" | §13 |
+| H-6 · el spec no crece | contradicha (✘222 / ✔21): 9-12 desvíos por tramo | Contador por script que nunca frena al obrero; partir solo en corte natural y por alcance | §13, H §12 |
+| F-1 · el clasificador | contradicha en F | AUTORIZADO como `allow` estrechas; hook solo `deny`; noche nunca `auto` | §7.3, §7.4 |
+| D-2 · hotfix en chat plano | contradicha (base): lo chico pagó revisor, gate y release | Queda para el spec: las reglas propias del proyecto (revisor, mutaciones, gate) declaran su excepción para "chico" en la ficha, o le ganan a H-2 | spec |
+| D-3 · Sonnet por defecto | mixta: Guido tipea `/model opus` en 9 de 10 pestañas | Nada en la premisa; el modelo lo fija el encargo y la línea de apertura, no Guido a mano (§7.6) | — |
+| D-6 · cada mensaje trae algo | confirmada (✔1400 / ✘175); queda el ruido de "pestaña lista" y acuses | A la definición del subagente y al verificador: una presentación sin novedad = cero texto | §9 |
+| D-7 · reportan por commit | confirmada (✔1237 / ✘30) | El verificador por script caza "commit con la suite en rojo" (visto 2 veces) | A §7 |
+| D-9 · el nocturno no se traba | contradicha (base): merge nocturno con clic | Lo resuelve A-1 (merge pre-autorizado con gate verde) y la noche sin `auto` | A §2, §7.4 |
+| D-11 · ≤3 intervenciones por tramo | mixta: vale en pestañas de obrero; en la del director, los días de gate manual o producción pasan de 10 | La alarma de §13.5 cuenta **por pestaña** y separa los días con Guido de operador (F §8 los reduce) | §13.5 |
+| P63/P68 · "me voy" | ~50 veces en ~21 chats | Respuesta fija del director, también de día | §9.5 |
+| P65 · P75 · P62 · P66 · P73 | hábitos y huecos | Cinco líneas al núcleo común | §5 |
+| P71 · subagente con tope y latido | 13 lotes | Regla en la tabla de roles; los números al piloto | §6.7 |
+| P76 · modos de `/obrero` | 6 lotes | Transformada: "spec" → E-1; "decisiones" → E-4 clase 2 + §13.4 | §6.8 |
+
+**Lo que sigue provisorio**: la decisión 5 (ramas y escritores, §8) no la tocó el acta (G-5 mixta: "gana git" funciona; el atraso de los
+worktrees lo arregla el `fetch` en `/inicio`, B §9) y queda como estaba hasta el piloto. **El apartado propio de director/obrero** (el canon
+de D contra lo que Hermes Desktop cambió en su método entre el 2026-10-20 y hoy: 38 commits en sus skills y `docs/metodo`, CM-72 a CM-103,
+y la decisión del flujo proyecto ↔ kit) **se escribe en la segunda sesión de esta revisión**, con Guido adentro, y es lo último antes del spec.
+

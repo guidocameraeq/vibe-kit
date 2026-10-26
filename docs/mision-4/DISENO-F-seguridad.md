@@ -135,6 +135,9 @@ contra ~36.000 comandos)**, con `push --force` sumado a su lista. Entra como pie
   **borra la rama y la sube de nuevo**, sin force.
 - **El hook lee `frenos.quitados` de la ficha** del proyecto (§14): un proyecto personal donde el push es libre no
   tiene que editar el hook ni marcarlo como adaptado.
+- *Revisión integral (2026-10-26)*: **cortar procesos por nombre** (`taskkill /IM <nombre>`, `pkill <nombre>`) entra al mismo hook como caso
+  nuevo, con la alternativa "por PID": siguió en `allow` y mató procesos de otras sesiones en cuatro lotes del acta de contraste (L30, L40,
+  L52, L63). Era prosa en G §22 y TABLERO §6; se repitió, así que se vuelve mecánica. Se mide contra el historial antes de instalar (A §5.2).
 
 *Qué cambia*: nada visible; lo que vivía en un solo proyecto viaja con el molde.
 
@@ -194,6 +197,13 @@ El `deny` le tapa los ojos a Claude, no las manos: un programa que Claude corre 
   construcción": la credencial de escritura vive en el mismo `.env` y cualquier programa la lee. La defensa de
   fondo es que Claude no tiene el valor y que lo que escribe pasa por §13.
 - Es la regla vieja del playbook §2.5 ("comandos legibles reducen más frenos que las allowlists"), llevada al molde.
+- *Revisión integral (2026-10-26; P60 y P65 del acta de hábitos, aprobadas por Guido)*: **antes de pedirle a Guido un paso a mano** (una
+  consulta, abrir el `.exe`, tocar el teléfono, copiar un valor) **el agente dice en una línea por qué no lo puede hacer él** (herramienta,
+  permiso, credencial) y, si puede, lo hace (en 3 de 13 casos terminó haciéndolo: binario, adb, portapapeles). Cuando la prueba sí es de
+  Guido, va **con guion numerado** (qué hacer, qué tiene que ver en cada paso, "listo" alcanza) y **al "listo" el agente lee el resultado
+  solo** (logs, base por `db consulta`, respuestas del bot), con esa lectura autorizada en la ficha del proyecto, sin pedir permiso cada vez
+  ("te doy permiso para que leas las respuestas" se repitió en ~35 pedidos de 12 chats). Lo que hoy Guido corre y pega a mano contra
+  producción (~15 mensajes y ~35 min por lectura, L67) lo corre el obrero por este contrato.
 
 *Qué cambia*: las migraciones y las consultas las corren los obreros solos. Guido deja de ser el que tipea el SQL.
 
@@ -283,6 +293,11 @@ Cada base o servicio se declara **una vez** en la ficha (`entornos:`, §9) con s
 - **Dos reglas al molde** (prosa, con su cicatriz; se vuelven mecánicas si se repiten): *sin config, la app no
   arranca* (jamás cae a los valores de producción: S-D-5, pasó el 18/10), con su caso en el contrato de `smoke`
   ("arranca sin `.env` → falla"); y *acceso temporal a producción con fecha de borrado en el handoff* (S-D-12).
+  *Revisión integral (2026-10-26)*: **la primera ya se repitió** (L16, L20, L28, L33 del acta de contraste; dos pedidos llegaron a
+  producción sin escribir, y el 2026-10-20 copiar la config del ensayo mandó la app a producción, 1ba50ee4). **Pasa a mecánica**: el caso
+  "arranca sin config → falla" es obligatorio en el contrato de `smoke` (el gate lo lee, D §12.2) y el chequeo de arranque de §15 marca
+  rojo si la config de ensayo apunta a un entorno `clase: real`. Y F-4 se amplía como pedía el acta: `entornos:` cubre también
+  **configuraciones y servicios de terceros** (un "ensayo" de un tercero resultó real), no solo bases.
 - Las guardas de los scripts de `smoke` y `deploy` se escriben como **lista de lo permitido** ("ruidoso antes que
   mudo", S-M-8: 3 de 3 guardas desarmadas en la otra forma).
 
@@ -338,6 +353,38 @@ frenos:
 
 *Qué cambia*: lo que Guido cambió no se le vuelve a imponer, y lo temporal no se le olvida prendido.
 
+*Revisión integral (2026-10-26; decisiones F-1 y A-1 reabiertas con el acta de contraste y cerradas con Guido).* El acta contradijo esta
+decisión 172 a 27: **gran parte de los frenos que Guido sufrió no eran del proyecto sino del clasificador del modo `auto` de la plataforma**,
+que negó lecturas y escrituras ya autorizadas por clic ("es la cuenta dummy, es para eso"; 5 frenos pese al clic el 2026-10-19; un obrero
+parado ~2 h). Este diseño decía solo "el clasificador decide sobre lo demás" (§16). Lo verificado el 2026-10-26 contra la doc oficial
+(`permission-modes` "How auto mode evaluates actions" y "When auto mode falls back", `auto-mode-config`, `hooks`; citas por WebFetch, se
+copian de la página al construir): (a) **una regla `allow` estrecha de `settings` se resuelve antes de que el clasificador mire**; las amplias
+(`Bash(*)`, `Bash(python*)`) la plataforma las tira al entrar en `auto`; (b) **el clasificador ignora el bloque `autoMode` del proyecto**: solo
+lo lee de `~/.claude/settings.json`, de los managed settings o de `--settings`; sí lee el `CLAUDE.md`; (c) **si frena 3 veces seguidas o 20 en
+total, `auto` se apaga solo y la sesión vuelve a preguntar**; (d) que un hook `PreToolUse` con `allow` evite al clasificador: **NO DOCUMENTADO**.
+Lo decidido, en cuatro piezas:
+
+1. **Dos capas con nombre**: las **barreras del proyecto** (`deny`, hooks, `frenos.quitados`: todo lo de arriba) y **los frenos del clasificador**.
+   El diseño las distingue y cada una tiene su mecanismo.
+2. **AUTORIZADO deja de ser un hook `allow` y pasa a reglas `allow` estrechas.** Un script del molde lee la sección AUTORIZADO del encargo
+   (commiteada en la rama del módulo, que el obrero no escribe) y escribe las reglas en el `settings.local.json` del worktree del obrero,
+   una por comando o ruta, nunca amplias. Es el camino verificado (a) y vale igual en `default` y en `auto`. **El hook queda solo para
+   negar** (las 5 de A), que sí está verificado en todos los modos. Corrige D §7.3. *Riesgo residual*: el obrero puede editar su
+   `settings.local.json`; el gate del cierre lo cruza contra el encargo commiteado y marca rojo si difieren.
+3. **Lo que el clasificador necesita saber vive donde él lo lee**: el Equipador escribe en el `settings.json` de la PC el bloque
+   `autoMode.environment` / `autoMode.allow` generado desde las fichas de los proyectos de esa PC (bases y servicios de `clase: dummy` y
+   `prueba`), y el `CLAUDE.md` del molde declara los entornos de prueba del proyecto. Cómo se escribe ese bloque sin pisar lo de Guido: con
+   la zona propia de E §5.
+4. **De noche, nunca `auto`**: `bypass` con el hook de `deny` debajo (D §7.4). Por (c), tres negaciones del clasificador dejan un obrero
+   colgado hasta la mañana.
+
+**Y las dos pre-autorizaciones de A-1**: "mergear a `main`" y "escribir o migrar producción" no son pregunta (A §2). La ficha las lleva en un
+campo `autorizado:` con default por nivel (H §4): liviano, libres; con director, **merge solo con gate verde** (D §12) y **producción solo por
+el comando con foto** (§13). *Cicatriz*: 13 clics de merge en una noche por una `ask` propia de Hermes con Guido al lado de la PC a las 00:26
+(chat ★ 23f8dd9f, 2026-10-22). **Cómo se mide**: la pestaña "Recently denied" de `/permissions` es el registro del clasificador; meta, 0
+frenos sobre lo autorizado. *Qué cambia para Guido*: lo que ya autorizó una vez no se le vuelve a preguntar, ni de día por el clasificador ni
+de noche por una `ask`.
+
 *Nota de H (2026-10-25): `sensible:` pasa a reglas concretas **por script**: cada entrada nombra el comando del proyecto que la toca (§13) y `doctor` o el actualizador regenera en la zona propia de `settings` la regla `ask` sobre ese comando contra los entornos `clase: real` (y `deny` fuera del comando donde se pueda), así el guardia de E no lo marca como desvío. **NO VERIFICADO** qué patrones distingue `settings` dentro de un mismo comando (`--env real` vs `dummy`): para la revisión integral. También nace `gate:entorno-prueba`, quitable acá con rastro como toda barrera ([DISENO-H](DISENO-H-niveles-y-puertas.md) §9, §15).*
 
 ## 15. El arranque verifica y declara (decisión 11)
@@ -352,6 +399,12 @@ en bash sin `jq` en Windows es frágil), tres líneas más, dentro del tope de 1
   de los trinquetes de gentle-ai. El proyecto con las barreras apagadas desde septiembre se habría visto solo.
 - `hook anti-secretos: ✅` o `⚠️ no está en esta PC · corré "preparame esta PC"`.
 - Y, una sola vez por clon, deja seteado `core.hooksPath` para el escáner (§10).
+- *Revisión integral (2026-10-26; P73 del acta de contraste)*: **el remoto entra al arranque**, dos líneas más dentro del presupuesto de B §9:
+  la última corrida de CI de la rama (`gh run list`, solo lectura: "CI rojo desde el 21/10", "en cola sin máquina") y un chequeo `gh` de la
+  seguridad del repo (escaneo de secretos prendido, protección de `main`, visibilidad). Cicatrices: CI rojo 5 días sin que nadie lo viera
+  (L25); escaneo de secretos apagado mientras el repo fue público (L62); verde local por una carpeta ignorada y CI rojo 3 corridas (L81).
+  Regla escrita al núcleo de D: **"CI sin máquina dos veces: correr local, declararlo y seguir"**; y cuando el sub-paso toca config o el
+  script del ambiente, el verde se mide desde un clon limpio.
 
 No pregunta nada: una línea que dice cómo se arregla. Lo mismo lo lista `doctor` (E §10) para toda la PC. Los
 vencimientos **no** van acá (§14).
@@ -363,7 +416,9 @@ vencimientos **no** van acá (§14).
 Las barreras de fábrica valen igual en bypass (§4, verificado), así que no hace falta trabarlo.
 `disableBypassPermissionsMode` se descarta: los obreros nocturnos corren en bypass y cerraría de más. *D (2026-10-23): el obrero nocturno corre en el modo que fija su encargo, con el hook debajo, y para las 5 preguntas de A el hook devuelve `deny` + PARADA, porque el bypass saltea las `ask` ([DISENO-D](DISENO-D-director-obrero.md) §7).* La barrera que
 el bypass esquivó en un proyecto (radiografía §6.6) era "preguntar": pasa a `deny` o a corrector. El modo `auto`
-(el de esta PC) sigue: con `deny` y hooks debajo, el clasificador decide sobre lo demás.
+(el de esta PC) sigue: con `deny` y hooks debajo, el clasificador decide sobre lo demás. *Revisión integral (2026-10-26)*: "lo demás" era
+el agujero; §14 dice ahora qué se hace con el clasificador, y **de noche el obrero nunca corre en `auto`** (tres negaciones seguidas lo apagan
+y la sesión vuelve a preguntar a alguien que no está).
 
 ## 17. Las alertas y el runbook (decisión 13)
 
@@ -373,6 +428,12 @@ el bypass esquivó en un proyecto (radiografía §6.6) era "preguntar": pasa a `
   orden, cómo limpiar el historial de git, cómo verificar que ya no sirve, y la línea que queda en el registro. Es
   el runbook de incidente de agency-agents (REFERENCIAS §2) recortado al único escenario con cicatriz.
 - P39 (docs-fyd con "resumen de exposición") queda como idea hasta una segunda corrida real (TABLERO §12).
+- *Revisión integral (2026-10-26; P74 del acta de contraste)*: el runbook suma **cinco fugas laterales** que hoy no nombra: la selección del
+  IDE que se adjunta sola al mensaje, el historial del portapapeles de Windows, la ventana de clave sin foco (se tipea en el chat), la salida
+  verbosa de builds y herramientas, y el enmascarado improvisado a mano; y a la pregunta "¿escribe?" se suma **"¿qué trae esta lectura?"**
+  (9 lotes de credenciales: un valor de producción llegó adjunto sin pegarlo, L22). Para imágenes, una regla de fábrica: **la evidencia con
+  datos reales vive fuera del repo con registro** (ruta, tramo, quién la borra) y se borra al cerrar; notificaciones apagadas antes de
+  capturar un teléfono (24 capturas sin dueño, L69).
 
 ## 18. Cómo se sabe si funcionó (decisión 14; se mide con los scripts, cada mes)
 
@@ -484,3 +545,27 @@ Se reescribió (§23).
 | 9 | Lo chico no paga lo grande | Un proyecto liviano se ahorra: el director (la revisión de §13 la hace un subagente), `db` (nace solo si hay base), las preguntas de A que la ficha quite, y el push libre. **No se ahorra**: las 9 reglas, el corrector de secretos, el pre-commit y el hook de git: cuestan cero intervención y frenan errores que también pasan en lo chico |
 | 10 | Autónomo con rastro | Cada frenada, cada foto, cada freno quitado, cada línea nueva en el ignore y cada vencimiento deja una línea; el "sí" de Guido deja rastro en la ficha. **Depende de que A le fije ubicación al registro de frenos** (propuesta en §21) |
 | 11 | Piloto antes de flota | Al piloto (Hub y Portal, E §14) van: el hook en bypass en vivo, PowerShell contra el `deny`, los falsos positivos de Write/Edit contra el historial, el `push --force` medido, el pre-commit en las 3 PCs, el conteo de 3+ del contrato `db`, y si la parte de texto del hook (§7.4) sobra |
+
+## 24. Revisión integral con el acta de contraste (2026-10-26)
+
+Con [`tips/tanda-2026-11-contraste.md`](../../tips/tanda-2026-11-contraste.md) abierta y sin volver a los chats salvo el ★ 23f8dd9f. Lo que
+cambió en F:
+
+| Qué | Veredicto del acta | Qué se hizo | Dónde |
+|---|---|---|---|
+| F-1 · las barreras son del proyecto | contradicha (✘172 / ✔27, 60 lotes): los frenos eran del clasificador | Reabierta y cerrada con Guido: dos capas con nombre; AUTORIZADO como `allow` estrechas; hook solo `deny`; `autoMode` por el Equipador en la PC; noche nunca `auto`. Verificado contra la doc oficial | §14, §16 |
+| A-1 · merge y producción | contradicha en A | Campo `autorizado:` en la ficha, default por nivel; merge con gate verde, producción por comando con foto | §14 |
+| F-2 · usar sin ver | mixta (✔219 / ✘176) | P60 + P65: "¿lo puede hacer el agente?", guion numerado, lectura del resultado sin permiso | §8 |
+| F-3 · con permiso, igual con red | confirmada (✔224 / ✘11) | Nada | — |
+| F-4 · qué base es qué | mixta (✔133 / ✘131): un "ensayo" de un tercero resultó real | `entornos:` cubre configuraciones y servicios de terceros; "sin config no arranca" pasa de prosa a mecánica | §12 |
+| F-5 · el escáner no da falsas alarmas | mixta (✔39 / ✘21): ~20 falsas alarmas a clasificar a mano | Queda para el piloto: afinar patrones (handoff, TODO, ignorados por git) con el registro de frenos; sin cambio de diseño | §10 |
+| P73 · el remoto en el arranque | 6 lotes | Dos líneas más en el chequeo de arranque | §15 |
+| P74 · fugas laterales | 9 + 5 lotes | Cinco vías nuevas en el runbook; regla de imágenes | §17 |
+| `taskkill` por nombre | 4 lotes | Caso nuevo del hook de §6 | §6 |
+| H-5 · entorno = base + herramientas | contradicha en H | Lo resuelve H §9; acá solo la nota de que `smoke` y el chequeo de arranque leen la lista de herramientas | H |
+
+Lo que esto le hace a los 11 criterios de §23: el criterio 7 (seguro por defecto) gana la capa que le faltaba (el clasificador), y el
+criterio 1 baja dos preguntas más (merge y producción). Ningún veredicto empeora. **NO VERIFICADO nuevo para el piloto**: que el
+`settings.local.json` generado por script se respete en VS Code igual que en la terminal; qué patrón de `allow` distingue `--env real` de
+`--env dummy` dentro de un mismo comando (ya estaba en la nota de H).
+

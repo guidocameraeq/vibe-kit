@@ -11,17 +11,15 @@
 - [ ] **Misión 4 — diseñar el pack con Guido adentro, SOLO DISEÑO** (hoja de ruta: ADR-021; plan y 11 criterios en docs/mision-4/PLAN.md).
   Tramos 0-3 ✅ · **Tramo 4 ✅ en racimos**: A, C, E, F, B, D (su decisión 5 provisoria), G, H. I salió del kit (ADR-024); **G.1, la mensajería
   agéntica, pasa a la misión 7** (ADR-025). **Queda, en este orden**:
-  1. **Revisión integral con el acta de contraste abierta** (`tips/tanda-2026-11-contraste.md`), **sin volver a los chats**, con los 11 criterios:
-     las ~10 decisiones a reabrir (A-1, E-1, F-1, H-6, D-8, B-6/B-7, H-5, E-4, D-10 y la D5 provisoria), el **triage de P58-P77 en tres pilas**
-     (entra ya a un diseño · misión 5 · espera al piloto), releer solo los 4-5 chats ★ del acta, la nota del contrato del registro en E, y
-     **un apartado propio de director/obrero** (pedido de Guido, 2026-10-26): (a) el canon de D contra **lo que Hermes Desktop cambió en su método
-     mientras diseñábamos**: 126 commits desde el 2026-10-20 en sus skills `director`, `obrero`, `tramo`, `cierre` y `smoke`, con registro formal
-     en su `docs/metodo/CAMBIOS.md` (**CM-72 a CM-103**, aprobados por el PO en la mesa del 26/10); Mobile no tocó el suyo (0 commits). **Guido sigue cambiándolo**: el día de la revisión se mide de nuevo con `git log --since=2026-10-20 -- .claude/skills docs/metodo`
-     y se lee el `CAMBIOS.md` entero, incluidos los aprobados sin aplicar (hoy, CM-103); (b) **decidir
-     el flujo proyecto ↔ kit**: si un proyecto puede seguir cambiando su método entre versiones del kit (como Hermes hoy, con registro) o espera
-     a la versión; y cómo vuelve al kit lo que aprendió (propuesta a evaluar ahí: el registro de cambios de método por proyecto se vuelve pieza
-     del canon, el ciclo lo lee junto con los chats, y lo que se repite en 3+ proyectos entra al kit; E ya tiene el actualizador que no pisa la
-     capa propia y la regla de 3+ con `flota.py`). Lo demás que el acta dice del canon (bitácora, tiempos, roles de hecho: P76) se decide ahí.
+  1. **Revisión integral, sesión 2** (la sesión 1 del 2026-10-26 cerró las 10 decisiones reabiertas, el triage de P58-P77 y las correcciones
+     en los 7 `DISENO-*`; ver CHANGELOG). Queda: (a) **el apartado propio de director/obrero** (pedido de Guido): medir Hermes de nuevo
+     (`git log --since=2026-10-20 -- .claude/skills docs/metodo` en `D:\Hermes\Hermes.exe`; hoy 38 commits) y leer su `docs/metodo/CAMBIOS.md`
+     entero (CM-72 a CM-103 + lo aprobado sin aplicar); cruzar cada CM contra las 11 decisiones de D con el filtro "un solo proyecto no alcanza
+     salvo cicatriz o 3+"; (b) **decidir el flujo proyecto ↔ kit** (propuesta: el registro de cambios de método por proyecto es pieza del canon,
+     el ciclo lo lee, 3+ sube al kit; termina en ADR + sección en D; E §14 apunta acá el caso de E-3); (c) la nota del contrato del registro en
+     E §9; (d) **revisor frío** sobre los 7 diseños corregidos, cada hallazgo contra el criterio ya establecido antes de aplicarlo; (e) **la
+     charla final con Guido sobre cómo queda el método director/obrero de punta a punta** ("es el 80% de cómo trabajo"), con un pedido de
+     ejemplo recorrido entero. Lo demás que el acta dice del canon (bitácora, tiempos, roles de hecho) se decide ahí.
   2. **El spec del pack** (tramo 5): SPEC-0 del kit v3, red team, revisor frío, OK de Guido.
 - [ ] **Misión 4½ — ordenar la casa antes de construir** (una sesión corta): el repo limpio y publicable; **`docs/chats-mision-4/` se muda al privado
   `vibe-research`** (Guido, 2026-10-26: "en este repo, que es genérico, queda medio raro"); **un diario de misiones en `vibe-research`** (qué se

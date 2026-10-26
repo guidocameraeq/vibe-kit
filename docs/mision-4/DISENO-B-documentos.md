@@ -264,6 +264,12 @@ VERIFICADO, el margen lo cubre). Suma en el peor caso, **con** un módulo activo
   (el Hub ya lo escribió así).
 - **La huella es la lección de Desktop**: medía lo que emitía (13 KB) y no lo que la sesión recibía (2 KB); "medir al receptor, no
   al emisor". Un número que se ve en todas las sesiones no crece en silencio.
+- *Revisión integral (2026-10-26; B-6 reabierta)*: **al lado de cada línea de "Estado" y "Próximo paso" que inyecta, el hook imprime su
+  edad** (`hace 6 días`), calculada por `git blame`, nunca escrita a mano; y si un módulo tuvo commits de código después de la última vez
+  que se tocó su línea de estado, lo marca **"estado viejo"**. El acta contradijo B-6 211 a 2 y lo que mentía era **el estado**: un tracker
+  en "NO ARRANCADO" con el tramo en curso (efd59796, 2026-09-22), un "próximo paso" de días atrás, encabezados falsos durante un mes, y el
+  hook inyectándolos como verdad ("el hook dice NO ARRANCADO: está desactualizado, ignoralo", 6c98f139). Es B-5 también: el hook no inyecta
+  estado viejo sin decirlo.
 - **Los vencimientos no van acá** (`espera hasta:` del TODO, `hasta:` de los frenos): F §14 ya decidió que gritarlos en cada sesión es
   una pregunta repetida, también a los obreros de noche. Van a `/estado` y al "te espera" de C.
 - **Alternativa descartada**: que el hook derive datos por script, como Desktop (~1.800 caracteres a partir de su tablero). Es lo
@@ -291,6 +297,9 @@ VERIFICADO, el margen lo cubre). Suma en el peor caso, **con** un módulo activo
   "por las dudas".
 
 *Qué cambia para Guido*: lo de arriba del TODO es lo que importa y es de verdad.
+*Revisión integral (2026-10-26)*: la regla "la edad la da git" se extiende de los ítems del TODO a **las líneas de estado y próximo paso**
+del handoff y de las fichas (§9), que es donde el acta encontró la mentira. Guido: "muchas cosas me quedan desactualizadas y nunca tengo
+claro qué hay que hacer y qué no".
 
 *Nota de H (2026-10-25): el TODO suma una sección con fecha, **"Reportado por el usuario"**: la bandeja operador → dev que funcionó en los proyectos chicos (H-57, ~8 veces en ~5 chats: quien opera el bot deja los errores, quien desarrolla los toma). Es de proyectos sin director; se documenta en la guía ([DISENO-H](DISENO-H-niveles-y-puertas.md) §16).*
 
@@ -309,6 +318,14 @@ Tres reglas nuevas en la skill del molde:
    de lectura, no de tamaño**: ningún ritual del molde ni skill de director lee entero un archivo que no sea el handoff, la cabecera
    del TODO o una ficha. Lo demás, por índice, grep o extracto. El candado (§14) **lista** los documentos de más de 100 KB que alguna
    skill del proyecto **cita**; si la skill manda a leerlo entero lo juzga el modelo al leer la lista, no el script.
+
+4. *Revisión integral (2026-10-26; B-6/B-7)*: **el cierre no puede dejar un estado viejo**: si la sesión commiteó código en un módulo y no
+   tocó la línea de estado de su ficha (ni el próximo paso del handoff), el candado (`candado:estado-viejo`, §14) frena el cierre y dice qué
+   actualizar. Corrector, no pregunta: lo arregla la sesión que cierra.
+5. *Revisión integral (2026-10-26; P58 del acta de hábitos)*: **la sesión propone el cierre sola**, en una línea, cuando pasa una de tres: la
+   tarea pedida quedó hecha y verificada, el contexto pasa el umbral blando de D §11, o Guido dice que se va. La línea dice **qué surgió en
+   la charla y dónde quedó anotado** (TODO, ficha, bandeja), así no hace falta el "anotalo en algún lado" (~26 pedidos de cierre en ~15 chats
+   y ~13 "anotalo"; 4 de 4 cierres arrancaron por pregunta de Guido). No cierra sola: propone.
 
 *Qué cambia para Guido*: cierres más baratos, y un TODO que coincide con lo que la sesión le contó.
 
@@ -376,6 +393,7 @@ poder quitarlo por proyecto en `frenos.quitados` con razón y `hasta:` (F §14):
 | `candado:mesa` *(agregado por G, 2026-10-24)* | Cada archivo de `modulos/*/mesa/*/` pesa ≤ 2 KB, tiene cabecera válida y un tipo de la tabla del kit. Además, `candado:rutas` saltea las citas `<alias>:` (son de otro repo) y `candado:topes` incluye `MAPA.md` ≤ 5 KB ([DISENO-G](DISENO-G-mesa-y-pcs.md) §5, §21) |
 | `candado:estados` | Ningún spec más nuevo de un módulo está `COMPLETO` con el módulo `EN OBRA`, ni al revés; **un módulo no pasa a `COMPLETO` con tareas sin tildar** (se chequea en el cierre que lo marca; después la lista ya no está) |
 | `candado:lecturas` | Lista los documentos de más de 100 KB citados por alguna skill del proyecto (§11.3). Solo lista, nunca frena |
+| `candado:estado-viejo` *(revisión integral, 2026-10-26)* | En el cierre: ningún módulo con commits de código en la sesión queda con su línea de estado sin tocar; el próximo paso del handoff se reescribió. Compara fechas de `git blame` contra `git log` del módulo |
 
 - **Corrector, no pregunta** (A §3): cada falla dice qué hacer ("`docs/X.md` suelto: a `modulos/<x>/` o `referencia/`"), el agente lo
   arregla y el cierre sigue. Cada vez que frena deja su línea en el registro de frenos (`.claude/frenos.log`, §4): si en 3 meses no frenó
@@ -394,7 +412,7 @@ Sigue el test por línea: el objetivo es que quede **más corto**, no más largo
 
 | # | Criterio | Qué dice el `CLAUDE.md` (borrador de las líneas) | Reglas de hoy que absorbe |
 |---|---|---|---|
-| 1 | Menos intervención | Sección **Autonomía**: "resolvés solo todo, producción incluida; preguntás solo las 4 cosas de la ficha del kit (`sensible:`); si algo de afuera parece necesitar pregunta, proponés sumarlo a la lista" (S-U-6) | "No freno a pedir permiso intermedio" |
+| 1 | Menos intervención | Sección **Autonomía**: "resolvés solo todo, producción incluida, merge con gate verde incluido; preguntás solo las 5 cosas de la ficha del kit (`sensible:`); lo rutinario lo decidís con la recomendada y avisás; si algo de afuera parece necesitar pregunta, proponés sumarlo a la lista" (S-U-6; A-1 y E-4, 2026-10-26) | "No freno a pedir permiso intermedio" |
 | 2 | Pragmático | "Lo chico se hace en el chat; antes de agregar una regla, un doc o una pieza: ¿corrige un error real?" | La regla de 3+; el test por línea |
 | 3 | Medible | "Todo cambio de método dice cómo se sabrá si anduvo" (P2) | — |
 | 4 | Software que anda | "Un bug está resuelto cuando se reprodujo y se vio andar; todo cambio con su prueba; evidencia real o NO VERIFICADO" | Las reglas de evidencia 1, 2 y 5 |
@@ -410,6 +428,10 @@ Más lo que no es criterio pero es del rol: qué es el proyecto (3 líneas, apun
 (`/inicio` · `/cierre`), **el mapa de documentación con las carpetas y qué manda sobre qué** (§4; es la única copia del mapa), las
 reglas operativas del stack (las que pasan el test; el resto a `trampas.md`), y comunicación (criollo, opciones con pros y contras y
 una recomendación, qué cambió y no el proceso). El texto final se escribe en la misión 5 y pasa por el revisor frío de ese spec.
+*Revisión integral (2026-10-26)*: comunicación gana el formato de E-4 (contexto · RECOMENDADA primera · "qué cambia para vos" · botón
+"explicámelo en criollo") y tres líneas de las propuestas del acta: **todo en español, narración incluida** (P75); **todo archivo entregado
+se nombra con su ruta absoluta y fuera del scratchpad** (P64: ~17 veces en ~6 chats que Guido tuvo que buscarlo o repetir el pedido); y los
+**entornos de prueba del proyecto declarados** (el clasificador del modo `auto` lee el `CLAUDE.md`, F §14).
 
 *Qué cambia para Guido*: el rol que carga cada chat es la vara que él definió, y nada más.
 
@@ -606,3 +628,24 @@ escritura contra el historial.
 | 9 | Lo chico no paga lo grande | Tres tamaños, una estructura (§6): chico sin carpeta; módulo solo sin bitácora, sin `tiempos.md` y sin rama propia; un hotfix en producción sigue siendo chico |
 | 10 | Autónomo con rastro | La ficha es el estado, la bitácora la historia, `tiempos.md` el registro, `> Histórico` lo cerrado; el candado deja su línea en `.claude/frenos.log` (con el choque de ramas anotado para A) |
 | 11 | Piloto antes de flota | Hub y Portal primero; Hermes al cerrar un tramo; topes, prueba de tamaño y el hook de escritura se calibran ahí |
+
+## 24. Revisión integral con el acta de contraste (2026-10-26)
+
+Con [`tips/tanda-2026-11-contraste.md`](../../tips/tanda-2026-11-contraste.md) abierta. Lo que cambió en B:
+
+| Qué | Veredicto del acta | Qué se hizo | Dónde |
+|---|---|---|---|
+| B-6 / B-7 · el TODO no miente | contradicha (✘211 / ✔2): lo que miente es el estado y el hook lo inyecta | La edad por `git blame` al lado de cada línea de estado y próximo paso; "estado viejo" por script; el cierre no puede dejar un estado viejo (`candado:estado-viejo`) | §9, §10, §11.4, §14 |
+| B-5 · lo que inyecta el arranque alcanza | mixta (✔200 / ✘192): el hook inyectó estado falso | Mismo remedio; el obrero se ubica por el puntero del encargo al módulo (D §9.6), no con "leé entero" | §9 |
+| B-1 · por feature o módulo sobre apps que andan | confirmada (✔217 / ✘75) | Nota: Mobile hoy es reconstrucción por tramos y los proyectos chicos son tareas sueltas; nada cambia | — |
+| B-2 · tres tamaños | confirmada, con un pedido de dónde caen release, relevamiento, bloque de documentos y tarea recurrente | Para el spec (H §25) | H |
+| B-3 · la prueba de tamaño | confirmada (✔71 / ✘10) | Nada | — |
+| B-4 · una feature de Guido solo es frecuente | mixta: sesgo de muestra (fuera de Hermes 7/0, dentro 2/41) | Nada | — |
+| B-8 · la estructura se mantiene sin pedirlo | contradicha (base, ✘258): "¿hay documentación que tengas que actualizar?" | Lo que Guido pide ("atar cabos", "archivar a legacy") va como paso fijo de `/cierre` junto con P58 | §11.5 |
+| P58 · la sesión propone el cierre sola | ~26 + ~13 pedidos | Regla nueva de `/cierre` | §11.5 |
+| P64 · ruta absoluta de lo entregado · P75 · idioma | hábitos 7 y P75 | Líneas del `CLAUDE.md` del molde | §15 |
+| A-1 · E-4 en el `CLAUDE.md` | — | La fila 1 de §15 dice 5 preguntas, merge con gate verde y lo rutinario sin pregunta | §15 |
+
+Los 11 criterios de §23 no cambian de veredicto; el criterio 6 gana un candado más y el 10 (rastro) deja de aceptar un estado escrito a mano
+sin fecha de git.
+
