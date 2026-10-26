@@ -299,7 +299,7 @@ entrada al tramo 4, que diseña de a un pilar, y al top 10 del spec.
 | **F · Seguridad por defecto** | #9, P8, P12, P14, P20, P49; S-C-2, S-D-5, S-M-4, S-M-7, S-M-8, S-D-12 | 7 | Base (molde) |
 | **G · Mesa y PCs** | #10, P32, P34, P42, P44-P46; S-R-3, S-C-1, S-M-12, S-D-7; 🆕 el buzón multiagente (2026-10-21) | 5 | Mesa. ✅ [DISENO-G](DISENO-G-mesa-y-pcs.md) (2026-10-24); el buzón pasa a **G.1**, opt-in |
 | **H · Niveles y puertas del Arquitecto** | P6, P7, P9, P10, P35, P51, P52, P57; S-R-6; 🆕 **los subproyectos** (2026-10-21) | 4 · 3 · 6 | El Arquitecto como puerta. ✅ [DISENO-H](DISENO-H-niveles-y-puertas.md) (2026-10-25/26; 14 decisiones; el tope del spec queda como aviso que decide Guido) |
-| **I · El agente de ecosistema** 🆕 (2026-10-22) | Conocer todos los proyectos a la vez y pensar entre ellos: el mapa (qué se conecta con qué), la salud de la flota, el reporte semanal, y "¿esto es proyecto nuevo, subproyecto o feature de otro?" | 5 · 6 · 3 | **Fuera del kit, o como adaptador**: es propio de la empresa de Guido. Se diseña último |
+| **I · El agente de ecosistema** 🆕 (2026-10-22) | Conocer todos los proyectos a la vez y pensar entre ellos: el mapa (qué se conecta con qué), la salud de la flota, el reporte semanal, y "¿esto es proyecto nuevo, subproyecto o feature de otro?" | 5 · 6 · 3 | ✅ **Decidido el 2026-10-26 (ADR-024): fuera del kit.** El agente se diseña y construye en el repo del Hub, como módulo de ese proyecto. En vibe-kit queda solo **el contrato genérico del registro** (leerlo por adaptador, forma `{version, fichas, conexiones}`; el Arquitecto mira el mapa antes de entrevistar por un proyecto nuevo, si hay registro), que cierra como nota en E en la revisión integral. No es un racimo |
 
 🆕 **Subproyectos dentro de un proyecto** (pedido de Guido, 2026-10-21, mientras se diseñaba el racimo C).
 Un proyecto grande, como Hermes, tiene adentro subproyectos (por ejemplo, el tramo "una sola identidad").
@@ -332,8 +332,10 @@ quedó decidido para que el camino esté allanado:
 - **se hablan en las dos direcciones**: el ecosistema diagnostica y reparte un plano de conjunto que el
   Arquitecto ejecuta proyecto por proyecto; el Arquitecto, antes de entrevistar por un proyecto nuevo, mira
   el mapa y avisa si algo parecido ya existe;
-- **dónde vive**: probablemente dentro del propio Hub (es de la empresa), no en vibe-kit. El kit, a lo sumo,
-  deja el enchufe genérico ("leer un registro de proyectos" por adaptador). Se decide en el racimo I.
+- **dónde vive**: ✅ **en el Hub** (decisión de Guido, 2026-10-26, ADR-024: "vibe-kit tiene que quedar medio genérico para que sea un
+  ecosistema de trabajo agéntico, pero no con un agente de ecosistema mío, exclusivo de mi empresa"). El kit deja solo el enchufe genérico
+  ("leer un registro de proyectos" por adaptador). **El racimo I deja de existir en vibe-kit**; sus insumos del acta de contraste que son
+  genéricos (P76, P69) van al triage de la revisión integral, y los del agente (el mapa, la salud de la flota, el reporte semanal) viajan al Hub.
 - **Cómo lo está diseñando el Hub** (su spec en borrador, 2026-10-22; se construye en su tanda 4): el registro cubre
   proyectos **y sistemas**; `repos` es una lista por ficha; "se conecta con" es una tabla con tipos editables; la
   credencial es **una puerta HTTP del Hub con dos llaves propias** (una de lectura para el registro y la ficha, otra

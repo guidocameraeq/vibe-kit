@@ -9,8 +9,8 @@ kit `v2.4.2`. PC `clientes`. `kit-sync` LIMPIO.
 
 ## Dónde estamos
 
-- **Misión 4**, tramo 4: ✅ **A · C · E · F · B · D · G · H**. Orden que fijó Guido hoy: **I → revisión integral → G.1 (mañana) → spec**
-  ("resolver todo el resto antes de G.1"). [`PLAN.md`](mision-4/PLAN.md).
+- **Misión 4**, tramo 4: ✅ **A · C · E · F · B · D · G · H**. **I salió del kit** (ADR-024: el agente de ecosistema se diseña en el Hub; acá
+  queda el contrato del registro, nota en E). Orden que fijó Guido hoy: **revisión integral → G.1 (mañana) → spec**. [`PLAN.md`](mision-4/PLAN.md).
 - ✅ **H**: Guido aprobó las 7-14 **con una corrección a la 9**: el tope del spec es un **aviso** (el script mide, el Arquitecto propone el corte,
   decide Guido); "el spec no crece durante la obra" queda firme. Y trajo la cicatriz de la 7: 47 worktrees `D:\Hermes-*` en la raíz del disco,
   porque la skill `director` de Hermes los manda afuera del repo; H §10 los mete en `.claude/worktrees/`. Ordenar Hermes es trabajo de su repo.
@@ -21,23 +21,21 @@ kit `v2.4.2`. PC `clientes`. `kit-sync` LIMPIO.
   Hábitos cruzados con el acta de `Usuario`; **propuestas nuevas P66-P77**; insumos para I y G.1; 7 lecciones de receta (§4).
 - `recortar.py` tiene el modo `contraste` (mensajes entre sesiones enteros) y el presupuesto con dos cotas.
 
-## Próximo paso: el racimo I
+## Próximo paso: la revisión integral del tramo 4
 
-**Título: `vibe-kit M4 · Tramo 4: racimo I (el agente de ecosistema)`**. Esfuerzo `high`. Mismo molde que los otros racimos: decisiones con
-Guido, una por una y en criollo, con "qué cambia para él"; los 11 criterios del PLAN y su tabla al cierre; revisor frío; verificación contra la doc
-oficial. Punto de partida: TABLERO §10 (el agente vive en el Hub, el kit solo consume el `registro`) y E §4. **Del acta le entran**: los roles que
-existen de hecho (sesión de spec, obrero de decisiones; P76), lo del Hub y la ficha de presencia del PO (P69). **No se leen más chats.**
+**Título: `vibe-kit M4 · Tramo 4: revisión integral con el acta de contraste`**. Esfuerzo `high`. Con el acta abierta y **sin volver a los
+chats**, cuatro cosas concretas: las ~10 decisiones a reabrir, una por una con Guido y en criollo (cierra la D5); **triage de P58-P77 en tres
+pilas** (entra ya a un diseño · se construye en la misión 5 · espera al piloto); releer **solo** los 4-5 chats marcados ★ en el acta que toquen
+una decisión; y **la nota del contrato del registro en E** (lo único que queda de I: el kit lee un registro por adaptador, forma `{version,
+fichas, conexiones}`, y el Arquitecto mira el mapa antes de entrevistar por un proyecto nuevo). Todo con los 11 criterios; revisor frío al final.
 
-**Después, en orden** (plan de Guido del 2026-10-26, armado con la sesión del observatorio):
-1. **Revisión integral del tramo 4, con el acta abierta**: `vibe-kit M4 · Tramo 4: revisión integral con el acta de contraste`. Tres cosas
-   concretas: las ~10 decisiones a reabrir, una por una (cierra la D5); **triage de P58-P77 en tres pilas** (entra ya a un diseño · se
-   construye en la misión 5 · espera al piloto); releer **solo** los 4-5 chats marcados ★ en el acta que toquen una decisión. Con los 11 criterios.
-2. **G.1 (mañana)**: `vibe-kit M4 · Tramo 4: racimo G.1 (el buzón entre agentes)`, brief en G §18 **más sus insumos del acta**: subagentes sin
+**Después, en orden** (plan de Guido del 2026-10-26):
+1. **G.1 (mañana)**: `vibe-kit M4 · Tramo 4: racimo G.1 (el buzón entre agentes)`, brief en G §18 **más sus insumos del acta**: subagentes sin
    tope ni latido (hueco 3 / P71), la cabecera "si no sos tal, ignorá", las defensas ante textos con forma de orden, el canal que se cae, la
    pausa ordenada (P68) y el resumen del día (P77).
-3. **El spec** (tramo 5): red team, revisor frío, OK de Guido.
+2. **El spec** (tramo 5): red team, revisor frío, OK de Guido.
 
-**Sesión corta aparte, cuando Guido quiera**: `vibe-kit · Tope al hook del molde (v2.4.3)`, esfuerzo `medium`.
+**Fuera de vibe-kit**: el agente de ecosistema arranca en el repo del Hub con su `/arquitecto` (Modo B), con lo del mapa y la flota del acta.
 
 ## Cosas que muerden y no están en ningún otro doc
 

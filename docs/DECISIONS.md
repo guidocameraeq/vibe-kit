@@ -29,6 +29,7 @@
 - ADR-021 · Investigar el uso real antes de rediseñar el pack — y vibe-kit sigue público (2026-10-12)
 - ADR-022 · Cómo se ejecutó la investigación: lo que se apartó del SPEC (2026-10-13)
 - ADR-023 · Profesionalizar el repo madre: portada, misión y visión, observatorio, TODO y licencia (2026-10-13)
+- ADR-024 · El agente de ecosistema se va del kit: vive en el Hub; vibe-kit guarda solo el contrato del registro (2026-10-26)
 
 *Cada ADR nuevo suma su línea acá (lo pide `/cierre`).*
 
@@ -499,3 +500,24 @@ diferencias que no tenían razón de ser:
   (la idea fuerza de la tanda de chats: solo frena lo mecánico). Con esto **se acaba la excepción de
   ADR-021**: el diff da limpio en todas las PCs. *Descartado por ahora:* un archivo local por PC fuera
   de la skill (cambia el flujo del kit: insumo de la misión 4).
+
+## ADR-024 · El agente de ecosistema se va del kit: vive en el Hub; vibe-kit guarda solo el contrato del registro (2026-10-26)
+Misión 4, tramo 4. El tablero (§10) sumó el 2026-10-22 un racimo **I**, "el agente de ecosistema" (el mapa de qué se conecta con qué, la
+salud de la flota, el reporte semanal, "¿esto es proyecto nuevo, subproyecto o feature de otro?"), aparte del Arquitecto, y dejó abierto dónde
+vivía ("probablemente en el Hub; el kit a lo sumo deja el enchufe genérico"). Al cerrar el racimo H y la lectura de contraste de los chats,
+**Guido lo decidió**: "vibe-kit tiene que quedar medio genérico para que sea un ecosistema de trabajo agéntico, pero no con un agente de
+ecosistema mío, exclusivo de mi empresa. Eso debería manejarlo por afuera."
+- **Decisión:** el racimo I **deja de existir en vibe-kit**. El agente se diseña y construye **en el repo del Hub**, como módulo de ese proyecto
+  (su `/arquitecto`, Modo B), con sus datos y sus llaves. En el kit queda **solo el contrato genérico del registro**, que ya estaba casi
+  escrito (TABLERO §10, DISENO-E §9): el kit lee un registro de proyectos **por adaptador**, con forma `{version, fichas, conexiones}`, y el
+  Arquitecto mira ese mapa antes de entrevistar por un proyecto nuevo, si hay registro. Eso no es un racimo: cierra como **nota en E** en la
+  revisión integral. El tramo 4 queda: revisión integral → G.1 → spec.
+- **Por qué:** el repo es público (ADR-021) y tiene que poder servirle a cualquiera; lo propio de la empresa (el Hub, sus 77 fichas, sus
+  llaves) no se acerca a un repo público; el Hub ya es dueño del agente en su propio spec ("el agente de ecosistema es una pieza del Hub y el
+  kit solo consume el registro", publicado el 2026-10-22). Y el scope-creep de ADR-004: meter el ecosistema en el kit repetía el error.
+- **Descartado:** *diseñar I como racimo del kit con un adaptador por empresa* (el adaptador es el contrato; el agente no tiene parte genérica
+  que valga un racimo) · *dejarlo "último, ya veremos"* (es lo que había; un chat futuro lo re-proponía).
+- **Costo aceptado:** el contrato del registro vive en dos repos (acá como nota en E, en el Hub como su puerta `registro`) y hay que mantenerlo
+  coherente; la pregunta "¿es proyecto nuevo, subproyecto o feature de otro?" queda partida (el Arquitecto consulta el registro; el Hub responde
+  con sus datos). Los insumos del acta de contraste que eran para I: los genéricos (P76, P69) van al triage de la revisión integral; los del
+  agente viajan al Hub.

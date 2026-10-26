@@ -2,6 +2,14 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-26 — El agente de ecosistema se va del kit (ADR-024)
+
+### Changed
+- **El racimo I deja de existir en vibe-kit** (decisión de Guido: el kit tiene que quedar genérico; lo de su empresa va por afuera). El agente de
+  ecosistema se diseña y construye en el repo del Hub; acá queda solo el contrato genérico del registro (leerlo por adaptador, forma
+  `{version, fichas, conexiones}`; el Arquitecto mira el mapa antes de un proyecto nuevo), como nota en E en la revisión integral. ADR-024,
+  REJ-016; TABLERO §10, PLAN, TODO y handoff al día. El tramo 4 queda: revisión integral → G.1 → spec.
+
 ## 2026-10-26 — Misión 4, tramo 4: H cerrado con Guido y la lectura de contraste de los chats, hecha (observatorio)
 
 ### Added

@@ -75,3 +75,7 @@
   sin git donde haya que instalar el kit, se regenera con un comando
   (`Compress-Archive -Path 'kit/*' -DestinationPath <ruta>/arquitecto-portable.zip -Force`) y se
   vuelve a poner el paso en el `/cierre`. Anotado 2026-08-03.
+
+- **REJ-016 · Un racimo (o skill) "agente de ecosistema" dentro de vibe-kit** — el mapa de proyectos, la salud de la flota y el
+  reporte semanal son de la empresa de Guido y se diseñan en el Hub (ADR-024, 2026-10-26). En el kit queda solo el contrato genérico
+  del registro (nota en E). Re-abrir solo si aparece una parte genérica que valga para cualquier empresa.
