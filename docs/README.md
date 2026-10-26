@@ -30,6 +30,10 @@ siguen consultando (ADR-020). El Arquitecto busca borradores en `docs/SPEC-*.md`
 | [`SPEC-investigacion-chats.md`](SPEC-investigacion-chats.md) | La investigación de los chats (misión 2) y la hoja de ruta |
 | [`SPEC-profesionalizar-repo.md`](SPEC-profesionalizar-repo.md) | El orden de este repo (misión 3) |
 
+## Temporal — [`chats-mision-4/`](chats-mision-4/)
+
+Los chats condensados en los que se diseñaron los racimos de la misión 4, guardados para la revisión del proceso de la misión 6. Se borra cuando la misión 6 los use. Qué hay y qué no: su [`LEEME.md`](chats-mision-4/LEEME.md).
+
 ## La misión en curso — [`mision-4/`](mision-4/)
 
 | Archivo | Qué es |

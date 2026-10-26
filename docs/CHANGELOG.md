@@ -2,6 +2,15 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-26 — Los chats de la misión 4, guardados para la revisión del proceso
+
+### Added
+- `docs/chats-mision-4/`: siete chats condensados de la PC `Usuario` (racimos B, D, F, G y H, una rama corta de F y la pasada de hábitos;
+  0,5 MB de 23 MB crudos) y su tabla de tokens, con un `LEEME.md` que dice para qué están: **la revisión del proceso de la misión 6**, y
+  que la carpeta se borra después. Condensados con `condensar.py` (secretos tapados antes de escribir, sin salidas de herramientas ni
+  subagentes), gitleaks limpio y revisión a mano de mails, links, documentos, montos y alertas. Va al repo público por decisión de Guido,
+  frente a la alternativa del privado `vibe-research`. Asentado en la misión 6 del TODO y en `docs/README.md`.
+
 ## 2026-10-26 — El acta de hábitos de la PC `Usuario` (observatorio)
 
 ### Added

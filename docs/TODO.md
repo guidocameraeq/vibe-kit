@@ -39,6 +39,8 @@
   - plantillas genéricas del SPEC de investigación y del PLAN de diseño;
   - la fecha de corte de la próxima vuelta;
   - las lecciones de esta vuelta (se juntan en `docs/mision-4/PLAN.md` §Lecciones para el ciclo).
+  - **leer los chats de la misión 4** que Guido pidió guardar para esto (`docs/chats-mision-4/`, con su LEEME): cómo se trabajó de verdad
+    y cuánto costó cada racimo. Faltan los de A, C y E y los de los tramos 0-3 (sumarlos desde la PC `clientes`). Al terminar, la carpeta se borra.
 
   Es una receta, no una skill (regla de 3+).
 
