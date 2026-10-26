@@ -2,6 +2,29 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-26 — Misión 4, tramo 4: H cerrado con Guido y la lectura de contraste de los chats, hecha (observatorio)
+
+### Added
+- `tips/tanda-2026-11-contraste.md` (acta, 98 KB): los 336 chats de la PC `clientes` (todos hasta el corte nuevo, **2026-10-26 14:47 UTC**)
+  leídos **con las 49 decisiones de A-H en la mano**. 83 lectores Sonnet por lotes de 200 KB, 3 síntesis Opus, suma mecánica por script.
+  Veredictos: 17 confirmadas · 17 contradichas (casi todas "línea de base": hoy pasa lo que la decisión viene a cambiar) · 14 mixtas · 1 sin
+  evidencia. ~10 decisiones a reabrir en la revisión integral; hábitos cruzados con el acta de `Usuario`; **propuestas P66-P77**; una cuarta
+  sección abierta ("otras cosas") por pedido de Guido; 7 lecciones de receta. **Costo real: 22,1 M de tokens nuevos**, 1,3-2× el presupuesto que
+  vio Guido (la causa, medida: el `ya-sabido` de 112 KB que cada lector lee entero). Lo crudo (lo nuevo condensado, hallazgos, síntesis, scripts)
+  en `D:\vibe-hallazgos\contraste-2026-11\` y su copia en el privado `vibe-research` (`biblioteca/`, 1.399 archivos).
+- `recortar.py --modo contraste`: conserva enteros los mensajes entre sesiones (o hasta `--bytes-mensaje`), 5 líneas de cada respuesta de tarea
+  y las marcas `[SendMessage →]`, `[Agent]`, `[Skill]`, `[AskUserQuestion]`; el presupuesto se imprime con dos cotas. Probado con 3 chats.
+
+### Changed
+- **H cerrado (✅)**: Guido aprobó las decisiones 7-14 **con una corrección a la 9**: el tope del spec pasa de corte automático a **aviso** (el
+  script mide, el Arquitecto propone dónde cortar, decide él; "el spec no crece durante la obra" queda firme). Evidencia nueva en §10: 47
+  worktrees `D:\Hermes-*` en la raíz del disco de Guido (la skill `director` de Hermes los manda afuera del repo a propósito); el método los
+  mete en `.claude/worktrees/`. DISENO-H (cabecera, §2, §10-§17, §20, §23, §24), TABLERO §10, PLAN y el LECTOR al día.
+- `PLAN-lectura-contraste.md`: números medidos, las decisiones de Guido al lanzarla (mensajes enteros; "relevar más que lo mínimo"); `LECTOR-contraste.md`
+  con la cuarta sección; `METODO.md` con la fila corrida.
+- **Orden del resto del tramo 4** (Guido, 2026-10-26): I → revisión integral con el acta abierta (sin volver a los chats) → G.1 mañana → spec.
+  Handoff y TODO al día.
+
 ## 2026-10-26 — Los chats de la misión 4, guardados para la revisión del proceso
 
 ### Added

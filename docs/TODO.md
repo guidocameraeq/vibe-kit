@@ -10,11 +10,12 @@
   Tramo 1 (radiografía director/obrero) ✅ · Tramo 2 (flota, repos, plataforma) ✅ · Tramo 3 (el mapa por objetivos,
   `TABLERO.md`) ✅ · **Tramo 4 en curso, por racimos**: A ✅, C ✅, E ✅ (molde y flota), F ✅ (seguridad por defecto), B ✅ (documentos con tope),
   D ✅ (2026-10-23: el método director/obrero y el workflow diario; **su decisión 5, ramas y escritores, queda provisoria**), G ✅ (2026-10-24: la mesa por git, 12 decisiones aprobadas en bloque; **el buzón multiagente pasa a G.1**, opt-in, sesión propia con
-  investigación en internet y piloto), **H 🟡** (2026-10-25: niveles y puertas del Arquitecto; 14 decisiones, **las 7-14 sin OK explícito de
-  Guido: confirmarlas en la PC `clientes` con `DISENO-H` §10-§17 en la mano**), **sigue I** (el agente de ecosistema, propio de la empresa) y
-  **G.1 al final** (orden de Guido, 2026-10-24). **La lectura de contraste de los chats** (`observatorio/investigacion/PLAN-lectura-contraste.md`)
-  corre en la PC `clientes` como sesión del observatorio, en paralelo con I, y entra a la revisión integral. Las propuestas **P58-P62** del acta de
-  hábitos (`tips/tanda-2026-10-habitos.md`) entran a la revisión integral. **Cada racimo se diseña
+  investigación en internet y piloto), H ✅ (2026-10-26: niveles y puertas del Arquitecto; 14 decisiones, el tope del spec como aviso que decide Guido).
+  **Lo que queda, en el orden que fijó Guido el 2026-10-26**: (1) **I** (el agente de ecosistema; TABLERO §10, insumos del acta: P76, P69) ·
+  (2) **revisión integral con el acta de contraste abierta** (`tips/tanda-2026-11-contraste.md`), **sin volver a los chats**: las ~10 decisiones a
+  reabrir (A-1, E-1, F-1, H-6, D-8, B-6/B-7, H-5, E-4, D-10 y la D5 provisoria), el **triage de P58-P77 en tres pilas** (entra ya a un diseño ·
+  misión 5 · espera al piloto), releer solo los 4-5 chats ★ del acta · (3) **G.1** (el buzón entre agentes; brief en G §18 + hueco 3/P71, P68,
+  P77 y las "otras" 5, 8 y 24 del acta) · (4) el spec. **Cada racimo se diseña
   con los 11 criterios del PLAN y cierra con su tabla; al terminar los nueve, revisión integral de todas las decisiones con esa vara, antes
   del spec** (Guido la pidió especialmente para D). Fuentes: las 57 propuestas de
   `tips/tanda-2026-10-chats.md` + los métodos de Hermes Desktop y Mobile + `REFERENCIAS-EXTERNAS.md`.

@@ -1,8 +1,8 @@
 # Diseño · Racimo H: niveles y puertas del Arquitecto
 
-> **Misión 4, tramo 4** · 2026-10-25 · **Estado: 🟡 cerrado provisoriamente** (decisiones 1-6 aprobadas en bloque por Guido el 2026-10-24;
-> 7-14 presentadas el 2026-10-25 sin objeción, **pendientes de su OK explícito** desde la PC `clientes`; revisor frío Opus: 45 hallazgos,
-> todos aplicados, 6 con otro arreglo; §17). Es solo diseño: se construye en la misión 5. Se mide contra el norte y los 11 criterios del
+> **Misión 4, tramo 4** · 2026-10-25 · **Estado: ✅ cerrado el 2026-10-26** (decisiones 1-6 aprobadas en bloque por Guido el 2026-10-24;
+> 7-14 aprobadas el 2026-10-26 desde la PC `clientes`, **con una corrección a la 9**: el tope del spec es un aviso y decide Guido, §12; revisor
+> frío Opus: 45 hallazgos, todos aplicados, 6 con otro arreglo; §17). Es solo diseño: se construye en la misión 5. Se mide contra el norte y los 11 criterios del
 > [PLAN](PLAN.md). Respeta lo decidido en [A](DISENO-A-frenos.md), [B](DISENO-B-documentos.md), [C](DISENO-C-salida-hacia-Guido.md),
 > [D](DISENO-D-director-obrero.md), [E](DISENO-E-molde-y-flota.md), [F](DISENO-F-seguridad.md) y [G](DISENO-G-mesa-y-pcs.md); donde los
 > corrige o completa, lo dice y deja la nota allá (la lista, en §22). Alias: Desktop, Mobile, Devoluciones, Deptos, Hub (repo público, ADR-021).
@@ -19,7 +19,11 @@ worktree y medición** sin que Guido tenga que inventar ni acordarse de nada de 
   cuando se escribe a la vez, subproyecto = módulo, el Arquitecto termina armando, y el entorno de prueba verificado por script. Con una
   reserva honesta: "me cuesta entender algunas cosas muy técnicas; si todas apuntan a mejorar mi workflow, dar mejor código, consistencia y
   que tenga que acordarme de menos cosas, estoy de acuerdo". **Por eso cada decisión de este documento dice cuál de esas cuatro cosas mueve.**
-- **Las ocho de la mecánica** (§10-§16) las leyó sin objetar y pidió "cerrarlas como a vos te parezca"; **quedan provisorias hasta su OK**.
+- **Las ocho de la mecánica** (§10-§17) las leyó el 25 sin objetar y pidió "cerrarlas como a vos te parezca". **El 2026-10-26, desde la PC
+  `clientes`, las aprobó con una corrección**: "prácticamente todas me parecen súper bien"; la única duda fue el tope del spec (§12): "¿no puede
+  haber un spec muy grande? siento que quizás entorpece un poco el desarrollo". Eligió **el tope como aviso**: el script mide, el Arquitecto
+  propone dónde cortar y decide él; **"el spec no crece durante la obra" queda firme**. Y trajo una cicatriz para §10: en sus PCs los worktrees
+  de Hermes le llenan la raíz de `D:` de carpetas ("necesitaría ordenar un poco eso"); medido ese día: 47 worktrees `D:\Hermes-*`.
 - **Dos pedidos que no estaban en el racimo**: (a) que las sesiones encadenadas **se dejen solas el prompt de la siguiente** ("al cerrar le
   pido que me prepare el prompt para la otra"): ya lo resuelve B §8 (el "próximo paso" dentro del handoff, que `/inicio` toma sin pegar
   nada; P48, 22 lotes), y lo confirman dos plugins comunitarios y un pedido abierto a Anthropic (§18); (b) **una segunda lectura de los
@@ -203,7 +207,7 @@ Pedido de Guido (D §2, §12.8): "que el Arquitecto verifique que el proyecto te
 inútil). *Qué cambia para Guido*: no vuelve a probar con un usuario real porque "ensayo" no existía (3 veces en un día); nunca se confunde "lo
 rompí" con "ya estaba así".
 
-## 10. Ramas y worktrees: un nombre por unidad, los crea un script, el prefijo dice qué es (decisión 7, provisoria) `[consistencia · acordarse de menos]`
+## 10. Ramas y worktrees: un nombre por unidad, los crea un script, el prefijo dice qué es (decisión 7) `[consistencia · acordarse de menos]`
 
 Lo verificado contra la doc oficial el 2026-10-24 (§17): `claude -w <nombre>` crea `.claude/worktrees/<nombre>` con la rama `worktree-<nombre>`
 **saliendo de la rama por defecto del remoto** (o del HEAD con `worktree.baseRef: head`), no acepta una rama existente ni un nombre de rama
@@ -254,12 +258,18 @@ lógica y apaga `.worktreeinclude`). Por eso los módulos no usan `-w`.
     dice que salta el aislamiento si ya está en uno); que `--resume` encuentre la sesión por el `cwd` del worktree (la ficha guarda **la ruta
     del worktree junto al id de sesión**, y la línea de reanudar arranca con `cd`; R-21).
 
+**La cicatriz de la carpeta `.claude/worktrees/` (2026-10-26, PC `clientes`).** La skill `director` de Hermes manda los worktrees **afuera del
+repo, hermanos del checkout** (`D:\Hermes-<x>`), porque adentro aparecían como carpeta sin seguir. Resultado medido ese día: **47 worktrees
+`Hermes-*` en la raíz de `D:`**, todos con commits de las últimas dos semanas y sin cambios sueltos, mezclados con los proyectos; Guido: "se me
+llena de carpetas el disco D". Por eso §10.1 y §10.10: adentro del proyecto, con nombre fijo y la carpeta ignorada por git, que era justo lo
+que Hermes esquivaba. Ordenar Hermes es trabajo de su repo (su skill pasa a la carpeta interna y `cerrar` borra lo mergeado), no de este diseño.
+
 *Alternativas descartadas*: `claude -w` para todo (no puede ramificar desde el módulo ni elegir nombre) · ramas sin prefijo · tope de worktrees
 vivos y foto antes de borrar (Codex: el script se niega a borrar lo no mergeado o con cambios, y la rama mergeada queda en el historial) ·
 HEAD desacoplado (Codex: queremos la rama con nombre en el historial). *Qué cambia para Guido*: no inventa nombres ni corre `git worktree`;
 pega la línea que le da el director; si hace `claude -w` a mano, no rompe nada: es una misión plana.
 
-## 11. `/inicio` propone worktree solo si hay otra sesión viva en el mismo checkout (decisión 8, provisoria) `[acordarse de menos]`
+## 11. `/inicio` propone worktree solo si hay otra sesión viva en el mismo checkout (decisión 8) `[acordarse de menos]`
 
 Es la pregunta de G §11.4, y **la única de worktree que Guido va a ver**. Dos precisiones (R-8): **se cuentan solo las sesiones vivas en el
 mismo checkout**, no en el repo (en un proyecto largo siempre hay un director vivo en su worktree, y D §8.7 dejó `main` limpio justamente para
@@ -267,11 +277,13 @@ las sesiones planas): el hook de arranque deja una marca con el id de sesión en
 `/inicio` mira solo la suya; una marca con más de 12 h sin actividad no cuenta (G fijó "solo nombre y existencia", nunca el contenido de una
 sesión). Director y obreros nunca preguntan: la línea de apertura ya los deja adentro (§10.5). Una sesión plana sola: `main`, sin worktree.
 
-## 12. El spec tiene tope por tamaño, medido por script antes del red team y del READY (decisión 9, provisoria; P52) `[consistencia · mejor código]`
+## 12. El spec tiene tope por tamaño: el script mide y avisa, el Arquitecto propone el corte y Guido decide (decisión 9, corregida el 2026-10-26; P52) `[consistencia · mejor código]`
 
 - **Módulo solo: ≤10 KB y ≤8 criterios** (el formato ya dice 3-8; nadie lo chequea). **Módulo con director: ≤30 KB con las tareas listadas.**
-  Si se pasa, el Arquitecto **corta**: lo que sobra es **otro módulo hermano** (mismo `parte-de:` que el original, o suelto), **nunca hijo** de
-  un módulo que tiene tareas (B §5bis puso `tiempos.md` solo en las hojas; R-14).
+  **El tope es un aviso, no un corte automático** (Guido, 2026-10-26: "siento que quizás entorpece un poco el desarrollo"): si se pasa, el
+  script lo dice con el número, el Arquitecto **propone dónde cortar** y **Guido decide con un clic** si parte o sigue entero (una pregunta más,
+  contada en §20, solo cuando se pasa). Si parte, lo que sobra es **otro módulo hermano** (mismo `parte-de:` que el original, o suelto),
+  **nunca hijo** de un módulo que tiene tareas (B §5bis puso `tiempos.md` solo en las hojas; R-14). Lo que **no** se negocia es el punto siguiente.
 - **El spec no crece durante la obra.** Un cambio de pedido **aprobado** va como `SPEC-2.md` en el mismo módulo (B §4, §13) y reescribe solo
   la parte afectada (B §5) **mientras el conjunto quepa en el tope**; lo que lo pasa, es otro módulo (R-13). Es la regla de Kiro ("el spec de
   un bug no crece; lo nuevo es otro spec") y la nuestra de S-M-14 ("el sí vale solo para lo que se preguntó": 2 ensanches medidos).
@@ -281,9 +293,10 @@ sesión). Director y obreros nunca preguntan: la línea de apertura ya los deja 
 - **Los números son NO VERIFICADO**: se calibran en el piloto con nuestros specs (15-66 KB), los de Hermes (43-55 KB) y el anti-ejemplo de
   Böckeler (16 criterios para un bug). Nadie afuera pone tope ni lo chequea con script (§18): acá somos originales.
 
-*Qué cambia para Guido*: lee specs de una pantalla y media; no aprueba lo que después se agranda solo.
+*Qué cambia para Guido*: cuando un spec se pasa, ve el número y decide si lo parte; nunca lo frena un corte que no eligió; y no aprueba lo que
+después se agranda solo.
 
-## 13. Prototipo antes del spec, para features de pantalla (decisión 10, provisoria; P57) `[workflow · acordarse de menos]`
+## 13. Prototipo antes del spec, para features de pantalla (decisión 10; P57) `[workflow · acordarse de menos]`
 
 En Modo B, si la feature es de pantalla, el Arquitecto **arma un prototipo clickeable antes del spec**: HTML estático, por un subagente Sonnet,
 que se abre en el navegador (nada depende de la app de escritorio: Guido trabaja en la extensión de VS Code), **con una pregunta escrita**
@@ -295,7 +308,7 @@ varias preguntas (contada en §20).
 *Alternativa descartada*: spec primero y pantalla después (lo que hacen todos; a Guido le funcionó al revés). *Qué cambia para Guido*: ve la
 pantalla antes de leer un documento.
 
-## 14. Proyecto sin código, y la carpeta real (decisión 11, provisoria; P9, P10) `[acordarse de menos · consistencia]`
+## 14. Proyecto sin código, y la carpeta real (decisión 11; P9, P10) `[acordarse de menos · consistencia]`
 
 - **Nivel `liviano` = sin código** (§4): sin matriz de stacks, `docs-fyd`, `/smoke`, `/release` ni hook de código; con `/inicio`, `/cierre`,
   handoff, TODO, CHANGELOG y `NORTE.md`. Lo decide la primera pregunta del Modo A ("qué es" incluye "¿lleva código?").
@@ -306,7 +319,7 @@ pantalla antes de leer un documento.
 *Qué cambia para Guido*: UCEMA y el proyecto de entrevistas dejan de inventar su sistema cada vez (10 lotes); las skills no se le vuelven a
 esconder.
 
-## 15. `sensible:` pasa a reglas concretas, generadas por script (decisión 12, provisoria; con F) `[mejor código · acordarse de menos]`
+## 15. `sensible:` pasa a reglas concretas, generadas por script (decisión 12; con F) `[mejor código · acordarse de menos]`
 
 Cada entrada de `sensible:` (datos reales, plata, sale afuera) **nombra el comando del proyecto que la toca** (F §13 ya obliga a que lo
 peligroso pase por un comando del proyecto, nunca suelto). **Un script** (`doctor` o el actualizador, no el modelo: es determinístico una vez
@@ -318,7 +331,7 @@ escrita por proyecto.
 
 *Qué cambia para Guido*: nada que hacer; sus 5 preguntas aparecen como clic solo donde el proyecto dice que duele.
 
-## 16. Las variantes chicas no son niveles (decisión 13, provisoria; P35) `[consistencia]`
+## 16. Las variantes chicas no son niveles (decisión 13; P35) `[consistencia]`
 
 - **"Director de una pestaña + subagentes"** es un **módulo solo** cuya sesión delega a subagentes **en serie**, con razón con nombre (D §15,
   "Módulo solo"). Funcionó por liviana (15 commits, Guido nunca pegó un mensaje): **no se le pone rama, worktree, `bitacora/`, `tiempos.md` ni
@@ -331,7 +344,7 @@ escrita por proyecto.
 
 *Qué cambia para Guido*: nada; lo que ya le funcionó tiene nombre y lugar, y no paga de más.
 
-## 17. `NORTE.md`: lo escribe el Arquitecto y lo lee antes de explorar (decisión 14, provisoria; P7) `[mejor código · acordarse de menos]`
+## 17. `NORTE.md`: lo escribe el Arquitecto y lo lee antes de explorar (decisión 14; P7) `[mejor código · acordarse de menos]`
 
 B §12 definió el archivo (para qué es la app, para quién, qué no hace, los hechos que solo sabe Guido, qué otros sistemas tocan la base). H
 dice **cuándo**: lo escribe el Modo A y el adoptador desde la entrevista (y `/relevamiento` lo deja); **el Modo B lo lee antes de explorar el
@@ -431,10 +444,11 @@ los clics de las 5 de A, y `/estado identidad`.
 |---|---|---|
 | §4 / §14 | "¿Lleva código?" dentro de la primera pregunta del Modo A (una respuesta más, no una pregunta más) | Una vez por proyecto nuevo |
 | §13 | Aprobar el prototipo | Una vez por feature de pantalla; **reemplaza** varias preguntas de la entrevista |
+| §12 | "¿Lo parto acá?" cuando el script avisa que el spec se pasó del tope | Solo si se pasa (corrección de Guido del 2026-10-26: aviso, no corte) |
 | §10.7 | "¿Conservo el worktree?" al salir de un `claude -w <misión>` | Solo cuando `/inicio` propuso el worktree (la pregunta de G §11.4) |
 | §9.2 | Correr `cargar-secreto` para la base de prueba (una acción, no una pregunta) | Una vez por proyecto y por PC, solo si hay un `real` y no había `prueba` |
 
-**Tres preguntas, una de ellas negativa en el neto, y una acción.** Se eliminaron en la revisión: "reabrí la sesión en la carpeta nueva antes
+**Cuatro preguntas (una negativa en el neto, otra solo si el spec se pasa) y una acción.** Se eliminaron en la revisión: "reabrí la sesión en la carpeta nueva antes
 de montar" (R-44) y las 3 preguntas del `NORTE.md` (R-18). **Se van**: los dictados de ejecución (~6: "¿cuántas sesiones, qué modelo, cómo
 testeo?"), "¿esto lleva spec?", el chat nuevo de lo chico, los nombres de ramas y worktrees a mano, las preguntas de pantalla que reemplaza el
 prototipo, y "¿hay entorno de prueba?" (lo chequea un script).
@@ -477,7 +491,6 @@ prototipo, y "¿hay entorno de prueba?" (lo chequea un script).
 
 ## 23. Límites de este diseño
 
-- Las decisiones 7-14 **no tienen el OK explícito de Guido**: las leyó, no objetó y pidió cerrarlas; se confirman desde la PC `clientes`.
 - **Lo que no vi**: cómo abrieron trabajo chico vs grande Hub, Deptos, Devoluciones, Bot y el Panel (no está caso por caso en el acta); el texto
   fuente de S-R-6 (no está en el repo; solo su cita "un spec READY se ejecutó en 2 min"). La lectura de contraste (§2) lo puede traer.
 - **Evidencia de uso del Arquitecto escasa** para calibrar (10 llamadas, un Modo B real): los números de §12 y la frecuencia de §13 se calibran en
@@ -496,7 +509,7 @@ prototipo, y "¿hay entorno de prueba?" (lo chequea un script).
 | 3 | Medible | 10 medidas con línea base (§21), 8 por script; piloto nombrado (Deptos) |
 | 4 | Software que anda y se sostiene | Entorno de prueba declarado y verificado, chequeo base al abrir con "ya estaba roto"; red del arreglo del arreglo (26%); `RECOVERY`/`PROTECTED_PATHS`/`CRONS` no se pierden (§4); `sensible:` como reglas escritas |
 | 5 | Tokens y el modelo justo | Lo chico no paga spec ni auditores ni chat nuevo; el spec con tope; la Ejecución solo con el desvío del modelo; el hook del encargo no inyecta el handoff; prototipo por Sonnet; lectores Sonnet, revisor Opus, Fable solo en la charla |
-| 6 | El script antes que el modelo | El tope del spec, el chequeo de entorno, el chequeo base, los nombres de ramas y worktrees, la identificación de la pestaña por la rama, la marca de sesión para `/inicio`, las reglas desde `sensible:`, el gate del arreglo del arreglo: ninguno lo dice el modelo. Lo que sigue siendo del modelo (y se dice): "¿es chico?" y "¿es de pantalla?" |
+| 6 | El script antes que el modelo | El tope del spec, el chequeo de entorno, el chequeo base, los nombres de ramas y worktrees, la identificación de la pestaña por la rama, la marca de sesión para `/inicio`, las reglas desde `sensible:`, el gate del arreglo del arreglo: ninguno lo dice el modelo. Lo que sigue siendo del modelo (y se dice): "¿es chico?", "¿es de pantalla?" y dónde proponer el corte de un spec que se pasó (la decisión es de Guido) |
 | 7 | Seguro por defecto | Lo personal con código conserva toda la red de F; `gate:entorno-prueba` es freno con nombre y rastro; el script se niega a borrar lo no mergeado o con cambios; `worktree remove --force` al corrector; las 5 de A como reglas por proyecto; el prototipo nunca va a producción |
 | 8 | Portable | Nombres y rutas los pone el script igual en las 3 PCs; `worktree abrir` para el compañero y la otra PC; la ficha guarda la ruta del worktree; valores de máquina en ASCII; nada depende de la app de escritorio (línea de terminal, HTML en el navegador) |
 | 9 | Lo chico no paga lo grande | Es el racimo: chico sin spec, chat nuevo, director ni carpeta; módulo solo sin rama, worktree, `tiempos.md` ni bitácora; tiempos y tokens solo con director; sin dummy si no hay `real`; worktree solo con segunda sesión viva en el mismo checkout |

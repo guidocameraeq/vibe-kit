@@ -1,20 +1,22 @@
-# Instrucciones del LECTOR de contraste — misión 4 de vibe-kit (BORRADOR 2026-10-25; las líneas H-n se actualizan cuando cierre DISENO-H)
+# Instrucciones del LECTOR de contraste — misión 4 de vibe-kit (2026-10-26)
 
 Sos un lector de transcripts **recortados** de Claude Code de Guido (no es programador; dirige agentes en
 proyectos reales). Tu lote es una lista de archivos `.md`. Buscás **cómo se trabaja**, no qué se trabajó.
 
-## Objetivo (3 líneas)
+## Objetivo (4 líneas)
 1. Guido diseñó su método en racimos (A-H). Vos leés los chats **con esas decisiones en la mano**.
 2. Por cada decisión: ¿los chats la **confirman**, la **contradicen**, o no dicen nada? Con conteo y ejemplo.
 3. Además: qué pide Guido a mano una y otra vez (hábitos), y qué pasa que **ningún racimo cubre** (huecos).
+4. Y lo que te llame la atención aunque no encaje en nada de lo anterior (Guido pidió relevar más que lo mínimo).
 
 ## Cómo leer un archivo recortado
-- `### GUIDO` = mensaje de Guido, entero. `**CLAUDE**` = **solo la primera línea** de cada respuesta de
+- `### GUIDO` = mensaje de Guido, entero. `> CLAUDE:` = **solo la primera línea** de cada respuesta de
   Claude (el resto se cortó a propósito: no concluyas "Claude no explicó" por eso).
 - `### DE <sesión> (mensaje entre sesiones)` = llegó de OTRA sesión (la mesa entre directores, o
-  director↔obrero), entero. `[SendMessage → x]` = lo que esta sesión le mandó a otra (primera línea).
+  director↔obrero), entero. `(respuesta de tarea entre sesiones)` = informe que volvió, solo sus primeras
+  5 líneas. `[SendMessage → x]` = esta sesión le mandó algo a otra (solo la marca, sin el texto).
 - `[comando /x]` = Guido invocó una skill. `[Skill x]` = la invocó Claude. `[Agent …]` = se lanzó un
-  subagente u obrero (contá cuántos a la vez).
+  subagente u obrero (contá cuántos a la vez). `[AskUserQuestion]` = Claude le preguntó a Guido con botones.
 - `[ENMASCARADO]` = se tapó un posible secreto. Nunca intentes reconstruirlo.
 - El encabezado trae proyecto, rol (director / obrero / spec / release / otro / sin rol) y fechas.
 
@@ -76,13 +78,13 @@ Para cada decisión: ✔ = qué contaría como confirmación · ✘ = qué conta
 - G-5 · Dos sesiones del mismo repo: git manda. ✘ sesiones que se pisaron, `pull` a mano al abrir
 - G-6 · Las lecciones no viven en la memoria de una PC. ✘ lección aprendida en una PC que se repite en otra
 
-**H · niveles y puertas (en revisión: contrastalo igual)**
+**H · niveles y puertas**
 - H-1 · La sesión dice el tamaño sin preguntar; lo chico nunca pasa por el Arquitecto. ✘ algo chico que pagó spec
 - H-2 · El arreglo de un arreglo sigue siendo chico, con prueba primero. ✔ **contá** "volvió a romperse lo que arreglaste"
 - H-3 · Varias sesiones seguidas NO hacen director. ✘ director cuyo único motivo era la duración
 - H-4 · El Arquitecto termina armando y da la línea de apertura. ✘ **contá** "¿cuántas sesiones? / ¿qué modelo? / pegá esto en un chat nuevo"
 - H-5 · El entorno de prueba se verifica antes. ✘ "ya estaba roto" descubierto tarde; pruebas sin entorno
-- H-6 · El spec tiene tope y no crece durante la obra. ✘ spec que creció a mitad de obra
+- H-6 · El spec tiene tope (el script avisa, Guido decide si lo parte) y no crece durante la obra. ✘ spec que creció a mitad de obra
 - H-7 · Prototipo antes del spec para pantallas. ✔ idas y vueltas de pantalla después del spec ("no era así")
 - H-8 · El Arquitecto monta en la carpeta real. ✘ montó en otra carpeta
 
@@ -120,6 +122,16 @@ escribirlo, mirá `ya-sabido.md`: si ya está, solo si agrega algo.
 Si el recorte no te alcanza para entender un hueco, marcalo en la última línea; no lo adivines.
 Preferí 3-10 huecos sólidos a 30 flojos.
 
+## Otras cosas que llamaron la atención
+Sección abierta (pedido de Guido): **hasta 5 ítems por lote**, solo lo que no entró en A, B ni C.
+Fricciones, trucos que le funcionaron, cosas que pidió y no existen, lo que un diseño no previó,
+un uso raro de la herramienta. Sin contenido de negocio.
+```
+### O-<lote>-<n> · <título en una línea>
+- Qué pasó: <paráfrasis, ≤2 líneas> (archivo, fecha) — ¿cuántas veces?
+- Por qué llama la atención: <una línea>
+```
+
 ## Conteos de lectura, no mediciones
 Un conteo es **cuántas veces lo viste en tu lote**. No proyectes totales, no saques porcentajes, no
 sumes con otros lotes. Si algo de un mismo episodio aparece en dos archivos, contalo una vez.
@@ -129,9 +141,9 @@ Leé cada archivo **una vez**, de punta a punta, anotando al vuelo con los códi
 los crudos (`.jsonl`), los `DISENO-*.md` ni nada fuera de tu lista: la lista de arriba alcanza.
 
 ## Salida — UN archivo: `hallazgos/<lote>.md`
-Primera línea: `# Lote <lote> — <n> archivos leídos — <rango de fechas>`. Después tres secciones:
-`## Lente A`, `## Lente B`, `## Lente C`. Si una lente no tiene nada, escribí `Nada en este lote.`
-igual: el archivo y las tres secciones tienen que existir.
+Primera línea: `# Lote <lote> — <n> archivos leídos — <rango de fechas>`. Después cuatro secciones:
+`## Lente A`, `## Lente B`, `## Lente C`, `## Otras cosas`. Si una no tiene nada, escribí `Nada en
+este lote.` igual: el archivo y las cuatro secciones tienen que existir.
 
 ## 🔴 Prohibido (aunque el enmascarado haya fallado)
 - Copiar valores de contraseñas, claves, tokens, URLs con credenciales.
@@ -145,6 +157,6 @@ Devolvé **solo** este objeto, nunca el texto de los hallazgos:
 ```
 {"lote": "<lote>", "archivos": <n>,
  "A": {"confirma": <n>, "contradice": <n>, "no_vi": <n>, "fuertes": ["D-1 ✘4", "C-2 ✔6"]},
- "B": <n hábitos>, "C": <n huecos>, "texto_completo": <n huecos que lo piden>}
+ "B": <n hábitos>, "C": <n huecos>, "texto_completo": <n huecos que lo piden>, "otras": <n>}
 ```
 `fuertes`: hasta 3 decisiones con el conteo más alto, con su signo.

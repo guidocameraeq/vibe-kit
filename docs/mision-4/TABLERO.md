@@ -298,7 +298,7 @@ entrada al tramo 4, que diseña de a un pilar, y al top 10 del spec.
 | **E · Un molde y la flota** | #8 (molde), P31, P44 (versión), P13, `/smoke` y `/release`; S-D-3, S-D-4, S-M-1 | 3 · 4 · 5 | El Arquitecto como puerta |
 | **F · Seguridad por defecto** | #9, P8, P12, P14, P20, P49; S-C-2, S-D-5, S-M-4, S-M-7, S-M-8, S-D-12 | 7 | Base (molde) |
 | **G · Mesa y PCs** | #10, P32, P34, P42, P44-P46; S-R-3, S-C-1, S-M-12, S-D-7; 🆕 el buzón multiagente (2026-10-21) | 5 | Mesa. ✅ [DISENO-G](DISENO-G-mesa-y-pcs.md) (2026-10-24); el buzón pasa a **G.1**, opt-in |
-| **H · Niveles y puertas del Arquitecto** | P6, P7, P9, P10, P35, P51, P52, P57; S-R-6; 🆕 **los subproyectos** (2026-10-21) | 4 · 3 · 6 | El Arquitecto como puerta. 🟡 [DISENO-H](DISENO-H-niveles-y-puertas.md) (2026-10-25; decisiones 7-14 a confirmar por Guido) |
+| **H · Niveles y puertas del Arquitecto** | P6, P7, P9, P10, P35, P51, P52, P57; S-R-6; 🆕 **los subproyectos** (2026-10-21) | 4 · 3 · 6 | El Arquitecto como puerta. ✅ [DISENO-H](DISENO-H-niveles-y-puertas.md) (2026-10-25/26; 14 decisiones; el tope del spec queda como aviso que decide Guido) |
 | **I · El agente de ecosistema** 🆕 (2026-10-22) | Conocer todos los proyectos a la vez y pensar entre ellos: el mapa (qué se conecta con qué), la salud de la flota, el reporte semanal, y "¿esto es proyecto nuevo, subproyecto o feature de otro?" | 5 · 6 · 3 | **Fuera del kit, o como adaptador**: es propio de la empresa de Guido. Se diseña último |
 
 🆕 **Subproyectos dentro de un proyecto** (pedido de Guido, 2026-10-21, mientras se diseñaba el racimo C).
