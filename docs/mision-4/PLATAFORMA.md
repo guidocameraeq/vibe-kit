@@ -139,3 +139,28 @@ Verificado en cross-session-messaging ✅:
 
    Lo que se apoye en lo que no tiene doc (👁️) va marcado como inestable.
 8. **Lo experimental** (equipos de agentes, la vista de agentes) se usa en un piloto, no en el molde.
+
+## 7. Worktrees, verificado contra la doc oficial (nota de H, 2026-10-24)
+
+Agente `claude-code-guide` sobre `code.claude.com/docs/en/{worktrees,cli-reference,hooks,tools-reference,commands,agent-view}.md`. Decide la
+mecánica de ramas y worktrees de [DISENO-H](DISENO-H-niveles-y-puertas.md) §10. Citas en inglés, tal como las escribe la doc.
+
+| Afirmación | Veredicto | Lo que dice la doc |
+|---|---|---|
+| `claude -w <nombre>` crea el worktree en `.claude/worktrees/<nombre>/` con la rama `worktree-<nombre>` | ✅ | "By default, the worktree is created under `.claude/worktrees/<name>/` at your repository root … on a new branch named `worktree-<name>`" (worktrees) |
+| Se puede pasar una rama existente o el nombre de la rama | ❌ | `-w` toma solo un nombre (o `#<PR>`, URL de PR/MR → `pr-<n>`); "To start a worktree from a specific existing branch, create it with git directly" (`git worktree add …`) |
+| La rama sale de la rama por defecto del remoto | ✅ | `worktree.baseRef`: `"fresh"` (default) "branch from the repository's default branch on the remote"; `"head"` desde el HEAD local; sin commits falla |
+| Sin nombre, genera uno | ✅ | "If you omit the name, Claude generates one such as `bright-running-fox`" (que sea al azar: NO DOC) |
+| Limpieza al salir | ✅ | Sin nombre y limpio: se borra solo. **Con nombre: pregunta** ("A named session prompts you first"). Con cambios: pregunta, y al conservar imprime `claude --worktree <name> --resume`. Con `-p`: no limpia y queda el lock |
+| `.worktreeinclude` | ✅ | En la raíz, sintaxis `.gitignore`; "Only files that match a pattern and are also gitignored are copied"; vale para `--worktree`, subagentes y la app; **con hook `WorktreeCreate` no se procesa** |
+| Subagente `isolation: worktree` | ✅ / NO DOC | Misma base que `--worktree`; se limpia solo sin cambios y el barrido periódico (`cleanupPeriodDays`) borra los viejos sin trabajo pendiente; **no carga el `CLAUDE.md` del worktree**; carpeta y nombre de rama: NO DOC |
+| Hook al crear el worktree | ✅ con matiz | `WorktreeCreate` **reemplaza** la lógica git ("replaces that default git behavior"), debe imprimir la ruta; no hay post-create; no dispara con `git worktree add` por Bash |
+| `SessionStart` distingue worktree; variable de entorno del worktree | ❌ / NO DOC | `SessionStart` no lo indica; `${CLAUDE_PROJECT_DIR}` "is the project root where the session started" y **no sigue al worktree**; el `cwd` del JSON de entrada sí |
+| `-w` con `-p`, `--name`, `--bg` | ✅ / NO DOC | `-p --worktree` documentado (salta el trust check); `--name` implícito; `--bg` "moves the session into an isolated git worktree under `.claude/worktrees/`" por sí solo y **salta el aislamiento si ya está en uno**; `--bg` con `-p`: ❌ ("Can't be combined") |
+| Windows | ✅ (poco) | Borrar un worktree respeta junctions y symlinks internos (≥ v2.1.205); no crea worktrees si `.claude`, `.claude/worktrees` o el destino son symlinks; las aprobaciones "don't ask again" se guardan en el worktree; sin resume en rutas de red |
+| Reanudar vuelve al worktree | ✅ | "returns the session to that worktree" (interactivo, `--continue`, `--resume` con `-p`, SDK) si se lanza desde el checkout principal; si no existe, retoma en el directorio de lanzamiento |
+| `/worktree`; `EnterWorktree` / `ExitWorktree` | NO DOC / ✅ | No hay comando `/worktree` (sí `/background`, `/cd`, `/stop`); las herramientas existen; una `path` fuera de `.claude/worktrees/` pide aprobación |
+
+**Lo que se sigue de esto para el método** (H §10): los módulos no usan `-w` (no pueden ramificar desde `modulo/<x>` ni elegir nombre de rama);
+el setup del entorno lo hace un script del kit, no un hook; el hook de arranque lee el `cwd` del JSON; `.claude/worktrees/` va al `.gitignore`;
+`--bg` y `-p` no se combinan.

@@ -75,6 +75,8 @@ iniciativa que arranca nace sola con su ficha de estado**, sin que Guido configu
 > tabla de tiempos de §2.6 en `docs/modulos/<x>/tiempos.md` (registro sin tope, para acumular y estimar mejor). En una iniciativa con
 > hijos, la tabla vive solo en las hojas y la ficha de la iniciativa agrega. Detalle: [DISENO-B](DISENO-B-documentos.md) §5 y §5bis.
 
+> **Nota de H (2026-10-25)**: subproyecto = módulo, con nombre `<x>` fijado por el Arquitecto; `/estado <x>` es cualquier módulo, hoja o iniciativa. **Tiempos y tokens solo en módulos con director** (los tokens, por carpeta de transcripts del worktree; NO VERIFICADO): el módulo solo tiene nombre, documentos, historia y `/estado`. Detalle: [DISENO-H](DISENO-H-niveles-y-puertas.md) §7.
+
 ### 2.6 La tabla, los nombres y el contexto (decidido 2026-10-21)
 - **Las columnas de la tabla de tiempos**: tarea · estimado (antes de empezar) · real de máquina · real con
   Guido · tokens · ¿más o menos compleja de lo previsto, y por qué?

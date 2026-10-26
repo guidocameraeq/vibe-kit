@@ -3,57 +3,52 @@
 > **Save game** del proyecto madre. `/cierre` lo sobreescribe entero; el hook SessionStart lo inyecta en cada chat
 > nuevo de esta carpeta. **Tope**: con el TODO y git, lo inyectado tiene que quedar bajo 10.000 caracteres.
 
-**Última sesión cerrada:** 2026-10-24, misión 4, tramo 4: **racimo G cerrado y revisado** (la mesa entre directores, las PCs y el buzón;
-12 decisiones aprobadas en bloque; revisor frío con 34 hallazgos, todos aplicados). Solo diseño, kit `v2.4.2`. PC `Usuario`. `kit-sync` LIMPIO.
+**Última sesión cerrada:** 2026-10-26 (trabajo del 24 al 26), misión 4, tramo 4: **racimo H cerrado provisoriamente** (niveles y puertas
+del Arquitecto; 14 decisiones: 1-6 aprobadas en bloque, **7-14 sin OK explícito**; revisor frío con 45 hallazgos, todos aplicados).
+Solo diseño, kit `v2.4.2`. PC `Usuario`. `kit-sync` LIMPIO. **Guido se muda a la PC `clientes`.**
 
 ## Dónde estamos
 
-- **Misión 4**: tramos 0 a 3 hechos ([`PLAN.md`](mision-4/PLAN.md)). **Tramo 4**: ✅ A · ✅ C · ✅ E · ✅ F · ✅ B · ✅ D · ✅ G · **orden que fijó
-  Guido (2026-10-24): H → I → G.1 al final**, después la **revisión integral de todos con los 11 criterios** (ahí se cierra la D5, provisoria) y
-  el spec (tramo 5).
-- ✅ **G · Mesa y PCs** ([`DISENO-G-mesa-y-pcs.md`](mision-4/DISENO-G-mesa-y-pcs.md), 51 KB): el contenido de la mesa va **siempre por git**
-  (un archivo ≤2 KB por mensaje en `docs/modulos/<x>/mesa/<alias>/`, que nunca se edita; abierto/acordado lo calcula `mesa.js`) y el aviso por
-  `SendMessage` es opcional (por nombre si el otro está en la lista; si no, nada) · 6 tipos de mesa en una tabla única del kit · acuerdos que
-  viven una vez y van al PO solo si cambian el alcance · recursos compartidos con dueño y conjunto declarado · "trabado por mesa" calculado,
-  **nadie le avisa a Guido: lo ve al abrir el otro proyecto** (ajuste suyo) · `crossSessionInbound: accept` lo pone el Equipador en user ·
-  dos personas: `fetch`, aviso de commits ajenos, commit por rutas · números de decisión por módulo · lecciones al repo por script · `aprueba:`
-  por alias. **Git ya cruza cuentas** (el compañero lee los repos con su GitHub): el buzón quedó como **G.1, opt-in**, brief en G §18.
-- 🆕 **Datos de Guido**: el compañero **tiene su propia cuenta de Claude Code** (antes compartían); la segunda cuenta de GitHub es él (FLOTA §8
-  cerrada). La mesa la usa sobre todo entre dos sesiones de su misma PC. Pidió que los diseños se le presenten con el cuadro conceptual antes
-  de las decisiones (memoria).
+- **Misión 4**, tramo 4: ✅ A · C · E · F · B · D · G · **🟡 H** · siguen **I → G.1**, después la **revisión integral** con los 11 criterios
+  (cierra la D5 provisoria y las 7-14 de H) **con la lectura de contraste en la mano**, y el spec (tramo 5). [`PLAN.md`](mision-4/PLAN.md).
+- 🟡 **H** ([`DISENO-H-niveles-y-puertas.md`](mision-4/DISENO-H-niveles-y-puertas.md), 45 KB): dos ejes (tamaño del pedido chico · módulo ·
+  con director; nivel `liviano` = sin código · `estandar`; largo se calcula) · **una sola regla de tamaño** que la sesión plana dice en una
+  línea sin preguntar; lo chico nunca pasa por el Arquitecto · director solo si se escribe **a la vez** · subproyecto = módulo con nombre · el
+  Arquitecto termina armando el módulo y dando la línea de apertura · entorno de prueba declarado, verificado por script, chequeo base al abrir ·
+  ramas `modulo/<x>` y `modulo/<x>--<ID>`, worktrees por el script `worktree`, pestaña identificada por la rama del `cwd` · tope del spec ·
+  prototipo antes del spec · `sensible:` a reglas por script. Cada decisión dice cuál de las cuatro cosas de Guido mueve (memoria). Notas en
+  A-G, TABLERO, PLAN y PLATAFORMA §7 (worktrees verificados contra la doc).
+- 🆕 **Lectura de contraste de los chats, planificada** (pedido de Guido): no otro barrido, sino leer los chats con las decisiones A-H en la
+  mano (confirma / contradice / no vi), más hábitos y huecos. `observatorio/investigacion/LECTOR-contraste.md` (49 decisiones) y
+  `PLAN-lectura-contraste.md`. **Corre en la PC `clientes`** (ahí están los condensados de octubre, `D:\vibe-hallazgos\`). Falta `recortar.py`.
+- 🆕 **Hábitos en esta PC**: la sesión del observatorio ("Observatorio: hábitos que Guido repite a mano") condensó y recortó los chats de
+  `Usuario` en `C:\vibe-research\usuario\` (fuera del repo, gitleaks limpio) y **quedó esperando el OK de Guido con el presupuesto**. No hay
+  acta. Al volver a esta PC: contestarle; el acta va a `tips/tanda-2026-10-habitos.md` (uso personal: se etiqueta, no se generaliza).
 
-## Próximo paso: racimo H · niveles y puertas del Arquitecto
+## Próximo paso (PC `clientes`): confirmar H y arrancar la lectura de contraste
 
-**Título: `vibe-kit M4 · Tramo 4: racimo H (niveles y puertas del Arquitecto)`**. Esfuerzo `high`. Decisiones de a una, en criollo; **antes de
-la lista, un párrafo con qué sigue igual, qué cambia, quién lo hace y qué NO le toca a Guido**.
+**Título: `vibe-kit M4 · Tramo 4: OK de H (7-14) y lectura de contraste`**. Esfuerzo `high`. Dos cosas, en orden:
 
-- **Qué cubre** (TABLERO §10, fila H): P6, P7, P9, P10, P35, P51, P52, P57; S-R-6; **los subproyectos** (TABLERO §10, bloque 🆕); los tres
-  tamaños (liviano · estándar · proyecto largo con director) y las puertas del Arquitecto (nuevo, feature, consultorio, adoptar); "lo chico no
-  paga el costo del spec" (REFERENCIAS §4, señal de gentle-ai).
-- **Lo que le dejaron**: de **D** (§19): el texto del triage, el criterio "más de una pestaña ejecutando", nombres de ramas y worktrees por
-  módulo y por encargo, el script del worktree con su entorno (S-D-7), el entorno de prueba como verificación del Arquitecto, mapear `sensible:`
-  a reglas concretas (con F); de **G** (§22): cuándo `/inicio` propone `claude -w`, el módulo que cruza dos repos (`enlaza:`), merge sin
-  squash; de **B** (§5-§6): módulos planos con `parte-de:`, tres tamaños con una sola estructura; de **C** (§2.5): `/estado <subproyecto>`.
-- **Cómo arranca**: (1) lector barato (Sonnet) sobre las puertas reales de hoy: `kit/skills/arquitecto/SKILL.md` (Modos A/B/C) y sus
-  templates, más cómo los proyectos abrieron features chicas vs grandes (tanda P9, P51, S-R-6) → ficha "hoy"; (2) verificar contra doc oficial
-  solo lo que H necesite (worktrees ya está en G §16); (3) decisiones → revisor frío Opus → filtro → `DISENO-H-*.md` con su tabla → notas y PLAN.
-  Subagentes en Sonnet u Opus, nunca Fable.
-- **Lee**: PLAN §El foco · TABLERO §4, §5, §7, §10 · DISENO-D §4, §19 · DISENO-G §11, §12, §22 · DISENO-B §5, §6 · DISENO-E §4, §7 · DISENO-A §6 ·
-  DISENO-C §2.5 · FLOTA §2 · REFERENCIAS §1 y §4.
+1. **Las decisiones 7-14 de H con Guido**, con el archivo en la mano (DISENO-H §10-§17: ramas y worktrees, `/inicio` y el worktree, tope del
+   spec, prototipo, sin código y carpeta real, `sensible:`, variantes chicas, NORTE). Él las leyó y no objetó. Si cierran: estado ✅ en
+   DISENO-H, TABLERO §10 y PLAN; las líneas `H-n` de `LECTOR-contraste.md` se ajustan si algo cambió. Si corrige, se aplica y se anota en §2.
+2. **Arrancar la lectura de contraste como sesión propia del observatorio** (rol aparte, nunca la madre): brief = `PLAN-lectura-contraste.md`
+   entero. Pasos que le tocan a la madre antes: `ya-sabido.md` al día; escribir y probar `recortar.py` con 3 chats; **el presupuesto se lo
+   muestra a Guido con el número** (estimación a ojo: 4-8 M reales de lectores, NO VERIFICADO). Su acta: `tips/tanda-2026-11-contraste.md`.
+   Lectores Sonnet, síntesis Opus, nunca Fable.
 
-**Después de H**: **I** (el agente de ecosistema; vive en el Hub, el kit solo consume el `registro`) y **G.1 al final** (hay una tarjeta de sesión
-propuesta con el brief; si venció, el brief está en G §18). **Sesión corta aparte, cuando Guido quiera**: `vibe-kit · Tope al hook del molde
-(v2.4.3)`, esfuerzo `medium`; guía DISENO-B §9 y el hook del Hub.
+**Después**: **I** (el agente de ecosistema; vive en el Hub, el kit solo consume el `registro`; TABLERO §10) · **G.1** (brief en G §18) ·
+la revisión integral. **Sesión corta aparte, cuando Guido quiera**: `vibe-kit · Tope al hook del molde (v2.4.3)`, esfuerzo `medium`.
 
 ## Cosas que muerden y no están en ningún otro doc
 
-- 🔑 **Identidad de git**: la cuenta de Guido es `guido.camera.eq@gmail.com` (configurada global en esta PC el 2026-10-24; `gh` está logueado como `guidocameraeq`). Los commits anteriores de esta PC salieron con `eq.chatgpt@gmail.com`, la del plugin v1: no se reescriben (repo público).
-- 📬 **El Hub pushea a este repo desde otra sesión.** **Antes de cerrar, `git fetch` siempre** (hoy no había nada nuevo).
-- 🧪 **NO VERIFICADO que van al piloto de Hermes (G §23)**: que `gh api` lea el archivo del otro repo a un SHA de rutina; que GitHub conserve un
-  commit citado si la rama se borró; la memoria de G: las tres PCs de Guido con la misma cuenta de claude.ai. Los 10 de D (§7.7, §11, §20) siguen.
-- 🔴 **vibe-kit es PÚBLICO**: gitleaks antes de cada push (hoy limpio). En los diseños, alias (Desktop, Mobile, Hub, Deptos, Devoluciones).
-- 🔐 **12 alertas abiertas** (archivo privado), las arregla Guido. 🖥️ Los directores de Hermes corren en la PC `clientes`.
+- 🔑 **Identidad de git**: `guido.camera.eq@gmail.com` (global en `Usuario`; en `clientes` verificar con `git config user.email`). Nunca `eq.chatgpt`.
+- 📬 **El Hub pushea a este repo desde otra sesión**: `git fetch` antes de cerrar (hoy nada nuevo).
+- 🧪 **NO VERIFICADO al piloto (Deptos)**: los 10 de H §22 (tokens por carpeta de worktree, `--bg` dentro del worktree, la pestaña de la
+  extensión en un worktree, los números del tope…); los de D y G siguen.
+- 🔴 **vibe-kit es PÚBLICO**: gitleaks antes de cada push (hoy limpio). Alias en los diseños. 🔐 **12 alertas abiertas**, las arregla Guido.
+- 🖥️ `Usuario` = uso personal y liviano; `clientes` = trabajo (Hermes, directores, hallazgos). Lo medido acá se etiqueta, no se generaliza.
 
 ## Bloqueos
 
-Ninguno.
+Ninguno. (Las decisiones 7-14 de H esperan OK, no frenan nada.)

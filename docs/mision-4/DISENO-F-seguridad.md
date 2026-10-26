@@ -233,6 +233,8 @@ push-publica: no                     # si es sí, /cierre lo dice antes de pushe
 *Qué cambia*: nunca más "pegame la clave". La carga una vez por proyecto y por PC en una pantalla que no muestra lo
 que escribe.
 
+*Nota de H (2026-10-25): tres cosas para esta ficha. (1) El `nivel:` de cada entorno pasa a **`clase:`** (`real · prueba · dummy`), para que `.claude/kit.md` no tenga dos campos `nivel:` con sentidos distintos (el del proyecto es `liviano | estandar`). (2) El `gitignore.snippet` suma **`.claude/worktrees/`**. (3) Lo que PLAYBOOK §1.5 exigía a lo grande o en producción (`RECOVERY.md` probado, `PROTECTED_PATHS.md`, `CRONS.md`) **no se pierde**: un entorno `clase: real` obliga a declararlos (la línea base "backups vacíos en verde" del criterio 4); dónde viven (`referencia/` de B §4) lo cierra la revisión integral. Y `cargar-secreto` que llega después de crear un worktree no lo alcanza: `worktree sync-env` vuelve a copiar `.worktreeinclude` ([DISENO-H](DISENO-H-niveles-y-puertas.md) §4, §10).*
+
 ## 10. El escáner antes del commit (decisión 6)
 
 - **gitleaks sobre lo que se va a commitear** (`gitleaks git --staged --redact --no-banner`): mira solo lo agregado,
@@ -335,6 +337,8 @@ frenos:
 ```
 
 *Qué cambia*: lo que Guido cambió no se le vuelve a imponer, y lo temporal no se le olvida prendido.
+
+*Nota de H (2026-10-25): `sensible:` pasa a reglas concretas **por script**: cada entrada nombra el comando del proyecto que la toca (§13) y `doctor` o el actualizador regenera en la zona propia de `settings` la regla `ask` sobre ese comando contra los entornos `clase: real` (y `deny` fuera del comando donde se pueda), así el guardia de E no lo marca como desvío. **NO VERIFICADO** qué patrones distingue `settings` dentro de un mismo comando (`--env real` vs `dummy`): para la revisión integral. También nace `gate:entorno-prueba`, quitable acá con rastro como toda barrera ([DISENO-H](DISENO-H-niveles-y-puertas.md) §9, §15).*
 
 ## 15. El arranque verifica y declara (decisión 11)
 

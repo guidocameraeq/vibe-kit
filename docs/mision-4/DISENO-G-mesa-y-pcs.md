@@ -280,6 +280,8 @@ automático y un CIERRE rebotó sin aviso. D §7.6 fijó `director-<módulo>` y 
 
 *Qué cambia para Guido*: el `/rename` que tipea al abrir la pestaña sigue igual (D); si se le olvida, la mesa no se rompe.
 
+*Nota de H (2026-10-25): un módulo que cruza dos repos lleva el **mismo `<x>` y la misma rama `modulo/<x>`** en los dos, y su director se llama **`director-<alias>-<x>`** para que no haya dos `director-identidad` en la misma PC (las direcciones `<alias>/<rol>` del archivo no cambian). Y la pregunta de §11.4 cuenta solo sesiones vivas **en el mismo checkout** (marca en el `git-dir` propio), no en el repo: en un proyecto largo siempre hay un director vivo en su worktree ([DISENO-H](DISENO-H-niveles-y-puertas.md) §10.4, §10.9, §11).*
+
 ## 13. Los números de decisión son del módulo (decisión 10; S-M-12)
 
 **Hoy**: dos carriles registraron el mismo número de decisión (H-22); 6 rondas extra en 36 h; la propuesta era "el director reserva números".
@@ -476,6 +478,8 @@ proyecto; lo ve al abrir. Cero avisos nuevos.
   · **B §14** (`candado:mesa`; `candado:rutas` saltea `<alias>:`; el MAPA en `candado:topes`) · **D §8** (merge sin squash) · **D §9** (la tabla
   de tipos la fija G) · **E §4 y §10** (ficha y chequeos) · **TABLERO §6** (filas de la mesa y de Remote Control) · **PLATAFORMA §6.2** (reabierto)
   · **FLOTA §8** (la segunda cuenta es el compañero).
+
+*Nota de H (2026-10-25): lo que G dejó a H quedó resuelto en [DISENO-H](DISENO-H-niveles-y-puertas.md) §10-§11: nombres de ramas y worktrees (`modulo/<x>`, `modulo/<x>--<ID>`, `.claude/worktrees/modulo--…`), el script `worktree` con el entorno (S-D-7), `/inicio` propone `-w` solo con otra sesión viva en el mismo checkout, el `/cierre` de la misión plana empuja por fast-forward sin tocar el checkout de `main`, y el módulo que cruza dos repos.*
 
 ## 23. Límites de este diseño
 

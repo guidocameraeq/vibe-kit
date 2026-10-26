@@ -96,6 +96,8 @@ mil). Lo que cambió la mirada:
 PO vivo por proyecto. *Qué cambia para Guido*: una sola puerta por proyecto; no elige él la herramienta; el medio deja de ir al director
 de más.
 
+*Nota de H (2026-10-25): precisión a "varios obreros, varios tramos": **en serie = módulo solo**. Hay director solo si el plan tiene dos o más tareas que se escriben **a la vez** o si Guido pide noche sin él; que lleve varias sesiones seguidas no lo hace director, y la variante "director de una pestaña + subagentes en serie" es un módulo solo. Lo decide el Arquitecto al listar las tareas del spec ([DISENO-H](DISENO-H-niveles-y-puertas.md) §6, §16).*
+
 ## 5. `/obrero` y `/tramo`, separados, con un núcleo común (decisión 2)
 
 - **Dos skills, dos preguntas**: `/obrero` responde "hacé esto" (escribe él: documentos, andamiaje, arreglos acotados); `/tramo` responde
@@ -220,6 +222,8 @@ plataforma no lo permite) · `bypassPermissions` para todo (tira las 5 de A). *Q
 una línea (se cuenta como intervención y se mide: nota a C §4); los ~30 pop-ups por cosas ya decididas desaparecen; le quedan los clics de
 las 5 de A; de noche nada se cuelga esperando.
 
+*Nota de H (2026-10-25): los nombres de sesión quedan **`director-<x>`** y **`obrero-<x>--<ID>`** (dos módulos con director a la vez daban dos `obrero-07`); si el módulo cruza dos repos (`enlaza:`), **`director-<alias>-<x>`**. La línea de apertura es **de terminal** (`cd <worktree> && claude --name …`): una pestaña de la extensión abre en `main`, así que el obrero imprime su rama al presentarse y hace PARADA si no es la de su encargo. Los encargos como subagente (7.2) **no usan `isolation: worktree`** (ramifica desde el remoto): el script `worktree` crea `modulo--<x>--<ID>` y la definición del subagente dice en qué ruta trabajar, y lleva adentro "leé tu encargo y corré el chequeo base" ([DISENO-H](DISENO-H-niveles-y-puertas.md) §10.4-§10.6).*
+
 ## 8. Ramas y escritores (decisión 5, PROVISORIA por pedido de Guido)
 
 Lo que B ya decidió y D hereda: la bitácora es una **carpeta de archivos chicos** dentro del módulo, no una rama (B §5); el módulo con
@@ -249,6 +253,7 @@ ficha. H nombra ramas y worktrees.
 medidas por una frase). *Qué cambia para Guido*: no mergea ni cliquea merges; un OK por release; deja de explicar la rama de bitácora.
 **NO VERIFICADO**: por qué el director de Desktop no puede escribir `main` hoy; se mira al adoptar (E §7).
 *Nota de G (2026-10-24): las ramas de módulo se mergean sin squash, para que los SHA que cita la mesa sigan existiendo; y el director escribe también `docs/modulos/<x>/mesa/`, que es parte del módulo ([DISENO-G](DISENO-G-mesa-y-pcs.md) §5).*
+*Nota de H (2026-10-25): los nombres: rama **`modulo/<x>`** y worktree **`.claude/worktrees/modulo--<x>`** para el módulo (nacen de `main` después del commit que crea el módulo); rama **`modulo/<x>--<ID>`** y worktree **`modulo--<x>--<ID>`** para el encargo (nacen de la punta del módulo). Los crea el script del kit `worktree` (`crear`, `abrir`, `sync-env`, `cerrar`), no `claude -w`. Merges encargo → módulo y módulo → `main` con `--no-ff`. **La carpeta del obrero se borra cuando el obrero cierra, no al mergear** (§11.3 lo reutiliza justo después del merge): el obrero reutilizado cambia de rama en su misma carpeta ([DISENO-H](DISENO-H-niveles-y-puertas.md) §10).*
 
 ## 9. Ruido y noche: silencio entre agentes, una suscripción por obrero, el despertador afuera (decisión 6)
 
@@ -304,6 +309,8 @@ saltea la revisión" (Desktop); Mobile la sacó y nunca falló. 26% de los arreg
 
 *Qué cambia para Guido*: nada que haga él; los tramos cierran más rápido y más baratos, y los arreglos dejan de volver.
 
+*Nota de H (2026-10-25): al `gate:fix-sin-prueba` (10.5) se le suma una condición: si el arreglo toca un archivo de un fix de los últimos N días (el arreglo del arreglo, 26% en la flota), **revisor Opus congelado en el commit antes del push**, por archivo (no `log -L`). Sigue siendo chico: sin spec ni módulo ([DISENO-H](DISENO-H-niveles-y-puertas.md) §5.6).*
+
 ## 11. La mudanza del director y el contexto: medido por script, compactar es una falla, el obrero se administra (decisión 8)
 
 Hoy: Desktop se muda "cuando le queda ~35%" según el indicador que mira Guido; Mobile al cerrar fase, tras compactar o a ~650 mil medidos.
@@ -357,6 +364,7 @@ relevo está siempre en el mismo lugar; y de noche se muda solo.
 8. 🆕 **Entorno de prueba** (pedido de Guido): no todos los proyectos tienen ambiente de testing. **El Arquitecto verifica que exista** (base
    de prueba o datos ficticios, F §12) al montar o al abrir un módulo; si no existe, **armarlo es el primer módulo**. Sin eso, el gate y
    "todo arreglo trae su prueba" son letra muerta. **Para H.**
+ *Resuelto por H (2026-10-25): el spec lleva una sección fija "Entorno de prueba" y un script lo verifica antes del READY, **proporcional**: por cada entorno `clase: real` que el módulo toca, un `dummy` o `prueba` declarado; sin `real`, alcanza `comando-test`; de pantalla, corredor del front con su navegador. Si falta, **montarlo es la tarea 0 del spec, y si por sí solo lleva más de una sesión es su propio módulo y va antes** (es lo que acá se llamó "el primer módulo"). Toda sesión de construcción corre el chequeo base antes de tocar código y reporta "ya estaba roto" si da rojo. Es `gate:entorno-prueba`, quitable con rastro ([DISENO-H](DISENO-H-niveles-y-puertas.md) §9).*
 
 **Para la adopción de cada proyecto (E §7), no para el método**: el `/release` de Mobile roto; el `/deploy` fantasma de Deptos; los cuatro
 "pega el PO" y las cuatro versiones del comando de la suite de Desktop; los worktrees de bloques cerrados montados en Deptos; los dos
@@ -510,6 +518,7 @@ sobre lo ya autorizado, y las decisiones de clase 1 y 2.
 - **H**: el criterio "más de una pestaña ejecutando" como regla del Arquitecto; el texto del triage; nombres de la rama del módulo, de la
   rama por encargo y de los worktrees; el script del worktree con su entorno; **el entorno de prueba como verificación del Arquitecto**;
   mapear `sensible:` a reglas concretas (con F); P35 queda resuelto acá como el escalón "lo chico sin sesión".
+  *Todo resuelto por H el 2026-10-25 ([DISENO-H](DISENO-H-niveles-y-puertas.md) §5, §6, §9, §10, §15, §16); P35: la variante de una pestaña + subagentes es un módulo solo, no un escalón con director.*
 - **G**: `crossSessionInbound` y el mismo entorno por PC (WSL y Windows nativo no se ven); la suscripción por tipo de mensaje del buzón; la
   mesa entre directores.
 - **E**: las piezas de director/obrero en la ficha del kit.

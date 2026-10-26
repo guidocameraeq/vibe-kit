@@ -2,7 +2,7 @@
 
 > ÚNICA fuente de pendientes del proyecto. Completado → SE BORRA (la historia vive en `CHANGELOG.md` y git). Header de 1 línea, sin narrativa de sesión.
 
-2026-10-24 — ver SESSION_HANDOFF.md
+2026-10-26 — ver SESSION_HANDOFF.md
 
 ## 🔴 Crítico
 - [ ] **Misión 4 — diseñar el pack con Guido adentro, SOLO DISEÑO** (hoja de ruta: ADR-021; plan de 6
@@ -10,9 +10,11 @@
   Tramo 1 (radiografía director/obrero) ✅ · Tramo 2 (flota, repos, plataforma) ✅ · Tramo 3 (el mapa por objetivos,
   `TABLERO.md`) ✅ · **Tramo 4 en curso, por racimos**: A ✅, C ✅, E ✅ (molde y flota), F ✅ (seguridad por defecto), B ✅ (documentos con tope),
   D ✅ (2026-10-23: el método director/obrero y el workflow diario; **su decisión 5, ramas y escritores, queda provisoria**), G ✅ (2026-10-24: la mesa por git, 12 decisiones aprobadas en bloque; **el buzón multiagente pasa a G.1**, opt-in, sesión propia con
-  investigación en internet y piloto), **sigue el H** (con los subproyectos, los nombres de ramas y worktrees, el entorno de prueba que verifica
-  el Arquitecto y el criterio "más de una pestaña ejecutando") e I (el agente de ecosistema, propio de la empresa), y **G.1 al final** (el buzón multiagente, opt-in; orden que fijó Guido
-  el 2026-10-24). **Cada racimo se diseña
+  investigación en internet y piloto), **H 🟡** (2026-10-25: niveles y puertas del Arquitecto; 14 decisiones, **las 7-14 sin OK explícito de
+  Guido: confirmarlas en la PC `clientes` con `DISENO-H` §10-§17 en la mano**), **sigue I** (el agente de ecosistema, propio de la empresa) y
+  **G.1 al final** (orden de Guido, 2026-10-24). **La lectura de contraste de los chats** (`observatorio/investigacion/PLAN-lectura-contraste.md`)
+  corre en la PC `clientes` como sesión del observatorio, en paralelo con I, y entra a la revisión integral. **El acta de hábitos de la PC
+  `Usuario`** está a medias: la sesión del observatorio espera el OK de Guido con el presupuesto. **Cada racimo se diseña
   con los 11 criterios del PLAN y cierra con su tabla; al terminar los nueve, revisión integral de todas las decisiones con esa vara, antes
   del spec** (Guido la pidió especialmente para D). Fuentes: las 57 propuestas de
   `tips/tanda-2026-10-chats.md` + los métodos de Hermes Desktop y Mobile + `REFERENCIAS-EXTERNAS.md`.

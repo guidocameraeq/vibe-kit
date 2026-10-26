@@ -192,6 +192,8 @@ se pierde en un archivo, queda como su documentación.
 *Qué cambia para Guido*: una feature que hace él solo entra en el mismo sistema que un tramo de Hermes, sin pagar el traje grande
 (criterio 9). Un hotfix se hace y ya.
 
+*Nota de H (2026-10-25): los nombres quedan como están acá (chico · módulo · módulo con director) para el **tamaño del pedido**; el **nivel del proyecto** en la ficha del kit es `liviano` (sin código) o `estandar` (con código), y "largo" se calcula de `piezas.director-obrero`. La sesión plana dice el tamaño en una línea sin preguntar; director solo si hay dos o más tareas que se escriben a la vez o noche sin Guido; varias sesiones seguidas no hacen director ([DISENO-H](DISENO-H-niveles-y-puertas.md) §4-§6).*
+
 ## 7. Quién mantiene la estructura sin que nadie lo pida (decisión 4)
 
 Cuatro momentos, todos automáticos; ninguno le pregunta nada a Guido.
@@ -270,6 +272,8 @@ VERIFICADO, el margen lo cubre). Suma en el peor caso, **con** un módulo activo
 
 *Qué cambia para Guido*: la sesión arranca viendo todo, o le dice qué no vio. Nunca más "arrancó ciega" sin saberlo.
 
+*Nota de H (2026-10-25): el hook identifica la pestaña por **la rama que tiene el `cwd`** (`modulo/<x>` = director, `modulo/<x>--<ID>` = obrero, `main` = plana, `worktree-*` = misión plana), leyendo el `cwd` del JSON de entrada y nunca `CLAUDE_PROJECT_DIR`, que no sigue al worktree (verificado en la doc). En el worktree del director inyecta la **cabecera** de la ficha (los 1.000 de esta tabla) y el handoff de `main` por `git show main:docs/SESSION_HANDOFF.md`; en el del encargo, la cabecera por `git show modulo/<x>:` y la ruta del encargo, **sin el handoff del proyecto**. Además deja una marca con el id de sesión en el `git-dir` propio del checkout, que `/inicio` usa para saber si hay otra sesión viva **en el mismo checkout** ([DISENO-H](DISENO-H-niveles-y-puertas.md) §10.3, §11).*
+
 ## 10. El TODO que no miente (decisión 7)
 
 - **Ningún ítem lleva fecha escrita a mano**: la edad la da git (`git blame --line-porcelain docs/TODO.md`, una sola pasada), que sabe
@@ -287,6 +291,8 @@ VERIFICADO, el margen lo cubre). Suma en el peor caso, **con** un módulo activo
   "por las dudas".
 
 *Qué cambia para Guido*: lo de arriba del TODO es lo que importa y es de verdad.
+
+*Nota de H (2026-10-25): el TODO suma una sección con fecha, **"Reportado por el usuario"**: la bandeja operador → dev que funcionó en los proyectos chicos (H-57, ~8 veces en ~5 chats: quien opera el bot deja los errores, quien desarrolla los toma). Es de proyectos sin director; se documenta en la guía ([DISENO-H](DISENO-H-niveles-y-puertas.md) §16).*
 
 ## 11. `/cierre` cruza, y no relee registros enteros (decisión 8)
 
@@ -352,6 +358,8 @@ el proyecto.
   método **vuelve al kit** (criterio 11), que es para lo que existe la misión 6. El molde no trae `docs/metodo/`.
 
 *Qué cambia para Guido*: lo que dijo que sí queda intacto; el handoff y el `CLAUDE.md` quedan cortos sin perder las lecciones.
+
+*Nota de H (2026-10-25): los estados de la ficha quedan **exactamente estos**; H no agrega ninguno. Un cambio de pedido aprobado va como `SPEC-2.md` en el mismo módulo mientras el conjunto quepa en el tope del spec (≤10 KB y ≤8 criterios en módulo solo; ≤30 KB con director); lo que lo pasa es otro módulo **hermano**, nunca hijo de un módulo con tareas ([DISENO-H](DISENO-H-niveles-y-puertas.md) §12).*
 
 ## 14. El candado de estructura (decisión 12)
 
@@ -465,8 +473,8 @@ relee de más, ahí se prueba, en un proyecto.
 
 | Qué | A dónde | Por qué |
 |---|---|---|
-| Los nombres de los tamaños (chico · solo · con director), cuándo un módulo lleva director, y los estados finos de la ficha | **H** | Es la forma de los niveles; B deja la estructura |
-| Cómo se nombran ramas y worktrees por módulo (lo que el hook usa para saber "qué pestaña es") | **H** | B solo fija que la ficha de un módulo con director vive en su rama y que el hook lee por `git show` |
+| Los nombres de los tamaños (chico · solo · con director), cuándo un módulo lleva director, y los estados finos de la ficha | **H** ✅ ([DISENO-H](DISENO-H-niveles-y-puertas.md) §4-§7, 2026-10-25) | Es la forma de los niveles; B deja la estructura |
+| Cómo se nombran ramas y worktrees por módulo (lo que el hook usa para saber "qué pestaña es") | **H** ✅ ([DISENO-H](DISENO-H-niveles-y-puertas.md) §10: `modulo/<x>`, `modulo/<x>--<ID>`, `.claude/worktrees/modulo--<x>[--<ID>]`, identificación por la rama del `cwd`) | B solo fija que la ficha de un módulo con director vive en su rama y que el hook lee por `git show` |
 | La skill del director: sobreescribir la ficha, archivar encargos en la bitácora, llenar `tiempos.md`; y cómo recibe lo que dejó una sesión de Guido en `bitacora/` | Misión 5, con lo de **C** §3bis y el buzón de **G** | C ya lo pidió; B dice dónde |
 | Cómo viajan los mensajes entre directores de dos apps (hoy, en el contrato); un módulo que cruza dos repos | **G** (y H) | B solo saca la historia del documento vivo y pone una ficha por repo |
 | Que el Hub no duplique lo técnico del `MAPA.md` (leerlo por script, o dejar cada cosa en su registro) | **I** | El Hub es el registro de la empresa (E §2.3); el MAPA es de la app. B no decide por I |

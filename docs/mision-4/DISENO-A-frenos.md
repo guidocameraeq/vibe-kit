@@ -89,6 +89,8 @@ cuenta. Se construye con la misma receta.
 **Los secretos en lo que se commitea** son un corrector de fábrica, pero se diseñan en el racimo F
 (seguridad), junto con el `deny`.
 
+*Nota de H (2026-10-25): dos cosas para el registro de A. (1) **El arreglo del arreglo** (26% de los arreglos de la flota) sigue siendo chico, pero el mismo chequeo `gate:fix-sin-prueba` de D §10.5 agrega: si el arreglo toca un archivo de un fix de los últimos N días, revisor Opus congelado en el commit antes del push (por archivo, no por función). (2) `git worktree remove --force` entra al corrector "git que borra trabajo" de esta tabla: el script `worktree cerrar` de H se niega si hay cambios sin commitear ([DISENO-H](DISENO-H-niveles-y-puertas.md) §5.6, §10.2).*
+
 ## 7. La verificación: que el director no revise todo a mano
 
 Hoy el director gasta en verificar a mano: 41 chequeos y 4 corridas de pruebas en 3 días, y 8 de cada 11

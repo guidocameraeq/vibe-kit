@@ -133,6 +133,8 @@ multi-llm: no              # si es "sí", se genera AGENTS.md desde el CLAUDE.md
   actualizador **no la pisa**, la marca `adaptada (desvío detectado)` y lo informa. Corrector, no pregunta.
 - **Qué NO lleva**: "con qué se conecta" y "quién lo opera". Eso vive en el Hub.
 
+*Nota de H (2026-10-25): `nivel:` toma **dos valores, en ASCII**: `liviano` (sin código) y `estandar` (con código, incluidos los proyectos personales, que conservan toda la red de F); **"largo" no se escribe**: lo calcula el script de `piezas.director-obrero`, que el Arquitecto instala al abrir el primer módulo con director. `vars:` suma **`comando-setup`** (lo que corre el script `worktree` al crear un worktree: instalar dependencias). Y el campo `nivel:` de cada entorno de F §9 pasa a llamarse `clase:` para que la ficha no tenga dos `nivel:` ([DISENO-H](DISENO-H-niveles-y-puertas.md) §4, §10.2).*
+
 ## 5. La zona propia (decisión 2)
 
 | Dónde | Cómo se marca |
@@ -290,7 +292,7 @@ Dos puertas que hablan con Guido (`/arquitecto`, `/relevamiento`), más el ecosi
 | El agente de ecosistema; la salud general de la flota (documentos pasados de tamaño, sin barreras, alertas abiertas) | **I** (último) | Propio de la empresa; vibe-kit sigue genérico. El actualizador solo mira lo que él mismo toca |
 | Qué trae el molde (documentación con tope, cabecera del hook, barreras, correctores, `/estado`, roles) | B · F · A · C · D/H | Este racimo decide el mecanismo (el camión); la carga la decide cada racimo y sale como versión del kit |
 | Scripts de gate versionados (S-D-4) y casos repetidos de la skill de gate (S-M-1) | D y H | Son del director de Hermes, no del molde |
-| Los nombres de los niveles (`nivel:` en la ficha) | H | Ahí se decide liviano · estándar · largo |
+| Los nombres de los niveles (`nivel:` en la ficha) | **H** ✅ (2026-10-25) | `liviano` · `estandar` escritos; largo calculado ([DISENO-H](DISENO-H-niveles-y-puertas.md) §4) |
 | Columna "versión del kit" en el Hub; reporte de la flota los viernes como tarea programada | Fase 2 / I | Primero que la tabla salga del cruce |
 | Una variable para probar el Arquitecto aislado, sin tocar `~/.claude` (idea de gentle-ai) | Piloto, misión 5 | Hoy es "por las dudas"; si el piloto la necesita, se agrega |
 | Quién toca qué con dos cuentas | G | FLOTA §8 sigue abierta |

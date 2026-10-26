@@ -2,6 +2,40 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-26 — Misión 4, tramo 4: el racimo H (niveles y puertas del Arquitecto), con Guido adentro y revisado; la lectura de contraste planificada
+
+### Added
+- `docs/mision-4/DISENO-H-niveles-y-puertas.md`: el racimo H, catorce decisiones (1-6 aprobadas en bloque el 2026-10-24; 7-14 presentadas el 25
+  sin objeción, **provisorias hasta el OK explícito de Guido**). Antes de decidir, un lector Sonnet levantó la ficha "hoy" del kit instalado
+  (~168 mil tokens: tres puertas, ninguna aplica la regla de tamaño, cuatro criterios de "cuándo spec" que se contradicen, cuatro vocabularios
+  de tamaño, el Arquitecto no conoce director ni worktrees, 0 llamadas en la PC `Usuario`) y el agente guía verificó 10 afirmaciones sobre
+  worktrees contra la doc oficial (~85 mil: `-w` ramifica solo desde el remoto y no acepta rama propia, reabre por nombre, `.worktreeinclude`,
+  `CLAUDE_PROJECT_DIR` no sigue al worktree). Después de la primera tanda, un investigador Sonnet contrastó con otros métodos (~147 mil, 19
+  búsquedas: Anthropic, Kiro, superpowers, Codex, Thoughtworks; nadie pone tope al spec ni exige entorno de prueba declarado). Lo central: **una
+  sola regla de tamaño** (las dos preguntas de B) que la sesión plana dice en una línea sin preguntar, y lo chico nunca pasa por el Arquitecto;
+  dos ejes con nombre (tamaño del pedido · nivel del proyecto `liviano | estandar`, largo calculado); director solo si se escribe a la vez;
+  subproyecto = módulo con nombre; el Arquitecto termina armando el módulo y dando la línea de apertura; entorno de prueba declarado en el spec,
+  verificado por script y chequeado al abrir; ramas `modulo/<x>` y worktrees por el script `worktree`; tope del spec por tamaño; prototipo antes
+  del spec; `sensible:` a reglas por script. Revisor frío Opus (~250 mil): **45 hallazgos (10 rompe), todos aplicados, 6 con otro arreglo**; los
+  más graves: "liviano" dejaba sin red a lo personal con código, y la mecánica de worktrees rompía "un escritor por checkout" de cuatro formas.
+  Cada decisión dice cuál de las cuatro cosas de Guido mueve (workflow · mejor código · consistencia · acordarse de menos). Tres preguntas
+  nuevas contadas (una negativa en el neto) y una acción.
+- `observatorio/investigacion/LECTOR-contraste.md` y `PLAN-lectura-contraste.md` (borradores, redactor Opus ~122 mil): la **segunda lectura de
+  los chats** que pidió Guido, como lectura de contraste (49 decisiones de A-H con qué cuenta como confirmación y qué como contradicción; más
+  hábitos y huecos). Corre en la PC `clientes`; alimenta la revisión integral. Falta `recortar.py`.
+- Fila de H en `docs/README.md`; `PLATAFORMA.md` §7 (worktrees verificados, con las citas).
+
+### Changed
+- Notas de H en `DISENO-A` (§6), `DISENO-B` (§6, §9, §10, §13, §20), `DISENO-C` (§2.5), `DISENO-D` (§4, §7, §8, §10, §12.8, §19), `DISENO-E` (§4,
+  §14), `DISENO-F` (§9, §14), `DISENO-G` (§12, §22), `TABLERO.md` (fila H; subproyectos resueltos), `PLAN.md` (H 🟡; el orden I → G.1 →
+  revisión integral con la lectura de contraste), `observatorio/investigacion/METODO.md` (las dos piezas nuevas).
+- `docs/TODO.md`: H 🟡 con las 7-14 a confirmar; la lectura de contraste y el acta de hábitos de la PC `Usuario` como pendientes.
+- Memoria: dos notas nuevas (las cuatro cosas con que Guido juzga una decisión; las dos PCs tienen uso distinto).
+
+### Pendiente que esta sesión deja abierto
+- La sesión del observatorio "hábitos que Guido repite a mano" condensó los chats de la PC `Usuario` (fuera del repo) y quedó esperando el OK
+  de Guido con el presupuesto; sin acta todavía.
+
 ## 2026-10-24 — Misión 4, tramo 4: el racimo G (la mesa entre directores, las PCs y el buzón), con Guido adentro y revisado
 
 ### Added
