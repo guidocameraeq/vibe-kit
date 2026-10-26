@@ -5,20 +5,28 @@
 2026-10-26 — ver SESSION_HANDOFF.md
 
 ## 🔴 Crítico
-- [ ] **Misión 4 — diseñar el pack con Guido adentro, SOLO DISEÑO** (hoja de ruta: ADR-021; plan de 6
-  tramos, 7 objetivos y el Arquitecto como puerta única: en docs/mision-4/PLAN.md). Tramo 0 (biblioteca) ✅ ·
-  Tramo 1 (radiografía director/obrero) ✅ · Tramo 2 (flota, repos, plataforma) ✅ · Tramo 3 (el mapa por objetivos,
-  `TABLERO.md`) ✅ · **Tramo 4 en curso, por racimos**: A ✅, C ✅, E ✅ (molde y flota), F ✅ (seguridad por defecto), B ✅ (documentos con tope),
-  D ✅ (2026-10-23: el método director/obrero y el workflow diario; **su decisión 5, ramas y escritores, queda provisoria**), G ✅ (2026-10-24: la mesa por git, 12 decisiones aprobadas en bloque; **el buzón multiagente pasa a G.1**, opt-in, sesión propia con
-  investigación en internet y piloto), H ✅ (2026-10-26: niveles y puertas del Arquitecto; 14 decisiones, el tope del spec como aviso que decide Guido).
-  **I salió del kit** (2026-10-26, ADR-024: el agente de ecosistema se diseña en el Hub; acá queda el contrato del registro, nota en E).
-  **Lo que queda, en el orden que fijó Guido el 2026-10-26**: (1) **revisión integral con el acta de contraste abierta** (`tips/tanda-2026-11-contraste.md`), **sin volver a los chats**: las ~10 decisiones a
-  reabrir (A-1, E-1, F-1, H-6, D-8, B-6/B-7, H-5, E-4, D-10 y la D5 provisoria), el **triage de P58-P77 en tres pilas** (entra ya a un diseño ·
-  misión 5 · espera al piloto), releer solo los 4-5 chats ★ del acta, y la nota del contrato del registro en E · (2) **G.1** (el buzón entre agentes;
-  brief en G §18 + hueco 3/P71, P68, P77 y las "otras" 5, 8 y 24 del acta) · (3) el spec. **Cada racimo se diseña
-  con los 11 criterios del PLAN y cierra con su tabla; al terminar los nueve, revisión integral de todas las decisiones con esa vara, antes
-  del spec** (Guido la pidió especialmente para D). Fuentes: las 57 propuestas de
-  `tips/tanda-2026-10-chats.md` + los métodos de Hermes Desktop y Mobile + `REFERENCIAS-EXTERNAS.md`.
+> **La hoja de ruta, reordenada el 2026-10-26 (ADR-025)**: 4 cerrar el diseño sin mensajería → 4½ ordenar la casa → 5 construir **v3.0** →
+> 6 el ciclo como proceso → 7 la mensajería agéntica (**v3.1**). Después, el reloj: una vuelta cada 3-4 meses (abajo, "El ciclo").
+
+- [ ] **Misión 4 — diseñar el pack con Guido adentro, SOLO DISEÑO** (hoja de ruta: ADR-021; plan y 11 criterios en docs/mision-4/PLAN.md).
+  Tramos 0-3 ✅ · **Tramo 4 ✅ en racimos**: A, C, E, F, B, D (su decisión 5 provisoria), G, H. I salió del kit (ADR-024); **G.1, la mensajería
+  agéntica, pasa a la misión 7** (ADR-025). **Queda, en este orden**:
+  1. **Revisión integral con el acta de contraste abierta** (`tips/tanda-2026-11-contraste.md`), **sin volver a los chats**, con los 11 criterios:
+     las ~10 decisiones a reabrir (A-1, E-1, F-1, H-6, D-8, B-6/B-7, H-5, E-4, D-10 y la D5 provisoria), el **triage de P58-P77 en tres pilas**
+     (entra ya a un diseño · misión 5 · espera al piloto), releer solo los 4-5 chats ★ del acta, la nota del contrato del registro en E, y
+     **un apartado propio de director/obrero** (pedido de Guido, 2026-10-26): (a) el canon de D contra **lo que Hermes Desktop cambió en su método
+     mientras diseñábamos**: 126 commits desde el 2026-10-20 en sus skills `director`, `obrero`, `tramo`, `cierre` y `smoke`, con registro formal
+     en su `docs/metodo/CAMBIOS.md` (**CM-72 a CM-103**, aprobados por el PO en la mesa del 26/10); Mobile no tocó el suyo (0 commits). **Guido sigue cambiándolo**: el día de la revisión se mide de nuevo con `git log --since=2026-10-20 -- .claude/skills docs/metodo`
+     y se lee el `CAMBIOS.md` entero, incluidos los aprobados sin aplicar (hoy, CM-103); (b) **decidir
+     el flujo proyecto ↔ kit**: si un proyecto puede seguir cambiando su método entre versiones del kit (como Hermes hoy, con registro) o espera
+     a la versión; y cómo vuelve al kit lo que aprendió (propuesta a evaluar ahí: el registro de cambios de método por proyecto se vuelve pieza
+     del canon, el ciclo lo lee junto con los chats, y lo que se repite en 3+ proyectos entra al kit; E ya tiene el actualizador que no pisa la
+     capa propia y la regla de 3+ con `flota.py`). Lo demás que el acta dice del canon (bitácora, tiempos, roles de hecho: P76) se decide ahí.
+  2. **El spec del pack** (tramo 5): SPEC-0 del kit v3, red team, revisor frío, OK de Guido.
+- [ ] **Misión 4½ — ordenar la casa antes de construir** (una sesión corta): el repo limpio y publicable; **`docs/chats-mision-4/` se muda al privado
+  `vibe-research`** (Guido, 2026-10-26: "en este repo, que es genérico, queda medio raro"); **un diario de misiones en `vibe-research`** (qué se
+  hizo cuándo, en qué PC, qué sesiones, qué costó: la documentación de las sesiones); legacy con lápida; `docs/README.md`, la guía y los manuales al día;
+  README 100% portada. Incluye el **tope al hook del molde (v2.4.3)** de abajo si todavía no salió.
 - [ ] **Tope al hook de arranque del molde** (arreglo chico, fuera de la misión 4, que solo diseña).
   - **El problema**: el molde hace `cat` del handoff entero, y la plataforma corta lo inyectado a 10.000
     caracteres. Lo que se pasa, la sesión no lo ve.
@@ -29,21 +37,33 @@
     `/inicio` del molde → `kit-sync.sh sync` LIMPIO → tag `v2.4.3`. **Guía: `DISENO-B-documentos.md` §9** y el hook del Hub.
     El diseño completo (node, presupuesto, módulos) llega con la misión 5. Bot y el Panel se arreglan en sus propios chats.
   - **Evidencia**: `docs/mision-4/FLOTA.md` §3 · DISENO-B §3.
-- [ ] **Misión 5 — construir el pack por piezas** (después de la 4). **Piloto del canon director/obrero en Deptos** (decisión de Guido,
-  2026-10-23: "no ahora; puede ser en la semana"), con las 10 pruebas NO VERIFICADO de `DISENO-D` §7.7, §11 y §20.
-- [ ] **Misión 6 — escribir el ciclo de mejora del método** (al terminar la misión 5, con todo fresco).
-  Juntar en un documento reusable lo que hoy está repartido (ADR-021, SPEC-investigacion-chats,
+- [ ] **Misión 5 — construir el pack por piezas → kit v3.0** (después de la 4½). **Piloto del canon director/obrero en Deptos** (decisión de Guido,
+  2026-10-23: "no ahora; puede ser en la semana"), con las 10 pruebas NO VERIFICADO de `DISENO-D` §7.7, §11 y §20, las de H §22 y las de G; un mes
+  de uso y la medición contra las líneas base del TABLERO §1.
+- [ ] **Misión 6 — escribir el ciclo de mejora del método** (al terminar la misión 5, con todo fresco; antes de la mensajería, porque es lo que
+  más se evapora). Juntar en un documento reusable y genérico de vibe-kit lo que hoy está repartido (ADR-021, SPEC-investigacion-chats,
   observatorio/investigacion/METODO.md, docs/mision-4/PLAN.md):
-  - cuándo arranca una vuelta y cada cuánto (el disparador: la medición mensual o X meses);
+  - **revisar cómo trabajamos de verdad en estas sesiones** (pedido de Guido, 2026-10-26): leer los chats de las misiones 2-5 (los de la 4 ya
+    guardados; sumar los de A, C, E, los tramos 0-3 y la misión 5 desde `vibe-research`), cómo fue cada sesión y cuánto costó cada racimo;
+  - cuándo arranca una vuelta y cada cuánto (el disparador: 3-4 meses, y recién con la versión nueva un mes andando en el piloto);
   - los 5 pasos: investigar → ordenar la casa → diseñar con Guido → construir con piloto → medir;
-  - qué sale de cada paso y cuánto costó;
+  - qué sale de cada paso y cuánto costó; los registros de cambios de método de los proyectos como fuente, además de los chats;
   - plantillas genéricas del SPEC de investigación y del PLAN de diseño;
   - la fecha de corte de la próxima vuelta;
   - las lecciones de esta vuelta (se juntan en `docs/mision-4/PLAN.md` §Lecciones para el ciclo).
-  - **leer los chats de la misión 4** que Guido pidió guardar para esto (`docs/chats-mision-4/`, con su LEEME): cómo se trabajó de verdad
-    y cuánto costó cada racimo. Faltan los de A, C y E y los de los tramos 0-3 (sumarlos desde la PC `clientes`). Al terminar, la carpeta se borra.
 
   Es una receta, no una skill (regla de 3+).
+- [ ] **Misión 7 — la mensajería agéntica → kit v3.1** (lo que era G.1; brief en `DISENO-G` §18 + sus insumos del acta de contraste: hueco 3/P71,
+  P68, P77 y las "otras" 5, 8 y 24). Con investigación en internet y piloto. Guido, 2026-10-26: "no está bien claro todavía; siguiente versión;
+  no bien termine lo otro, lo hago".
+
+## 🔁 El ciclo (cada 3-4 meses; la próxima vuelta arranca del corte del 2026-10-26 y cae entre febrero y marzo de 2027)
+1. **Investigar**: condensar los chats desde el corte anterior y leerlos con las decisiones vigentes en la mano (como la lectura de contraste);
+   leer también los registros de cambios de método de los proyectos. Lo crudo al privado `vibe-research`, el acta con alias a `tips/`.
+2. **Ordenar la casa**: repo limpio, legacy con lápida, guía y manuales.
+3. **Diseñar con Guido**: solo lo que la evidencia reabre, en racimos, con los 11 criterios y revisor frío.
+4. **Construir y pilotear**: versión nueva del kit, un proyecto piloto, un mes de uso.
+5. **Medir**: los scripts gratis contra las líneas base; de ahí sale la fecha de la próxima vuelta. La misión 6 lo deja escrito.
 
 ## 🟠 Importante
 - [ ] **Estreno real de `/relevamiento`**: un pedido de otro sector, de punta a punta. Hasta que pase

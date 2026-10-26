@@ -2,6 +2,17 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-26 — La hoja de ruta reordenada: v3.0 sin mensajería, el ciclo como misión 6, la mensajería como v3.1 (ADR-025)
+
+### Changed
+- **El orden de las misiones** (Guido): 4 cierra el diseño sin la mensajería → 4½ ordenar la casa → 5 construir v3.0 → 6 el ciclo de mejora como
+  proceso escrito (con la revisión de cómo trabajamos en estas sesiones) → 7 la mensajería agéntica, v3.1 (lo que era G.1). El TODO lleva la hoja
+  de ruta y **el ciclo** (cada 3-4 meses; la próxima vuelta, entre febrero y marzo de 2027).
+- **La revisión integral suma un apartado de director/obrero**: el canon de D contra lo que Hermes Desktop cambió en su método mientras
+  diseñábamos (126 commits desde el 20/10; CM-72 a CM-103 de su `CAMBIOS.md`; Mobile sin cambios) y la decisión del flujo proyecto ↔ kit.
+- **Regla del research** en `observatorio/README.md`: al público solo el acta; todo lo crudo a un repo privado propio, pusheado antes de cerrar la
+  madre. `docs/chats-mision-4/` se mudará al privado en la 4½, con un diario de misiones. ADR-025; PLAN, TABLERO, DISENO-G §18 y handoff al día.
+
 ## 2026-10-26 — El agente de ecosistema se va del kit (ADR-024)
 
 ### Changed

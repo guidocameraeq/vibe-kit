@@ -370,7 +370,7 @@ al repo?" dejaron de ser preguntas (R-9); el script es node como el molde (R-11)
 dirección del proyecto; los recortes con razón. Informe completo en el scratchpad de la sesión (no entra al repo). **Después de la revisión,
 Guido aprobó las 12 decisiones en bloque** y cerró lo único que quedaba abierto (§9.3): nadie le avisa; lo ve al abrir.
 
-## 18. Racimo G.1 · el buzón multiagente (brief; se diseña en su propia sesión)
+## 18. Racimo G.1 · el buzón multiagente (brief; se diseña en su propia sesión — **pasa a la misión 7, kit v3.1**, ADR-025 del 2026-10-26)
 
 **Qué es**: un contrato genérico para que agentes **sin acceso al repo** (otra organización, otro LLM que no corre git, un agente que
 solo ve una carpeta) se dejen mensajes, y para el **aviso inmediato entre cuentas**, montado sobre una carpeta compartida (pedido de Guido,

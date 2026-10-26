@@ -30,6 +30,7 @@
 - ADR-022 · Cómo se ejecutó la investigación: lo que se apartó del SPEC (2026-10-13)
 - ADR-023 · Profesionalizar el repo madre: portada, misión y visión, observatorio, TODO y licencia (2026-10-13)
 - ADR-024 · El agente de ecosistema se va del kit: vive en el Hub; vibe-kit guarda solo el contrato del registro (2026-10-26)
+- ADR-025 · La hoja de ruta reordenada: el diseño cierra sin mensajería (v3.0), el ciclo en la misión 6, la mensajería es v3.1; lo crudo al research (2026-10-26)
 
 *Cada ADR nuevo suma su línea acá (lo pide `/cierre`).*
 
@@ -521,3 +522,28 @@ ecosistema mío, exclusivo de mi empresa. Eso debería manejarlo por afuera."
   coherente; la pregunta "¿es proyecto nuevo, subproyecto o feature de otro?" queda partida (el Arquitecto consulta el registro; el Hub responde
   con sus datos). Los insumos del acta de contraste que eran para I: los genéricos (P76, P69) van al triage de la revisión integral; los del
   agente viajan al Hub.
+
+## ADR-025 · La hoja de ruta reordenada: el diseño cierra sin mensajería (v3.0), el ciclo se escribe en la misión 6, la mensajería es v3.1; lo crudo va al research (2026-10-26)
+Al cerrar H y la lectura de contraste, Guido miró el conjunto: "ya tenemos todo el diseño hecho, exceptuando el sistema de mensajería agéntica,
+que aún no está bien claro". Y pidió dos cosas más: que el proceso que hicimos (leer los chats, investigar, sacar una versión, actualizar en
+todos lados) quede escrito para repetirlo cada 3-4 meses, y que el repo quede limpio, con los hallazgos siempre en el research.
+- **Decisión 1, el orden:** misión **4** cierra el diseño **sin la mensajería** (revisión integral con el acta, ajustes, filtros, spec) →
+  **4½ ordenar la casa** (una sesión; es el paso 2 del ciclo) → **5 construir v3.0** con piloto en Deptos y medición → **6 el ciclo de mejora
+  como proceso escrito**, con la revisión de cómo trabajamos de verdad en estas sesiones → **7 la mensajería agéntica, v3.1** (lo que era G.1).
+  *Descartado:* mensajería antes del ciclo (Guido quería la mensajería "no bien termine lo otro", pero el ciclo son dos sesiones cortas y es lo
+  que más se evapora; la mensajería es un diseño grande con investigación y piloto) · escribir el ciclo ahora (el ciclo completo recién existe
+  cuando se construyó y se midió).
+- **Decisión 2, el apartado director/obrero en la revisión integral** (pedido de Guido): mientras se diseñaba el canon de D, **Hermes Desktop
+  cambió su propio método**: 126 commits desde el 2026-10-20 en `director`, `obrero`, `tramo`, `cierre` y `smoke`, con un registro formal
+  (`docs/metodo/CAMBIOS.md`, 230 KB, **CM-72 a CM-103** aprobados por el PO en la mesa del 26/10); Mobile no tocó el suyo. La revisión integral
+  contrasta el canon contra esos cambios y **decide el flujo proyecto ↔ kit**: si un proyecto sigue cambiando su método entre versiones del kit
+  (con registro, como Hermes) o espera a la versión, y cómo vuelve al kit lo aprendido. Propuesta a evaluar ahí: el registro de cambios por
+  proyecto es pieza del canon; el ciclo lo lee junto con los chats; lo que se repite en 3+ proyectos entra al kit (E ya tiene el actualizador
+  que no pisa la capa propia y la regla de 3+ con `flota.py`).
+- **Decisión 3, dónde vive cada cosa:** **vibe-kit es el método; `vibe-research` es la bitácora de Guido.** Al público entra solo el acta con
+  alias; **todo lo crudo va al privado, en una carpeta por lectura, y se pushea antes de cerrar la madre** (regla genérica en
+  `observatorio/README.md`, sin nombrar el repo). `docs/chats-mision-4/` **se muda al privado** en la 4½ (revierte la elección del 2026-10-26 de
+  dejarlos en el público: "en este repo, que es genérico, queda medio raro"), junto con un **diario de misiones** (qué se hizo cuándo, en qué PC,
+  qué sesiones, qué costó).
+- **Costo aceptado:** v3.0 sale sin mensajería (la mesa por git de G alcanza mientras tanto); la misión 6 se escribe con la memoria de la 4 más
+  vieja (mitigado: los chats están guardados y cada cierre deja sus lecciones en PLAN §Lecciones).
