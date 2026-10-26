@@ -2,6 +2,20 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-26 — El acta de hábitos de la PC `Usuario` (observatorio)
+
+### Added
+- `tips/tanda-2026-10-habitos.md`: qué le pide Guido a mano, una y otra vez, en sus chats de la PC `Usuario` (uso personal; 68 chats, 613
+  mensajes suyos, 2026-06-13 a 10-25). 19 familias: 12 ya cubiertas por los diseños A-H, 5 en parte, 1 nueva; propuestas **P58-P62**. 5
+  lectores Sonnet, ~600 mil tokens (1,9× lo presupuestado). Corte nuevo de esta PC: 2026-10-25 15:48 UTC. Trae el brief para `clientes` (§6),
+  que absorbe la lente B de la lectura de contraste.
+- `observatorio/investigacion/recortar.py` (el recorte "mensajes de Guido + primera línea de Claude": baja la entrada ~24 veces) y
+  `LECTOR-HABITOS.md`; las dos filas en `METODO.md`.
+
+### Changed
+- `PLAN-lectura-contraste.md`: el recorte ya existe (le falta conservar el cuerpo de los mensajes entre sesiones); ~120 mil por lector; la
+  lente B cruza contra el acta de hábitos. Handoff y TODO al día.
+
 ## 2026-10-26 — Misión 4, tramo 4: el racimo H (niveles y puertas del Arquitecto), con Guido adentro y revisado; la lectura de contraste planificada
 
 ### Added

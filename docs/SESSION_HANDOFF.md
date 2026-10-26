@@ -16,14 +16,15 @@ Solo diseño, kit `v2.4.2`. PC `Usuario`. `kit-sync` LIMPIO. **Guido se muda a l
   línea sin preguntar; lo chico nunca pasa por el Arquitecto · director solo si se escribe **a la vez** · subproyecto = módulo con nombre · el
   Arquitecto termina armando el módulo y dando la línea de apertura · entorno de prueba declarado, verificado por script, chequeo base al abrir ·
   ramas `modulo/<x>` y `modulo/<x>--<ID>`, worktrees por el script `worktree`, pestaña identificada por la rama del `cwd` · tope del spec ·
-  prototipo antes del spec · `sensible:` a reglas por script. Cada decisión dice cuál de las cuatro cosas de Guido mueve (memoria). Notas en
+  prototipo antes del spec · `sensible:` a reglas por script. Cada decisión dice cuál de las cuatro cosas de Guido mueve (H §2; la memoria de esta PC no viaja). Notas en
   A-G, TABLERO, PLAN y PLATAFORMA §7 (worktrees verificados contra la doc).
 - 🆕 **Lectura de contraste de los chats, planificada** (pedido de Guido): no otro barrido, sino leer los chats con las decisiones A-H en la
   mano (confirma / contradice / no vi), más hábitos y huecos. `observatorio/investigacion/LECTOR-contraste.md` (49 decisiones) y
-  `PLAN-lectura-contraste.md`. **Corre en la PC `clientes`** (ahí están los condensados de octubre, `D:\vibe-hallazgos\`). Falta `recortar.py`.
-- 🆕 **Hábitos en esta PC**: la sesión del observatorio ("Observatorio: hábitos que Guido repite a mano") condensó y recortó los chats de
-  `Usuario` en `C:\vibe-research\usuario\` (fuera del repo, gitleaks limpio) y **quedó esperando el OK de Guido con el presupuesto**. No hay
-  acta. Al volver a esta PC: contestarle; el acta va a `tips/tanda-2026-10-habitos.md` (uso personal: se etiqueta, no se generaliza).
+  `PLAN-lectura-contraste.md`. **Corre en la PC `clientes`** (ahí están los condensados de octubre, `D:\vibe-hallazgos\`).
+- ✅ **Acta de hábitos de la PC `Usuario`** ([`tanda-2026-10-habitos.md`](../tips/tanda-2026-10-habitos.md), uso personal): 19 familias, 12 ya
+  cubiertas por A-H, **P58-P62 nuevas** (proponer el cierre; "por qué hace falta" en toda recomendación; prueba a mano con guion; "¿cómo lo
+  resuelven otros?" como paso fijo; volver de un corte). Dejó **`recortar.py`** (ya probado) y `LECTOR-HABITOS.md`. Costo real ~600 mil, 1,9×
+  lo presupuestado: **con lotes recortados, ~120 mil por lector**.
 
 ## Próximo paso (PC `clientes`): confirmar H y arrancar la lectura de contraste
 
@@ -33,9 +34,9 @@ Solo diseño, kit `v2.4.2`. PC `Usuario`. `kit-sync` LIMPIO. **Guido se muda a l
    spec, prototipo, sin código y carpeta real, `sensible:`, variantes chicas, NORTE). Él las leyó y no objetó. Si cierran: estado ✅ en
    DISENO-H, TABLERO §10 y PLAN; las líneas `H-n` de `LECTOR-contraste.md` se ajustan si algo cambió. Si corrige, se aplica y se anota en §2.
 2. **Arrancar la lectura de contraste como sesión propia del observatorio** (rol aparte, nunca la madre): brief = `PLAN-lectura-contraste.md`
-   entero. Pasos que le tocan a la madre antes: `ya-sabido.md` al día; escribir y probar `recortar.py` con 3 chats; **el presupuesto se lo
-   muestra a Guido con el número** (estimación a ojo: 4-8 M reales de lectores, NO VERIFICADO). Su acta: `tips/tanda-2026-11-contraste.md`.
-   Lectores Sonnet, síntesis Opus, nunca Fable.
+   entero. Antes: `ya-sabido.md` al día; **`recortar.py` ya existe, pero corta el cuerpo de los mensajes entre sesiones** y la lente A los
+   necesita (G-*, D-6): sumarle una opción para conservarlos; **la lente B cruza contra el acta de hábitos** (una sola pasada en `clientes`,
+   no dos: el §6 del acta queda absorbido); **el presupuesto a Guido con el número**, a ~120 mil por lector. Acta: `tips/tanda-2026-11-contraste.md`.
 
 **Después**: **I** (el agente de ecosistema; vive en el Hub, el kit solo consume el `registro`; TABLERO §10) · **G.1** (brief en G §18) ·
 la revisión integral. **Sesión corta aparte, cuando Guido quiera**: `vibe-kit · Tope al hook del molde (v2.4.3)`, esfuerzo `medium`.
@@ -44,10 +45,8 @@ la revisión integral. **Sesión corta aparte, cuando Guido quiera**: `vibe-kit 
 
 - 🔑 **Identidad de git**: `guido.camera.eq@gmail.com` (global en `Usuario`; en `clientes` verificar con `git config user.email`). Nunca `eq.chatgpt`.
 - 📬 **El Hub pushea a este repo desde otra sesión**: `git fetch` antes de cerrar (hoy nada nuevo).
-- 🧪 **NO VERIFICADO al piloto (Deptos)**: los 10 de H §22 (tokens por carpeta de worktree, `--bg` dentro del worktree, la pestaña de la
-  extensión en un worktree, los números del tope…); los de D y G siguen.
+- 🧪 **NO VERIFICADO al piloto (Deptos)**: los 10 de H §22 y los de D y G.
 - 🔴 **vibe-kit es PÚBLICO**: gitleaks antes de cada push (hoy limpio). Alias en los diseños. 🔐 **12 alertas abiertas**, las arregla Guido.
-- 🖥️ `Usuario` = uso personal y liviano; `clientes` = trabajo (Hermes, directores, hallazgos). Lo medido acá se etiqueta, no se generaliza.
 
 ## Bloqueos
 

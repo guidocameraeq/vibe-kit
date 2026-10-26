@@ -13,8 +13,8 @@
   investigación en internet y piloto), **H 🟡** (2026-10-25: niveles y puertas del Arquitecto; 14 decisiones, **las 7-14 sin OK explícito de
   Guido: confirmarlas en la PC `clientes` con `DISENO-H` §10-§17 en la mano**), **sigue I** (el agente de ecosistema, propio de la empresa) y
   **G.1 al final** (orden de Guido, 2026-10-24). **La lectura de contraste de los chats** (`observatorio/investigacion/PLAN-lectura-contraste.md`)
-  corre en la PC `clientes` como sesión del observatorio, en paralelo con I, y entra a la revisión integral. **El acta de hábitos de la PC
-  `Usuario`** está a medias: la sesión del observatorio espera el OK de Guido con el presupuesto. **Cada racimo se diseña
+  corre en la PC `clientes` como sesión del observatorio, en paralelo con I, y entra a la revisión integral. Las propuestas **P58-P62** del acta de
+  hábitos (`tips/tanda-2026-10-habitos.md`) entran a la revisión integral. **Cada racimo se diseña
   con los 11 criterios del PLAN y cierra con su tabla; al terminar los nueve, revisión integral de todas las decisiones con esa vara, antes
   del spec** (Guido la pidió especialmente para D). Fuentes: las 57 propuestas de
   `tips/tanda-2026-10-chats.md` + los métodos de Hermes Desktop y Mobile + `REFERENCIAS-EXTERNAS.md`.

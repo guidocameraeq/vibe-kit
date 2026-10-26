@@ -10,9 +10,9 @@
   carpeta de trabajo; lo de `D:\vibe-hallazgos\` no se toca.
 - **Se condensa solo lo nuevo**: `condensar.py --pc clientes --desde <corte> --excluir <esta sesión>`,
   con la prueba de 3 chats contando a mano los mensajes de Guido (METODO paso 1).
-- **Es nuevo, y falta construirlo**: el **recorte**. `condensar.py` hoy no lo tiene: un `recortar.py` chico
-  sobre los condensados (o `--recorte`). Se prueba igual, con 3 chats: los mensajes de Guido y los
-  entre sesiones del recorte = los del condensado.
+- **El recorte ya existe**: `recortar.py` (nació con la tanda de hábitos, 2026-10-25, probado en la PC `Usuario`). **Le falta
+  una opción**: hoy deja solo la marca de los mensajes entre sesiones, sin su cuerpo, y esta lectura los necesita enteros
+  (lente A, G-* y D-6). Se agrega y se prueba con 3 chats: los mensajes de Guido y los entre sesiones del recorte = los del condensado.
 
 ## La entrada, recortada por default
 - Queda: el encabezado · `### GUIDO` entero · `### DE <sesión>` entero · la primera línea de cada
@@ -26,8 +26,10 @@
 - Fórmula de METODO: **gasto real ≈ 3× el contenido** (relectura en cada paso, casi toda en caché).
   Referencia de octubre: 8,2 M de contenido → 25 M reales, 81 lectores.
 - Estimación a ojo, **NO VERIFICADO**: el recorte deja 15-30% → 1,2-2,5 M + lo nuevo desde el corte →
-  **~4-8 M reales** de lectores, más ~1-1,5 M de síntesis Opus. Con 500 KB por lote entran más chats por
-  lote: menos lectores.
+  **~4-8 M reales** de lectores, más ~1-1,5 M de síntesis Opus. **Lección de la tanda de hábitos** (2026-10-25): con
+  lotes recortados manda el piso por lector, **~120 mil cada uno**; allá el × 3 dio la mitad de lo real. `recortar.py` lo imprime así.
+- **La lente B absorbe la pasada de hábitos de `clientes`** (el §6 de `tips/tanda-2026-10-habitos.md`): una sola pasada, que cruza
+  contra esa acta. Propuestas nuevas desde **P63**.
 - **El número de verdad lo imprime el script después del recorte**, y se le muestra a Guido antes de
   lanzar nada. Si hay que ahorrar: lotes más chicos, solo las familias con director (Hermes, Deptos), o
   muestreo declarado con semilla fija.
