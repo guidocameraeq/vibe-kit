@@ -8,6 +8,8 @@ description: Ritual de inicio de sesión del repo vibe-kit — cruzar el handoff
 El hook SessionStart ya inyectó `SESSION_HANDOFF.md` + los pendientes de `docs/TODO.md` + los últimos
 commits al abrir este chat. **NO los releas** — es costo puro de contexto. Releé el archivo solo
 ante señal de drift (fecha vieja, contradicción con git) o si el hook no aparece en el contexto.
+**Si dice `CORTADO`, o falta la huella** (`inyectado: N caracteres de 10000`, la última línea), leé
+lo que falta con Read antes de confirmar, y el `/cierre` achica el handoff o el TODO.
 
 ## Pasos
 

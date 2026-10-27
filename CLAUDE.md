@@ -55,6 +55,7 @@ charla diseñó algo no-trivial.
 | `docs/SESSION_HANDOFF.md` | Save game — dónde quedamos | `/cierre` lo sobreescribe entero; el hook lo inyecta |
 | `docs/DECISIONS.md` | Por qué el kit es como es (ADRs) | Decisión con alternativas → ADR nuevo, correlativo |
 | `docs/SPEC-*.md` | Los planos de lo que se construyó | **Al implementarse NO se archivan**: se marcan `✅ IMPLEMENTADO <fecha>` en la línea de Estado y se quedan en `docs/`, porque sus criterios y su Fase 2 se siguen consultando. Lo que SÍ va a `legacy/` con lápida es el material **consumido** (relatos de uso, prompts de arranque). *Esto se aparta del `formato-spec.md` del kit, que manda archivar — allá el spec es de una feature de app; acá es del método mismo y sigue vivo.* |
+| `docs/kit-v3/` | El kit v3: su SPEC-0, la guía del repaso y los specs delta de cada paquete (`SPEC-paquete-N.md`) | **Se aparta de la fila de arriba**: los specs de una versión del kit viven en su carpeta de versión, no sueltos en `docs/` (pedido de Guido, 2026-10-27). Misma regla de no archivar al implementarse |
 | `docs/REJECTED.md` | Lo descartado a nivel proyecto | Sin él, un chat futuro re-propone el plugin o el web wizard |
 | `docs/consulta/` | Referencia que no cambia con el trabajo diario | `referencia-prompts-fyd.md` es texto de FyD: fuera de la licencia MIT |
 | `PLAYBOOK-MAESTRO.md` | EL método (multi-proyecto) | Se toca solo con evidencia nueva |

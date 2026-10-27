@@ -18,6 +18,8 @@ Dos modos:
    - Qué se hizo (5-15 bullets) · en qué estado quedó (branch / entorno / DB)
    - Lo que quedó en curso · **próximo paso CONCRETO** (nunca "seguir avanzando") · bloqueos
    - Archivos tocados · contexto importante que no esté en otros docs
+   - **Tope: 5.500 bytes** (`wc -c docs/SESSION_HANDOFF.md`). Si se pasa, el hook lo corta: lo viejo va al CHANGELOG, no se aprieta la letra.
+     Al terminar, correr `bash .claude/hooks/session-start.sh | tail -1` y mirar la huella: tiene que quedar bajo 9.700 caracteres.
 3. **`docs/CHANGELOG.md`** — entrada nueva al tope (Added / Changed / Fixed / Removed según corresponda).
 4. **`docs/TODO.md`** — tareas completadas AFUERA (la historia queda en CHANGELOG); nuevas con criticidad. El header es solo `YYYY-MM-DD — ver SESSION_HANDOFF.md`.
 5. **Otros docs de estado** (si el proyecto los tiene): STATUS solo si cambió el estado de un bloque (tocar la fila, nunca re-contar la sesión); DECISIONS si hubo decisión técnica con alternativas (ADR-NNN + línea en el índice); REJECTED si se descartó algo por preferencia.

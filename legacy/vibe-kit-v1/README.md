@@ -1,5 +1,8 @@
 # vibe-kit
 
+> **📦 ARCHIVADO 2026-07-06** (kit v2). Es el kit v1, armado como plugin. **No se instala**: el formato plugin se
+> descartó (REJ-001) y lo reemplazó el kit v2. Para instalar el kit vigente, el `README.md` de la raíz.
+
 > Tu kit de arranque para vibe coding con Claude Code. Pensado para alguien que **NO programa** y dirige Claude en lenguaje natural desde VSCode.
 
 ## ¿Qué es esto, en criollo?

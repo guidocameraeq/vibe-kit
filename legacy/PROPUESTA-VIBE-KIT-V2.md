@@ -1,5 +1,8 @@
 # PROPUESTA — vibe-kit v2: "El Arquitecto"
 
+> **📦 ARCHIVADO 2026-07-11** (v2.1). Era la propuesta del kit v2, "El Arquitecto". Su hoja de ruta se cumplió con el
+> release v2.1. Es el precedente del criterio de ADR-020: nadie la consulta y su trabajo ya ocurrió.
+
 > Rediseño del vibe-kit a partir de: (1) tu conversación original completa del 22-23 jun (leída entera, con tus palabras), (2) auditoría de los 35 archivos del kit v1 en disco, (3) el PLAYBOOK-MAESTRO como frontera, y (4) verificación técnica contra la doc de Claude Code. Pasó revisión adversarial (10 hallazgos, todos aplicados). Fecha: 2026-07-04.
 
 ---

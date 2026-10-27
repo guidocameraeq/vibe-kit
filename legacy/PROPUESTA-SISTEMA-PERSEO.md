@@ -1,5 +1,8 @@
 # PROPUESTA — Nuevo sistema de trabajo para Perseo
 
+> **📦 ARCHIVADO 2026-07-06** (kit v2). Era la propuesta que fusionaba el playbook de Hermes con la auditoría de Perseo.
+> La reemplazó el `PLAYBOOK-MAESTRO.md`. Se conserva como historia: no es normativa.
+
 > Fusión del **playbook de Hermes** (`Desktop\PLAYBOOK_CLAUDE.md`) con la **auditoría de Perseo** (`AUDITORIA-USO-CLAUDE-PERSEO.md`). El playbook pone el esqueleto del sistema; la auditoría pone las especificidades de Perseo (VPS, WhatsApp, quoting, cuota Codex, docs inflados). Fecha: 2026-07-03.
 
 ---

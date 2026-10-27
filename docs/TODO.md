@@ -8,24 +8,7 @@
 > **La hoja de ruta, reordenada el 2026-10-26 (ADR-025)**: 4 cerrar el diseño sin mensajería → 4½ ordenar la casa → 5 construir **v3.0** →
 > 6 el ciclo como proceso → 7 la mensajería agéntica (**v3.1**). Después, el reloj: una vuelta cada 3-4 meses (abajo, "El ciclo").
 
-- [ ] **Misión 4½ — ordenar la casa antes de construir** (una sesión corta, la próxima): el repo limpio y publicable; **`docs/chats-mision-4/` se
-  muda al privado `vibe-research`** (Guido, 2026-10-26: "en este repo, que es genérico, queda medio raro"); **subir a ese privado los 4 informes
-  de revisión del spec** que quedaron en `D:\vibe-research\clientes\redteam-kit-v3\` (carpeta local sin git); **un diario de misiones en
-  `vibe-research`** (qué se hizo cuándo, en qué PC, qué sesiones, qué costó); legacy con lápida; `docs/README.md`, la guía y los manuales al
-  día; README 100% portada; **la fila de `docs/kit-v3/` en el mapa del `CLAUDE.md`** (los specs del kit viven en su carpeta de versión, pedido
-  de Guido). Incluye el **tope al hook del molde (v2.4.3)** de abajo si todavía no salió. **Y medir el hook de vibe-kit** al abrir: hoy inyecta
-  ~10.800 caracteres; si sigue pasado, recortar el TODO o el handoff.
-- [ ] **Tope al hook de arranque del molde** (arreglo chico, fuera de la misión 4, que solo diseña).
-  - **El problema**: el molde hace `cat` del handoff entero, y la plataforma corta lo inyectado a 10.000
-    caracteres. Lo que se pasa, la sesión no lo ve.
-  - **Hoy** (medido 2026-10-22): Bot inyecta 15.500 caracteres y el Panel del bot ~18.000: arrancan sin ver su estado.
-    Arte está al 92%, vibe-kit al 88%. **El Hub ya lo arregló** (tope de 5.500 bytes al handoff, aviso "CORTADO", test;
-    mergeado a su `main` el 2026-10-22).
-  - **El arreglo**: solo el tope y la huella en `kit/…/hooks/session-start.sh` (bash) y "si dice CORTADO, leé el resto" en el
-    `/inicio` del molde → `kit-sync.sh sync` LIMPIO → tag `v2.4.3`. **Guía: `DISENO-B-documentos.md` §9** y el hook del Hub.
-    El diseño completo (node, presupuesto, módulos) llega con la misión 5. Bot y el Panel se arreglan en sus propios chats.
-  - **Evidencia**: `docs/mision-4/FLOTA.md` §3 · DISENO-B §3.
-- [ ] **Misión 5 — construir el pack por piezas → kit v3.0** (después de la 4½). **El plano es `docs/kit-v3/SPEC-0-kit-v3.md` (READY, 2026-10-27)**:
+- [ ] **Misión 5 — construir el pack por piezas → kit v3.0** (la próxima; el modelo de cada rol, en la sección "Ejecución" del spec). **El plano es `docs/kit-v3/SPEC-0-kit-v3.md` (READY, 2026-10-27)**:
   9 paquetes en el orden de su tabla "Orden de construcción" (1 ficha y parser · 2 documentos, hook, candado, `cambios` · 3 seguridad · 4 Arquitecto
   y `worktree` · 5 canon director/obrero, `/estado`, mesa · 6 Equipador, actualizador, adoptador · 7 ciclo y portada · 8 observatorio y docs del
   método · 8½ credenciales de Deptos · 9 piloto · 10 tag). Cada paquete con spec delta en `docs/kit-v3/SPEC-paquete-N.md`, red team si toca
@@ -57,6 +40,9 @@
 5. **Medir**: los scripts gratis contra las líneas base; de ahí sale la fecha de la próxima vuelta. La misión 6 lo deja escrito.
 
 ## 🟠 Importante
+- [ ] **El hook v2.4.3 al Bot y a su Panel** (inyectaban 15.500 y ~18.000 caracteres el 2026-10-22: arrancan sin ver su estado).
+  En un chat de cada uno: *"traé el hook de arranque del molde del kit y medilo"* (receta en `GUIA-DE-USO.md`). El molde nuevo solo
+  llega a los proyectos que se montan desde ahora.
 - [ ] **Estreno real de `/relevamiento`**: un pedido de otro sector, de punta a punta. Hasta que pase
   **no se declara estable**. Quedan 11 de 21 criterios sin verificar (checklist en
   `docs/SPEC-relevamiento.md`). Se mide: ¿la invocaste sin que te la recuerden? ¿cuántas preguntas de

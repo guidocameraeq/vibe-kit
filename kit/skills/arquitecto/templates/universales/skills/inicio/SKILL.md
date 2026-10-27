@@ -7,6 +7,8 @@ description: Ritual de inicio de sesión de {{PROYECTO}}. Usar cuando el usuario
 
 El hook SessionStart ya inyectó `SESSION_HANDOFF.md` + cabecera del TODO + estado git al abrir este chat. **NO los releas** (es costo puro de contexto). Releé el archivo solo ante señal de drift: fecha vieja, contradicción con git, o si el hook no aparece en el contexto.
 
+**Si lo inyectado dice `CORTADO`** (el handoff pasó el tope, o el total quedó al borde de los 10.000 caracteres que corta la plataforma): leé con Read lo que falta **antes** de confirmar nada, y anotá para el `/cierre` que hay que achicar el handoff o el TODO. La última línea, `inyectado: N caracteres de 10000`, es la huella: si no aparece, la salida se cortó.
+
 ## Pasos
 
 1. Cruzar handoff vs realidad: ¿el "último commit" del handoff coincide con `git log`? ¿Hay working tree sucio que el handoff no menciona? Detectar también: SPECs implementadas sin archivar, TODO que contradice al handoff, drift repo↔entorno anotado.

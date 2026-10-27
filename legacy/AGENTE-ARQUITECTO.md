@@ -1,5 +1,8 @@
 # El "Agente Arquitecto" de vibe-kit — prior-art y diseño
 
+> **📦 ARCHIVADO 2026-07-06** (kit v2). Era el prior-art y el primer diseño del "agente arquitecto" (investigación de
+> junio de 2026). Lo reemplazó la skill `kit/skills/arquitecto/`. Se conserva porque muestra por qué no se construyó un framework propio.
+
 > Síntesis de un workflow de investigación (5 ángulos en paralelo + síntesis). La noticia: **casi todo ya está inventado.** No hay que construir un framework — hay que robar piezas y ensamblarlas sobre lo que Claude Code ya da nativo, y agregarle nuestros kits.
 
 ## 1) Qué ya existe que se parece a lo que querés

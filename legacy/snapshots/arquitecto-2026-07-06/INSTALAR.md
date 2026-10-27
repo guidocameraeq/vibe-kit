@@ -1,5 +1,8 @@
 # El Arquitecto — instalación automática en esta PC
 
+> **📦 ARCHIVADO 2026-07-06.** Copia del Arquitecto de antes del repo. **No se instala**: las versiones viejas se
+> recuperan por tag de git (ADR-008). Para instalar el kit vigente, el `README.md` de la raíz.
+
 > **Cómo se usa**: descomprimí el zip en cualquier carpeta → abrí Claude Code **en esa carpeta**
 > (VSCode: Archivo → Abrir carpeta → chat de Claude; o en terminal, parado ahí: `claude`) →
 > pegá el prompt de abajo tal cual. Claude instala todo, te pregunta lo único que necesita

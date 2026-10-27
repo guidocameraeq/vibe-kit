@@ -130,6 +130,12 @@ Abrí un chat acá y listo: el hook te inyecta el handoff, los pendientes y los 
 commits. Para el "por qué" de cualquier cosa: `docs/DECISIONS.md` (los ADRs) y
 `docs/REJECTED.md`; el mapa de `docs/` está en `docs/README.md`. Ningún chat viejo hace falta.
 
+### ✂️ "El arranque dice CORTADO" (o un proyecto viejo arranca sin saber dónde quedó)
+La plataforma corta lo que inyecta el hook en 10.000 caracteres. Desde el kit v2.4.3 el hook del molde
+lo avisa y termina con la huella `inyectado: N caracteres`. Si dice CORTADO: *"leé el resto del handoff
+y en el cierre achicalo"*. Un proyecto armado antes de la v2.4.3 no tiene el hook nuevo: en un chat
+de ese proyecto, *"traé el hook de arranque del molde del kit y medilo"*.
+
 ### 🔎 "Quiero volver a investigar mis chats (o los de otra PC)"
 Chat nuevo acá → *"investigación de chats, desde el último corte, seguí `observatorio/investigacion/METODO.md`"*.
 El método paso a paso está en `observatorio/investigacion/METODO.md`; los scripts al lado; la fecha de corte

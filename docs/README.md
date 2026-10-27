@@ -21,7 +21,8 @@ Qué hay en esta carpeta, qué es cada cosa y cuándo leerla. El repo en general
 ## Los planos (SPEC)
 
 Se quedan acá aunque estén implementados: su línea de Estado dice `✅ IMPLEMENTADO` y sus criterios se
-siguen consultando (ADR-020). El Arquitecto busca borradores en `docs/SPEC-*.md`.
+siguen consultando (ADR-020). El Arquitecto busca borradores en `docs/SPEC-*.md`. Los del kit v3 viven en su
+carpeta de versión (abajo): pedido de Guido, "una carpeta de la versión".
 
 | Archivo | De qué |
 |---|---|
@@ -29,13 +30,19 @@ siguen consultando (ADR-020). El Arquitecto busca borradores en `docs/SPEC-*.md`
 | [`SPEC-relevamiento.md`](SPEC-relevamiento.md) | `/relevamiento` — incluye los 21 criterios del estreno y la Fase 2 |
 | [`SPEC-investigacion-chats.md`](SPEC-investigacion-chats.md) | La investigación de los chats (misión 2) y la hoja de ruta |
 | [`SPEC-profesionalizar-repo.md`](SPEC-profesionalizar-repo.md) | El orden de este repo (misión 3) |
+
+## El kit v3 — [`kit-v3/`](kit-v3/)
+
+El plano de la misión 5 y todo lo que se escriba para construirlo. Los specs delta de cada paquete van al lado (`SPEC-paquete-N.md`).
+
+| Archivo | Qué es |
+|---|---|
 | [`kit-v3/SPEC-0-kit-v3.md`](kit-v3/SPEC-0-kit-v3.md) | **El kit v3, el pack** (misión 4, tramo 5; **READY** el 2026-10-27, tras 3 rondas de red team y revisor frío): nueve paquetes con su estado en la ficha, scripts y candados, el orden de construcción de la misión 5, la medición, "Lo que hacés vos de nuevo" y lo NO VERIFICADO con su cuándo. En su carpeta de versión, con la [guía](kit-v3/GUIA-KIT-V3.md); los specs delta de la misión 5 van al lado (`SPEC-paquete-N.md`) |
+| [`kit-v3/GUIA-KIT-V3.md`](kit-v3/GUIA-KIT-V3.md) | La guía del kit v3: el repaso charlado con Guido (2026-10-27), cinco partes en el orden de su workflow, con lo medido. Junto al spec del kit v3 |
 
-## Temporal — [`chats-mision-4/`](chats-mision-4/)
+## La misión 4, el diseño del pack — [`mision-4/`](mision-4/)
 
-Los chats condensados en los que se diseñaron los racimos de la misión 4, guardados para la revisión del proceso de la misión 6. Se borra cuando la misión 6 los use. Qué hay y qué no: su [`LEEME.md`](chats-mision-4/LEEME.md).
-
-## La misión en curso — [`mision-4/`](mision-4/)
+Cerrada el 2026-10-27. Se queda acá porque el spec del kit v3 la cita como fuente (`DISENO-X §n`) y la misión 5 la consulta.
 
 | Archivo | Qué es |
 |---|---|
@@ -54,7 +61,6 @@ Los chats condensados en los que se diseñaron los racimos de la misión 4, guar
 | [`mision-4/DISENO-G-mesa-y-pcs.md`](mision-4/DISENO-G-mesa-y-pcs.md) | Tramo 4, racimo G: la mesa entre directores de proyectos que comparten algo. El contenido va siempre por git (un archivo por mensaje dentro del módulo, que nunca se edita y cuyo estado calcula un script) y el aviso por mensaje es opcional; seis tipos de mesa en una tabla única; acuerdos que viven una vez y van al PO solo si cambian el alcance; recursos compartidos con dueño; `crossSessionInbound: accept` por el Equipador; dos personas con `fetch`, aviso de commits ajenos y commit por rutas; números de decisión por módulo; lecciones al repo; `aprueba:` por alias. Trae el brief del racimo **G.1** (el buzón multiagente, opt-in). Verificado contra la doc oficial y revisado (34 hallazgos) |
 | [`mision-4/DISENO-H-niveles-y-puertas.md`](mision-4/DISENO-H-niveles-y-puertas.md) | Tramo 4, racimo H: lo chico se hace en el chat sin spec ni chat nuevo (una sola regla de tamaño, dicha por la sesión), lo que es más que chico entra por el Arquitecto, que termina armando el módulo y dando la línea de apertura; subproyecto = módulo con nombre; director solo si se escribe a la vez; entorno de prueba declarado y verificado por script; ramas y worktrees por script; tope del spec; prototipo antes del spec. Decisiones 7-14 provisorias; revisado (45 hallazgos) y contrastado con otros métodos |
 | [`mision-4/REFERENCIAS-EXTERNAS.md`](mision-4/REFERENCIAS-EXTERNAS.md) | Tramo 4: qué hacen otros métodos agénticos (gentle-ai, agency-agents, MetaGPT), qué idea sirve a qué racimo y qué se descarta con su razón |
-| [`kit-v3/GUIA-KIT-V3.md`](kit-v3/GUIA-KIT-V3.md) | La guía del kit v3: el repaso charlado con Guido (2026-10-27), cinco partes en el orden de su workflow, con lo medido. Junto al spec del kit v3 |
 
 ## De consulta — [`consulta/`](consulta/)
 
@@ -66,4 +72,5 @@ Material de referencia que no cambia con el trabajo diario.
 | [`consulta/EVALUACION-docs-fyd-v2.md`](consulta/EVALUACION-docs-fyd-v2.md) | El protocolo para evaluar `docs-fyd` (corrido 2026-07-24: PASS); sirve para la próxima evaluación |
 
 Lo ya consumido (prompts de arranque, presupuestos, relatos de uso) no vive acá: está en
-[`../legacy/`](../legacy/) con su lápida.
+[`../legacy/`](../legacy/) con su lápida. Lo crudo (los chats condensados de la misión 4, los informes de revisión del spec,
+el diario de misiones) vive en el repo privado de investigación desde la misión 4½ (ADR-025).

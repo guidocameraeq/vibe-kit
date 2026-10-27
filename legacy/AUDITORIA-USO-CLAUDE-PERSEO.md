@@ -1,5 +1,8 @@
 # Auditoría de uso de Claude Code — Proyecto Perseo
 
+> **📦 ARCHIVADO 2026-07-06** (kit v2). Era la auditoría del uso de Claude Code en Perseo (2026-07-02). Su evidencia
+> pasó al `PLAYBOOK-MAESTRO.md`. Se conserva porque es la cicatriz original de varias de sus reglas.
+
 > Auditoría del 2026-07-02 sobre la sesión completa de Perseo (20-may → 2-jul). Analizada con 6 agentes en paralelo + verificación cruzada contra los datos crudos. Todo número citado fue verificado contra el transcript real.
 
 ---

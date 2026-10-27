@@ -2,6 +2,35 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-27 — Misión 4½: la casa ordenada antes de construir · v2.4.3
+
+PC `clientes`. Arrancó en Fable y pasó a Opus al empezar a ejecutar (decisión de Guido: las decisiones ya estaban en el spec).
+
+**Added**
+- **El hook de arranque con tope y huella** (molde, `kit/…/templates/universales/hooks/session-start.sh`): el handoff se corta a
+  5.500 bytes con aviso "CORTADO", 30 líneas del TODO, títulos de commit cortados a 100, hasta 15 renglones de estado, y al final
+  `inyectado: N caracteres de 10000`; si pasa los 9.700, avisa también arriba (la línea del final es la que se pierde). Sigue al
+  hook del Hub (2026-10-22). Probado con handoff chico, uno de 26 KB con tildes y un proyecto vacío. *Cicatriz: el Bot inyectaba
+  15.500 caracteres y su panel ~18.000 (FLOTA §3, 2026-10-22).*
+- `/inicio` y `/cierre` del molde: qué hacer con "CORTADO" y el tope del handoff; la cabecera del handoff del molde dice su tope.
+- `GUIA-DE-USO.md`: receta "El arranque dice CORTADO", con la frase para llevar el hook a un proyecto viejo. Manual del Arquitecto y
+  playbook §2.4 al día.
+- `legacy/LEEME.md`: el índice de lo archivado, con qué lo reemplazó. Lápidas en los 9 archivos que no tenían (incluidos el README
+  del kit v1 y el INSTALAR del snapshot, que daban instrucciones de instalación como si estuvieran vigentes).
+- En el repo privado de investigación: `DIARIO-MISIONES.md` (de la misión 1 a hoy: PC, chat, modelo, tokens, commit; los de esta PC
+  medidos sobre los transcriptos), una portada, y `mision-4/` con los chats y los 4 informes de revisión del spec.
+- `/cierre` de acá: suma la fila del diario, mide la huella y pide mensajes de commit de una línea.
+
+**Changed**
+- El hook de vibe-kit es el del molde con sus textos: de 10.199 a ~7.700 caracteres.
+- `docs/README.md`: sección del kit v3; la misión 4 marcada como cerrada; lo crudo, en el privado. Fila de `docs/kit-v3/` en el mapa
+  del `CLAUDE.md`. La portada ya no dice "ahora: diseñar el pack".
+
+**Removed**
+- `docs/chats-mision-4/`: mudado al privado, byte por byte igual (ADR-025). Sigue en el historial de git; no hay nada secreto.
+
+**NO VERIFICADO**: el hook nuevo en un chat de verdad (se ve en el próximo `/inicio`); en qué PC se hicieron los racimos A, C y E.
+
 ## 2026-10-27 — Misión 4, tramo 5: el repaso del kit con Guido y el SPEC-0 del kit v3, READY. Misión 4 cerrada
 
 ### Added

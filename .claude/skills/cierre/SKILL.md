@@ -19,6 +19,8 @@ mostrando evidencia de cada uno:
 2. **`docs/SESSION_HANDOFF.md`** — sobreescribir ENTERO (estado / próximo paso concreto / bloqueos /
    contexto que no está en otros docs). Es la única narrativa de la sesión. El próximo paso lleva el
    **título exacto de la sesión siguiente** (`vibe-kit M<n> · <qué hace>`), que `/inicio` le pone.
+   **Tope 5.500 bytes**; al terminar los docs, `CLAUDE_PROJECT_DIR=. bash .claude/hooks/session-start.sh | tail -1`
+   tiene que dar menos de 9.700 caracteres. Mensajes de commit de una línea (el detalle va al CHANGELOG).
 3. **`docs/CHANGELOG.md`** — entrada nueva AL TOPE: `## YYYY-MM-DD — <tema>` (+ ` · vX.Y` si hubo tag),
    con Added / Changed / Fixed / Removed según corresponda.
 4. **`docs/TODO.md`** — lo completado SALE (la historia queda en el CHANGELOG); lo nuevo entra con su
@@ -34,6 +36,10 @@ mostrando evidencia de cada uno:
      por la guía** — si no, el release quedó a medias.
    - **SPEC implementado** → `Estado: ✅ IMPLEMENTADO <fecha>` y **se queda en `docs/`** (ADR-020: acá
      no se archiva, a diferencia de los proyectos).
+   - **El diario de misiones** (ADR-025): una fila por sesión en `DIARIO-MISIONES.md` del repo privado de
+     investigación (cuál es, la memoria de la PC): fecha y hora, misión y qué se hizo, PC, chat, modelo, tokens
+     nuevos/caché/subagentes, commit. Se clona en el scratchpad, se suma la fila y se pushea antes del commit
+     de acá. Lo crudo de la sesión (chats, informes de revisión) va a ese repo, nunca a este.
 6. **Memoria**: si cambió un hecho estructural del proyecto (release, pieza nueva, regla
    nueva), actualizar la memoria persistente.
 7. **Commit + push**: mensaje descriptivo en español. Si la máquina no tiene identidad de

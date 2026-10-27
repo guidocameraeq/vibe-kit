@@ -1,5 +1,8 @@
 # Kit de Skills — mi set curado de Claude Code
 
+> **📦 ARCHIVADO 2026-07-06** (kit v2). Era el catálogo de skills de una sola máquina (`d:\SAAS`). Lo reemplazó el
+> menú curado del Equipador, `kit/skills/arquitecto-skills/menu-skills.md`. No instalar nada desde acá.
+
 > ⚠️ **Este catálogo describe la máquina `d:\SAAS` (Hermes/Tobybot: SQL Server, Twilio).**
 > El set de ESTA máquina (C: — Perseo/Guia de vibe coding) se rige por la "Nota de máquina"
 > del `PLAYBOOK-MAESTRO.md` §2.3 — acá NO instalar sql-expert, twilio ni product-management.

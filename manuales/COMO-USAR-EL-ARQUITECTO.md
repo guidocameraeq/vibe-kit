@@ -153,6 +153,7 @@ Hermes. Tu día a día ahí:
 
 - **Abrís chat en la carpeta del proyecto** → decís `inicio` → Claude ya sabe dónde
   están parados (el hook le inyectó el estado) → te confirma en 3 líneas → le das la misión.
+  El hook tiene tope: si el handoff crece de más, avisa **CORTADO** y Claude lee el resto.
 - **Trabajás.** Las reglas del CLAUDE.md operan solas: evidencia real o "NO VERIFICADO",
   tus datos son intocables sin tabla "cambio/preservo", tareas largas en background.
 - **Terminás** → `cierre` → docs al día, commit, push, y el chat se descarta.

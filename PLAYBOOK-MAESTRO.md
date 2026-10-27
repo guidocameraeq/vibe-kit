@@ -272,7 +272,10 @@ En `<raíz>/.claude/settings.json` (se versiona) + scripts en `.claude/hooks/`:
 - **SessionStart** (casi siempre vale la pena): inyecta `SESSION_HANDOFF.md` + cabecera del TODO +
   últimos commits en cada chat nuevo — **y también después de un `/compact`**. Es el motivo por el
   que ya no existe el "prompt de inicio" ni el RESUME-PROMPT.md: el chat arranca sabiendo dónde
-  está parado.
+  está parado. **Con tope y huella**: la plataforma corta lo inyectado en 10.000 caracteres sin
+  avisar, así que el hook recorta el handoff (avisa "CORTADO") y termina con `inyectado: N
+  caracteres`. *Cicatriz: 2026-10-22, el Bot inyectaba 15.500 y su panel 18.000 — arrancaban sin
+  ver su estado y nadie lo sabía (kit v2.4.3).*
 - **Post-edición según lenguaje**: `bash -n` para `.sh`, `py_compile` para Python, `tsc --noEmit`
   para TypeScript, `flutter analyze` para Dart. Atrapa el error al editarlo, no en producción.
 - **Anti-secretos (GLOBAL, en `~/.claude/settings.json` de la máquina)**: bloquea cualquier

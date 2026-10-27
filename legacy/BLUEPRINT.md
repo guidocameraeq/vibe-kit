@@ -1,5 +1,8 @@
 # BLUEPRINT — `vibe-kit`: tu sistema reusable de vibe coding con Claude Code
 
+> **📦 ARCHIVADO 2026-07-06** (kit v2). Era el primer diseño de vibe-kit (junio de 2026). Lo reemplazaron el
+> `PLAYBOOK-MAESTRO.md` y el Arquitecto. Se conserva como historia: no es normativo.
+
 > Resultado de un workflow multi-agente (investigar → diseñar 3 conceptos → panel de 3 jueces → síntesis). Todo lo que se nombra existe y corre en jun-2026.
 
 ## Veredicto del panel

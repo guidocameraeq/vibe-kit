@@ -1,5 +1,8 @@
 # Sistema de Documentación Viva para Proyectos con Claude Code
 
+> **📦 ARCHIVADO 2026-07-06** (kit v2). Era el documento de referencia del sistema de documentación (v1.0, 2026-05-07).
+> Lo reemplazó la parte 1 del `PLAYBOOK-MAESTRO.md`. Se conserva como historia: no es normativo.
+
 > Documento de referencia para implementar un sistema de documentación que sobrevive a sesiones largas, compactación de chat, y pérdida de contexto entre Claude y el desarrollador.
 
 **Versión:** 1.0

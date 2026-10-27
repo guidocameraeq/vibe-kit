@@ -112,8 +112,8 @@ Hace falta: [Claude Code](https://claude.com/claude-code) funcionando y git.
 
 ## En qué anda
 
-- 🧭 **Hoja de ruta y pendientes:** [`docs/TODO.md`](docs/TODO.md) — ahora: diseñar el pack para que
-  otra persona lo pueda usar.
+- 🧭 **Hoja de ruta y pendientes:** [`docs/TODO.md`](docs/TODO.md) — el rumbo: que el kit lo pueda usar
+  otra persona sin Guido al lado. El plano: [`docs/kit-v3/SPEC-0-kit-v3.md`](docs/kit-v3/SPEC-0-kit-v3.md).
 - 📜 **Qué cambió y cuándo:** [`docs/CHANGELOG.md`](docs/CHANGELOG.md) · **por qué es como es:**
   [`docs/DECISIONS.md`](docs/DECISIONS.md) · **para qué existe:** [`docs/MISION-Y-VISION.md`](docs/MISION-Y-VISION.md)
 
