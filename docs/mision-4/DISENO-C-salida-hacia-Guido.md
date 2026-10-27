@@ -17,7 +17,7 @@ El problema, medido en Hermes:
 ## 2. Lo que decidió Guido (2026-10-21)
 
 ### 2.1 Cuándo le hablan los agentes
-- **Silencio por defecto.** Le hablan solo por las 4 cosas de su lista ([racimo A](DISENO-A-frenos.md)
+- **Silencio por defecto.** Le hablan solo por las 5 cosas de su lista ([racimo A](DISENO-A-frenos.md)
   §2) o por una decisión de diseño o de negocio.
 - **`/estado` cuando él quiera**, y un **resumen corto al final del día**.
 - **Se terminan los textos para pegar entre pestañas**: los agentes se hablan entre ellos.
@@ -82,13 +82,13 @@ iniciativa que arranca nace sola con su ficha de estado**, sin que Guido configu
   director.
 - *Revisión integral (2026-10-26; D-10 reabierta, ✘43 / ✔23; C-2 confirmada 357 a 0 pero "% de completado" y "¿qué obreros cierro?" se
   piden igual)*: **cuatro líneas más en la vista corta**, sin agente PO: (1) **el % de avance medido** por script (tareas terminadas sobre
-  el plan del módulo, de la ficha y los commits; nunca de la cabeza del director); (2) **"podés cerrar: obrero-07, obrero-12"**: los
+  el plan del módulo, de la ficha y los commits; nunca de la cabeza del director); (2) **"podés cerrar: obrero-<x>--07, obrero-<x>--12"**: los
   obreros cuyo CIERRE el director ya verificó, de la lista de sesiones vivas de la ficha (D §7.6); (3) **las esperas**: desde cuándo se
   espera a otro director o a una firma (G-3: una firma frenó tres días sin que nadie avisara) y los `espera hasta:` vencidos del TODO
   (B §10); (4) **el uso**: el plan (5 horas y semana, en %) y el contexto de las pestañas del módulo. **Solo información** (Guido: "el
   filtro de decidir soy yo; si no entorpece, dejémoslo"): ningún tope frena, nadie pregunta, ningún agente decide por costo; las cifras
   de tokens a Guido van como "estimado" al pedir y "real" al cerrar (P67: cifras ~3 veces bajas, L10). **VERIFICADO 2026-10-26** que una
-  sesión de la app de escritorio lee el plan y el contexto propio y ajeno (`get_usage`); en terminal y VS Code, NO VERIFICADO.
+  sesión de la app de escritorio lee el plan y el contexto propio y ajeno (`get_usage`); en terminal y VS Code, NO VERIFICADO. **El camino principal es el script que lee el transcript** (D §11.1), porque Guido trabaja en VS Code (D §3); `get_usage` es la mejora donde exista (revisor frío 26/10, hallazgo 26).
 - **Las líneas propias se suman en cualquier momento** (pregunta de Guido, 2026-10-26): "agregá tal línea al estado" se lo dice al director,
   queda en la configuración del `/estado` del proyecto y se da siempre, en cualquier pestaña y PC. No depende de la memoria de nadie.
 - La estructura de **subproyectos dentro del proyecto**, cada uno con sus documentos, su historial, su

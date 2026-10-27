@@ -20,7 +20,7 @@
 
 **Todo lo demás lo resuelven los agentes solos, producción incluida.** Ninguna pieza del pack puede
 sumarle a Guido una pregunta que esté fuera de esta lista. Si algo de afuera de la lista parece necesitar
-una pregunta, se propone sumarlo a la lista, y lo decide Guido.
+una pregunta, se propone sumarlo a la lista, y lo decide Guido. *Las decisiones de diseño y negocio, y los cambios a una barrera, que Guido definió como suyos (D §13), no son preguntas de esta lista: son la cola "te espera", que no interrumpe a nadie.*
 
 *Revisión integral (2026-10-26, con el acta de contraste; decisión A-1 reabierta y cerrada con Guido): **"mergear a `main`" y
 "escribir o migrar producción" NO entran a la lista.** Eran el clic más repetido de Guido (392 lotes en contra, 240 a favor): ~9
@@ -28,10 +28,10 @@ clics de merge y 7 autorizaciones de ensayo en una sola noche (85e17f12, 2026-10
 merge con Guido sentado al lado de la PC a las 00:26** ("estoy acá al lado de la computadora dándole constantemente el permiso al
 obrero 71 para que merge… ¿cuándo me puedo ir?", chat 23f8dd9f). Ese freno no era de la plataforma: era una regla `ask` **del propio
 proyecto** ("ese comando está configurado para preguntar siempre, a propósito"). Lo decidido: las dos se **pre-autorizan por proyecto**
-en la ficha del kit, con default por nivel (H): proyecto liviano, libres; con director, **merge solo si el gate por script dio verde**
+en la ficha del kit, con default por nivel, **definido una sola vez en E §4**: proyecto liviano, libres; estandar, con o sin director, **merge solo si el gate por script dio verde**
 ([DISENO-D](DISENO-D-director-obrero.md) §12) y **producción solo por el comando del proyecto con foto y revisión Opus** ("con permiso,
 igual con red", [DISENO-F](DISENO-F-seguridad.md) §13); leer producción es libre ("usar sin ver", F §8). Una regla `ask` propia del
-proyecto sobre algo fuera de esta lista es una pregunta fuera de la lista: el inventario de §9 la tiene que cazar. Alternativa
+proyecto sobre algo fuera de esta lista es una pregunta fuera de la lista: el inventario de §9 la tiene que cazar, **salvo la que Guido mismo endureció en `autorizado:` de la ficha con su razón** ("en Desktop, el merge a `main` me lo preguntás", D §8.4): esa el inventario la lista como suya y no la cuenta (revisor frío 26/10, hallazgo 16). Alternativa
 descartada: sumarlas a la lista (7 preguntas): sube la intervención (criterio 1) y cuelga la noche (D-9, 2026-10-19 02:35, "otro git
 merge pide el clic del PO, que ya no está").*
 
@@ -87,7 +87,7 @@ cuenta. Se construye con la misma receta.
 
 | Pieza | Clase | Por qué |
 |---|---|---|
-| **Las 4 preguntas de §2**, con la ficha del proyecto diciendo qué es "dato real", qué toca plata y qué sale afuera (es la misma ficha del kit, `.claude/kit.md`, campo `sensible:`; definida en [DISENO-E](DISENO-E-molde-y-flota.md) §4 el 2026-10-22) | Pregunta | Es la lista de Guido. Lo concreto (qué base, qué servicio) cambia por proyecto, así que el molde trae el mecanismo y la ficha lo completa |
+| **Las 5 preguntas de §2**, con la ficha del proyecto diciendo qué es "dato real", qué toca plata y qué sale afuera (es la misma ficha del kit, `.claude/kit.md`, campo `sensible:`; definida en [DISENO-E](DISENO-E-molde-y-flota.md) §4 el 2026-10-22) | Pregunta | Es la lista de Guido. Lo concreto (qué base, qué servicio) cambia por proyecto, así que el molde trae el mecanismo y la ficha lo completa |
 | Git que borra trabajo sin guardar (`reset --hard`, `clean -f`, `stash`, restaurar todo el árbol) | Corrector | Pasó en los dos proyectos largos, y un subagente tiró todos los cambios de su worktree. Alternativa: commit de trabajo en curso |
 | El registro de frenos (§4) | — | Sin él, la regla 3 no se puede aplicar |
 | **Afirmaciones en prosa que prometen más de lo medido** (docstrings, comentarios, textos de error, viñetas de release): un chequeo sobre las líneas agregadas del commit, con la receta de §5 (P18, reabierto el 2026-10-26) | Corrector | Es **la primera causa de vueltas del revisor** en Hermes (11 lotes del acta de contraste; "cuatro revisiones, cero hallazgos en el código y nueve en la prosa"). Sacarlo de la revisión y ponerlo en un corrector es lo que hace cumplible el tope de 2 vueltas de D §10 |

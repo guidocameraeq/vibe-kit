@@ -263,7 +263,7 @@ repo, el cierre se lo dice con nombre y rutas; y a veces le pregunta "¿abro un 
 ## 12. La dirección de mesa es del proyecto, no de la sesión; la ficha del kit solo agrega lo que no está (decisión 9)
 
 **Hoy**: nombres fijos por tramo (`director-v4`, `director-identidad`); un `/rename` rompe las direcciones; CM-36: la pestaña volvió con nombre
-automático y un CIERRE rebotó sin aviso. D §7.6 fijó `director-<módulo>` y `obrero-<ID>`, y que la ficha del módulo lista las sesiones vivas.
+automático y un CIERRE rebotó sin aviso. D §7.6 fijó `director-<módulo>` y `obrero-<ID>` (H §10.4 los dejó en `director-<x>` y `obrero-<x>--<ID>`), y que la ficha del módulo lista las sesiones vivas.
 
 1. **La ficha del kit** (E §4) declara `mesa:` con, **por alias, solo `contacto:` y `transporte:`** (R-8). La URL del repo y "con qué se
    conecta" **ya viven en `MAPA.md`** (B §12) y, si está, en el registro del Hub (E §9): no se escriben de nuevo. `transporte:` es `git`
@@ -471,7 +471,7 @@ proyecto; lo ve al abrir. Cero avisos nuevos.
   es una regla de la definición del obrero y del subagente, ya adoptada en Desktop y Mobile; G no la toca. **Misión 5**: `mesa.js` (`nuevo`,
   `abiertos` con `--hilo`, `acordados`, `huella`), `candado:mesa`, el script de memoria del `/cierre`, y la migración de los contratos de
   Hermes al adoptar (E §7, B §17).
-- **En espera**: el tablero que junte las 3 PCs (del Hub, racimo I) · `.claude/agent-memory/` para los agentes del kit (§14.3) · onboarding
+- **En espera**: el tablero que junte las 3 PCs (del Hub, ADR-024) · `.claude/agent-memory/` para los agentes del kit (§14.3) · onboarding
   con receta propia (§15.5) · el chequeo de entorno WSL/nativo (§10.5).
 - **Notas que G deja en los otros diseños** (R-24): **B §5** (la carpeta `mesa/` dentro del módulo; las decisiones viejas a
   `bitacora/decisiones.md` al llegar al tope) · **B §12** (`referencia/contrato-<app>/` solo histórico; los acuerdos al MAPA al cerrar el módulo)
@@ -508,3 +508,18 @@ proyecto; lo ve al abrir. Cero avisos nuevos.
 | 9 | Lo chico no paga lo grande | Sin mesa no hay `mesa:` ni scripts; lo chico lo contesta una sesión plana; worktree solo con segunda sesión viva; el buzón solo cuando git no alcanza |
 | 10 | Autónomo pero con rastro | Cada mensaje es un commit que nunca se edita; el hilo y el estado los reconstruye el script; los acuerdos viven una vez; lo abierto se ve en `/estado` |
 | 11 | Piloto antes de flota | Hermes al adoptar, con las 11 medidas; el buzón con el v0 un mes antes de construir nada; 6 NO VERIFICADO con su prueba (§23) |
+
+## 25. Revisión integral con el acta de contraste (2026-10-26; escrita en la sesión 2)
+
+G fue el único racimo que la sesión 1 no reabrió: el acta dio G-5 **mixta** ("gana git" funciona; el atraso de los worktrees lo arregla el
+`fetch` de `/inicio`, §11.1) y ninguna otra decisión de G quedó contradicha. Lo que sí lo tocó, de afuera:
+
+| Qué | De dónde | Qué se hizo | Dónde |
+|---|---|---|---|
+| G-5 · dos personas, sesiones paralelas | acta, mixta | Nada en la regla; D §22 la cita como lo que sigue provisorio junto con D-5 | §11 |
+| El racimo I dejó de existir en el kit | ADR-024 | La referencia de §22 pasa a "el Hub (ADR-024)"; el contrato del registro está en E §9 | §22 |
+| Los nombres de sesión | H §10.4 | §19 cita los de D §7.6 con la nota de que H los dejó en `director-<x>` y `obrero-<x>--<ID>` | §19 |
+| La mensajería agéntica (G.1) | ADR-025 | Pasa a la misión 7 (v3.1); la mesa por git de este diseño alcanza mientras tanto | — |
+| Revisor frío de la sesión 2 | 30 hallazgos sobre los 8 diseños | Ninguno rompía G; los dos que lo nombraban (racimo I, nombres) están arriba | — |
+
+Los 11 criterios de §24 no cambian de veredicto.

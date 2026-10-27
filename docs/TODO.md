@@ -2,25 +2,21 @@
 
 > ÚNICA fuente de pendientes del proyecto. Completado → SE BORRA (la historia vive en `CHANGELOG.md` y git). Header de 1 línea, sin narrativa de sesión.
 
-2026-10-26 — ver SESSION_HANDOFF.md
+2026-10-27 — ver SESSION_HANDOFF.md
 
 ## 🔴 Crítico
 > **La hoja de ruta, reordenada el 2026-10-26 (ADR-025)**: 4 cerrar el diseño sin mensajería → 4½ ordenar la casa → 5 construir **v3.0** →
 > 6 el ciclo como proceso → 7 la mensajería agéntica (**v3.1**). Después, el reloj: una vuelta cada 3-4 meses (abajo, "El ciclo").
 
 - [ ] **Misión 4 — diseñar el pack con Guido adentro, SOLO DISEÑO** (hoja de ruta: ADR-021; plan y 11 criterios en docs/mision-4/PLAN.md).
-  Tramos 0-3 ✅ · **Tramo 4 ✅ en racimos**: A, C, E, F, B, D (su decisión 5 provisoria), G, H. I salió del kit (ADR-024); **G.1, la mensajería
-  agéntica, pasa a la misión 7** (ADR-025). **Queda, en este orden**:
-  1. **Revisión integral, sesión 2** (la sesión 1 del 2026-10-26 cerró las 10 decisiones reabiertas, el triage de P58-P77 y las correcciones
-     en los 7 `DISENO-*`; ver CHANGELOG). Queda: (a) **el apartado propio de director/obrero** (pedido de Guido): medir Hermes de nuevo
-     (`git log --since=2026-10-20 -- .claude/skills docs/metodo` en `D:\Hermes\Hermes.exe`; hoy 38 commits) y leer su `docs/metodo/CAMBIOS.md`
-     entero (CM-72 a CM-103 + lo aprobado sin aplicar); cruzar cada CM contra las 11 decisiones de D con el filtro "un solo proyecto no alcanza
-     salvo cicatriz o 3+"; (b) **decidir el flujo proyecto ↔ kit** (propuesta: el registro de cambios de método por proyecto es pieza del canon,
-     el ciclo lo lee, 3+ sube al kit; termina en ADR + sección en D; E §14 apunta acá el caso de E-3); (c) la nota del contrato del registro en
-     E §9; (d) **revisor frío** sobre los 7 diseños corregidos, cada hallazgo contra el criterio ya establecido antes de aplicarlo; (e) **la
-     charla final con Guido sobre cómo queda el método director/obrero de punta a punta** ("es el 80% de cómo trabajo"), con un pedido de
-     ejemplo recorrido entero. Lo demás que el acta dice del canon (bitácora, tiempos, roles de hecho) se decide ahí.
-  2. **El spec del pack** (tramo 5): SPEC-0 del kit v3, red team, revisor frío, OK de Guido.
+  Tramos 0-3 ✅ · **Tramo 4 ✅ cerrado el 2026-10-27**: los 8 racimos (A, C, E, F, B, D, G, H), la revisión integral en dos sesiones (10
+  decisiones reabiertas; el apartado director/obrero contra Hermes, D §22bis; el flujo proyecto ↔ kit, ADR-026 y D §22ter; la portada del repo,
+  B §12bis; revisor frío de 30 hallazgos aplicados) y la charla final con Guido ("el recorrido queda como está"). I salió del kit (ADR-024);
+  G.1, la mensajería, pasa a la misión 7 (ADR-025). D §8 (ramas y escritores) sigue **provisoria hasta el piloto**, por pedido de Guido. **Queda**:
+  1. **El spec del pack** (tramo 5): SPEC-0 del kit v3 desde los 8 `DISENO-*`, red team, revisor frío, OK de Guido. Lo que el tramo 4 dejó
+     explícitamente "para el spec": dónde caen release, relevamiento, bloque de documentos y tarea recurrente en los tres tamaños (B §24, H §25);
+     la excepción de "chico" para las reglas propias del proyecto (revisor, mutaciones, gate; D §22 fila D-2); `merge=union` para
+     `.claude/frenos.log` (A §4.2); la lista de herramientas por entorno (H §9.1); la pregunta menor de C §2.6 sin contar.
 - [ ] **Misión 4½ — ordenar la casa antes de construir** (una sesión corta): el repo limpio y publicable; **`docs/chats-mision-4/` se muda al privado
   `vibe-research`** (Guido, 2026-10-26: "en este repo, que es genérico, queda medio raro"); **un diario de misiones en `vibe-research`** (qué se
   hizo cuándo, en qué PC, qué sesiones, qué costó: la documentación de las sesiones); legacy con lápida; `docs/README.md`, la guía y los manuales al día;
@@ -38,6 +34,9 @@
 - [ ] **Misión 5 — construir el pack por piezas → kit v3.0** (después de la 4½). **Piloto del canon director/obrero en Deptos** (decisión de Guido,
   2026-10-23: "no ahora; puede ser en la semana"), con las 10 pruebas NO VERIFICADO de `DISENO-D` §7.7, §11 y §20, las de H §22 y las de G; un mes
   de uso y la medición contra las líneas base del TABLERO §1.
+  - **La portada del repo** (pedido de Guido, 2026-10-26; `DISENO-B` §12bis): la pieza que viste el README raíz de cada repo desde el `NORTE.md`
+    con el molde de la portada de vibe-kit (banner con el nombre, insignias, imagen para compartir, About y etiquetas por `gh`). Dónde vive
+    (modo del Arquitecto o skill `portada`) lo fija el spec.
 - [ ] **Misión 6 — escribir el ciclo de mejora del método** (al terminar la misión 5, con todo fresco; antes de la mensajería, porque es lo que
   más se evapora). Juntar en un documento reusable y genérico de vibe-kit lo que hoy está repartido (ADR-021, SPEC-investigacion-chats,
   observatorio/investigacion/METODO.md, docs/mision-4/PLAN.md):

@@ -84,7 +84,7 @@ de verdad en bypass, y `Get-Content .env` contra el `deny`.
 ## 5. Barreras de archivos de fábrica (decisión 1)
 
 En el `settings.json` del molde, que viaja por git. **Solo archivos**; sin ninguna regla `ask` (preguntar es solo
-para las 4 cosas del [racimo A](DISENO-A-frenos.md) §2) y sin reglas `Bash(...)` (lo de git es un hook, §6).
+para las 5 cosas del [racimo A](DISENO-A-frenos.md) §2) y sin reglas `Bash(...)` (lo de git es un hook, §6).
 
 ```json
 "permissions": {
@@ -147,7 +147,7 @@ El hook anti-secretos que ya existe en la PC `Usuario`, con cinco cambios:
 1. **Cubre `Write` y `Edit`** además de `Bash` y `PowerShell`: mira `content` y `new_string` con los mismos patrones.
    Cierra el agujero de H-161 (un subagente bloqueado en Bash escribió lo mismo con Write) y el que se comprobó hoy
    en esta PC. **Antes de instalarlo se mide contra los Write y Edit reales de los chats** (receta de A §5.2): el
-   patrón de JWT dispara con la llave pública de Supabase, que es justo lo que va a `docs/PRUEBA.md`. Lo que la
+   patrón de JWT dispara con la llave pública de Supabase, que es justo lo que va a `docs/referencia/PRUEBA.md`. Lo que la
    ficha declare como llave pública (`datos-de-prueba:` y `publicas:`) no frena.
 2. **El mensaje cambia**: hoy dice "escribilo en un archivo local fuera del repo", y con Write cubierto esa salida
    la bloquea el mismo hook (loop, y termina en pregunta). Nuevo: *"no lo escribas ni lo pegues: pedile al humano
@@ -230,8 +230,8 @@ El `deny` le tapa los ojos a Claude, no las manos: un programa que Claude corre 
 secretos: [DB_URL, HUB_TOKEN]        # nombres, nunca valores; dónde vive cada uno lo dice el comando
 publicas: [SUPABASE_ANON_KEY]        # lo que parece secreto y no lo es: el corrector no lo frena
 entornos:                            # cada base o servicio, con su nivel (§12)
-  - {nombre: supabase-prod, nivel: real,  acceso: "db (solo lectura)"}
-  - {nombre: dummy-local,   nivel: dummy, acceso: "db (todo)"}
+  - {nombre: supabase-prod, clase: real,  acceso: "db (solo lectura)"}
+  - {nombre: dummy-local,   clase: dummy, acceso: "db (todo)"}
 datos-de-prueba: docs/referencia/PRUEBA.md   # cuentas de prueba, llaves públicas: nombre no secreto (S-D-2); ruta fijada por B §4
 push-publica: no                     # si es sí, /cierre lo dice antes de pushear (P49); nunca pregunta
 ```
@@ -276,18 +276,18 @@ herramienta y no por shell, pero la doc no cubre `Get-Content` (§4): el hook an
 
 ## 12. Qué base es qué (decisión 8, ampliada por Guido)
 
-Cada base o servicio se declara **una vez** en la ficha (`entornos:`, §9) con su nivel:
+Cada base o servicio se declara **una vez** en la ficha (`entornos:`, §9) con su `clase:` (antes "nivel"; nota de H):
 
-| Nivel | Qué es | Los agentes | Escribir | Borrar |
+| `clase:` | Qué es | Los agentes | Escribir | Borrar |
 |---|---|---|---|---|
 | **dummy** | Descartable; se puede perder | Leen y escriben libre, sin preguntar | Libre | Libre |
 | **prueba** | De ensayo, con datos que importan algo (fixtures, cuentas de prueba) | Leen y escriben; `db foto` antes de migrar | Con foto | Con foto |
-| **real** | Producción o datos reales | Leen por `db consulta` con usuario de solo lectura | **Sin preguntar, por §13** (con red) | Una de las 4 preguntas de A, salvo que la ficha diga otra cosa (§14) |
+| **real** | Producción o datos reales | Leen por `db consulta` con usuario de solo lectura | **Sin preguntar, por §13** (con red) | Una de las 5 preguntas de A, salvo que la ficha diga otra cosa (§14) |
 
 - **Escribir o migrar en una base real no es pregunta**: la lista de A §2 pregunta solo *borrar* datos reales, y
   dice "todo lo demás lo resuelven los agentes solos, producción incluida". La primera versión de este diseño lo
   convertía en pregunta sin decirlo; lo cazó el revisor.
-- Si un proyecto **no tiene ensayo separado**, la ficha lo dice (`entornos: [{nombre: unica, nivel: real}]`) y
+- Si un proyecto **no tiene ensayo separado**, la ficha lo dice (`entornos: [{nombre: unica, clase: real}]`) y
   Claude lo sabe desde el arranque: es la pregunta que "nunca se hizo" (H-50: una suite mandó mails reales 5 veces en
   un día; un repo casi corre el seed en producción; "ensayo" nombraba dos bases distintas).
 - **Dos reglas al molde** (prosa, con su cicatriz; se vuelven mecánicas si se repiten): *sin config, la app no
@@ -317,7 +317,7 @@ proyecto) no se hace a mano ni con un comando suelto. Pasa por el comando del pr
    Guido. Dummy pasa directo; prueba, con foto; real, con revisión. El mecanismo de la revisión por riesgo lo fija el
    racimo D; F fija que para `real` es obligatoria y quién la hace cuando no hace falta director. *D (2026-10-23): es un sub-paso de **riesgo alto** y lo revisa el **revisor Opus** congelado en el SHA, no el director a mano ([DISENO-D](DISENO-D-director-obrero.md) §10).*
 
-El "sí" de Guido saca la pregunta, no la red. Y si una de las 4 preguntas de A se contesta "sí" para un proyecto de
+El "sí" de Guido saca la pregunta, no la red. Y si una de las 5 preguntas de A se contesta "sí" para un proyecto de
 forma permanente ("en Hub, borrar datos reales no se pregunta"), queda en la ficha (§14) y entra por acá.
 
 *Qué cambia*: Guido da el permiso una vez y duerme igual.
@@ -338,7 +338,7 @@ forma permanente ("en Hub, borrar datos reales no se pregunta"), queda en la fic
   noche): va a la salida única hacia Guido del [racimo C](DISENO-C-salida-hacia-Guido.md) como una línea de "te
   espera" ("el freno X venció el 15/11: ¿lo restauro o lo hago permanente?"). `doctor` también lo lista. El
   Arquitecto lo revierte en un pedido.
-- **Los defaults por nivel** (racimo H): un proyecto *liviano* o personal arranca con push y merge libres y sin
+- **Los defaults por nivel** (racimo H): un proyecto *liviano* (sin código; el personal con código es `estandar`, H §4) arranca con push y merge libres y sin
   director; el molde solo escribe la ficha distinta. F deja el mecanismo; H pone los nombres.
 - **Lo que no se puede quitar ni con pedido**: nada. Pero quitar el corrector de secretos entero o el escáner queda
   escrito en la ficha con fecha y razón, y `doctor` lo lista cada vez. Guido decide; el rastro queda.
@@ -379,7 +379,7 @@ Lo decidido, en cuatro piezas:
    colgado hasta la mañana.
 
 **Y las dos pre-autorizaciones de A-1**: "mergear a `main`" y "escribir o migrar producción" no son pregunta (A §2). La ficha las lleva en un
-campo `autorizado:` con default por nivel (H §4): liviano, libres; con director, **merge solo con gate verde** (D §12) y **producción solo por
+campo `autorizado:` con default por nivel, **definido una sola vez en E §4**: liviano, libres; estandar (con o sin director), **merge solo con gate verde** (D §12) y **producción solo por
 el comando con foto** (§13). *Cicatriz*: 13 clics de merge en una noche por una `ask` propia de Hermes con Guido al lado de la PC a las 00:26
 (chat ★ 23f8dd9f, 2026-10-22). **Cómo se mide**: la pestaña "Recently denied" de `/permissions` es el registro del clasificador; meta, 0
 frenos sobre lo autorizado. *Qué cambia para Guido*: lo que ya autorizó una vez no se le vuelve a preguntar, ni de día por el clasificador ni
@@ -401,7 +401,7 @@ en bash sin `jq` en Windows es frágil), tres líneas más, dentro del tope de 1
 - Y, una sola vez por clon, deja seteado `core.hooksPath` para el escáner (§10).
 - *Revisión integral (2026-10-26; P73 del acta de contraste)*: **el remoto entra al arranque**, dos líneas más dentro del presupuesto de B §9:
   la última corrida de CI de la rama (`gh run list`, solo lectura: "CI rojo desde el 21/10", "en cola sin máquina") y un chequeo `gh` de la
-  seguridad del repo (escaneo de secretos prendido, protección de `main`, visibilidad). Cicatrices: CI rojo 5 días sin que nadie lo viera
+  seguridad del repo (escaneo de secretos prendido, protección de `main`, visibilidad). **NO VERIFICADO** (revisor frío 26/10, hallazgo 27): cuánto suma `gh` al arranque y qué pasa sin red o sin login; la regla: tope de 3 segundos y, si no responde, una línea "sin datos del remoto"; nunca frena el arranque. Cicatrices: CI rojo 5 días sin que nadie lo viera
   (L25); escaneo de secretos apagado mientras el repo fue público (L62); verde local por una carpeta ignorada y CI rojo 3 corridas (L81).
   Regla escrita al núcleo de D: **"CI sin máquina dos veces: correr local, declararlo y seguir"**; y cuando el sub-paso toca config o el
   script del ambiente, el verde se mide desde un clon limpio.

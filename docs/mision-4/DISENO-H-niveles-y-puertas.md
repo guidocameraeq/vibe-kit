@@ -103,7 +103,7 @@ sola palabra por cosa; elige liviano o estándar una vez al montar, dentro de la
 
 1. **La prueba de tamaño son las dos preguntas de B §6**: ¿se retoma solo con el pedido más el `git diff`? ¿lleva más de una sesión?
    **Ninguna sí → chico. Alguna sí → módulo.** Contar archivos o líneas no decide. **Tocar plata, permisos o datos no hace spec**: eso lo cuidan
-   las 4 preguntas de A y la red de F ("con permiso, igual con red", F §13), no un documento. Anthropic lo dice casi igual ("si podés describir
+   las 5 preguntas de A y la red de F ("con permiso, igual con red", F §13), no un documento. Anthropic lo dice casi igual ("si podés describir
    el diff en una oración, salteá el plan", §18).
 2. **Se retira la regla de bolsillo** de los cinco lugares, y se saca "o riesgosa" de la `description` del Arquitecto. **Dónde vive la regla
    nueva**: en el **`CLAUDE.md` del molde** (una línea, porque la aplica cualquier sesión a mitad de chat, no solo `/inicio`), en el `SKILL.md`
@@ -111,8 +111,9 @@ sola palabra por cosa; elige liviano o estándar una vez al montar, dentro de la
    toca** (E §5): la línea vieja la reemplaza el adoptador o la migración (E §7, B §17) **dentro del OK de adopción que ya existe**, y
    `doctor` marca la regla vieja donde siga (R-7).
 3. **Quién la aplica: cualquier sesión plana del proyecto**, al recibir un pedido, **en una línea y sin preguntar**: *"chico, lo hago acá"* o
-   *"esto es más que chico: llamo al Arquitecto"*. El director no tría: un pedido chico que le llega es un encargo; uno que cambia el alcance
-   va por G §7.3. El obrero tampoco: hace su encargo (R-26). **El Arquitecto llamado con algo chico rebota en una línea** ("esto es chico:
+   *"esto es más que chico: llamo al Arquitecto"*. El director tría solo lo nuevo (E-1, 26/10; revisor frío, hallazgo 13): un pedido chico que le llega es un encargo; uno que es más
+   que chico invoca al Arquitecto en Modo B corto, como paso fijo de `/director` (D §4); uno que cambia el alcance de un módulo en curso va
+   por §12 (corte natural). El obrero tampoco: hace su encargo (R-26). **El Arquitecto llamado con algo chico rebota en una línea** ("esto es chico:
    hacelo en el chat del proyecto").
 4. **Consulta y hotfix (P51) son chico**, sin modo propio. Lo único nuevo: **el `/cierre` de una sesión que no cambió nada termina en una línea**
    y no toca el handoff.
@@ -225,6 +226,11 @@ Pedido de Guido (D §2, §12.8): "que el Arquitecto verifique que el proyecto te
    que es subagente, la orden va en su definición, no en el hook (R-35, §16). En Modo A y adoptar, lo mismo como parte del montaje. Chico: nada.
    *Revisión integral (2026-10-26)*: con las herramientas en la lista, **un rojo de herramienta no traba al obrero**: lo reporta en el primer
    AVANCE y sigue con lo que no depende de ella; lo que sí depende queda en "parado" de la ficha hasta que la herramienta vuelva.
+   *Apartado director/obrero (2026-10-26, CM-82 de Hermes)*: **el chequeo base verifica que lo que se va a probar apunta al entorno de
+   prueba, con algo que solo existe ahí** (una cuenta o un dato `dummy`): el `.exe` de un gate le habló al Auth de producción aunque su
+   `config.ini` era igual byte a byte al del ensayo (el login leía otra sección y caía en silencio a producción), y Guido entró a producción
+   con código de rama. Comparar la configuración no alcanza; entrar con la cuenta que no existe en producción sí. Vale para todo proyecto
+   con un entorno `clase: real` (hoy Desktop, Mobile, Deptos, Devoluciones y el Hub), y es parte de `gate:entorno-prueba`.
 
 *Alternativas descartadas*: una pregunta fija al arrancar (P8: preguntar no monta nada) · exigir dummy a todo proyecto (sin base, paga algo
 inútil). *Qué cambia para Guido*: no vuelve a probar con un usuario real porque "ensayo" no existía (3 veces en un día); nunca se confunde "lo
@@ -251,7 +257,10 @@ lógica y apaga `.worktreeinclude`). Por eso los módulos no usan `-w`.
    si la rama no está mergeada o si `git status --porcelain` del worktree no está vacío**; `worktree remove --force` entra al corrector de
    A §6; R-22). **La carpeta de un obrero se borra cuando el obrero cierra, no al mergear**: D §11.3 reutiliza al obrero justo después del merge,
    y su sesión seguiría parada en una carpeta borrada; un obrero reutilizado recibe en su misma carpeta la rama del encargo nuevo
-   (`git switch -c modulo/<x>--<ID2> modulo/<x>`; R-3).
+   (`git switch -c modulo/<x>--<ID2> modulo/<x>`; R-3). **Y un quinto modo, `integrar <x>`** (revisor frío 26/10, hallazgo 4): worktree
+   temporal sobre `origin/main`, merge `--no-ff` de `modulo/<x>`, gate y `/cierre` del proyecto ahí mismo, push a `origin/main`, borrar; el
+   checkout de `main`, que es de las sesiones planas, no se toca (D §8.4). También lo usa el Arquitecto para que un módulo nuevo nazca en
+   `main` cuando lo invocan desde una sesión que está en otra rama (D §15.0).
 3. **El hook y los scripts identifican la pestaña por la rama que tiene el `cwd`** (`git branch --show-current`: `modulo/<x>` = director de x,
    `modulo/<x>--<ID>` = obrero del encargo ID, `main` = sesión plana, `worktree-*` = misión plana), **nunca por el nombre de la carpeta** ni
    por `CLAUDE_PROJECT_DIR`, que **no sigue al worktree** (verificado; el `cwd` del JSON de entrada sí). Lo que inyecta el hook por pestaña: en
@@ -356,7 +365,7 @@ esconder.
 
 Cada entrada de `sensible:` (datos reales, plata, sale afuera) **nombra el comando del proyecto que la toca** (F §13 ya obliga a que lo
 peligroso pase por un comando del proyecto, nunca suelto). **Un script** (`doctor` o el actualizador, no el modelo: es determinístico una vez
-que cada entrada tiene su comando; criterio 6; R-23) **regenera en la zona propia de `settings`** la regla `ask` sobre ese comando contra los
+que cada entrada tiene su comando; criterio 6; R-23) **regenera en la zona propia de `settings`** la regla `ask` **solo sobre el subcomando que borra** (la pregunta 1 de A; nunca sobre `migrar` ni las escrituras, que A-1 pre-autorizó por el comando del proyecto con foto, F §12-§13; revisor frío 26/10, hallazgo 1) contra los
 entornos `clase: real`, y `deny` por fuera del comando donde se pueda; así el guardia de E §4 no lo marca como desvío. **Cuándo**: al montar,
 adoptar o abrir un módulo. **NO VERIFICADO**: qué patrones distingue `settings` dentro de un mismo comando (`--env real` vs `--env dummy`); va a
 F en la revisión integral. Hoy "manejar claves" es una categoría, no un patrón; con esto, cada una de las 5 preguntas de A tiene su regla
@@ -399,7 +408,7 @@ H-49, 28 lotes.
 | Hook `WorktreeCreate` **reemplaza** la lógica git (debe imprimir la ruta); no hay hook post-creación; no dispara con `git worktree add` | ✅ | El setup lo hace el script, no un hook |
 | `SessionStart` no distingue worktree; `CLAUDE_PROJECT_DIR` apunta al proyecto original; el `cwd` del JSON sigue al worktree | ✅ | El hook identifica por el `cwd` (§10.3) |
 | `-w` con `-p`: ✅ · con `--name`: implícito · `--bg` se aísla solo en un worktree y **salta el aislamiento si ya está en uno** · `--bg` con `-p`: ❌ | ✅ / NO DOC | §10.11, NO VERIFICADO para el `--bg` desde Bash |
-| Windows: borrar un worktree respeta junctions y symlinks internos (≥ v2.1.205); no crea worktrees si `.claude/worktrees` es symlink; las aprobaciones "no preguntar más" se guardan en el worktree | ✅ | §10.10; el hook AUTORIZADO de D §7 importa más en worktrees |
+| Windows: borrar un worktree respeta junctions y symlinks internos (≥ v2.1.205); no crea worktrees si `.claude/worktrees` es symlink; las aprobaciones "no preguntar más" se guardan en el worktree | ✅ | §10.10; las `allow` por script de D §7 (F-1; antes el hook AUTORIZADO) importa más en worktrees |
 | Reanudar vuelve al worktree si se lanza desde el checkout principal; si el worktree no existe, retoma en el directorio de lanzamiento | ✅ | La ficha guarda la ruta del worktree (§10.11) |
 | `EnterWorktree` / `ExitWorktree` existen (herramientas); `/worktree` como comando **NO DOC** | ✅ / NO DOC | No se apoya nada ahí |
 
@@ -481,7 +490,7 @@ los clics de las 5 de A, y `/estado identidad`.
 | §10.7 | "¿Conservo el worktree?" al salir de un `claude -w <misión>` | Solo cuando `/inicio` propuso el worktree (la pregunta de G §11.4) |
 | §9.2 | Correr `cargar-secreto` para la base de prueba (una acción, no una pregunta) | Una vez por proyecto y por PC, solo si hay un `real` y no había `prueba` |
 
-**Cuatro preguntas (una negativa en el neto, otra solo si el spec se pasa) y una acción.** Se eliminaron en la revisión: "reabrí la sesión en la carpeta nueva antes
+**Cinco preguntas (una negativa en el neto; dos solo condicionadas: si el spec se pasa del tope, §12, y si los desvíos cambian el alcance en un corte natural, §12 nota H-6) y dos acciones (la de §9.2 y lo que "necesita a Guido de día", §9.1).** Recontado el 26/10 por el revisor frío (hallazgo 24); "quiero director igual" (§6) no se cuenta: lo inicia Guido. Se eliminaron en la revisión: "reabrí la sesión en la carpeta nueva antes
 de montar" (R-44) y las 3 preguntas del `NORTE.md` (R-18). **Se van**: los dictados de ejecución (~6: "¿cuántas sesiones, qué modelo, cómo
 testeo?"), "¿esto lleva spec?", el chat nuevo de lo chico, los nombres de ramas y worktrees a mano, las preguntas de pantalla que reemplaza el
 prototipo, y "¿hay entorno de prueba?" (lo chequea un script).
@@ -537,7 +546,7 @@ prototipo, y "¿hay entorno de prueba?" (lo chequea un script).
 
 | # | Criterio | Cómo lo cumple H |
 |---|---|---|
-| 1 | Menos intervención de Guido | No decide tamaño, director, nombres ni entorno; tres preguntas nuevas contadas (una negativa en el neto) y una acción; se van ~6 dictados, "¿lleva spec?", el chat nuevo de lo chico y las preguntas de pantalla (§20) |
+| 1 | Menos intervención de Guido | No decide tamaño, director, nombres ni entorno; cinco preguntas nuevas contadas (una negativa en el neto, dos condicionadas) y dos acciones (§20, recontado el 26/10); se van ~6 dictados, "¿lleva spec?", el chat nuevo de lo chico y las preguntas de pantalla (§20) |
 | 2 | Pragmático, recortado | Una sola regla de tamaño donde había cuatro; `largo` no se escribe; sin secciones nuevas en el spec; sin tope de worktrees ni foto; sin chequeo del `CLAUDE.md` por 1 caso; las variantes chicas no son niveles; el arreglo del arreglo no es módulo; descartes escritos con razón en cada sección |
 | 3 | Medible | 10 medidas con línea base (§21), 8 por script; piloto nombrado (Deptos) |
 | 4 | Software que anda y se sostiene | Entorno de prueba declarado y verificado, chequeo base al abrir con "ya estaba roto"; red del arreglo del arreglo (26%); `RECOVERY`/`PROTECTED_PATHS`/`CRONS` no se pierden (§4); `sensible:` como reglas escritas |

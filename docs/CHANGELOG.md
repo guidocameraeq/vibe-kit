@@ -2,6 +2,46 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-27 — Misión 4, tramo 4: revisión integral, sesión 2 (director/obrero contra Hermes, el flujo proyecto ↔ kit, revisor frío). Tramo 4 cerrado
+
+### Added
+- **El apartado director/obrero** (`DISENO-D` §22bis): Hermes Desktop medido (38 commits de método desde el 20/10; 255 en todo el repo) y sus 32
+  fichas CM-72 a CM-103 leídas enteras y cruzadas contra las 11 decisiones de D con el filtro "un solo proyecto no alcanza salvo cicatriz o 3+":
+  **12 coinciden** (CM-76 es la misma decisión que D-8 tomó el mismo día; CM-102 converge con G, D y H; CM-83 es la prueba de P65), **15 son
+  del stack** (a la zona propia del implementador), **4 entraron al canon con su cicatriz** (CM-79: el despertador mira también `main`, D §9.3 ·
+  CM-82: el chequeo base entra con una cuenta que solo existe en el ensayo, H §9.3 · CM-86: la red en el checklist nocturno, D §9.5 · CM-91: un
+  encargo tampoco comparte recursos de la máquina, D §5), **0 contradicen**. Lo que sí contradecía era el trámite (31 clics del PO en un día):
+  **Guido decidió "cambios de método del proyecto = clase 2 con diff; solo las barreras con mi clic"** (D §13.2 d).
+- **El flujo proyecto ↔ kit: ADR-026 y `DISENO-D` §22ter**. El registro de cambios de método por proyecto es pieza del canon
+  (`piezas.cambios-metodo`): un archivo chico por cambio en `.claude/cambios/` con el contrato de CM-103 (estados, SHA, tabla de medición, `cita:`,
+  `aplico:` con hash), candado `candado:cambios`, sube al kit por el ciclo con 3+ o cicatriz, urgencias como parche, adopción entre proyectos
+  citándolo; el actualizador marca `subio-al-kit` y retira lo propio que el molde ya cubre. Cierra E-3 (E §14) y suma `cambios-metodo` a la ficha
+  del kit (E §4) y a la adopción (E §7). Descartados: congelar hasta la versión · propagación automática · el archivo único de Hermes.
+- **La portada del repo** (`DISENO-B` §12bis, pedido de Guido: "que los repos sean lindos y se entienda qué son"): el README raíz como portada
+  armada por el Arquitecto desde el `NORTE.md`; vestirla es pieza de la misión 5 (TODO). Era un hueco entre B y E: GitHub muestra el README
+  raíz, y B había puesto la puerta humana en `docs/README.md`.
+- **La nota del contrato del registro de proyectos** en E §9 (lo que quedó de I, ADR-024): forma `{version, fichas, conexiones}`, adaptador de
+  ejemplo local, cuándo lo mira el Arquitecto.
+- `DISENO-G` §25: su sección "Revisión integral" (era el único sin ella).
+
+### Changed
+- **Revisor frío sobre los 8 diseños** (Opus, sin contexto, ~306 mil tokens; informe de 30 hallazgos): **todos aplicados** contra el criterio
+  ya establecido; ninguno contradecía una decisión de Guido. Los 5 que rompían: H §15 volvía a preguntar por producción (ahora `ask` solo
+  sobre el subcomando que borra) · el clic de barreras como pregunta fuera de la lista de A (ahora es la cola "te espera", no un pop-up, y se
+  cuenta en D §17) · `/cierre` creaba un módulo sin el sello del Arquitecto (ahora nace sin sello y `/inicio` lo invoca) · nadie decía dónde
+  mergea el director a `main` (modo `integrar` del script de worktrees, H §10.2, D §8.4) · D prometía que el obrero no podía darse permisos
+  (ahora dice el riesgo real de F-1). Los 16 que contradecían: 9 lugares con "las 4 preguntas", 10 con "racimo I", nombres de sesión viejos,
+  "el hook aprueba" en la ficha canónica y los criterios, `sensible:` sin campos para claves y release, yaml con `nivel` viejo, el presupuesto
+  del hook recalculado (9.700), los conteos de H §20 y §24, el actualizador que "pregunta" (gana E-4: informa con veto), el merge de un
+  `estandar` sin director (definido una vez en E §4: gate verde), `aprobado` solo para barreras. Más 2 referencias rotas, 2 preguntas
+  escondidas contadas, 4 supuestos marcados NO VERIFICADO y el hueco del "plan charlado antes" (D §15.0).
+- `TODO.md`: el tramo 4 queda cerrado; el próximo es el spec (tramo 5) con la lista de lo que el tramo 4 le dejó.
+- `PLAN.md`: fila del tramo 4 con la sesión 2 y una lección para el ciclo (revisor frío obligatorio tras una corrección transversal; los
+  registros antes que los chats).
+
+### Fixed
+- ADR-026 decía que las 4 cicatrices eran de producción: era una. La cifra de 126 commits del ADR-025 no se reprodujo; D §22bis dice qué mide cada número.
+
 ## 2026-10-26 — Misión 4, tramo 4: revisión integral con el acta de contraste, sesión 1 (las 10 decisiones reabiertas, cerradas con Guido)
 
 ### Changed

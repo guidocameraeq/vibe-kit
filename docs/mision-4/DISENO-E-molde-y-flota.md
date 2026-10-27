@@ -32,7 +32,7 @@ usaba porque nada avisaba que había versión nueva (P13).
    Arquitecto (cada director inventa su molde). Métrica: specs con sello, de 11/41 a 100%; tiempo del Modo B corto, medido en Deptos.
 2. **El Arquitecto responde "¿cómo hago esto bien?"**: una PC, un proyecto, una feature, ponerlos al día. **El agente
    de ecosistema** ("¿qué tenemos y cómo se cruza?") **no es parte del Arquitecto**: es propio de la empresa, va al
-   racimo I y probablemente viva en el Hub ([`TABLERO.md`](TABLERO.md) §10).
+   Hub (ADR-024: el racimo I dejó de existir en el kit) ([`TABLERO.md`](TABLERO.md) §10).
 3. **El registro de proyectos de la empresa es el Hub**, no un segundo registro. Se le pidieron 4 cosas (§9). **El
    actualizador no lo necesita**: la flota del método se descubre con `gh` y las fichas.
 4. **Cada repo lleva una ficha del kit** que dice qué versión tiene y cómo se adaptó cada pieza (§4), y una
@@ -74,7 +74,7 @@ de ~15 búsquedas, sección "qué robar y qué no" antes de las decisiones; hoy 
 **El `SKILL.md` del Arquitecto pasa a ser ruteo más reglas de oro** (de ~20 KB a ~5): cada puerta es un anexo que
 se lee bajo demanda, como ya pasa con el banco de preguntas y los concerns. Menos tokens en cada arranque
 (objetivo 1). Las entradas 1 y 5 **derivan, no ejecutan**. El nombre viejo del Equipador (`arquitecto-skills`)
-sigue andando. Lo que **no** entra por esta puerta: el ecosistema (racimo I) y el relevamiento (`/relevamiento`,
+sigue andando. Lo que **no** entra por esta puerta: el ecosistema (el Hub, ADR-024) y el relevamiento (`/relevamiento`,
 REJ-011 y REJ-013 siguen); si Guido pide algo de eso, el Arquitecto lo dice en una línea y lo manda a la puerta
 correcta.
 
@@ -110,7 +110,7 @@ frenos.
 ```markdown
 ---
 kit: 2.4.2
-nivel: estándar            # liviano · estándar · largo (los nombres los fija el racimo H)
+nivel: estandar            # liviano · estandar, en ASCII (H §14); "largo" no se escribe: lo calcula el script de piezas.director-obrero
 vars:                      # con qué se instanció el molde; sin esto no se puede regenerar
   proyecto: Hub
   comando-test: pnpm test
@@ -127,17 +127,20 @@ piezas:                    # estado · hash de lo que el molde escribió (para s
   release: propia
   director-obrero: no       # D (2026-10-23): pasa a piezas con estado: director, obrero, tramo, nucleo (molde+propio), subagentes (molde+propio), scripts (molde + .propio); DISENO-D §14
   estado: no
+  cambios-metodo: molde     # D §22ter, ADR-026 (2026-10-26): .claude/cambios/ (un archivo chico por cambio de método) + su script y candado; "Cómo se adaptó" apunta ahí
   docs-fyd: sí
 frenos:                    # lo que pide el racimo A
   opcionales: [rama-nueva-por-mision]
   quitados: []
 autorizado:                # revisión integral 2026-10-26 (A-1): lo que NO es pregunta y la plataforma o el proyecto no deben volver a preguntar
-  merge-a-main: con-gate-verde   # liviano: libre · con director: solo si el gate por script dio verde (D §12)
+  merge-a-main: con-gate-verde   # liviano: libre · estandar, con o sin director: solo si el gate por script dio verde (D §12; sin `real`, el gate es `comando-test`, H §9). Definido acá una sola vez; A §2 y F §14 apuntan acá (revisor frío 26/10, hallazgo 14)
   escribir-produccion: por-comando-con-foto   # F §13; leer producción es libre (F §8)
-sensible:                  # las 4 preguntas del racimo A, bajadas a este repo
+sensible:                  # las 5 preguntas del racimo A, bajadas a este repo
   datos-reales: [tabla proyectos en Supabase]
   plata: no
   sale-afuera: [mails a gerencia]
+  claves: [cargar-secreto, .env.*]   # revisor frío 26/10 (hallazgo 10): las 5 de A tienen campo; faltaban claves y release
+  release: [npm run release]
 multi-llm: no              # si es "sí", se genera AGENTS.md desde el CLAUDE.md
 ---
 
@@ -221,6 +224,9 @@ Para Portal, el Bot, y cualquier repo que nunca pasó por el Arquitecto.
   los tres documentos del método si faltan (handoff, TODO, CHANGELOG), vacíos con su cabecera. *Nota de B (2026-10-22): pasan a ser
   los seis de la raíz de `docs/` (más `NORTE.md`, `MAPA.md` y `README.md`) y `referencia/trampas.md` y `referencia/PRUEBA.md`; y el
   adoptador es quien migra el árbol de `docs/` al modelo de módulos, mostrando el plano dentro de este mismo OK ([DISENO-B](DISENO-B-documentos.md) §17).*
+  *Revisión integral, sesión 2 (2026-10-26)*: trae también `autorizado:` con sus defaults (A-1), `piezas.cambios-metodo` y, si el proyecto ya
+  tiene un registro de cambios de método (el `CAMBIOS.md` de Hermes, el `D-n` de Mobile), **ofrece migrarlo por script a `.claude/cambios/`, un
+  archivo por cambio**, dentro del mismo OK (D §22ter; NO VERIFICADO).
 - **No trae**: `/smoke`, `/release`, director/obrero, `/estado`. Se anotan como existentes si están; si no, recién
   cuando el ritual exista (regla de 3+).
 - **Copias del kit adentro del proyecto** (Portal): las lista y propone sacarlas.
@@ -245,7 +251,7 @@ Para Portal, el Bot, y cualquier repo que nunca pasó por el Arquitecto.
 Los dos agentes (el Arquitecto y, cuando exista, el de ecosistema) **miran los mismos datos y ninguno guarda nada
 propio**. Pero tienen distinto alcance: **el actualizador no necesita el Hub** (`gh` más las fichas alcanzan, y el
 kit sigue andando sin Hub para cualquiera que lo use); el Hub sirve para **"qué proyectos opera esta persona"** (el
-onboarding, §10) y para el ecosistema (racimo I). Se le pidió al Hub el 2026-10-22 (brief entregado a su director,
+onboarding, §10) y para el ecosistema (el Hub, ADR-024). Se le pidió al Hub el 2026-10-22 (brief entregado a su director,
 que lo guardó como misión aparte): un campo `repo` (URL de GitHub) · un campo `tipo` (código · parcial · sin código)
 · un campo corto "se conecta con" · **una credencial de solo lectura**. No hace falta: commits en el Hub, ni columna
 de versión. **El Arquitecto nunca escribe en el Hub**: el alta de un proyecto nuevo queda como pendiente del viernes.
@@ -256,6 +262,15 @@ conexión: el adaptador del Hub, los nombres de las variables, lo que la empresa
 instala las dos. Nada de la capa privada entra a vibe-kit (ADR-021). **La credencial del Hub** vive en una variable de
 entorno del sistema de cada PC: nunca en `~/.claude/` (la vería `kit-sync`), nunca en un repo, nunca se imprime. Es
 **la única excepción** a la regla del Equipador "jamás manejás tokens", y queda escrita en el ADR nuevo.
+
+**El contrato del registro, lo único que quedó del racimo I en el kit** (ADR-024; completado en la revisión integral, sesión 2, 2026-10-26).
+El kit lee "un registro de proyectos" **por adaptador**, y el adaptador devuelve una sola forma: **`{version, fichas, conexiones}`**: la
+versión del contrato, una ficha por proyecto (alias, `repo`, `tipo`: código · parcial · sin código, versión del kit si se conoce) y las
+conexiones (pares de alias con un texto corto, "se conecta con"). El kit trae **un adaptador de ejemplo que lee una carpeta de fichas locales**
+(`.claude/kit.md` de los repos que esta PC tiene clonados), para que ande sin ningún Hub; el adaptador del Hub es la capa privada. **Quién lo
+mira**: el Arquitecto, en Modo A, **antes de entrevistar** por un proyecto nuevo, si hay registro ("¿esto es proyecto nuevo, módulo de otro o
+feature de otro?": el kit consulta; quien responde con datos es el Hub); el actualizador de §6 y `flota.py`, para saber qué repos existen.
+**Qué no hace el kit**: escribir en el registro, ni guardar una copia. El agente de ecosistema que lo alimenta vive en el Hub.
 
 ## 10. El Equipador atrás de la puerta (decisión 7)
 
@@ -271,12 +286,12 @@ entorno del sistema de cada PC: nunca en `~/.claude/` (la vería `kit-sync`), nu
 - **El script de la flota marca también**, con los mismos datos: ramas `kit/*` sin mezclar hace días (una corrida
   que falló), copias del kit en repos remotos (Portal está en otra PC), y **"X aparece en N proyectos"**: la regla de
   3+ medida por script, que alimenta la curaduría del kit en la sesión madre. La salud general de la flota
-  (documentos pasados de tamaño, proyectos sin barreras) es del racimo I.
+  (documentos pasados de tamaño, proyectos sin barreras) es del Hub (ADR-024).
 
 *Revisión integral (2026-10-26; F-1)*: "preparame esta PC" y `doctor` suman **el bloque `autoMode` de la PC**: el clasificador del modo
 `auto` ignora el `autoMode` del proyecto y solo lee el de `~/.claude/settings.json` (verificado en la doc oficial), así que el Equipador
 escribe ahí `autoMode.environment` / `autoMode.allow` generado desde las fichas de los proyectos de esa PC (bases y servicios `dummy` y
-`prueba`), dentro de la zona propia de §5 para no pisar lo de Guido; `doctor` avisa si una ficha cambió y el bloque quedó viejo
+`prueba`), con el mismo mecanismo de §5 para el `settings.json` del proyecto (merge por regla: el kit es dueño solo de las reglas que él escribió, listadas en la ficha de la PC, y no toca las demás; NO VERIFICADO, misión 5; revisor frío 26/10, hallazgo 28); `doctor` avisa si una ficha cambió y el bloque quedó viejo
 ([DISENO-F](DISENO-F-seguridad.md) §14).
 
 *Nota de G (2026-10-24): "preparame esta PC" suma cuatro cosas: versión ≥ 2.1.234 en Windows nativo · `crossSessionInbound: accept` en los settings de usuario (en el proyecto la plataforma lo ignora) · que `gh` lea cada repo de la `mesa:` · "reiniciá después de instalar". El archivo local por PC guarda el entorno (nativo o WSL), la cuenta de `gh` y la carpeta de proyectos ([DISENO-G](DISENO-G-mesa-y-pcs.md) §10, §15).*
@@ -321,7 +336,7 @@ Dos puertas que hablan con Guido (`/arquitecto`, `/relevamiento`), más el ecosi
 
 | Qué | A dónde | Por qué |
 |---|---|---|
-| El agente de ecosistema; la salud general de la flota (documentos pasados de tamaño, sin barreras, alertas abiertas) | **I** (último) | Propio de la empresa; vibe-kit sigue genérico. El actualizador solo mira lo que él mismo toca |
+| El agente de ecosistema; la salud general de la flota (documentos pasados de tamaño, sin barreras, alertas abiertas) | **El Hub** (ADR-024) | Propio de la empresa; vibe-kit sigue genérico. El actualizador solo mira lo que él mismo toca |
 | Qué trae el molde (documentación con tope, cabecera del hook, barreras, correctores, `/estado`, roles) | B · F · A · C · D/H | Este racimo decide el mecanismo (el camión); la carga la decide cada racimo y sale como versión del kit |
 | Scripts de gate versionados (S-D-4) y casos repetidos de la skill de gate (S-M-1) | D y H | Son del director de Hermes, no del molde |
 | Los nombres de los niveles (`nivel:` en la ficha) | **H** ✅ (2026-10-25) | `liviano` · `estandar` escritos; largo calculado ([DISENO-H](DISENO-H-niveles-y-puertas.md) §4) |
@@ -331,7 +346,7 @@ Dos puertas que hablan con Guido (`/arquitecto`, `/relevamiento`), más el ecosi
 | Migrar Hermes | Misión 5, nunca a mitad de un tramo | Regla del PLAN |
 | El piloto sugerido (recomendación, no decisión) | Misión 5 | El Hub (es el registro y acaba de ordenarse) y Portal (la copia del Arquitecto adentro) |
 | Lo que el clasificador del modo `auto` necesita saber (bases y servicios de prueba) | **F §14** y §10 (2026-10-26) | Vive en la PC, no en el proyecto: lo escribe el Equipador desde las fichas |
-| Llevar un cambio de método de un proyecto a otro (E-3: "poner al día es un pedido" no cubre ese caso; bloques enteros a mano, 79d9f992) | **El apartado director/obrero de la revisión integral** (sesión 2) | Es el flujo proyecto ↔ kit: si el registro de cambios de método por proyecto es pieza del canon y lo que se repite en 3+ sube al kit |
+| Llevar un cambio de método de un proyecto a otro (E-3: "poner al día es un pedido" no cubre ese caso; bloques enteros a mano, 79d9f992) | **Resuelto: D §22ter y ADR-026** (sesión 2, 2026-10-26) | El registro de cambios de método por proyecto es pieza del canon (`piezas.cambios-metodo`, un archivo chico por cambio en `.claude/cambios/`); se aplica como clase 2 con diff; sube al kit por el ciclo con 3+ o cicatriz; **entre proyectos se adopta citándolo** (`origen: cita: <alias> <id>`), nunca por bloques a mano ni por propagación automática; el actualizador de §6 marca `subio-al-kit` y retira la zona propia que el molde ya cubre |
 
 ## 15. Límites de este diseño
 
@@ -402,7 +417,8 @@ Con [`tips/tanda-2026-11-contraste.md`](../../tips/tanda-2026-11-contraste.md) a
 | A-1 · merge y producción | contradicha en A | Campo `autorizado:` en la ficha | §4 |
 | F-1 · el clasificador | contradicha en F | El bloque `autoMode` de la PC lo escribe el Equipador | §10, §14 |
 | P61 · "¿cómo lo resuelven otros?" | hábito 16 (9 en 7 chats) | Paso fijo del Modo B largo, opcional en el corto | §3 |
-| El contrato del registro (lo que quedó de I) | ADR-024 | Sigue como nota en §9; se completa en la sesión 2 | §9 |
+| El contrato del registro (lo que quedó de I) | ADR-024 | Completado en la sesión 2 (2026-10-26): la nota de §9 dice la forma `{version, fichas, conexiones}`, el adaptador y cuándo lo mira el Arquitecto | §9 |
+| E-3 · llevar un cambio de método de un proyecto a otro | contradicha (base) | Resuelto en D §22ter y ADR-026: registro por proyecto, adopción citándolo, sube al kit por el ciclo | §14 |
 
 Los 11 criterios de §17 no cambian de veredicto; el criterio 1 mejora (menos preguntas rutinarias) y el 6 gana dos scripts (el sello y el
 bloque `autoMode`). **NO VERIFICADO nuevo**: que la skill invocada por la sesión pueda sostener la entrevista corta con Guido en la misma

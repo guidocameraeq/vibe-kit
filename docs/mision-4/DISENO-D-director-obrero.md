@@ -31,7 +31,7 @@ De la entrevista y de las once decisiones, lo que es de él:
   de un millón, y hubo que relevarlo con cierre PARCIAL: chat ★ 6a9b5771.)*
 - **La decisión 5 queda provisoria** y al final del tramo 4 va una revisión integral de D: "es el más complejo y el más importante".
 - **"Publicar un release" entra como quinta pregunta de su lista** (A §2), agrupada: un OK por release.
-- **Cada proyecto lleva su ficha del kit con todas las adaptaciones y su razón**, y cuando el Arquitecto actualiza, pregunta (E §4, §6).
+- **Cada proyecto lleva su ficha del kit con todas las adaptaciones y su razón**, y cuando el Arquitecto actualiza, mira el repo, decide la fusión y la informa con veto, sin preguntar (E §6; E-4, 26/10).
   "Mientras eso siga en línea, estas decisiones me parecen bien."
 - **Piloto en Deptos primero, no ahora** ("puede ser en la semana"); Desktop y Mobile después.
 - Dos pedidos que no estaban en ningún racimo: **el historial de estimado vs real por módulo** (ya lo diseñaron C y B; acá se dice quién lo
@@ -98,12 +98,12 @@ mil). Lo que cambió la mirada:
 - **Guido puede pisar el default** ("quiero director igual"): queda anotado en la ficha del módulo. **Y puede bajar**: se mergea lo que
   esté verde y se saca `director: sí` de la ficha; el módulo sigue como módulo solo.
 - **Sin agente PO.** Lo que Guido le pedía ya tiene dueño: el tamaño → Arquitecto; la documentación al día → el molde (B §7, cuatro
-  momentos automáticos y el candado); la vista completa → `/estado` (C), `NORTE.md` y `MAPA.md` (B §12), el ecosistema (I); "alguien que
+  momentos automáticos y el candado); la vista completa → `/estado` (C), `NORTE.md` y `MAPA.md` (B §12), el ecosistema (el Hub, ADR-024); "alguien que
   conozca el proyecto" → los documentos que inyecta el hook, en cualquier PC. Un agente vivo pierde lo que sabe al mudarse y no existe en la
   otra PC (criterio 8); responde preguntas que ya tienen dueño (scope creep, ADR-004); y es otra pestaña Opus que abrir y mantener.
   *Revisión integral (2026-10-26; D-10 reabierta)*: el acta encontró **dos vistas que Guido pide y nadie da**: "% de completado" (4 veces en
   un lote) y "¿qué obreros puedo cerrar?" (~10 chats). Sigue sin agente: **son dos líneas más de `/estado`** (C §2.5): el % de avance medido
-  por script (tareas terminadas sobre el plan del módulo, de la ficha y los commits) y "podés cerrar: obrero-07, obrero-12" (los obreros cuyo
+  por script (tareas terminadas sobre el plan del módulo, de la ficha y los commits) y "podés cerrar: obrero-<x>--07, obrero-<x>--12" (los obreros cuyo
   CIERRE el director verificó, de la lista de sesiones vivas de la ficha, §7.6). Y las líneas propias del `/estado` se suman en cualquier
   momento pidiéndoselo al director; quedan en la configuración del proyecto.
 
@@ -123,7 +123,9 @@ de más.
   línea autosuficiente), las 5 reglas del gate (§12), la espera de un OK, qué hacer con el director caído, el cierre con notas para el
   método, y las definiciones que hoy faltan: **tramo** (un lote de encargos que el director abre y cierra, anotado en la ficha; de ahí
   cuelgan la mudanza, el cierre de tramo y la alarma de §13), **un encargo no comparte archivos con otro abierto** (los declara en su
-  estado de partida; el director no lanza dos que se pisen), **un encargo que cruza dos módulos se parte en uno por módulo**, **cancelar**
+  estado de partida; el director no lanza dos que se pisen; *apartado director/obrero, 2026-10-26, CM-91 de Hermes*: **tampoco recursos
+  exclusivos de la máquina**, la suite entera, un puerto, el navegador, que el encargo declara igual que los archivos; dos suites a la vez en
+  una PC dieron 232 rojos falsos por `0xC0000142`, y Hermes lo resolvió con turnos pedidos por mensaje; acá lo evita el director al repartir), **un encargo que cruza dos módulos se parte en uno por módulo**, **cancelar**
   (CORRECCIÓN "cancelado": la rama queda sin mergear y el script de worktrees la desmonta), y **si el verificador por script falla** (error,
   no rojo): NO VERIFICADO, no se mergea, PARADA.
 - *Revisión integral (2026-10-26)*: **cinco líneas más al núcleo común**, de las propuestas del acta aprobadas por Guido: (P65) antes de
@@ -150,7 +152,7 @@ bifurcación grande adentro son dos skills disfrazadas. Deptos no era evidencia 
 
 | Rol | Modelo · esfuerzo | Puede | No puede | Subagentes |
 |---|---|---|---|---|
-| **Director** | Opus · `high` | leer todo; git de lectura; correr los scripts; **mergear limpio**; escribir solo `docs/modulos/<x>/` en su rama; mensajes | **escribir código ni resolver conflictos de código** (un conflicto es un encargo a un obrero); tocar `docs/` fuera del módulo en su rama (§8); verificar a mano lo que calcula un script | ninguno fijo; un lector Sonnet para relevo de contexto |
+| **Director** | Opus · `high` | leer todo; git de lectura; correr los scripts; **mergear limpio**; escribir `docs/modulos/<x>/` en su rama, más `.claude/cambios/` y la zona propia de las skills del proyecto cuando aplica un cambio de método de clase 2 (§22ter); mensajes | **escribir código ni resolver conflictos de código** (un conflicto es un encargo a un obrero); tocar `docs/` fuera del módulo en su rama (§8); verificar a mano lo que calcula un script | ninguno fijo; un lector Sonnet para relevo de contexto |
 | **`/obrero`** | **Sonnet por defecto**; Opus si el director lo decide con razón (base, permisos, login, plata) · `high` si Opus | todo lo del proyecto dentro de las barreras de F; commitea él | subagentes sin razón con nombre | el revisor, para código |
 | **`/tramo`** | igual que el obrero (dos tramos enteros de base salieron en Sonnet sin rehacer nada, H-02) | partir, repartir, commitear, correr el gate | escribir código él | explorador · implementador · revisor |
 | **Explorador** | Haiku · sin shell | ubicar archivos y líneas, con techo de salida | **contar, resumir, afirmar que leyó todo** (dio un "alto" falso; contó 8 y declaró 9) | — |
@@ -221,7 +223,9 @@ cross-session-messaging,headless,hooks,permissions,permission-modes,sub-agents,v
 3. **Permisos.** Las **5 de A** (las 4 más "publicar un release", decisión de Guido) piden **el clic de Guido en la pestaña que actúa**:
    razón técnica confirmada, el permiso es de la sesión. **Todo lo demás no pregunta**: (a) las `allow` del molde (F), (b) el modo que el
    encargo fija al lanzar, (c) **la sección AUTORIZADO del encargo** (comandos y rutas), que un hook `PreToolUse` aprueba. El hook lee
-   AUTORIZADO con `git show <rama-del-módulo>:…`, **que el obrero no puede escribir** (así no se da permisos solo). Aclaración: "reglas
+   AUTORIZADO con `git show <rama-del-módulo>:…`, **que el obrero no puede escribir**; *pero con F-1 (abajo) las reglas que de ahí salen van al `settings.local.json` del worktree del
+   obrero, que él sí puede editar: el riesgo real es que se dé permisos durante el encargo, y se caza al cierre (el gate cruza ese archivo
+   contra el encargo; F §14). Las 5 de A no dependen de eso: las niega el hook (revisor frío 26/10, hallazgo 5).* Aclaración: "reglas
    `ask`" son las 5 de A; el modo `default` además pregunta por todo comando fuera de `allow`, y eso es lo que AUTORIZADO cubre.
    *Revisión integral (2026-10-26; F-1)*: **el hook ya no aprueba: AUTORIZADO se vuelve reglas `allow` estrechas** que un script escribe en el
    `settings.local.json` del worktree del obrero, leyendo la sección del encargo commiteado. Razón verificada contra la doc oficial: una
@@ -233,7 +237,7 @@ cross-session-messaging,headless,hooks,permissions,permission-modes,sub-agents,v
    debajo.* Mientras no se verifique que un obrero headless pueda mandar mensajes, **su PARADA es un archivo commiteado** que ve el
    verificador.
 5. **Si falla**: sin `--bg` desde el director → siempre "Guido abre"; sin hook en VS Code → el obrero pregunta como hoy. **Ninguna falla deja
-   a Guido peor que hoy.** Entra por **tres escalones** (criterio 11): (1) la línea única + el hook, un proyecto, medir pop-ups y aperturas
+   a Guido peor que hoy.** Entra por **tres escalones** (criterio 11): (1) la línea única + las `allow` por script y el hook que niega, un proyecto, medir pop-ups y aperturas
    por tramo · (2) la noche con `apertura: director` y topes, medir horas de obrero parado · (3) el día en autónomo, opcional para siempre.
    Cada escalón se deshace sin tocar el anterior.
 6. **Los nombres de sesión** (pedido de Guido, 2026-10-23: "cada vez que abro un obrero le tengo que hacer un rename, y cuando se
@@ -244,7 +248,7 @@ cross-session-messaging,headless,hooks,permissions,permission-modes,sub-agents,v
    de la extensión**, el nombre y el modelo salen de sus comandos (`/rename`, `/model`) y **si la skill `/obrero` puede fijarse el nombre
    sola está NO VERIFICADO**: si no puede, quedan dos renglones más la skill, y el director los entrega listos para pegar con el nombre ya
    decidido. Ninguna sesión puede renombrar a otra (nada documentado): la vuelta de tuerca es el nombre al nacer, no el rename después;
-   (b) **el nombre es el del encargo**, `obrero-<ID>`, y el del director es
+   (b) **el nombre es el del encargo**, `obrero-<x>--<ID>` (H §10.4), y el del director es
    fijo por módulo, `director-<módulo>` (§11): no se inventan ni se reusan; (c) **la ficha del módulo lista las sesiones vivas con su nombre
    y su id de sesión**, así después de un reinicio el director (o Guido) las reabre con `--resume <id> --name <nombre>` desde la misma
    ficha; (d) **el canal por archivo es la red**: la evidencia y la PARADA se commitean antes del mensaje (Deptos), así un nombre perdido no
@@ -252,8 +256,8 @@ cross-session-messaging,headless,hooks,permissions,permission-modes,sub-agents,v
 7. **NO VERIFICADO, en orden, para el piloto**: (i) ~~la mensajería en VS Code con el default~~ → **Guido confirma que funciona** (2026-10-23:
    "los obreros y lectores se mandan mensajes constantemente mientras haya un rename hecho"); queda solo anotar en el molde cómo está
    configurado (G); (ii) ¿el director puede correr `claude
-   --bg` desde Bash, y la hija aparece en ListAgents y sobrevive a su mudanza?; (iii) `--bg` con `--permission-mode` y `-w`; (iv) el hook
-   `allow` en VS Code sobre lo que `default` preguntaría; (v) las 5 de A como reglas concretas de settings: **para F/H**, mapear
+   --bg` desde Bash, y la hija aparece en ListAgents y sobrevive a su mudanza?; (iii) `--bg` con `--permission-mode` y `-w`; (iv) las `allow` por script
+   (F-1; antes, el hook `allow`) en VS Code sobre lo que `default` preguntaría; (v) las 5 de A como reglas concretas de settings: **para F/H**, mapear
    `sensible:` de la ficha (A §6) a reglas por proyecto (hoy "manejar claves" es una categoría, no un patrón).
 
 *Alternativas descartadas*: solo subagentes para todo (mueren con el director; Guido no puede hablarles) · aprobar por mensaje (la
@@ -270,14 +274,20 @@ director se construye en su rama con worktree; el hook y `/estado` leen la ficha
 ficha. H nombra ramas y worktrees.
 
 1. **Una rama por módulo con director. El director es su dueño**: trabaja en su worktree sobre esa rama y ahí escribe **solo
-   `docs/modulos/<x>/`** (ficha, `tiempos.md`, `bitacora/`, `planes/`). Nadie más commitea directo en la rama del módulo. **Se termina la
+   `docs/modulos/<x>/`** (ficha, `tiempos.md`, `bitacora/`, `planes/`), *y desde el 26/10 también `.claude/cambios/` y la zona propia de las
+   skills cuando aplica un cambio de método de clase 2 (§22ter); un cambio aplicado en `modulo/<x>` llega a los otros módulos con el merge a
+   `main`, o antes si otro módulo lo cita (revisor frío, hallazgo 6)*. Nadie más commitea directo en la rama del módulo. **Se termina la
    rama de bitácora aparte**: existía porque el director no podía escribir `main` y los obreros sí. **Enmienda a TABLERO §11** (decisión de
    Guido): lo que se conserva de esa pieza es "**un escritor por checkout**"; la rama aparte ya la había reemplazado B.
 2. **Cada obrero trabaja en su rama por encargo, en su worktree**, y commitea él. Escribe código y **un solo archivo de `docs/`: su
    evidencia**, en `bitacora/<fecha>-evidencia-<ID>.md`, hermano del encargo. *Enmienda a B §5: el encargo (del director) y la evidencia (del
    obrero) son dos archivos; "en ese mismo archivo" tenía dos escritores.* **Un escritor por rama, por worktree y por archivo.**
 3. **El merge del encargo a la rama del módulo lo hace el director**, cuando el verificador por script da verde. No se le pregunta a Guido.
-4. **El merge del módulo a `main` lo hace el director**, con el gate completo. **Publicar** (release, deploy) pide **un OK de Guido por
+4. **El merge del módulo a `main` lo hace el director**, con el gate completo. *Dónde (revisor frío 26/10, hallazgo 4)*: **nunca en el
+   checkout de `main`**, que es de las sesiones planas de Guido (§8.7). El script `worktree integrar <x>` (H §10.2) abre un worktree temporal
+   sobre `origin/main`, mergea `modulo/<x>` con `--no-ff`, corre el gate y el `/cierre` del proyecto ahí mismo, empuja a `origin/main` y borra el
+   worktree; el checkout de `main` lo recibe en su próximo `/inicio` (G §11.1). El merge del encargo al módulo no lo necesita: el director ya
+   está en `modulo/<x>`. **NO VERIFICADO** (piloto): el worktree temporal en Windows y que el `/cierre` corra bien fuera del checkout principal. **Publicar** (release, deploy) pide **un OK de Guido por
    release**, agrupado: es la quinta pregunta de A §2. Guido puede endurecerlo por proyecto en la ficha del kit ("en Desktop, el merge a
    `main` me lo preguntás"): queda escrito, no en la memoria del director.
 5. **Qué se cierra cuándo.** Al cerrar un tramo, el director sobreescribe la ficha, actualiza `tiempos.md` y, si se muda, escribe el relevo:
@@ -307,7 +317,10 @@ eran avisos sin novedad, cada uno releyendo 300-600 mil; la causa es una regla (
 3. **Aviso sin novedad = cero texto**: el director corre el verificador y, si no hay commit nuevo, no escribe. **Pero un turno vacío relee
    igual** (el revisor frío lo marcó): por eso **el despertador de noche es un script fuera del director** (un loop o tarea programada) que
    mira git y **solo lo despierta** si hay PARADA o commit nuevo. De día no hay despertador. Cómo despierta al director (mensaje, tarea):
-   **NO VERIFICADO**, piloto.
+   **NO VERIFICADO**, piloto. *Apartado director/obrero (2026-10-26, CM-79 de Hermes)*: **el despertador y el verificador miran también el
+   checkout principal** (`git status -sb` y `git log` de `main`), no solo las ramas de los encargos: un test con `GIT_DIR` apuntando al `.git`
+   principal commiteó 7 veces en el `main` real y nadie lo vio en 12 horas porque el chequeo miraba los worktrees. Un commit en `main` que no
+   salió de un merge del director es PARADA.
 4. **"Algo está parado", un solo umbral**: de día, 30 min esperando un OK y el obrero se lo dice al director. **De noche no espera**: si
    necesita algo que no está en AUTORIZADO, PARADA; el despertador la ve, el director la anota en **"parado"** de la ficha (lo suyo) o en
    **"te espera"** (solo si es de las 5 de A o diseño/negocio). Nunca más 8,5 h sin que nadie sepa.
@@ -317,7 +330,10 @@ eran avisos sin novedad, cada uno releyendo 300-600 mil; la causa es una regla (
    *Revisión integral (2026-10-26; P63 + P68 del acta, aprobadas por Guido)*: **"me voy" tiene respuesta fija y vale también de día.** Cuando
    Guido dice que se va ("me voy en 30'", "corto a las 15:30", "¿me puedo ir?", "me quedo sin internet") o llega la hora que dejó dicha, el
    director contesta **un solo bloque**: (1) qué necesita de él **ahora**, todo junto (clics, autorizaciones con su vencimiento); (2) qué queda
-   andando y hasta cuándo; (3) con qué se va a encontrar al volver; (4) el checkpoint si hay que cortar. Y si la pausa es de todo el equipo,
+   andando y hasta cuándo; (3) con qué se va a encontrar al volver; (4) el checkpoint si hay que cortar. *Apartado director/obrero (2026-10-26,
+   CM-86 de Hermes)*: **la red es un riesgo del checklist** (sin red no trabaja nadie, tampoco el despertador lo ve), y **el resumen del
+   amanecer dice de qué hora a qué hora no hubo commits y por qué**, si se sabe: ~7 horas de una noche se perdieron por un `ENOTFOUND` sin
+   que nadie lo supiera hasta la tarde. Y si la pausa es de todo el equipo,
    deja a cada obrero con commit wip declarado, árbol limpio, sin procesos, "paso exacto donde retomás" y la lista de archivos fuera del
    repo; al volver, cada uno se re-presenta solo (§5). Es el hábito más repetido de Guido que ningún racimo tenía: ~50 veces en ~21 chats
    ("decime mañana con qué me debería encontrar", "¿me puedo ir tranquilo?"); un obrero parado ~3 h tras un corte de internet (L54).
@@ -461,6 +477,16 @@ mirara. ~40 pedidos repetidos al pie de cada mensaje; una decisión recordada 4 
    doy el recomendado"). Reversible por definición; las 5 de A siguen con clic. **(c) La clase 3 tiene formato fijo** (E §2.6): diseño y
    negocio, charlando; lo demás con una línea de contexto, una RECOMENDADA primera, "qué cambia para vos", y **siempre el botón "explicámelo
    en criollo"** (qué decido · qué cambia para mí · un ejemplo concreto del proyecto).
+   **(d)** *Apartado director/obrero (2026-10-26, decisión de Guido)*: **los cambios de método del propio proyecto son clase 2**: el agente
+   los aplica en las skills, los agentes y los scripts del proyecto **con el diff mostrado y su commit**, sin preguntar, y quedan en el
+   registro de cambios de método del proyecto (§22ter); **solo los que tocan barreras son clase 3**: un hook que niega, una regla `deny`
+   o `ask` de settings, las 5 de A o `frenos.quitados` (F §14); un hook propio de arranque o una skill no son barrera. **Y clase 3 no es un
+   pop-up**: el agente lo deja `propuesto` en el registro y en la cola "te espera" (§13.4) con el formato de E-4; nada cambia hasta que Guido
+   actúa, que es lo que F §14 ya decía ("por pedido de Guido"). Se cuenta en §17 como decisión condicionada y rara (revisor frío 26/10,
+   hallazgo 2). Es la misma línea que P66 (§5) y E-4 (b), dicha para el caso que Hermes resolvió al revés: su trámite exige
+   un clic del PO por cada regla (F40, CM-14, CM-58) y el 26/10 fueron **31 clics en 8 tandas** en una pestaña dedicada a decisiones, la
+   última con "lo que vos recomiendes acepto". Guido eligió el diff sin clic: "que los agentes apliquen los cambios de método del proyecto
+   con el diff mostrado, sin preguntarme; solo las barreras con mi clic".
 3. **El "sí" vale solo para lo que se preguntó** (S-M-14): un OK a una opción no autoriza el ensanche.
 4. **Lo pendiente vive en un solo lugar, en dos campos de la ficha**: **"te espera"** (solo clase 3: decisiones, clics pendientes de las 5
    de A) y **"parado"** (PARADAs técnicas y clase 2, del director). `/estado` pone arriba solo el primero. Nunca al pie de cada mensaje.
@@ -481,7 +507,7 @@ método lo registra solo.
 2. **Lo propio tiene cuatro casas, y ninguna es el cuerpo de la skill**: los **comandos del stack** → el script del gate y las skills
    `/smoke` y `/release`; los **datos del proyecto** → la ficha del módulo y la ficha del kit (§12); las **reglas de la casa** (la receta del
    worktree de Desktop, la noche, el contrato con un proyecto hermano) → la **zona propia** de la skill, **con su razón escrita** (E §4); las
-   **cicatrices** → "Cómo se adaptó" de la ficha del kit. Y la condición de Guido: cuando el Arquitecto actualiza, **mira el repo y pregunta**
+   **cicatrices** → "Cómo se adaptó" de la ficha del kit. Y la condición de Guido: cuando el Arquitecto actualiza, **mira el repo y decide** la fusión (E §6.3) **y la informa sin preguntar, con veto** (E-4, 26/10, que reinterpreta la condición dicha el 23/10 como "pregunta")
    qué adaptación se mantiene (E §6).
 3. **Lo que cada dialecto pierde al adoptar, con nombre**: Desktop y Mobile dejan la rama de bitácora aparte, `/gate`, las pestañas de repuesto
    y el checklist en prosa, la re-revisión obligatoria, el despertador permanente, el relevo por excepción y el encargo entero por mensaje.
@@ -499,9 +525,13 @@ método lo registra solo.
 Lo que hace cada pieza y en qué orden, juntando las once decisiones con A, B, C, E y F. Entre corchetes, de dónde sale cada regla.
 
 **0. Nace.** Guido pide en criollo. La sesión pregunta "¿es chico?" [§4]. Si no, el Arquitecto abre `docs/modulos/<x>/` en `main` con la ficha
-en BORRADOR y el `SPEC.md` con el pedido textual [B §5, §7]; aplica la prueba de director ("¿más de una pestaña ejecutando?") [§4]; verifica
+y el `SPEC.md` en BORRADOR, con el pedido textual [B §5, §7]; aplica la prueba de director ("¿más de una pestaña ejecutando?") [§4]; verifica
 el **entorno de prueba** [§12]; corre el **red team del spec** [§6]; y con director arma rama, worktree, `bitacora/`, `tiempos.md`,
-`planes/`, nombres y la ficha del kit [§4, §7, §8].
+`planes/`, nombres y la ficha del kit [§4, §7, §8]. **Si el plan ya se charló antes** (el hábito de Guido, E-1: "planeo con el director y
+después meto al director"): se charla en la sesión que esté abierta, plana o el director de otro módulo, y **ahí mismo** esa sesión invoca al
+Arquitecto en Modo B corto, que toma la charla como entrada; el módulo nuevo nace en `main` por el mismo worktree temporal de §8.4
+(`worktree integrar`), porque esa sesión puede estar en `modulo/<y>`; y **el director que charló no es el director del módulo nuevo**: cada
+módulo con director tiene el suyo [§4, §8] (revisor frío 26/10, hallazgo 30).
 
 **1. Arranca el director.** Guido abre la pestaña con una línea. Opus `high`. Lee relevo (si hay), ficha, spec, `git log` corto, contexto
 por script. Primer arranque: confirma en 3 líneas y espera el OK; de un relevo: confirma y sigue [§5, §11].
@@ -518,7 +548,7 @@ modelo real, contexto. "Gana git" [§6, §11].
 rojo, mutación, código) → commit congelado → revisor Opus (lente por riesgo, 3 niveles, arranca en "le falta") → una corrección acotada
 comprobada por `subpaso-cierre`; segunda vuelta solo si "rechazado"; máximo 2 → PARADA [§6, §10]. AVANCE por commit, ≤5 líneas, con SHA y
 "contexto: N · falta: M"; el director no lo contesta: el verificador lo cruza [§9]. Clase 1 → DESVÍO declarado; clase 2 → CONSULTA al
-director; clase 3 → Guido [§13]. Lo de AUTORIZADO lo aprueba el hook; las 5 de A piden el clic de Guido [§7]. Capturas al lector de capturas
+director; clase 3 → Guido [§13]. Lo de AUTORIZADO son reglas `allow` estrechas que un script escribe en el `settings.local.json` del worktree del obrero (F-1); el hook solo niega las 5 de A, que piden el clic de Guido [§7]. Capturas al lector de capturas
 [§6]. Espera de un OK: 30 min de día; de noche, PARADA [§9].
 
 **5. El gate.** Sección GATE + el script del proyecto; las 5 reglas; `/smoke` con su contrato en archivo; arreglo sin prueba = rojo
@@ -569,7 +599,8 @@ falla", el gate como script y cero datos clavados, y "ninguna falla deja a Guido
 Fuera de las 5 de A y de diseño/negocio, D le suma **dos acciones**, las dos elegidas por él: **abrir las pestañas** de los obreros con una
 línea (default; se mide en el piloto y se puede delegar por encargo) y **decir "me voy"** más resolver lo que vence, una frase por noche. Le
 **saca**: el merge y el clic de merge, el OK en cada mudanza (9-17 por mes), vigilar el indicador de contexto, pegar textos, ~30 pop-ups
-sobre lo ya autorizado, y las decisiones de clase 1 y 2.
+sobre lo ya autorizado, y las decisiones de clase 1 y 2. *Revisor frío (26/10, hallazgo 2)*: y **una decisión condicionada, rara**: un
+cambio de método que toca una barrera queda `propuesto` en "te espera" hasta que Guido actúe (§13.2 d); no es un pop-up ni se le pregunta.
 
 ## 18. Cómo se sabe si funcionó (se mide en el piloto de Deptos, contra las líneas base de hoy)
 
@@ -583,7 +614,7 @@ sobre lo ya autorizado, y las decisiones de clase 1 y 2.
 | Compactaciones | 0 (Guido) | 0, con los dos umbrales medidos |
 | KB que carga un obrero al arrancar | 62-75 | menos, con el núcleo común y cero cicatrices |
 | Arreglos que traen su prueba | 18-22% (Desktop/Mobile), 45% (Deptos) | hacia 94% (Portal) |
-| Pop-ups por tramo sobre lo ya autorizado | ~30 | 0 con el hook |
+| Pop-ups por tramo sobre lo ya autorizado | ~30 | 0 con las `allow` por script (F-1) |
 | Aperturas de pestaña a mano | ~120 | contadas; menos si Guido delega |
 | `/rename` a mano por obrero | 1 por pestaña (~120) | 0 desde terminal; en pestaña de la extensión, según la prueba del piloto (el nombre lo decide el director igual) |
 | Rutas absolutas y nombres de sesión en skills | 34 / 65 / 0 | 0 en los tres (candado) |
@@ -620,7 +651,7 @@ sobre lo ya autorizado, y las decisiones de clase 1 y 2.
 | 4 | Software que anda y se sostiene | Revisor Opus intocable en la 1.ª vuelta; revisión congelada; arreglo con su prueba como regla del gate construida con A §5; red team de construcción en riesgo alto; entorno de prueba verificado por el Arquitecto (§10, §12) |
 | 5 | Tokens y el modelo justo | Sonnet por defecto en obrero y tramo con razón escrita; Haiku solo ubica; vueltas vacías del revisor eliminadas; el despertador afuera del director para que un turno vacío no relea 400 mil (§6, §9, §10) |
 | 6 | El script antes que el modelo | Verificador de avisos, contexto, `subpaso-cierre`, gate, checklist nocturno, despertador, alarma, candado de datos: 8 scripts; el modelo no cuenta ni mide (§6-§13) |
-| 7 | Seguro por defecto | Las 5 de A como `ask` de día y `deny` + PARADA de noche; el hook lee AUTORIZADO desde la rama que el obrero no escribe; topes de plata y turnos en headless; nada de esto depende de la app de escritorio (§7) |
+| 7 | Seguro por defecto | Las 5 de A como `ask` de día y `deny` + PARADA de noche; AUTORIZADO son `allow` estrechas escritas por script en el worktree del obrero (F-1), que él podría editar: el gate del cierre lo cruza (F §14), y las 5 de A no dependen de eso porque las niega el hook; topes de plata y turnos en headless; nada de esto depende de la app de escritorio (§7) |
 | 8 | Portable | Cero datos clavados con candado; cada sesión mide su propio contexto; lo propio en cuatro casas con razón; el obrero no sabe quién lo abrió (§11, §12, §14) |
 | 9 | Lo chico no paga lo grande | Tres tamaños con triage en la puerta; `/obrero` no carga el ritual del equipo; lo chico sin sesión como subagente; sin revisor en texto (§4, §5, §7, §10) |
 | 10 | Autónomo pero con rastro | Encargo, evidencia y relevo commiteados en la bitácora; desvío declarado con cómo se deshace; revisión atada a un SHA; PARADA anotada en la ficha (§8, §10, §13) |
@@ -652,7 +683,116 @@ Con [`tips/tanda-2026-11-contraste.md`](../../tips/tanda-2026-11-contraste.md) a
 | P76 · modos de `/obrero` | 6 lotes | Transformada: "spec" → E-1; "decisiones" → E-4 clase 2 + §13.4 | §6.8 |
 
 **Lo que sigue provisorio**: la decisión 5 (ramas y escritores, §8) no la tocó el acta (G-5 mixta: "gana git" funciona; el atraso de los
-worktrees lo arregla el `fetch` en `/inicio`, B §9) y queda como estaba hasta el piloto. **El apartado propio de director/obrero** (el canon
-de D contra lo que Hermes Desktop cambió en su método entre el 2026-10-20 y hoy: 38 commits en sus skills y `docs/metodo`, CM-72 a CM-103,
-y la decisión del flujo proyecto ↔ kit) **se escribe en la segunda sesión de esta revisión**, con Guido adentro, y es lo último antes del spec.
+worktrees lo arregla el `fetch` en `/inicio`, G §11.1) y queda como estaba hasta el piloto. **El apartado propio de director/obrero** (el canon
+de D contra lo que Hermes Desktop cambió en su método entre el 2026-10-20 y hoy) está en §22bis, escrito en la sesión 2 con Guido adentro.
+
+## 22bis. El apartado director/obrero: el canon contra lo que Hermes Desktop cambió solo (sesión 2, 2026-10-26)
+
+**Por qué existe** (pedido de Guido, ADR-025 decisión 2): mientras se diseñaba D, Hermes Desktop siguió cambiando su propio método con un
+registro formal, `docs/metodo/CAMBIOS.md`. Medido hoy en `D:\Hermes\Hermes.exe`: **38 commits** desde el 2026-10-20 en `.claude/skills` y
+`docs/metodo` (255 en todo el repo, 9 solo en las skills; la cifra de 126 del ADR-025 era de una medición anterior que no se
+reprodujo); el registro pesa 230 KB; **las 31 fichas CM-72 a CM-102 se aprobaron y aplicaron el 26/10** en 8 tandas con clic del PO en una
+pestaña dedicada (`obrero-identidad-decisiones`), y **CM-103 quedó aprobada sin aplicar**. Mobile no tocó el suyo. Se leyeron las 32 fichas
+enteras y se cruzó cada una contra las 11 decisiones de arriba con el filtro **"un solo proyecto no alcanza, salvo cicatriz o 3+"**.
+
+**Coinciden con el canon (12), nada nuevo para D**: CM-72 (verificar en la punta del repo del otro → G §5/§7: el script lee el archivo
+commiteado de `origin`, que es siempre la punta; la firma por hash es propia) · CM-73 (tras un reinicio, ListAgents y pedir reenvío → §7.6 d, el
+canal por archivo es la red) · CM-74 (leer la estructura del JSON, no la línea del grep → criterio 6, settings por script) · **CM-76** (tras 2
+vueltas, commit con lo abierto declarado y OK del director → **la misma decisión que D-8 tomó el mismo día**, §10.4) · CM-81 (una decisión que
+pide dos cosas se mide contra el código antes de partir → el Arquitecto en Modo B corto explora el código real, §4) · **CM-83** (el gate del
+binario lo manejó el agente en 16 minutos contra 1-2 h previstas del PO copiando claves → **la prueba de P65**, §5) · CM-87 (un archivo con
+una credencial no se lee entero → F §4 y F §8; nota a F: la credencial dentro de un `.py` es el problema de fondo) · CM-88 ("X ya no existe"
+se mide antes de decirlo; una premisa corregida reabre la decisión → regla de evidencia, §6.5) · **CM-92** (el orquestador confirma cada
+hallazgo del revisor con un script → §6.5, textual) · CM-96 (al implementador se le dice textual que no esquive controles → §6, con una
+**tensión en dónde vive**: Hermes lo repite en cada encargo además de la definición; §6.3 dice definición, porque lo dicho por encargo falló
+~5 veces; gana §6.3) · CM-101 (etiqueta fija de destino para pendientes → B §10 y §13.4: un solo lugar la hace innecesaria) · **CM-102**
+(`/cierre` con pathspec, push de la rama por nombre, sin rutas fijas → G §11.2, D §12.6 `candado:datos` y H §10.7; **convergencia total**, y
+Hermes llegó solo por la cicatriz de la mudanza de PC del 22/10).
+
+**Propias del stack de Hermes (15), a la zona propia del implementador (§14.2)**: CM-75 lista blanca para un clasificador de SQL · CM-77
+índice contra disco antes del commit (sin medir) · CM-78 mutaciones en bytes · CM-80 barrido de importadores de 1.º y 2.º grado · CM-84 una
+clave por archivo sin fin de línea · CM-85 la mutación de un `!=` en las dos direcciones · CM-89 mutar la llamada, no la función · CM-90 el valor
+sensible fuera del `assert` · CM-93 recuento de aserciones por AST antes y después · CM-94 congelados bajo un stub · CM-95 la suite con el módulo
+bloqueado antes de borrarlo · CM-97 mutar la guarda · CM-98 rojo sin la llamada antes de sacarla · CM-99 marcador sin mayúsculas · CM-100 la
+red mira el camino que llena el campo. Todas respetan el espíritu de §6 (la mutación en rojo, "la ejecución es la medición") y ninguna es del
+kit: son reglas de pytest, de `db-migr` y de Windows.
+
+**Nuevas con cicatriz (4), entraron al canon con el OK de Guido**, una línea cada una, en el lugar que ya las esperaba:
+
+| CM | La cicatriz | Dónde entró |
+|---|---|---|
+| 79 | un test con `GIT_DIR` commiteó 7 veces en el `main` real; 12 h sin verse porque el chequeo miraba solo los worktrees | §9.3: el despertador y el verificador miran también el checkout principal |
+| 82 | el `.exe` del gate le habló a producción con el `config.ini` igual al del ensayo; el PO entró a producción con código de rama | H §9.3: el chequeo base entra con una cuenta que solo existe en el entorno de prueba |
+| 86 | ~7 h de noche sin commits por un corte de red, sin que nadie lo supiera | §9.5: la red en el checklist; el resumen del amanecer dice las horas perdidas y por qué |
+| 91 | dos suites a la vez en la misma PC: 232 rojos falsos (`0xC0000142`) | §5: un encargo tampoco comparte recursos exclusivos de la máquina con otro abierto |
+
+**Para el flujo proyecto ↔ kit (1)**: CM-103 define los estados del registro (`propuesto → aprobado → aplicado (SHA) · rechazado (motivo)`),
+con un test que los distingue, dos commits por cambio (aplicar, y después el SHA) y **una tabla de medición por cambio** (mecánico o blando ·
+cómo se sabe si funcionó · línea base con fuente), que **la pidió esta misión el 2026-10-15** y Mobile hace desde su `D-192`. Es el contrato
+del registro que se decide en §22ter y en el ADR nuevo.
+
+**Lo que contradice al canon no es una ficha, es el trámite**: cada cambio de método pide un clic del PO. Guido decidió por el canon
+(§13.2 d): los cambios de método del proyecto son clase 2, con el diff mostrado; solo las barreras son clase 3.
+
+**Otras tres cosas de los 38 commits**: el relevo del director se reescribió 4 veces en 4 días más un `RETOMAR_PC_NUEVA.md` temporal (coincide
+con §11.4: el relevo es un archivo; el canon lo pone por fecha en `bitacora/` en vez de pisar uno solo) · las rutas fijas `D:\` pasaron a
+relativas el 22/10 (coincide con §12.6, cicatriz real) · la mesa de decisiones en una pestaña propia es el "modo decisiones" de `/obrero` que
+§6.8 ya transformó en E-4 clase 2 más la cola "te espera".
+
+**Veredicto del apartado**: de 32 cambios que Hermes se hizo solo en una semana, **ninguno contradice una decisión de D**, 12 ya estaban, 4
+sumaron una línea con su cicatriz y 15 son del stack. El canon aguanta el contraste con el proyecto que más cambió. Lo que sí hay que diseñar
+es el circuito por el que esos cambios viajan (§22ter).
+
+## 22ter. El flujo proyecto ↔ kit: el registro de cambios de método es pieza del canon (sesión 2, 2026-10-26; ADR-026) `[consistencia · autónomo con rastro]`
+
+**La pregunta** (ADR-025, decisión 2; E §14, caso E-3): ¿un proyecto sigue cambiando su método entre versiones del kit, y cómo vuelve al kit
+lo que aprende? Hermes Desktop ya contestó la primera parte con hechos (§22bis): 32 cambios en una semana, 4 con cicatriz de producción.
+Congelarlo hasta la versión no aguanta; propagar entre proyectos sin curaduría tampoco. **Guido eligió la opción B**: registro por proyecto,
+archivos chicos, sube al kit por el ciclo con 3+ o cicatriz, urgencias como parche, adopción entre proyectos citándolo.
+
+1. **Qué es.** Cada proyecto `estandar` lleva su **registro de cambios de método**: `piezas.cambios-metodo: molde` en la ficha del kit (E §4).
+   Un cambio es **un archivo chico**, `.claude/cambios/<fecha>-<slug>.md` (es del método, no del proyecto: va al lado de la ficha y de
+   `frenos.log`, B §4; nunca un archivo que crece, B §5), con **cabecera legible por script**: `estado:` (`propuesto` · `aprobado` · `aplicado:
+   <SHA>` · `rechazado: <motivo>` · `subio-al-kit: v<x>`) · `clase:` (`2` · `3-barrera`) · `toca:` (las piezas) · `origen:` (la bitácora o el
+   encargo con fecha, **o `cita: <alias> <id>`** si viene de otro proyecto) · `aprobo:` (solo clase `3-barrera`: quién y cómo; **`aprobado` existe solo para esa clase**: la clase 2 va de `propuesto` a `aplicado`
+   directo y el diff es su rastro; revisor frío, hallazgo 17) · `aplico:` (archivo y hash del bloque escrito en la zona propia, para que el
+   actualizador sepa si sigue intacto; hallazgo 29). Abajo, el contrato de
+   CM-103 de Hermes, que esta misión ya había pedido en parte el 2026-10-15: **el caso de origen** (citado, no copiado), **la regla como
+   queda** y dónde vive, y **la tabla de medición** (freno mecánico o regla blanda, y dónde · cómo se va a saber si funcionó · línea base con
+   su fuente, o "no está medido"). El índice no se escribe: lo arma el script (`cambios listar`), y lo muestra `/estado` si se le pide.
+2. **Quién lo escribe y quién lo aplica.** Lo escribe quien lo detecta: el director en su rama, el obrero como nota de su CIERRE (el director
+   la pasa a archivo), la sesión plana en el `/cierre` de un módulo solo. **Se aplica como clase 2** (§13.2 d): el agente lo escribe en la zona
+   propia de la skill, el agente o el script con el diff en su AVANCE o su cierre, sin preguntar, y vuelve a poner el SHA (dos commits: el que
+   aplica y el que anota el SHA; uno no puede contener su propio SHA, lo aprendió Hermes). **Solo lo que toca barreras es clase 3**: hooks,
+   reglas `deny`, las 5 de A (F §14), con el clic de Guido en la pestaña que actúa. La prosa "Cómo se adaptó" de la ficha del kit (E §4) **no
+   se escribe dos veces**: su línea es el puntero al archivo y la razón en una frase; el archivo tiene el caso, la regla y la medición. *Nota a
+   E §4.*
+3. **El candado** (`candado:cambios`, dentro del de B §14; es el test de CM-4 y CM-103 de Hermes vuelto genérico): `aplicado` sin SHA, SHA que
+   no existe en el repo, `aprobado` o `aplicado` de clase `3-barrera` sin `aprobo:`, `aprobado` en una clase 2 (que va de `propuesto` a `aplicado` directo), o estado que no es uno de los cinco = rojo. Corrector, no
+   pregunta.
+4. **Cómo sube al kit: por el ciclo.** El ciclo de mejora (misión 6, cada 3-4 meses) corre `cambios flota` sobre los registros de todos los
+   proyectos **antes de leer chats** (criterio 6: lo que puede calcular un programa no lo lee un modelo): agrupa por regla y por `cita:`.
+   **Entran al kit**: lo que aparece en **3 o más proyectos** (dos citas de un mismo cambio ya cuentan 2), y lo que aparece en **uno solo con
+   cicatriz** de seguridad, producción o plata. Lo demás queda propio, con su razón. Lo que entra sale en la versión nueva; **el actualizador
+   (E §6) al bajarla marca `subio-al-kit: v<x>`** en los archivos que el kit ya cubre y **retira la zona propia correspondiente si está intacta**
+   (el hash que el archivo del cambio guardó en `aplico:` coincide con el bloque; igual que una pieza que el molde dio de baja); si está editada, la deja y lo informa. El cruce es **por `cita:` o por id**, nunca por texto.
+5. **Urgencias como parche.** Una cicatriz de seguridad o producción no espera al ciclo: el director la marca `urgente: si` en el archivo y lo
+   dice en el cierre a Guido en una línea ("esto es para el kit ya"); la sesión madre de vibe-kit saca una versión de parche (como el tope del
+   hook, v2.4.3) y la flota la recibe con el actualizador. El observatorio lee los registros igual que los chats (ADR-025, decisión 3). Y para que no dependa de que Guido se acuerde (criterio 8;
+   revisor frío, hallazgo 25): **el `/inicio` de vibe-kit lista por script los `urgente: si` de la flota** (`cambios flota --urgentes`, sobre
+   los repos de `flota.py`), misión 5.
+6. **Adopción entre proyectos, citándolo.** Antes de la versión, un proyecto puede tomar un cambio de otro: lo copia a su registro con `origen:
+   cita: <alias> <id>`, lo aplica en su zona propia como clase 2 y listo. Es lo que Hermes ya hace con tres reglas de Mobile (CM-55, 56 y 57
+   citan C-71, 73 y 76). **Nada se propaga solo** (alternativa C descartada: dos proyectos no hacen regla, y el dialecto de uno se impondría
+   sin la curaduría que este repo exige).
+7. **Lo que se acepta**: entre versiones, dos proyectos pueden tener reglas distintas para lo mismo; es el precio de que la cicatriz se
+   escriba el día que pasa. Lo que se mide en el piloto: cambios propios por proyecto y por mes (línea base: Hermes Desktop, 32 en la semana
+   del 20 al 26/10), cuántos subieron al kit en el ciclo, y cuántos clics de Guido por cambio (línea base: 31 en un día, 26/10; meta: solo las
+   barreras).
+
+*Alternativas descartadas*: congelar el método del proyecto hasta la versión (A) · propagación automática entre proyectos (C) · el archivo
+único de Hermes (230 KB que el director relee; B §5). *Qué cambia para Guido*: no aprueba cambios de método uno por uno (ve el diff); cada 3-4
+meses el ciclo le trae la tabla de lo que sube al kit y por qué; las barreras siguen con su clic; y un cambio que Hermes aprendió hoy puede
+estar en Mobile mañana, citado, sin esperar a nadie. **NO VERIFICADO** (piloto): la migración del `CAMBIOS.md` de Hermes a archivos chicos al
+adoptar (E §7, por script, uno por CM, como el Hub con sus specs), y que el actualizador case por id lo propio con lo que entró al kit.
 

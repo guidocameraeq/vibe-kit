@@ -79,7 +79,8 @@ docs/
   `docs/SPEC-*.md` (lo que escribe hoy el Arquitecto) → `modulos/<x>/SPEC.md` · **el archivo público de datos de prueba** que F §9 le
   pidió a B (cuentas de prueba, llaves públicas) → `referencia/PRUEBA.md` (la ficha del kit lo apunta en `datos-de-prueba:`) · **el
   registro de frenos** (A §4; F §21 proponía `docs/frenos.log`) → **`.claude/frenos.log`**: es del método, no del proyecto, igual que la
-  ficha del kit. Y **las decisiones tienen dos alturas**: una que afecta a más de un módulo es un ADR de la app (`DECISIONS.md`); la de
+  ficha del kit (*y por la misma razón el registro de cambios de método va a `.claude/cambios/`, un archivo chico por cambio: D §22ter,
+  ADR-026, 2026-10-26*). Y **las decisiones tienen dos alturas**: una que afecta a más de un módulo es un ADR de la app (`DECISIONS.md`); la de
   un solo módulo va en su ficha (una línea) y en su spec (el porqué).
 - **El relevamiento no cambia dónde nace**: sigue en `_relevamientos/`, fuera de todo repo (su SKILL l.24: nunca adentro de uno). Lo
   que cambia es **el destino de la mudanza** al terminar: hoy `<repo>/docs/relevamiento/<slug>/`; pasa a `modulos/<slug>/relevamiento/`
@@ -180,11 +181,11 @@ se pierde en un archivo, queda como su documentación.
 - **La prueba de tamaño la aplica el Arquitecto**, única puerta (E §2), con **dos preguntas**: ¿se retoma solo con el pedido más el
   `git diff`? ¿lleva más de una sesión? **Si alguna es sí, es módulo**; si ninguna, chico. Contar archivos o líneas no decide (criterio
   de gentle-ai, medido por ellos: n=1, NO VERIFICADO). **Que toque datos reales, plata o producción no lo hace módulo**: eso lo cuidan
-  las 4 preguntas de A y la red de F ("con permiso, igual con red"), no un spec. Si fuera módulo por eso, un hotfix en producción pagaría
+  las 5 preguntas de A y la red de F ("con permiso, igual con red"), no un spec. Si fuera módulo por eso, un hotfix en producción pagaría
   carpeta y spec, que es lo que el criterio 9 prohíbe. Cuándo un módulo lleva director lo decide H con la regla de D ("más de una pestaña ejecutando", [DISENO-D](DISENO-D-director-obrero.md) §4; la sesión plana solo pregunta "¿es chico?"), y lo decide el Arquitecto con Guido
   al armar el módulo.
 - **Si algo arrancó chico y creció** (ya lleva dos sesiones), **`/cierre` aplica la misma prueba** y crea el módulo desde el molde, con
-  lo que haya: el pedido original y lo hecho hasta ahí. No hace falta volver al Arquitecto.
+  lo que haya: el pedido original y lo hecho hasta ahí. El módulo nace con el `SPEC.md` en BORRADOR y sin sello: en la sesión siguiente, `/inicio` invoca al Arquitecto en Modo B corto para sellarlo (E-1, 26/10; revisor frío, hallazgo 3); sin sello no pasa a READY ni arranca un obrero.
 - **La bitácora y `tiempos.md` nacen solo con el director.** Es lo que el director ya escribe hoy (encargos, relevos, evidencia de
   tramo, tiempos), archivado en archivos chicos. Sin director, no existen: la historia son el CHANGELOG y git.
 - **La misma carpeta, más o menos archivos.** Pasar de "solo" a "con director" es agregar tres cosas; no se reorganiza nada.
@@ -207,7 +208,7 @@ Cuatro momentos, todos automáticos; ninguno le pregunta nada a Guido.
 
 - **El director es el dueño de la ficha de su módulo**: la **sobreescribe** al cerrar cada tramo (como hoy con el tablero, pero sin
   apilar), archiva cada encargo y cada relevo en `bitacora/` al emitirlos, y actualiza `tiempos.md` con lo que el script trae de
-  git. **Los obreros escriben solo en su encargo** (la evidencia, dentro del mismo archivo de la bitácora). Esto se escribe en las
+  git. **Los obreros escriben solo en su encargo** (la evidencia, en su archivo hermano `<fecha>-evidencia-<ID>.md`; D §8.2). Esto se escribe en las
   skills del director y del cierre en la misión 5 (C §3bis ya lo pide para los tiempos).
 - **Por qué un hook al escribir y además el candado del cierre, si F §10 prohíbe el freno duplicado**: F prohibía correr gitleaks dos
   veces **sobre el mismo evento** (el mismo commit). Acá son dos eventos distintos con el mismo script: al escribir (frena el archivo
@@ -249,14 +250,15 @@ VERIFICADO, el margen lo cubre). Suma en el peor caso, **con** un módulo activo
 | Bloque | Tope | De dónde |
 |---|---|---|
 | Cabecera: proyecto · rama · versión del kit y **"hay kit nuevo / esta PC está atrás"** (E §8) · nivel · modo de permisos · fecha y commit del handoff | 250 | La ficha del kit (E §4), E §8, F §15, git |
-| Las 3 líneas de F (barreras, hook anti-secretos) | 300 | F §15 |
+| Las 5 líneas de F (barreras, hook anti-secretos, CI de la rama, seguridad del repo; recalculado el 26/10) | 500 | F §15 |
+| La edad por git al lado del estado y del próximo paso, y "estado viejo" (26/10) | 100 | §9, `git blame` |
 | El handoff | 5.000 | §8 |
 | Módulos activos: una línea cada uno | 300 | las fichas, por `git show` o disco |
 | La cabecera de la ficha del módulo, si la rama o el worktree son de un módulo | 1.000 | §5 |
 | La cabecera del TODO (solo 🔴 y 🟠), cortada en un ítem entero | 1.500 | §10 |
 | git: 5 commits · estado hasta 10 líneas · **aviso si `origin/main` tiene un handoff más nuevo que el local** ("hace N commits: hacé pull"; sin `fetch`, con lo ya traído, como resolvió Mobile para sus dos carriles, P47) | 800 | git |
-| Títulos de bloque, el recordatorio de `/inicio` y la **huella** `inyectado: N caracteres de 9.500` | 250 | el script |
-| **Total** | **9.400** | |
+| Títulos de bloque, el recordatorio de `/inicio` y la **huella** `inyectado: N caracteres de 9.700` | 250 | el script |
+| **Total** | **9.700** (recalculado el 26/10 con las dos líneas de F §15 y las edades; sigue bajo 10.000) | |
 | Lo propio del proyecto (`session-start.propio.sh`, E §5) | lo que quede; se recorta primero | el proyecto |
 
 - **Si algo se pasa, recorta en orden** (lo propio → contexto del handoff → TODO → módulos → handoff) y **lo dice**: "CORTADO: leé el
@@ -342,7 +344,7 @@ Tres reglas nuevas en la skill del molde:
 - **El MAPA y el Hub responden preguntas distintas, y B no decide por I.** El `MAPA.md` es la fuente de "con qué se conecta **esta
   app**", técnica, escrita por quien construye y viajando con el código. El Hub tiene "se conecta con" para **toda la empresa**, que
   incluye sistemas sin repo y lo de negocio (TABLERO §10; Guido decidió que el Hub es el registro, E §2.3). Que lo técnico no se
-  escriba dos veces (por ejemplo, que el Hub lea el MAPA de cada repo por script para precargar su tabla) **lo resuelve el racimo I**;
+  escriba dos veces (por ejemplo, que el Hub lea el MAPA de cada repo por script para precargar su tabla) **lo resuelve el Hub (ADR-024)**;
   acá queda anotado el riesgo de doble registro.
 - **Quién los escribe y cuándo cambian**: el Arquitecto al montar (Modo A: la entrevista ya tiene todo eso) o `/relevamiento`; al
   **adoptar** un proyecto (E §7), los arma desde el README, el `CLAUDE.md` y el código, y los muestra **dentro del mismo OK de
@@ -353,11 +355,37 @@ Tres reglas nuevas en la skill del molde:
 - **Los contratos entre apps** (hoy 314 y 524 KB, en espejo en dos repos) se parten: los acuerdos vigentes van cortos al `MAPA.md` de
   cada lado; el registro de mensajes entre directores es historia y va a `referencia/contrato-<app>/` como bitácora (archivos chicos
   por fecha, §5). El director deja de releer 314 KB antes de cada mensaje. Cómo viajan esos mensajes en adelante es del buzón de G. *Resuelto por G (2026-10-24): los mensajes nuevos son archivos del módulo (`docs/modulos/<x>/mesa/<alias>/`) con el puntero por `SendMessage`; `referencia/contrato-<app>/` queda solo para el histórico anterior al método; los acuerdos vigentes los lista `mesa acordados` y el MAPA los copia al cerrar el módulo ([DISENO-G](DISENO-G-mesa-y-pcs.md) §5, §7).*
-- **Lo que no es de la app**: la vista de toda la flota ("qué tenemos y cómo se cruza") es del racimo I y vive en el Hub. `MAPA.md` es
+- **Lo que no es de la app**: la vista de toda la flota ("qué tenemos y cómo se cruza") es del Hub (ADR-024). `MAPA.md` es
   de **una** app.
 
 *Qué cambia para Guido*: cero preguntas nuevas recurrentes (sale de lo que ya contestó) y los agentes dejan de inventar para qué sirve
 el proyecto.
+
+## 12bis. La portada del repo: el `README.md` de la raíz (decisión 9bis; pedido de Guido, 2026-10-26) `[consistencia · acordarse de menos]`
+
+**El hueco**: §12 resolvió el "qué es" para los agentes y para quien ya entró (`NORTE.md`, `MAPA.md`, `docs/README.md`), pero **GitHub
+muestra el `README.md` de la raíz**, y ningún racimo le puso regla. Guido, 2026-10-26: quiere que los repos "sean lindos, que tengan banner,
+diagramas, readmes, que si alguien tiene que agarrar ese repositorio se entienda qué es el proyecto". Hoy hay dos precedentes: la portada de
+vibe-kit (misión 3, 2026-10-13: banner y diagrama estilo plano de arquitecto en `assets/`, insignias que se actualizan solas, About y
+etiquetas en GitHub; ADR-023 "README 100% portada") y el README raíz que escribe `docs-fyd`, que es de auditoría y no sirve de portada.
+
+1. **El `README.md` de la raíz es portada y nada más**: banner (opcional), qué es en tres líneas, cómo correrlo, y enlaces a `NORTE.md`,
+   `MAPA.md` y `docs/README.md`. **Sin pendientes, sin historial, sin versión** (ADR-023 vale para todos los repos): eso vive en el TODO,
+   el CHANGELOG y la ficha del kit. **Anti-espejo**: la portada resume, el `NORTE.md` manda; si cambian, cambia el NORTE y la portada se
+   rehace desde él.
+2. **La arma el Arquitecto desde el `NORTE.md` y el `MAPA.md`**, al montar (Modo A) o al adoptar (E §7), **dentro del mismo OK de adopción**
+   que §12 ya cuenta. Cero preguntas nuevas (§19 no cambia).
+3. **Lo chico no paga lo grande** (criterio 9): un proyecto `liviano` (H §14) o personal no paga banner ni diagrama; tiene las tres líneas y
+   los enlaces. El banner y el estilo visual común de la flota son para los repos de la empresa.
+4. **Vestirla es una pieza del kit, misión 5**: el molde de la portada de vibe-kit (`assets/banner.svg` como plantilla con el nombre del
+   proyecto, insignias, imagen para compartir, About y etiquetas por `gh`). Dónde vive (un modo del Arquitecto o una skill chica `portada`)
+   se decide en el spec; pasa la regla de 3+ de sobra (10 repos). El candado de §14 suma un chequeo barato: que el README raíz exista y
+   enlace al `NORTE.md`.
+
+*Alternativas descartadas*: dejárselo a `docs-fyd` (otro público, otro formato) · un sitio con GitHub Pages por repo (nadie lo pidió; queda
+como opción si algún proyecto lo necesita) · la portada escrita a mano por Guido (envejece; la rehace el Arquitecto desde el NORTE).
+*Qué cambia para Guido*: abre cualquier repo de la flota en GitHub y en 10 segundos sabe qué es y cómo se corre, con la misma cara en los 10.
+**NO VERIFICADO** (misión 5): cuánto cuesta el banner por proyecto; si las insignias de GitHub Actions existen en todos los repos.
 
 ## 13. Estados, lo aprobado y las trampas (decisiones 10 y 11)
 
@@ -488,8 +516,8 @@ relee de más, ahí se prueba, en un proyecto.
 - **al adoptar un proyecto, un solo OK por repo**, el que E §7 ya contó, que ahora incluye tres cosas más que antes no: el `NORTE.md`
   y el `MAPA.md` armados desde el código, y el plano de migración ("esto va acá"). La sección "hechos que solo sabe Guido" nace vacía
   si él no agrega nada en ese OK;
-- al armar un módulo, si lleva director o no (es la decisión de diseño que ya tomaba al abrir un tramo; H dirá cuándo es obvia y no se
-  pregunta).
+- ~~al armar un módulo, si lleva director o no~~ (eliminada por H §6, 2026-10-25: lo decide el Arquitecto al listar las tareas, sin pregunta;
+  Guido solo puede pisar el default. Revisor frío 26/10).
 
 ## 20. Lo que se va a otro racimo o queda en espera
 
@@ -499,8 +527,8 @@ relee de más, ahí se prueba, en un proyecto.
 | Cómo se nombran ramas y worktrees por módulo (lo que el hook usa para saber "qué pestaña es") | **H** ✅ ([DISENO-H](DISENO-H-niveles-y-puertas.md) §10: `modulo/<x>`, `modulo/<x>--<ID>`, `.claude/worktrees/modulo--<x>[--<ID>]`, identificación por la rama del `cwd`) | B solo fija que la ficha de un módulo con director vive en su rama y que el hook lee por `git show` |
 | La skill del director: sobreescribir la ficha, archivar encargos en la bitácora, llenar `tiempos.md`; y cómo recibe lo que dejó una sesión de Guido en `bitacora/` | Misión 5, con lo de **C** §3bis y el buzón de **G** | C ya lo pidió; B dice dónde |
 | Cómo viajan los mensajes entre directores de dos apps (hoy, en el contrato); un módulo que cruza dos repos | **G** (y H) | B solo saca la historia del documento vivo y pone una ficha por repo |
-| Que el Hub no duplique lo técnico del `MAPA.md` (leerlo por script, o dejar cada cosa en su registro) | **I** | El Hub es el registro de la empresa (E §2.3); el MAPA es de la app. B no decide por I |
-| La vista de toda la flota (los MAPA juntos; documentos pasados de tamaño en los 10 repos) | **I** | Propio de la empresa; B deja el MAPA por app y la huella por repo |
+| Que el Hub no duplique lo técnico del `MAPA.md` (leerlo por script, o dejar cada cosa en su registro) | **El Hub** (ADR-024) | El Hub es el registro de la empresa (E §2.3); el MAPA es de la app. B no decide por I |
+| La vista de toda la flota (los MAPA juntos; documentos pasados de tamaño en los 10 repos) | **El Hub** (ADR-024) | Propio de la empresa; B deja el MAPA por app y la huella por repo |
 | **`.claude/frenos.log` de solo agregar, escrito desde varias ramas y worktrees a la vez, choca al mezclar** (obreros en paralelo; el actualizador mezcla sin preguntar, E §6.7). Propuesta: un archivo por mes (`frenos-2026-10.log`) o por rama; o que el merge lo resuelva con `union` en `.gitattributes` | **A**, en la revisión integral | B eligió la ubicación y destapó el choque; el registro es de A |
 | El subconjunto de YAML (o JSON) que node lee sin librerías en la ficha del kit | **E/F**, misión 5 | El hook de B depende de eso |
 | Las rutas que cambian en las skills del kit (`/relevamiento`: destino de la mudanza y el 6-bis de `/cierre`; el Arquitecto → `modulos/*/SPEC*.md`; `/cierre` paso 5 → `referencia/`) y en `formato-spec.md` (pedido textual al tope; no se archiva) | Misión 5 | Son consecuencia de §4 y §5 |
@@ -645,6 +673,7 @@ Con [`tips/tanda-2026-11-contraste.md`](../../tips/tanda-2026-11-contraste.md) a
 | P58 · la sesión propone el cierre sola | ~26 + ~13 pedidos | Regla nueva de `/cierre` | §11.5 |
 | P64 · ruta absoluta de lo entregado · P75 · idioma | hábitos 7 y P75 | Líneas del `CLAUDE.md` del molde | §15 |
 | A-1 · E-4 en el `CLAUDE.md` | — | La fila 1 de §15 dice 5 preguntas, merge con gate verde y lo rutinario sin pregunta | §15 |
+| La portada del repo (pedido de Guido en la sesión 2, 2026-10-26: "que los repos sean lindos y se entienda qué son") | sin acta; hueco entre §12 y E | Sección nueva: el README raíz como portada, armada por el Arquitecto desde el NORTE; vestirla es pieza de la misión 5 | §12bis |
 
 Los 11 criterios de §23 no cambian de veredicto; el criterio 6 gana un candado más y el 10 (rastro) deja de aceptar un estado escrito a mano
 sin fecha de git.

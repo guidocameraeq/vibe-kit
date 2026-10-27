@@ -31,6 +31,7 @@
 - ADR-023 · Profesionalizar el repo madre: portada, misión y visión, observatorio, TODO y licencia (2026-10-13)
 - ADR-024 · El agente de ecosistema se va del kit: vive en el Hub; vibe-kit guarda solo el contrato del registro (2026-10-26)
 - ADR-025 · La hoja de ruta reordenada: el diseño cierra sin mensajería (v3.0), el ciclo en la misión 6, la mensajería es v3.1; lo crudo al research (2026-10-26)
+- ADR-026 · El registro de cambios de método es pieza del canon: por proyecto, en archivos chicos, clase 2 con diff; sube al kit por el ciclo con 3+ o cicatriz (2026-10-26)
 
 *Cada ADR nuevo suma su línea acá (lo pide `/cierre`).*
 
@@ -547,3 +548,33 @@ todos lados) quede escrito para repetirlo cada 3-4 meses, y que el repo quede li
   qué sesiones, qué costó).
 - **Costo aceptado:** v3.0 sale sin mensajería (la mesa por git de G alcanza mientras tanto); la misión 6 se escribe con la memoria de la 4 más
   vieja (mitigado: los chats están guardados y cada cierre deja sus lecciones en PLAN §Lecciones).
+
+## ADR-026 · El registro de cambios de método es pieza del canon: por proyecto, en archivos chicos, clase 2 con diff; sube al kit por el ciclo con 3+ o cicatriz (2026-10-26)
+Misión 4, tramo 4, revisión integral, sesión 2 (el apartado director/obrero, `DISENO-D` §22bis y §22ter). El caso: mientras se diseñaba el
+canon, **Hermes Desktop cambió su método solo, 32 veces en una semana** (CM-72 a CM-103 de su `docs/metodo/CAMBIOS.md`, 230 KB), con un
+registro formal que la misión ya le había pedido en parte (la tabla de medición por cambio, 2026-10-15). Mobile lleva el suyo (`D-n`). Y E
+dejó abierto el caso E-3: llevar un cambio de método de un proyecto a otro se hacía a mano, por bloques enteros (79d9f992). La pregunta era
+si un proyecto puede seguir cambiando su método entre versiones del kit, y cómo vuelve al kit lo que aprende.
+- **Decisión:** **el registro de cambios de método por proyecto es pieza del canon** (`piezas.cambios-metodo` en la ficha del kit), con el
+  contrato que Hermes maduró en CM-103: estados `propuesto → aprobado → aplicado (SHA) · rechazado (motivo)`, más `subió-al-kit (versión)` (`aprobado` existe solo para los que tocan barreras; la clase 2 va de `propuesto` a `aplicado` directo, el diff es su rastro);
+  cada cambio con su caso de origen, la regla como queda, dónde vive, y **la tabla de medición** (freno mecánico o regla blanda · cómo se sabe
+  si funcionó · línea base con fuente). **En la forma del canon, no la de Hermes**: un archivo chico por cambio en `.claude/cambios/`
+  (es del método, como la ficha y `frenos.log`; B §4), índice por script, candado que cruza estados y SHA. **Se aplica como clase 2**: el
+  agente lo escribe en la zona propia con el diff mostrado, sin preguntar; **solo lo que toca barreras es clase 3**, con el clic de Guido (su
+  decisión de hoy: "que los agentes apliquen los cambios de método del proyecto con el diff mostrado, sin preguntarme; solo las barreras con mi
+  clic"). **Sube al kit por el ciclo** (misión 6, cada 3-4 meses): un script lee los registros de toda la flota; **3+ proyectos** con la misma
+  regla, o **1 con cicatriz** de seguridad, producción o plata, entran al kit; el actualizador (E §6) marca `subió-al-kit` y retira la zona
+  propia que el molde ya cubre. **Urgencias como parche**: una cicatriz de seguridad o producción no espera al ciclo (como el tope del hook,
+  v2.4.3). **Entre proyectos, adopción citándolo**: un proyecto puede tomar el cambio de otro con `cita:` en su registro, en su zona propia;
+  nada se propaga solo, y dos citas ya cuentan 2 para el 3+.
+- **Por qué:** es lo que Hermes ya hace y le funciona desde CM-1 (una regla anotada que no llegó a ninguna skill); el ciclo gana una fuente
+  estructurada y barata (leer registros por script antes que chats, criterio 6); el 3+ deja de ser una impresión y se cuenta; cierra E-3 con
+  regla; y el drift entre versiones es el costo de que las cicatrices se escriban el día que pasan ("cada regla lleva su cicatriz").
+- **Descartado:** *congelar el método del proyecto hasta la versión del kit* (Hermes probó que no aguanta: 4 de 32 cambios traían cicatriz, una de ellas de
+  producción; esperar 3 meses para "el `.exe` le pega a producción" no es serio) · *propagación automática entre proyectos* (dos proyectos no
+  hacen regla; el dialecto de Hermes se impondría sin curaduría, restricción dura 2 de este repo; duplica el canal del kit) · *el archivo único
+  de Hermes* (230 KB que el director relee; B §5: nunca un archivo que crece).
+- **Costo aceptado:** durante los 3-4 meses entre versiones, dos proyectos pueden tener reglas distintas para lo mismo; una pieza más del molde
+  (carpeta, script, candado); la disciplina de los dos commits (aplicar, y después el SHA). **NO VERIFICADO** (piloto): la migración del
+  `CAMBIOS.md` de Hermes a archivos chicos al adoptar (E §7, por script, como el Hub con sus specs), y que el actualizador case un cambio propio
+  con lo que entró al kit por su id y no por texto, y que el hash guardado en `aplico:` alcance para saber si la zona propia sigue intacta.
