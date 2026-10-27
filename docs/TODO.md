@@ -12,7 +12,11 @@
   Tramos 0-3 ✅ · **Tramo 4 ✅ cerrado el 2026-10-27**: los 8 racimos (A, C, E, F, B, D, G, H), la revisión integral en dos sesiones (10
   decisiones reabiertas; el apartado director/obrero contra Hermes, D §22bis; el flujo proyecto ↔ kit, ADR-026 y D §22ter; la portada del repo,
   B §12bis; revisor frío de 30 hallazgos aplicados) y la charla final con Guido ("el recorrido queda como está"). I salió del kit (ADR-024);
-  G.1, la mensajería, pasa a la misión 7 (ADR-025). D §8 (ramas y escritores) sigue **provisoria hasta el piloto**, por pedido de Guido. **Queda**:
+  G.1, la mensajería, pasa a la misión 7 (ADR-025). D §8 (ramas y escritores) cerrada el 2026-10-27: nada queda provisorio. **Queda**:
+  0. **El repaso del kit con Guido, antes del spec** (pedido suyo, 2026-10-27): contarle cómo queda el kit entero, parte por parte, en el orden
+     de su workflow: qué hace el Arquitecto y qué lo diferencia del de antes · cómo se actualiza vibe-kit y después cómo se actualizan los
+     repos · su día a día con director y obreros · cómo quedan organizados los repos y la documentación · **y por qué es mejor que el kit
+     anterior**, con lo medido. En criollo, con ejemplos de sus proyectos. **Recién después da el OK al spec.**
   1. **El spec del pack** (tramo 5): SPEC-0 del kit v3 desde los 8 `DISENO-*`, red team, revisor frío, OK de Guido. Lo que el tramo 4 dejó
      explícitamente "para el spec": dónde caen release, relevamiento, bloque de documentos y tarea recurrente en los tres tamaños (B §24, H §25);
      la excepción de "chico" para las reglas propias del proyecto (revisor, mutaciones, gate; D §22 fila D-2); `merge=union` para

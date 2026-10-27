@@ -516,7 +516,7 @@ G fue el único racimo que la sesión 1 no reabrió: el acta dio G-5 **mixta** (
 
 | Qué | De dónde | Qué se hizo | Dónde |
 |---|---|---|---|
-| G-5 · dos personas, sesiones paralelas | acta, mixta | Nada en la regla; D §22 la cita como lo que sigue provisorio junto con D-5 | §11 |
+| G-5 · dos personas, sesiones paralelas | acta, mixta | Nada en la regla; D §8 (ramas y escritores) se apoyó en ella para cerrarse el 2026-10-27 | §11 |
 | El racimo I dejó de existir en el kit | ADR-024 | La referencia de §22 pasa a "el Hub (ADR-024)"; el contrato del registro está en E §9 | §22 |
 | Los nombres de sesión | H §10.4 | §19 cita los de D §7.6 con la nota de que H los dejó en `director-<x>` y `obrero-<x>--<ID>` | §19 |
 | La mensajería agéntica (G.1) | ADR-025 | Pasa a la misión 7 (v3.1); la mesa por git de este diseño alcanza mientras tanto | — |

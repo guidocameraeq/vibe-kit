@@ -35,7 +35,10 @@
   del hook recalculado (9.700), los conteos de H §20 y §24, el actualizador que "pregunta" (gana E-4: informa con veto), el merge de un
   `estandar` sin director (definido una vez en E §4: gate verde), `aprobado` solo para barreras. Más 2 referencias rotas, 2 preguntas
   escondidas contadas, 4 supuestos marcados NO VERIFICADO y el hueco del "plan charlado antes" (D §15.0).
-- `TODO.md`: el tramo 4 queda cerrado; el próximo es el spec (tramo 5) con la lista de lo que el tramo 4 le dejó.
+- `TODO.md`: el tramo 4 queda cerrado; el próximo es el spec (tramo 5) con la lista de lo que el tramo 4 le dejó, **y antes, el repaso del kit
+  entero con Guido** (pedido suyo del 27/10: "contame cómo quedó mi kit y por qué es mejor que el anterior; después le doy el OK al spec").
+- **D §8 (ramas y escritores) deja de ser provisoria** (Guido, 27/10): el acta no la contradijo, Hermes convergió (CM-102) y el revisor frío
+  le cerró el hueco del merge a `main`; queda como las demás, diseñada y a verificar en el piloto. Notas en D §2, §8, §16, §22 y G §25.
 - `PLAN.md`: fila del tramo 4 con la sesión 2 y una lección para el ciclo (revisor frío obligatorio tras una corrección transversal; los
   registros antes que los chats).
 

@@ -1,8 +1,8 @@
 # Diseño · Racimo D: el método director/obrero y el workflow diario
 
 > **Misión 4, tramo 4** · 2026-10-23 · **Estado: ✅ cerrado con Guido y revisado** (revisor frío: 25 hallazgos, 21 aplicados, 1 rechazado
-> con razón, 3 decididos por Guido; §16). La decisión 5 (ramas y escritores) queda **provisoria** por pedido de Guido hasta la revisión
-> integral del tramo 4. Es solo diseño: se construye en la misión 5. Se mide contra el norte y los 11 criterios del [PLAN](PLAN.md).
+> con razón, 3 decididos por Guido; §16). La decisión 5 (ramas y escritores) quedó **provisoria** por pedido de Guido hasta la revisión
+> integral del tramo 4, y **se cerró el 2026-10-27** (§8): diseñada como las demás, se verifica en el piloto. Es solo diseño: se construye en la misión 5. Se mide contra el norte y los 11 criterios del [PLAN](PLAN.md).
 > Respeta lo decidido en [A](DISENO-A-frenos.md), [B](DISENO-B-documentos.md), [C](DISENO-C-salida-hacia-Guido.md),
 > [E](DISENO-E-molde-y-flota.md) y [F](DISENO-F-seguridad.md); donde los corrige o completa, lo dice y deja la nota allá.
 > Alias: Desktop, Mobile, Deptos, Hub (el repo es público).
@@ -29,7 +29,8 @@ De la entrevista y de las once decisiones, lo que es de él:
   el umbral blando, y se reutiliza en vez de descartarse. *(Decía "aunque pase de 800 mil"; corregido el 2026-10-26 para que diga lo mismo
   que §11: ningún número fijo, porcentaje de la ventana real medido por script. Un obrero de Mobile "quedó sin contexto" a 834 mil, ~83%
   de un millón, y hubo que relevarlo con cierre PARCIAL: chat ★ 6a9b5771.)*
-- **La decisión 5 queda provisoria** y al final del tramo 4 va una revisión integral de D: "es el más complejo y el más importante".
+- **La decisión 5 queda provisoria** y al final del tramo 4 va una revisión integral de D: "es el más complejo y el más importante". *(Cumplido:
+  la revisión integral la miró dos veces y Guido la cerró el 2026-10-27; §8.)*
 - **"Publicar un release" entra como quinta pregunta de su lista** (A §2), agrupada: un OK por release.
 - **Cada proyecto lleva su ficha del kit con todas las adaptaciones y su razón**, y cuando el Arquitecto actualiza, mira el repo, decide la fusión y la informa con veto, sin preguntar (E §6; E-4, 26/10).
   "Mientras eso siga en línea, estas decisiones me parecen bien."
@@ -267,7 +268,12 @@ las 5 de A; de noche nada se cuelga esperando.
 
 *Nota de H (2026-10-25): los nombres de sesión quedan **`director-<x>`** y **`obrero-<x>--<ID>`** (dos módulos con director a la vez daban dos `obrero-07`); si el módulo cruza dos repos (`enlaza:`), **`director-<alias>-<x>`**. La línea de apertura es **de terminal** (`cd <worktree> && claude --name …`): una pestaña de la extensión abre en `main`, así que el obrero imprime su rama al presentarse y hace PARADA si no es la de su encargo. Los encargos como subagente (7.2) **no usan `isolation: worktree`** (ramifica desde el remoto): el script `worktree` crea `modulo--<x>--<ID>` y la definición del subagente dice en qué ruta trabajar, y lleva adentro "leé tu encargo y corré el chequeo base" ([DISENO-H](DISENO-H-niveles-y-puertas.md) §10.4-§10.6).*
 
-## 8. Ramas y escritores (decisión 5, PROVISORIA por pedido de Guido)
+## 8. Ramas y escritores (decisión 5; cerrada el 2026-10-27, se verifica en el piloto)
+
+*Fue provisoria por pedido de Guido (2026-10-23) hasta la revisión integral. La cerró él el 2026-10-27, con tres cosas a favor: el acta de
+contraste no la contradijo (G-5 mixta: "gana git" funciona); Hermes llegó solo a la misma regla de commits por rutas y push por nombre
+(CM-102, §22bis); y el revisor frío le encontró el único hueco real, dónde mergea el director a `main`, que cerró el modo `integrar` (§8.4).
+Queda como todas las demás: diseñada, con lo NO VERIFICADO para el piloto en Deptos.*
 
 Lo que B ya decidió y D hereda: la bitácora es una **carpeta de archivos chicos** dentro del módulo, no una rama (B §5); el módulo con
 director se construye en su rama con worktree; el hook y `/estado` leen la ficha por `git show <rama>:`; el director es el único dueño de la
@@ -639,7 +645,7 @@ cambio de método que toca una barrera queda `propuesto` en "te espera" hasta qu
   (funciona con `/rename` hecho); la primera prueba pasa a ser **el nombre al reanudar** (§7.6) y `claude --bg` desde el director.
 - Los números de otros métodos (gentle-ai y los demás) son lo que cada repo dice de sí mismo.
 - La decisión 5 es provisoria: el revisor frío la ajustó en tres puntos (§8), pero Guido la quiere ver otra vez en la revisión integral del
-  tramo 4.
+  tramo 4. *(La vio, y la cerró el 2026-10-27.)*
 
 ## 21. Los 11 criterios, aplicados a este racimo
 
@@ -682,8 +688,8 @@ Con [`tips/tanda-2026-11-contraste.md`](../../tips/tanda-2026-11-contraste.md) a
 | P71 · subagente con tope y latido | 13 lotes | Regla en la tabla de roles; los números al piloto | §6.7 |
 | P76 · modos de `/obrero` | 6 lotes | Transformada: "spec" → E-1; "decisiones" → E-4 clase 2 + §13.4 | §6.8 |
 
-**Lo que sigue provisorio**: la decisión 5 (ramas y escritores, §8) no la tocó el acta (G-5 mixta: "gana git" funciona; el atraso de los
-worktrees lo arregla el `fetch` en `/inicio`, G §11.1) y queda como estaba hasta el piloto. **El apartado propio de director/obrero** (el canon
+**Ya no queda nada provisorio**: la decisión 5 (ramas y escritores, §8) no la tocó el acta (G-5 mixta: "gana git" funciona; el atraso de los
+worktrees lo arregla el `fetch` en `/inicio`, G §11.1), el revisor frío le cerró el hueco del merge a `main`, y Guido la cerró el 2026-10-27. **El apartado propio de director/obrero** (el canon
 de D contra lo que Hermes Desktop cambió en su método entre el 2026-10-20 y hoy) está en §22bis, escrito en la sesión 2 con Guido adentro.
 
 ## 22bis. El apartado director/obrero: el canon contra lo que Hermes Desktop cambió solo (sesión 2, 2026-10-26)
