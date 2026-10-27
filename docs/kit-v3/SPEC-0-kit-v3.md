@@ -392,9 +392,10 @@ La [guía](GUIA-KIT-V3.md) es la charla del 27/10 a la mañana; el red team y el
 ## Ejecución
 
 - **Tamaño**: módulo con director **no**: es una misión de este repo, por paquetes, con el método de vibe-kit (una sesión por misión, `/inicio` y `/cierre`, kit-sync LIMPIO al cerrar). Cada paquete del orden de construcción es **una o más sesiones en `main`** de vibe-kit (módulo solo), con spec delta propio donde haga falta; el paquete 5 (el canon) se parte en módulos y puede llevar director si dos piezas se escriben a la vez (lo decide el Arquitecto al abrirlo).
-- **Modelo**: el que fija D §6 para cada rol; el red team y el revisor frío en Opus; la construcción en Sonnet salvo donde el encargo diga lo contrario con razón; Fable solo en la sesión donde Guido decide.
-- **Antes de cada paquete**: `/inicio`, leer este spec y el diseño del paquete (secciones citadas, no enteros), chequeo base del kit.
-- **Al cerrar cada paquete**: pieza en `kit/`, `kit-sync.sh sync` LIMPIO, prueba en el repo de prueba, línea en el CHANGELOG del kit, **la pieza marcada en este spec con `✅ <fecha>` al inicio de su celda "Pieza"** (RF-22), commit + push, `/cierre`.
+- **Modelo**: el que fija D §6 para cada rol; el red team y el revisor frío en Opus; **la construcción en Opus** (*corregido el 2026-10-27, decisión de Guido: decía Sonnet; "esto va a determinar cómo codeo los próximos meses"*); Fable solo en la sesión donde Guido decide.
+- **El tracker**: [`PLAN-construccion.md`](PLAN-construccion.md) lleva por dónde vamos (sesiones, pendientes, NO VERIFICADO y criterios tachados). Este spec es el plano y solo recibe los `✅ <fecha>`.
+- **Antes de cada paquete**: `/inicio`, leer el tracker, este spec y el diseño del paquete (secciones citadas, no enteros), chequeo base del kit.
+- **Al cerrar cada paquete**: pieza en `kit/`, `kit-sync.sh sync` LIMPIO, prueba en el repo de prueba, línea en el CHANGELOG del kit, **la fila de la sesión en el tracker**, **la pieza marcada en este spec con `✅ <fecha>` al inicio de su celda "Pieza"** (RF-22), commit + push, `/cierre`.
 - **Regla sobre este spec** (era el criterio 15; RF-23): cada pieza tiene su medida, su línea base y el script que la repite, en "Medición" o en la tabla "Cómo se sabe si funcionó" del diseño que cita; una pieza sin medida en ninguno de los dos lugares no se construye.
 - **La línea para abrir** la primera sesión de construcción (después de la misión 4½): `inicio — misión 5, paquete 1: la ficha del kit y su parser (docs/kit-v3/SPEC-0-kit-v3.md, orden 1)`.
 - **READY** cuando: red team (Opus, hasta 3 rondas, criterio de salida de D §6.4) integrado · revisor frío (Opus, sin contexto) integrado · Guido lo leyó y dijo "dale" · `Estado: READY` y el sello a mano.

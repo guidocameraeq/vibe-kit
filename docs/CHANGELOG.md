@@ -31,6 +31,14 @@ PC `clientes`. Arrancó en Fable y pasó a Opus al empezar a ejecutar (decisión
 
 **NO VERIFICADO**: el hook nuevo en un chat de verdad (se ve en el próximo `/inicio`); en qué PC se hicieron los racimos A, C y E.
 
+**Después del cierre, mismo chat** (pedido de Guido: "que no se pase nada por alto"):
+- `docs/kit-v3/PLAN-construccion.md`, **el tracker de la misión 5**: estado por paquete con las sesiones estimadas (~18-21), una fila por
+  sesión (P1.1 a P10.1), pendientes, los NO VERIFICADO del spec repartidos entre construcción y piloto, los 20 criterios para tachar, lo
+  que hace Guido y cuándo, cambios al plan y lecciones. Enganchado en el `/inicio` y el `/cierre` de acá, `docs/README.md`, el `CLAUDE.md`
+  y el TODO.
+- El spec, sección "Ejecución": **la construcción en Opus** (decía Sonnet; decisión de Guido, "esto va a determinar cómo codeo los
+  próximos meses") y el tracker como parte de lo que se hace antes y después de cada paquete.
+
 ## 2026-10-27 — Misión 4, tramo 5: el repaso del kit con Guido y el SPEC-0 del kit v3, READY. Misión 4 cerrada
 
 ### Added

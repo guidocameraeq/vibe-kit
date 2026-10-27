@@ -12,14 +12,16 @@ PC `clientes`. `kit-sync` LIMPIO. Detalle: CHANGELOG del 2026-10-27 (misión 4½
   del TODO y termina con la huella `inyectado: N caracteres de 10000`. Acá bajó de 10.199 a ~7.700.
 - Los chats de la misión 4 y los 4 informes de revisión del spec se mudaron al repo privado de investigación, con el **diario de
   misiones** (una fila por sesión; el `/cierre` la suma). Legacy con lápida e índice; `docs/README.md`, guía, manual y portada al día.
+- **El tracker de la misión 5**, armado al final de esta sesión: ~18-21 sesiones, estimadas por paquete.
 - Hoja de ruta ADR-025: 4 ✅ → 4½ ✅ → **5 construir v3.0 (por `docs/kit-v3/SPEC-0-kit-v3.md`)** → 6 el ciclo → 7 mensajería v3.1.
 
-## Próximo paso: misión 5, paquete 1
+## Próximo paso: misión 5, sesión P1.1
 
-**Título: `vibe-kit M5 · Paquete 1: la ficha del kit y su parser`**. La línea para abrir, de la sección "Ejecución" del spec:
-`inicio — misión 5, paquete 1: la ficha del kit y su parser (docs/kit-v3/SPEC-0-kit-v3.md, orden 1)`.
-Orden 1 = P3.1 + P2.1 + `pruebas/rehacer.sh`: la ficha (con `kit.ejemplo.md`), su parser, `kit/VERSION`, los repos de prueba en
-`pruebas/`. El modelo de cada rol lo fija "Ejecución" (construcción en Sonnet; red team y revisor frío en Opus; Fable donde Guido decide).
+**Título: `vibe-kit M5 · P1.1 · La ficha del kit y su parser`**. **El tracker manda**: [`docs/kit-v3/PLAN-construccion.md`](kit-v3/PLAN-construccion.md)
+(estado por paquete, una fila por sesión, pendientes, NO VERIFICADO y los 20 criterios para tachar). El `/inicio` lo lee y el `/cierre`
+lo actualiza. La línea para abrir: `inicio — misión 5, paquete 1: la ficha del kit y su parser (docs/kit-v3/SPEC-0-kit-v3.md, orden 1)`.
+P1.1 = el spec delta del paquete 1 (lo sella Guido a mano) y la construcción: ficha con `kit.ejemplo.md`, parser, `kit/VERSION`,
+`pruebas/rehacer.sh`. **Modelo: Opus** para construir (decisión de Guido; el spec ya lo dice); red team y revisor frío en Opus.
 
 ## Cosas que muerden y no están en ningún otro doc
 

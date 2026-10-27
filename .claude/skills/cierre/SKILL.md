@@ -36,6 +36,8 @@ mostrando evidencia de cada uno:
      por la guía** — si no, el release quedó a medias.
    - **SPEC implementado** → `Estado: ✅ IMPLEMENTADO <fecha>` y **se queda en `docs/`** (ADR-020: acá
      no se archiva, a diferencia de los proyectos).
+   - **En la misión 5**: `docs/kit-v3/PLAN-construccion.md` al día — la fila de la sesión (fecha, chat, commit, resultado), el estado
+     del paquete, los pendientes, los NO VERIFICADO y criterios tachados con evidencia, y "Cambios al plan" si algo se movió.
    - **El diario de misiones** (ADR-025): una fila por sesión en `DIARIO-MISIONES.md` del repo privado de
      investigación (cuál es, la memoria de la PC): fecha y hora, misión y qué se hizo, PC, chat, modelo, tokens
      nuevos/caché/subagentes, commit. Se clona en el scratchpad, se suma la fila y se pushea antes del commit
