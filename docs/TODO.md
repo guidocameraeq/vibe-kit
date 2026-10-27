@@ -8,23 +8,13 @@
 > **La hoja de ruta, reordenada el 2026-10-26 (ADR-025)**: 4 cerrar el diseño sin mensajería → 4½ ordenar la casa → 5 construir **v3.0** →
 > 6 el ciclo como proceso → 7 la mensajería agéntica (**v3.1**). Después, el reloj: una vuelta cada 3-4 meses (abajo, "El ciclo").
 
-- [ ] **Misión 4 — diseñar el pack con Guido adentro, SOLO DISEÑO** (hoja de ruta: ADR-021; plan y 11 criterios en docs/mision-4/PLAN.md).
-  Tramos 0-3 ✅ · **Tramo 4 ✅ cerrado el 2026-10-27**: los 8 racimos (A, C, E, F, B, D, G, H), la revisión integral en dos sesiones (10
-  decisiones reabiertas; el apartado director/obrero contra Hermes, D §22bis; el flujo proyecto ↔ kit, ADR-026 y D §22ter; la portada del repo,
-  B §12bis; revisor frío de 30 hallazgos aplicados) y la charla final con Guido ("el recorrido queda como está"). I salió del kit (ADR-024);
-  G.1, la mensajería, pasa a la misión 7 (ADR-025). D §8 (ramas y escritores) cerrada el 2026-10-27: nada queda provisorio. **Queda**:
-  0. **El repaso del kit con Guido, antes del spec** (pedido suyo, 2026-10-27): contarle cómo queda el kit entero, parte por parte, en el orden
-     de su workflow: qué hace el Arquitecto y qué lo diferencia del de antes · cómo se actualiza vibe-kit y después cómo se actualizan los
-     repos · su día a día con director y obreros · cómo quedan organizados los repos y la documentación · **y por qué es mejor que el kit
-     anterior**, con lo medido. En criollo, con ejemplos de sus proyectos. **Recién después da el OK al spec.**
-  1. **El spec del pack** (tramo 5): SPEC-0 del kit v3 desde los 8 `DISENO-*`, red team, revisor frío, OK de Guido. Lo que el tramo 4 dejó
-     explícitamente "para el spec": dónde caen release, relevamiento, bloque de documentos y tarea recurrente en los tres tamaños (B §24, H §25);
-     la excepción de "chico" para las reglas propias del proyecto (revisor, mutaciones, gate; D §22 fila D-2); `merge=union` para
-     `.claude/frenos.log` (A §4.2); la lista de herramientas por entorno (H §9.1); la pregunta menor de C §2.6 sin contar.
-- [ ] **Misión 4½ — ordenar la casa antes de construir** (una sesión corta): el repo limpio y publicable; **`docs/chats-mision-4/` se muda al privado
-  `vibe-research`** (Guido, 2026-10-26: "en este repo, que es genérico, queda medio raro"); **un diario de misiones en `vibe-research`** (qué se
-  hizo cuándo, en qué PC, qué sesiones, qué costó: la documentación de las sesiones); legacy con lápida; `docs/README.md`, la guía y los manuales al día;
-  README 100% portada. Incluye el **tope al hook del molde (v2.4.3)** de abajo si todavía no salió.
+- [ ] **Misión 4½ — ordenar la casa antes de construir** (una sesión corta, la próxima): el repo limpio y publicable; **`docs/chats-mision-4/` se
+  muda al privado `vibe-research`** (Guido, 2026-10-26: "en este repo, que es genérico, queda medio raro"); **subir a ese privado los 4 informes
+  de revisión del spec** que quedaron en `D:\vibe-research\clientes\redteam-kit-v3\` (carpeta local sin git); **un diario de misiones en
+  `vibe-research`** (qué se hizo cuándo, en qué PC, qué sesiones, qué costó); legacy con lápida; `docs/README.md`, la guía y los manuales al
+  día; README 100% portada; **la fila de `docs/kit-v3/` en el mapa del `CLAUDE.md`** (los specs del kit viven en su carpeta de versión, pedido
+  de Guido). Incluye el **tope al hook del molde (v2.4.3)** de abajo si todavía no salió. **Y medir el hook de vibe-kit** al abrir: hoy inyecta
+  ~10.800 caracteres; si sigue pasado, recortar el TODO o el handoff.
 - [ ] **Tope al hook de arranque del molde** (arreglo chico, fuera de la misión 4, que solo diseña).
   - **El problema**: el molde hace `cat` del handoff entero, y la plataforma corta lo inyectado a 10.000
     caracteres. Lo que se pasa, la sesión no lo ve.
@@ -35,12 +25,12 @@
     `/inicio` del molde → `kit-sync.sh sync` LIMPIO → tag `v2.4.3`. **Guía: `DISENO-B-documentos.md` §9** y el hook del Hub.
     El diseño completo (node, presupuesto, módulos) llega con la misión 5. Bot y el Panel se arreglan en sus propios chats.
   - **Evidencia**: `docs/mision-4/FLOTA.md` §3 · DISENO-B §3.
-- [ ] **Misión 5 — construir el pack por piezas → kit v3.0** (después de la 4½). **Piloto del canon director/obrero en Deptos** (decisión de Guido,
-  2026-10-23: "no ahora; puede ser en la semana"), con las 10 pruebas NO VERIFICADO de `DISENO-D` §7.7, §11 y §20, las de H §22 y las de G; un mes
-  de uso y la medición contra las líneas base del TABLERO §1.
-  - **La portada del repo** (pedido de Guido, 2026-10-26; `DISENO-B` §12bis): la pieza que viste el README raíz de cada repo desde el `NORTE.md`
-    con el molde de la portada de vibe-kit (banner con el nombre, insignias, imagen para compartir, About y etiquetas por `gh`). Dónde vive
-    (modo del Arquitecto o skill `portada`) lo fija el spec.
+- [ ] **Misión 5 — construir el pack por piezas → kit v3.0** (después de la 4½). **El plano es `docs/kit-v3/SPEC-0-kit-v3.md` (READY, 2026-10-27)**:
+  9 paquetes en el orden de su tabla "Orden de construcción" (1 ficha y parser · 2 documentos, hook, candado, `cambios` · 3 seguridad · 4 Arquitecto
+  y `worktree` · 5 canon director/obrero, `/estado`, mesa · 6 Equipador, actualizador, adoptador · 7 ciclo y portada · 8 observatorio y docs del
+  método · 8½ credenciales de Deptos · 9 piloto · 10 tag). Cada paquete con spec delta en `docs/kit-v3/SPEC-paquete-N.md`, red team si toca
+  permisos, revisor frío. **Piloto en Deptos**, un mes, medición contra TABLERO §1; su lista NO VERIFICADO y "Lo que hacés vos de nuevo" están
+  en el spec. La primera sesión abre con la línea de la sección "Ejecución".
 - [ ] **Misión 6 — escribir el ciclo de mejora del método** (al terminar la misión 5, con todo fresco; antes de la mensajería, porque es lo que
   más se evapora). Juntar en un documento reusable y genérico de vibe-kit lo que hoy está repartido (ADR-021, SPEC-investigacion-chats,
   observatorio/investigacion/METODO.md, docs/mision-4/PLAN.md):

@@ -2,6 +2,38 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-27 — Misión 4, tramo 5: el repaso del kit con Guido y el SPEC-0 del kit v3, READY. Misión 4 cerrada
+
+### Added
+- **El repaso del kit con Guido** (paso 0, pedido suyo): cinco partes charladas en el orden de su workflow (el Arquitecto nuevo · cómo se
+  actualiza el kit y los repos · el día a día con director y obreros · repos y documentación · por qué es mejor, con lo medido). Quedó como
+  **`docs/kit-v3/GUIA-KIT-V3.md`** (36 KB, la charla textual armada por un subagente Sonnet desde el transcript, con introducción, "Qué sigue" y
+  una fe de erratas de la tarde) y como **PDF de 14 páginas** en los dos escritorios de Guido (`Desktop` y `OneDrive\Desktop eQ`).
+- **`docs/kit-v3/SPEC-0-kit-v3.md`** (95 KB, **READY**, sellado a mano por Guido): el plano del kit v3 desde los 8 `DISENO-*` y TABLERO §1. Top 10,
+  9 paquetes (P1 Arquitecto · P2 Equipador · P3 molde · P4 hooks · P5 skills del método · P6 scripts · P7 actualizador y adoptador · P8 observatorio ·
+  P9 documentación del método) con "hecho cuando" verificable, 20 criterios, entorno de prueba propio (`pruebas/` con remotos bare), orden de
+  construcción en 10 pasos (+ 8½ credenciales), medición contra las líneas base, supuestos, ⚠️ con consecuencia, tabla "Lo que este spec corrige
+  de los diseños" (20 filas, a anotar con fecha al construir), "Lo que hacés vos de nuevo", NO VERIFICADO con su "cuándo", "Ejecución". Resueltos
+  los 5 puntos que el tramo 4 dejó "para el spec".
+- **Cuatro revisiones en Opus**: red team `redteam-spec` en 3 rondas (15 + 12 + 4 hallazgos; el tema de fondo: la red de seguridad no puede
+  depender de hooks que leen archivos que el propio obrero edita ni de patrones sobre el texto de un comando → `onFailure: block`, la ficha se lee
+  de la rama por defecto del remoto, `candado:barreras` en el pre-commit de toda sesión, almacén de credenciales fuera de todo repo, el actualizador
+  en bypass dentro de un clon, mensajes entrantes como dato) y **revisor frío** sin contexto (28 hallazgos: `doctor` mínimo al orden 3, `cambios`
+  partido, pieza "resumen del día", 9 decisiones de los diseños sin pieza ubicadas, `.kit-rol`/`.kit-noche` en vez de una variable de entorno, fe
+  de erratas, "qué cambia para vos"). **59 aplicados, 0 rechazados, 0 contradicen una decisión de Guido.** Informes en
+  `D:\vibe-research\clientes\redteam-kit-v3\` (carpeta local, todavía fuera del repo privado).
+- **ADR-027**: el OK de Guido a un cambio de barrera es **el clic en la ventana de permiso, con tres candados** (el script se niega desde carpetas
+  de agentes, el sello anota la carpeta, los modos sin ventana lo niegan); descartada la línea en la terminal que propuso el red team ("si me
+  molesta la esquivo"). Decisión de Guido del 2026-10-27, charlada en criollo con el riesgo residual explícito.
+- `docs/README.md`: filas de la guía y del spec.
+
+### Changed
+- `TODO.md`: la misión 4 sale (terminada); la 5 apunta al spec; la 4½ suma subir los informes al privado y la fila de `docs/kit-v3/` en el mapa.
+- Handoff recortado: el hook inyectaba ~10.800 caracteres (pasado del tope), en parte por los mensajes de commit largos; desde hoy, commit de una línea.
+
+### Fixed
+- El PDF de la guía se generó dos veces más tras la fe de erratas; la versión final es la del clic con candados.
+
 ## 2026-10-27 — Misión 4, tramo 4: revisión integral, sesión 2 (director/obrero contra Hermes, el flujo proyecto ↔ kit, revisor frío). Tramo 4 cerrado
 
 ### Added

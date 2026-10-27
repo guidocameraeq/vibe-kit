@@ -32,6 +32,7 @@
 - ADR-024 · El agente de ecosistema se va del kit: vive en el Hub; vibe-kit guarda solo el contrato del registro (2026-10-26)
 - ADR-025 · La hoja de ruta reordenada: el diseño cierra sin mensajería (v3.0), el ciclo en la misión 6, la mensajería es v3.1; lo crudo al research (2026-10-26)
 - ADR-026 · El registro de cambios de método es pieza del canon: por proyecto, en archivos chicos, clase 2 con diff; sube al kit por el ciclo con 3+ o cicatriz (2026-10-26)
+- ADR-027 · El OK de Guido a un cambio de barrera es el clic en la ventana de permiso, con tres candados; no una línea en la terminal (2026-10-27)
 
 *Cada ADR nuevo suma su línea acá (lo pide `/cierre`).*
 
@@ -578,3 +579,24 @@ si un proyecto puede seguir cambiando su método entre versiones del kit, y cóm
   (carpeta, script, candado); la disciplina de los dos commits (aplicar, y después el SHA). **NO VERIFICADO** (piloto): la migración del
   `CAMBIOS.md` de Hermes a archivos chicos al adoptar (E §7, por script, como el Hub con sus specs), y que el actualizador case un cambio propio
   con lo que entró al kit por su id y no por texto, y que el hash guardado en `aplico:` alcance para saber si la zona propia sigue intacta.
+
+## ADR-027 · El OK de Guido a un cambio de barrera es el clic en la ventana de permiso, con tres candados; no una línea en la terminal (2026-10-27)
+Misión 4, tramo 5, el spec del kit v3. ADR-026 decidió "cambios de método = clase 2 con diff; barreras con mi clic". El red team del spec
+(ronda 3, RT3-2) mostró que el clic, si es solo una regla `ask` sobre el texto del comando `cambios aprobar`, se esquiva llamando al script por
+su ruta (`node .claude/scripts/cambios.js aprobar 12`), y el `aprobado` sale con sello válido sin que la ventana aparezca. Propuso que el comando
+lo corra Guido en una terminal interactiva, que un agente no tiene. El revisor frío marcó que eso era una intervención nueva para Guido y que
+nadie se la había planteado (RF-3).
+- **Decisión (de Guido, charlada en criollo con el riesgo explícito):** **se queda el clic en la ventana**, como hoy, con tres candados que no le
+  piden nada: (1) el script `cambios aprobar` lee el archivo de marca de rol de la carpeta donde corre y **se niega** si dice `obrero`, `director`,
+  `nocturno` o `actualizador`, lo llamen por su nombre o por su ruta: solo anda desde el checkout principal; (2) el sello anota la carpeta y el rol,
+  y `candado:barreras` rechaza un `aprobado` cuyo sello venga de otra carpeta; (3) el hook niega el patrón en los modos sin ventana (`bypass`,
+  `dontAsk`, `auto`). Todo `aprobado` nuevo sale en el resumen del día.
+- **Por qué:** criterio 1 (menos intervención) en palabras de Guido: "si es algo seguido me va a molestar; es mucho más cómodo para mí". Un freno que
+  molesta se esquiva, y protege menos que un clic que se usa: la misma lógica que llevó a que el Arquitecto venga solo (E §2). La ventana la aprieta
+  solo una persona (un mensaje de otra sesión nunca aprueba, verificado en la doc); lo que faltaba era que no se pudiera evitar, y los candados lo
+  cubren salvo un camino largo y deliberado.
+- **Descartado:** *la línea pegada por Guido en la terminal de VS Code* (más segura en el papel; una intervención más, y la frecuencia no la justifica:
+  pocas veces por mes, solo cuando un freno cambia) · *solo la regla `ask`* (se esquiva por la ruta del script).
+- **Costo aceptado:** un obrero que a propósito salga de su carpeta, entre a la principal y llame al script por otro camino en un modo con ventana;
+  deja rastro (commit en `main` que no vino de un merge del director → PARADA del despertador; el OK en el resumen del día) y se ve al día siguiente,
+  no antes. NO VERIFICADO (orden 2 del spec): que el script lea bien la marca de rol desde cualquier forma de llamarlo.

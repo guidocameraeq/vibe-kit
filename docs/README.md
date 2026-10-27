@@ -29,6 +29,7 @@ siguen consultando (ADR-020). El Arquitecto busca borradores en `docs/SPEC-*.md`
 | [`SPEC-relevamiento.md`](SPEC-relevamiento.md) | `/relevamiento` — incluye los 21 criterios del estreno y la Fase 2 |
 | [`SPEC-investigacion-chats.md`](SPEC-investigacion-chats.md) | La investigación de los chats (misión 2) y la hoja de ruta |
 | [`SPEC-profesionalizar-repo.md`](SPEC-profesionalizar-repo.md) | El orden de este repo (misión 3) |
+| [`kit-v3/SPEC-0-kit-v3.md`](kit-v3/SPEC-0-kit-v3.md) | **El kit v3, el pack** (misión 4, tramo 5; **READY** el 2026-10-27, tras 3 rondas de red team y revisor frío): nueve paquetes con su estado en la ficha, scripts y candados, el orden de construcción de la misión 5, la medición, "Lo que hacés vos de nuevo" y lo NO VERIFICADO con su cuándo. En su carpeta de versión, con la [guía](kit-v3/GUIA-KIT-V3.md); los specs delta de la misión 5 van al lado (`SPEC-paquete-N.md`) |
 
 ## Temporal — [`chats-mision-4/`](chats-mision-4/)
 
@@ -53,6 +54,7 @@ Los chats condensados en los que se diseñaron los racimos de la misión 4, guar
 | [`mision-4/DISENO-G-mesa-y-pcs.md`](mision-4/DISENO-G-mesa-y-pcs.md) | Tramo 4, racimo G: la mesa entre directores de proyectos que comparten algo. El contenido va siempre por git (un archivo por mensaje dentro del módulo, que nunca se edita y cuyo estado calcula un script) y el aviso por mensaje es opcional; seis tipos de mesa en una tabla única; acuerdos que viven una vez y van al PO solo si cambian el alcance; recursos compartidos con dueño; `crossSessionInbound: accept` por el Equipador; dos personas con `fetch`, aviso de commits ajenos y commit por rutas; números de decisión por módulo; lecciones al repo; `aprueba:` por alias. Trae el brief del racimo **G.1** (el buzón multiagente, opt-in). Verificado contra la doc oficial y revisado (34 hallazgos) |
 | [`mision-4/DISENO-H-niveles-y-puertas.md`](mision-4/DISENO-H-niveles-y-puertas.md) | Tramo 4, racimo H: lo chico se hace en el chat sin spec ni chat nuevo (una sola regla de tamaño, dicha por la sesión), lo que es más que chico entra por el Arquitecto, que termina armando el módulo y dando la línea de apertura; subproyecto = módulo con nombre; director solo si se escribe a la vez; entorno de prueba declarado y verificado por script; ramas y worktrees por script; tope del spec; prototipo antes del spec. Decisiones 7-14 provisorias; revisado (45 hallazgos) y contrastado con otros métodos |
 | [`mision-4/REFERENCIAS-EXTERNAS.md`](mision-4/REFERENCIAS-EXTERNAS.md) | Tramo 4: qué hacen otros métodos agénticos (gentle-ai, agency-agents, MetaGPT), qué idea sirve a qué racimo y qué se descarta con su razón |
+| [`kit-v3/GUIA-KIT-V3.md`](kit-v3/GUIA-KIT-V3.md) | La guía del kit v3: el repaso charlado con Guido (2026-10-27), cinco partes en el orden de su workflow, con lo medido. Junto al spec del kit v3 |
 
 ## De consulta — [`consulta/`](consulta/)
 
