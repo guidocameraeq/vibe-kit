@@ -40,6 +40,11 @@ sensible:                            # las 5 preguntas de fábrica: no, o qué d
   release: [npm run release]
 secretos: [DB_URL, HUB_TOKEN]        # nombres, nunca valores
 publicas: [SUPABASE_ANON_KEY]        # parecen secreto y no lo son
+herramientas:                        # lo que se puede usar: un chequeo de una línea y si necesita a Guido; cada entorno nombra las suyas
+  db: {chequeo: "db ping", necesita-guido: no}
+  sqlite:
+    chequeo: sqlite3 --version
+    necesita-guido: no
 entornos:
   base-real:
     clase: real                      # real · prueba · dummy

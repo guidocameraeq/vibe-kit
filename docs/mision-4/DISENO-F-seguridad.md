@@ -236,6 +236,11 @@ datos-de-prueba: docs/referencia/PRUEBA.md   # cuentas de prueba, llaves públic
 push-publica: no                     # si es sí, /cierre lo dice antes de pushear (P49); nunca pregunta
 ```
 
+*Nota de la misión 5, paquete 1 (2026-10-28, [SPEC-paquete-1](../kit-v3/SPEC-paquete-1.md)): `entornos:` no es la lista de mapas de
+arriba sino **un mapa por nombre** (`entornos.<nombre>.clase`, `.herramientas`, `.acceso`), como fijó el SPEC-0 (RT2); la forma de arriba hoy
+da error en el parser. Las herramientas se declaran una vez en `herramientas.<nombre>: {chequeo, necesita-guido}` y cada entorno las nombra
+(decisión de Guido). Y el `id` de un freno quitado acepta una regla `deny` por su texto: `"deny:Bash(git stash:*)"` (§14).*
+
 - **Después de escribir** `settings.json` o la ficha, el script relee y compara (en Windows un renombre puede "tener
   éxito" sin efecto; cicatriz de gentle-ai, y nuestras 3 PCs son Windows). Un `settings.json` con claves duplicadas
   no se toca: se avisa, porque una regla quedaría tapada.

@@ -227,10 +227,10 @@ const ESTADOS = ['molde', 'molde+propio', 'adaptada', 'adaptada (desvío detecta
 const CLASES = ['real', 'prueba', 'dummy'];
 const SENSIBLES = ['datos-reales', 'plata', 'sale-afuera', 'claves', 'release'];
 const CONOCIDOS = ['kit', 'nivel', 'vars', 'piezas', 'frenos', 'autorizado', 'sensible', 'secretos', 'publicas',
-  'entornos', 'datos-de-prueba', 'push-publica', 'aprueba', 'mesa', 'multi-llm'];
+  'herramientas', 'entornos', 'datos-de-prueba', 'push-publica', 'aprueba', 'mesa', 'multi-llm'];
 
 // Los nombres que elige el usuario (piezas, entornos, alias de la mesa…) no van a los mensajes: se muestran como <nombre>.
-const CON_NOMBRE_DEL_USUARIO = { piezas: '<nombre>', entornos: '<nombre>', mesa: '<alias>', autorizado: '<clave>' };
+const CON_NOMBRE_DEL_USUARIO = { piezas: '<nombre>', herramientas: '<nombre>', entornos: '<nombre>', mesa: '<alias>', autorizado: '<clave>' };
 const nom = (ruta) => {
   const seg = ruta.split('.');
   if (seg.length > 1) {
@@ -359,6 +359,22 @@ function validar(datos, st, cierre, avisos) {
     });
   }
 
+  // herramientas: lo que se puede usar, con su chequeo de una línea; cada entorno nombra las suyas (más abajo).
+  if (tiene(datos, 'herramientas')) {
+    mapa('herramientas', datos.herramientas);
+    for (const [k, v] of Object.entries(datos.herramientas)) {
+      const r = `herramientas.${k}`;
+      mapa(r, v);
+      soloClaves(r, v, ['chequeo', 'necesita-guido'], false);
+      requerido(r, v, 'chequeo');
+      texto(`${r}.chequeo`, v.chequeo);
+      noVacio(`${r}.chequeo`, v.chequeo);
+      requerido(r, v, 'necesita-guido');
+      uno(`${r}.necesita-guido`, v['necesita-guido'], ['sí', 'no']);
+    }
+  }
+  const declaradas = tiene(datos, 'herramientas') ? datos.herramientas : {};
+
   if (tiene(datos, 'entornos')) {
     mapa('entornos', datos.entornos);
     for (const [k, v] of Object.entries(datos.entornos)) {
@@ -367,7 +383,14 @@ function validar(datos, st, cierre, avisos) {
       soloClaves(r, v, ['clase', 'herramientas', 'acceso'], false);
       requerido(r, v, 'clase');
       uno(`${r}.clase`, v.clase, CLASES);
-      if (tiene(v, 'herramientas')) lista(`${r}.herramientas`, v.herramientas);
+      if (tiene(v, 'herramientas')) {
+        lista(`${r}.herramientas`, v.herramientas);
+        v.herramientas.forEach((nombre, i) => {
+          if (!tiene(declaradas, nombre)) {
+            E(L(`${r}.herramientas`), `el elemento ${i + 1} de "${nom(r)}.herramientas" no está declarado en "herramientas" — agregalo arriba`);
+          }
+        });
+      }
       if (tiene(v, 'acceso')) texto(`${r}.acceso`, v.acceso);
     }
   }

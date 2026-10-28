@@ -26,7 +26,7 @@ frenos, el actualizador) lee una ficha que todavía no existe. Su forma queda **
 
 | Archivo | Qué es |
 |---|---|
-| `kit/molde/kit.ejemplo.md` | La ficha de ejemplo: plantilla y caso de prueba a la vez. **Va tal cual el anexo A** |
+| `kit/molde/kit.ejemplo.md` | La ficha de ejemplo: referencia de la forma y caso de prueba (no plantilla para copiar; ver "Lo que cambió en la construcción"). **Va tal cual el anexo A** |
 | `kit/molde/hooks/lib/ficha.cjs` | El parser, node estándar sin dependencias. En cada proyecto va a `.claude/hooks/lib/ficha.cjs` |
 | `kit/molde/hooks/lib/ficha.test.cjs` | Sus pruebas, `node --test`. Lo que termina en `.test.cjs` **no se instancia** en los proyectos |
 | `kit/VERSION` | Una línea: `2.4.3` (la del último tag) |
@@ -69,11 +69,12 @@ frenos, el actualizador) lee una ficha que todavía no existe. Su forma queda **
 | `nivel` | obligatorio; `liviano` o `estandar` |
 | `vars` | mapa; `proyecto` obligatorio; `lenguajes` es lista |
 | `piezas.<nombre>` | un estado, o `{estado, hash}`. Estados: `molde`, `molde+propio`, `adaptada`, `"adaptada (desvío detectado)"`, `propia`, `sí`, `no`. `hash`: 12 hexa |
-| `frenos` | `opcionales` lista; `quitados` lista de `{id, por, hasta}`, los tres obligatorios; `id` es `<clase>:<nombre>` (`hook:git-seguro/push-force`); `hasta` es `siempre` o `AAAA-MM-DD` (F §14) |
+| `frenos` | `opcionales` lista; `quitados` lista de `{id, por, hasta}`, los tres obligatorios; `id` es `<clase>:<lo que sea>` (`hook:git-seguro/push-force`, `"deny:Bash(git stash:*)"`), sin repetirse; `hasta` es `siempre` o `AAAA-MM-DD` (F §14) |
 | `sensible` | solo las cinco claves de A (`datos-reales`, `plata`, `sale-afuera`, `claves`, `release`); cada una `no` o una lista |
 | `secretos`, `publicas` | listas de nombres de variable (`MAYUSCULAS_CON_GUION_BAJO`) |
-| `entornos.<nombre>` | `clase` obligatoria (`real`, `prueba`, `dummy`); `herramientas` lista; `acceso` texto |
-| `mesa.<alias>` | `contacto` texto; `transporte` `git` o `buzon` (G §12) |
+| `entornos.<nombre>` | `clase` obligatoria (`real`, `prueba`, `dummy`); `herramientas` lista de nombres, **cada uno declarado en `herramientas:`**; `acceso` texto |
+| `herramientas.<nombre>` | `{chequeo, necesita-guido}`: `chequeo` texto obligatorio (el comando de una línea), `necesita-guido` `sí` o `no` (SPEC-0, "La lista de herramientas por entorno"; decidido por Guido el 2026-10-28) |
+| `mesa.<alias>` | `contacto` texto obligatorio; `transporte` `git` o `buzon`, opcional (sin él, `git`; G §12) |
 | `push-publica`, `multi-llm` | `sí` o `no` |
 | `aprueba` | un alias en minúsculas, nunca un nombre real (G §15) |
 | `autorizado`, `datos-de-prueba` | mapa de textos · texto. Los valores los valida la pieza que los usa (órdenes 3 a 5) |
@@ -169,6 +170,28 @@ archivos, pero son chicos: no vale un worktree). Lo que el director hace a mano 
 - ⚠️ **`kit/VERSION` dice la versión del último tag** y se sube en el commit que pone el tag siguiente. Mientras se construye la v3
   dice `2.4.3`, que es lo que de verdad está repartido.
 
+## Lo que cambió en la construcción (2026-10-28: el revisor frío y Guido)
+
+El revisor frío (Opus, sin contexto) encontró que la gramática, tal como estaba, congelaba cosas que los diseños ya habían decidido
+distinto. Se corrigió antes de cerrar:
+- **El `id` de un freno quitado acepta una regla `deny` por su texto**, como manda F §14 (`"deny:Bash(git stash:*)"`). Antes la regla lo
+  rechazaba. Y dos frenos quitados con el mismo `id` dan error.
+- **Las herramientas de un entorno** (el SPEC-0 pedía nombre, chequeo y `necesita-guido` dentro de cada entorno, y eso no entra en tres
+  niveles): **decidido por Guido**, "campo aparte: `herramientas.<nombre>` con su chequeo y `necesita-guido`, y cada entorno las nombra en
+  su lista. Se queda en tres niveles". Una herramienta que nombra un entorno y no está declarada da error.
+- **Una clave desconocida dentro de un campo conocido avisa, no frena** (salvo en `sensible`, que es la lista cerrada de las 5 de A): es
+  la misma razón del ⚠️ de los campos de arriba, que si no trababa a toda PC atrasada la primera vez que un campo sume una clave.
+- **El ejemplo no es una ficha para copiar** (sus frenos quitados son de muestra; copiarlo sacaba el freno al `push --force`): lo dice su
+  primera línea, y el error de "no hay ficha" dice "valen los frenos de fábrica" en vez de "copiá el ejemplo". La ficha de un proyecto la
+  arma el Arquitecto o el adoptador con los valores de fábrica de su nivel (órdenes 4 y 6): **el ejemplo es la referencia de la forma y el
+  caso de prueba, no la plantilla** (corrige "plantilla y caso de prueba a la vez" de arriba y del SPEC-0 P3.1).
+- **Ningún mensaje de error repite lo que escribió el usuario** (podría ser una clave pegada por error): dice el campo, la línea y qué
+  se acepta.
+- **Salida 4 = campo ausente** en `campo` (antes salía 0 con nada, que en bash no se distingue de un texto vacío).
+- Chicos: el hash ignora el BOM; una ficha en UTF-16 dice "guardala en UTF-8"; versiones sin ceros a la izquierda; corchete suelto en
+  un texto es error; vacío es vacío después de recortar espacios; `transporte` de la mesa es opcional; `version` no revienta sin carpeta
+  de usuario; `rehacer.sh` fija las cuatro identidades de git y no lee la configuración global.
+
 ## Lo que se prueba más adelante (no en este paquete)
 
 - Que **todo hook que lee una ficha malformada frene** (SPEC-0 P3.1, RT1-1): este paquete deja el parser saliendo con 1; el freno se
@@ -177,13 +200,14 @@ archivos, pero son chicos: no vale un worktree). Lo que el director hace a mano 
 
 ---
 
-## Anexo A — `kit/molde/kit.ejemplo.md` (va tal cual)
+## Anexo A — `kit/molde/kit.ejemplo.md` (va tal cual; actualizado con las correcciones de la construcción)
 
 ```markdown
 ---
 # Ficha del kit de este repo. La lee un script: respetá la forma.
 # Mapas con sangría de 2 espacios (hasta 3 niveles) · listas [a, b] · listas de mapas en línea: - {a: x, b: y}
 # Todo valor es texto, sin comillas o entre comillas dobles. Nada de comillas simples, \, & ni texto en varias líneas.
+# Es un ejemplo de la forma, no una ficha para copiar: sus frenos quitados y autorizaciones son de muestra.
 kit: 2.4.3
 nivel: estandar                      # liviano (sin código) · estandar (con código)
 vars:                                # con qué se instanció el molde: sin esto no se puede regenerar
@@ -205,10 +229,11 @@ piezas:                              # molde · molde+propio · adaptada · prop
   cambios-metodo: molde
   docs-fyd: sí
 frenos:
-  opcionales: [rama-nueva-por-mision]
+  opcionales: []
   quitados:                          # cada uno con razón y hasta: siempre, o una fecha
     - {id: hook:git-seguro/push-force, por: "proyecto personal, el push es libre", hasta: siempre}
-    - {id: pregunta:borrar-datos-reales, por: "base dummy de la misión 3", hasta: 2026-11-15}
+    - {id: pregunta:borrar-datos-reales, por: "base dummy #3 de la misión 3", hasta: 2026-11-15}
+    - {id: deny:Bash(git stash:*), por: "el flujo de release lo necesita", hasta: siempre}
 autorizado:                          # lo que no es pregunta
   merge-a-main: con-gate-verde
   escribir-produccion: por-comando-con-foto
@@ -220,6 +245,11 @@ sensible:                            # las 5 preguntas de fábrica: no, o qué d
   release: [npm run release]
 secretos: [DB_URL, HUB_TOKEN]        # nombres, nunca valores
 publicas: [SUPABASE_ANON_KEY]        # parecen secreto y no lo son
+herramientas:                        # lo que se puede usar: un chequeo de una línea y si necesita a Guido; cada entorno nombra las suyas
+  db: {chequeo: "db ping", necesita-guido: no}
+  sqlite:
+    chequeo: sqlite3 --version
+    necesita-guido: no
 entornos:
   base-real:
     clase: real                      # real · prueba · dummy
@@ -236,7 +266,7 @@ mesa:
   hub:
     contacto: hub/director
     transporte: git
-  deptos: {contacto: deptos/sesion, transporte: git}
+  deptos: {contacto: deptos/sesion, transporte: buzon}
 multi-llm: no
 ---
 

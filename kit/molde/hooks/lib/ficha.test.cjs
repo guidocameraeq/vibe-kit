@@ -60,6 +60,10 @@ const ESPERADO = {
   },
   secretos: ['DB_URL', 'HUB_TOKEN'],
   publicas: ['SUPABASE_ANON_KEY'],
+  herramientas: {
+    db: { chequeo: 'db ping', 'necesita-guido': 'no' },
+    sqlite: { chequeo: 'sqlite3 --version', 'necesita-guido': 'no' },
+  },
   entornos: {
     'base-real': { clase: 'real', herramientas: ['db'], acceso: 'db (solo lectura)' },
     'base-local': { clase: 'dummy', herramientas: ['db', 'sqlite'], acceso: 'db (todo)' },
@@ -103,6 +107,7 @@ test('BOM + CRLF dan los mismos datos que con LF', () => {
 const BASE = 'kit: 2.4.3\nnivel: liviano\nvars:\n  proyecto: x\n';
 const ficha = (extra) => `---\n${BASE}${extra}---\n`;
 const fichaSolo = (kit, nivel, proyecto) => `---\nkit: ${kit}\nnivel: ${nivel}\nvars:\n  proyecto: ${proyecto}\n---\n`;
+const HERR = 'herramientas:\n  db: {chequeo: x, necesita-guido: no}\n'; // declara "db": ocupa las líneas 6 y 7
 const quitado = (cuerpo) => ficha(`frenos:\n  quitados:\n    - ${cuerpo}\n`); // el ítem cae en la línea 8
 
 // [nombre, texto, línea esperada, regex del mensaje]
@@ -257,6 +262,21 @@ const CASOS = [
   ['clase: produccion', ficha('entornos:\n  a:\n    clase: produccion\n'), 8, /"entornos.<nombre>.clase" tiene un valor que no se acepta — tiene que ser uno de: real, prueba, dummy/],
   ['herramientas no es lista', ficha('entornos:\n  a:\n    clase: real\n    herramientas: db\n'), 9, /"entornos.<nombre>.herramientas" tiene que ser una lista/],
   ['acceso no es texto', ficha('entornos:\n  a:\n    clase: real\n    acceso: [db]\n'), 9, /"entornos.<nombre>.acceso" tiene que ser un texto/],
+  // --- herramientas (campo de arriba) y las que nombra cada entorno
+  ['herramientas no es un mapa', ficha('herramientas: x\n'), 6, /"herramientas" tiene que ser un mapa/],
+  ['herramienta que no es un mapa', ficha('herramientas:\n  db: x\n'), 7, /"herramientas.<nombre>" tiene que ser un mapa/],
+  ['herramienta sin chequeo (en línea)', ficha('herramientas:\n  db: {necesita-guido: no}\n'), 7, /falta "chequeo" en "herramientas.<nombre>"/],
+  ['herramienta sin chequeo (en bloque)', ficha('herramientas:\n  db:\n    necesita-guido: no\n'), 7, /falta "chequeo" en "herramientas.<nombre>"/],
+  ['herramienta sin necesita-guido', ficha('herramientas:\n  db: {chequeo: x}\n'), 7, /falta "necesita-guido" en "herramientas.<nombre>"/],
+  ['chequeo vacío', ficha('herramientas:\n  db: {chequeo: " ", necesita-guido: no}\n'), 7, /"herramientas.<nombre>.chequeo" está vacío/],
+  ['chequeo como lista', ficha('herramientas:\n  db:\n    chequeo: [a]\n    necesita-guido: no\n'), 8, /"herramientas.<nombre>.chequeo" tiene que ser un texto/],
+  ['necesita-guido: tal vez', ficha('herramientas:\n  db: {chequeo: x, necesita-guido: tal vez}\n'), 7, /"herramientas.<nombre>.necesita-guido" tiene un valor que no se acepta — tiene que ser uno de: sí, no/],
+  ['necesita-guido: true', ficha('herramientas:\n  db: {chequeo: x, necesita-guido: true}\n'), 7, /"herramientas.<nombre>.necesita-guido" tiene un valor que no se acepta/],
+  ['necesita-guido como lista', ficha('herramientas:\n  db:\n    chequeo: x\n    necesita-guido: [no]\n'), 9, /"herramientas.<nombre>.necesita-guido" tiene que ser un texto/],
+  ['herramienta con nombre inválido', ficha('herramientas:\n  DB: {chequeo: x, necesita-guido: no}\n'), 7, /clave inválida/],
+  ['entorno nombra una herramienta que no está declarada (no hay herramientas)', ficha('entornos:\n  a:\n    clase: real\n    herramientas: [db]\n'), 9, /el elemento 1 de "entornos.<nombre>.herramientas" no está declarado en "herramientas" — agregalo arriba/],
+  ['entorno nombra una herramienta que no está declarada (el segundo elemento)', ficha(HERR + 'entornos:\n  a:\n    clase: real\n    herramientas: [db, sqlite]\n'), 11, /el elemento 2 de "entornos.<nombre>.herramientas" no está declarado/],
+  ['entorno nombra una herramienta con nombre de Object.prototype', ficha(HERR + 'entornos:\n  a:\n    clase: real\n    herramientas: [constructor]\n'), 11, /el elemento 1 de "entornos.<nombre>.herramientas" no está declarado/],
   ['mesa no es un mapa', ficha('mesa: x\n'), 6, /"mesa" tiene que ser un mapa/],
   ['mesa: entrada que no es un mapa', ficha('mesa:\n  hub: x\n'), 7, /"mesa.<alias>" tiene que ser un mapa/],
   ['mesa sin contacto', ficha('mesa:\n  hub:\n    transporte: git\n'), 7, /falta "contacto" en "mesa.<alias>"/],
@@ -341,6 +361,8 @@ const AVISOS = [
   ['frenos', ficha('frenos:\n  raros: [a]\n'), 7, /^línea 7: clave desconocida `raros` en `frenos`/],
   ['ítem de frenos.quitados', quitado('{id: hook:a, por: x, hasta: siempre, otro: y}'), 8, /^línea 8: clave desconocida `otro` en `frenos\.quitados\[0\]`/],
   ['entornos.<n>', ficha('entornos:\n  a:\n    clase: real\n    necesita-guido: no\n'), 9, /^línea 9: clave desconocida `necesita-guido` en `entornos\.<nombre>`/],
+  ['herramientas.<x> (mapa en línea)', ficha('herramientas:\n  db: {chequeo: x, necesita-guido: no, extra: y}\n'), 7, /^línea 7: clave desconocida `extra` en `herramientas\.<nombre>`/],
+  ['herramientas.<x> (mapa en bloque)', ficha('herramientas:\n  db:\n    chequeo: x\n    necesita-guido: no\n    extra: y\n'), 10, /^línea 10: clave desconocida `extra` en `herramientas\.<nombre>`/],
   ['mesa.<a> (bloque)', ficha('mesa:\n  hub:\n    contacto: x\n    canal: y\n'), 9, /^línea 9: clave desconocida `canal` en `mesa\.<alias>`/],
   ['mesa.<a> (mapa en línea)', ficha('mesa:\n  hub: {contacto: x, canal: y}\n'), 7, /^línea 7: clave desconocida `canal` en `mesa\.<alias>`/],
 ];
@@ -413,6 +435,25 @@ test('mesa.<a>.transporte es opcional; si está, git o buzon', () => {
   assert.equal(leer(ficha('mesa:\n  hub: {contacto: x, transporte: git}\n')).datos.mesa.hub.transporte, 'git');
 });
 
+test('herramientas: forma válida en línea y en bloque; los entornos nombran las declaradas', () => {
+  const r = leer(ficha(
+    'herramientas:\n  db: {chequeo: "db ping", necesita-guido: no}\n  sqlite:\n    chequeo: sqlite3 --version\n    necesita-guido: sí\n  sin-uso: {chequeo: x, necesita-guido: no}\n' +
+      'entornos:\n  a:\n    clase: real\n    herramientas: [db, sqlite]\n  b:\n    clase: dummy\n    herramientas: []\n  c:\n    clase: prueba\n'
+  ));
+  assert.deepStrictEqual(r.datos.herramientas, {
+    db: { chequeo: 'db ping', 'necesita-guido': 'no' },
+    sqlite: { chequeo: 'sqlite3 --version', 'necesita-guido': 'sí' },
+    'sin-uso': { chequeo: 'x', 'necesita-guido': 'no' },
+  });
+  assert.deepStrictEqual(r.datos.entornos.a.herramientas, ['db', 'sqlite']);
+  assert.deepStrictEqual(r.avisos, []);
+});
+
+test('herramientas sin entornos, y entornos que no nombran herramientas, valen', () => {
+  assert.deepStrictEqual(leer(ficha(HERR)).avisos, []);
+  assert.deepStrictEqual(leer(ficha('entornos:\n  a:\n    clase: real\n')).avisos, []);
+});
+
 test('versiones: 0.0.0 vale; con ceros a la izquierda no', () => {
   assert.equal(leer(fichaSolo('0.0.0', 'liviano', 'x')).datos.kit, '0.0.0');
   assert.equal(leer(fichaSolo('10.20.30', 'liviano', 'x')).datos.kit, '10.20.30');
@@ -441,6 +482,12 @@ const OCULTOS = [
   ['sensible con texto', ficha(`sensible:\n  plata: ${Z}\n`), Z],
   ['clave desconocida en sensible', ficha(`sensible:\n  ${z}: no\n`), z],
   ['clase de entorno', ficha(`entornos:\n  a:\n    clase: ${Z}\n`), Z],
+  ['entorno nombra una herramienta no declarada', ficha(`entornos:\n  a:\n    clase: real\n    herramientas: [${Z}]\n`), Z],
+  ['entorno nombra una herramienta no declarada (en minúscula)', ficha(`${HERR}entornos:\n  a:\n    clase: real\n    herramientas: [db, ${z}]\n`), z],
+  ['necesita-guido con valor raro', ficha(`herramientas:\n  db: {chequeo: x, necesita-guido: ${Z}}\n`), Z],
+  ['chequeo como lista con centinela', ficha(`herramientas:\n  db:\n    chequeo: [${Z}]\n    necesita-guido: no\n`), Z],
+  ['nombre de herramienta que no es un mapa', ficha(`herramientas:\n  ${z}: x\n`), z],
+  ['nombre de herramienta sin necesita-guido', ficha(`herramientas:\n  ${z}: {chequeo: x}\n`), z],
   ['herramientas como texto', ficha(`entornos:\n  a:\n    clase: real\n    herramientas: ${Z}\n`), Z],
   ['transporte de la mesa', ficha(`mesa:\n  hub:\n    contacto: x\n    transporte: ${Z}\n`), Z],
   ['hasta de un freno', quitado(`{id: hook:a, por: x, hasta: ${Z}}`), Z],

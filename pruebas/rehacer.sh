@@ -198,6 +198,11 @@ sensible:
   claves: no
   release: no
 secretos: [ALFA_DB_URL]
+herramientas:
+  db: {chequeo: "git --version", necesita-guido: no}
+  sqlite:
+    chequeo: node --version
+    necesita-guido: no
 entornos:
   base-real:
     clase: real
