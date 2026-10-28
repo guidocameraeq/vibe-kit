@@ -76,9 +76,7 @@ function dejarMarca(entrada, gitDir) {
   const dir = path.join(gitDir, CARPETA_MARCAS);
   fs.mkdirSync(dir, { recursive: true });
   const archivo = path.join(dir, id);
-  fs.writeFileSync(archivo, '');
-  const ahora = new Date();
-  fs.utimesSync(archivo, ahora, ahora);
+  fs.writeFileSync(archivo, ''); // escribir (aunque ya exista) le pone la fecha de ahora
   return archivo;
 }
 

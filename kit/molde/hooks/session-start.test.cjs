@@ -183,6 +183,10 @@ test('criterio 6: error interno forzado → la línea de error, el handoff crudo
   assert.ok(!r.out.includes('relleno 499'));
   const crudo = r.lineas.slice(2, -2).join('\n');
   assert.ok(Buffer.byteLength(crudo) <= 5000, `${Buffer.byteLength(crudo)}`);
+  assert.ok(Buffer.byteLength(crudo) > 4900, `aprovecha los 5.000: ${Buffer.byteLength(crudo)}`);
+  // Cortado en renglón entero: cada renglón es uno del handoff, sin uno a medias ni una letra partida.
+  const originales = new Set(handoff('H', extra).split('\n'));
+  for (const l of r.lineas.slice(2, -2)) assert.ok(originales.has(l), `renglón a medias: ${JSON.stringify(l)}`);
   chequearHuella(r);
   // La marca se deja igual.
   assert.ok(fs.existsSync(path.join(d, '.git', 'kit-sesiones', 'err-1')));
