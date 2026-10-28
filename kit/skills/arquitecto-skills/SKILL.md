@@ -73,7 +73,7 @@ instalan en `~/.claude/`.
 2. **Actualizá cada ruta kit-owned con diff-antes-de-pisar** (regla 3), copiando del clon a `~/.claude/`:
    `skills/arquitecto/` · `skills/arquitecto-skills/` · `skills/docs-fyd/` · `skills/relevamiento/`
    (entera, con `anexos/` y `plantillas/` — **incluido `plantillas/_fuente/`**) → `~/.claude/skills/`; y
-   `agents/redteam-spec.md` → `~/.claude/agents/`. Por cada una: idéntica → "sin cambios"; cambió →
+   `agents/redteam-spec.md` → `~/.claude/agents/`; y `VERSION` → `~/.claude/VERSION` (la versión del kit instalada; la leen los hooks). Por cada una: idéntica → "sin cambios"; cambió →
    mostrá el resumen del diff y copiá; ⚠️ **hay ediciones locales en `~/.claude/`** → mostralas y
    preguntá SIEMPRE (una edición directa a `~/.claude/` está huérfana del repo — el lugar canónico es el
    repo; conviene llevarla allá antes de pisar).

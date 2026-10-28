@@ -1,5 +1,5 @@
 #!/bin/bash
-# kit/ ↔ ~/.claude/ — compara (default) o sincroniza las 5 rutas canónicas.
+# kit/ ↔ ~/.claude/ — compara (default) o sincroniza las 5 rutas canónicas y VERSION.
 #   bash .claude/scripts/kit-sync.sh          → diff (lo usa /inicio)
 #   bash .claude/scripts/kit-sync.sh sync     → copia kit/ → ~/.claude/ y después diff (lo usa /cierre)
 # La línea "Carpeta de proyectos de esta máquina" del Arquitecto es de cada PC (ADR-023):
@@ -17,6 +17,7 @@ if [ "${1:-diff}" = sync ]; then
   [ "$ruta" = "{{CARPETA_DE_PROYECTOS}}" ] && ruta=""
   for r in $SKILLS; do mkdir -p "$H/$r"; cp -r "$P/kit/$r/." "$H/$r/"; done
   mkdir -p "$H/agents"; cp "$P/kit/agents/redteam-spec.md" "$H/agents/"
+  cp "$P/kit/VERSION" "$H/VERSION"
   if [ -n "$ruta" ]; then
     # mete la ruta en el primer {{CARPETA_DE_PROYECTOS}} de esa línea (sin regex: la ruta puede traer barras o &)
     R="$ruta" awk 'BEGIN { r = ENVIRON["R"] } index($0, "**Carpeta de proyectos de esta máquina**") == 1 {
@@ -30,7 +31,7 @@ if [ "${1:-diff}" = sync ]; then
 fi
 
 sucio=0
-for r in $SKILLS agents/redteam-spec.md; do
+for r in $SKILLS agents/redteam-spec.md VERSION; do
   if out=$(diff -r -I "$LINEA" "$P/kit/$r" "$H/$r" 2>&1); then
     echo "✓ $r"
   else
