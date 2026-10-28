@@ -118,7 +118,7 @@ frenos, el actualizador) lee una ficha que todavía no existe. Su forma queda **
 ## Criterios de aceptación
 
 1. **Regresión**: `kit-sync.sh` da LIMPIO (con `VERSION`); el diff del paquete sobre `kit/skills/` es solo la línea del Equipador.
-2. `node --test kit/` en verde: el ejemplo da el JSON esperado (comparado entero) y **cada uno de los ≥ 20 casos malformados** da error
+2. `node --test "kit/**/*.test.cjs"` en verde (*corregido el 2026-10-28 en la construcción: decía `node --test kit/`, que node 24 toma como glob y falla*): el ejemplo da el JSON esperado (comparado entero) y **cada uno de los ≥ 20 casos malformados** da error
    en el número de línea esperado.
 3. `ficha.cjs leer kit/molde/kit.ejemplo.md` sale con 0; con una ficha rota sale con 1 y `<archivo>:<línea>:`; sin ficha, con 3.
 4. `ficha.cjs version` muestra instalada y canónica `2.4.3` después del sync; con un `HOME` sin `VERSION`, dice `—` y sale con 0.
