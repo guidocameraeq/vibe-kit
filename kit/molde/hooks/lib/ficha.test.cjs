@@ -32,6 +32,7 @@ const ESPERADO = {
     settings: { estado: 'molde+propio', hash: '5d04e9b3c218' },
     'check-code': { estado: 'adaptada (desvío detectado)', hash: '7a1b2c3d4e5f' },
     docs: 'molde',
+    'hook-escritura': 'molde',
     candado: 'molde',
     smoke: 'propia',
     release: 'propia',

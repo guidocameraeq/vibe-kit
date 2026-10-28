@@ -17,6 +17,7 @@ piezas:                              # molde · molde+propio · adaptada · prop
   settings: {estado: molde+propio, hash: 5d04e9b3c218}
   check-code: {estado: "adaptada (desvío detectado)", hash: 7a1b2c3d4e5f}
   docs: molde                        # solo las plantillas del nacimiento; docs/ es del proyecto
+  hook-escritura: molde              # frena archivos sueltos en docs/ al escribirlos
   candado: molde
   smoke: propia
   release: propia
