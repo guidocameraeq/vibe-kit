@@ -2,10 +2,15 @@
 # pruebas/rehacer.sh — arma desde cero los 3 repos de prueba (alfa, beta, gama) y sus remotos bare.
 #   bash pruebas/rehacer.sh                  → desde el molde del tag v2.4.2
 #   bash pruebas/rehacer.sh --desde <tag>    → desde el molde de otro tag
+# Los arma AFUERA de vibe-kit, en la carpeta hermana vibe-kit-pruebas/ (junto a la raíz del repo; se calcula, nunca es una ruta
+# fija): así el CLAUDE.md y las skills de los repos de prueba no se cuelan en las sesiones de vibe-kit. El script y pedidos.md
+# se quedan acá, en pruebas/. Al terminar imprime en qué carpeta dejó los repos.
 # Cada repo nace como lo dejaría un adoptador del kit en esa versión: molde v2 + ficha .claude/kit.md.
 # Fechas e identidad fijas, y sin la config de git de quien lo corre (ni global ni de sistema): dos corridas, en cualquier PC,
-# dan los mismos SHAs. Sale con 1 si algo falla.
-# Solo borra alfa/ beta/ gama/ remotos/ de ESTA carpeta; jamás recibe una ruta para borrar.
+# dan los mismos SHAs (también si la carpeta de destino cambia de lugar). Sale con 1 si algo falla.
+# Solo borra alfa/ beta/ gama/ remotos/ de vibe-kit-pruebas/; jamás recibe una ruta para borrar. Si vibe-kit-pruebas/ ya existe,
+# solo la usa si está vacía o tiene la marca .repos-de-prueba-de-vibe-kit; si no, sale con 1 sin tocar nada.
+# NO toca las carpetas viejas vibe-kit/pruebas/{alfa,beta,gama,remotos}: esas se borran a mano.
 set -euo pipefail
 
 # --- guardia (antes de borrar nada)
@@ -15,6 +20,8 @@ if [ -z "$AQUI" ] || [ "$(basename "$AQUI")" != "pruebas" ] || [ ! -f "$AQUI/../
   exit 1
 fi
 RAIZ=$(cd "$AQUI/.." && pwd -P)
+DEST="$(dirname "$RAIZ")/vibe-kit-pruebas"   # hermana de la raíz de vibe-kit, en cualquier PC
+MARCA=.repos-de-prueba-de-vibe-kit
 
 # --- argumentos
 TAG=v2.4.2
@@ -36,9 +43,24 @@ FECHA=2026-10-28
 FECHA_HORA="2026-10-28 12:00"
 FECHA_GIT="2026-10-28T12:00:00-03:00"
 
-# --- limpiar lo de la corrida anterior (solo estas cuatro, armadas desde AQUI)
-for d in alfa beta gama remotos; do rm -rf "${AQUI:?}/$d"; done
-mkdir -p "$AQUI/remotos"
+# --- guardia del destino (antes de borrar nada)
+if [ -e "$DEST" ] || [ -L "$DEST" ]; then
+  if [ -L "$DEST" ] || [ ! -d "$DEST" ]; then
+    echo "rehacer.sh: $DEST existe y no es una carpeta común. No toco nada." >&2
+    exit 1
+  fi
+  if [ ! -f "$DEST/$MARCA" ] && [ -n "$(ls -A "$DEST")" ]; then
+    echo "rehacer.sh: $DEST ya existe, tiene contenido y no tiene la marca $MARCA (no la armó este script). No toco nada." >&2
+    exit 1
+  fi
+else
+  mkdir -p "$DEST"
+fi
+printf 'Repos de prueba de vibe-kit (alfa, beta, gama y remotos/). Los regenera vibe-kit/pruebas/rehacer.sh; no se editan a mano.\n' > "$DEST/$MARCA"
+
+# --- limpiar lo de la corrida anterior (solo estas cuatro, adentro de DEST)
+for d in alfa beta gama remotos; do rm -rf "${DEST:?}/$d"; done
+mkdir -p "$DEST/remotos"
 
 # --- el molde del tag, a un temporal
 TMPD=$(mktemp -d)
@@ -107,7 +129,7 @@ git_pruebas() {
 }
 
 crear_repo() {   # $1 nombre · $2 qué es · $3 con código (si|no) · $4 salud
-  local x=$1 d="$AQUI/$1"
+  local x=$1 d="$DEST/$1"
   mkdir -p "$d/.claude/skills/inicio" "$d/.claude/skills/cierre" "$d/.claude/hooks" "$d/docs"
   git_pruebas init -q -b main "$d"
   git_pruebas -C "$d" config user.name "$IDENTIDAD_NOMBRE"
@@ -152,7 +174,7 @@ JS
 }
 
 escribir_ficha() {   # $1 nombre · $2 nivel · $3 con código (si|no); el cuerpo de cada ficha va por stdin (tras "vars")
-  local d="$AQUI/$1"
+  local d="$DEST/$1"
   local h_ini h_cie h_arr h_chk h_set
   h_ini=$(hash_de "$d" .claude/skills/inicio/SKILL.md)
   h_cie=$(hash_de "$d" .claude/skills/cierre/SKILL.md)
@@ -240,7 +262,7 @@ mesa:
 EOF
 
 con_remoto() {   # $1 nombre
-  local x=$1 d="$AQUI/$1" r="$AQUI/remotos/$1.git"
+  local x=$1 d="$DEST/$1" r="$DEST/remotos/$1.git"
   git_pruebas init -q --bare -b main "$r"
   git_pruebas -C "$d" remote add origin "$r"
   git_pruebas -C "$d" push -q -u origin main
@@ -270,8 +292,8 @@ vars:
 EOF
 
 for x in alfa beta gama; do
-  git_pruebas -C "$AQUI/$x" add -A
-  git_pruebas -C "$AQUI/$x" commit -q -m "ficha del kit (fixture)"
+  git_pruebas -C "$DEST/$x" add -A
+  git_pruebas -C "$DEST/$x" commit -q -m "ficha del kit (fixture)"
   con_remoto "$x"
 done
 
@@ -280,7 +302,7 @@ FALLOS=()
 IDENTIDAD_ESPERADA="$IDENTIDAD_NOMBRE|$IDENTIDAD_MAIL|$IDENTIDAD_NOMBRE|$IDENTIDAD_MAIL"
 declare -A T_NIVEL T_FICHA T_TESTS T_REMOTO
 for x in alfa beta gama; do
-  d="$AQUI/$x"
+  d="$DEST/$x"
   T_NIVEL[$x]="?"; T_FICHA[$x]="MAL"; T_TESTS[$x]="n/a"; T_REMOTO[$x]="MAL"
   T_NIVEL[$x]=$(cd "$d" && node "$FICHA" campo .claude/kit.md nivel 2>/dev/null) || T_NIVEL[$x]="?"
   if (cd "$d" && node "$FICHA" leer .claude/kit.md >"$TMPD/leer-$x.json" 2>"$TMPD/leer-$x.err"); then
@@ -324,4 +346,5 @@ if [ "${#FALLOS[@]}" -gt 0 ]; then
   echo "pruebas: FALLÓ — ${FALLOS[0]}"
   exit 1
 fi
+echo "repos de prueba en: $DEST"
 echo "pruebas: LISTO"

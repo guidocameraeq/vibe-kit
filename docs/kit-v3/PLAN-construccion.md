@@ -84,10 +84,6 @@ cuántos lanzó y en qué modelo (por ejemplo `4 Sonnet · 2 Opus`): es la medid
 
 Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (queda en el CHANGELOG).
 
-- **Paquete 1 · `pruebas/` adentro de vibe-kit carga el `CLAUDE.md` de los repos de prueba** (verificado por D1.1 el 2026-10-28: un Read
-  sobre `pruebas/alfa/suma.js` inyectó el `CLAUDE.md` de alfa en la sesión). Hoy se esquiva mirándolos por Bash (fila del mapa del
-  `CLAUDE.md`). **Falta**: decidir con Guido si `pruebas/` se queda adentro (y los directores siguientes lo saben) o se muda afuera del
-  repo; mirar también si carga sus skills `/inicio` y `/cierre`. Lo decide D2.1 al abrir, antes de que los repos de prueba crezcan.
 - **Paquete 1 · que un hook que lee una ficha rota frene** (SPEC-paquete-1, "Lo que se prueba más adelante"): el parser sale con 1;
   el freno se prueba en los órdenes 2 y 3, cuando existan los hooks.
 - **Paquete 1 · menor**: una ficha en Latin-1 da "valor inválido" (sin eco) en vez de "guardala en UTF-8". Se arregla si aparece en la flota.
@@ -171,6 +167,7 @@ Del spec, sección "Lo que hacés vos de nuevo". Acá solo cuándo toca, para qu
 |---|---|---|
 | 2026-10-27 | La construcción pasa de Sonnet a **Opus** | Decisión de Guido: es lo que define cómo se codea los próximos meses |
 | 2026-10-28 | **P3.2 (la zona propia) entra al orden 2**, y `pruebas/pedidos.md` pasa del orden 1 al 2 | P3.2 no tenía orden en el SPEC-0 y la necesitan `/inicio`/`/cierre` v3 y la exención de `candado:barreras`; `pedidos.md` lo usa `/inicio` v3 (P5.1). Decidido por Guido al sellar el delta del paquete 1 (D1.1) |
+| 2026-10-28 | **Los repos de prueba se mudan a `../vibe-kit-pruebas/`**, fuera del repo; `rehacer.sh` y `pedidos.md` se quedan en `pruebas/` | Adentro, leer un archivo suyo cargaba su `CLAUDE.md` (y, según la doc, sus skills `/inicio` y `/cierre`) en la sesión de vibe-kit, y una sesión abierta en un repo de prueba heredaba el `CLAUDE.md` de vibe-kit: las pruebas del hook del paquete 2 nacían sucias. Guido: "si molesta y no cambia nada, movelos" (D2.1) |
 | 2026-10-28 | **Un director Opus por paquete con subagentes** en vez de una sesión por paso: de ~18-21 sesiones a 13 directores; los encargos mecánicos vuelven a Sonnet | ADR-028: propuesta de Guido (un orquestador para todo el spec), acotada a uno por paquete |
 
 ## Lecciones (insumo de la misión 6)
