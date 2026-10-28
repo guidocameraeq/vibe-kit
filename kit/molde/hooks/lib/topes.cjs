@@ -1,6 +1,6 @@
 'use strict';
 // topes.cjs — los números del paquete 2, escritos una sola vez (B §5, §8, §9; G §21; SPEC-paquete-2 "Las librerías
-// compartidas"), y la revisión del handoff (P3.5). `revisarTopes(raiz)` llega con E4 (llama a inyeccion.armar).
+// compartidas"), y la revisión del handoff (P3.5) y de todos los topes de un checkout (`revisarTopes`, que llama a inyeccion.armar).
 // Node estándar, cero dependencias. Es .cjs a propósito: corre igual en proyectos con "type": "module".
 
 // ---------------------------------------------------------------- los números
@@ -141,7 +141,87 @@ function revisarHandoff(texto, nivel) {
   return fallas;
 }
 
+// ---------------------------------------------------------------- todos los topes de un checkout (candado:topes, B §14)
+
+// revisarTopes(raiz, {home, ahora}) → lista de fallas [{ id: 'candado:topes', tipo, archivo, mensaje }]; vacía = pasa.
+// tipo: 'handoff' (con `detalle` = el tipo de revisarHandoff) · 'ficha' · 'mapa' · 'inyeccion'.
+// Lo que inyectaría el hook se calcula llamando a inyeccion.armar (el mismo código del hook): falla si se pasa de 9.700 o si
+// algún documento no entra en su bloque y el hook lo tendría que cortar (el CORTADO es la red; el candado evita llegar a ella).
+// Los require son perezosos: inyeccion.cjs requiere este archivo (el ciclo, como en todo.cjs).
+function revisarTopes(raiz, opciones = {}) {
+  const fs = require('fs');
+  const path = require('path');
+  const fallas = [];
+  const falla = (tipo, archivo, mensaje, extra) => fallas.push({ id: 'candado:topes', tipo, archivo, mensaje, ...extra });
+  const leer = (rel) => {
+    try {
+      return fs.readFileSync(path.join(raiz, ...rel.split('/')));
+    } catch (e) {
+      return null;
+    }
+  };
+
+  // El nivel, de la ficha vigente (regla de 4.7); sin ficha o rota, no se exige la línea de Producción.
+  let nivel;
+  try {
+    const fv = require('./contexto.cjs').fichaVigente(raiz);
+    if (fv.estado === 'ok') nivel = fv.datos.nivel;
+  } catch (e) {
+    nivel = undefined;
+  }
+
+  // 1 · el handoff (5.000 bytes y sus secciones)
+  const h = leer('docs/SESSION_HANDOFF.md');
+  let handoffGrande = false;
+  if (h !== null) {
+    for (const f of revisarHandoff(h, nivel)) {
+      if (f.tipo === 'tamano') handoffGrande = true;
+      falla('handoff', 'docs/SESSION_HANDOFF.md', f.mensaje, { detalle: f.tipo });
+    }
+  }
+
+  // 2 · las fichas de módulo EN OBRA o PAUSADO (5.000 bytes)
+  const iny = require('./inyeccion.cjs');
+  let modulos = [];
+  try {
+    modulos = fs
+      .readdirSync(path.join(raiz, 'docs', 'modulos'), { withFileTypes: true })
+      .filter((d) => d.isDirectory())
+      .map((d) => d.name)
+      .sort();
+  } catch (e) {
+    modulos = [];
+  }
+  for (const x of modulos) {
+    const rel = `docs/modulos/${x}/README.md`;
+    const b = leer(rel);
+    if (b === null || !iny.datosFichaModulo(b.toString('utf8')).activo) continue;
+    if (b.length > FICHA_ACTIVA_BYTES) {
+      falla('ficha', rel, `${rel} está activa y pesa ${b.length} bytes; el tope es ${FICHA_ACTIVA_BYTES} — mandá la historia a la bitácora del módulo y dejá en la ficha el estado y lo que sigue`);
+    }
+  }
+
+  // 3 · MAPA.md (5.000 bytes; puede no existir)
+  const m = leer('docs/MAPA.md');
+  if (m !== null && m.length > MAPA_BYTES) {
+    falla('mapa', 'docs/MAPA.md', `docs/MAPA.md pesa ${m.length} bytes y el tope es ${MAPA_BYTES} — la arquitectura a fondo va a referencia/ARCHITECTURE.md; acá, una pantalla`);
+  }
+
+  // 4 · lo que inyectaría el hook
+  const r = iny.armar({ cwd: raiz, entrada: { cwd: raiz }, home: opciones.home, ahora: opciones.ahora });
+  if (r.texto.length > PRESUPUESTO) {
+    falla('inyeccion', null, `el hook inyectaría ${r.texto.length} caracteres y el tope es ${PRESUPUESTO} — achicá el handoff, el TODO en rojo y naranja o las fichas activas`);
+  } else {
+    const cortes = r.cortes.filter((c) => !(handoffGrande && c.que === 'el handoff'));
+    if (cortes.length) {
+      falla('inyeccion', null, `el hook tendría que cortar ${cortes.map((c) => `${c.que} (${c.ruta})`).join(', ')} — achicalo hasta que entre en su bloque (B §9), así la sesión arranca viéndolo entero`);
+    }
+  }
+  return fallas;
+}
+
 module.exports = {
+  revisarTopes,
   PRESUPUESTO,
   CORTE,
   BLOQUES,
