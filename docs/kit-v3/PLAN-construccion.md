@@ -44,7 +44,7 @@ director. **El director no edita código**: si se encuentra arreglando a mano, e
 | Paquete | Qué | Directores | Estado |
 |---|---|---:|---|
 | 0 | Misión 4½: ordenar la casa, `v2.4.3` | 1 | ✅ 2026-10-27 |
-| 1 | La ficha del kit, el parser, `kit/VERSION`, los repos de prueba | 1 | 🔨 delta sellado 2026-10-28 ([`SPEC-paquete-1.md`](SPEC-paquete-1.md)) |
+| 1 | La ficha del kit, el parser, `kit/VERSION`, los repos de prueba | 1 | ✅ 2026-10-28 ([`SPEC-paquete-1.md`](SPEC-paquete-1.md)) |
 | 2 | Documentos con tope, hook en node, candado, `cambios`, `/inicio` y `/cierre` v3, **la zona propia (P3.2)**, `pruebas/pedidos.md` | 2 | ⬜ |
 | 3 | Seguridad: corrector de secretos, barreras, hooks por PC, `doctor` mínimo | 1 | ⬜ |
 | 4 | El Arquitecto v3, el script `worktree`, el sello, `formato-spec.md` | 1 | ⬜ |
@@ -66,7 +66,7 @@ cuántos lanzó y en qué modelo (por ejemplo `4 Sonnet · 2 Opus`): es la medid
 
 | Director | Qué lleva | Fecha | Chat | Encargos | Commit | Resultado |
 |---|---|---|---|---|---|---|
-| D1.1 | Paquete 1 entero: spec delta (Guido sella), ficha, parser, `VERSION`, `pruebas/rehacer.sh` | | | | | |
+| D1.1 | Paquete 1 entero: spec delta (Guido sella), ficha, parser, `VERSION`, `pruebas/rehacer.sh` | 2026-10-28 | `vibe-kit M5 · D1.1 · Paquete 1: la ficha del kit y su parser` | 5 Sonnet · 1 Opus (revisor frío) | `68b75e1`…`16f7cb2` | ✅ Criterios 1-8 del delta verificados por el director; parser con 255 pruebas y 0 mutantes vivos en las reglas; el revisor frío cambió la gramática antes de congelarla (3 ALTOS) y Guido decidió `herramientas` aparte |
 | D2.1 | Paquete 2, primera mitad: spec delta + red team, `docs/` en capas, handoff y TODO con tope, hook node | | | | | |
 | D2.2 | Paquete 2, segunda mitad: candado, `cambios` base y su sello, la zona propia (P3.2), `/inicio` y `/cierre` v3 con `pedidos.md`, revisor frío | | | | | |
 | D3.1 | Paquete 3: spec delta + red team (obligatorio), corrector, barreras, hooks por PC, `doctor` mínimo | | | | | |
@@ -84,7 +84,13 @@ cuántos lanzó y en qué modelo (por ejemplo `4 Sonnet · 2 Opus`): es la medid
 
 Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (queda en el CHANGELOG).
 
-- *(vacío)*
+- **Paquete 1 · `pruebas/` adentro de vibe-kit carga el `CLAUDE.md` de los repos de prueba** (verificado por D1.1 el 2026-10-28: un Read
+  sobre `pruebas/alfa/suma.js` inyectó el `CLAUDE.md` de alfa en la sesión). Hoy se esquiva mirándolos por Bash (fila del mapa del
+  `CLAUDE.md`). **Falta**: decidir con Guido si `pruebas/` se queda adentro (y los directores siguientes lo saben) o se muda afuera del
+  repo; mirar también si carga sus skills `/inicio` y `/cierre`. Lo decide D2.1 al abrir, antes de que los repos de prueba crezcan.
+- **Paquete 1 · que un hook que lee una ficha rota frene** (SPEC-paquete-1, "Lo que se prueba más adelante"): el parser sale con 1;
+  el freno se prueba en los órdenes 2 y 3, cuando existan los hooks.
+- **Paquete 1 · menor**: una ficha en Latin-1 da "valor inválido" (sin eco) en vez de "guardala en UTF-8". Se arregla si aparece en la flota.
 
 ## NO VERIFICADO, para tachar
 
@@ -169,6 +175,14 @@ Del spec, sección "Lo que hacés vos de nuevo". Acá solo cuándo toca, para qu
 
 ## Lecciones (insumo de la misión 6)
 
+- 2026-10-28 · **D1.1: el sello no alcanzó para congelar un formato.** Guido selló el delta y el revisor frío encontró después que la
+  gramática no podía escribir dos cosas que los diseños ya habían decidido (el `deny` por su texto de F §14, las herramientas del SPEC-0) y
+  que el ejemplo, copiado, sacaba frenos. Para lo que se congela (formatos que viajan a la flota), el delta tiene que cruzar **cada campo
+  contra los diseños que lo citan** antes del sello, o pasar el revisor frío antes del sello y no después.
+- 2026-10-28 · D1.1: **la prueba de mutación** (borrar una regla y ver si alguna prueba se pone roja) encontró que 15 de 21 reglas no tenían
+  prueba propia aunque la suite daba 85 en verde. Vale como chequeo del director para todo parser o corrector del kit.
+- 2026-10-28 · D1.1: los encargos en Sonnet salieron bien a la primera en lo mecánico; las fallas fueron de diseño (del delta), no de
+  código. El revisor frío en Opus fue el encargo más caro y el que más valió.
 - 2026-10-28 · Construir el kit con director y subagentes es un ensayo de lo que el kit v3 diseña (D): lo que moleste acá se anota
   como lección antes del piloto.
 - 2026-10-27 · La misión 4½ arrancó en Fable y pasó a Opus al empezar a ejecutar: las decisiones ya estaban escritas.

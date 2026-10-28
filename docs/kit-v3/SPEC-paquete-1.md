@@ -1,7 +1,7 @@
 # SPEC delta: paquete 1 — la ficha del kit, su parser, `kit/VERSION` y los repos de prueba — vibe-kit
 Cada repo va a poder decir qué versión del método tiene y cómo lo adaptó, en un archivo que un script lee sin librerías; y el kit
 gana tres repos de prueba que se rehacen solos, para probar todo lo que viene.
-- Estado: READY (sellado por Guido, 2026-10-28)
+- Estado: ✅ IMPLEMENTADO 2026-10-28 (sellado por Guido ese día; construido por D1.1 con 5 encargos Sonnet y el revisor frío Opus)
 - Fecha: 2026-10-28
 - Misión: 5, director D1.1 (`vibe-kit M5 · D1.1 · Paquete 1: la ficha del kit y su parser`)
 - Plano: [`SPEC-0-kit-v3.md`](SPEC-0-kit-v3.md), orden 1 = **P3.1 + P2.1 + `pruebas/rehacer.sh`**. Diseño: E §4 y §8, F §9 y §14, G §12 y §15, H §4.

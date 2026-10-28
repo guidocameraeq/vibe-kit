@@ -2,6 +2,34 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-28 — Misión 5, paquete 1 ✅: la ficha del kit, su parser, `kit/VERSION` y los repos de prueba (D1.1)
+
+PC `clientes`, chat `vibe-kit M5 · D1.1 · Paquete 1: la ficha del kit y su parser`, en Opus. Primer director de la misión 5 (ADR-028):
+spec delta sellado por Guido, 5 encargos Sonnet, revisor frío Opus. Sin tag: `kit/VERSION` sigue en `2.4.3`.
+
+**Added**
+- `docs/kit-v3/SPEC-paquete-1.md` (✅ IMPLEMENTADO): la gramática cerrada de la ficha, lo que valida, los encargos y "Lo que cambió en la
+  construcción".
+- `kit/molde/kit.ejemplo.md` (la forma de la ficha y su caso de prueba, no una plantilla para copiar) y `kit/molde/hooks/lib/ficha.cjs`
+  (parser en node estándar, `.cjs` para que corra en proyectos ESM; `leer`, `campo`, `hash`, `version`; salidas 0·1·2·3·4) con
+  `ficha.test.cjs`: **255 pruebas** y 0 mutantes vivos en las reglas.
+- `kit/VERSION` (`2.4.3`) y `kit/CHANGELOG.md` (el del kit, con la nota de migración por versión que leerá el actualizador).
+- `pruebas/rehacer.sh`: arma `alfa` (estandar), `beta` (liviano) y `gama` (estandar) desde el molde de `v2.4.2`, con ficha `kit: 2.4.2`,
+  remoto `bare` y `origin/HEAD`; identidad y fechas fijas (dos corridas, mismos SHAs); guardia antes de borrar. `pruebas/` ignorado salvo
+  el script y `pedidos.md`.
+
+**Changed**
+- `kit-sync.sh` y el "actualizate" del Equipador copian `VERSION` a `~/.claude/`.
+- Tras el revisor frío (3 ALTOS): el `id` de un freno quitado acepta una regla `deny` por su texto (F §14); **las herramientas van en un
+  campo aparte, `herramientas.<nombre>: {chequeo, necesita-guido}`, que cada entorno nombra (decisión de Guido)**; una clave desconocida
+  en un submapa avisa en vez de frenar; ningún error repite un valor; el ejemplo dejó de sugerirse como plantilla.
+- Plan: **P3.2 (zona propia) y `pruebas/pedidos.md` pasan al orden 2** (decisión de Guido al sellar). Notas con fecha en E §4 y F §9; el
+  mapa del `CLAUDE.md` suma `pruebas/` y `kit/VERSION`·`kit/CHANGELOG.md`.
+
+**Verificado y pendiente**
+- Verificado: leer un archivo de `pruebas/alfa/` carga su `CLAUDE.md` en la sesión. Va a "Pendientes" del tracker para que D2.1 lo decida
+  con Guido; mientras, el mapa dice que se miren por Bash.
+
 ## 2026-10-28 — Misión 5, antes de empezar: un director por paquete (ADR-028)
 
 PC `clientes`, mismo chat que la misión 4½. Guido propuso un orquestador Opus que gestione todo el spec con subagentes; se acotó a uno por
