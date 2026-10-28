@@ -61,6 +61,8 @@ charla diseñó algo no-trivial.
 | `PLAYBOOK-MAESTRO.md` | EL método (multi-proyecto) | Se toca solo con evidencia nueva |
 | `kit/skills/arquitecto-skills/menu-skills.md` | El menú curado + sus descartes de skills | Descartes de SKILLS van acá, no en REJECTED |
 | `kit/skills/relevamiento/plantillas/_fuente/` | Las 4 plantillas del método, **de Guido, aprobadas por su jefe** — la versión aprobada | **Prístinas: NUNCA se editan**, ni un typo. Solo se pisan con una versión nueva aprobada; `git diff _fuente/` muestra el cambio, limpio. Ritual: `plantillas/SYNC.md`. Los `{{LINEAS:N}}` NO son placeholders del kit |
+| `kit/VERSION` · `kit/CHANGELOG.md` | La versión del kit (= último tag) · su historia por versión con la nota de migración que lee el actualizador | `VERSION` se sube en el commit del tag; `docs/CHANGELOG.md` sigue siendo la historia de sesiones |
+| `pruebas/` | Los repos de prueba del kit (alfa, beta, gama + remotos), regenerados por `pruebas/rehacer.sh` | Ignorado por git salvo `rehacer.sh` y `pedidos.md`; **nunca se editan a mano**. Mirarlos por Bash, no con Read: leer un archivo de adentro carga su `CLAUDE.md` en la sesión |
 | `tips/tanda-*.md` | Actas del observatorio (tips y chats) | Actas: no se reescriben. Las rutas viejas que citan se leen con la tabla del ADR-023 |
 | `observatorio/` | Extractor + investigación: miran y proponen | Un observador nuevo = subcarpeta acá, con el mismo contrato |
 | `LICENSE` · `NOTICE` | MIT pura (así GitHub la reconoce) · la exclusión del texto de FyD | La exclusión va en `NOTICE`, nunca dentro de `LICENSE` |

@@ -164,6 +164,8 @@ multi-llm: no              # si es "sí", se genera AGENTS.md desde el CLAUDE.md
 
 *Nota de H (2026-10-25): `nivel:` toma **dos valores, en ASCII**: `liviano` (sin código) y `estandar` (con código, incluidos los proyectos personales, que conservan toda la red de F); **"largo" no se escribe**: lo calcula el script de `piezas.director-obrero`, que el Arquitecto instala al abrir el primer módulo con director. `vars:` suma **`comando-setup`** (lo que corre el script `worktree` al crear un worktree: instalar dependencias). Y el campo `nivel:` de cada entorno de F §9 pasa a llamarse `clase:` para que la ficha no tenga dos `nivel:` ([DISENO-H](DISENO-H-niveles-y-puertas.md) §4, §10.2).*
 
+*Nota de la misión 5, paquete 1 (2026-10-28, [SPEC-paquete-1](../kit-v3/SPEC-paquete-1.md)): la cabecera se fijó contra `kit/molde/kit.ejemplo.md` con una gramática cerrada (mapas hasta tres niveles, listas `[a, b]`, listas de mapas en línea, comillas dobles sin escapes; lo demás da error con línea). **Todo valor es texto** (`no` no es "falso"). El **hash** es sha256 con LF, 12 hexa. El estado con desvío se escribe entre comillas: `"adaptada (desvío detectado)"`. Un campo de arriba desconocido **avisa, no frena**. El parser es `ficha.cjs` y en cada proyecto vive en `.claude/hooks/lib/`, bajo los mismos candados que los hooks. `entornos:` es mapa por nombre (como ya decía el SPEC-0).*
+
 ## 5. La zona propia (decisión 2)
 
 | Dónde | Cómo se marca |

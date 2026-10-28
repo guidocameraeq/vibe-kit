@@ -39,6 +39,7 @@ El plano de la misión 5 y todo lo que se escriba para construirlo. Los specs de
 |---|---|
 | [`kit-v3/SPEC-0-kit-v3.md`](kit-v3/SPEC-0-kit-v3.md) | **El kit v3, el pack** (misión 4, tramo 5; **READY** el 2026-10-27, tras 3 rondas de red team y revisor frío): nueve paquetes con su estado en la ficha, scripts y candados, el orden de construcción de la misión 5, la medición, "Lo que hacés vos de nuevo" y lo NO VERIFICADO con su cuándo. En su carpeta de versión, con la [guía](kit-v3/GUIA-KIT-V3.md); los specs delta de la misión 5 van al lado (`SPEC-paquete-N.md`) |
 | [`kit-v3/GUIA-KIT-V3.md`](kit-v3/GUIA-KIT-V3.md) | La guía del kit v3: el repaso charlado con Guido (2026-10-27), cinco partes en el orden de su workflow, con lo medido. Junto al spec del kit v3 |
+| [`kit-v3/SPEC-paquete-1.md`](kit-v3/SPEC-paquete-1.md) | Spec delta del paquete 1 (sellado por Guido el 2026-10-28): la ficha del kit y su gramática cerrada, el parser `ficha.cjs`, `kit/VERSION` y `pruebas/rehacer.sh`, con sus encargos |
 | [`kit-v3/PLAN-construccion.md`](kit-v3/PLAN-construccion.md) | **El tracker de la misión 5**: el estado por paquete, una fila por director (ADR-028), los pendientes, los NO VERIFICADO y los 20 criterios para tachar. Cada sesión de la misión 5 lo lee al abrir y lo actualiza al cerrar |
 
 ## La misión 4, el diseño del pack — [`mision-4/`](mision-4/)
