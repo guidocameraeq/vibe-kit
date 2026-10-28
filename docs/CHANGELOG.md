@@ -2,6 +2,37 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-28 — Misión 5, paquete 2, primera mitad ✅: docs en capas, handoff y TODO con tope, hook de arranque en node y hook de escritura (D2.1)
+
+PC `clientes`, chat `vibe-kit M5 · D2.1 · Paquete 2, primera mitad: docs en capas, handoff y TODO con tope, hook node`, en Opus.
+Segundo director de la misión 5: spec delta redactado por un subagente, tres rondas de red team, sellado por Guido; 4 encargos Sonnet y
+7 Opus. Sin tag: `kit/VERSION` sigue en `2.4.3`. Todo lo nuevo vive en `kit/molde/` y todavía no se instala en ningún proyecto.
+
+**Added**
+- `docs/kit-v3/SPEC-paquete-2.md` (READY, sellado "tal cual"; D2.1 ✅): partido en D2.1 y D2.2, con 22 cruces contra los diseños y tres
+  rondas de red team (4 ALTOS cerrados: sello falsificable, `carpeta` absoluta, exención que se certificaba sola, `aprobar` mezclado).
+- `kit/molde/docs/` en cuatro capas (NORTE, MAPA, README, CHANGELOG, SESSION_HANDOFF con secciones fijas, TODO, `referencia/`), el
+  `CLAUDE.md` mínimo del molde, `gitignore.snippet` y `gitattributes.snippet`, y el runbook `manuales/se-filtro-una-credencial.md`.
+- `kit/molde/hooks/lib/`: `git`, `contexto` (con `fichaVigente` y la regla 4.7), `arbol`, `topes` (con `revisarTopes`), `frenos-log`,
+  `todo`, `inyeccion`; y `scripts/todo.cjs cierre` (`TODO: +n −m · k ítems · j bajaron a 🟢`).
+- `kit/molde/hooks/session-start.cjs`: el hook de arranque en node, sin `.sh`, con presupuesto de 9.700, tope por bloque, CORTADO,
+  edades y "estado viejo", por pestaña (director, encargo, `main`), marca de sesión y huella `inyectado: N de 9.700`. **Plazo propio de
+  10 s** (E4b): medido, tardaba 10-24 s con la PC cargada contra un `timeout` de 20.
+- `kit/molde/hooks/escritura-docs.cjs` (`PreToolUse` sobre `Write`) y `kit/molde/settings.json` con los dos hooks. Medido contra los
+  5.007 `Write` de esta PC: 0 frenadas sobre los seis archivos y las tres carpetas.
+- `pruebas/rehacer.sh`, paso `molde v3 orden 2`: `alfa` y `beta` con el molde nuevo y el settings mezclado; `gama` sigue en `2.4.2`.
+
+**Changed**
+- Los repos de prueba se mudan a `../vibe-kit-pruebas/` (decisión de Guido): adentro cargaban su `CLAUDE.md` en la sesión de vibe-kit.
+- Tracker: la sesión intermedia **DP** (planear la paralelización, pedido de Guido) antes de D2.2, y la sección "Paralelizar".
+- Notas con fecha en B §9 (9.700, `.cjs` directo, el plazo), F §5 (la `ask` de `cambios aprobar`) y SPEC-0 (repos afuera, P4.4);
+  piezas 3.3, 3.5, 3.6, 3.9, 4.1 y 4.2 del SPEC-0 marcadas ✅.
+
+**Verificado y pendiente**
+- Suite: **496 pruebas verdes**. Mutación por encargo 87/87, 82/82, 88/91, 28/30, 35/35; control del director 6/6. `rehacer.sh` dos
+  veces, mismos SHAs (alfa `894139e`, beta `715d541`, gama `982a231`); criterio 12 verificado por el director. `kit-sync` LIMPIO.
+- Pendiente: las filas 1-7 de "Lo prueba una sesión real" (en el tracker) y lo de "Paquete 2 · para D2.2".
+
 ## 2026-10-28 — Misión 5, paquete 1 ✅: la ficha del kit, su parser, `kit/VERSION` y los repos de prueba (D1.1)
 
 PC `clientes`, chat `vibe-kit M5 · D1.1 · Paquete 1: la ficha del kit y su parser`, en Opus. Primer director de la misión 5 (ADR-028):

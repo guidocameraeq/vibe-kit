@@ -247,6 +247,8 @@ leer sin librerías**: node no trae YAML; F y E definen el subconjunto (o frontm
 **Presupuesto total: 9.500 caracteres** (500 de margen bajo el corte; un emoji cuenta 2 en JS y cómo cuenta la plataforma es NO
 VERIFICADO, el margen lo cubre). Suma en el peor caso, **con** un módulo activo:
 
+*Nota de la misión 5, paquete 2 (2026-10-28, [SPEC-paquete-2](../kit-v3/SPEC-paquete-2.md), Cruces 2, 3, 5 y 6): el presupuesto es **9.700** (el de la tabla recalculada; 10.000 es el corte de la plataforma), también en §14 y en la tabla de medición; la huella es la última línea, `inyectado: N de 9.700`. El hook es **`.claude/hooks/session-start.cjs` llamado directo con node**, sin el `.sh` de una línea (sumaba Git Bash, NO VERIFICADO en Windows), y el candado, `estructura.cjs`. El recorte es **por bloque**, con lo propio el primero en caer. Y el hook tiene **un plazo propio de 10 s** para sus consultas a git (con la PC cargada llegó a 10-24 s contra el `timeout` de 20): lo que no entra sale "sin datos" y un renglón `arranque lento` lo dice.*
+
 | Bloque | Tope | De dónde |
 |---|---|---|
 | Cabecera: proyecto · rama · versión del kit y **"hay kit nuevo / esta PC está atrás"** (E §8) · nivel · modo de permisos · fecha y commit del handoff | 250 | La ficha del kit (E §4), E §8, F §15, git |

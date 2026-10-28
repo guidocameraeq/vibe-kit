@@ -86,6 +86,8 @@ de verdad en bypass, y `Get-Content .env` contra el `deny`.
 En el `settings.json` del molde, que viaja por git. **Solo archivos**; sin ninguna regla `ask` (preguntar es solo
 para las 5 cosas del [racimo A](DISENO-A-frenos.md) §2) y sin reglas `Bash(...)` (lo de git es un hook, §6).
 
+*Nota de la misión 5, paquete 2 (2026-10-28, [SPEC-paquete-2](../kit-v3/SPEC-paquete-2.md), Cruces 19): hay **una** `ask` en el molde, sobre `cambios aprobar` (SPEC-0 6.8a, RF-3; decisión de Guido del 2026-10-27). Es la única excepción a "sin ninguna `ask`".*
+
 ```json
 "permissions": {
   "deny": [

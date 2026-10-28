@@ -1,7 +1,7 @@
 # SPEC delta: paquete 2 — documentos con tope, hook en node, candado, `cambios`, zona propia, `/inicio` y `/cierre` v3 — vibe-kit
 Cada proyecto arranca viendo un estado que no miente (con edad y huella), no puede tirar archivos sueltos en `docs/`, cierra con un
 candado que dice qué arreglar, y ningún freno se quita sin el clic de Guido.
-- Estado: READY (sellado por Guido el 2026-10-28)
+- Estado: READY (sellado por Guido el 2026-10-28) · **D2.1 ✅ IMPLEMENTADO 2026-10-28** (ver "Lo que cambió en la construcción") · D2.2 pendiente
 - Fecha: 2026-10-28
 - Misión: 5, directores **D2.1** (este delta y la primera mitad) y **D2.2** (la segunda mitad y el revisor frío del paquete)
 - Plano: [`SPEC-0-kit-v3.md`](SPEC-0-kit-v3.md), orden 2 = **P3.3, P3.5, P3.6, P3.9, P3.10, P4.1, P4.2, P6.1, P6.8a, P5.1, P5.2**, más
@@ -310,6 +310,7 @@ E1 y E2 en paralelo (no comparten archivos), cada uno en su worktree; el resto e
 | 4 | Pestaña en un worktree `modulo/x--01` armado a mano | La ruta del encargo, y nada del handoff |
 | 5 | `alfa`, una sesión que lanza un subagente | Si E0 no concluyó: la huella una sola vez en el transcript |
 | 6 | Modo `default`, con `node .claude/scripts/prueba.cjs` en `allow` | Si E0 no concluyó: si aparece **la pregunta de carpeta protegida** (no la de Bash) en `.claude/` y en `.claude/worktrees/w1/.claude/` |
+| 7 | `alfa`, con la PC cargada (otra sesión corriendo pruebas) | Que la sesión arranque **con** lo inyectado (el `timeout` es 20 s; el plazo propio, 10 s) y, si el plazo actuó, el renglón `arranque lento: …` antes de la huella |
 
 ## Cruces contra los diseños (la lección de D1.1)
 
@@ -375,6 +376,20 @@ E1 y E2 en paralelo (no comparten archivos), cada uno en su worktree; el resto e
 - Que todo hook que niega frene con ficha rota, y 4.7 en VS Code y Windows sin Git Bash: orden 3. `barreras` en el pre-commit: orden 3.
 - `.kit-rol` escrito por `worktree`: orden 4 (acá, a mano). `candado:mesa`, P3.4 completa, "estado viejo" sin `rama:`, crear el módulo
   desde `/cierre`, `.kit-noche`: orden 5. La portada en `candado:raiz`: orden 7. Los topes con el mes: piloto.
+
+## Lo que cambió en la construcción (D2.1, 2026-10-28)
+
+- **Plazo propio del hook de arranque (E4b, no estaba en el delta).** Medido por el director: 15 consultas a git de ~250 ms cada una;
+  4 s con la PC tranquila, 8,5 s en frío y **10-24 s con la PC cargada**, contra `timeout: 20` (si lo mata, la sesión arranca sin nada).
+  `lib/git.cjs` suma `fijarPlazo`; el hook se da **10 s** desde que arranca: lo que no entra sale "sin datos" (no "no hay"), lo propio
+  corre al final y un renglón `arranque lento: N consultas a git salteadas por tiempo (corré doctor si se repite)` va antes de la huella.
+  `KIT_PLAZO_ARRANQUE_MS` lo cambia **solo para pruebas y mediciones**. Fila 7 de "Lo prueba una sesión real".
+- **El hook de escritura no llama a git si la ruta no nombra `docs`**, y lee la ficha solo si la ruta frenaría: un `Write` común cuesta
+  cero o un git. **Medido** (los `~/.claude/projects/**/*.jsonl` de `clientes`): 5.007 `Write`, 185 en `docs/`, 112 frenaría (74 rutas,
+  todas de repos de antes del árbol: Hermes mobile 43, spec 25, Hermes.exe 22, vibe-kit 13, otros 9), **0 sobre los seis y las tres**.
+- **`rehacer.sh`**: `hook-escritura: molde` va sin hash (como `kit.ejemplo.md`); el hash de `settings` es el del archivo ya mezclado;
+  `CLAUDE.md` y `docs/{SESSION_HANDOFF,TODO,CHANGELOG}.md` v2 se pisan con los del molde y `session-start.sh` se borra. Corrido desde un
+  worktree, la carpeta hermana cae adentro de `.claude/worktrees/`: pendiente para F7 (D2.2).
 
 ## Red team (Opus, `redteam-spec`; los informes, al repo privado)
 

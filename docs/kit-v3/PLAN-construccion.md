@@ -45,7 +45,7 @@ director. **El director no edita código**: si se encuentra arreglando a mano, e
 |---|---|---:|---|
 | 0 | Misión 4½: ordenar la casa, `v2.4.3` | 1 | ✅ 2026-10-27 |
 | 1 | La ficha del kit, el parser, `kit/VERSION`, los repos de prueba | 1 | ✅ 2026-10-28 ([`SPEC-paquete-1.md`](SPEC-paquete-1.md)) |
-| 2 | Documentos con tope, hook en node, candado, `cambios`, `/inicio` y `/cierre` v3, **la zona propia (P3.2)**, `pruebas/pedidos.md` | 2 | ⬜ |
+| 2 | Documentos con tope, hook en node, candado, `cambios`, `/inicio` y `/cierre` v3, **la zona propia (P3.2)**, `pruebas/pedidos.md` | 2 | 🔨 D2.1 ✅ 2026-10-28; falta D2.2 ([`SPEC-paquete-2.md`](SPEC-paquete-2.md)) |
 | 3 | Seguridad: corrector de secretos, barreras, hooks por PC, `doctor` mínimo | 1 | ⬜ |
 | 4 | El Arquitecto v3, el script `worktree`, el sello, `formato-spec.md` | 1 | ⬜ |
 | 5 | Director/obrero, `/estado`, resumen del día, la mesa, subagentes | 2 | ⬜ |
@@ -67,7 +67,7 @@ cuántos lanzó y en qué modelo (por ejemplo `4 Sonnet · 2 Opus`): es la medid
 | Director | Qué lleva | Fecha | Chat | Encargos | Commit | Resultado |
 |---|---|---|---|---|---|---|
 | D1.1 | Paquete 1 entero: spec delta (Guido sella), ficha, parser, `VERSION`, `pruebas/rehacer.sh` | 2026-10-28 | `vibe-kit M5 · D1.1 · Paquete 1: la ficha del kit y su parser` | 5 Sonnet · 1 Opus (revisor frío) | `68b75e1`…`16f7cb2` | ✅ Criterios 1-8 del delta verificados por el director; parser con 255 pruebas y 0 mutantes vivos en las reglas; el revisor frío cambió la gramática antes de congelarla (3 ALTOS) y Guido decidió `herramientas` aparte |
-| D2.1 | Paquete 2, primera mitad: spec delta + red team, `docs/` en capas, handoff y TODO con tope, hook node | | | | | |
+| D2.1 | Paquete 2, primera mitad: spec delta + red team, `docs/` en capas, handoff y TODO con tope, hook node | 2026-10-28 | `vibe-kit M5 · D2.1 · Paquete 2, primera mitad: docs en capas, handoff y TODO con tope, hook node` | 4 Sonnet (mudanza, E1, E3, E6) · 7 Opus (redactor del delta, red team ×3 rondas, E0, E2, E4, E4b, E5) | `cf21f40`…`ab64c22` y el cierre | ✅ Criterios 1-15 del delta; suite **496 verde**; mutación por encargo 87/87 · 82/82 · 88/91 · 28/30 · 35/35 y control del director 6/6. **E4b** (fuera del delta): el hook de arranque tardaba 10-24 s con la PC cargada contra un `timeout` de 20 → plazo propio de 10 s. Hook de escritura medido: 5.007 `Write`, 0 frenadas sobre los seis y las tres |
 | **DP** | **Sesión intermedia (pedido de Guido, 2026-10-28): planear la paralelización** de lo que queda (ver "Paralelizar", abajo) y dejarla escrita acá antes de abrir D2.2 | | | | | |
 | D2.2 | Paquete 2, segunda mitad: candado, `cambios` base y su sello, la zona propia (P3.2), `/inicio` y `/cierre` v3 con `pedidos.md`, revisor frío | | | | | |
 | D3.1 | Paquete 3: spec delta + red team (obligatorio), corrector, barreras, hooks por PC, `doctor` mínimo | | | | | |
@@ -102,6 +102,11 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
 
 - **Paquete 1 · que un hook que lee una ficha rota frene** (SPEC-paquete-1, "Lo que se prueba más adelante"): el parser sale con 1;
   el freno se prueba en los órdenes 2 y 3, cuando existan los hooks.
+- **Paquete 2 · para D2.2** (de la construcción de D2.1): (a) `hook-escritura: molde` va sin hash en la ficha, como el ejemplo: si el
+  actualizador tiene que ver desvíos de esa pieza, pasa a `{estado, hash}`; (b) el hash de `settings` es el del archivo ya mezclado: lo
+  rehace P3.2 (zona propia); (c) `rehacer.sh` corrido desde un worktree arma la carpeta hermana adentro de `.claude/worktrees/`: que la
+  calcule desde el checkout principal (F7); (d) `KIT_PLAZO_ARRANQUE_MS` estira o achica el plazo del hook (solo pruebas): que `doctor`
+  avise si está puesta (orden 3 o 6).
 - **Paquete 1 · menor**: una ficha en Latin-1 da "valor inválido" (sin eco) en vez de "guardala en UTF-8". Se arregla si aparece en la flota.
 
 ## NO VERIFICADO, para tachar
@@ -110,6 +115,7 @@ El detalle y cómo se prueba cada uno, en la sección "NO VERIFICADO" del spec. 
 si falla, se anota qué pasó y va a "Pendientes".
 
 **En la construcción** (los prueba la sesión del paquete):
+- [ ] Orden 2 · **Las filas 1-7 de "Lo prueba una sesión real" del SPEC-paquete-2** (pestaña nueva en `alfa`: huella, CORTADO, `docs/notas.md` frenado sin pop-up, worktree de encargo, y la 7: que con la PC cargada el hook entre en su `timeout`). Las hace D2.2 al abrir, o Guido
 - [ ] Orden 2 · Que una escritura por script de node a `.claude/` no pregunte de día, también dentro de `.claude/worktrees/` — **E0 de D2.1,
   2026-10-28, `claude.exe` 2.1.309 en `-p`**: en `default` y `acceptEdits`, desde la raíz y desde `.claude/worktrees/w1/`, el script
   escribió y el control (`Write` directo a `.claude/`) quedó negado ("sensitive file") → **pasa; `.kit/` no hace falta**. En `auto` el
@@ -195,6 +201,11 @@ Del spec, sección "Lo que hacés vos de nuevo". Acá solo cuándo toca, para qu
 - 2026-10-28 · **D2.1: el director no sabe cuánto contexto lleva.** Propuso cerrar "por pasar la mitad" con 26% usado (lo vio Guido en la
   app). La regla de "Límites" necesita una medida, no una impresión: hasta que exista el script `contexto` (P6.4, orden 5), el director
   **le pregunta a Guido el % que muestra la app** antes de cortar por contexto.
+- 2026-10-28 · **D2.1: dos encargos Opus en paralelo tardaron ~75 min cada uno**: la suite entera (5 min sola)
+  y la mutación de los dos se pisan en la misma PC (el archivo de pruebas del hook de escritura tardó de 85 a 330 s según la carga). Paralelizar encargos que corren suites largas no rinde el doble; **para DP**:
+  dos directores en la misma PC compiten igual, y uno por PC (las dos PCs de Guido) puede rendir más.
+- 2026-10-28 · **D2.1: el director midió antes de aceptar.** El informe de E4 decía "~2 s"; medido con una traza de los git, eran 15
+  llamadas de ~250 ms y 10-24 s bajo carga. El arreglo (el plazo, E4b) salió de la medición, no del informe.
 - 2026-10-28 · D2.1: el spec delta lo redactó un subagente Opus y el director lo revisó: el director quedó con contexto para seguir. El red
   team en tres rondas, retomando el mismo subagente, encontró 4 ALTOS (2 por ronda) en lo que congela formato; la ronda 3 dio 0.
 
