@@ -33,6 +33,7 @@
 - ADR-025 · La hoja de ruta reordenada: el diseño cierra sin mensajería (v3.0), el ciclo en la misión 6, la mensajería es v3.1; lo crudo al research (2026-10-26)
 - ADR-026 · El registro de cambios de método es pieza del canon: por proyecto, en archivos chicos, clase 2 con diff; sube al kit por el ciclo con 3+ o cicatriz (2026-10-26)
 - ADR-027 · El OK de Guido a un cambio de barrera es el clic en la ventana de permiso, con tres candados; no una línea en la terminal (2026-10-27)
+- ADR-028 · La misión 5 se construye con un director Opus por paquete que reparte encargos a subagentes; no un orquestador para todo el spec (2026-10-28)
 
 *Cada ADR nuevo suma su línea acá (lo pide `/cierre`).*
 
@@ -600,3 +601,27 @@ nadie se la había planteado (RF-3).
 - **Costo aceptado:** un obrero que a propósito salga de su carpeta, entre a la principal y llame al script por otro camino en un modo con ventana;
   deja rastro (commit en `main` que no vino de un merge del director → PARADA del despertador; el OK en el resumen del día) y se ve al día siguiente,
   no antes. NO VERIFICADO (orden 2 del spec): que el script lea bien la marca de rol desde cualquier forma de llamarlo.
+
+## ADR-028 · La misión 5 se construye con un director Opus por paquete que reparte encargos a subagentes; no un orquestador para todo el spec (2026-10-28)
+Después de cerrar la misión 4½, con el tracker de la misión 5 armado (~18-21 sesiones, una por paso), Guido propuso un implementador:
+una sola sesión orquestadora en Opus que parta el spec, lance subagentes Opus o Sonnet según la tarea, no ejecute nada ella misma y
+gestione toda la construcción.
+- **Decisión (de Guido, con la recomendación de la sesión):** **un director Opus por paquete**, no uno para todo. Abre leyendo el tracker
+  y la parte del spec de su paquete; escribe el spec delta y frena para el sello; lanza el red team; parte el paquete en encargos con
+  archivos permitidos, prueba y NO SE TOCA; los encargos mecánicos van en Sonnet y los de hooks, seguridad y permisos en Opus; **lee cada
+  diff y corre las pruebas él**; lanza el revisor frío; cierra con `/cierre`. Dos directores en los paquetes 2 y 5. De ~18-21 sesiones a
+  13 directores. El cómo vive en `docs/kit-v3/PLAN-construccion.md`.
+- **Por qué no uno para todo el spec:** (1) el orquestador se llena igual: no ejecuta, pero recibe cada informe y revisa cada diff, y con
+  diez paquetes compacta varias veces y pierde lo decidido antes; (2) el resumen de un subagente no es evidencia y revisarlo bien cuesta
+  contexto; (3) los cortes de Guido (sellos de los deltas 1-3, decisiones del red team) lo dejarían días esperando, y un corte del chat
+  pierde todo; (4) los paquetes dependen uno del otro, así que el paralelismo sirve adentro de un paquete y no entre paquetes; (5) hay
+  pruebas que un subagente no puede hacer (un chat nuevo para ver el hook, un pop-up de VS Code, la segunda PC).
+- **Por qué sí por paquete:** el contexto queda acotado y el tracker es la memoria entre directores; Opus queda donde hace falta criterio
+  y Sonnet en lo mecánico; Guido decide en los bordes de cada paquete; y es un ensayo del director/obrero que el kit v3 diseña (D): lo
+  que moleste se anota antes del piloto.
+- **Descartado:** *un orquestador para todo el spec* (los cinco motivos de arriba) · *una sesión por paso sin subagentes* (el tracker del
+  2026-10-27: el doble de sesiones, todo en Opus, sin ensayar el método).
+- **Costo aceptado:** un subagente no lanza otros ni le pregunta a Guido, así que todo lo que necesite una decisión vuelve al director; las
+  pruebas de sesión real quedan como pendientes para el director siguiente o para Guido. **NO VERIFICADO** (se mide en el tracker, columna
+  "Encargos"): cuántos encargos entran en un director antes de llegar a la mitad del contexto, y si el ahorro de Sonnet compensa los
+  encargos que haya que rehacer.

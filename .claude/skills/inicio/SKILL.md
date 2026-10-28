@@ -11,7 +11,7 @@ ante señal de drift (fecha vieja, contradicción con git) o si el hook no apare
 **Si dice `CORTADO`, o falta la huella** (`inyectado: N caracteres de 10000`, la última línea), leé
 lo que falta con Read antes de confirmar, y el `/cierre` achica el handoff o el TODO.
 **En la misión 5** (construir el kit v3), leé también `docs/kit-v3/PLAN-construccion.md` antes de confirmar: el
-"Próxima acción" sale de su tabla de sesiones, y si el handoff dice otra cosa, avisá.
+"Próxima acción" sale de su tabla de directores, y si el handoff dice otra cosa, avisá.
 
 ## Pasos
 

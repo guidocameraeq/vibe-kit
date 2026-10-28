@@ -2,74 +2,83 @@
 
 > **Qué es**: la vista de una pantalla de la misión 5. **El plano es [`SPEC-0-kit-v3.md`](SPEC-0-kit-v3.md)**: qué se construye, el
 > orden, la prueba de cada pieza. Esto lleva **por dónde vamos**: qué sesión hizo qué, qué quedó a medias, qué se verificó.
-> Lo pidió Guido el 2026-10-27, al ver que eran ~20 sesiones: "para hacerlo en secuencia, hacerlo bien, que no se pase nada por alto".
+> Lo pidió Guido el 2026-10-27, al ver que eran ~20 sesiones (hoy 13 directores, ADR-028): "para hacerlo en secuencia, hacerlo bien, que no se pase nada por alto".
 >
 > **Reglas**:
-> - **Cada sesión de la misión 5 abre leyendo esto** (el `/inicio`), y **lo actualiza en su `/cierre`**: su fila, las piezas, los
+> - **Cada director de la misión 5 abre leyendo esto** (el `/inicio`), y **lo actualiza en su `/cierre`**: su fila, las piezas, los
 >   NO VERIFICADO y criterios que tachó. El spec solo recibe los `✅ <fecha>` de sus piezas (sección "Ejecución").
-> - **Una sesión = un paso de una fila.** Si un paso no entra, se parte en dos filas; nunca se sigue en el mismo chat.
+> - **Un director = una fila.** Si un paquete no entra en un director, se parte en dos filas; nunca se sigue en el mismo chat.
 > - **Lo que no se hizo se escribe**: si una sesión deja algo a medias, va a "Pendientes del paquete" con qué falta. Nada vive solo en
 >   el handoff.
 > - **Si el plan cambia** (un paquete necesita otra sesión, algo se reordena), se cambia acá con la razón en "Cambios al plan".
 
-## Cómo se trabaja cada paquete
+## Cómo se trabaja: un director por paquete (ADR-028)
 
-1. **Spec delta** (`docs/kit-v3/SPEC-paquete-<N>.md`, formato SPEC-0/delta): qué piezas, qué NO SE TOCA, cómo se prueba.
-   Los de los paquetes 1 a 3 **los sella Guido a mano**; desde el 4, el script del sello.
-2. **Red team** si toca permisos, secretos o datos (paquetes 2, 3, 4 y 5 seguro): Opus, hasta 3 rondas. Los informes al privado.
-3. **Construir**: pieza en `kit/`, prueba en el repo de prueba de `pruebas/`, `kit-sync.sh sync` LIMPIO.
-4. **Revisor frío** al cerrar el paquete (Opus, sin contexto).
-5. **Cerrar el paquete**: los `✅ <fecha>` en el spec, la línea en el CHANGELOG, esta tabla al día, `/cierre`.
+Cada paquete lo lleva **una sesión director en Opus**, que piensa, reparte y revisa; **el código lo escriben subagentes**. Así las ~20
+sesiones bajan a 13 directores y el contexto de cada director queda acotado a su paquete. El tracker es la memoria entre un director y el siguiente.
 
-**Modelos** (decisión de Guido, 2026-10-27; corrige la línea de Sonnet del spec): **la construcción en Opus**, porque esto define cómo
-se codea los próximos meses. Red team y revisor frío en Opus. **Fable** solo en la sesión donde Guido decide algo nuevo.
+1. **Abrir**: `/inicio` lee este tracker, la parte del spec del paquete y las secciones citadas de su diseño. Nada más.
+2. **Spec delta** (`docs/kit-v3/SPEC-paquete-<N>.md`, formato SPEC-0/delta): las piezas, qué NO SE TOCA, cómo se prueba, y **la lista
+   de encargos** (abajo). Los de los paquetes 1 a 3 **los sella Guido a mano**; desde el 4, el script del sello. **El director frena acá.**
+3. **Red team** si toca permisos, secretos o datos (paquetes 2 a 5 seguro): subagente Opus con el agente `redteam-spec`, hasta 3 rondas.
+   Lo que vuelva como decisión de diseño **se lo lleva a Guido**; lo demás lo integra. Los informes al repo privado.
+4. **Encargos**: el director parte el paquete. Cada encargo dice **qué archivos puede tocar, qué prueba tiene que pasar y qué no se
+   toca**. **Sonnet** para lo mecánico (parsers, pruebas, documentos, plantillas); **Opus** para hooks, seguridad, permisos y lo que
+   decide. Dos encargos en paralelo solo si no comparten archivos, cada uno en su worktree; si no, uno detrás del otro.
+5. **Revisar**: el director **lee cada diff y corre las pruebas él mismo**. El resumen del subagente no es evidencia. Si un encargo
+   falla, se rehace con lo aprendido o va a "Pendientes"; nunca se tapa.
+6. **Pruebas que un subagente no puede hacer** (un chat nuevo para ver el hook, un pop-up de VS Code, la segunda PC): el director las
+   lista en "Pendientes" con qué hay que mirar, y se hacen en una sesión real (la del director siguiente, o Guido).
+7. **Revisor frío** al cerrar: subagente Opus sin contexto, sobre el diff entero del paquete.
+8. **Cerrar**: `kit-sync.sh sync` LIMPIO, los `✅ <fecha>` en el spec, la línea en el CHANGELOG, este tracker al día, `/cierre`.
+
+**Límites**: un subagente no lanza otros subagentes ni le puede preguntar a Guido: todo lo que necesite una decisión vuelve al
+director. **El director no edita código**: si se encuentra arreglando a mano, el encargo estaba mal escrito y se reescribe.
+**Si el contexto del director pasa la mitad** antes de terminar, cierra con lo hecho y el paquete sigue con un director nuevo.
+
+**Modelos** (decisión de Guido, 2026-10-27): director, red team, revisor frío y encargos de riesgo en **Opus**; encargos mecánicos en
+**Sonnet**. **Fable** solo en la sesión donde Guido decide algo nuevo.
 
 ## El estado, de un vistazo
 
-| Paquete | Qué | Sesiones (estimadas) | Estado |
+| Paquete | Qué | Directores | Estado |
 |---|---|---:|---|
 | 0 | Misión 4½: ordenar la casa, `v2.4.3` | 1 | ✅ 2026-10-27 |
 | 1 | La ficha del kit, el parser, `kit/VERSION`, los repos de prueba | 1 | ⬜ **el próximo** |
-| 2 | Documentos con tope, hook en node, candado, `cambios`, `/inicio` y `/cierre` v3 | 3 | ⬜ |
-| 3 | Seguridad: corrector de secretos, barreras, hooks por PC, `doctor` mínimo | 2-3 | ⬜ |
-| 4 | El Arquitecto v3, el script `worktree`, el sello, `formato-spec.md` | 2-3 | ⬜ |
-| 5 | Director/obrero, `/estado`, resumen del día, la mesa, subagentes | 3-4 | ⬜ |
-| 6 | Equipador v3, actualizador, adoptador, `doctor` completo | 2 | ⬜ |
+| 2 | Documentos con tope, hook en node, candado, `cambios`, `/inicio` y `/cierre` v3 | 2 | ⬜ |
+| 3 | Seguridad: corrector de secretos, barreras, hooks por PC, `doctor` mínimo | 1 | ⬜ |
+| 4 | El Arquitecto v3, el script `worktree`, el sello, `formato-spec.md` | 1 | ⬜ |
+| 5 | Director/obrero, `/estado`, resumen del día, la mesa, subagentes | 2 | ⬜ |
+| 6 | Equipador v3, actualizador, adoptador, `doctor` completo | 1 | ⬜ |
 | 7 | El ciclo de `cambios` (flota, migración de Hermes) y la portada | 1 | ⬜ |
 | 8 | El observatorio mide la línea base; playbook, guía y manuales al día | 1 | ⬜ |
-| 8½ | Deptos prepara sus credenciales (**lo hace Guido**, sin sesión de construcción) | 0 | ⬜ |
+| 8½ | Deptos prepara sus credenciales (**lo hace Guido**, sin director) | 0 | ⬜ |
 | 9 | Piloto en Deptos, un mes; después Hub y Portal | 2 en la madre | ⬜ |
 | 10 | Tag `v3.0` y nota de migración | 1 | ⬜ |
-| | **Total** | **~18-21** | |
+| | **Total** (sin el 0, ya hecho) | **13** | |
 
 Estado: ⬜ sin empezar · 🔨 en curso · ✅ cerrado (con fecha) · ⏸️ frenado (con razón).
 
-## Las sesiones
+## Los directores
 
-Título de cada sesión: `vibe-kit M5 · P<paquete>.<n> · <qué hace>`. La fila se llena en el `/cierre` de esa sesión.
+Título de cada sesión: `vibe-kit M5 · D<paquete>.<n> · <qué hace>`. La fila se llena en el `/cierre` de ese director. En "Encargos",
+cuántos lanzó y en qué modelo (por ejemplo `4 Sonnet · 2 Opus`): es la medida de la misión 6.
 
-| Sesión | Qué hace | Fecha | Chat | Commit | Resultado |
-|---|---|---|---|---|---|
-| P1.1 | Spec delta del paquete 1 (Guido lo sella) y construcción: ficha, parser, `VERSION`, `pruebas/rehacer.sh` | | | | |
-| P2.1 | Spec delta del paquete 2 + red team | | | | |
-| P2.2 | Construir: `docs/` en capas, handoff y TODO con tope, hook node (huella, edad, CORTADO) | | | | |
-| P2.3 | Construir: el candado, `cambios` base y su sello, `/inicio` y `/cierre` v3; revisor frío | | | | |
-| P3.1 | Spec delta del paquete 3 + red team (toca permisos: obligatorio) | | | | |
-| P3.2 | Construir: corrector de secretos, barreras, hooks por PC, `doctor` mínimo; probar en las dos PCs; revisor frío | | | | |
-| P4.1 | Spec delta del paquete 4 + red team | | | | |
-| P4.2 | Construir: el Arquitecto v3, el sello, `formato-spec.md` | | | | |
-| P4.3 | Construir: el script `worktree` y `.kit-rol`; revisor frío | | | | |
-| P5.1 | Spec delta del paquete 5 + red team | | | | |
-| P5.2 | Construir: el canon director/obrero y sus correctores | | | | |
-| P5.3 | Construir: `/estado`, el resumen del día, los subagentes, el `CLAUDE.md` por criterios | | | | |
-| P5.4 | Construir: la mesa (`mesa`, `candado:mesa`); revisor frío | | | | |
-| P6.1 | Spec delta del paquete 6 + Equipador v3 | | | | |
-| P6.2 | Actualizador, adoptador, `doctor` completo; "toda la flota" con los repos de prueba; revisor frío | | | | |
-| P7.1 | El ciclo de `cambios` y la portada | | | | |
-| P8.1 | Medir la línea base; playbook, guía, manuales | | | | |
-| P9.1 | Arrancar el piloto en Deptos | | | | |
-| P9.2 | Medir el mes del piloto contra TABLERO §1 | | | | |
-| P10.1 | Tag `v3.0` y nota de migración | | | | |
+| Director | Qué lleva | Fecha | Chat | Encargos | Commit | Resultado |
+|---|---|---|---|---|---|---|
+| D1.1 | Paquete 1 entero: spec delta (Guido sella), ficha, parser, `VERSION`, `pruebas/rehacer.sh` | | | | | |
+| D2.1 | Paquete 2, primera mitad: spec delta + red team, `docs/` en capas, handoff y TODO con tope, hook node | | | | | |
+| D2.2 | Paquete 2, segunda mitad: candado, `cambios` base y su sello, `/inicio` y `/cierre` v3, revisor frío | | | | | |
+| D3.1 | Paquete 3: spec delta + red team (obligatorio), corrector, barreras, hooks por PC, `doctor` mínimo | | | | | |
+| D4.1 | Paquete 4: spec delta + red team, Arquitecto v3, sello, `formato-spec.md`, `worktree` y `.kit-rol` | | | | | |
+| D5.1 | Paquete 5, primera mitad: spec delta + red team, el canon director/obrero y sus correctores | | | | | |
+| D5.2 | Paquete 5, segunda mitad: `/estado`, resumen del día, subagentes, `CLAUDE.md` por criterios, la mesa | | | | | |
+| D6.1 | Paquete 6: Equipador v3, actualizador, adoptador, `doctor` completo, "toda la flota" en los repos de prueba | | | | | |
+| D7.1 | Paquete 7: el ciclo de `cambios` y la portada | | | | | |
+| D8.1 | Paquete 8: medir la línea base; playbook, guía, manuales | | | | | |
+| D9.1 | Arrancar el piloto en Deptos | | | | | |
+| D9.2 | Medir el mes del piloto contra TABLERO §1 | | | | | |
+| D10.1 | Tag `v3.0` y nota de migración | | | | | |
 
 ## Pendientes de cada paquete
 
@@ -155,7 +164,10 @@ Del spec, sección "Lo que hacés vos de nuevo". Acá solo cuándo toca, para qu
 | Fecha | Qué cambió | Por qué |
 |---|---|---|
 | 2026-10-27 | La construcción pasa de Sonnet a **Opus** | Decisión de Guido: es lo que define cómo se codea los próximos meses |
+| 2026-10-28 | **Un director Opus por paquete con subagentes** en vez de una sesión por paso: de ~18-21 sesiones a 13 directores; los encargos mecánicos vuelven a Sonnet | ADR-028: propuesta de Guido (un orquestador para todo el spec), acotada a uno por paquete |
 
 ## Lecciones (insumo de la misión 6)
 
+- 2026-10-28 · Construir el kit con director y subagentes es un ensayo de lo que el kit v3 diseña (D): lo que moleste acá se anota
+  como lección antes del piloto.
 - 2026-10-27 · La misión 4½ arrancó en Fable y pasó a Opus al empezar a ejecutar: las decisiones ya estaban escritas.

@@ -2,6 +2,21 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-28 — Misión 5, antes de empezar: un director por paquete (ADR-028)
+
+PC `clientes`, mismo chat que la misión 4½. Guido propuso un orquestador Opus que gestione todo el spec con subagentes; se acotó a uno por
+paquete (los motivos, en el ADR).
+
+**Changed**
+- `docs/kit-v3/PLAN-construccion.md`: "Cómo se trabaja" pasa a los 8 pasos de un director por paquete, con sus límites (no edita código,
+  revisa cada diff, frena para el sello, las pruebas de sesión real quedan como pendientes). La tabla de sesiones pasa a **13 directores**
+  (D1.1 a D10.1; dos en los paquetes 2 y 5), con una columna de encargos y modelos para medir en la misión 6.
+- El spec, sección "Ejecución": el tamaño (un director por paquete) y los modelos (director y encargos de riesgo en Opus, mecánicos en
+  Sonnet). `/inicio`, `/cierre` y `docs/README.md` hablan de directores.
+
+**Added**
+- ADR-028: un director Opus por paquete que reparte encargos a subagentes; descartados el orquestador para todo el spec y la sesión por paso.
+
 ## 2026-10-27 — Misión 4½: la casa ordenada antes de construir · v2.4.3
 
 PC `clientes`. Arrancó en Fable y pasó a Opus al empezar a ejecutar (decisión de Guido: las decisiones ya estaban en el spec).
