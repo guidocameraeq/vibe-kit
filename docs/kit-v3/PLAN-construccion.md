@@ -68,6 +68,7 @@ cuántos lanzó y en qué modelo (por ejemplo `4 Sonnet · 2 Opus`): es la medid
 |---|---|---|---|---|---|---|
 | D1.1 | Paquete 1 entero: spec delta (Guido sella), ficha, parser, `VERSION`, `pruebas/rehacer.sh` | 2026-10-28 | `vibe-kit M5 · D1.1 · Paquete 1: la ficha del kit y su parser` | 5 Sonnet · 1 Opus (revisor frío) | `68b75e1`…`16f7cb2` | ✅ Criterios 1-8 del delta verificados por el director; parser con 255 pruebas y 0 mutantes vivos en las reglas; el revisor frío cambió la gramática antes de congelarla (3 ALTOS) y Guido decidió `herramientas` aparte |
 | D2.1 | Paquete 2, primera mitad: spec delta + red team, `docs/` en capas, handoff y TODO con tope, hook node | | | | | |
+| **DP** | **Sesión intermedia (pedido de Guido, 2026-10-28): planear la paralelización** de lo que queda (ver "Paralelizar", abajo) y dejarla escrita acá antes de abrir D2.2 | | | | | |
 | D2.2 | Paquete 2, segunda mitad: candado, `cambios` base y su sello, la zona propia (P3.2), `/inicio` y `/cierre` v3 con `pedidos.md`, revisor frío | | | | | |
 | D3.1 | Paquete 3: spec delta + red team (obligatorio), corrector, barreras, hooks por PC, `doctor` mínimo | | | | | |
 | D4.1 | Paquete 4: spec delta + red team, Arquitecto v3, sello, `formato-spec.md`, `worktree` y `.kit-rol` | | | | | |
@@ -79,6 +80,21 @@ cuántos lanzó y en qué modelo (por ejemplo `4 Sonnet · 2 Opus`): es la medid
 | D9.1 | Arrancar el piloto en Deptos | | | | | |
 | D9.2 | Medir el mes del piloto contra TABLERO §1 | | | | | |
 | D10.1 | Tag `v3.0` y nota de migración | | | | | |
+
+## Paralelizar (evaluado por D2.1, 2026-10-28; lo planea DP)
+
+Guido pidió avanzar más rápido con dos o tres directores a la vez ("cada tramo lleva el mismo tiempo; se avanza por paralelizar"). D2.1,
+contra la tabla "Orden de construcción" del SPEC-0, dice que **se puede en tres lugares**:
+1. **D2.2 ∥ paquete 3**: el 3 depende del 1, no del 2. Excepción: el pre-commit de P4.6 corre `candado:barreras` (D2.2): va al final del 3.
+2. **Adentro del paquete 5**: el SPEC-0 ya lo parte en módulos (núcleo · director · obrero/tramo · estado · mesa); núcleo primero, el resto
+   en paralelo donde no compartan archivos.
+3. **7 ∥ 8**: dependen los dos del 6, no entre sí (el 8½ es de Guido y corre aparte).
+**No se puede**: 4 → 5 → 6 es cadena. **Ganancia estimada**: de ~11 directores en fila a ~8 tandas (25-30% menos calendario).
+**Lo que DP tiene que dejar escrito**: el grafo de qué va con qué; **un dueño por archivo compartido** (`kit/molde/settings.json`,
+`kit/molde/hooks/lib/*`, `kit.ejemplo.md`, `rehacer.sh`); una rama por director y quién mergea a `main` y cuándo; cómo se reparten el
+tracker, el CHANGELOG y el handoff (cada director su fila/sección; uno solo integra el handoff); qué hace `/inicio` y `/cierre` con dos
+directores vivos; y el costo para Guido (dos chats, dos sellos, dos red teams: su atención es el cuello de botella). Es un ensayo de D
+(director/obrero) y G (la mesa): lo que duela, a "Lecciones".
 
 ## Pendientes de cada paquete
 
@@ -175,6 +191,12 @@ Del spec, sección "Lo que hacés vos de nuevo". Acá solo cuándo toca, para qu
 | 2026-10-28 | **Un director Opus por paquete con subagentes** en vez de una sesión por paso: de ~18-21 sesiones a 13 directores; los encargos mecánicos vuelven a Sonnet | ADR-028: propuesta de Guido (un orquestador para todo el spec), acotada a uno por paquete |
 
 ## Lecciones (insumo de la misión 6)
+
+- 2026-10-28 · **D2.1: el director no sabe cuánto contexto lleva.** Propuso cerrar "por pasar la mitad" con 26% usado (lo vio Guido en la
+  app). La regla de "Límites" necesita una medida, no una impresión: hasta que exista el script `contexto` (P6.4, orden 5), el director
+  **le pregunta a Guido el % que muestra la app** antes de cortar por contexto.
+- 2026-10-28 · D2.1: el spec delta lo redactó un subagente Opus y el director lo revisó: el director quedó con contexto para seguir. El red
+  team en tres rondas, retomando el mismo subagente, encontró 4 ALTOS (2 por ronda) en lo que congela formato; la ronda 3 dio 0.
 
 - 2026-10-28 · **D1.1: el sello no alcanzó para congelar un formato.** Guido selló el delta y el revisor frío encontró después que la
   gramática no podía escribir dos cosas que los diseños ya habían decidido (el `deny` por su texto de F §14, las herramientas del SPEC-0) y
