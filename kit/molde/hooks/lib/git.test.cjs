@@ -171,3 +171,91 @@ test('edades: archivo que git no conoce o sin repo → null', () => {
   assert.equal(git.edades('no-existe.md', { cwd: d }), null);
   assert.equal(git.edades('a.md', { cwd: carpeta() }), null);
 });
+
+// ---------------------------------------------------------------- el plazo del hook entero (E4b)
+
+// Un reloj de mentira: siempre la misma hora (el plazo no depende de la velocidad de la PC).
+const quieto = (ms) => () => ms;
+const sinPathDeGit = (fn) => {
+  const antes = process.env.PATH;
+  const antesW = process.env.Path;
+  process.env.PATH = path.join(TMP, 'vacio');
+  if (antesW !== undefined) process.env.Path = path.join(TMP, 'vacio');
+  try {
+    return fn();
+  } finally {
+    process.env.PATH = antes;
+    if (antesW !== undefined) process.env.Path = antesW;
+  }
+};
+
+test('plazo: sin plazo, todo como antes (lo pedido, Infinity, nada salteado)', () => {
+  git.fijarPlazo(null);
+  assert.equal(git.plazoRestante(), Infinity);
+  assert.equal(git.tiempoPara(5000), 5000);
+  assert.equal(git.tiempoPara(123456), 123456);
+  assert.equal(git.correr(['--version']).ok, true);
+  assert.equal(git.salteadasPorPlazo(), 0);
+  assert.equal(git.TIEMPO_MINIMO, 300);
+});
+
+test('plazo: el tope es lo pedido o lo que queda, lo menor y entero; debajo del mínimo, null', () => {
+  try {
+    git.fijarPlazo(10000.5, quieto(5000)); // quedan 5.000,5 ms
+    assert.equal(git.plazoRestante(), 5000.5);
+    assert.equal(git.tiempoPara(2000), 2000);
+    assert.equal(git.tiempoPara(8000), 5000);
+    git.fijarPlazo(10300, quieto(10000)); // justo el mínimo: todavía corre
+    assert.equal(git.tiempoPara(5000), 300);
+    git.fijarPlazo(10299, quieto(10000));
+    assert.equal(git.tiempoPara(5000), null);
+    git.fijarPlazo(1000, quieto(5000)); // ya vencido
+    assert.equal(git.tiempoPara(5000), null);
+  } finally {
+    git.fijarPlazo(null);
+  }
+});
+
+test('plazo vencido: correr no lanza git (ni lo busca), da error plazo y lo cuenta', () => {
+  try {
+    git.fijarPlazo(1000, quieto(5000));
+    // Sin git en el PATH: si lo lanzara, sería 'sin-git'.
+    const r = sinPathDeGit(() => git.correr(['--version']));
+    assert.equal(r.ok, false);
+    assert.equal(r.error, 'plazo');
+    assert.equal(r.stdout, '');
+    assert.ok(Buffer.isBuffer(r.salida));
+    assert.equal(git.texto(['--version']), null);
+    assert.equal(git.edades('x.md'), null);
+    assert.equal(git.salteadasPorPlazo(), 3);
+    git.fijarPlazo(null); // un plazo nuevo (o ninguno) arranca la cuenta de cero
+    assert.equal(git.salteadasPorPlazo(), 0);
+  } finally {
+    git.fijarPlazo(null);
+  }
+});
+
+test('plazo: un git lento se corta con lo que queda (no con sus 5 s) y es error plazo', () => {
+  try {
+    git.fijarPlazo(1000, quieto(0)); // queda 1 s; el git pide 5 y duerme 8
+    const t0 = Date.now();
+    const r = git.correr(['-c', 'alias.dormir=!node -e "setTimeout(function(){},8000)"', 'dormir']);
+    assert.equal(r.ok, false);
+    assert.equal(r.error, 'plazo');
+    assert.ok(Date.now() - t0 < 4500, `tardó ${Date.now() - t0} ms`);
+    assert.equal(git.salteadasPorPlazo(), 1);
+  } finally {
+    git.fijarPlazo(null);
+  }
+});
+
+test('plazo: un git que corta con su propio tope (más chico que lo que queda) sigue siendo error tiempo', () => {
+  try {
+    git.fijarPlazo(60000, quieto(0));
+    const r = git.correr(['-c', 'alias.dormir=!node -e "setTimeout(function(){},8000)"', 'dormir'], { tiempo: 400 });
+    assert.equal(r.error, 'tiempo');
+    assert.equal(git.salteadasPorPlazo(), 0);
+  } finally {
+    git.fijarPlazo(null);
+  }
+});

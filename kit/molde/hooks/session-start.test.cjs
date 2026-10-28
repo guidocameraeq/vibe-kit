@@ -77,9 +77,11 @@ function repoCon(archivos) {
 }
 
 // correr(hook, entrada, {env, cwd, previo}) → { codigo, out, lineas }
+// El plazo del hook (10 s) se estira a 10 min: con la PC cargada estas pruebas no pueden depender de su velocidad. Las del
+// plazo lo achican con o.env.
 function correr(hook, entrada, o = {}) {
   const home = o.home || carpeta('home');
-  const env = { ...process.env, HOME: home, USERPROFILE: home, ...(o.env || {}) };
+  const env = { ...process.env, HOME: home, USERPROFILE: home, KIT_PLAZO_ARRANQUE_MS: '600000', ...(o.env || {}) };
   if (o.path !== undefined) {
     for (const k of Object.keys(env)) if (k.toLowerCase() === 'path') delete env[k];
     env.PATH = o.path;
@@ -271,6 +273,81 @@ test('correrPropio: no hay → null; sin bash; código de salida; tiempo', { ski
   assert.deepEqual(ss.correrPropio(d, BASH, sh), { salida: 'hola\n', falla: 'salió con 3' });
   fs.writeFileSync(sh, 'echo bien\n');
   assert.deepEqual(ss.correrPropio(d, BASH, sh), { salida: 'bien\n', falla: null });
+});
+
+// ---------------------------------------------------------------- el plazo (E4b)
+
+const git = require('./lib/git.cjs'); // la misma instancia que usa session-start.cjs (libGit)
+const quieto = (ms) => () => ms;
+function conPlazo(fin, reloj, fn) {
+  git.fijarPlazo(fin, reloj);
+  try {
+    return fn();
+  } finally {
+    git.fijarPlazo(null);
+  }
+}
+
+test('plazoDelArranque: 10 s desde el inicio del proceso; la variable de prueba lo cambia si es un entero', () => {
+  assert.equal(ss.PLAZO_ARRANQUE, 10000);
+  assert.equal(ss.VAR_PLAZO, 'KIT_PLAZO_ARRANQUE_MS');
+  assert.equal(ss.plazoDelArranque({}, 1000), 11000);
+  assert.equal(ss.plazoDelArranque({ KIT_PLAZO_ARRANQUE_MS: '2500' }, 1000), 3500);
+  assert.equal(ss.plazoDelArranque({ KIT_PLAZO_ARRANQUE_MS: '0' }, 1000), 1000);
+  assert.equal(ss.plazoDelArranque({ KIT_PLAZO_ARRANQUE_MS: '600000' }, 1000), 601000);
+  for (const v of ['abc', '-5', '', '1e3']) assert.equal(ss.plazoDelArranque({ KIT_PLAZO_ARRANQUE_MS: v }, 1000), 11000, v);
+  // Sin argumentos: desde el arranque de este proceso (antes de ahora, no después).
+  const p = ss.plazoDelArranque({});
+  assert.ok(p <= Date.now() + 10000 && p > Date.now() - process.uptime() * 1000 + 9000, String(p));
+});
+
+test('el hook con el plazo vencido: ningún git (sin git en el PATH no dice "sin git"), handoff, renglón lento, marca y salida 0', () => {
+  const { d, hook } = repoCon({ 'docs/SESSION_HANDOFF.md': handoff(), 'docs/TODO.md': '# TODO\n' });
+  const r = correr(hook, { cwd: path.join(d, 'docs'), session_id: 'plazo-vencido' }, { env: { KIT_PLAZO_ARRANQUE_MS: '0' }, path: path.dirname(process.execPath) });
+  assert.ok(r.out.includes('git no respondió a tiempo: sin ficha, edades, módulos por rama ni git'), r.out);
+  assert.ok(!r.out.includes('sin git:'));
+  assert.ok(r.out.includes('H-paso'));
+  assert.match(r.lineas[r.lineas.length - 2], /^arranque lento: \d+ consultas? a git salteadas? por tiempo \(corré doctor si se repite\)$/);
+  chequearHuella(r);
+  // La marca se deja igual, con el git-dir leído del disco.
+  assert.ok(fs.existsSync(path.join(d, '.git', 'kit-sesiones', 'plazo-vencido')));
+});
+
+test('el hook con el plazo vencido: lo propio no se corre y se dice', () => {
+  const { d, hook } = repoCon({ 'docs/SESSION_HANDOFF.md': handoff() });
+  const rastro = path.join(d, 'corrio.txt');
+  fs.writeFileSync(path.join(path.dirname(hook), 'session-start.propio.sh'), `echo si > "${rastro.split(path.sep).join('/')}"\necho PROPIO\n`);
+  const r = correr(hook, { cwd: d, session_id: 'p' }, { env: { KIT_PLAZO_ARRANQUE_MS: '0' } });
+  assert.ok(r.out.includes('.claude/hooks/session-start.propio.sh: no terminó a tiempo'));
+  assert.ok(!fs.existsSync(rastro));
+  chequearHuella(r);
+});
+
+test('gitDirPorDisco: la carpeta .git, o el gitdir del archivo .git de un worktree; desde una subcarpeta; fuera de un repo, null', () => {
+  const { d } = repoCon({ 'docs/SESSION_HANDOFF.md': handoff() });
+  assert.equal(ss.gitDirPorDisco(path.join(d, 'docs')), path.join(d, '.git'));
+  g(d, 'worktree', 'add', '-q', '-b', 'worktree-w9', '.claude/worktrees/w9', 'main');
+  const wt = path.join(d, '.claude', 'worktrees', 'w9');
+  assert.equal(path.resolve(ss.gitDirPorDisco(wt)).toLowerCase(), path.join(d, '.git', 'worktrees', 'w9').toLowerCase());
+  assert.equal(ss.gitDirPorDisco(carpeta('fuera')), null);
+});
+
+test('correrPropio con plazo: vencido no lo corre ("tiempo"); con poco, lo corta con lo que queda y no con sus 5 s', { skip: !hayBash && 'no hay bash' }, () => {
+  const d = carpeta('propio-plazo');
+  const sh = path.join(d, 'p.sh');
+  const rastro = path.join(d, 'corrio.txt');
+  fs.writeFileSync(sh, `echo si > "${rastro.split(path.sep).join('/')}"\necho hola\n`);
+  assert.deepEqual(conPlazo(1000, quieto(5000), () => ss.correrPropio(d, BASH, sh)), { salida: '', falla: 'tiempo' });
+  assert.ok(!fs.existsSync(rastro));
+  // Queda 1 s y duerme 4: sin el plazo terminaría bien (sus 5 s le alcanzan).
+  fs.writeFileSync(sh, 'sleep 4\necho tarde\n');
+  const r = conPlazo(1000, quieto(0), () => ss.correrPropio(d, BASH, sh));
+  assert.equal(r.falla, 'tiempo');
+});
+
+test('buscarBash con el plazo vencido: no consulta a git, usa el bash del PATH', () => {
+  const b = conPlazo(1000, quieto(5000), () => ss.buscarBash());
+  assert.equal(b, 'bash');
 });
 
 test('buscarBash: en Windows no elige el bash de WSL', () => {

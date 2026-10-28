@@ -4,12 +4,16 @@
 // Es .cjs a propósito: corre igual en proyectos con "type": "module".
 //
 // armar({cwd, entrada, home, ahora, propio}) → { texto, n, cortes }. NO escribe nada: lee el disco y git y arma el texto.
-// Lo propio del proyecto (session-start.propio.sh) lo corre el hook y entra acá ya corrido, como `propio`.
+// Lo propio del proyecto (session-start.propio.sh) lo corre el hook: entra acá ya corrido, o como función que se llama al
+// final (así se come lo que sobre del plazo, no lo de git).
 //
 // Los bloques, en este orden (P4.1):
 //  1 CORTADO (si algo se cortó) · 2 cabecera · 3 líneas de F (nada: 500 reservados, orden 3) · 4 por pestaña ·
 //  5 edades (al lado de Estado y Próximo paso) · 6 módulos activos · 7 cabecera del TODO · 8 git · 9 recordatorio de /inicio ·
-//  10 lo propio, con lo que sobre · 11 la huella `inyectado: N de 9.700`.
+//  10 lo propio, con lo que sobre · (E4b) "arranque lento", si el plazo de git.cjs salteó algo · 11 la huella `inyectado: N de 9.700`.
+//
+// Con el plazo del hook (git.fijarPlazo), lo que se saltea degrada y no miente: edades "sin datos", el handoff del disco si la
+// ref no se pudo resolver, y nunca "sin git", "sin ficha" ni "sin commits" por un git que no se llegó a correr.
 
 const fs = require('fs');
 const path = require('path');
@@ -36,6 +40,16 @@ const BOM = String.fromCharCode(0xfeff);
 const RECORDATORIO = 'Recordatorio: decí /inicio para el ritual de arranque (cruza esto con git); no toco nada sin tu OK.';
 const SIN_FICHA = 'sin ficha: valen los frenos de fábrica';
 const SIN_GIT = 'sin git: esta carpeta no es un repo (o git no está en esta PC) — sin edades, módulos por rama ni git';
+const GIT_SIN_TIEMPO = 'git no respondió a tiempo: sin ficha, edades, módulos por rama ni git';
+const FICHA_SIN_TIEMPO = 'ficha sin leer: git no respondió a tiempo';
+const BLOQUE_SIN_TIEMPO = '(git no respondió a tiempo: este bloque está incompleto)';
+
+// El renglón de "arranque lento" (E4b): va antes de la huella y cuenta para el presupuesto. Su lugar se reserva con la cuenta
+// más larga que se puede dar en la práctica (4 cifras).
+const lineaLento = (n) => `arranque lento: ${n} ${n === 1 ? 'consulta' : 'consultas'} a git ${n === 1 ? 'salteada' : 'salteadas'} por tiempo (corré doctor si se repite)`;
+const LENTO_MAX = lineaLento(9999).length + 1;
+// ¿El plazo ya salteó alguna consulta? Desde ahí, todo git que siga también se saltea: lo que falte no es "no hay".
+const sinTiempo = () => git.salteadasPorPlazo() > 0;
 
 // ---------------------------------------------------------------- números y textos
 
@@ -271,10 +285,12 @@ function bloqueGit({ raiz, pest, rv }) {
       }
     }
   }
-  const log = git.texto(['log', '-5', '--format=%h %s'], { cwd: raiz });
+  const rl = git.correr(['log', '-5', '--format=%h %s'], { cwd: raiz });
+  const log = rl.ok ? rl.stdout.replace(/\s+$/, '') : '';
   if (log) for (const l of log.split('\n')) arriba.push(acortar(l.replace(/\s+$/, ''), 100));
-  else arriba.push('sin commits todavía');
+  else if (rl.error !== 'plazo') arriba.push('sin commits todavía');
   const st = git.correr(['status', '--porcelain'], { cwd: raiz });
+  if (rl.error === 'plazo' || st.error === 'plazo') arriba.push(BLOQUE_SIN_TIEMPO);
   let estado = st.ok ? st.stdout.split('\n').map((l) => l.replace(/\s+$/, '')).filter((l) => l !== '') : [];
   const total = estado.length;
   if (st.ok && total === 0) arriba.push('árbol limpio');
@@ -333,22 +349,28 @@ function textoHandoffCommit(raiz, ref) {
   const args = ['log', '-1', '--format=%h %cd', '--date=format:%Y-%m-%d %H:%M'];
   if (ref) args.push(ref);
   args.push('--', RUTA_HANDOFF);
-  const t = git.texto(args, { cwd: raiz });
+  const r = git.correr(args, { cwd: raiz });
+  if (r.error === 'plazo') return null; // sin tiempo no es "sin commit": se calla
+  const t = r.ok ? r.stdout.replace(/\s+$/, '') : '';
   return t ? `handoff: ${t}` : 'handoff: sin commit';
 }
 
-function bloqueCabecera({ raiz, nombreRama, fv, entrada, home, gitOk, refHandoff, verHandoff }) {
+// gitSinTiempo / fichaSinTiempo: el plazo no dejó saber si hay git o ficha (no es lo mismo que no haber).
+function bloqueCabecera({ raiz, nombreRama, ramaSinTiempo, fv, entrada, home, gitOk, refHandoff, verHandoff, gitSinTiempo, fichaSinTiempo }) {
   const segundo = [];
   const datos = fv.estado === 'ok' ? fv.datos : null;
-  if (!gitOk) segundo.push(SIN_GIT);
+  if (!gitOk) segundo.push(gitSinTiempo ? GIT_SIN_TIEMPO : SIN_GIT);
   else if (fv.estado === 'rota') segundo.push(`ficha rota: ${fv.donde} — corré doctor`);
-  else if (fv.estado !== 'ok') segundo.push(SIN_FICHA);
+  else if (fv.estado !== 'ok') segundo.push(fichaSinTiempo ? FICHA_SIN_TIEMPO : SIN_FICHA);
   const proyecto = datos && datos.vars && typeof datos.vars.proyecto === 'string' && datos.vars.proyecto ? datos.vars.proyecto : path.basename(raiz);
-  const segs = [acortar(proyecto, 50), acortar(nombreRama || '(sin rama)', 50)];
+  const segs = [acortar(proyecto, 50), acortar(nombreRama || (ramaSinTiempo ? '(rama sin leer)' : '(sin rama)'), 50)];
   if (datos && typeof datos.kit === 'string') segs.push(textoKit(datos.kit, home));
   if (datos && typeof datos.nivel === 'string') segs.push(`nivel ${acortar(datos.nivel, 20)}`);
   segs.push(textoModo(entrada, raiz, home));
-  if (gitOk && verHandoff) segs.push(textoHandoffCommit(raiz, refHandoff));
+  if (gitOk && verHandoff) {
+    const h = textoHandoffCommit(raiz, refHandoff);
+    if (h) segs.push(h);
+  }
   const lugar = B.cabecera - segundo.reduce((n, l) => n + l.length + 1, 0);
   while (segs.length > 1 && segs.join(' · ').length > lugar) segs.pop();
   return [acortar(segs.join(' · '), Math.max(lugar, 20))].concat(segundo);
@@ -370,9 +392,10 @@ function bloqueEncargo({ raiz, pest, gitOk }) {
     if (t) hallados = t.split('\n').map((l) => l.split('/').pop()).filter((f) => f.endsWith(sufijo));
   }
   hallados.sort();
-  const lineas = hallados.length
-    ? hallados.slice(0, 3).map((f) => `encargo ${pest.id}: ${dir}/${f} — leelo entero antes de arrancar`)
-    : [`encargo ${pest.id}: no está en ${dir}/ (*${sufijo}) — pedíselo al director antes de arrancar`];
+  let lineas;
+  if (hallados.length) lineas = hallados.slice(0, 3).map((f) => `encargo ${pest.id}: ${dir}/${f} — leelo entero antes de arrancar`);
+  else if (sinTiempo()) lineas = [`encargo ${pest.id}: git no respondió a tiempo para buscarlo en modulo/${pest.modulo} — buscá *${sufijo} en ${dir}/`];
+  else lineas = [`encargo ${pest.id}: no está en ${dir}/ (*${sufijo}) — pedíselo al director antes de arrancar`];
   lineas.push(`(sin el handoff del proyecto: sos el obrero del encargo ${pest.id} de ${pest.modulo})`);
   return lineas.map((l) => acortar(l, 300));
 }
@@ -404,6 +427,17 @@ function refDe(ref) {
   return null;
 }
 
+// La raíz sin git (cuando el plazo no dejó preguntarle): la primera carpeta hacia arriba con un `.git`; si no hay, el cwd.
+function raizPorDisco(cwd) {
+  let d = path.resolve(cwd);
+  for (;;) {
+    if (fs.existsSync(path.join(d, '.git'))) return d;
+    const arriba = path.dirname(d);
+    if (arriba === d) return path.resolve(cwd);
+    d = arriba;
+  }
+}
+
 function aEntrada(e) {
   if (typeof e === 'string') {
     try {
@@ -417,7 +451,8 @@ function aEntrada(e) {
 
 // armar({cwd, entrada, home, ahora, propio}) → { texto, n, cortes: [{que, ruta}] }
 //  cwd: de dónde parte (si falta, el de la entrada) · entrada: el JSON del hook (objeto o texto) · home: la carpeta donde está
-//  .claude/VERSION (sin home, no compara versiones) · ahora: Date o ms (para las edades) · propio: { salida, falla } ya corrido ·
+//  .claude/VERSION (sin home, no compara versiones) · ahora: Date o ms (para las edades) · propio: { salida, falla } ya corrido,
+//  o una función que lo da (se llama después de todo lo de git) ·
 //  tiempoBlame: ms por blame (2.000 si no viene; pasado eso, "edad: sin datos").
 function armar(opciones = {}) {
   const entrada = aEntrada(opciones.entrada);
@@ -429,10 +464,13 @@ function armar(opciones = {}) {
 
   const g = contexto.datosGit(cwd);
   const gitOk = !!g;
-  const raiz = g ? g.raiz : path.resolve(cwd);
+  const gitSinTiempo = !gitOk && sinTiempo();
+  const raiz = g ? g.raiz : gitSinTiempo ? raizPorDisco(cwd) : path.resolve(cwd);
   const nombreRama = gitOk ? contexto.rama(raiz) : null;
+  const ramaSinTiempo = nombreRama === null && sinTiempo(); // sin tiempo es "no sé", no HEAD suelto (y la pestaña queda plana)
   const pest = contexto.pestana(nombreRama);
   const fv = gitOk ? contexto.fichaVigente(raiz) : { estado: 'sin-git' };
+  const fichaSinTiempo = fv.estado === 'sin-ficha' && sinTiempo();
   const rv = refDe(fv.ref); // la rama por defecto sale de la misma regla de 4.7 (sin repetir sus ~5 llamadas a git)
   const cupo = { queda: B.edades };
   const cortes = [];
@@ -444,7 +482,21 @@ function armar(opciones = {}) {
 
   // 2 · cabecera
   const refHandoff = pest.tipo === 'director' ? refDefecto : null;
-  bloques.push(bloqueCabecera({ raiz, nombreRama, fv, entrada, home, gitOk, refHandoff, verHandoff: pest.tipo !== 'obrero' }));
+  bloques.push(
+    bloqueCabecera({
+      raiz,
+      nombreRama,
+      ramaSinTiempo,
+      fv,
+      entrada,
+      home,
+      gitOk,
+      refHandoff,
+      verHandoff: pest.tipo !== 'obrero',
+      gitSinTiempo,
+      fichaSinTiempo,
+    })
+  );
 
   // 3 · líneas de F: nada todavía (orden 3).
 
@@ -464,7 +516,9 @@ function armar(opciones = {}) {
       origen = `git show modulo/${x}:${ruta}`;
     }
     const titulo = `=== ficha del módulo ${x} (${origen}) ===`;
-    if (texto === null) {
+    if (texto === null && pest.tipo === 'obrero' && sinTiempo()) {
+      bloques.push([titulo, `git no respondió a tiempo: no se pudo leer ${ruta} de modulo/${x}`]);
+    } else if (texto === null) {
       bloques.push([titulo, `no hay ${ruta}${pest.tipo === 'obrero' ? ` en modulo/${x}` : ' en este worktree'}`]);
     } else {
       const c = bloqueFichaModulo({ cwd: raiz, texto, ruta, origen, rev, ahora, cupo, gitOk });
@@ -479,16 +533,25 @@ function armar(opciones = {}) {
     let origen;
     let rev = null;
     let punta = 'HEAD';
+    let nota = '';
     if (pest.tipo === 'director') {
       origen = refDefecto ? `git show ${refDefecto}:${RUTA_HANDOFF}` : RUTA_HANDOFF;
       texto = refDefecto ? mostrar(raiz, refDefecto, RUTA_HANDOFF) : null;
       rev = refDefecto;
       punta = refDefecto;
+      // Sin tiempo para resolver la ref o leerla: el del disco de este worktree, y dicho en el título (es mejor que nada).
+      if (texto === null && sinTiempo()) {
+        texto = leerDisco(path.join(raiz, ...RUTA_HANDOFF.split('/')));
+        origen = RUTA_HANDOFF;
+        nota = ' — el del disco: git no respondió a tiempo';
+        rev = null;
+        punta = 'HEAD';
+      }
     } else {
       origen = RUTA_HANDOFF;
       texto = leerDisco(path.join(raiz, ...RUTA_HANDOFF.split('/')));
     }
-    const titulo = `=== handoff (${origen}) ===`;
+    const titulo = `=== handoff (${origen})${nota} ===`;
     if (texto === null) {
       bloques.push([titulo, `no hay ${RUTA_HANDOFF}${pest.tipo === 'director' ? ` en ${refDefecto || 'la rama por defecto'}` : ''}`]);
     } else {
@@ -526,26 +589,31 @@ function armar(opciones = {}) {
   // 10 · lo propio, con lo que sobre: lo primero que se recorta
   const unir = (bs) => bs.map((b) => b.join('\n')).join('\n\n');
   let cuerpo = unir(bloques);
-  const lp = lineasPropio(opciones.propio);
+  const lp = lineasPropio(typeof opciones.propio === 'function' ? opciones.propio() : opciones.propio);
+  // Con plazo, el renglón de "arranque lento" puede aparecer: su lugar sale de lo que sobra (lo propio), no de un bloque.
+  const reservaLento = Number.isFinite(git.plazoRestante()) || sinTiempo() ? LENTO_MAX : 0;
   if (lp) {
     const tituloPropio = `=== lo propio (${RUTA_PROPIO}) ===`;
     const corteProp = { que: 'lo propio', ruta: RUTA_PROPIO };
     // Se reserva la línea CORTADO como si lo propio también se cortara (la más larga posible).
     const reserva = lineaCortado(cortes.concat([corteProp])).length + 1;
-    const lugar = PRESUPUESTO - cuerpo.length - 2 - tituloPropio.length - 1 - reserva - 1 - HUELLA_MAX;
+    const lugar = PRESUPUESTO - cuerpo.length - 2 - tituloPropio.length - 1 - reserva - 1 - HUELLA_MAX - reservaLento;
     const c = cortarRenglones(lp, lugar, () => `… (CORTADO: lo propio sigue en ${RUTA_PROPIO})`);
     if (c.cortado) cortes.push(corteProp);
     if (c.lineas.length) cuerpo += '\n\n' + [tituloPropio].concat(c.lineas).join('\n');
   }
 
-  // 1 · CORTADO arriba · 11 · la huella abajo
+  // 1 · CORTADO arriba · "arranque lento" · 11 · la huella abajo
   let prefijo = (cortes.length ? lineaCortado(cortes) + '\n' : '') + cuerpo + '\n';
-  // Red de seguridad: nunca más que el presupuesto (no debería pasar: cada bloque tiene su tope).
-  if (prefijo.length + HUELLA_MAX > PRESUPUESTO) {
+  const nLentas = git.salteadasPorPlazo(); // la cuenta del hook entero, desde que fijó el plazo (lo propio incluido)
+  const lento = nLentas > 0 ? lineaLento(nLentas) + '\n' : '';
+  // Red de seguridad: nunca más que el presupuesto (no debería pasar: cada bloque tiene su tope). El renglón lento no se corta.
+  if (prefijo.length + lento.length + HUELLA_MAX > PRESUPUESTO) {
     const l = prefijo.slice(0, -1).split('\n');
-    const c = cortarRenglones(l, PRESUPUESTO - HUELLA_MAX - 1, () => '… (CORTADO: el final)');
+    const c = cortarRenglones(l, PRESUPUESTO - HUELLA_MAX - lento.length - 1, () => '… (CORTADO: el final)');
     prefijo = c.lineas.join('\n') + '\n';
   }
+  prefijo += lento;
   const n = prefijo.length;
   return { texto: prefijo + huella(n), n, cortes };
 }
@@ -558,6 +626,11 @@ module.exports = {
   TIEMPO_BLAME,
   RECORDATORIO,
   SIN_FICHA,
+  GIT_SIN_TIEMPO,
+  FICHA_SIN_TIEMPO,
+  BLOQUE_SIN_TIEMPO,
+  LENTO_MAX,
+  lineaLento,
   miles,
   huella,
   cortarRenglones,

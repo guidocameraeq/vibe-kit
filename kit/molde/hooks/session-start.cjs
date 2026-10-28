@@ -4,6 +4,9 @@
 // checkout y corre el hermano session-start.propio.sh con bash si existe. SALE SIEMPRE CON 0: no niega nada.
 // Fallas (P4.1): ficha rota → arriba, y sigue · error interno → una línea de error, el handoff crudo (hasta 5.000 bytes) y la
 // huella · sin remoto ni ficha → entero · sin git → lo dice. Es .cjs a propósito: corre igual con "type": "module".
+// Plazo (E4b): todo lo que lanza procesos (git, la búsqueda de bash, lo propio) tiene que terminar a los 10 s del arranque del
+// proceso; lo que no entra se saltea, degrada y se dice ("arranque lento: …"). El timeout del hook en settings.json es 20 s:
+// los 10 de margen son para levantar node, escribir y la marca. Si Claude Code lo mata, la sesión arranca SIN nada.
 
 const fs = require('fs');
 const path = require('path');
@@ -16,6 +19,10 @@ const CARPETA_MARCAS = 'kit-sesiones';
 const PROPIO = path.join(__dirname, 'session-start.propio.sh');
 const TIEMPO_PROPIO = 5000;
 const HANDOFF_CRUDO_BYTES = 5000;
+const PLAZO_ARRANQUE = 10000;
+// Solo para pruebas y mediciones: otro plazo, en ms desde el arranque del proceso. Más chico, para ver la degradación; más
+// grande, para que las pruebas del hook entero no dependan de lo cargada que esté la PC. Nadie lo pone en un settings.json.
+const VAR_PLAZO = 'KIT_PLAZO_ARRANQUE_MS';
 
 const miles = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 
@@ -31,14 +38,33 @@ function leerEntrada() {
 
 const cwdDe = (entrada) => (entrada && typeof entrada.cwd === 'string' && entrada.cwd.trim() !== '' ? entrada.cwd : process.cwd());
 
+// La librería de git (con el plazo), o null si no carga: de emergencia no se depende de ella.
+function libGit() {
+  try {
+    return require('./lib/git.cjs');
+  } catch (e) {
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------- el plazo (E4b)
+
+// plazoDelArranque(env, inicio) → ms epoch: 10 s desde el arranque del proceso, u otro si VAR_PLAZO trae un entero (≥ 0).
+function plazoDelArranque(env = process.env, inicio = Date.now() - process.uptime() * 1000) {
+  const pedido = env && typeof env[VAR_PLAZO] === 'string' && /^\d+$/.test(env[VAR_PLAZO].trim()) ? Number(env[VAR_PLAZO].trim()) : null;
+  return inicio + (pedido === null ? PLAZO_ARRANQUE : pedido);
+}
+
 // ---------------------------------------------------------------- lo propio (E §5: el hermano, al final)
 
 // En Windows, el `bash` del PATH puede ser el de WSL (C:\Windows\System32 o WindowsApps): se prefiere el de Git for Windows.
+// `git --exec-path` pasa por git.correr: respeta el plazo (sin tiempo, el bash del PATH).
 function buscarBash() {
   if (process.platform !== 'win32') return 'bash';
   try {
-    const r = spawnSync('git', ['--exec-path'], { encoding: 'utf8', timeout: 5000, windowsHide: true });
-    if (r.status === 0 && r.stdout.trim()) {
+    const git = libGit();
+    const r = git ? git.correr(['--exec-path']) : { ok: false };
+    if (r.ok && r.stdout.trim()) {
       const raizGit = path.resolve(r.stdout.trim(), '..', '..', '..');
       for (const c of [path.join(raizGit, 'bin', 'bash.exe'), path.join(raizGit, 'usr', 'bin', 'bash.exe')]) {
         if (fs.existsSync(c)) return c;
@@ -51,12 +77,17 @@ function buscarBash() {
 }
 
 // correrPropio(raiz, bash) → null (no hay) · { salida, falla } (falla: null · 'sin-bash' · 'tiempo' · 'salió con N').
+// Tope: 5 s o lo que quede del plazo, lo menor; si no queda ni el mínimo, no se corre y es falla 'tiempo'.
 function correrPropio(raiz, bash, archivo = PROPIO) {
   if (!fs.existsSync(archivo)) return null;
-  const r = spawnSync(bash || buscarBash(), [archivo.split(path.sep).join('/')], {
+  const elBash = bash || buscarBash();
+  const git = libGit();
+  const tope = git ? git.tiempoPara(TIEMPO_PROPIO) : TIEMPO_PROPIO;
+  if (tope === null) return { salida: '', falla: 'tiempo' };
+  const r = spawnSync(elBash, [archivo.split(path.sep).join('/')], {
     cwd: raiz,
     encoding: 'utf8',
-    timeout: TIEMPO_PROPIO,
+    timeout: tope,
     windowsHide: true,
     maxBuffer: 1024 * 1024,
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -78,6 +109,33 @@ function dejarMarca(entrada, gitDir) {
   const archivo = path.join(dir, id);
   fs.writeFileSync(archivo, ''); // escribir (aunque ya exista) le pone la fecha de ahora
   return archivo;
+}
+
+// Sin tiempo para preguntarle a git (E4b): el git-dir del disco — la carpeta .git, o el `gitdir:` del archivo .git de un
+// worktree — buscando hacia arriba desde el cwd. → la ruta o null.
+function gitDirPorDisco(cwd) {
+  let d = path.resolve(cwd);
+  for (;;) {
+    const p = path.join(d, '.git');
+    let s = null;
+    try {
+      s = fs.statSync(p);
+    } catch (e) {
+      /* acá no está: más arriba */
+    }
+    if (s && s.isDirectory()) return p;
+    if (s) {
+      try {
+        const m = /^gitdir:\s*(.+?)\s*$/m.exec(fs.readFileSync(p, 'utf8'));
+        return m ? path.resolve(d, m[1]) : null;
+      } catch (e) {
+        return null;
+      }
+    }
+    const arriba = path.dirname(d);
+    if (arriba === d) return null;
+    d = arriba;
+  }
 }
 
 // ---------------------------------------------------------------- de emergencia (error interno)
@@ -116,12 +174,15 @@ function principal() {
   let texto;
   let gitDir = null;
   try {
+    const git = require('./lib/git.cjs');
+    git.fijarPlazo(plazoDelArranque());
     const contexto = require('./lib/contexto.cjs');
     const inyeccion = require('./lib/inyeccion.cjs');
     const cwd = contexto.cwdDe(entrada);
     const g = contexto.datosGit(cwd);
-    gitDir = g ? g.gitDir : null;
-    const propio = correrPropio(g ? g.raiz : cwd);
+    gitDir = g ? g.gitDir : git.salteadasPorPlazo() > 0 ? gitDirPorDisco(cwd) : null;
+    // Lo propio corre al final, con lo que sobre del plazo: primero lo de git, que es lo que la sesión necesita.
+    const propio = () => correrPropio(g ? g.raiz : cwd);
     texto = inyeccion.armar({ cwd, entrada, home: os.homedir(), ahora: new Date(), propio }).texto;
   } catch (e) {
     texto = deEmergencia(entrada);
@@ -146,5 +207,18 @@ if (require.main === module) {
   }
   process.exitCode = 0;
 } else {
-  module.exports = { ERROR_INTERNO, RE_SESION, CARPETA_MARCAS, PROPIO, buscarBash, correrPropio, dejarMarca, deEmergencia };
+  module.exports = {
+    ERROR_INTERNO,
+    RE_SESION,
+    CARPETA_MARCAS,
+    PROPIO,
+    PLAZO_ARRANQUE,
+    VAR_PLAZO,
+    plazoDelArranque,
+    gitDirPorDisco,
+    buscarBash,
+    correrPropio,
+    dejarMarca,
+    deEmergencia,
+  };
 }
