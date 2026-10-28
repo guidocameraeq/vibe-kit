@@ -1,5 +1,8 @@
 'use strict';
-// Pruebas del parser de la ficha. Corren con: node --test kit/
+// Pruebas del parser de la ficha. Corren con: node --test "kit/**/*.test.cjs"
+// Regla de estas pruebas: cada regla de la gramática y de la validación tiene su caso, probado en un lugar donde NINGUNA otra
+// regla la tape (datos-de-prueba, una clave desconocida de arriba…) y comparando el mensaje con una regex, no solo la línea:
+// si alguien borra la regla, la prueba se pone en rojo.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
@@ -37,10 +40,11 @@ const ESPERADO = {
     'docs-fyd': 'sí',
   },
   frenos: {
-    opcionales: ['rama-nueva-por-mision'],
+    opcionales: [],
     quitados: [
       { id: 'hook:git-seguro/push-force', por: 'proyecto personal, el push es libre', hasta: 'siempre' },
-      { id: 'pregunta:borrar-datos-reales', por: 'base dummy de la misión 3', hasta: '2026-11-15' },
+      { id: 'pregunta:borrar-datos-reales', por: 'base dummy #3 de la misión 3', hasta: '2026-11-15' },
+      { id: 'deny:Bash(git stash:*)', por: 'el flujo de release lo necesita', hasta: 'siempre' },
     ],
   },
   autorizado: {
@@ -65,7 +69,7 @@ const ESPERADO = {
   aprueba: 'po-ejemplo',
   mesa: {
     hub: { contacto: 'hub/director', transporte: 'git' },
-    deptos: { contacto: 'deptos/sesion', transporte: 'git' },
+    deptos: { contacto: 'deptos/sesion', transporte: 'buzon' },
   },
   'multi-llm': 'no',
 };
@@ -77,6 +81,10 @@ test('el ejemplo da exactamente el objeto esperado, sin avisos', () => {
   assert.deepStrictEqual(r.datos, ESPERADO);
   assert.deepStrictEqual(r.avisos, []);
   assert.ok(r.prosa.startsWith('\n## Cómo se adaptó el kit a este proyecto'));
+});
+
+test('el ejemplo dice en la cabecera que es de muestra', () => {
+  assert.match(fs.readFileSync(EJEMPLO, 'utf8'), /^# Es un ejemplo de la forma, no una ficha para copiar: sus frenos quitados y autorizaciones son de muestra\.$/m);
 });
 
 test('BOM + CRLF dan los mismos datos que con LF', () => {
@@ -94,88 +102,227 @@ test('BOM + CRLF dan los mismos datos que con LF', () => {
 // Base válida: líneas 2 a 5. Lo que se agrega arranca en la línea 6.
 const BASE = 'kit: 2.4.3\nnivel: liviano\nvars:\n  proyecto: x\n';
 const ficha = (extra) => `---\n${BASE}${extra}---\n`;
+const fichaSolo = (kit, nivel, proyecto) => `---\nkit: ${kit}\nnivel: ${nivel}\nvars:\n  proyecto: ${proyecto}\n---\n`;
+const quitado = (cuerpo) => ficha(`frenos:\n  quitados:\n    - ${cuerpo}\n`); // el ítem cae en la línea 8
 
+// [nombre, texto, línea esperada, regex del mensaje]
+// Las reglas de FORMA se prueban sobre datos-de-prueba / colorcito (campos sin validación propia): así solo las tapa la regla misma.
 const CASOS = [
-  // [nombre, texto, línea esperada]
-  ['sin apertura', 'kit: 2.4.3\n---\n', 1],
-  ['sin cierre', `---\n${BASE}`, 1],
-  ['archivo vacío', '', 1],
-  ['tabulador', ficha('piezas:\n\tinicio: molde\n'), 7],
-  ['sangría impar', ficha('piezas:\n   inicio: molde\n'), 7],
-  ['salto de nivel', ficha('piezas:\n    inicio: molde\n'), 7],
-  ['sangría bajo una clave con valor', ficha('aprueba: po\n  x: y\n'), 7],
-  ['cuarto nivel', ficha('entornos:\n  a:\n    b:\n      c: x\n'), 9],
-  ['cuarto nivel con mapa en línea', ficha('entornos:\n  a:\n    herramientas: {x: y}\n'), 8],
-  ['clave repetida', ficha('kit: 2.4.4\n'), 6],
-  ['clave repetida en un submapa', ficha('piezas:\n  inicio: molde\n  inicio: propia\n'), 8],
-  ['comillas simples', ficha("aprueba: 'po'\n"), 6],
-  ['barra invertida en comillas', ficha('aprueba: "po\\x"\n'), 6],
-  ['comilla sin cerrar', ficha('aprueba: "po\n'), 6],
-  ['texto después de la comilla', ficha('aprueba: "po" x\n'), 6],
-  ['ancla', ficha('aprueba: &a po\n'), 6],
-  ['alias', ficha('aprueba: *a\n'), 6],
-  ['etiqueta', ficha('aprueba: !!str po\n'), 6],
-  ['texto en varias líneas con |', ficha('datos-de-prueba: |\n  texto\n'), 6],
-  ['texto en varias líneas con >', ficha('datos-de-prueba: >\n  texto\n'), 6],
-  ['lista de escalares en bloque', ficha('secretos:\n  - DB_URL\n'), 7],
-  ['lista anidada en línea', ficha('secretos: [A, [B]]\n'), 6],
-  ['lista anidada en bloque', ficha('secretos:\n  - [A]\n'), 7],
-  ['mapa dentro de lista en línea', ficha('secretos: [A, {b: c}]\n'), 6],
-  ['lista dentro de mapa en línea', ficha('autorizado: {a: [b]}\n'), 6],
-  ['corchete sin cerrar', ficha('secretos: [A, B\n'), 6],
-  ['llave sin cerrar', ficha('autorizado: {a: b\n'), 6],
-  ['campo vacío sin hijos', ficha('secretos:\npublicas: [A]\n'), 6],
-  ['campo vacío al final', ficha('secretos:\n'), 6],
-  ['dos puntos sin espacio (kit:2.4.3)', '---\nkit:2.4.3\nnivel: liviano\nvars:\n  proyecto: x\n---\n', 2],
-  ['renglón que no es clave: valor', ficha('hola\n'), 6],
-  ['dos puntos con espacio dentro de un texto', ficha('aprueba: a: b\n'), 6],
-  ['kit con letras (nivel: largo va aparte)', '---\nkit: 2.4\nnivel: liviano\nvars:\n  proyecto: x\n---\n', 2],
-  ['nivel: largo', '---\nkit: 2.4.3\nnivel: largo\nvars:\n  proyecto: x\n---\n', 3],
-  ['kit: 3', '---\nkit: 3\nnivel: liviano\nvars:\n  proyecto: x\n---\n', 2],
-  ['falta kit', '---\nnivel: liviano\nvars:\n  proyecto: x\n---\n', 5],
-  ['falta vars', '---\nkit: 2.4.3\nnivel: liviano\n---\n', 4],
-  ['falta proyecto en vars', '---\nkit: 2.4.3\nnivel: liviano\nvars:\n  lenguajes: [js]\n---\n', 4],
-  ['proyecto como lista', '---\nkit: 2.4.3\nnivel: liviano\nvars:\n  proyecto: [a]\n---\n', 5],
-  ['proyecto como mapa en línea', '---\nkit: 2.4.3\nnivel: liviano\nvars:\n  proyecto: {a: b}\n---\n', 5],
-  ['lenguajes no es lista', ficha('').replace('  proyecto: x\n', '  proyecto: x\n  lenguajes: js\n'), 6],
-  ['quitados sin hasta', ficha('frenos:\n  quitados:\n    - {id: hook:git-seguro/push-force, por: "x"}\n'), 8],
-  ['hasta: mañana', ficha('frenos:\n  quitados:\n    - {id: hook:git-seguro/push-force, por: "x", hasta: mañana}\n'), 8],
-  ['hasta con fecha que no existe', ficha('frenos:\n  quitados:\n    - {id: hook:git-seguro/push-force, por: "x", hasta: 2026-13-45}\n'), 8],
-  ['id de freno mal formado', ficha('frenos:\n  quitados:\n    - {id: pushforce, por: "x", hasta: siempre}\n'), 8],
-  ['clave de más en un freno', ficha('frenos:\n  quitados:\n    - {id: hook:a, por: "x", hasta: siempre, otro: y}\n'), 8],
-  ['clave desconocida en frenos', ficha('frenos:\n  raros: [a]\n'), 7],
-  ['clase: produccion', ficha('entornos:\n  a:\n    clase: produccion\n'), 8],
-  ['entorno sin clase', ficha('entornos:\n  a:\n    acceso: db\n'), 7],
-  ['clave desconocida en sensible', ficha('sensible:\n  raros: no\n'), 7],
-  ['valor de sensible que no es no ni lista', ficha('sensible:\n  plata: tal vez\n'), 7],
-  ['estado de pieza inválido', ficha('piezas:\n  inicio: raro\n'), 7],
-  ['clave de más en una pieza', ficha('piezas:\n  inicio: {estado: molde, color: rojo}\n'), 7],
-  ['hash de 11 hexa', ficha('piezas:\n  inicio: {estado: molde, hash: 3f9a0c1d2e4}\n'), 7],
-  ['hash con mayúsculas', ficha('piezas:\n  inicio: {estado: molde, hash: 3F9A0C1D2E4B}\n'), 7],
-  ['secreto con nombre inválido', ficha('secretos: [db_url]\n'), 6],
-  ['transporte inválido en la mesa', ficha('mesa:\n  hub:\n    contacto: hub/director\n    transporte: paloma\n'), 9],
-  ['mesa sin contacto', ficha('mesa:\n  hub:\n    transporte: git\n'), 7],
-  ['aprueba con nombre real', ficha('aprueba: Guido Camera\n'), 6],
-  ['push-publica: tal vez', ficha('push-publica: tal vez\n'), 6],
-  ['multi-llm: sí o no, no "true"', ficha('multi-llm: true\n'), 6],
+  // --- el archivo
+  ['sin apertura', 'kit: 2.4.3\n---\n', 1, /tiene que empezar con ---/],
+  ['sin cierre', `---\n${BASE}`, 1, /la cabecera no se cierra/],
+  ['archivo vacío', '', 1, /tiene que empezar con ---/],
+  // --- sangría y niveles
+  ['tabulador', ficha('colorcito:\n\ta: b\n'), 7, /tabulador en la sangría/],
+  ['sangría impar', ficha('colorcito:\n   a: b\n'), 7, /sangría impar/],
+  ['salto de nivel', ficha('colorcito:\n    a: b\n'), 7, /salto de más de un nivel/],
+  ['sangría bajo una clave con valor', ficha('colorcito: po\n  x: y\n'), 7, /sangría de más/],
+  ['espacio raro (NBSP) en la sangría', ficha('colorcito:\n\u00a0\u00a0a: b\n'), 7, /espacio raro en la sangría/],
+  ['espacio raro (NBSP) después de espacios comunes', ficha('colorcito:\n  \u00a0a: b\n'), 7, /espacio raro en la sangría/],
+  ['espacio raro (em space) en la sangría', ficha('colorcito:\n\u2003\u2003a: b\n'), 7, /espacio raro en la sangría/],
+  ['cuarto nivel', ficha('colorcito:\n  a:\n    b:\n      c: x\n'), 9, /más de tres niveles/],
+  ['cuarto nivel con mapa en línea', ficha('colorcito:\n  a:\n    b: {x: y}\n'), 8, /más de tres niveles/],
+  ['ítems de lista con sangría de más', ficha('frenos:\n  quitados:\n    - {id: hook:a, por: x, hasta: siempre}\n      - {id: hook:b, por: x, hasta: siempre}\n'), 9, /sangría de más/],
+  ['renglón que no es ítem dentro de una lista', ficha('frenos:\n  quitados:\n    - {id: hook:a, por: x, hasta: siempre}\n    otro: x\n'), 9, /todos los renglones empiezan con "- /],
+  // --- claves
+  ['ítem de lista "-" a nivel de clave', ficha('colorcito: x\n- a\n'), 7, /ítem de lista "-" sin clave arriba/],
+  ['ítem de lista "- a: b" a nivel de clave', ficha('colorcito: x\n- a: b\n'), 7, /ítem de lista "-" sin clave arriba/],
+  ['clave repetida', ficha('kit: 2.4.4\n'), 6, /clave repetida en el mismo mapa/],
+  ['clave repetida en un submapa', ficha('colorcito:\n  a: x\n  a: y\n'), 8, /clave repetida en el mismo mapa/],
+  ['clave repetida en mapa en línea', ficha('autorizado: {a: x, a: y}\n'), 6, /clave repetida en el mapa en línea/],
+  ['clave inválida (mayúsculas)', ficha('Colorcito: x\n'), 6, /clave inválida/],
+  ['clave inválida en mapa en línea', ficha('autorizado: {A: x}\n'), 6, /clave inválida en el mapa en línea/],
+  ['dos puntos sin espacio (kit:2.4.3)', '---\nkit:2.4.3\nnivel: liviano\nvars:\n  proyecto: x\n---\n', 2, /falta un espacio después de los dos puntos/],
+  ['dos puntos sin espacio en mapa en línea', ficha('autorizado: {a:x}\n'), 6, /falta un espacio después de los dos puntos de una clave/],
+  ['clave sin valor en mapa en línea', ficha('autorizado: {a: }\n'), 6, /no tiene valor/],
+  ['elemento sin clave: valor en mapa en línea', ficha('autorizado: {a}\n'), 6, /no es "clave: valor"/],
+  ['renglón que no es clave: valor', ficha('hola\n'), 6, /no entiendo este renglón/],
+  // --- texto
+  ['comillas simples', ficha("datos-de-prueba: 'po'\n"), 6, /comillas simples/],
+  ['barra invertida en comillas', ficha('datos-de-prueba: "po\\x"\n'), 6, /barra \\ dentro de comillas/],
+  ['comilla sin cerrar', ficha('datos-de-prueba: "po\n'), 6, /comilla sin cerrar — cerrala con otra " al final/],
+  ['comilla sola', ficha('datos-de-prueba: "\n'), 6, /comilla sin cerrar/],
+  ['comilla sin cerrar dentro de una lista', ficha('colorcito: [a, "b]\n'), 6, /comilla sin cerrar — cerrala con otra " antes de la coma/],
+  ['texto después de la comilla', ficha('datos-de-prueba: "po" x\n'), 6, /texto después de la comilla de cierre/],
+  ['comillas en medio del texto', ficha('datos-de-prueba: a "b" c\n'), 6, /comillas en medio del texto/],
+  ['dos puntos con espacio dentro de un texto', ficha('datos-de-prueba: a: b\n'), 6, /dos puntos seguidos de espacio/],
+  ['dos puntos al final de un texto', ficha('datos-de-prueba: a:\n'), 6, /dos puntos seguidos de espacio/],
+  ['ancla', ficha('datos-de-prueba: &a po\n'), 6, /ancla o alias/],
+  ['alias', ficha('datos-de-prueba: *a\n'), 6, /ancla o alias/],
+  ['etiqueta', ficha('datos-de-prueba: !!str po\n'), 6, /etiqueta \(!\)/],
+  ['texto en varias líneas con |', ficha('datos-de-prueba: |\n  texto\n'), 6, /varias líneas/],
+  ['texto en varias líneas con >', ficha('datos-de-prueba: >\n  texto\n'), 6, /varias líneas/],
+  ['corchete suelto en un texto sin comillas', ficha('datos-de-prueba: db [todo\n'), 6, /corchete o llave suelta/],
+  ['corchete de cierre suelto en un texto', ficha('datos-de-prueba: db todo]\n'), 6, /corchete o llave suelta/],
+  ['llave suelta en un texto sin comillas', ficha('datos-de-prueba: db {x\n'), 6, /corchete o llave suelta/],
+  ['llave de cierre suelta en un texto', ficha('datos-de-prueba: db x}\n'), 6, /corchete o llave suelta/],
+  ['llave suelta en acceso', ficha('entornos:\n  a:\n    clase: real\n    acceso: db {x\n'), 9, /corchete o llave suelta/],
+  ['llave de cierre de más tras un mapa en línea', ficha('autorizado: {a: x}}\n'), 6, /corchete o llave suelta/],
+  ['corchete suelto en un elemento de lista', ficha('colorcito: [a, b{]\n'), 6, /corchete o llave suelta/],
+  ['corchete suelto en un valor de mapa en línea', ficha('autorizado: {a: x]}\n'), 6, /corchete o llave suelta/],
+  // --- listas y mapas en línea
+  ['lista de escalares en bloque', ficha('colorcito:\n  - DB_URL\n'), 7, /lista de texto en bloque/],
+  ['lista anidada en línea', ficha('colorcito: [A, [B]]\n'), 6, /lista dentro de otra lista/],
+  ['lista anidada en bloque', ficha('colorcito:\n  - [A]\n'), 7, /lista dentro de una lista/],
+  ['mapa dentro de lista en línea', ficha('colorcito: [A, {b: c}]\n'), 6, /mapa dentro de una lista en línea/],
+  ['lista dentro de mapa en línea', ficha('autorizado: {a: [b]}\n'), 6, /lista o mapa dentro de un mapa en línea/],
+  ['mapa dentro de mapa en línea', ficha('autorizado: {a: {b: c}}\n'), 6, /lista o mapa dentro de un mapa en línea/],
+  ['corchete sin cerrar', ficha('colorcito: [A, B\n'), 6, /corchete sin cerrar/],
+  ['texto después de ]', ficha('colorcito: [A] x\n'), 6, /corchete sin cerrar \(o texto después del \]\)/],
+  ['llave sin cerrar', ficha('autorizado: {a: b\n'), 6, /llave sin cerrar/],
+  ['texto después de }', ficha('autorizado: {a: b} x\n'), 6, /llave sin cerrar \(o texto después de la \}\)/],
+  ['mapa vacío {}', ficha('autorizado: {}\n'), 6, /mapa vacío/],
+  ['elemento vacío en una lista', ficha('colorcito: [a,, b]\n'), 6, /elemento vacío en la lista/],
+  ['elemento vacío en un mapa en línea', ficha('autorizado: {a: b,, c: d}\n'), 6, /elemento vacío en el mapa/],
+  ['campo vacío sin hijos', ficha('secretos:\npublicas: [A]\n'), 6, /campo vacío/],
+  ['campo vacío al final', ficha('secretos:\n'), 6, /campo vacío/],
+  // --- kit, nivel, vars
+  ['kit con letras', fichaSolo('2.4', 'liviano', 'x'), 2, /"kit" tiene un valor que no se acepta/],
+  ['kit: 3', fichaSolo('3', 'liviano', 'x'), 2, /"kit" tiene un valor que no se acepta/],
+  ['kit con cero a la izquierda en el mayor', fichaSolo('02.4.3', 'liviano', 'x'), 2, /"kit" tiene un valor que no se acepta/],
+  ['kit con cero a la izquierda en el menor', fichaSolo('2.04.3', 'liviano', 'x'), 2, /"kit" tiene un valor que no se acepta/],
+  ['kit con cero a la izquierda en el parche', fichaSolo('2.4.03', 'liviano', 'x'), 2, /"kit" tiene un valor que no se acepta/],
+  ['kit con valor largo', fichaSolo('2.4.3.1', 'liviano', 'x'), 2, /"kit" tiene un valor que no se acepta/],
+  ['nivel como lista de un elemento válido', fichaSolo('2.4.3', '[liviano]', 'x'), 3, /"nivel" tiene que ser un texto/],
+  ['kit como lista de un elemento válido', fichaSolo('[2.4.3]', 'liviano', 'x'), 2, /"kit" tiene que ser un texto/],
+  ['nivel: largo', fichaSolo('2.4.3', 'largo', 'x'), 3, /"nivel" tiene un valor que no se acepta — tiene que ser uno de: liviano, estandar/],
+  ['falta kit', '---\nnivel: liviano\nvars:\n  proyecto: x\n---\n', 5, /falta "kit"/],
+  ['falta nivel', '---\nkit: 2.4.3\nvars:\n  proyecto: x\n---\n', 5, /falta "nivel"/],
+  ['falta vars', '---\nkit: 2.4.3\nnivel: liviano\n---\n', 4, /falta "vars"/],
+  ['vars no es un mapa', '---\nkit: 2.4.3\nnivel: liviano\nvars: x\n---\n', 4, /"vars" tiene que ser un mapa/],
+  ['falta proyecto en vars', '---\nkit: 2.4.3\nnivel: liviano\nvars:\n  lenguajes: [js]\n---\n', 4, /falta "proyecto" en "vars"/],
+  ['proyecto como lista', fichaSolo('2.4.3', 'liviano', '[a]'), 5, /"vars.proyecto" tiene que ser un texto/],
+  ['proyecto como mapa en línea', fichaSolo('2.4.3', 'liviano', '{a: b}'), 5, /"vars.proyecto" tiene que ser un texto/],
+  ['proyecto vacío entre comillas', fichaSolo('2.4.3', 'liviano', '""'), 5, /"vars.proyecto" está vacío/],
+  ['proyecto solo espacios entre comillas', fichaSolo('2.4.3', 'liviano', '"   "'), 5, /"vars.proyecto" está vacío/],
+  ['lenguajes no es lista', ficha('').replace('  proyecto: x\n', '  proyecto: x\n  lenguajes: js\n'), 6, /"vars.lenguajes" tiene que ser una lista/],
+  ['una var que es un mapa', ficha('').replace('  proyecto: x\n', '  proyecto: x\n  otra: {a: b}\n'), 6, /"vars.<clave>" no puede ser un mapa/],
+  // --- piezas
+  ['piezas no es un mapa', ficha('piezas: molde\n'), 6, /"piezas" tiene que ser un mapa/],
+  ['estado de pieza inválido', ficha('piezas:\n  inicio: raro\n'), 7, /"piezas.<nombre>" tiene un valor que no se acepta/],
+  ['estado de pieza inválido dentro del mapa', ficha('piezas:\n  inicio: {estado: raro}\n'), 7, /"piezas.<nombre>.estado" tiene un valor que no se acepta/],
+  ['pieza como lista', ficha('piezas:\n  inicio: [a]\n'), 7, /tiene que ser un estado o \{estado/],
+  ['pieza sin estado', ficha('piezas:\n  inicio: {hash: 3f9a0c1d2e4b}\n'), 7, /falta "estado" en "piezas.<nombre>"/],
+  ['hash de 11 hexa', ficha('piezas:\n  inicio: {estado: molde, hash: 3f9a0c1d2e4}\n'), 7, /"piezas.<nombre>.hash" tiene un valor que no se acepta — tiene que tener 12/],
+  ['hash de 13 hexa', ficha('piezas:\n  inicio: {estado: molde, hash: 3f9a0c1d2e4b5}\n'), 7, /"piezas.<nombre>.hash"/],
+  ['hash con mayúsculas', ficha('piezas:\n  inicio: {estado: molde, hash: 3F9A0C1D2E4B}\n'), 7, /"piezas.<nombre>.hash"/],
+  // --- frenos
+  ['frenos no es un mapa', ficha('frenos: x\n'), 6, /"frenos" tiene que ser un mapa/],
+  ['opcionales no es lista', ficha('frenos:\n  opcionales: x\n'), 7, /"frenos.opcionales" tiene que ser una lista/],
+  ['quitados no es lista', ficha('frenos:\n  quitados: x\n'), 7, /"frenos.quitados" tiene que ser una lista/],
+  ['quitados con un ítem que no es mapa', ficha('frenos:\n  quitados: [a]\n'), 7, /cada freno quitado es/],
+  ['quitado sin hasta', quitado('{id: hook:git-seguro/push-force, por: "x"}'), 8, /falta "hasta" en "frenos.quitados\[0\]"/],
+  ['quitado sin por', quitado('{id: hook:a, hasta: siempre}'), 8, /falta "por" en "frenos.quitados\[0\]"/],
+  ['quitado sin id', quitado('{por: x, hasta: siempre}'), 8, /falta "id" en "frenos.quitados\[0\]"/],
+  ['hasta: mañana', quitado('{id: hook:a, por: "x", hasta: mañana}'), 8, /"frenos.quitados\[0\].hasta" tiene un valor que no se acepta/],
+  ['hasta con fecha que no existe', quitado('{id: hook:a, por: "x", hasta: 2026-13-45}'), 8, /"frenos.quitados\[0\].hasta" no es una fecha real/],
+  ['hasta con 30 de febrero', quitado('{id: hook:a, por: "x", hasta: 2026-02-30}'), 8, /no es una fecha real/],
+  ['hasta vacío', quitado('{id: hook:a, por: "x", hasta: " "}'), 8, /"frenos.quitados\[0\].hasta" está vacío/],
+  ['por vacío', quitado('{id: hook:a, por: "", hasta: siempre}'), 8, /"frenos.quitados\[0\].por" está vacío/],
+  ['por solo espacios', quitado('{id: hook:a, por: "   ", hasta: siempre}'), 8, /"frenos.quitados\[0\].por" está vacío/],
+  ['id vacío', quitado('{id: "", por: x, hasta: siempre}'), 8, /"frenos.quitados\[0\].id" está vacío/],
+  ['id solo espacios', quitado('{id: "  ", por: x, hasta: siempre}'), 8, /"frenos.quitados\[0\].id" está vacío/],
+  ['id sin clase (pushforce)', quitado('{id: pushforce, por: "x", hasta: siempre}'), 8, /"frenos.quitados\[0\].id" tiene un valor que no se acepta — tiene que ser <clase>:<resto>/],
+  ['id con clase en mayúsculas', quitado('{id: Hook:a, por: x, hasta: siempre}'), 8, /"frenos.quitados\[0\].id"/],
+  ['id con clase con números', quitado('{id: hook2:a, por: x, hasta: siempre}'), 8, /"frenos.quitados\[0\].id"/],
+  ['id con clase vacía', quitado('{id: ":a", por: x, hasta: siempre}'), 8, /"frenos.quitados\[0\].id"/],
+  ['id con resto vacío', quitado('{id: "hook:", por: x, hasta: siempre}'), 8, /"frenos.quitados\[0\].id"/],
+  ['id con espacio al principio del resto', quitado('{id: "hook: x", por: x, hasta: siempre}'), 8, /"frenos.quitados\[0\].id"/],
+  ['id con espacio al final', quitado('{id: "hook:x ", por: x, hasta: siempre}'), 8, /"frenos.quitados\[0\].id"/],
+  ['id con espacio al principio', quitado('{id: " hook:x", por: x, hasta: siempre}'), 8, /"frenos.quitados\[0\].id"/],
+  [
+    'ids repetidos: el error cae en el segundo',
+    ficha('frenos:\n  quitados:\n    - {id: hook:a, por: x, hasta: siempre}\n    - {id: hook:a, por: y, hasta: 2026-11-15}\n'),
+    9,
+    /"frenos.quitados\[1\].id" está repetido/,
+  ],
+  [
+    'ids repetidos no consecutivos',
+    ficha('frenos:\n  quitados:\n    - {id: hook:a, por: x, hasta: siempre}\n    - {id: hook:b, por: x, hasta: siempre}\n    - {id: hook:a, por: x, hasta: siempre}\n'),
+    10,
+    /está repetido/,
+  ],
+  // --- sensible, secretos, entornos, mesa
+  ['clave desconocida en sensible (es estricto)', ficha('sensible:\n  raros: no\n'), 7, /clave desconocida en "sensible" — las que valen son: datos-reales, plata, sale-afuera, claves, release/],
+  ['sensible no es un mapa', ficha('sensible: x\n'), 6, /"sensible" tiene que ser un mapa/],
+  ['valor de sensible que no es no ni lista', ficha('sensible:\n  plata: tal vez\n'), 7, /"sensible.plata" tiene que ser "no" o una lista/],
+  ['valor de sensible: "sí"', ficha('sensible:\n  plata: sí\n'), 7, /"sensible.plata" tiene que ser "no" o una lista/],
+  ['secretos no es lista', ficha('secretos: DB_URL\n'), 6, /"secretos" tiene que ser una lista/],
+  ['publicas no es lista', ficha('publicas: DB_URL\n'), 6, /"publicas" tiene que ser una lista/],
+  ['secreto con nombre inválido', ficha('secretos: [DB_URL, db_url]\n'), 6, /el elemento 2 de "secretos" no es un nombre de variable/],
+  ['pública con nombre inválido', ficha('publicas: [1ABC]\n'), 6, /el elemento 1 de "publicas" no es un nombre de variable/],
+  ['entornos no es un mapa', ficha('entornos: x\n'), 6, /"entornos" tiene que ser un mapa/],
+  ['entorno que no es un mapa', ficha('entornos:\n  a: x\n'), 7, /"entornos.<nombre>" tiene que ser un mapa/],
+  ['entorno sin clase', ficha('entornos:\n  a:\n    acceso: db\n'), 7, /falta "clase" en "entornos.<nombre>"/],
+  ['clase: produccion', ficha('entornos:\n  a:\n    clase: produccion\n'), 8, /"entornos.<nombre>.clase" tiene un valor que no se acepta — tiene que ser uno de: real, prueba, dummy/],
+  ['herramientas no es lista', ficha('entornos:\n  a:\n    clase: real\n    herramientas: db\n'), 9, /"entornos.<nombre>.herramientas" tiene que ser una lista/],
+  ['acceso no es texto', ficha('entornos:\n  a:\n    clase: real\n    acceso: [db]\n'), 9, /"entornos.<nombre>.acceso" tiene que ser un texto/],
+  ['mesa no es un mapa', ficha('mesa: x\n'), 6, /"mesa" tiene que ser un mapa/],
+  ['mesa: entrada que no es un mapa', ficha('mesa:\n  hub: x\n'), 7, /"mesa.<alias>" tiene que ser un mapa/],
+  ['mesa sin contacto', ficha('mesa:\n  hub:\n    transporte: git\n'), 7, /falta "contacto" en "mesa.<alias>"/],
+  ['mesa con contacto solo espacios', ficha('mesa:\n  hub:\n    contacto: "  "\n'), 8, /"mesa.<alias>.contacto" está vacío/],
+  ['mesa con contacto lista', ficha('mesa:\n  hub:\n    contacto: [a]\n'), 8, /"mesa.<alias>.contacto" tiene que ser un texto/],
+  ['transporte inválido en la mesa', ficha('mesa:\n  hub:\n    contacto: hub/director\n    transporte: paloma\n'), 9, /"mesa.<alias>.transporte" tiene un valor que no se acepta — tiene que ser uno de: git, buzon/],
+  ['transporte inválido en la mesa (mapa en línea)', ficha('mesa:\n  hub: {contacto: x, transporte: paloma}\n'), 7, /"mesa.<alias>.transporte" tiene un valor que no se acepta/],
+  // --- el resto de los campos
+  ['aprueba como lista de un alias válido', ficha('aprueba: [po]\n'), 6, /"aprueba" tiene que ser un texto/],
+  ['aprueba con nombre real', ficha('aprueba: Guido Camera\n'), 6, /"aprueba" tiene un valor que no se acepta — tiene que ser un alias en minúsculas/],
+  ['push-publica: tal vez', ficha('push-publica: tal vez\n'), 6, /"push-publica" tiene un valor que no se acepta — tiene que ser uno de: sí, no/],
+  ['multi-llm: sí o no, no "true"', ficha('multi-llm: true\n'), 6, /"multi-llm" tiene un valor que no se acepta/],
+  ['autorizado no es un mapa', ficha('autorizado: x\n'), 6, /"autorizado" tiene que ser un mapa/],
+  ['autorizado con un valor lista', ficha('autorizado:\n  a: [x]\n'), 7, /"autorizado.<clave>" tiene que ser un texto/],
+  ['datos-de-prueba no es texto', ficha('datos-de-prueba: [a]\n'), 6, /"datos-de-prueba" tiene que ser un texto/],
+  ['datos-de-prueba como mapa', ficha('datos-de-prueba: {a: b}\n'), 6, /"datos-de-prueba" tiene que ser un texto/],
 ];
 
-for (const [nombre, texto, linea] of CASOS) {
+for (const [nombre, texto, linea, re] of CASOS) {
   test(`malformada: ${nombre} -> error en la línea ${linea}`, () => {
     assert.throws(
       () => leer(texto),
       (e) => {
         assert.ok(e instanceof ErrorFicha, `esperaba ErrorFicha, vino ${e && e.name}: ${e && e.message}`);
         assert.equal(e.linea, linea, `línea distinta: ${e.message}`);
-        assert.ok(e.mensaje.length > 0);
+        assert.match(e.mensaje, re);
         return true;
       }
     );
   });
 }
 
-test('hay al menos 22 casos malformados', () => {
-  assert.ok(CASOS.length >= 22);
+test('hay muchos casos malformados', () => {
+  assert.ok(CASOS.length >= 100, `hay ${CASOS.length}`);
+});
+
+// ---------------------------------------------------------------- UTF-16
+
+test('UTF-16 (little y big endian): error en la línea 1 que lo dice', () => {
+  const dir = tmp('ficha-u16');
+  const utf8 = fs.readFileSync(EJEMPLO, 'utf8');
+  const le = Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(utf8, 'utf16le')]);
+  const be = Buffer.from(le);
+  be.subarray(2).swap16();
+  be[0] = 0xfe;
+  be[1] = 0xff;
+  for (const [nombre, buf] of [['le', le], ['be', be]]) {
+    const f = path.join(dir, `kit-${nombre}.md`);
+    fs.writeFileSync(f, buf);
+    assert.throws(
+      () => leerArchivo(f),
+      (e) => e instanceof ErrorFicha && e.linea === 1 && /UTF-16 — guardala en UTF-8/.test(e.mensaje) && e.message.startsWith(`${f}:1: `)
+    );
+    const r = correr(['leer', f]);
+    assert.equal(r.status, 1, nombre);
+    assert.match(r.stderr, /:1: la ficha está guardada en UTF-16 — guardala en UTF-8/);
+    assert.equal(r.stdout, '');
+  }
+});
+
+test('un archivo con BOM de UTF-8 se lee igual que sin BOM', () => {
+  const dir = tmp('ficha-bom8');
+  const f = path.join(dir, 'kit.md');
+  fs.writeFileSync(f, Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), fs.readFileSync(EJEMPLO)]));
+  assert.deepStrictEqual(leerArchivo(f).datos, ESPERADO);
+  assert.equal(correr(['leer', f]).status, 0);
 });
 
 // ---------------------------------------------------------------- avisos y casos válidos
@@ -185,6 +332,42 @@ test('campo de arriba desconocido: no lanza, avisa con su línea', () => {
   assert.equal(r.avisos.length, 1);
   assert.match(r.avisos[0], /^línea 6: campo desconocido `colorcito`/);
   assert.equal(r.datos.colorcito, 'azul');
+});
+
+// Una clave desconocida dentro de un mapa conocido avisa igual que arriba (una PC atrasada no se traba); no lanza.
+const AVISOS = [
+  ['piezas.<x> (mapa en línea)', ficha('piezas:\n  inicio: {estado: molde, color: rojo}\n'), 7, /^línea 7: clave desconocida `color` en `piezas\.<nombre>`/],
+  ['piezas.<x> (mapa en bloque)', ficha('piezas:\n  inicio:\n    estado: molde\n    color: rojo\n'), 9, /^línea 9: clave desconocida `color` en `piezas\.<nombre>`/],
+  ['frenos', ficha('frenos:\n  raros: [a]\n'), 7, /^línea 7: clave desconocida `raros` en `frenos`/],
+  ['ítem de frenos.quitados', quitado('{id: hook:a, por: x, hasta: siempre, otro: y}'), 8, /^línea 8: clave desconocida `otro` en `frenos\.quitados\[0\]`/],
+  ['entornos.<n>', ficha('entornos:\n  a:\n    clase: real\n    necesita-guido: no\n'), 9, /^línea 9: clave desconocida `necesita-guido` en `entornos\.<nombre>`/],
+  ['mesa.<a> (bloque)', ficha('mesa:\n  hub:\n    contacto: x\n    canal: y\n'), 9, /^línea 9: clave desconocida `canal` en `mesa\.<alias>`/],
+  ['mesa.<a> (mapa en línea)', ficha('mesa:\n  hub: {contacto: x, canal: y}\n'), 7, /^línea 7: clave desconocida `canal` en `mesa\.<alias>`/],
+];
+
+for (const [nombre, texto, linea, re] of AVISOS) {
+  test(`aviso, no error: clave desconocida en ${nombre}`, () => {
+    const r = leer(texto);
+    assert.equal(r.avisos.length, 1, JSON.stringify(r.avisos));
+    assert.match(r.avisos[0], re);
+    assert.ok(r.avisos[0].startsWith(`línea ${linea}: `));
+  });
+}
+
+test('aviso de clave desconocida: el CLI sale con 0 y lo imprime por stderr', () => {
+  const dir = tmp('ficha-aviso2');
+  const f = path.join(dir, 'kit.md');
+  fs.writeFileSync(f, quitado('{id: hook:a, por: x, hasta: siempre, otro: y}'));
+  const r = correr(['leer', f]);
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stderr, /línea 8: clave desconocida `otro`/);
+});
+
+test('las claves obligatorias siguen siendo obligatorias aunque las desconocidas avisen', () => {
+  assert.throws(() => leer(quitado('{id: hook:a, otro: y, hasta: siempre}')), /falta "por"/);
+  assert.throws(() => leer(ficha('mesa:\n  hub: {canal: y}\n')), /falta "contacto"/);
+  assert.throws(() => leer(ficha('entornos:\n  a:\n    raro: x\n')), /falta "clase"/);
+  assert.throws(() => leer(ficha('piezas:\n  inicio: {color: rojo}\n')), /falta "estado"/);
 });
 
 test('ficha mínima, comentarios y renglones vacíos', () => {
@@ -207,50 +390,127 @@ test('listas vacías y claves con nombres de Object.prototype', () => {
   assert.equal(r.datos.autorizado.constructor, 'x');
 });
 
-// Un valor pegado donde van nombres no se repite en el error (el hook lo imprimiría en el chat).
-const CULPABLE = 'sk-123abc';
-const LEAKS = [
-  ['secretos', ficha(`secretos: [DB_URL, ${CULPABLE}]\n`), 6, /elemento 2 de "secretos"/],
-  ['publicas', ficha(`publicas: [${CULPABLE}]\n`), 6, /elemento 1 de "publicas"/],
-  ['mapa en línea sin clave: valor', ficha(`autorizado: {a: b, ${CULPABLE}}\n`), 6, /elemento del mapa en línea/],
+test('id de un freno quitado: <clase>:<cualquier texto no vacío sin espacios en las puntas>', () => {
+  for (const id of ['deny:Bash(git stash:*)', 'hook:git-seguro/push-force', 'pregunta:borrar-datos-reales', 'x:y', 'hook:a b c', 'hook::x']) {
+    const r = leer(quitado(`{id: "${id}", por: x, hasta: siempre}`));
+    assert.equal(r.datos.frenos.quitados[0].id, id);
+  }
+  // y sin comillas, tal cual está en el ejemplo
+  assert.equal(leer(quitado('{id: deny:Bash(git stash:*), por: x, hasta: siempre}')).datos.frenos.quitados[0].id, 'deny:Bash(git stash:*)');
+});
+
+test('ids distintos en frenos.quitados no son repetidos', () => {
+  const r = leer(ficha('frenos:\n  quitados:\n    - {id: hook:a, por: x, hasta: siempre}\n    - {id: hook:b, por: x, hasta: siempre}\n    - {id: pregunta:a, por: x, hasta: siempre}\n'));
+  assert.equal(r.datos.frenos.quitados.length, 3);
+});
+
+test('mesa.<a>.transporte es opcional; si está, git o buzon', () => {
+  const sin = leer(ficha('mesa:\n  hub:\n    contacto: hub/director\n  deptos: {contacto: deptos/sesion}\n'));
+  assert.deepStrictEqual(sin.datos.mesa, { hub: { contacto: 'hub/director' }, deptos: { contacto: 'deptos/sesion' } });
+  assert.deepStrictEqual(sin.avisos, []);
+  const buzon = leer(ficha('mesa:\n  hub: {contacto: x, transporte: buzon}\n'));
+  assert.equal(buzon.datos.mesa.hub.transporte, 'buzon');
+  assert.equal(leer(ficha('mesa:\n  hub: {contacto: x, transporte: git}\n')).datos.mesa.hub.transporte, 'git');
+});
+
+test('versiones: 0.0.0 vale; con ceros a la izquierda no', () => {
+  assert.equal(leer(fichaSolo('0.0.0', 'liviano', 'x')).datos.kit, '0.0.0');
+  assert.equal(leer(fichaSolo('10.20.30', 'liviano', 'x')).datos.kit, '10.20.30');
+});
+
+test('textos con corchetes entre comillas o dentro de una palabra con comillas valen', () => {
+  const r = leer(ficha('datos-de-prueba: "db [todo]"\nautorizado:\n  a: "x {y}"\n'));
+  assert.equal(r.datos['datos-de-prueba'], 'db [todo]');
+  assert.equal(r.datos.autorizado.a, 'x {y}');
+});
+
+// ---------------------------------------------------------------- los mensajes no repiten lo que escribió el usuario
+
+// El hook imprime estos mensajes en el chat: un secreto pegado donde no va no puede volver a aparecer.
+const Z = 'ZZSECRETOZZ';
+const z = 'zzsecretozz'; // para las claves, que van en minúscula
+const OCULTOS = [
+  ['kit', fichaSolo(Z, 'liviano', 'x'), Z],
+  ['nivel', fichaSolo('2.4.3', Z, 'x'), Z],
+  ['push-publica', ficha(`push-publica: ${Z}\n`), Z],
+  ['multi-llm', ficha(`multi-llm: ${Z}\n`), Z],
+  ['aprueba', ficha(`aprueba: ${Z}\n`), Z],
+  ['estado de pieza', ficha(`piezas:\n  inicio: ${Z}\n`), Z],
+  ['estado de pieza en mapa', ficha(`piezas:\n  inicio: {estado: ${Z}}\n`), Z],
+  ['hash de pieza', ficha(`piezas:\n  inicio: {estado: molde, hash: ${Z}}\n`), Z],
+  ['sensible con texto', ficha(`sensible:\n  plata: ${Z}\n`), Z],
+  ['clave desconocida en sensible', ficha(`sensible:\n  ${z}: no\n`), z],
+  ['clase de entorno', ficha(`entornos:\n  a:\n    clase: ${Z}\n`), Z],
+  ['herramientas como texto', ficha(`entornos:\n  a:\n    clase: real\n    herramientas: ${Z}\n`), Z],
+  ['transporte de la mesa', ficha(`mesa:\n  hub:\n    contacto: x\n    transporte: ${Z}\n`), Z],
+  ['hasta de un freno', quitado(`{id: hook:a, por: x, hasta: ${Z}}`), Z],
+  ['id de un freno', quitado(`{id: ${Z}, por: x, hasta: siempre}`), Z],
+  ['id repetido', ficha(`frenos:\n  quitados:\n    - {id: hook:${Z}, por: x, hasta: siempre}\n    - {id: hook:${Z}, por: y, hasta: siempre}\n`), Z],
+  ['secreto con nombre inválido', ficha(`secretos: [${Z}-1]\n`), Z],
+  ['pública con nombre inválido', ficha(`publicas: [DB_URL, ${Z}.x]\n`), Z],
+  ['dos puntos en un texto', ficha(`datos-de-prueba: ${Z}: x\n`), Z],
+  ['barra en comillas', ficha(`datos-de-prueba: "${Z}\\x"\n`), Z],
+  ['comillas en medio', ficha(`datos-de-prueba: a ${Z} "b"\n`), Z],
+  ['comillas simples', ficha(`datos-de-prueba: '${Z}'\n`), Z],
+  ['corchete suelto', ficha(`datos-de-prueba: ${Z} [x\n`), Z],
+  ['texto después de la comilla', ficha(`datos-de-prueba: "a" ${Z}\n`), Z],
+  ['mapa en línea sin clave: valor', ficha(`autorizado: {a: b, ${Z}}\n`), Z],
+  ['mapa en línea con clave inválida', ficha(`autorizado: {${Z}: x}\n`), Z],
+  ['mapa en línea con clave repetida', ficha(`autorizado: {${z}: a, ${z}: b}\n`), z],
+  ['mapa en línea sin espacio tras los dos puntos', ficha(`autorizado: {${z}:x}\n`), z],
+  ['clave inválida arriba', ficha(`${Z}: x\n`), Z],
+  ['clave repetida arriba', ficha(`${z}: a\n${z}: b\n`), z],
+  ['dos puntos sin espacio arriba', ficha(`${z}:${z}\n`), z],
+  ['proyecto como lista', fichaSolo('2.4.3', 'liviano', `[${Z}]`), Z],
+  ['lenguajes como texto', ficha('').replace('  proyecto: x\n', `  proyecto: x\n  lenguajes: ${Z}\n`), Z],
+  ['var que es un mapa', ficha('').replace('  proyecto: x\n', `  proyecto: x\n  ${z}: {a: b}\n`), z],
+  ['nombre de pieza inválida', ficha(`piezas:\n  ${z}: raro\n`), z],
+  ['nombre de entorno sin clase', ficha(`entornos:\n  ${z}:\n    acceso: db\n`), z],
+  ['nombre de alias de la mesa sin contacto', ficha(`mesa:\n  ${z}:\n    transporte: git\n`), z],
+  ['clave de autorizado con una lista', ficha(`autorizado:\n  ${z}: [a]\n`), z],
+  ['alias de la mesa con transporte inválido', ficha(`mesa:\n  ${z}: {contacto: x, transporte: paloma}\n`), z],
+  ['datos-de-prueba como lista', ficha(`datos-de-prueba: [${Z}]\n`), Z],
 ];
 
-for (const [nombre, texto, linea, re] of LEAKS) {
-  test(`no repite el valor culpable: ${nombre} (biblioteca y CLI)`, () => {
-    assert.throws(
-      () => leer(texto),
-      (e) => {
-        assert.ok(e instanceof ErrorFicha);
-        assert.equal(e.linea, linea);
-        assert.match(e.mensaje, re);
-        assert.ok(!e.message.includes(CULPABLE), e.message);
-        assert.ok(!e.mensaje.includes(CULPABLE), e.mensaje);
-        return true;
-      }
-    );
+test('hay al menos 10 fichas inválidas con centinela', () => {
+  assert.ok(OCULTOS.length >= 10);
+});
+
+for (const [nombre, texto, centinela] of OCULTOS) {
+  test(`no repite lo que escribió el usuario: ${nombre} (biblioteca y CLI)`, () => {
+    let error = null;
+    try {
+      leer(texto);
+    } catch (e) {
+      error = e;
+    }
+    assert.ok(error instanceof ErrorFicha, 'tenía que ser una ficha inválida');
+    assert.ok(!error.message.includes(centinela), error.message);
+    assert.ok(!error.mensaje.includes(centinela), error.mensaje);
     const dir = tmp('ficha-leak');
     const f = path.join(dir, 'kit.md');
     fs.writeFileSync(f, texto);
     const r = correr(['leer', f]);
     assert.equal(r.status, 1);
-    assert.match(r.stderr, new RegExp(`:${linea}: `));
-    assert.ok(!r.stderr.includes(CULPABLE), r.stderr);
-    assert.ok(!r.stdout.includes(CULPABLE), r.stdout);
+    assert.match(r.stderr, new RegExp(`:${error.linea}: `));
+    assert.ok(!r.stderr.includes(centinela), r.stderr);
+    assert.ok(!r.stdout.includes(centinela), r.stdout);
   });
 }
 
+test('compararVersiones no repite la versión que recibió', () => {
+  assert.throws(() => compararVersiones(Z, '2.4.3'), (e) => !e.message.includes(Z));
+  assert.throws(() => compararVersiones('2.4.3', Z), (e) => !e.message.includes(Z));
+});
+
 test('el ErrorFicha de leerArchivo lleva la ruta', () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ficha-'));
-  try {
-    const f = path.join(dir, 'rota.md');
-    fs.writeFileSync(f, ficha("aprueba: 'x'\n"));
-    assert.throws(
-      () => leerArchivo(f),
-      (e) => e instanceof ErrorFicha && e.linea === 6 && e.message.startsWith(`${f}:6: `)
-    );
-  } finally {
-    fs.rmSync(dir, { recursive: true, force: true });
-  }
+  const dir = tmp('ficha-ruta');
+  const f = path.join(dir, 'rota.md');
+  fs.writeFileSync(f, ficha("datos-de-prueba: 'x'\n"));
+  assert.throws(
+    () => leerArchivo(f),
+    (e) => e instanceof ErrorFicha && e.linea === 6 && e.message.startsWith(`${f}:6: `)
+  );
 });
 
 // ---------------------------------------------------------------- hash y versiones
@@ -263,12 +523,28 @@ test('hash: igual con LF y con CRLF, 12 hexa', () => {
   assert.equal(hash(Buffer.from('a\r\nb\r\nc\r\n')), h);
 });
 
+test('hash: con y sin BOM de UTF-8 da lo mismo (texto y bytes)', () => {
+  const h = hash('línea uno\nlínea dos\n');
+  assert.equal(hash('\uFEFFlínea uno\nlínea dos\n'), h);
+  assert.equal(hash('\uFEFFlínea uno\r\nlínea dos\r\n'), h);
+  const bytes = Buffer.from('línea uno\nlínea dos\n', 'utf8');
+  assert.equal(hash(bytes), h);
+  assert.equal(hash(Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), bytes])), h);
+  assert.equal(hash(Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from('línea uno\r\nlínea dos\r\n')])), h);
+  // un BOM en el medio no se toca
+  assert.notEqual(hash('a\uFEFFb'), hash('ab'));
+});
+
 test('compararVersiones', () => {
   assert.equal(compararVersiones('2.4.3', '2.10.0'), -1);
   assert.equal(compararVersiones('2.10.0', '2.4.3'), 1);
   assert.equal(compararVersiones('2.4.3', '2.4.3'), 0);
+  assert.equal(compararVersiones('0.0.0', '0.0.1'), -1);
   assert.throws(() => compararVersiones('2.4', '2.4.3'));
   assert.throws(() => compararVersiones('2.4.3', 'v2.4.3'));
+  assert.throws(() => compararVersiones('02.4.3', '2.4.3'));
+  assert.throws(() => compararVersiones('2.4.3', '2.4.03'));
+  assert.throws(() => compararVersiones(243, '2.4.3'));
 });
 
 // ---------------------------------------------------------------- línea de comandos
@@ -286,6 +562,9 @@ test.after(() => {
 function correr(args, opciones) {
   return spawnSync(process.execPath, [SCRIPT, ...args], { encoding: 'utf8', ...opciones });
 }
+
+// El home de las pruebas: HOME (POSIX) y USERPROFILE (Windows) juntos, que es de donde lo saca os.homedir().
+const conHome = (home) => ({ ...process.env, HOME: home, USERPROFILE: home });
 
 test('CLI leer del ejemplo: 0 y JSON igual al esperado', () => {
   const r = correr(['leer', EJEMPLO]);
@@ -306,7 +585,7 @@ test('CLI leer con aviso: 0 y el aviso por stderr', () => {
 test('CLI leer con ficha rota: 1 y <archivo>:<línea>: en stderr', () => {
   const dir = tmp('ficha-rota');
   const f = path.join(dir, 'kit.md');
-  fs.writeFileSync(f, ficha("aprueba: 'x'\n"));
+  fs.writeFileSync(f, ficha("datos-de-prueba: 'x'\n"));
   const r = correr(['leer', f]);
   assert.equal(r.status, 1);
   assert.match(r.stderr, /:\d+: /);
@@ -314,9 +593,15 @@ test('CLI leer con ficha rota: 1 y <archivo>:<línea>: en stderr', () => {
   assert.equal(r.stdout, '');
 });
 
-test('CLI leer de un archivo que no existe: 3', () => {
-  const r = correr(['leer', path.join(os.tmpdir(), 'no-existe-ficha-xyz', 'kit.md')]);
+test('CLI leer de un archivo que no existe: 3 y "no hay ficha — valen los frenos de fábrica"', () => {
+  const f = path.join(os.tmpdir(), 'no-existe-ficha-xyz', 'kit.md');
+  const r = correr(['leer', f]);
   assert.equal(r.status, 3);
+  assert.equal(r.stdout, '');
+  assert.equal(r.stderr, `${f}: no hay ficha — valen los frenos de fábrica\n`);
+  assert.ok(!/ejemplo/.test(r.stderr));
+  // y campo / version se comportan igual con la ficha ausente
+  assert.equal(correr(['campo', f, 'kit']).status, 3);
 });
 
 test('CLI mal llamado: 2', () => {
@@ -324,10 +609,14 @@ test('CLI mal llamado: 2', () => {
   assert.equal(correr([]).status, 2);
   assert.equal(correr(['leer']).status, 2);
   assert.equal(correr(['campo', EJEMPLO]).status, 2);
-  assert.match(correr(['bailar']).stderr, /uso:/);
+  assert.equal(correr(['hash']).status, 2);
+  assert.equal(correr(['version', 'x']).status, 2);
+  const uso = correr(['bailar']).stderr;
+  assert.match(uso, /uso:/);
+  assert.match(uso, /salidas: 0 bien · 1 .* · 2 mal llamado · 3 no hay ficha · 4 campo ausente/);
 });
 
-test('CLI campo: texto plano, JSON para listas y ausente da 0 sin stdout', () => {
+test('CLI campo: texto plano, JSON para listas y mapas', () => {
   const a = correr(['campo', EJEMPLO, 'entornos.base-real.clase']);
   assert.equal(a.status, 0);
   assert.equal(a.stdout.trim(), 'real');
@@ -335,10 +624,21 @@ test('CLI campo: texto plano, JSON para listas y ausente da 0 sin stdout', () =>
   assert.deepStrictEqual(JSON.parse(b.stdout), ['DB_URL', 'HUB_TOKEN']);
   const c = correr(['campo', EJEMPLO, 'frenos.quitados.1.hasta']);
   assert.equal(c.stdout.trim(), '2026-11-15');
-  const d = correr(['campo', EJEMPLO, 'no.existe']);
-  assert.equal(d.status, 0);
-  assert.equal(d.stdout, '');
-  assert.match(d.stderr, /campo ausente: no\.existe/);
+  const d = correr(['campo', EJEMPLO, 'frenos.quitados.2.id']);
+  assert.equal(d.stdout.trim(), 'deny:Bash(git stash:*)');
+  const e = correr(['campo', EJEMPLO, 'mesa.deptos']);
+  assert.deepStrictEqual(JSON.parse(e.stdout), { contacto: 'deptos/sesion', transporte: 'buzon' });
+  const f = correr(['campo', EJEMPLO, 'frenos.opcionales']);
+  assert.deepStrictEqual(JSON.parse(f.stdout), []);
+});
+
+test('CLI campo ausente: salida 4, "campo ausente: <ruta>" por stderr y stdout vacío', () => {
+  for (const ruta of ['no.existe', 'kit.algo', 'frenos.quitados.9', 'secretos.7', 'entornos.base-real.nada', 'frenos.quitados.x']) {
+    const r = correr(['campo', EJEMPLO, ruta]);
+    assert.equal(r.status, 4, ruta);
+    assert.equal(r.stdout, '', ruta);
+    assert.equal(r.stderr, `campo ausente: ${ruta}\n`, ruta);
+  }
 });
 
 test('CLI hash coincide con la biblioteca', () => {
@@ -349,15 +649,46 @@ test('CLI hash coincide con la biblioteca', () => {
   assert.equal(correr(['hash', path.join(os.tmpdir(), 'no-existe-xyz')]).status, 3);
 });
 
+test('CLI hash: con y sin BOM da lo mismo', () => {
+  const dir = tmp('ficha-hash-bom');
+  const sin = path.join(dir, 'sin.md');
+  const con = path.join(dir, 'con.md');
+  fs.writeFileSync(sin, 'uno\ndos\n');
+  fs.writeFileSync(con, Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from('uno\r\ndos\r\n')]));
+  assert.equal(correr(['hash', con]).stdout, correr(['hash', sin]).stdout);
+});
+
 test('CLI version con HOME vacío y un repo sin ficha: 0 y "instalada: —"', () => {
   const home = tmp('ficha-home');
   const repo = tmp('ficha-repo');
   fs.mkdirSync(path.join(repo, '.git'));
-  const r = correr(['version'], { cwd: repo, env: { ...process.env, HOME: home, USERPROFILE: home } });
+  const r = correr(['version'], { cwd: repo, env: conHome(home) });
   assert.equal(r.status, 0, r.stderr);
   assert.match(r.stdout, /instalada: —/);
   assert.match(r.stdout, /proyecto: —/);
   assert.match(r.stdout, /canónica: —/);
+});
+
+test('CLI version: la carpeta del usuario sale de os.homedir (USERPROFILE en Windows, HOME en POSIX)', () => {
+  const home = tmp('ficha-home');
+  const repo = tmp('ficha-repo');
+  fs.mkdirSync(path.join(home, '.claude'));
+  fs.writeFileSync(path.join(home, '.claude', 'VERSION'), '3.1.4\n');
+  fs.mkdirSync(path.join(repo, '.git'));
+  const r = correr(['version'], { cwd: repo, env: conHome(home) });
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /^instalada: 3\.1\.4 · /);
+});
+
+test('CLI version sin saber cuál es la carpeta del usuario: "—" con el porqué y 0', (t) => {
+  const env = { ...process.env, HOME: '', USERPROFILE: '' };
+  const sonda = spawnSync(process.execPath, ['-e', "let h='';try{h=require('os').homedir()}catch(e){}process.stdout.write(h)"], { encoding: 'utf8', env });
+  if (sonda.stdout !== '') return t.skip('en este sistema os.homedir() siempre encuentra una carpeta');
+  const repo = tmp('ficha-repo');
+  fs.mkdirSync(path.join(repo, '.git'));
+  const r = correr(['version'], { cwd: repo, env });
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /^instalada: — \(no se sabe cuál es la carpeta del usuario\) · /);
 });
 
 test('CLI version: instalada, proyecto y canónica, con sus avisos de atraso', () => {
@@ -371,7 +702,7 @@ test('CLI version: instalada, proyecto y canónica, con sus avisos de atraso', (
   fs.mkdirSync(path.join(repo, '.claude'));
   fs.writeFileSync(path.join(repo, '.claude', 'kit.md'), fs.readFileSync(EJEMPLO, 'utf8').replace('kit: 2.4.3', 'kit: 2.4.0'));
   const sub = path.join(repo, 'kit');
-  const r = correr(['version'], { cwd: sub, env: { ...process.env, HOME: home, USERPROFILE: home } });
+  const r = correr(['version'], { cwd: sub, env: conHome(home) });
   assert.equal(r.status, 0, r.stderr);
   assert.equal(
     r.stdout.trim(),
@@ -379,13 +710,24 @@ test('CLI version: instalada, proyecto y canónica, con sus avisos de atraso', (
   );
 });
 
+test('CLI version: un VERSION con ceros a la izquierda no es una versión', () => {
+  const home = tmp('ficha-home');
+  const repo = tmp('ficha-repo');
+  fs.mkdirSync(path.join(home, '.claude'));
+  fs.writeFileSync(path.join(home, '.claude', 'VERSION'), '02.4.3\n');
+  fs.mkdirSync(path.join(repo, '.git'));
+  const r = correr(['version'], { cwd: repo, env: conHome(home) });
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /instalada: — \(.* no tiene el formato N\.N\.N\)/);
+});
+
 test('CLI version con la ficha del repo rota: 1', () => {
   const home = tmp('ficha-home');
   const repo = tmp('ficha-repo');
   fs.mkdirSync(path.join(repo, '.git'));
   fs.mkdirSync(path.join(repo, '.claude'));
-  fs.writeFileSync(path.join(repo, '.claude', 'kit.md'), ficha("aprueba: 'x'\n"));
-  const r = correr(['version'], { cwd: repo, env: { ...process.env, HOME: home, USERPROFILE: home } });
+  fs.writeFileSync(path.join(repo, '.claude', 'kit.md'), ficha("datos-de-prueba: 'x'\n"));
+  const r = correr(['version'], { cwd: repo, env: conHome(home) });
   assert.equal(r.status, 1);
   assert.match(r.stderr, /:6: /);
 });

@@ -2,6 +2,7 @@
 # Ficha del kit de este repo. La lee un script: respetá la forma.
 # Mapas con sangría de 2 espacios (hasta 3 niveles) · listas [a, b] · listas de mapas en línea: - {a: x, b: y}
 # Todo valor es texto, sin comillas o entre comillas dobles. Nada de comillas simples, \, & ni texto en varias líneas.
+# Es un ejemplo de la forma, no una ficha para copiar: sus frenos quitados y autorizaciones son de muestra.
 kit: 2.4.3
 nivel: estandar                      # liviano (sin código) · estandar (con código)
 vars:                                # con qué se instanció el molde: sin esto no se puede regenerar
@@ -23,10 +24,11 @@ piezas:                              # molde · molde+propio · adaptada · prop
   cambios-metodo: molde
   docs-fyd: sí
 frenos:
-  opcionales: [rama-nueva-por-mision]
+  opcionales: []
   quitados:                          # cada uno con razón y hasta: siempre, o una fecha
     - {id: hook:git-seguro/push-force, por: "proyecto personal, el push es libre", hasta: siempre}
-    - {id: pregunta:borrar-datos-reales, por: "base dummy de la misión 3", hasta: 2026-11-15}
+    - {id: pregunta:borrar-datos-reales, por: "base dummy #3 de la misión 3", hasta: 2026-11-15}
+    - {id: deny:Bash(git stash:*), por: "el flujo de release lo necesita", hasta: siempre}
 autorizado:                          # lo que no es pregunta
   merge-a-main: con-gate-verde
   escribir-produccion: por-comando-con-foto
@@ -54,7 +56,7 @@ mesa:
   hub:
     contacto: hub/director
     transporte: git
-  deptos: {contacto: deptos/sesion, transporte: git}
+  deptos: {contacto: deptos/sesion, transporte: buzon}
 multi-llm: no
 ---
 

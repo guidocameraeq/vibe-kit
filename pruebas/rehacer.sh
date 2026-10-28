@@ -3,7 +3,8 @@
 #   bash pruebas/rehacer.sh                  → desde el molde del tag v2.4.2
 #   bash pruebas/rehacer.sh --desde <tag>    → desde el molde de otro tag
 # Cada repo nace como lo dejaría un adoptador del kit en esa versión: molde v2 + ficha .claude/kit.md.
-# Fechas e identidad fijas: dos corridas dan los mismos SHAs. Sale con 1 si algo falla.
+# Fechas e identidad fijas, y sin la config de git de quien lo corre (ni global ni de sistema): dos corridas, en cualquier PC,
+# dan los mismos SHAs. Sale con 1 si algo falla.
 # Solo borra alfa/ beta/ gama/ remotos/ de ESTA carpeta; jamás recibe una ruta para borrar.
 set -euo pipefail
 
@@ -92,17 +93,26 @@ JS
 # --- los repos
 hash_de() { (cd "$1" && node "$FICHA" hash "$2"); }
 
-git_pruebas() {   # git dentro de un repo de prueba, con identidad y fecha fijas
-  GIT_AUTHOR_DATE="$FECHA_GIT" GIT_COMMITTER_DATE="$FECHA_GIT" git -C "$1" "${@:2}"
+# Todo git que corre sobre los repos de prueba o sus remotos pasa por acá: sin la config global ni la de sistema de quien lo corre
+# (su user.name, un commit.gpgsign, un core.hooksPath, un init.templateDir…), con identidad y fechas fijas. El `git archive` sobre
+# vibe-kit no: ese lee un repo de verdad, con la config de verdad.
+IDENTIDAD_NOMBRE=kit-pruebas
+IDENTIDAD_MAIL=pruebas@kit.invalid
+git_pruebas() {
+  env GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 \
+    GIT_AUTHOR_NAME="$IDENTIDAD_NOMBRE" GIT_AUTHOR_EMAIL="$IDENTIDAD_MAIL" \
+    GIT_COMMITTER_NAME="$IDENTIDAD_NOMBRE" GIT_COMMITTER_EMAIL="$IDENTIDAD_MAIL" \
+    GIT_AUTHOR_DATE="$FECHA_GIT" GIT_COMMITTER_DATE="$FECHA_GIT" \
+    git "$@"
 }
 
 crear_repo() {   # $1 nombre · $2 qué es · $3 con código (si|no) · $4 salud
   local x=$1 d="$AQUI/$1"
   mkdir -p "$d/.claude/skills/inicio" "$d/.claude/skills/cierre" "$d/.claude/hooks" "$d/docs"
-  git init -q -b main "$d"
-  git -C "$d" config user.name kit-pruebas
-  git -C "$d" config user.email pruebas@kit.invalid
-  git -C "$d" config core.autocrlf false
+  git_pruebas init -q -b main "$d"
+  git_pruebas -C "$d" config user.name "$IDENTIDAD_NOMBRE"
+  git_pruebas -C "$d" config user.email "$IDENTIDAD_MAIL"
+  git_pruebas -C "$d" config core.autocrlf false
   # molde v2 → destinos (templates/LEEME.md)
   cp "$MOLDE/skills/inicio/SKILL.md"       "$d/.claude/skills/inicio/SKILL.md"
   cp "$MOLDE/skills/cierre/SKILL.md"       "$d/.claude/skills/cierre/SKILL.md"
@@ -119,10 +129,13 @@ crear_repo() {   # $1 nombre · $2 qué es · $3 con código (si|no) · $4 salud
     "COMANDO_SALUD_OPCIONAL=$4" "OTROS_COMANDOS_FRECUENTES=\`git log --oneline\` — historia" \
     "COMANDOS_DE_LAS_SKILLS=git log --oneline" "OTRAS_SKILLS=" "BUGS_HISTORICOS=ninguno todavía" \
     "FECHA=$FECHA" "FECHA_HORA=$FECHA_HORA"
-  if grep -rnF --exclude-dir=.git '{{' "$d"; then
-    echo "rehacer.sh: quedaron marcadores sin reemplazar en $x (arriba, dónde)" >&2
-    exit 1
-  fi
+  local rc=0
+  grep -rnF --exclude-dir=.git -- '{{' "$d" || rc=$?   # 0 = hay (falla) · 1 = ninguno · 2 = grep mismo falló (también falla)
+  case $rc in
+    1) ;;
+    0) echo "rehacer.sh: quedaron marcadores sin reemplazar en $x (arriba, dónde)" >&2; exit 1 ;;
+    *) echo "rehacer.sh: grep falló (código $rc) buscando marcadores en $x" >&2; exit 1 ;;
+  esac
   if [ "$3" = si ]; then
     printf 'module.exports = (a, b) => a + b;\n' > "$d/suma.js"
     cat > "$d/suma.test.js" <<'JS'
@@ -134,8 +147,8 @@ test('suma dos positivos', () => assert.strictEqual(suma(2, 3), 5));
 test('suma con cero', () => assert.strictEqual(suma(7, 0), 7));
 JS
   fi
-  git -C "$d" add -A
-  git_pruebas "$d" commit -q -m "molde v2 ($VER) instanciado"
+  git_pruebas -C "$d" add -A
+  git_pruebas -C "$d" commit -q -m "molde v2 ($VER) instanciado"
 }
 
 escribir_ficha() {   # $1 nombre · $2 nivel · $3 con código (si|no); el cuerpo de cada ficha va por stdin (tras "vars")
@@ -223,10 +236,10 @@ EOF
 
 con_remoto() {   # $1 nombre
   local x=$1 d="$AQUI/$1" r="$AQUI/remotos/$1.git"
-  git init -q --bare -b main "$r"
-  git -C "$d" remote add origin "$r"
-  git -C "$d" push -q -u origin main
-  git -C "$d" remote set-head origin main
+  git_pruebas init -q --bare -b main "$r"
+  git_pruebas -C "$d" remote add origin "$r"
+  git_pruebas -C "$d" push -q -u origin main
+  git_pruebas -C "$d" remote set-head origin main
 }
 
 crear_repo alfa "repo de prueba alfa: estandar, con código de node" si "git status --short"
@@ -252,13 +265,14 @@ vars:
 EOF
 
 for x in alfa beta gama; do
-  git -C "$AQUI/$x" add -A
-  git_pruebas "$AQUI/$x" commit -q -m "ficha del kit (fixture)"
+  git_pruebas -C "$AQUI/$x" add -A
+  git_pruebas -C "$AQUI/$x" commit -q -m "ficha del kit (fixture)"
   con_remoto "$x"
 done
 
 # --- validación final (junta todo, sale con 1 si algo falló)
 FALLOS=()
+IDENTIDAD_ESPERADA="$IDENTIDAD_NOMBRE|$IDENTIDAD_MAIL|$IDENTIDAD_NOMBRE|$IDENTIDAD_MAIL"
 declare -A T_NIVEL T_FICHA T_TESTS T_REMOTO
 for x in alfa beta gama; do
   d="$AQUI/$x"
@@ -270,14 +284,31 @@ for x in alfa beta gama; do
   else
     FALLOS+=("$x: el parser no lee la ficha ($(head -n1 "$TMPD/leer-$x.err"))")
   fi
-  oh=$(git -C "$d" rev-parse --abbrev-ref origin/HEAD 2>/dev/null) || oh=""
+  oh=$(git_pruebas -C "$d" rev-parse --abbrev-ref origin/HEAD 2>/dev/null) || oh=""
   if [ "$oh" = "origin/main" ]; then T_REMOTO[$x]="ok"; else FALLOS+=("$x: origin/HEAD='$oh'"); fi
-  if grep -rqF --exclude-dir=.git '{{' "$d"; then FALLOS+=("$x: quedó un {{"); fi
+  rc=0
+  grep -rqF --exclude-dir=.git -- '{{' "$d" || rc=$?
+  case $rc in
+    1) ;;
+    0) FALLOS+=("$x: quedó un {{") ;;
+    *) FALLOS+=("$x: grep falló (código $rc) buscando marcadores") ;;
+  esac
   if [ -f "$d/suma.test.js" ]; then
     if (cd "$d" && node --test >"$TMPD/test-$x.log" 2>&1); then T_TESTS[$x]="verde"; else T_TESTS[$x]="ROJO"; FALLOS+=("$x: node --test en rojo"); fi
   fi
-  otros=$(git -C "$d" log --format=%ae | sort -u | grep -vx 'pruebas@kit.invalid' || true)
-  [ -z "$otros" ] || FALLOS+=("$x: commits con otro autor: $otros")
+  # autor y committer de TODOS los commits (%an|%ae|%cn|%ce): ninguno puede ser otro que kit-pruebas
+  ids=$(git_pruebas -C "$d" log --format="%an|%ae|%cn|%ce") || { FALLOS+=("$x: no se pudo leer el log"); ids=""; }
+  if [ -z "$ids" ]; then
+    FALLOS+=("$x: no hay commits")
+  else
+    rc=0
+    otros=$(printf '%s\n' "$ids" | sort -u | grep -vxF -- "$IDENTIDAD_ESPERADA") || rc=$?   # 0 = hay otros · 1 = ninguno · 2 = error
+    case $rc in
+      1) ;;
+      0) FALLOS+=("$x: commits con otra identidad: $otros") ;;
+      *) FALLOS+=("$x: grep falló (código $rc) revisando las identidades") ;;
+    esac
+  fi
 done
 printf '%-6s %-9s %-6s %-7s %s\n' repo nivel ficha tests remoto
 for x in alfa beta gama; do

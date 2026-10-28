@@ -31,7 +31,7 @@ function E(linea, mensaje) {
 // ---------------------------------------------------------------- utilidades
 
 const RE_CLAVE = /^[a-z0-9][a-z0-9_-]*$/;
-const RE_VERSION = /^\d+\.\d+\.\d+$/;
+const RE_VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 const MAX_PROFUNDIDAD = 3;
 
 const tiene = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
@@ -71,6 +71,7 @@ function parseTextoCrudo(s, n) {
   if (c === '!') E(n, 'etiqueta (!) — no se aceptan, sacala');
   if (c === '|' || c === '>') E(n, 'texto en varias líneas (| o >) — ponelo en una sola línea, entre comillas si hace falta');
   if (s.includes('"')) E(n, 'comillas en medio del texto — poné el texto entero entre comillas dobles o sacalas');
+  if (/[[\]{}]/.test(s)) E(n, 'corchete o llave suelta dentro del texto — poné el texto entre comillas dobles');
   if (/:(\s|$)/.test(s)) E(n, 'dos puntos seguidos de espacio dentro de un texto — ponelo entre comillas dobles');
   return s;
 }
@@ -96,7 +97,6 @@ function parseElemento(t, n) {
   if (t[0] === '[') E(n, 'lista dentro de otra lista — no se acepta anidar, dejá una lista plana');
   if (t[0] === '{') E(n, 'mapa dentro de una lista en línea — no se acepta anidar; usá un mapa por renglón con "- {a: x}"');
   if (t[0] === '"') return parseComillas(t, n);
-  if (/[\[\]{}]/.test(t)) E(n, 'corchete o llave suelta dentro del texto — poné el texto entre comillas dobles');
   return parseTextoCrudo(t, n);
 }
 
@@ -121,14 +121,14 @@ function parseMapaLinea(s, n, prof, st, ruta) {
     const t = p.trim();
     if (t === '') E(n, 'elemento vacío en el mapa — sacá la coma de más');
     const idx = t.indexOf(':');
-    if (idx < 0) E(n, 'un elemento del mapa en línea no es "clave: valor" — escribilo así dentro de las llaves (no lo repito porque puede ser un valor)');
+    if (idx < 0) E(n, 'un elemento del mapa en línea no es "clave: valor" — escribilo así dentro de las llaves');
     const clave = t.slice(0, idx);
-    if (!RE_CLAVE.test(clave)) E(n, `clave inválida "${clave}" — usá minúsculas, números, - y _`);
+    if (!RE_CLAVE.test(clave)) E(n, 'clave inválida en el mapa en línea — usá minúsculas, números, - y _');
     const resto = t.slice(idx + 1);
-    if (resto !== '' && resto[0] !== ' ') E(n, `falta un espacio después de los dos puntos de "${clave}" — escribí "${clave}: valor"`);
+    if (resto !== '' && resto[0] !== ' ') E(n, 'falta un espacio después de los dos puntos de una clave del mapa en línea — escribí "clave: valor"');
     const v = resto.trim();
-    if (v === '') E(n, `"${clave}" sin valor — escribí el valor o sacá la clave`);
-    if (tiene(mapa, clave)) E(n, `clave repetida "${clave}" — dejá una sola`);
+    if (v === '') E(n, 'una clave del mapa en línea no tiene valor — escribí el valor o sacá la clave');
+    if (tiene(mapa, clave)) E(n, 'clave repetida en el mapa en línea — dejá una sola');
     if (v[0] === '[' || v[0] === '{') E(n, 'lista o mapa dentro de un mapa en línea — no se acepta anidar');
     mapa[clave] = v[0] === '"' ? parseComillas(v, n) : parseElemento(v, n);
     st.lineas.set(`${ruta}.${clave}`, n);
@@ -150,9 +150,9 @@ function partirClave(it) {
   const idx = t.indexOf(':');
   if (idx < 0) E(it.n, 'no entiendo este renglón — tiene que ser "clave: valor"');
   const clave = t.slice(0, idx);
-  if (!RE_CLAVE.test(clave)) E(it.n, `clave inválida "${clave}" — usá minúsculas, números, - y _ (y dos puntos con espacio después)`);
+  if (!RE_CLAVE.test(clave)) E(it.n, 'clave inválida — usá minúsculas, números, - y _ (y dos puntos con espacio después)');
   const despues = t.slice(idx + 1);
-  if (despues !== '' && despues[0] !== ' ') E(it.n, `falta un espacio después de los dos puntos — escribí "${clave}: valor"`);
+  if (despues !== '' && despues[0] !== ' ') E(it.n, 'falta un espacio después de los dos puntos — escribí "clave: valor"');
   return { clave, resto: despues.trim() };
 }
 
@@ -164,14 +164,14 @@ function parseMapa(st, indent, prof, ruta) {
     if (it.indent > indent) E(it.n, 'sangría de más — alineá el renglón con el anterior (o poné arriba una clave sin valor)');
     if (esItemLista(it.texto)) E(it.n, 'ítem de lista "-" sin clave arriba — poné la clave y los ítems debajo, o usá [a, b]');
     const { clave, resto } = partirClave(it);
-    if (tiene(mapa, clave)) E(it.n, `clave repetida "${clave}" — dejá una sola`);
+    if (tiene(mapa, clave)) E(it.n, 'clave repetida en el mismo mapa — dejá una sola');
     if (prof > MAX_PROFUNDIDAD) E(it.n, 'más de tres niveles — aplaná la ficha, no se acepta tanta profundidad');
     const rutaClave = ruta ? `${ruta}.${clave}` : clave;
     st.lineas.set(rutaClave, it.n);
     st.i++;
     if (resto === '') {
       const sig = st.items[st.i];
-      if (!sig || sig.indent <= indent) E(it.n, `campo vacío "${clave}" — poné [] o un valor`);
+      if (!sig || sig.indent <= indent) E(it.n, 'campo vacío, sin valor ni nada debajo — poné [] o un valor');
       if (sig.indent > indent + 2) E(sig.n, 'salto de más de un nivel de sangría — usá exactamente 2 espacios más que la clave de arriba');
       mapa[clave] = esItemLista(sig.texto)
         ? parseListaBloque(st, indent + 2, prof, rutaClave)
@@ -212,7 +212,8 @@ function prepararItems(cabecera, primeraLinea) {
     const n = primeraLinea + k;
     const limpio = sinComentario(cabecera[k]).replace(/\s+$/, '');
     if (limpio.trim() === '') continue;
-    const sangria = /^[ \t]*/.exec(limpio)[0];
+    const sangria = /^\s*/.exec(limpio)[0];
+    if (/[^ \t]/.test(sangria)) E(n, 'espacio raro en la sangría (no es un espacio común) — usá espacios comunes');
     if (sangria.includes('\t')) E(n, 'tabulador en la sangría — usá espacios (2 por nivel)');
     if (sangria.length % 2 !== 0) E(n, 'sangría impar — usá múltiplos de 2 espacios');
     items.push({ n, indent: sangria.length, texto: limpio.slice(sangria.length) });
@@ -228,9 +229,21 @@ const SENSIBLES = ['datos-reales', 'plata', 'sale-afuera', 'claves', 'release'];
 const CONOCIDOS = ['kit', 'nivel', 'vars', 'piezas', 'frenos', 'autorizado', 'sensible', 'secretos', 'publicas',
   'entornos', 'datos-de-prueba', 'push-publica', 'aprueba', 'mesa', 'multi-llm'];
 
+// Los nombres que elige el usuario (piezas, entornos, alias de la mesa…) no van a los mensajes: se muestran como <nombre>.
+const CON_NOMBRE_DEL_USUARIO = { piezas: '<nombre>', entornos: '<nombre>', mesa: '<alias>', autorizado: '<clave>' };
+const nom = (ruta) => {
+  const seg = ruta.split('.');
+  if (seg.length > 1) {
+    if (tiene(CON_NOMBRE_DEL_USUARIO, seg[0])) seg[1] = CON_NOMBRE_DEL_USUARIO[seg[0]];
+    else if (seg[0] === 'vars' && seg[1] !== 'proyecto' && seg[1] !== 'lenguajes') seg[1] = '<clave>';
+  }
+  return seg.join('.').replace(/\.(\d+)/g, '[$1]');
+};
+
+// Regla de oro de los mensajes: jamás repiten un valor de la ficha (el hook los imprime en el chat y ahí puede haber un secreto).
+// Dicen el campo, la línea y qué se acepta.
 function validar(datos, st, cierre, avisos) {
   const L = (ruta) => (st.lineas.has(ruta) ? st.lineas.get(ruta) : cierre);
-  const nom = (ruta) => ruta.replace(/\.(\d+)/g, '[$1]');
   const mapa = (ruta, v) => {
     if (!esMapa(v)) E(L(ruta), `"${nom(ruta)}" tiene que ser un mapa (con sus claves debajo), no ${tipoDe(v)} — corregilo`);
   };
@@ -240,17 +253,23 @@ function validar(datos, st, cierre, avisos) {
   const texto = (ruta, v) => {
     if (!esTexto(v)) E(L(ruta), `"${nom(ruta)}" tiene que ser un texto, no ${tipoDe(v)} — escribí un solo valor`);
   };
+  const noVacio = (ruta, v) => {
+    if (v.trim() === '') E(L(ruta), `"${nom(ruta)}" está vacío — completalo`);
+  };
   const uno = (ruta, v, opciones) => {
     texto(ruta, v);
-    if (!opciones.includes(v)) E(L(ruta), `"${nom(ruta)}" vale "${v}" — tiene que ser uno de: ${opciones.join(', ')}`);
+    if (!opciones.includes(v)) E(L(ruta), `"${nom(ruta)}" tiene un valor que no se acepta — tiene que ser uno de: ${opciones.join(', ')}`);
   };
   const patron = (ruta, v, re, ayuda) => {
     texto(ruta, v);
-    if (!re.test(v)) E(L(ruta), `"${nom(ruta)}" vale "${v}" — ${ayuda}`);
+    if (!re.test(v)) E(L(ruta), `"${nom(ruta)}" tiene un valor que no se acepta — ${ayuda}`);
   };
-  const soloClaves = (ruta, obj, permitidas) => {
+  // Clave de más: error si el mapa es cerrado (estricto), aviso si no (una PC atrasada no se tiene que trabar).
+  const soloClaves = (ruta, obj, permitidas, estricto) => {
     for (const k of Object.keys(obj)) {
-      if (!permitidas.includes(k)) E(L(`${ruta}.${k}`), `clave desconocida "${k}" en "${nom(ruta)}" — las que valen son: ${permitidas.join(', ')}`);
+      if (permitidas.includes(k)) continue;
+      if (estricto) E(L(`${ruta}.${k}`), `clave desconocida en "${nom(ruta)}" — las que valen son: ${permitidas.join(', ')}`);
+      avisos.push(`línea ${L(`${ruta}.${k}`)}: clave desconocida \`${k}\` en \`${nom(ruta)}\` — ¿un error de tipeo? Las que se conocen son: ${permitidas.join(', ')}`);
     }
   };
   const falta = (ruta, clave) => E(L(ruta), `falta "${clave}" en "${nom(ruta)}" — agregala`);
@@ -260,17 +279,18 @@ function validar(datos, st, cierre, avisos) {
 
   // kit, nivel, vars: obligatorios
   if (!tiene(datos, 'kit')) E(cierre, 'falta "kit" — poné la versión del kit, por ejemplo "kit: 2.4.3"');
-  patron('kit', datos.kit, RE_VERSION, 'tienen que ser tres números con puntos (N.N.N), por ejemplo 2.4.3');
+  patron('kit', datos.kit, RE_VERSION, 'tienen que ser tres números con puntos (N.N.N), sin ceros a la izquierda, por ejemplo 2.4.3');
   if (!tiene(datos, 'nivel')) E(cierre, 'falta "nivel" — poné "nivel: liviano" o "nivel: estandar"');
   uno('nivel', datos.nivel, ['liviano', 'estandar']);
   if (!tiene(datos, 'vars')) E(cierre, 'falta "vars" — poné el mapa con al menos "proyecto"');
   mapa('vars', datos.vars);
-  if (!tiene(datos.vars, 'proyecto') || datos.vars.proyecto === '') E(L('vars'), 'falta "proyecto" en "vars" — poné el nombre del proyecto');
+  if (!tiene(datos.vars, 'proyecto')) E(L('vars'), 'falta "proyecto" en "vars" — poné el nombre del proyecto');
   texto('vars.proyecto', datos.vars.proyecto);
+  noVacio('vars.proyecto', datos.vars.proyecto);
   for (const [k, v] of Object.entries(datos.vars)) {
     const r = `vars.${k}`;
     if (k === 'lenguajes') lista(r, v);
-    else if (esMapa(v)) E(L(r), `"${r}" no puede ser un mapa — dejalo como texto o lista`);
+    else if (esMapa(v)) E(L(r), `"${nom(r)}" no puede ser un mapa — dejalo como texto o lista`);
   }
 
   if (tiene(datos, 'piezas')) {
@@ -279,35 +299,39 @@ function validar(datos, st, cierre, avisos) {
       const r = `piezas.${k}`;
       if (esTexto(v)) uno(r, v, ESTADOS);
       else if (esMapa(v)) {
-        soloClaves(r, v, ['estado', 'hash']);
+        soloClaves(r, v, ['estado', 'hash'], false);
         requerido(r, v, 'estado');
         uno(`${r}.estado`, v.estado, ESTADOS);
         if (tiene(v, 'hash')) patron(`${r}.hash`, v.hash, /^[0-9a-f]{12}$/, 'tiene que tener 12 caracteres hexa en minúscula (0-9, a-f)');
-      } else E(L(r), `"${r}" tiene que ser un estado o {estado: …, hash: …}, no una lista — corregilo`);
+      } else E(L(r), `"${nom(r)}" tiene que ser un estado o {estado: …, hash: …}, no una lista — corregilo`);
     }
   }
 
   if (tiene(datos, 'frenos')) {
     mapa('frenos', datos.frenos);
-    soloClaves('frenos', datos.frenos, ['opcionales', 'quitados']);
+    soloClaves('frenos', datos.frenos, ['opcionales', 'quitados'], false);
     if (tiene(datos.frenos, 'opcionales')) lista('frenos.opcionales', datos.frenos.opcionales);
     if (tiene(datos.frenos, 'quitados')) {
       lista('frenos.quitados', datos.frenos.quitados);
+      const vistos = new Set();
       datos.frenos.quitados.forEach((q, i) => {
         const r = `frenos.quitados.${i}`;
         if (!esMapa(q)) E(L('frenos.quitados'), 'cada freno quitado es {id: …, por: "…", hasta: …} — escribilo así, uno por renglón');
-        soloClaves(r, q, ['id', 'por', 'hasta']);
+        soloClaves(r, q, ['id', 'por', 'hasta'], false);
         for (const c of ['id', 'por', 'hasta']) {
           requerido(r, q, c);
-          if (q[c] === '') E(L(`${r}.${c}`), `"${c}" está vacío en "${nom(r)}" — completalo`);
+          texto(`${r}.${c}`, q[c]);
+          noVacio(`${r}.${c}`, q[c]);
         }
-        patron(`${r}.id`, q.id, /^[a-z]+:[a-z0-9/_.-]+$/, 'tiene que ser <clase>:<nombre>, por ejemplo hook:git-seguro/push-force');
+        patron(`${r}.id`, q.id, /^[a-z]+:\S(.*\S)?$/, 'tiene que ser <clase>:<resto> (la clase en minúsculas, el resto sin espacios al principio ni al final), por ejemplo hook:git-seguro/push-force');
+        if (vistos.has(q.id)) E(L(`${r}.id`), `"${nom(r)}.id" está repetido — cada freno quitado va una sola vez`);
+        vistos.add(q.id);
         if (q.hasta !== 'siempre') {
           patron(`${r}.hasta`, q.hasta, /^\d{4}-\d{2}-\d{2}$/, 'tiene que ser "siempre" o una fecha AAAA-MM-DD');
           const [a, m, d] = q.hasta.split('-').map(Number);
           const f = new Date(Date.UTC(a, m - 1, d));
           if (f.getUTCFullYear() !== a || f.getUTCMonth() !== m - 1 || f.getUTCDate() !== d) {
-            E(L(`${r}.hasta`), `"hasta" vale "${q.hasta}", que no es una fecha real — corregila (AAAA-MM-DD)`);
+            E(L(`${r}.hasta`), `"${nom(r)}.hasta" no es una fecha real — corregila (AAAA-MM-DD)`);
           }
         }
       });
@@ -316,11 +340,11 @@ function validar(datos, st, cierre, avisos) {
 
   if (tiene(datos, 'sensible')) {
     mapa('sensible', datos.sensible);
-    soloClaves('sensible', datos.sensible, SENSIBLES);
+    soloClaves('sensible', datos.sensible, SENSIBLES, true);
     for (const [k, v] of Object.entries(datos.sensible)) {
       const r = `sensible.${k}`;
       if (esTexto(v)) {
-        if (v !== 'no') E(L(r), `"${r}" vale "${v}" — tiene que ser "no" o una lista [a, b]`);
+        if (v !== 'no') E(L(r), `"${r}" tiene que ser "no" o una lista [a, b]`);
       } else lista(r, v);
     }
   }
@@ -330,7 +354,7 @@ function validar(datos, st, cierre, avisos) {
     lista(k, datos[k]);
     datos[k].forEach((nombre, i) => {
       if (!/^[A-Z][A-Z0-9_]*$/.test(nombre)) {
-        E(L(k), `el elemento ${i + 1} de "${k}" no es un nombre de variable — usá MAYUSCULAS_CON_GUION_BAJO; no lo repito porque puede ser un valor`);
+        E(L(k), `el elemento ${i + 1} de "${k}" no es un nombre de variable — usá MAYUSCULAS_CON_GUION_BAJO`);
       }
     });
   }
@@ -340,7 +364,7 @@ function validar(datos, st, cierre, avisos) {
     for (const [k, v] of Object.entries(datos.entornos)) {
       const r = `entornos.${k}`;
       mapa(r, v);
-      soloClaves(r, v, ['clase', 'herramientas', 'acceso']);
+      soloClaves(r, v, ['clase', 'herramientas', 'acceso'], false);
       requerido(r, v, 'clase');
       uno(`${r}.clase`, v.clase, CLASES);
       if (tiene(v, 'herramientas')) lista(`${r}.herramientas`, v.herramientas);
@@ -353,11 +377,12 @@ function validar(datos, st, cierre, avisos) {
     for (const [k, v] of Object.entries(datos.mesa)) {
       const r = `mesa.${k}`;
       mapa(r, v);
-      soloClaves(r, v, ['contacto', 'transporte']);
+      soloClaves(r, v, ['contacto', 'transporte'], false);
       requerido(r, v, 'contacto');
       texto(`${r}.contacto`, v.contacto);
-      requerido(r, v, 'transporte');
-      uno(`${r}.transporte`, v.transporte, ['git', 'buzon']);
+      noVacio(`${r}.contacto`, v.contacto);
+      // transporte es opcional: si falta, quien la usa asume git (G §12)
+      if (tiene(v, 'transporte')) uno(`${r}.transporte`, v.transporte, ['git', 'buzon']);
     }
   }
 
@@ -404,26 +429,34 @@ function leer(texto) {
 }
 
 function leerArchivo(ruta) {
-  const texto = fs.readFileSync(ruta, 'utf8');
+  const bytes = fs.readFileSync(ruta);
   try {
-    return leer(texto);
+    // UTF-16 (el "Guardar como" de algunos editores de Windows) se lee como basura: se frena con un mensaje claro.
+    if (bytes.length >= 2 && ((bytes[0] === 0xff && bytes[1] === 0xfe) || (bytes[0] === 0xfe && bytes[1] === 0xff))) {
+      E(1, 'la ficha está guardada en UTF-16 — guardala en UTF-8');
+    }
+    return leer(bytes.toString('utf8'));
   } catch (e) {
     if (e instanceof ErrorFicha) throw new ErrorFicha(e.linea, e.mensaje, ruta);
     throw e;
   }
 }
 
-// sha256 con CRLF -> LF, 12 primeros caracteres hexa. Acepta string o Buffer.
+// sha256 sin BOM y con CRLF -> LF, 12 primeros caracteres hexa. Acepta string o Buffer.
 function hash(contenido) {
-  const buf = Buffer.isBuffer(contenido)
-    ? Buffer.from(contenido.toString('latin1').replace(/\r\n/g, '\n'), 'latin1')
-    : Buffer.from(String(contenido).replace(/\r\n/g, '\n'), 'utf8');
+  let buf;
+  if (Buffer.isBuffer(contenido)) {
+    const conBom = contenido.length >= 3 && contenido[0] === 0xef && contenido[1] === 0xbb && contenido[2] === 0xbf;
+    buf = Buffer.from((conBom ? contenido.subarray(3) : contenido).toString('latin1').replace(/\r\n/g, '\n'), 'latin1');
+  } else {
+    buf = Buffer.from(String(contenido).replace(/^﻿/, '').replace(/\r\n/g, '\n'), 'utf8');
+  }
   return crypto.createHash('sha256').update(buf).digest('hex').slice(0, 12);
 }
 
 function compararVersiones(a, b) {
   for (const v of [a, b]) {
-    if (typeof v !== 'string' || !RE_VERSION.test(v)) throw new Error(`versión inválida "${v}" — tiene que ser N.N.N`);
+    if (typeof v !== 'string' || !RE_VERSION.test(v)) throw new Error('versión inválida — tiene que ser N.N.N (sin ceros a la izquierda)');
   }
   const x = a.split('.').map(Number);
   const y = b.split('.').map(Number);
@@ -441,7 +474,7 @@ const USO = [
   '  campo <archivo> <a.b.c>   imprime un campo (texto plano, o JSON si es lista o mapa)',
   '  hash <archivo>            12 hexa del sha256 con fines de línea LF',
   '  version                   versión instalada, del proyecto y canónica',
-  'salidas: 0 bien · 1 ficha malformada o inválida · 2 mal llamado · 3 no hay ficha',
+  'salidas: 0 bien · 1 ficha malformada o inválida · 2 mal llamado · 3 no hay ficha · 4 campo ausente',
 ].join('\n');
 
 function out(s) {
@@ -460,7 +493,7 @@ function leerParaCli(archivo) {
       return { codigo: 1 };
     }
     if (e && (e.code === 'ENOENT' || e.code === 'ENOTDIR')) {
-      err(`${archivo}: no hay ficha — creala o copiá kit.ejemplo.md\n`);
+      err(`${archivo}: no hay ficha — valen los frenos de fábrica\n`);
       return { codigo: 3 };
     }
     err(`${archivo}: no se pudo leer la ficha (${e && e.code ? e.code : e}) — revisá la ruta y los permisos\n`);
@@ -490,9 +523,20 @@ function versionDeArchivo(ruta) {
   return { valor: primera };
 }
 
+// La carpeta del usuario, como la ve Claude Code: USERPROFILE en Windows, HOME en POSIX (os.homedir respeta eso).
+function carpetaDelUsuario() {
+  try {
+    return os.homedir() || '';
+  } catch (e) {
+    return '';
+  }
+}
+
 function subVersion() {
-  const home = process.env.HOME || process.env.USERPROFILE || os.homedir();
-  const instalada = versionDeArchivo(path.join(home, '.claude', 'VERSION'));
+  const home = carpetaDelUsuario();
+  const instalada = home
+    ? versionDeArchivo(path.join(home, '.claude', 'VERSION'))
+    : { falta: 'no se sabe cuál es la carpeta del usuario' };
   const raiz = raizGit(process.cwd());
   let proyecto;
   let canonica;
@@ -548,7 +592,7 @@ function cli(argv) {
         else if (esLista(v) && /^\d+$/.test(p) && Number(p) < v.length) v = v[Number(p)];
         else {
           err(`campo ausente: ${args[1]}\n`);
-          return 0;
+          return 4;
         }
       }
       out(typeof v === 'string' ? `${v}\n` : `${JSON.stringify(v)}\n`);
