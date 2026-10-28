@@ -3,3 +3,8 @@
 
 # imagen para compartir: se genera desde assets/banner.svg y se sube a mano (Settings > Social preview). REJ-010
 assets/social-preview.png
+
+# repos de prueba: se rehacen con pruebas/rehacer.sh; solo el script y los pedidos van a git
+pruebas/*
+!pruebas/rehacer.sh
+!pruebas/pedidos.md
