@@ -688,3 +688,141 @@ test('la entrada puede venir como texto JSON, y el cwd sale de ella', () => {
   assert.ok(lineas(r.texto)[0].includes(' · modo plan · '));
   assert.ok(r.texto.includes('H-correr el smoke'));
 });
+
+// ---------------------------------------------------------------- el plazo del hook (E4b)
+
+const git = require('./git.cjs');
+// dejarCorrer(n): un reloj de mentira que avanza 100 s por consulta a git, con el plazo justo para que corran las primeras n
+// (con su tope de siempre: les quedan ≥ 50 s) y se saltee el resto. No depende de la velocidad de la PC.
+function dejarCorrer(n) {
+  let t = 0;
+  git.fijarPlazo((n - 1) * 100000 + 50000, () => {
+    const v = t;
+    t += 100000;
+    return v;
+  });
+}
+// Corre fn con el plazo de dejarCorrer(n) y lo saca al final (pase lo que pase).
+function conPlazo(n, fn) {
+  dejarCorrer(n);
+  try {
+    return fn();
+  } finally {
+    git.fijarPlazo(null);
+  }
+}
+const penultima = (t) => lineas(t)[lineas(t).length - 2];
+
+test('lineaLento: singular y plural', () => {
+  assert.equal(iny.lineaLento(1), 'arranque lento: 1 consulta a git salteada por tiempo (corré doctor si se repite)');
+  assert.equal(iny.lineaLento(7), 'arranque lento: 7 consultas a git salteadas por tiempo (corré doctor si se repite)');
+  assert.equal(iny.LENTO_MAX, iny.lineaLento(9999).length + 1);
+});
+
+test('sin plazo: ningún renglón de arranque lento; lo propio puede venir como función y se llama una vez', () => {
+  const d = repo();
+  commit(d, { 'docs/SESSION_HANDOFF.md': handoff('H') });
+  let llamadas = 0;
+  const r = armar(d, {
+    propio: () => {
+      llamadas++;
+      return { salida: 'PROPIO-F\n', falla: null };
+    },
+  });
+  assert.equal(llamadas, 1);
+  assert.equal(penultima(r.texto), 'PROPIO-F');
+  assert.ok(!r.texto.includes('arranque lento'));
+  assert.ok(!r.texto.includes('no respondió a tiempo'));
+  chequearHuella(r);
+});
+
+test('plazo vencido: ningún git; no dice "sin git", el handoff del disco (desde una subcarpeta), el renglón lento y la huella', () => {
+  const d = repo();
+  commit(d, { 'docs/SESSION_HANDOFF.md': handoff('H'), 'docs/TODO.md': TODO_CHICO });
+  const r = conPlazo(0, () => {
+    const res = armar(path.join(d, 'docs'));
+    assert.equal(penultima(res.texto), iny.lineaLento(git.salteadasPorPlazo()));
+    return res;
+  });
+  const l = lineas(r.texto);
+  assert.ok(l[0].includes(' · (rama sin leer) · '), l[0]);
+  assert.equal(l[1], iny.GIT_SIN_TIEMPO);
+  assert.ok(!r.texto.includes('sin git:'));
+  assert.ok(r.texto.includes('=== handoff (docs/SESSION_HANDOFF.md) ==='));
+  assert.ok(r.texto.includes('H-correr el smoke'));
+  assert.ok(r.texto.includes('ROJO-1'));
+  assert.ok(!r.texto.includes('=== git ==='));
+  assert.match(penultima(r.texto), /^arranque lento: 1 consulta a git salteada por tiempo/);
+  chequearHuella(r);
+});
+
+test('plazo que vence a mitad (plana): edades sin datos, ni "sin ficha" ni "sin commits" ni "handoff: sin commit"', () => {
+  const d = repo();
+  commit(d, { 'docs/SESSION_HANDOFF.md': handoff('H'), 'docs/TODO.md': TODO_CHICO });
+  let n;
+  const r = conPlazo(2, () => {
+    const res = armar(d); // corren raíz y rama; la ficha, las edades y el bloque git, no
+    n = git.salteadasPorPlazo();
+    return res;
+  });
+  const l = lineas(r.texto);
+  assert.ok(n >= 3, `salteadas: ${n}`);
+  assert.ok(l[0].includes(' · main · '), l[0]);
+  assert.ok(!l[0].includes('handoff:'), l[0]);
+  assert.equal(l[1], iny.FICHA_SIN_TIEMPO);
+  assert.ok(!r.texto.includes(iny.SIN_FICHA));
+  assert.ok(l.includes('## Estado (edad: sin datos)'));
+  assert.ok(l.includes('## Próximo paso (edad: sin datos)'));
+  assert.ok(r.texto.includes('H-correr el smoke'));
+  assert.equal(l[l.indexOf('=== git ===') + 1], iny.BLOQUE_SIN_TIEMPO);
+  assert.ok(!r.texto.includes('sin commits todavía'));
+  assert.equal(penultima(r.texto), iny.lineaLento(n));
+  chequearHuella(r);
+});
+
+test('plazo con lugar de sobra: igual que sin plazo (ni una consulta salteada)', () => {
+  const d = repo();
+  commit(d, { 'docs/SESSION_HANDOFF.md': handoff('H'), 'docs/TODO.md': TODO_CHICO });
+  const sin = armar(d).texto;
+  const con = conPlazo(1000, () => armar(d).texto);
+  assert.equal(con, sin);
+});
+
+test('plazo: el director sin tiempo para la rama por defecto lee el handoff del disco, y lo dice en el título', () => {
+  const { dir } = pest();
+  const r = conPlazo(2, () => armar(dir));
+  assert.ok(r.texto.includes('=== handoff (docs/SESSION_HANDOFF.md) — el del disco: git no respondió a tiempo ==='));
+  assert.ok(r.texto.includes('DIRWT-correr el smoke'));
+  assert.ok(!r.texto.includes('no hay docs/SESSION_HANDOFF.md'));
+  assert.ok(r.texto.includes('FICHA-x'));
+  chequearHuella(r);
+});
+
+test('plazo: el obrero sin tiempo para leer modulo/x lo dice (no "no hay"), y el encargo del disco sigue', () => {
+  const { obr } = pest();
+  const r = conPlazo(2, () => armar(obr));
+  assert.ok(r.texto.includes('git no respondió a tiempo: no se pudo leer docs/modulos/x/README.md de modulo/x'));
+  assert.ok(!r.texto.includes('no hay docs/modulos/x/README.md'));
+  assert.ok(r.texto.includes('encargo 01: docs/modulos/x/bitacora/2026-10-01-encargo-01.md'));
+  chequearHuella(r);
+});
+
+test('plazo: el obrero cuyo encargo solo está en modulo/x, sin tiempo para buscarlo, no oye "pedíselo al director"', () => {
+  const { obr3 } = pest();
+  const r = conPlazo(2, () => armar(obr3));
+  assert.ok(r.texto.includes('encargo 03: git no respondió a tiempo para buscarlo en modulo/x'));
+  assert.ok(!r.texto.includes('pedíselo al director'));
+});
+
+test('plazo: el renglón lento tiene su lugar reservado — lo propio se corta antes, nada más ("el final" no se toca)', () => {
+  const d = repo();
+  const largo = handoff('H', { extra: Array.from({ length: 400 }, (_, i) => `- relleno ${i} con bastante texto de más`).join('\n') });
+  commit(d, { 'docs/SESSION_HANDOFF.md': largo, 'docs/TODO.md': TODO_CHICO });
+  const propio = { salida: Array.from({ length: 1000 }, (_, i) => `propio ${i} con algo de texto`).join('\n'), falla: null };
+  const r = conPlazo(0, () => armar(d, { propio }));
+  const l = lineas(r.texto);
+  assert.ok(!r.texto.includes('(CORTADO: el final)'));
+  assert.equal(l[l.length - 3], '… (CORTADO: lo propio sigue en .claude/hooks/session-start.propio.sh)');
+  assert.match(penultima(r.texto), /^arranque lento: /);
+  chequearHuella(r);
+});

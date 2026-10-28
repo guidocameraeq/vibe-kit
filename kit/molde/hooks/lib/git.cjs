@@ -9,6 +9,30 @@ const { spawnSync } = require('child_process');
 const TIEMPO_GIT = 5000;
 const BUFFER_MAX = 32 * 1024 * 1024;
 
+// El plazo del hook ENTERO (E4b): ~15 gits de ~250 ms en Windows suman 10-24 s con la PC cargada, y si Claude Code mata el
+// hook la sesión arranca sin nada. Con plazo fijado, cada git corre con lo que quede (nunca más que lo pedido) y, si queda
+// menos que el mínimo, ni se lanza: { ok: false, error: 'plazo' }. Sin plazo (doctor, revisarTopes), como siempre.
+const TIEMPO_MINIMO = 300;
+let plazo = null; // ms epoch, o null
+let reloj = Date.now;
+let salteadas = 0; // las consultas que el plazo no dejó correr (o cortó) desde que se fijó
+
+// fijarPlazo(msEpoch, reloj) — null lo saca. `reloj` (para las pruebas): una función que da ms epoch. La cuenta arranca de cero.
+function fijarPlazo(fin, otroReloj) {
+  plazo = Number.isFinite(fin) ? fin : null;
+  reloj = typeof otroReloj === 'function' ? otroReloj : Date.now;
+  salteadas = 0;
+}
+// Lo que queda del plazo, en ms (Infinity sin plazo).
+const plazoRestante = () => (plazo === null ? Infinity : plazo - reloj());
+// tiempoPara(pedido) → el tope de un proceso: lo pedido, o lo que quede si es menos; null si lo que queda no llega al mínimo.
+function tiempoPara(pedido) {
+  const queda = plazoRestante();
+  if (queda < TIEMPO_MINIMO) return null;
+  return Math.floor(Math.min(pedido, queda)); // spawnSync solo acepta enteros (el inicio del proceso viene con decimales)
+}
+const salteadasPorPlazo = () => salteadas;
+
 // Variables que, si vienen heredadas (un hook de git, otra herramienta), hacen que git mire OTRO repo que el del cwd.
 const VARIABLES_QUE_DESVIAN = [
   'GIT_DIR',
@@ -31,10 +55,17 @@ function entorno() {
 }
 
 // correr(args, {cwd, tiempo, entrada}) → { ok, codigo, stdout (texto), salida (Buffer), stderr, error }
+// Con plazo, error 'plazo': no se lanzó por falta de tiempo, o se cortó con el tope que el plazo le achicó. Se cuenta.
 function correr(args, opciones = {}) {
+  const pedido = opciones.tiempo || TIEMPO_GIT;
+  const tiempo = tiempoPara(pedido);
+  if (tiempo === null) {
+    salteadas++;
+    return { ok: false, codigo: null, stdout: '', salida: Buffer.alloc(0), stderr: '', error: 'plazo' };
+  }
   const r = spawnSync('git', args, {
     cwd: opciones.cwd || process.cwd(),
-    timeout: opciones.tiempo || TIEMPO_GIT,
+    timeout: tiempo,
     input: opciones.entrada,
     env: entorno(),
     windowsHide: true,
@@ -46,6 +77,10 @@ function correr(args, opciones = {}) {
   let error = null;
   if (r.error) error = r.error.code === 'ETIMEDOUT' ? 'tiempo' : r.error.code === 'ENOENT' ? 'sin-git' : String(r.error.code || r.error.message);
   else if (r.signal) error = 'tiempo';
+  if (error === 'tiempo' && tiempo < pedido) {
+    error = 'plazo';
+    salteadas++;
+  }
   return {
     ok: !error && r.status === 0,
     codigo: r.status,
@@ -103,4 +138,4 @@ function edades(archivo, opciones = {}) {
   return res;
 }
 
-module.exports = { TIEMPO_GIT, correr, texto, edades };
+module.exports = { TIEMPO_GIT, TIEMPO_MINIMO, fijarPlazo, plazoRestante, tiempoPara, salteadasPorPlazo, correr, texto, edades };
