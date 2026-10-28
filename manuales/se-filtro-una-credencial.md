@@ -9,7 +9,7 @@
 ## 1. Los pasos, en este orden
 
 1. **Rotá primero, limpiá después.** Entrá al servicio dueño de la credencial (la base, la API, GitHub), generá una nueva y **anulá la vieja**. Mientras la vieja siga viva, todo lo demás es maquillaje.
-2. **Cargá la nueva sin verla.** Que la ponga una persona con `cargar-secreto <NOMBRE>`: pide el valor con entrada oculta y lo guarda en el `.env` o en la variable del sistema. Nunca la pegues en el chat para "que Claude la ponga". En Windows, una variable del sistema nueva se ve recién en la próxima sesión.
+2. **Cargá la nueva sin verla.** Que la ponga una persona con `cargar-secreto <NOMBRE>`: pide el valor con entrada oculta y lo guarda en el almacén de esa PC, **fuera de todo repo** (`~/.config/kit-secretos/<proyecto>.env`). Al `.env` del proyecto van solo las de prueba y la de solo lectura; **la de escritura de una base real nunca va al `.env` ni a una variable del sistema**, porque las dos le llegan al proceso del obrero (SPEC-0 6.6). Nunca la pegues en el chat para "que Claude la ponga".
 3. **Mirá si la usaron.** En el panel del servicio, revisá los accesos desde que se filtró (logs, últimas conexiones, facturación rara). Si hubo uso que no reconocés, avisá a quien corresponda en la empresa antes de seguir.
 4. **Sacala del historial de git, solo si llegó a un commit.**
    - Si el commit **no se pushó**: se reescribe el historial local y listo.
