@@ -44,8 +44,8 @@ director. **El director no edita código**: si se encuentra arreglando a mano, e
 | Paquete | Qué | Directores | Estado |
 |---|---|---:|---|
 | 0 | Misión 4½: ordenar la casa, `v2.4.3` | 1 | ✅ 2026-10-27 |
-| 1 | La ficha del kit, el parser, `kit/VERSION`, los repos de prueba | 1 | ⬜ **el próximo** |
-| 2 | Documentos con tope, hook en node, candado, `cambios`, `/inicio` y `/cierre` v3 | 2 | ⬜ |
+| 1 | La ficha del kit, el parser, `kit/VERSION`, los repos de prueba | 1 | 🔨 delta sellado 2026-10-28 ([`SPEC-paquete-1.md`](SPEC-paquete-1.md)) |
+| 2 | Documentos con tope, hook en node, candado, `cambios`, `/inicio` y `/cierre` v3, **la zona propia (P3.2)**, `pruebas/pedidos.md` | 2 | ⬜ |
 | 3 | Seguridad: corrector de secretos, barreras, hooks por PC, `doctor` mínimo | 1 | ⬜ |
 | 4 | El Arquitecto v3, el script `worktree`, el sello, `formato-spec.md` | 1 | ⬜ |
 | 5 | Director/obrero, `/estado`, resumen del día, la mesa, subagentes | 2 | ⬜ |
@@ -68,7 +68,7 @@ cuántos lanzó y en qué modelo (por ejemplo `4 Sonnet · 2 Opus`): es la medid
 |---|---|---|---|---|---|---|
 | D1.1 | Paquete 1 entero: spec delta (Guido sella), ficha, parser, `VERSION`, `pruebas/rehacer.sh` | | | | | |
 | D2.1 | Paquete 2, primera mitad: spec delta + red team, `docs/` en capas, handoff y TODO con tope, hook node | | | | | |
-| D2.2 | Paquete 2, segunda mitad: candado, `cambios` base y su sello, `/inicio` y `/cierre` v3, revisor frío | | | | | |
+| D2.2 | Paquete 2, segunda mitad: candado, `cambios` base y su sello, la zona propia (P3.2), `/inicio` y `/cierre` v3 con `pedidos.md`, revisor frío | | | | | |
 | D3.1 | Paquete 3: spec delta + red team (obligatorio), corrector, barreras, hooks por PC, `doctor` mínimo | | | | | |
 | D4.1 | Paquete 4: spec delta + red team, Arquitecto v3, sello, `formato-spec.md`, `worktree` y `.kit-rol` | | | | | |
 | D5.1 | Paquete 5, primera mitad: spec delta + red team, el canon director/obrero y sus correctores | | | | | |
@@ -164,6 +164,7 @@ Del spec, sección "Lo que hacés vos de nuevo". Acá solo cuándo toca, para qu
 | Fecha | Qué cambió | Por qué |
 |---|---|---|
 | 2026-10-27 | La construcción pasa de Sonnet a **Opus** | Decisión de Guido: es lo que define cómo se codea los próximos meses |
+| 2026-10-28 | **P3.2 (la zona propia) entra al orden 2**, y `pruebas/pedidos.md` pasa del orden 1 al 2 | P3.2 no tenía orden en el SPEC-0 y la necesitan `/inicio`/`/cierre` v3 y la exención de `candado:barreras`; `pedidos.md` lo usa `/inicio` v3 (P5.1). Decidido por Guido al sellar el delta del paquete 1 (D1.1) |
 | 2026-10-28 | **Un director Opus por paquete con subagentes** en vez de una sesión por paso: de ~18-21 sesiones a 13 directores; los encargos mecánicos vuelven a Sonnet | ADR-028: propuesta de Guido (un orquestador para todo el spec), acotada a uno por paquete |
 
 ## Lecciones (insumo de la misión 6)
