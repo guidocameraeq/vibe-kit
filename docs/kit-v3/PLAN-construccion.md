@@ -122,7 +122,11 @@ que viaja, barrera, o contra el SPEC-0 o un ADR) van arriba, y todas se deshacen
 - `cambios aprobar` también se niega **con ficha rota** y con cambios sin commitear en el archivo del cambio o en `frenos.log`.
 - El hash de `piezas.settings` = el del `settings.json` del molde (serialización estable); el desvío lo dice `desviosSettings` por regla.
 - `niega-aprobar.cjs` reconoce el comando por contener `cambios` y `aprobar` (ancho a propósito: el falso positivo solo frena donde aprobar
-  no vale).
+  no vale), sin mayúsculas y sin comillas ni escapes de shell (`apro''bar` no lo esquiva); **niega también un modo que no conoce** (el delta
+  decía "en los demás, preguntar"). *Por qué*: un modo nuevo de la plataforma no tiene que abrir la puerta.
+- En un archivo de cambio, **un campo desconocido da rojo**, y un clase 2 que nombra una barrera en `toca` también. El renglón del sello se
+  busca en el `frenos.log` **del commit del sello** (tiene que agregarlo ese commit), no en el del disco: vale igual en la otra PC.
+  `aprobar` se niega si `frenos.log` está ignorado. *Por qué*: lo más estricto que no traba el camino de Guido.
 
 ## Paralelizar: decidido que no (DP, 2026-10-29)
 
@@ -147,11 +151,15 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
 
 - **Paquete 1 · que un hook que lee una ficha rota frene** (SPEC-paquete-1, "Lo que se prueba más adelante"): el parser sale con 1;
   el freno se prueba en los órdenes 2 y 3, cuando existan los hooks.
-- **Paquete 2 · para D2.2** (de la construcción de D2.1): (a) `hook-escritura: molde` va sin hash en la ficha, como el ejemplo: si el
-  actualizador tiene que ver desvíos de esa pieza, pasa a `{estado, hash}`; (b) el hash de `settings` es el del archivo ya mezclado: lo
-  rehace P3.2 (zona propia); (c) `rehacer.sh` corrido desde un worktree arma la carpeta hermana adentro de `.claude/worktrees/`: que la
-  calcule desde el checkout principal (F7); (d) `KIT_PLAZO_ARRANQUE_MS` estira o achica el plazo del hook (solo pruebas): que `doctor`
-  avise si está puesta (orden 3 o 6).
+- **Paquete 2 · para D2.2** (de la construcción de D2.1): (a) `hook-escritura: molde` va sin hash: **decidido en D2.2, sigue así hasta
+  el orden 6** (Decisiones sin Guido); (b) el hash de `settings`: lo rehace F7 con `hashPieza`; (c) la carpeta hermana desde un worktree: F7;
+  (d) pasó al paquete 3.
+- **Paquete 3 · de D2.2**: (a) `KIT_PLAZO_ARRANQUE_MS` en `doctor` (era la (d) de D2.1); (b) el pre-commit corre `estructura.cjs` **desde
+  la versión de `origin/<rama por defecto>`**, no la del disco (r4-3: un candado editado y corrido en el mismo commit se aprueba solo); (c)
+  `niega-aprobar.cjs` en `bypassPermissions` **no se probó con `claude.exe`**: el clasificador del modo `auto` frenó lanzar una sesión en bypass
+  ("Create Unsafe Agents") y F3 lo probó con `dontAsk`, que va por el mismo camino; en bypass lo cubren las pruebas.
+- **Paquete 6/7 · de D2.2**: en `claude -p` sobre una carpeta que no es de confianza, **Claude Code ignora el `permissions.allow` del
+  proyecto** ("this workspace has not been trusted"): el actualizador y todo agente de fondo en un clon nuevo lo van a sufrir.
 - **Paquete 1 · menor**: una ficha en Latin-1 da "valor inválido" (sin eco) en vez de "guardala en UTF-8". Se arregla si aparece en la flota.
 
 ## NO VERIFICADO, para tachar
