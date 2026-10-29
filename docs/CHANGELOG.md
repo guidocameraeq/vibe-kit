@@ -26,6 +26,12 @@ Pendientes). Sin tag. **Nada tocó el `~/.claude/` real**: la huella de `setting
 - `gitleaks version`: 47 s en frío en `clientes`, ~2 s después. El `block_secrets.ps1` viejo suma ~10-11 s a cada Bash.
 - El corpus del historial (G1, solo en el scratchpad): 91.298 llamadas únicas de 2.218 transcripts, para medir los frenos.
 
+**Para seguir en otra PC** (Guido, al cerrar)
+- G3-G6 a medias, en ramas de `origin`: `wip/d3.1-g3-git-seguro`, `wip/d3.1-g4-sensible`, `wip/d3.1-g5-secretos`, `wip/d3.1-g6-barreras`
+  (gitleaks verde en las cuatro).
+- Al privado `vibe-research`: los 22 chats de vibe-kit de `clientes`, condensados (`chats/clientes/`), los arneses de la medición
+  (`mision-5/medicion-historial/`, sin el corpus) y la fila de D3.1 en el diario.
+
 ## 2026-10-29 — Misión 5, paquete 2 ✅: zona propia, `cambios` con su sello, el candado, `/inicio` y `/cierre` del molde (D2.2, sin Guido)
 
 PC `clientes`, chat `vibe-kit M5 · D2.2 · Paquete 2, segunda mitad: candado, cambios, zona propia, /inicio y /cierre v3`, en Opus.

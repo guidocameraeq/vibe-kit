@@ -240,15 +240,16 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
   el orden 6** (Decisiones sin Guido); (b) el hash de `settings`: lo rehace F7 con `hashPieza`; (c) la carpeta hermana desde un worktree: F7;
   (d) pasó al paquete 3.
 - **Paquete 3 · D3.1 quedó a medias (cuota, 2026-10-29; lo retoma D3.2)**. En `main`: el delta sellado sin Guido, G2 (`lib/comando.cjs`),
-  G8 (`cargar-secreto`) y G9 (`lib/db-guardia.cjs`). **Frenados a medias por Guido para cuidar la cuota, guardados en commits WIP en su
-  rama local (no en `main`, no pusheados)**: G6 `--indice`/`--rango` e ids de D-3 (rama `worktree-agent-aa34ee2c59efc2e0d`; el código
-  escrito, las pruebas nuevas de `barreras` a medio escribir), G3 `git-seguro.cjs` + `lib/agente.cjs` (rama
-  `worktree-agent-af2e5bc9fcec0446e`, `98c79cd`), G4 `sensible.cjs` + `kit.ejemplo.md` (`worktree-agent-a035732a70d84cf3c`, `17aa488`) y G5
-  `secretos.cjs` + `pc/lib/` (`worktree-agent-a812506e7cfb41c1e`, `5d0444c`, con 23 pruebas verdes y sin la mutación). Ninguno tiene la
+  G8 (`cargar-secreto`) y G9 (`lib/db-guardia.cjs`). **Frenados a medias por Guido para cuidar la cuota, guardados en un commit WIP cada
+  uno, en ramas de `origin` (no en `main`; gitleaks verde)**: **`wip/d3.1-g6-barreras`** (`a47232e`: `--indice`/`--rango` e ids de D-3; el
+  código escrito, las pruebas nuevas de `barreras` a medio escribir), **`wip/d3.1-g3-git-seguro`** (`98c79cd`: `git-seguro.cjs` +
+  `lib/agente.cjs`), **`wip/d3.1-g4-sensible`** (`17aa488`: `sensible.cjs` + `kit.ejemplo.md`) y **`wip/d3.1-g5-secretos`** (`5d0444c`:
+  `secretos.cjs` + `pc/lib/`, 23 pruebas verdes, sin la mutación). Al terminarlos, cada rama `wip/*` se mergea (o se rehace) y se borra. Ninguno tiene la
   medición contra el historial ni la mutación cerradas. **Lo que falta, en orden**: terminar G3, G4 y G5 (relanzarlos sobre su rama WIP:
   "seguí desde este commit"; medición + mutación + leer el diff), después G7, G10, G11, G12, G13, el revisor frío y el `/cierre`. Los
-  briefs están en "Los encargos" del delta. El corpus del historial y los arneses viven en el scratchpad de la sesión D3.1: si el scratchpad
-  ya no está, G1 se rehace (~8 min, `extraer.cjs`; el brief, en el CHANGELOG de D3.1).
+  briefs están en "Los encargos" del delta. **El corpus del historial no viaja** (tiene secretos reales): en la PC donde siga D3.2, G1 se
+  rehace en ~8 min con `extraer.cjs`/`correr.cjs`, que están en el privado `vibe-research/mision-5/medicion-historial/` (mide contra los
+  transcripts de esa PC; anotar cuál fue).
 - **Paquete 3 · de D2.2**: (a) `KIT_PLAZO_ARRANQUE_MS` en `doctor` (era la (d) de D2.1); (b) el pre-commit corre `estructura.cjs` **desde
   la versión de `origin/<rama por defecto>`**, no la del disco (r4-3: un candado editado y corrido en el mismo commit se aprueba solo); (c)
   `niega-aprobar.cjs` en `bypassPermissions` **no se probó con `claude.exe`**: el clasificador del modo `auto` frenó lanzar una sesión en bypass
