@@ -240,21 +240,31 @@ El tag `v3.0` no sale con uno sin tildar, salvo que Guido lo pase a fase 2 por e
 - [ ] 3 · Sin sello, `ready` se niega
 - [ ] 4 · El Arquitecto deja el commit del módulo en `main`
 - [ ] 5 · El hook inyecta ≤ 9.700, con huella, edad y CORTADO
-- [ ] 6 · `/cierre` encuentra lo suelto, lo roto y lo pasado de tope
+- [ ] 6 · `/cierre` encuentra lo suelto, lo roto y lo pasado de tope — *D2.2: el candado lo encuentra, frena y anota (pruebas de
+  `estructura.cjs` y `todo` 0 en `alfa`/`beta`); falta ver una sesión real que corra el `/cierre` del molde y no commitee encima*
 - [ ] 7 · Sin pop-up ante lo AUTORIZADO
 - [ ] 8 · El director no escribe ante un aviso sin novedad
 - [ ] 9 · "Poné al día la flota" devuelve una tabla por repo
 - [ ] 10 · Adoptar un repo viejo con un OK
 - [ ] 11 · La lista cerrada de lo que se frena, también en bypass
-- [ ] 12 · Los cambios de método de clase 2 quedan en `.claude/cambios/`
+- [ ] 12 · Los cambios de método de clase 2 quedan en `.claude/cambios/` — *D2.2: el script es el único camino (el `Write` a `cambios/`
+  negado en `-p`), un `3-barrera` queda `propuesto` con su línea de "te espera" y `barreras` da rojo sin el sellado (caso a mano en `alfa`);
+  falta que un agente aplique uno de clase 2 en una sesión real*
 - [ ] 13 · La mesa escribe el archivo antes del mensaje
-- [ ] 14 · Ninguna skill con rutas absolutas, sesiones, ramas ni SHAs
+- [x] 14 · Ninguna skill con rutas absolutas, sesiones, ramas ni SHAs — 2026-10-29, D2.2: `candado:datos` verde sobre las skills del molde
+  instaladas en `alfa` y `beta` (`estructura.cjs todo` 0), con casos sí/no en sus pruebas
 - [ ] 15 · Lo `sensible:` pregunta solo en el paso que lo toca
 - [ ] 16 · Si un hook que niega falla, la acción se frena
-- [ ] 17 · Un obrero que edita sus frenos no se los saca
-- [ ] 18 · `cambios aprobar` se niega desde un worktree de obrero
+- [ ] 17 · Un obrero que edita sus frenos no se los saca — *D2.2: su commit da rojo en `barreras` (prueba) y los hooks leen la ficha de la
+  rama por defecto (D2.1); que el corrector frene la edición misma de los hooks es del orden 3 (4.3)*
+- [ ] 18 · `cambios aprobar` se niega desde un worktree de obrero — *D2.2: se niega con cada `.kit-rol` de agente, por nombre y por ruta,
+  fuera del principal y fuera de la rama por defecto (pruebas); el hook niega en `dontAsk` (`claude.exe -p`) y bypass/`auto` (pruebas);
+  sello a mano o de otra carpeta → rojo. **Falta**: la ventana en una pestaña real de Guido, bypass con `claude.exe`, y el resumen del día
+  (orden 5)*
 - [ ] 19 · Una migración a `real` sin veredicto del revisor no corre
-- [ ] 20 · El actualizador respeta la zona propia de cada `settings.json`
+- [ ] 20 · El actualizador respeta la zona propia de cada `settings.json` — *D2.2: `mezclarSettings` a tres puntas (pruebas) y el commit
+  `molde v3 orden 2b` de `rehacer.sh` pasa `barreras --molde` en verde (y rojo sin `--molde`); la creación de la ficha con fábrica (b), por
+  pruebas. Se tilda con el actualizador de verdad (orden 6), que además necesita el molde viejo (Pendientes)*
 
 ## Lo que hace Guido, y cuándo
 

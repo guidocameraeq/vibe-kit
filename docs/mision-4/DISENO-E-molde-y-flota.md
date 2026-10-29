@@ -175,6 +175,12 @@ multi-llm: no              # si es "sí", se genera AGENTS.md desde el CLAUDE.md
 | `settings.json` | **A tres puntas por regla** (molde viejo, molde nuevo, proyecto): solo se agrega lo nuevo de esta versión; lo que el proyecto quitó a propósito está en `frenos.quitados` de la ficha (un solo campo para todo freno, con id, razón y `hasta:`; lo unificó F §14) y **no vuelve** (regla 3 del racimo A). Lo del proyecto gana, incluso una lista vacía |
 | `CLAUDE.md` y todo `docs/` | Del proyecto. El actualizador no los toca, con una sola excepción: **una línea en el CHANGELOG** por actualización ("kit 2.4.2 → 2.5: piezas X, Y"). *Nota de B (2026-10-22): por eso la migración del árbol de `docs/` al modelo de módulos la hace **el adoptador de §7**, no el actualizador ([DISENO-B](DISENO-B-documentos.md) §17).* |
 
+*Nota de la misión 5, paquete 2 (2026-10-29, D2.2, [SPEC-paquete-2](../kit-v3/SPEC-paquete-2.md)): **solo el hook de arranque corre su
+hermano `.propio.sh`**; los hooks que niegan y el de escritura no, porque un `.propio.sh` que imprime un `allow` destrabaría un freno sin pasar
+por `candado:barreras`. En `settings.json`, una regla es un texto de `allow`/`ask`/`deny` o un hook por evento, matcher y comando; los ids se
+normalizan (sin comillas dobles, `\` → `/`) igual que en `frenos.quitados`. El hash de `piezas.settings` es el del `settings.json` del molde;
+que el proyecto lo siga teniendo lo dice `desviosSettings`, regla por regla. Lo construye `kit/molde/hooks/lib/zona-propia.cjs`.*
+
 ## 6. El actualizador (decisión 3) y los cuatro casos
 
 Guido dice "poné al día Hub y Devoluciones", o "toda la flota". Entonces:

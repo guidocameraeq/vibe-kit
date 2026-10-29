@@ -796,6 +796,12 @@ archivos chicos, sube al kit por el ciclo con 3+ o cicatriz, urgencias como parc
    del 20 al 26/10), cuántos subieron al kit en el ciclo, y cuántos clics de Guido por cambio (línea base: 31 en un día, 26/10; meta: solo las
    barreras).
 
+*Nota de la misión 5, paquete 2 (2026-10-29, D2.2, [SPEC-paquete-2](../kit-v3/SPEC-paquete-2.md)): el formato quedó **estado solo, datos
+aparte** (`sha`, `motivo`, `version`), con `cicatriz:` y `chico:`; un cambio `3-barrera` declara además **`ids:`**, lo que cambia (cada freno de
+la ficha, cada archivo de hook, cada regla de `settings`), y el candado da rojo si el commit cambia otro (red team r2-4, r4-2, r4-4). `cambios
+rechazar` vale también sobre un `aplicado` (solo quita cobertura), y `anotar-sha` reapunta uno cuyo commit reescribió un `pull --rebase`
+(revisor frío, rf-1 y rf-2). El candado de estados y SHA es `cambios verificar`.*
+
 *Alternativas descartadas*: congelar el método del proyecto hasta la versión (A) · propagación automática entre proyectos (C) · el archivo
 único de Hermes (230 KB que el director relee; B §5). *Qué cambia para Guido*: no aprueba cambios de método uno por uno (ve el diff); cada 3-4
 meses el ciclo le trae la tabla de lo que sube al kit y por qué; las barreras siguen con su clic; y un cambio que Hermes aprendió hoy puede
