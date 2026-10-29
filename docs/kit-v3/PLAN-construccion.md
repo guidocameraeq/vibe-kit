@@ -48,7 +48,7 @@ propuso partir con 26% usado). Si la app compacta, relee este tracker y su delta
 | 0 | Misión 4½: ordenar la casa, `v2.4.3` | 1 | ✅ 2026-10-27 |
 | 1 | La ficha del kit, el parser, `kit/VERSION`, los repos de prueba | 1 | ✅ 2026-10-28 ([`SPEC-paquete-1.md`](SPEC-paquete-1.md)) |
 | 2 | Documentos con tope, hook en node, candado, `cambios`, `/inicio` y `/cierre` v3, **la zona propia (P3.2)**, `pruebas/pedidos.md` | 2 | ✅ 2026-10-29 (D2.1 y D2.2; lo que espera a Guido, en Pendientes) ([`SPEC-paquete-2.md`](SPEC-paquete-2.md)) |
-| 3 | Seguridad: corrector de secretos, barreras, hooks por PC, `doctor` mínimo | 1 | ⬜ |
+| 3 | Seguridad: corrector de secretos, barreras, hooks por PC, `doctor` mínimo | 1 | 🔨 D3.1, 2026-10-29 (sin Guido) |
 | 4 | El Arquitecto v3, el script `worktree`, el sello, `formato-spec.md` | 1 | ⬜ |
 | 5 | Director/obrero, `/estado`, resumen del día, la mesa, subagentes | 2 | ⬜ |
 | 6 | Equipador v3, actualizador, adoptador, `doctor` completo | 1 | ⬜ |
@@ -137,6 +137,13 @@ que viaja, barrera, o contra el SPEC-0 o un ADR) van arriba, y todas se deshacen
   carpetas vacías y el delta ya decía "una carpeta que falta no es falla"; sin esto, el `CLAUDE.md` del molde daba rojo en un repo recién montado.
 - En `/inicio` del molde, con el pedido en el mensaje, la sesión dice el tamaño **y sigue**, sin esperar otro OK (criterio 2); el de vibe-kit
   espera el OK, pero es otra skill.
+
+### D3.1 · Decisiones sin Guido
+
+D3.1 corre sin Guido, con su autorización previa (Cambios al plan, 2026-10-29), como D2.2: cada decisión con la recomendada, **las ⚠️
+arriba**, todas se deshacen antes del tag. El detalle, en [`SPEC-paquete-3.md`](SPEC-paquete-3.md).
+
+- (se llena a medida que avanza la fila)
 
 ## Abrir D3.1 sin Guido (el prompt)
 
