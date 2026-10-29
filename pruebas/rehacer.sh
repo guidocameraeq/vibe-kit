@@ -6,8 +6,13 @@
 # El paso del molde v3 (orden 2 del kit v3): sobre alfa y beta, en UN commit "molde v3 orden 2", pone kit/molde/ (el del árbol de
 # trabajo, sin los *.test.cjs) → hooks, scripts, docs, settings.json MEZCLADO con el v2 (el SessionStart viejo pasa al de node y se
 # suma el PreToolUse), CLAUDE.md y los dos .snippet; deja la ficha con hook-escritura y los hashes nuevos. gama NO lo recibe.
-# Los arma AFUERA de vibe-kit, en la carpeta hermana vibe-kit-pruebas/ (junto a la raíz del repo; se calcula, nunca es una ruta
-# fija): así el CLAUDE.md y las skills de los repos de prueba no se cuelan en las sesiones de vibe-kit. El script y pedidos.md
+# Ese paso sale del molde tal como quedó al cerrar D2.1 (git archive 2c8eb7d), no del árbol de trabajo: no cambia con lo que venga después.
+# Encima, en OTRO commit "molde v3 orden 2b" (D2.2), alfa y beta reciben lo de kit/molde/ del árbol de trabajo: hooks, scripts y skills,
+# settings por mezclarSettings (viejo = el de D2.1), skills inicio/cierre por mezclarTexto (o tal cual si no tienen zona propia), la
+# ficha con candado, cambios-metodo y los hashes por hashPieza. Antes del commit corre `estructura.cjs barreras --molde` (0) y sin
+# --molde (1, candado:barreras); después del push, `estructura.cjs todo` (0). Todo con --sin-log: nada mete la hora actual.
+# Los arma AFUERA de vibe-kit, en la carpeta hermana vibe-kit-pruebas/ (junto a la raíz del checkout PRINCIPAL, también si se corre
+# desde un worktree; se calcula con git-common-dir, nunca es una ruta fija): así el CLAUDE.md y las skills de los repos de prueba no se cuelan en las sesiones de vibe-kit. El script y pedidos.md
 # se quedan acá, en pruebas/. Al terminar imprime en qué carpeta dejó los repos.
 # Cada repo nace como lo dejaría un adoptador del kit en esa versión: molde v2 + ficha .claude/kit.md.
 # Fechas e identidad fijas, y sin la config de git de quien lo corre (ni global ni de sistema): dos corridas, en cualquier PC,
@@ -24,7 +29,16 @@ if [ -z "$AQUI" ] || [ "$(basename "$AQUI")" != "pruebas" ] || [ ! -f "$AQUI/../
   exit 1
 fi
 RAIZ=$(cd "$AQUI/.." && pwd -P)
-DEST="$(dirname "$RAIZ")/vibe-kit-pruebas"   # hermana de la raíz de vibe-kit, en cualquier PC
+# La hermana del checkout PRINCIPAL de vibe-kit, en cualquier PC y también corrido desde un worktree (.claude/worktrees/x/):
+# el git-common-dir es siempre el .git del principal, y su padre es la raíz del principal.
+COMUN=$(git -C "$RAIZ" rev-parse --path-format=absolute --git-common-dir 2>/dev/null) || COMUN=""
+if [ -z "$COMUN" ] || [ "$(basename "$COMUN")" != ".git" ] || [ ! -d "$COMUN" ]; then
+  echo "rehacer.sh: no pude calcular el checkout principal de vibe-kit (git-common-dir='$COMUN'). No toco nada." >&2
+  exit 1
+fi
+PRINCIPAL=$(cd "$COMUN/.." && pwd -P)
+DEST="$(dirname "$PRINCIPAL")/vibe-kit-pruebas"
+D21=2c8eb7d   # el commit del cierre de D2.1: de ahí sale el molde del paso "molde v3 orden 2"
 MARCA=.repos-de-prueba-de-vibe-kit
 
 # --- argumentos
@@ -48,11 +62,23 @@ VER=${TAG#v}   # la versión que dice la ficha (v2.4.2 → 2.4.2)
 
 FICHA="$RAIZ/kit/molde/hooks/lib/ficha.cjs"
 [ -f "$FICHA" ] || { echo "rehacer.sh: falta $FICHA (el parser, encargo E1)" >&2; exit 1; }
-MOLDE3="$RAIZ/kit/molde"   # el molde v3, del árbol de trabajo (solo lo usa el paso del orden 2)
+MOLDE3B="$RAIZ/kit/molde"   # el molde v3 del árbol de trabajo (lo de D2.2: lo usa el paso "orden 2b")
+ZONA="$MOLDE3B/hooks/lib/zona-propia.cjs"
+TMPD=$(mktemp -d)
+trap 'rm -rf "$TMPD"' EXIT
+MOLDE3="$TMPD/d21/kit/molde"   # el molde tal como quedó al cerrar D2.1 (lo usa el paso "orden 2", que no cambia)
 if [ "$SOLO_TAG" = no ]; then
+  git -C "$RAIZ" cat-file -e "$D21^{commit}" 2>/dev/null || { echo "rehacer.sh: no existe el commit $D21 (el cierre de D2.1)" >&2; exit 1; }
+  mkdir -p "$TMPD/d21"
+  git -C "$RAIZ" archive "$D21" kit/molde | tar -x -C "$TMPD/d21"
   for f in hooks/session-start.cjs hooks/escritura-docs.cjs hooks/lib/ficha.cjs settings.json CLAUDE.md gitignore.snippet \
            gitattributes.snippet docs/NORTE.md docs/SESSION_HANDOFF.md docs/TODO.md scripts/todo.cjs; do
-    [ -f "$MOLDE3/$f" ] || { echo "rehacer.sh: falta kit/molde/$f (el molde v3, paquete 2)" >&2; exit 1; }
+    [ -f "$MOLDE3/$f" ] || { echo "rehacer.sh: falta kit/molde/$f en $D21 (el molde de D2.1)" >&2; exit 1; }
+  done
+  for f in hooks/lib/zona-propia.cjs hooks/lib/fabrica/ficha.estandar.md hooks/lib/fabrica/ficha.liviano.md hooks/niega-aprobar.cjs \
+           hooks/lib/candado.cjs hooks/lib/barreras.cjs scripts/estructura.cjs scripts/cambios.cjs scripts/agents.cjs settings.json \
+           skills/inicio/SKILL.md skills/cierre/SKILL.md; do
+    [ -f "$MOLDE3B/$f" ] || { echo "rehacer.sh: falta kit/molde/$f (el molde de D2.2)" >&2; exit 1; }
   done
 fi
 FECHA=2026-10-28
@@ -79,8 +105,6 @@ for d in alfa beta gama remotos; do rm -rf "${DEST:?}/$d"; done
 mkdir -p "$DEST/remotos"
 
 # --- el molde del tag, a un temporal
-TMPD=$(mktemp -d)
-trap 'rm -rf "$TMPD"' EXIT
 git -C "$RAIZ" archive "$TAG" kit/skills/arquitecto/templates/universales | tar -x -C "$TMPD"
 MOLDE="$TMPD/kit/skills/arquitecto/templates/universales"
 
@@ -143,6 +167,9 @@ git_pruebas() {
     GIT_AUTHOR_DATE="$FECHA_GIT" GIT_COMMITTER_DATE="$FECHA_GIT" \
     git "$@"
 }
+# Lo mismo para lo que corre adentro de un repo de prueba y llama a git por su cuenta (estructura.cjs): sin config global ni de sistema
+sin_config() { env GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 "$@"; }
+declare -A T_ESTRUC
 
 crear_repo() {   # $1 nombre · $2 qué es · $3 con código (si|no) · $4 salud
   local x=$1 d="$DEST/$1"
@@ -409,6 +436,154 @@ molde_v3() {   # $1 nombre · $2 qué es · $3 módulo A · $4 módulo B · $5 b
   git_pruebas -C "$d" push -q origin main   # el remoto sigue a main: fichaVigente lee la ficha de origin/HEAD
 }
 
+# --- el paso "orden 2b" (D2.2): encima del de D2.1, con lo de kit/molde/ del árbol de trabajo (hooks, scripts, skills; sin *.test.cjs)
+cat > "$TMPD/molde-v3b.cjs" <<'JS'
+// Instancia lo de D2.2 sobre un repo de prueba que ya tiene el commit "molde v3 orden 2". No toca git.
+// Uso: node molde-v3b.cjs <molde D2.1> <molde D2.2> <repo> <ficha.cjs> <zona-propia.cjs>
+const fs = require('fs'), path = require('path');
+const [molde21, molde22, repo, fichaCjs, zonaCjs] = process.argv.slice(2);
+const { leer } = require(fichaCjs);
+const Z = require(zonaCjs);
+const lf = (s) => s.replace(/\r\n/g, '\n');
+const leerT = (p) => lf(fs.readFileSync(p, 'utf8'));
+const escribir = (p, t) => { fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, t); };
+const falla = (m) => { console.error('molde-v3b: ' + m); process.exit(1); };
+
+function archivos(dir) {   // relativos, ordenados; los *.test.cjs NO se instancian
+  const r = [];
+  (function rec(d, rel) {
+    for (const e of fs.readdirSync(d, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))) {
+      const q = rel ? rel + '/' + e.name : e.name;
+      if (e.isDirectory()) rec(path.join(d, e.name), q);
+      else if (!e.name.endsWith('.test.cjs')) r.push(q);
+    }
+  })(dir, '');
+  return r;
+}
+
+const fp = path.join(repo, '.claude/kit.md');
+let ficha = leerT(fp);
+let quitados = [];
+try { quitados = ((leer(ficha).datos.frenos || {}).quitados) || []; } catch (e) { falla('la ficha del repo no se lee: ' + e.message); }
+
+// hooks/** y scripts/** (las skills van aparte: pueden tener zona propia)
+for (const [de, a] of [['hooks', '.claude/hooks'], ['scripts', '.claude/scripts']]) {
+  for (const rel of archivos(path.join(molde22, de))) escribir(path.join(repo, a, rel), leerT(path.join(molde22, de, rel)));
+}
+
+// settings.json: mezcla a tres puntas (molde de D2.1, molde de D2.2, el del repo)
+const textoMolde = leerT(path.join(molde22, 'settings.json'));
+const mez = Z.mezclarSettings({
+  viejo: leerT(path.join(molde21, 'settings.json')), nuevo: textoMolde,
+  proyecto: leerT(path.join(repo, '.claude/settings.json')), quitados,
+});
+if (!mez.ok) falla('mezclarSettings no pudo: ' + mez.problema);
+escribir(path.join(repo, '.claude/settings.json'), mez.texto);
+const hashSettings = Z.hashPieza(Z.textoSettings(JSON.parse(textoMolde)));
+
+// skills: las v2 no tienen zonas propias → se escribe la del molde tal cual; si las tienen, mezclarTexto
+const hashSkill = {};
+for (const s of ['inicio', 'cierre']) {
+  const rutaRepo = path.join(repo, '.claude/skills', s, 'SKILL.md');
+  const delMolde = leerT(path.join(molde22, 'skills', s, 'SKILL.md'));
+  const actual = fs.existsSync(rutaRepo) ? leerT(rutaRepo) : '';
+  const z = Z.zonas(actual);
+  if (!z.ok) falla(`la skill ${s} del repo tiene una zona rota: ${z.problema} (renglón ${z.linea})`);
+  let escrita = delMolde;
+  if (z.zonas.length > 0) {
+    const m = Z.mezclarTexto(delMolde, actual);
+    if (!m.ok) falla(`mezclarTexto de la skill ${s}: ${m.problema}`);
+    escrita = m.texto;
+  }
+  escribir(rutaRepo, escrita);
+  hashSkill[s] = Z.hashPieza(escrita);
+}
+
+// la ficha: frenos, sensible, autorizado y nivel no se tocan
+function linea(re, nueva) {
+  if (!re.test(ficha)) falla('la ficha no tiene ' + re);
+  ficha = ficha.replace(re, () => nueva);
+}
+linea(/^  inicio: .*$/m, `  inicio: {estado: molde+propio, hash: ${hashSkill.inicio}}`);
+linea(/^  cierre: .*$/m, `  cierre: {estado: molde+propio, hash: ${hashSkill.cierre}}`);
+linea(/^  hook-arranque: .*$/m, `  hook-arranque: {estado: molde, hash: ${require(fichaCjs).hash(fs.readFileSync(path.join(repo, '.claude/hooks/session-start.cjs')))}}`);
+linea(/^  settings: .*$/m, `  settings: {estado: molde+propio, hash: ${hashSettings}}`);
+if (!/^  hook-escritura: /m.test(ficha)) falla('la ficha no tiene hook-escritura');
+const suma = ['candado', 'cambios-metodo'].filter((k) => !new RegExp('^  ' + k + ':', 'm').test(ficha)).map((k) => `  ${k}: molde\n`).join('');
+if (suma) linea(/^  hook-escritura: .*\n/m, '  hook-escritura: molde\n' + suma);
+ficha += '- Commit "molde v3 orden 2b" (pruebas/rehacer.sh): candado, cambios del método, zona propia, /inicio y /cierre v3 y el settings mezclado; el campo kit no cambia hasta el tag.\n';
+escribir(fp, ficha);
+JS
+
+# Lo que cobra la validación final del paso 2b que no es un simple archivo: la ficha (lee, piezas nuevas, hashes, lo que no se toca)
+# y el settings. Imprime un problema por renglón; sin salida = en orden.
+cat > "$TMPD/comprobar-2b.cjs" <<'JS'
+// Uso: node comprobar-2b.cjs <ficha.cjs> <zona-propia.cjs> <kit/molde D2.2> <repo> <ficha del commit anterior (archivo)>
+const fs = require('fs'), path = require('path');
+const [fichaCjs, zonaCjs, molde22, repo, previa] = process.argv.slice(2);
+const F = require(fichaCjs), Z = require(zonaCjs);
+const problemas = [];
+const mal = (m) => problemas.push(m);
+const lf = (s) => s.replace(/\r\n/g, '\n');
+let ahora, antes;
+try { ahora = F.leer(lf(fs.readFileSync(path.join(repo, '.claude/kit.md'), 'utf8'))); } catch (e) { mal('la ficha ya no se lee: ' + e.message); }
+try { antes = F.leer(lf(fs.readFileSync(previa, 'utf8'))); } catch (e) { mal('la ficha del commit anterior no se lee: ' + e.message); }
+if (ahora && antes) {
+  if (ahora.avisos.length) mal('la ficha da avisos: ' + ahora.avisos.join(' / '));
+  const estado = (k) => { const v = (ahora.datos.piezas || {})[k]; return v && typeof v === 'object' ? v.estado : v; };
+  const hashDe = (k) => { const v = (ahora.datos.piezas || {})[k]; return v && typeof v === 'object' ? v.hash : undefined; };
+  for (const k of ['candado', 'cambios-metodo', 'hook-escritura']) if (estado(k) !== 'molde') mal(`piezas.${k} debería ser molde (es ${estado(k)})`);
+  if (hashDe('hook-escritura') !== undefined) mal('piezas.hook-escritura no lleva hash');
+  for (const s of ['inicio', 'cierre']) {
+    const h = Z.hashPieza(fs.readFileSync(path.join(repo, '.claude/skills', s, 'SKILL.md'), 'utf8'));
+    if (estado(s) !== 'molde+propio') mal(`piezas.${s} debería ser molde+propio (es ${estado(s)})`);
+    if (hashDe(s) !== h) mal(`el hash de ${s} en la ficha no es hashPieza de la skill`);
+  }
+  const molde = JSON.parse(fs.readFileSync(path.join(molde22, 'settings.json'), 'utf8'));
+  if (estado('settings') !== 'molde+propio') mal(`piezas.settings debería ser molde+propio (es ${estado('settings')})`);
+  if (hashDe('settings') !== Z.hashPieza(Z.textoSettings(molde))) mal('el hash de settings en la ficha no es hashPieza del settings del molde');
+  // lo que 2b no toca: todo menos piezas
+  for (const k of new Set([...Object.keys(antes.datos), ...Object.keys(ahora.datos)])) {
+    if (k === 'piezas') continue;
+    if (JSON.stringify(antes.datos[k]) !== JSON.stringify(ahora.datos[k])) mal(`la ficha cambió «${k}» y no debía`);
+  }
+}
+try {
+  const s = JSON.parse(fs.readFileSync(path.join(repo, '.claude/settings.json'), 'utf8'));
+  const cmds = [];
+  for (const [ev, gs] of Object.entries(s.hooks || {})) for (const g of gs) for (const h of g.hooks || []) cmds.push(ev + ' ' + h.command);
+  for (const c of ['SessionStart node', 'PreToolUse node']) if (!cmds.some((x) => x.startsWith(c.split(' ')[0]) && x.includes('node'))) mal('el settings no tiene ' + c);
+  if (!cmds.some((x) => x.includes('niega-aprobar.cjs'))) mal('el settings no tiene el hook niega-aprobar.cjs');
+  if (!cmds.some((x) => x.includes('escritura-docs.cjs'))) mal('el settings no tiene el hook escritura-docs.cjs');
+  if (cmds.some((x) => x.includes('session-start.sh'))) mal('el settings sigue con session-start.sh');
+  if (!((s.permissions || {}).deny || []).includes('Write(./.claude/cambios/**)')) mal('el settings no niega Write a .claude/cambios');
+} catch (e) { mal('el settings no se lee: ' + e.message); }
+console.log(problemas.join('\n'));
+JS
+
+molde_v3b() {   # $1 nombre: instancia lo de D2.2, corre el candado antes y después del commit
+  local x=$1 d="$DEST/$1" rc=0 sal
+  node "$TMPD/molde-v3b.cjs" "$MOLDE3" "$MOLDE3B" "$d" "$FICHA" "$ZONA"
+  git_pruebas -C "$d" add -A
+  # criterio 20: con --molde, la exención (a) deja pasar el commit del molde (0); sin --molde no hay exención (1, candado:barreras)
+  sal=$(cd "$d" && sin_config node .claude/scripts/estructura.cjs barreras --molde "$MOLDE3B" --sin-log 2>&1) || rc=$?
+  if [ "$rc" -ne 0 ]; then
+    echo "rehacer.sh: $x: estructura.cjs barreras --molde dio $rc (esperaba 0):" >&2; printf '%s\n' "$sal" >&2; exit 1
+  fi
+  rc=0
+  sal=$(cd "$d" && sin_config node .claude/scripts/estructura.cjs barreras --sin-log 2>&1) || rc=$?
+  if [ "$rc" -ne 1 ] || ! printf '%s\n' "$sal" | grep -qF 'candado:barreras'; then
+    echo "rehacer.sh: $x: estructura.cjs barreras sin --molde dio $rc (esperaba 1 con candado:barreras):" >&2; printf '%s\n' "$sal" >&2; exit 1
+  fi
+  git_pruebas -C "$d" commit -q -m "molde v3 orden 2b"
+  git_pruebas -C "$d" push -q origin main
+  # el molde recién instanciado cumple su propio candado (se anota el resultado; la validación final lo cobra)
+  rc=0
+  sal=$(cd "$d" && sin_config node .claude/scripts/estructura.cjs todo --sin-log 2>&1) || rc=$?
+  T_ESTRUC[$x]=$rc
+  printf '%s\n' "$sal" > "$TMPD/estructura-todo-$x.txt"
+}
+
 crear_repo alfa "repo de prueba alfa: estandar, con código de node" si "git status --short"
 escribir_ficha alfa estandar si <<'EOF'
 vars:
@@ -443,6 +618,8 @@ if [ "$SOLO_TAG" = no ]; then
     gama "nada todavía (la mesa con gama está declarada en la ficha)" "nadie"
   molde_v3 beta "repo de prueba beta: liviano, sin código" docs kit "ninguna" \
     ninguna "nada" "nadie"
+  molde_v3b alfa
+  molde_v3b beta
 fi
 
 # --- validación final (junta todo, sale con 1 si algo falló)
@@ -501,13 +678,30 @@ for x in alfa beta gama; do
     git_pruebas -C "$d" check-attr merge -- .claude/frenos.log | grep -qxF '.claude/frenos.log: merge: union' \
       || FALLOS+=("$x: .claude/frenos.log no tiene merge=union")
     [ "$(cd "$d" && node "$FICHA" campo .claude/kit.md piezas.hook-escritura 2>/dev/null)" = molde ] || FALLOS+=("$x: la ficha no dice hook-escritura: molde")
-    for par in hook-arranque:.claude/hooks/session-start.cjs settings:.claude/settings.json; do
-      hf=$(cd "$d" && node "$FICHA" campo .claude/kit.md "piezas.${par%%:*}.hash" 2>/dev/null) || hf=""
-      [ "$hf" = "$(hash_de "$d" "${par#*:}")" ] || FALLOS+=("$x: el hash de ${par%%:*} en la ficha no es el del archivo")
-    done
-    [ -z "$(git_pruebas -C "$d" status --porcelain)" ] || FALLOS+=("$x: el árbol quedó sucio tras el commit del molde v3")
-    [ "$(git_pruebas -C "$d" log -1 --format=%s)" = "molde v3 orden 2" ] || FALLOS+=("$x: el último commit no es 'molde v3 orden 2'")
+    # el hash del arranque es el del archivo; el de settings, de skills inicio/cierre y lo demás de la ficha lo cobra comprobar-2b.cjs
+    hf=$(cd "$d" && node "$FICHA" campo .claude/kit.md piezas.hook-arranque.hash 2>/dev/null) || hf=""
+    [ "$hf" = "$(hash_de "$d" .claude/hooks/session-start.cjs)" ] || FALLOS+=("$x: el hash de hook-arranque en la ficha no es el del archivo")
+    [ -z "$(git_pruebas -C "$d" status --porcelain)" ] || FALLOS+=("$x: el árbol quedó sucio tras los commits del molde v3")
+    # los dos commits, en orden: el de D2.1 y encima el de D2.2
+    [ "$(git_pruebas -C "$d" log -1 --format=%s)" = "molde v3 orden 2b" ] || FALLOS+=("$x: el último commit no es 'molde v3 orden 2b'")
+    [ "$(git_pruebas -C "$d" log -2 --format=%s | tail -n1)" = "molde v3 orden 2" ] || FALLOS+=("$x: el penúltimo commit no es 'molde v3 orden 2'")
     [ "$(git_pruebas -C "$d" rev-parse HEAD)" = "$(git_pruebas -C "$d" rev-parse origin/main)" ] || FALLOS+=("$x: el remoto no está al día")
+    # lo de D2.2 (orden 2b) presente
+    for f in .claude/hooks/niega-aprobar.cjs .claude/hooks/lib/zona-propia.cjs .claude/hooks/lib/candado.cjs .claude/hooks/lib/barreras.cjs \
+             .claude/hooks/lib/cambios.cjs .claude/hooks/lib/cambios-ruta.cjs .claude/hooks/lib/fabrica.cjs \
+             .claude/hooks/lib/fabrica/ficha.liviano.md .claude/hooks/lib/fabrica/ficha.estandar.md \
+             .claude/scripts/estructura.cjs .claude/scripts/cambios.cjs .claude/scripts/agents.cjs \
+             .claude/skills/inicio/SKILL.md .claude/skills/cierre/SKILL.md; do
+      [ -f "$d/$f" ] || FALLOS+=("$x: falta $f (paso orden 2b)")
+    done
+    cp="$TMPD/prev-$x.md"; git_pruebas -C "$d" show HEAD~1:.claude/kit.md > "$cp"
+    while IFS= read -r p; do [ -z "$p" ] || FALLOS+=("$x: $p"); done < <(node "$TMPD/comprobar-2b.cjs" "$FICHA" "$ZONA" "$MOLDE3B" "$d" "$cp" 2>&1)
+    # el candado propio del molde recién instanciado (estructura.cjs todo --sin-log, corrido tras el push)
+    T_ESTRUC[$x]=${T_ESTRUC[$x]:-?}
+    if [ "${T_ESTRUC[$x]}" != 0 ]; then
+      FALLOS+=("$x: estructura.cjs todo dio ${T_ESTRUC[$x]} (esperaba 0); su salida:")
+      while IFS= read -r p; do FALLOS+=("    $p"); done < "$TMPD/estructura-todo-$x.txt"
+    fi
     # la huella del hook de arranque: el `!` del session_id evita que deje marca de sesión
     cwdw=$(cd "$d" && { pwd -W 2>/dev/null || pwd; })
     rc=0
@@ -517,11 +711,17 @@ for x in alfa beta gama; do
   elif [ "$x" = gama ] || [ "$SOLO_TAG" = si ]; then
     if [ -e "$d/.claude/hooks/session-start.cjs" ] || [ -e "$d/.claude/hooks/escritura-docs.cjs" ]; then FALLOS+=("$x: debería estar pura, sin el molde v3"); fi
     [ -f "$d/.claude/hooks/session-start.sh" ] || FALLOS+=("$x: le falta el session-start.sh del molde v2")
+    for f in .claude/hooks/niega-aprobar.cjs .claude/hooks/lib/zona-propia.cjs .claude/hooks/lib/candado.cjs .claude/hooks/lib/fabrica \
+             .claude/scripts/estructura.cjs .claude/scripts/cambios.cjs .claude/scripts/agents.cjs .claude/cambios; do
+      [ ! -e "$d/$f" ] || FALLOS+=("$x: tiene $f y debería estar pura, sin el orden 2b")
+    done
+    ! grep -qF 'kit:propio' "$d/.claude/skills/inicio/SKILL.md" "$d/.claude/skills/cierre/SKILL.md" || FALLOS+=("$x: sus skills traen zona propia: no es la v2 pura")
+    [ "$(git_pruebas -C "$d" log -1 --format=%s)" = "ficha del kit (fixture)" ] || FALLOS+=("$x: el último commit no es el de la ficha")
   fi
 done
-printf '%-6s %-9s %-6s %-7s %-7s %s\n' repo nivel ficha tests remoto huella
+printf '%-6s %-9s %-6s %-7s %-7s %-7s %-7s %s\n' repo nivel ficha tests remoto huella estruc head
 for x in alfa beta gama; do
-  printf '%-6s %-9s %-6s %-7s %-7s %s\n' "$x" "${T_NIVEL[$x]}" "${T_FICHA[$x]}" "${T_TESTS[$x]}" "${T_REMOTO[$x]}" "${T_HUELLA[$x]}"
+  printf '%-6s %-9s %-6s %-7s %-7s %-7s %-7s %s\n' "$x" "${T_NIVEL[$x]}" "${T_FICHA[$x]}" "${T_TESTS[$x]}" "${T_REMOTO[$x]}" "${T_HUELLA[$x]}" "${T_ESTRUC[$x]:--}" "$(git_pruebas -C "$DEST/$x" rev-parse --short=10 HEAD)"
 done
 if [ "${#FALLOS[@]}" -gt 0 ]; then
   printf '  - %s\n' "${FALLOS[@]}"
