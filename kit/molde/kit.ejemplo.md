@@ -33,11 +33,11 @@ frenos:
 autorizado:                          # lo que no es pregunta
   merge-a-main: con-gate-verde
   escribir-produccion: por-comando-con-foto
-sensible:                            # las 5 preguntas de fábrica: no, o qué duele en este repo
-  datos-reales: [tabla clientes de la base real]
+sensible:                            # las 5 preguntas de fábrica: no, o los comandos que duelen acá (pregunta el que empieza así)
+  datos-reales: ["tabla:clientes", db borrar]   # "tabla:<x>" no es un comando: es para la guardia de db migrar
   plata: no
-  sale-afuera: [mails a gerencia]
-  claves: [cargar-secreto]
+  sale-afuera: [node scripts/mandar-mails.cjs]
+  claves: [supabase secrets set, gh secret set]
   release: [npm run release]
 secretos: [DB_URL, HUB_TOKEN]        # nombres, nunca valores
 publicas: [SUPABASE_ANON_KEY]        # parecen secreto y no lo son
