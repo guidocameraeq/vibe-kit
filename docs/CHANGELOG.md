@@ -2,6 +2,58 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-29 — Retomar en `Usuario`: el historial de chats completo, la PC preparada y el paquete 3 partido en D3.2 y D3.3
+
+PC `Usuario`, sesión intermedia de la misión 5, en Opus, con Guido. Sin tag; `kit/` sin cambios.
+
+**Added**
+- `/cierre` (paso 5): **el chat de cada sesión sube al privado** `vibe-research/chats/<pc>/`, condensado con la receta de allá. Si la PC no
+  ve el repo privado, no se sube por otro lado: el handoff anota el id. Pedido de Guido: que el historial esté siempre completo.
+- Tracker: **"Abrir D3.2 y D3.3 sin Guido"**, los dos prompts; filas D3.2 y D3.3; en Pendientes, la PC `Usuario` preparada.
+- En el privado: los chats de vibe-kit que faltaban. Los **racimos A, C y E de la misión 4** y tres sesiones más (`chats/companero/`,
+  de la notebook del compañero: su cuenta no ve el privado, así que viajaron por un repo privado temporal suyo); dos sueltos de `Usuario`
+  y el de esta sesión (`chats/usuario/`); `FALTAN.md` sin pendientes; la fila del diario.
+
+**Changed**
+- **El paquete 3 pasa a tres directores**: D3.2 solo cierra G3-G6 (de a dos Opus), D3.3 hace G7, G10-G13, el revisor frío y el `/cierre`.
+  Por qué: D3.1 cortó por cuota al meter todo junto (tracker, "Cambios al plan").
+- PC `Usuario` al día: `kit-sync sync` → LIMPIO (le faltaban `VERSION`, `pc/` y una línea del Equipador); repos de prueba con
+  `rehacer.sh` (verdes); corpus del historial en `C:\Users\Usuario\vibe-historial\`: **16.470 llamadas únicas**, contra 91.298 de
+  `clientes` (esta PC borró sus crudos de vibe-kit el 2026-10-28).
+
+**Removed**
+- TODO: "Juntar los chats de todas las PCs" (hecho: completo hasta el 2026-10-29; lo que sigue lo hace el `/cierre`).
+
+## 2026-10-29 — Misión 5, paquete 3 a medias: el delta sellado sin Guido y tres piezas (D3.1, cortada por cuota)
+
+PC `clientes`, chat `vibe-kit M5 · D3.1 · Paquete 3: seguridad — corrector, barreras, hooks por PC, doctor mínimo`, en Opus, sin Guido
+hasta la tarde. Guido volvió con poca cuota y pidió un punto de corte: G3-G6 se frenaron a medias y quedaron en ramas WIP locales (tracker,
+Pendientes). Sin tag. **Nada tocó el `~/.claude/` real**: la huella de `settings.json` y `hooks/` es igual a la de la apertura.
+
+**Added**
+- `docs/kit-v3/SPEC-paquete-3.md`: el delta del paquete 3, **sellado sin Guido (provisorio)** tras dos rondas de red team (r1: 6 ALTOS
+  integrados —variables `GIT_*`, ref vigente falsificable, listas de verbos, claves literales en el repo público, `reset` en `main`, gitleaks
+  colgado—; r2: 0 ALTOS, 11 medios y bajos). Decisiones D-1 a D-15 (las ⚠️, en el tracker).
+- `kit/molde/hooks/lib/comando.cjs` (G2): el recorrido de comandos de Bash y PowerShell, port del de Hermes más asignaciones; 976 casos,
+  mutación 384/384.
+- `kit/skills/arquitecto-skills/pc/cargar-secreto.{sh,ps1}` (G8): entrada oculta, almacén `~/.config/kit-secretos/<proyecto>.env`, relee y
+  compara, nunca imprime el valor; 38 pruebas.
+- `kit/molde/hooks/lib/db-guardia.cjs` (G9): `db migrar` contra `real` sin veredicto del revisor para el hash del plan → niega; borrar
+  `tabla:<x>` de `datos-reales` de noche → PARADA, de día → pide `--borra-datos-reales`; 38 pruebas, mutación 51/52.
+
+**Medido** (G0, G0b; `claude.exe` 2.1.309 `-p`)
+- `onFailure: "block"` frena las cuatro fallas de un hook (sin ejecutable, error, colgado a los `timeout` s, JSON inválido), con Bash y
+  PowerShell; sin el campo pasan. El `.cjs` se relee en cada llamada. `deny` con ruta absoluta anda en Windows.
+- La forma exec (`"command": "node"`, `"args": ["${CLAUDE_PROJECT_DIR}/…"]`) expande la variable sin Git Bash: todo hook del kit va así (D-7).
+- `gitleaks version`: 47 s en frío en `clientes`, ~2 s después. El `block_secrets.ps1` viejo suma ~10-11 s a cada Bash.
+- El corpus del historial (G1, solo en el scratchpad): 91.298 llamadas únicas de 2.218 transcripts, para medir los frenos.
+
+**Para seguir en otra PC** (Guido, al cerrar)
+- G3-G6 a medias, en ramas de `origin`: `wip/d3.1-g3-git-seguro`, `wip/d3.1-g4-sensible`, `wip/d3.1-g5-secretos`, `wip/d3.1-g6-barreras`
+  (gitleaks verde en las cuatro).
+- Al privado `vibe-research`: los 22 chats de vibe-kit de `clientes`, condensados (`chats/clientes/`), los arneses de la medición
+  (`mision-5/medicion-historial/`, sin el corpus) y la fila de D3.1 en el diario.
+
 ## 2026-10-29 — Misión 5, paquete 2 ✅: zona propia, `cambios` con su sello, el candado, `/inicio` y `/cierre` del molde (D2.2, sin Guido)
 
 PC `clientes`, chat `vibe-kit M5 · D2.2 · Paquete 2, segunda mitad: candado, cambios, zona propia, /inicio y /cierre v3`, en Opus.

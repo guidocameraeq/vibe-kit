@@ -42,6 +42,12 @@ mostrando evidencia de cada uno:
      investigación (cuál es, la memoria de la PC): fecha y hora, misión y qué se hizo, PC, chat, modelo, tokens
      nuevos/caché/subagentes, commit. Se clona en el scratchpad, se suma la fila y se pushea antes del commit
      de acá. Lo crudo de la sesión (chats, informes de revisión) va a ese repo, nunca a este.
+   - **El chat de esta sesión, al privado** (pedido de Guido, 2026-10-29: que el historial de chats esté siempre completo). En el mismo clon:
+     condensar el `.jsonl` de esta sesión (y los de vibe-kit de esta PC que no estén subidos) con la receta de `chats/LEEME.md`
+     (`condensar.py --verificar` OK, gitleaks 0, revisión a mano), a `chats/<pc>/` con su fila en el `LEEME.md` de esa carpeta, y el
+     mismo push. Si el chat ya estaba subido, se re-condensa y se pisa. **Si la cuenta de GitHub de esta PC no ve el repo privado**: no se
+     sube por otro lado (nada de repos públicos ni texto copiado a mano en mensajes); se anota el id en el handoff para subirlo desde una PC
+     con acceso.
 6. **Memoria**: si cambió un hecho estructural del proyecto (release, pieza nueva, regla
    nueva), actualizar la memoria persistente.
 7. **Commit + push**: mensaje descriptivo en español. Si la máquina no tiene identidad de

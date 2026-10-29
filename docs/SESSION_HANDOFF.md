@@ -3,48 +3,44 @@
 > **Save game** del proyecto madre. `/cierre` lo sobreescribe entero; el hook SessionStart lo inyecta en cada chat
 > nuevo de esta carpeta. **Tope 5.500 bytes**; el hook corta y avisa "CORTADO" si se pasa, y termina con la huella.
 
-**Última sesión cerrada:** 2026-10-29, **misión 5, D2.2: paquete 2 ✅, hecho sin Guido** con su autorización previa. PC `clientes`, Opus.
-`kit-sync` LIMPIO. Detalle: CHANGELOG del 2026-10-29 (D2.2), la fila D2.2 del tracker y su lista "Decisiones sin Guido".
+**Última sesión cerrada:** 2026-10-29, sesión intermedia de la misión 5 en la PC `Usuario` (Opus, con Guido): historial de chats
+completo en el privado, la PC preparada para seguir el paquete 3, y el paquete 3 partido en D3.2 y D3.3. `kit-sync` LIMPIO.
 
 ## Dónde estamos
 
-- **Paquete 2 cerrado** (D2.1 + D2.2): zona propia, `cambios` con `aprobar` y su sello, `niega-aprobar.cjs`, el candado (`estructura.cjs`,
-  nueve chequeos), `agents.cjs`, `/inicio` y `/cierre` del molde, fichas de fábrica, `pedidos.md`, `rehacer.sh` con `molde v3 orden 2b`.
-  Red team (rondas 4-5) y revisor frío (tres vueltas, 6 ALTOS) integrados. Kit: 14 de 57 piezas.
-- Hoja de ruta ADR-025: 4 ✅ → 4½ ✅ → **5 construir v3.0** (paquetes 1 y 2 ✅) → 6 el ciclo → 7 mensajería v3.1.
+- **Paquete 3 en curso**: delta sellado sin Guido (provisorio). En `main`: G2, G8, G9. **G3, G4, G5 y G6 a medias en ramas de `origin`**
+  (`wip/d3.1-g3-git-seguro`, `-g4-sensible`, `-g5-secretos`, `-g6-barreras`). Qué tiene cada una: tracker, "Pendientes".
+- **Guido trabaja ahora en `Usuario`**. Ya preparada: `kit-sync` LIMPIO, repos de prueba en `../vibe-kit-pruebas/` (verdes), y el corpus
+  del historial en `C:\Users\Usuario\vibe-historial\` (16.470 llamadas; más chico que el de `clientes`, ver tracker).
+- **Los chats**: `vibe-research/chats/` tiene todo el historial hasta hoy, de las tres PCs (A, C y E vinieron de la notebook del
+  compañero). Desde ahora, **el `/cierre` sube el chat de cada sesión** (paso 5).
+- Hoja de ruta ADR-025: 4 ✅ → 4½ ✅ → **5 construir v3.0** (paquetes 1 y 2 ✅, 3 🔨) → 6 el ciclo → 7 mensajería v3.1.
 
 ## Próximo paso
 
-**D3.1, sola, sin Guido**, en Opus: **`vibe-kit M5 · D3.1 · Paquete 3: seguridad — corrector, barreras, hooks por PC, doctor mínimo`**.
-Guido abre el chat con el prompt de la sección "Abrir D3.1 sin Guido" del tracker (empieza con `inicio — misión 5, D3.1`) y se va:
-**después del `/inicio` no espera OK**. Como D2.2: decide con la recomendada y lo anota en "Decisiones sin Guido" de su fila, no corta por
-contexto, commitea después de cada encargo y cierra con `/cierre`. **Distinto de D2.2**: el delta lo sella el director (provisorio, tras el
-red team sin ALTOS) y **nada toca el `~/.claude/` real de la PC** (hooks por PC y `doctor` con un `HOME` falso; instalarlos es de Guido).
-Lo de "Paquete 3 · de D2.2" del tracker entra en su lista.
+**D3.2**, en Opus, en `Usuario`, sin Guido: **`vibe-kit M5 · D3.2 · Paquete 3, segunda vuelta: terminar G3-G6 desde sus ramas WIP`**.
+Guido pega el prompt de **"Abrir D3.2 y D3.3 sin Guido"** del tracker (`docs/kit-v3/PLAN-construccion.md`) y se va. Alcance: solo G3-G6,
+de a dos Opus (G3 ∥ G6, después G4 ∥ G5), mutación con tope, merge a `main` y se borran las ramas `wip/*`. Después, **D3.3** (G7,
+G10-G13, revisor frío, `/cierre`), con su propio prompt, recién cuando D3.2 cerró.
 
-**Para Guido, más adelante (no traba a D3.1)**: repasar las ⚠️ de D2.2, contestar la pregunta del bypass en el checkout principal, y las
-cuatro pruebas en una pestaña real de `alfa` ("Pendientes" → "Paquete 2 · te espera a vos").
+**Para Guido, cuando pueda (no traba a D3.2)**: repasar las ⚠️ de D3.1 y D2.2 en el tracker; las pruebas en una pestaña real de D2.2.
+**Pendiente de la notebook**: borrar el repo temporal `jrobilara/vibe-chats-paso` (ya está todo en el privado); espera que Guido
+apruebe `gh auth refresh -h github.com -s delete_repo` allá, o lo borra a mano desde la web.
 
 ## Cosas que muerden y no están en ningún otro doc
 
-- 📉 **El plan semanal estaba al 83% el 2026-10-29 (renueva el 1-11)**: D2.2 gastó mucho en subagentes (el candado y sus arreglos: horas
-  de mutación). D3.1 conviene después del 1-11.
-- 🧪 **`claude -p` desde Git Bash con un prompt que empieza con `/`**: MSYS lo convierte en ruta (`C:/Program Files/Git/inicio`). Usar
-  `MSYS_NO_PATHCONV=1`. Y en `-p` un clon que no es de confianza **ignora el `permissions.allow`** del proyecto.
-- 🧪 **Los repos de prueba se miran con Bash, nunca con Read**: leer un archivo suyo mete su `CLAUDE.md` en la sesión.
-- 🧪 **La suite**: `node --test "kit/**/*.test.cjs"`; con D2.2 tarda **~15-20 min** (las pruebas de `barreras` arman muchos repos).
-  La mutación por encargo, horas: correr los mutantes sobre copias del molde, nunca sobre `kit/molde`.
-- 🧪 **Un obrero en worktree nace de un commit viejo**: el brief le pide `git merge --ff-only main` primero.
-- 🔑 **Identidad de git**: en `clientes` el mail es el `noreply` de `guidocameraeq` (vale). Nunca `eq.chatgpt`. Los repos de prueba
-  commitean como `kit-pruebas`.
-- 🗄️ **El privado `vibe-research`**: clon en el scratchpad con `core.longpaths`, `sparse-checkout` y `MSYS_NO_PATHCONV=1`. Los informes del
-  red team y del revisor frío del paquete 2: `mision-5/redteam-paquete-2/`.
-- 🗄️ **`D:\vibe-research\clientes\redteam-kit-v3\`** sigue en disco: nada se borra hasta cerrar la 5.
-- 📬 **El Hub pushea a este repo desde otra sesión**: `git fetch` antes de cerrar.
-- 🔴 **vibe-kit es PÚBLICO**: gitleaks antes de cada push. 🔐 **12 alertas abiertas**, las arregla Guido.
-- 🧪 **Antes del piloto, trabajo de Guido** (spec, "Lo que hacés vos de nuevo"): credenciales de escritura al almacén en 2 PCs, usuario de
-  solo lectura por base real, "preparame esta PC" en la del compañero.
+- 📉 **Cuota**: D3.1 cortó por eso; el plan semanal renueva el 1-11. Un freno con medición + mutación tarda 1-2 h: de a dos Opus.
+- 🗂️ **El corpus no viaja** (secretos reales): vive en `C:\Users\Usuario\vibe-historial\`, fuera de todo repo. Se rehace con
+  `node extraer.cjs` ahí mismo (~8 s). Los arneses originales: `vibe-research/mision-5/medicion-historial/`.
+- 🗄️ **vibe-research está clonado** en `Desktop\Proyectos\vibe-research` (al lado de vibe-kit, fuera de él). La cuenta de la notebook
+  (`jrobilara`) **no** tiene acceso, por decisión de Guido: lo de esa PC viaja por otro camino (su handoff anota el id).
+- 🗂️ **Cada encargo en paralelo, su propia subcarpeta del scratchpad**: G2, G6 y G9 se pisaron los `mutar.cjs`.
+- 🧪 **`claude -p` desde Git Bash con un prompt que empieza con `/`**: `MSYS_NO_PATHCONV=1`. En `-p` un clon que no es de confianza ignora el
+  `permissions.allow` del proyecto.
+- 🧪 **Los repos de prueba se miran con Bash, nunca con Read**. La suite: `node --test "kit/**/*.test.cjs"`, ~27 min.
+- 🔑 **Identidad de git**: `guido.camera.eq@gmail.com`. Nunca `eq.chatgpt`. Los repos de prueba, `kit-pruebas`.
+- 📬 **El Hub pushea a este repo desde otra sesión**: `git fetch` antes de cerrar. 🔴 **vibe-kit es PÚBLICO**: gitleaks antes de cada push.
 
 ## Bloqueos
 
-Ninguno para D3.1. La pregunta ⚠️ de D2.2 no traba nada: lo decidido se deshace antes del tag.
+Ninguno para D3.2.
