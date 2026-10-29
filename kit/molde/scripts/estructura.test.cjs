@@ -156,12 +156,15 @@ test('4.7 · sin node: un estructura.cjs que no arranca no da 0 (y /cierre, sin 
   assert.ok(sinNode.error || sinNode.codigo === null);
 });
 
-test('4.7 · ficha malformada → 1 con "ficha rota: <archivo>:<línea> — corré doctor"', () => {
+test('4.7 · ficha malformada → "ficha rota: <archivo>:<línea> — corré doctor (corro con los frenos de fábrica)" y corre igual (rf-9)', () => {
   const d = repo({}, { ficha: '---\nkit: 2.4.3\nnivel: liviano\nvars: [\n---\n' });
   instanciar(d);
   const r = correr(d, ESTRUCTURA, ['todo', '--sin-log']);
+  const lineas = r.out.trim().split('\n');
+  assert.match(lineas[0], /^ficha rota: \.claude\/kit\.md:\d+ — corré doctor \(corro con los frenos de fábrica\)$/);
+  // corrió: lo instanciado sin commitear es barrera y frena (la salida 1 es por eso, no por la ficha)
   assert.equal(r.codigo, 1);
-  assert.match(r.out, /^ficha rota: \.claude\/kit\.md:\d+ — corré doctor; no hay ninguna anterior que se lea\n$/);
+  assert.ok(lineas.slice(1).some((l) => l.startsWith('candado:barreras · lo que está por commitearse toca hooks')), r.out);
 });
 
 test('4.7 · error interno → 1 con "candado roto: corré doctor", nunca 0 (una librería que falta, y una que tira)', () => {

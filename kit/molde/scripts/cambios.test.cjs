@@ -301,7 +301,14 @@ test('anotar-sha: clase 2 propuesto → aplicado con el sha completo y --aplico 
   const t = leer(d, rel(id));
   assert.match(t, new RegExp(`^estado: aplicado$[\\s\\S]*^sha: ${sha}\naplico: \\{archivo: "docs/x.md", hash: ${require('../hooks/lib/ficha.cjs').hash('lo mío')}\\}\n---`, 'm'));
   assert.deepEqual(C.verificar(d), []);
-  assert.match(cli(d, ['anotar-sha', id, sha]).out, /es aplicado: anotar-sha va sobre un clase 2 propuesto/);
+  // rf-2: un aplicado se reapunta solo si su sha ya no es de la historia de HEAD
+  assert.match(cli(d, ['anotar-sha', id, sha]).out, /es aplicado y su sha \([0-9a-f]{12}\) sigue en la historia: se reapunta solo si un rebase lo reescribió/);
+  const huerfano = g(d, 'commit-tree', 'HEAD^{tree}', '-m', 'fuera de la historia');
+  escribir(d, rel(id), C.ponerCampos(leer(d, rel(id)), { sha: huerfano }));
+  assert.match(cli(d, ['anotar-sha', id, huerfano]).out, /no está en la historia de HEAD/);
+  assert.equal(cli(d, ['anotar-sha', id, sha]).codigo, 0);
+  assert.match(leer(d, rel(id)), new RegExp(`^sha: ${sha}$`, 'm'));
+  assert.match(leer(d, rel(id)), /^aplico: \{archivo: "docs\/x\.md"/m, 'el aplico anotado queda');
 });
 
 test('anotar-sha de un 3-barrera: solo aprobado, solo un commit que existe, y solo el primero que toca lo de "toca" tras el sello', () => {
@@ -322,7 +329,7 @@ test('anotar-sha de un 3-barrera: solo aprobado, solo un commit que existe, y so
   assert.equal(cli(d, ['anotar-sha', id, primero]).codigo, 0);
 });
 
-test('rechazar: desde propuesto o aprobado, con motivo; no desde aplicado; motivo con " o vacío no', () => {
+test('rechazar: desde propuesto, aprobado o aplicado (rf-1: el sha y el aplico salen); no desde rechazado; motivo con " o vacío no', () => {
   const d = repo();
   const id = proponer(d, 'a');
   assert.equal(cli(d, ['rechazar', id, 'dijo "no"']).codigo, 1);
@@ -335,6 +342,21 @@ test('rechazar: desde propuesto o aprobado, con motivo; no desde aplicado; motiv
   assert.equal(cli(d, ['rechazar', id2, 'me arrepentí']).codigo, 0);
   assert.deepEqual(C.verificar(d).filter((f) => f.id === id2), []);
   assert.match(cli(d, ['rechazar', '2026-01-01-no-existe', 'x']).out, /no existe/);
+  // un aplicado (3-barrera, con aplico) → rechazado, sin sha ni aplico, y verificar en orden
+  const id3 = proponer(d, 'c');
+  assert.equal(cli(d, ['aprobar', id3]).codigo, 0);
+  const x = commit(d, { '.claude/kit.md': FICHA.replace('quitados: []', 'quitados:\n    - {id: deny:Bash(git stash:*), por: "x", hasta: siempre}'), 'docs/x.md': 'a\n<!-- kit:propio -->\nm\n<!-- /kit:propio -->\n' });
+  assert.equal(cli(d, ['anotar-sha', id3, x, '--aplico', 'docs/x.md']).codigo, 0);
+  assert.equal(cli(d, ['rechazar', id3, 'un merge sacó el sello']).codigo, 0);
+  const t3 = leer(d, rel(id3));
+  assert.match(t3, /^estado: rechazado$/m);
+  assert.doesNotMatch(t3, /^(sha|aplico):/m);
+  assert.match(t3, /^aprobo: \{/m, 'el sello queda como rastro');
+  assert.deepEqual(C.verificar(d).filter((f) => f.id === id3), []);
+  // subio-al-kit no se rechaza
+  const id4 = proponer(d, 'e');
+  escribir(d, rel(id4), C.ponerCampos(leer(d, rel(id4)), { estado: 'subio-al-kit', version: '3.0.0' }));
+  assert.match(cli(d, ['rechazar', id4, 'x']).out, /es subio-al-kit: se rechaza un propuesto, un aprobado o un aplicado/);
 });
 
 // ---------------------------------------------------------------- aprobar: el sí

@@ -27,12 +27,12 @@ Dos modos: **`cierre`** (completo) y **`cierre parcial`** (el contexto se llenó
    2. `node .claude/scripts/agents.cjs generar` → escribe `AGENTS.md` solo si la ficha pide `multi-llm: sí`. Salida 1: hay un `AGENTS.md` ajeno que no se pisa; avisalo y dejalo afuera del commit.
    3. `node .claude/scripts/cambios.cjs verificar` → cada falla es `id · qué pasa · qué hacer`: hacelo y volvé a correr.
    4. `node .claude/scripts/estructura.cjs todo` → el candado. Rojo (salida 1, una línea `candado:<id> · qué pasa · qué hacer` por falla): arreglalo y **volvé a correrlo; nunca commitees encima de un rojo**. `candado:barreras` no lo arregla la sesión: pide un cambio aprobado por el dueño (el `aprobar` es suyo, jamás lo corras).
-5. `git fetch` y `git status -sb`: ¿origin avanzó? Si sí, el push va a pedir `git pull`.
+5. `git fetch` y `git status -sb`: ¿origin avanzó? Si sí, el push va a pedir traerlo con `git pull --rebase` (paso 10).
 6. **Commit por rutas**, nunca el árbol entero: `git add -- <cada archivo que tocó esta sesión> .claude/frenos.log` (el handoff, el CHANGELOG, el TODO, `AGENTS.md` si se generó; el log, si existe), mostrá `git status --short` (lo que quedó afuera, decí por qué) y `git commit -m "docs: cierre de sesión AAAA-MM-DD — <tema>" -- <las mismas rutas>`.
 7. **¿Quedó consumido un `aprobado`?** Si el commit tocó lo que un cambio aprobado declara en `toca` (`node .claude/scripts/cambios.cjs listar` los muestra): `node .claude/scripts/cambios.cjs anotar-sha <id> <sha del commit>` y otro commit por rutas con el archivo del cambio y `.claude/frenos.log`.
 8. `node .claude/scripts/cambios.cjs verificar` de nuevo: tiene que dar verde.
 9. **Push público.** Si la ficha (`.claude/kit.md`) dice `push-publica: sí`, una línea antes de pushear: *"este repo es público: lo que sube lo ve cualquiera"*. No preguntes.
-10. `git push`. Si falla por conflicto remoto: `git pull`; si el conflicto no es trivial, pará y avisá. Nunca `--force`.
+10. `git push`. Si falla porque origin avanzó: `git pull --rebase`, **nunca un pull con merge sobre la rama por defecto** (un merge deja el sello fuera de la historia de primer padre y el `aprobado` queda en rojo). Si el rebase reescribió el commit de un `aplicado`, `cambios.cjs verificar` lo dice con el `anotar-sha` listo: correlo, commit por rutas con el archivo del cambio y pusheá. Si el conflicto no es trivial, pará y avisá. Nunca `--force`.
 11. **Reporte**: SHA · archivos actualizados · próximo paso · bloqueos · *"Chat listo para descartar: la próxima misión arranca con /inicio en un chat nuevo."*
 
 ## Cierre parcial

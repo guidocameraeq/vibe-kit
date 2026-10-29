@@ -276,12 +276,23 @@ function anotarSha(L, raiz, id, shaArg, archivoAplico) {
   if (fallas.length) return no(`${fallas[0].que} — corré verificar`);
   const d = c.datos;
   const barrera = d.clase === '3-barrera';
-  if (barrera ? d.estado !== 'aprobado' : d.estado !== 'propuesto') {
+  // rf-2: un aplicado se reapunta SOLO si su sha ya no es de la historia de HEAD (un pull --rebase lo reescribió); si sigue ahí,
+  // reapuntarlo taparía otro commit (r5-1). El sha nuevo cumple lo mismo que con un aprobado.
+  const reapuntar = d.estado === 'aplicado';
+  if (!reapuntar && (barrera ? d.estado !== 'aprobado' : d.estado !== 'propuesto')) {
     return no(barrera ? `es ${d.estado}: anotar-sha va sobre un 3-barrera aprobado` : `es ${d.estado}: anotar-sha va sobre un clase 2 propuesto`);
   }
   if (shaArg.startsWith('-') || !/^[A-Za-z0-9._/~^-]+$/.test(shaArg)) return no('eso no es un commit');
   const sha = L.git.texto(['rev-parse', '--verify', '-q', `${shaArg}^{commit}`], { cwd: raiz });
   if (!sha) return no('ese commit no existe en este repo');
+  if (reapuntar) {
+    const head = L.git.texto(['rev-parse', '--verify', '-q', 'HEAD^{commit}'], { cwd: raiz });
+    const viejo = L.git.texto(['rev-parse', '--verify', '-q', `${d.sha}^{commit}`], { cwd: raiz });
+    if (viejo && head && L.git.correr(['merge-base', '--is-ancestor', viejo, head], { cwd: raiz }).ok) {
+      return no(`es aplicado y su sha (${d.sha.slice(0, 12)}) sigue en la historia: se reapunta solo si un rebase lo reescribió`);
+    }
+    if (!head || !L.git.correr(['merge-base', '--is-ancestor', sha, head], { cwd: raiz }).ok) return no('ese commit no está en la historia de HEAD');
+  }
   if (barrera) {
     const v = C.validarSello(raiz, c, C.ramaLocal(raiz));
     if (v.fallas.length) return no(`el sello no vale (${v.fallas[0].que}) — corré verificar`);
@@ -316,8 +327,10 @@ function rechazar(L, raiz, id, motivo) {
   const r = cambio(L, raiz, id);
   if (r.problema) return no(r.problema);
   const d = r.c.datos;
-  if (d.estado !== 'propuesto' && d.estado !== 'aprobado') return no(`es ${d.estado}: se rechaza un propuesto o un aprobado`);
-  const nuevoTexto = C.ponerCampos(r.c.texto, { estado: 'rechazado', motivo: C.comillas(motivo) });
+  // rf-1: también un aplicado (un sello que un merge sacó de la historia de primer padre queda trabado si no). Es seguro:
+  // rechazado le quita cobertura a lo que cubría, nunca la da. sha y aplico van solo con aplicado: salen (quedan en git).
+  if (!['propuesto', 'aprobado', 'aplicado'].includes(d.estado)) return no(`es ${d.estado}: se rechaza un propuesto, un aprobado o un aplicado`);
+  const nuevoTexto = C.ponerCampos(r.c.texto, { estado: 'rechazado', motivo: C.comillas(motivo), sha: null, aplico: null });
   escribirAtomico(r.c.abs, nuevoTexto);
   return { codigo: 0, lineas: [`cambios: rechazado ${id}`] };
 }

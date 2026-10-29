@@ -81,7 +81,9 @@ function lista(raiz, args) {
 // rango(raiz) → { commits: [sha] (del más viejo al más nuevo), desde, como }. Lo pendiente va siempre aparte.
 //  · con remoto: origin/<rama por defecto>..HEAD (los commits anteriores de la sesión no se escapan);
 //  · sin remoto, fuera de la rama por defecto: <rama por defecto>..HEAD;
-//  · sin remoto, en la rama por defecto: desde la base de todo.cjs (el último commit que tocó el handoff);
+//  · sin remoto, en la rama por defecto: desde la base de todo.cjs (el último commit que tocó el handoff) INCLUIDA (rf-4: si no, un
+//    commit que toca el handoff y vacía los deny se lava solo), salvo que la base sea el primer commit del repo o el que creó la
+//    ficha (la adopción): ahí, <base>..HEAD (r4-5: si no, el repo recién montado nace trabado);
 //  · sin base (o sin rama por defecto, o sin commits): solo lo pendiente (r4-5: si no, el commit que creó el settings da rojo siempre).
 function rango(raiz) {
   const head = shaDe(raiz, 'HEAD');
@@ -99,14 +101,29 @@ function rango(raiz) {
     } else {
       const base = git.texto(['log', '-1', '--format=%H', '--', RUTA_HANDOFF], { cwd: raiz });
       if (base) {
-        desde = base;
-        como = 'desde el último cierre (sin remoto)';
+        const ps = padres(raiz, base);
+        if (!ps.length || esAdopcion(raiz, base, ps)) {
+          desde = base;
+          como = `desde el último cierre, sin él (${ps.length ? 'es el que creó la ficha' : 'es el primer commit'}; sin remoto)`;
+        } else {
+          desde = ps[0];
+          como = 'desde el último cierre, con él (sin remoto)';
+        }
       } else como = 'sin remoto y sin base: solo lo pendiente';
     }
   } else como = 'sin rama por defecto: solo lo pendiente';
   if (!desde) return { commits: [], desde: null, como };
   const r = lista(raiz, ['rev-list', '--reverse', '--topo-order', `${desde}..HEAD`]);
   return { commits: r.stdout.split('\n').map((s) => s.trim()).filter(Boolean), desde, como };
+}
+
+// ¿<sha> es el commit que creó la ficha (la adopción)? La tiene, ninguno de sus padres la tiene y ningún commit anterior la tocó
+// (borrada y vuelta a crear no es la adopción: ese commit sí se juzga).
+function esAdopcion(raiz, sha, ps) {
+  const R = contexto.RUTA_FICHA;
+  if (blob(raiz, sha, R) === null || ps.some((p) => blob(raiz, p, R) !== null)) return false;
+  const t = git.texto(['rev-list', '--full-history', '-n', '2', sha, '--', R], { cwd: raiz });
+  return t !== null && t.split('\n').filter(Boolean).every((x) => x === sha);
 }
 
 // ¿La ficha está en algún lado? En el disco, el índice, HEAD, la ficha vigente o el padre de algún commit del rango (r4-2:
@@ -124,41 +141,39 @@ function fichaEnAlgunLado(raiz) {
 
 // ---------------------------------------------------------------- qué toca cada archivo
 
-// Los archivos de barrera que cambian en un commit (contra su primer padre) o en lo pendiente (índice y disco contra HEAD, sin
-// lo ignorado): [{ rel, cat, antes: Buffer|null, despues: [Buffer|null], padre: sha|null }]. Es la misma enumeración que hace
-// cambios.toca por dentro (cambiosDe no se exporta), con categoriaDe de cambios.cjs; acá se necesita archivo por archivo.
+// Los archivos de barrera que cambian en un commit o en lo pendiente (índice y disco contra HEAD, sin lo ignorado salvo lo de
+// barrera, rf-6 b): [{ rel, cat, antes: Buffer|null, despues: [Buffer|null], padre: sha|null, padres? }]. Es la misma enumeración
+// que hace cambios.toca por dentro (rutasPendientes, rutasContra), con categoriaDe de cambios.cjs; acá, archivo por archivo.
+// Un merge (rf-3): solo las rutas que difieren de TODOS sus padres (la semántica de git diff-tree --cc), con `padres` = el antes
+// de cada uno; `padre` y `antes` son los del primero (las exenciones). Lo que trae la rama lo juzgan sus commits, uno por uno.
 function archivosDe(raiz, cual) {
   let rutas;
   let padre;
+  let ps = [];
   let despuesDe;
   if (cual === PENDIENTE) {
     padre = shaDe(raiz, 'HEAD');
-    const s = new Set();
-    if (padre) {
-      partirZ(lista(raiz, ['diff', '--no-renames', '--name-only', '-z', 'HEAD']).stdout).forEach((x) => s.add(x));
-      partirZ(lista(raiz, ['diff', '--cached', '--no-renames', '--name-only', '-z', 'HEAD']).stdout).forEach((x) => s.add(x));
-    } else {
-      partirZ(lista(raiz, ['ls-files', '-z']).stdout).forEach((x) => s.add(x));
-    }
-    partirZ(lista(raiz, ['ls-files', '--others', '--exclude-standard', '-z']).stdout).forEach((x) => s.add(x));
-    rutas = [...s];
+    rutas = C.rutasPendientes(raiz, padre);
     despuesDe = (rel) => [blob(raiz, '', rel), leerDisco(path.join(raiz, ...rel.split('/')))];
   } else {
-    const ps = padres(raiz, cual);
+    ps = padres(raiz, cual);
     padre = ps.length ? ps[0] : null;
-    rutas = partirZ(
-      (padre
-        ? lista(raiz, ['diff', '--no-renames', '--name-only', '-z', padre, cual])
-        : lista(raiz, ['diff-tree', '--root', '--no-renames', '--no-commit-id', '-r', '--name-only', '-z', cual])
-      ).stdout,
-    );
+    rutas = C.rutasContra(raiz, cual, padre);
+    for (const otro of ps.slice(1)) {
+      const s = new Set(C.rutasContra(raiz, cual, otro));
+      rutas = rutas.filter((r) => s.has(r));
+    }
     despuesDe = (rel) => [blob(raiz, cual, rel)];
   }
   return rutas
     .sort()
     .map((rel) => ({ rel, cat: C.categoriaDe(rel) }))
     .filter((f) => f.cat)
-    .map((f) => ({ ...f, padre, antes: padre ? blob(raiz, padre, f.rel) : null, despues: despuesDe(f.rel) }));
+    .map((f) => {
+      const e = { ...f, padre, antes: padre ? blob(raiz, padre, f.rel) : null, despues: despuesDe(f.rel) };
+      if (ps.length > 1) e.padres = ps.map((p, i) => ({ sha: p, antes: i === 0 ? e.antes : blob(raiz, p, f.rel) }));
+      return e;
+    });
 }
 
 // Las versiones de después que cambian algo: una igual a la del padre (en lo pendiente, el índice sin tocar es HEAD, o el archivo
@@ -187,10 +202,8 @@ function ultimaFichaQueSeLee(raiz, rev) {
   return null;
 }
 
-// Lo que toca UN archivo: { cats: Set, ids: Set, imposible: texto | null }. imposible = rojo que ningún cambio cubre.
-function tocaArchivo(raiz, f) {
-  const cats = new Set();
-  const ids = new Set();
+// Lo que toca UN archivo contra UN padre (f.padre, f.antes): { pares: Set de categoría·id, imposible: texto | null }.
+function tocaContraUno(raiz, f) {
   let imposible = null;
   if (f.cat === 'ficha') {
     let antes = f.antes;
@@ -201,22 +214,20 @@ function tocaArchivo(raiz, f) {
       if (u) antes = u.texto;
       else imposible = `la ficha del padre está rota y no hay una anterior que se lea (${ATRAS} commits atrás)`;
     }
-    for (const d of nuevas(f)) {
-      const r = C.idsFicha(antes, d);
-      r.categorias.forEach((x) => cats.add(x));
-      r.ids.forEach((x) => ids.add(x));
-    }
-  } else if (f.cat === 'settings') {
-    for (const d of f.despues) {
-      const r = C.idsSettings(f.antes, d, f.rel);
-      if (r.length) cats.add('settings');
-      r.forEach((x) => ids.add(x));
-    }
-  } else {
-    cats.add(f.cat);
-    ids.add(zona.normalizarId(`${f.cat}:${f.rel}`));
+    return { pares: C.paresArchivo('ficha', f.rel, antes, nuevas(f)), imposible };
   }
-  return { cats, ids, imposible };
+  if (f.cat === 'settings') return { pares: C.paresArchivo('settings', f.rel, f.antes, f.despues), imposible };
+  return { pares: C.paresArchivo(f.cat, f.rel, null, []), imposible };
+}
+
+// Lo que toca UN archivo: { cats: Set, ids: Set, imposible: texto | null }. imposible = rojo que ningún cambio cubre.
+// En un merge (rf-3): los pares que cambian contra cada padre, intersecados (lo que el merge mismo introduce). Un padre cuya
+// ficha no se lee no achica nada (vale como "todo"); si no se lee la de ninguno, imposible.
+function tocaArchivo(raiz, f) {
+  const lados = (f.padres || [{ sha: f.padre, antes: f.antes }]).map((p) => tocaContraUno(raiz, { ...f, padre: p.sha, antes: p.antes }));
+  const sanos = lados.filter((l) => !l.imposible);
+  const r = C.desdePares(C.interseccion((sanos.length ? sanos : lados).map((l) => l.pares)));
+  return { cats: new Set(r.categorias), ids: new Set(r.ids), imposible: sanos.length ? null : lados[0].imposible };
 }
 
 // ---------------------------------------------------------------- exención (b): la ficha nace con los valores de fábrica
@@ -446,11 +457,48 @@ function lo(raiz, cual, opciones, memo) {
   return { cats, ids, imposibles, primerArchivo };
 }
 
+// ---------------------------------------------------------------- lo de esta PC que el candado no veía (rf-6)
+
+// (a) Un archivo de barrera con la marca skip-worktree (S en `git ls-files -v`) o assume-unchanged (letra minúscula): git deja de
+// mirar el disco y lo pendiente no lo ve. Ningún aprobado cubre una marca: se saca.
+function marcasOcultas(raiz) {
+  const fallas = [];
+  for (const e of partirZ(lista(raiz, ['ls-files', '-v', '-z']).stdout)) {
+    const tag = e[0];
+    const rel = e.slice(2);
+    if (!C.categoriaDe(rel)) continue;
+    const skip = tag === 'S' || tag === 's';
+    const assume = tag !== tag.toUpperCase();
+    if (!skip && !assume) continue;
+    const marca = [skip && 'skip-worktree', assume && 'assume-unchanged'].filter(Boolean).join(' y ');
+    const sacar = [skip && `git update-index --no-skip-worktree ${rel}`, assume && `git update-index --no-assume-unchanged ${rel}`].filter(Boolean).join(' y ');
+    fallas.push({ id: ID, commit: PENDIENTE, detalle: rel, que: `${rel} tiene la marca ${marca}: git no mira lo que cambia en el disco y el candado tampoco`, hacer: `sacale la marca: ${sacar}` });
+  }
+  return fallas;
+}
+
+// (c) .claude/settings.local.json (ignorado: es de esta PC) con disableAllHooks o hooks apaga o cambia los frenos sin pasar por un
+// aprobado. permissions y env no se juzgan (los escribe Claude Code). Si no está ignorado, lo juzga lo pendiente como a cualquier settings.
+const RUTA_SETTINGS_LOCAL = '.claude/settings.local.json';
+const CLAVES_LOCALES = ['disableAllHooks', 'hooks'];
+function settingsLocal(raiz) {
+  const b = leerDisco(path.join(raiz, ...RUTA_SETTINGS_LOCAL.split('/')));
+  if (b === null) return [];
+  if (!git.correr(['check-ignore', '-q', '--', RUTA_SETTINGS_LOCAL], { cwd: raiz }).ok) return [];
+  const sale = (que, hacer) => [{ id: ID, commit: PENDIENTE, detalle: RUTA_SETTINGS_LOCAL, que, hacer }];
+  const r = zona.leerJsonSinDuplicados(aTexto(b));
+  // Lo que no se lee (o trae claves repetidas, que JSON.parse esconde) no se puede juzgar: frena.
+  if (!r.ok || !esMapa(r.valor)) return sale(`${RUTA_SETTINGS_LOCAL} no se lee como JSON sin claves repetidas`, 'arreglalo o borralo: así no se sabe si apaga los frenos');
+  const malas = CLAVES_LOCALES.filter((k) => Object.prototype.hasOwnProperty.call(r.valor, k));
+  if (!malas.length) return [];
+  return sale(`${RUTA_SETTINGS_LOCAL} trae la clave ${malas.join(' y ')}`, 'sacá esa clave: apaga o cambia los frenos en esta PC sin pasar por un aprobado');
+}
+
 // revisarBarreras(raiz, {molde}) → [{ id: 'candado:barreras', que, hacer, detalle, commit }]. Vacía = en orden.
 // molde: carpeta ABSOLUTA del molde de afuera (exención a); sin ella, no hay exención (a). Tira si git no puede.
 function revisarBarreras(raiz, opciones = {}) {
   const memo = {};
-  const fallas = [];
+  const fallas = [...marcasOcultas(raiz), ...settingsLocal(raiz)];
   const r = rango(raiz);
   for (const cual of [...r.commits, PENDIENTE]) {
     const n = lo(raiz, cual, opciones, memo);
@@ -484,7 +532,11 @@ module.exports = {
   PENDIENTE,
   RUTA_HANDOFF,
   CARPETA_FABRICA,
+  RUTA_SETTINGS_LOCAL,
   rango,
+  esAdopcion,
+  marcasOcultas,
+  settingsLocal,
   fichaEnAlgunLado,
   archivosDe,
   tocaArchivo,

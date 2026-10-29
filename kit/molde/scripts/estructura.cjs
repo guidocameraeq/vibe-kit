@@ -6,7 +6,8 @@
 // `no`; si no, solo barreras, que corre desde que hay ficha. Quitables con hasta: vigente en frenos.quitados, salvo barreras.
 // --molde: el molde de afuera para la exención (a) de barreras; lo pasa SOLO rehacer.sh (r3-1). --sin-log: solo para pruebas.
 // Salidas: 0 verde · 1 una línea `candado:<id> · qué pasa · qué hacer` por falla (candado:lecturas lista y no cambia la salida),
-// `ficha rota: …`, o `candado roto: corré doctor` si algo propio falla (nunca 0) · 2 mal llamado. Sin node no arranca y no da 0:
+// o `candado roto: corré doctor` si algo propio falla (nunca 0) · 2 mal llamado. La ficha vigente rota no da 1 sola: imprime
+// `ficha rota: <archivo>:<línea> — corré doctor (corro con los frenos de fábrica)` y corre todo, sin frenos quitados (rf-9). Sin node no arranca y no da 0:
 // /cierre no commitea sin la salida de este script (lo dice la skill). Cada frenada deja su renglón en .claude/frenos.log.
 // La lógica vive en .claude/hooks/lib/ (candado.cjs, barreras.cjs): es barrera, y este script también (r4-3).
 // Node estándar, cero dependencias. Es .cjs a propósito: corre igual en proyectos con "type": "module".

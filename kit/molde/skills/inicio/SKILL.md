@@ -14,7 +14,7 @@ El hook de arranque ya inyectó el handoff, la cabecera del TODO y el estado de 
    - Última línea `inyectado: N de 9.700` (la huella). **Si no está**, el hook no corrió: decí "el hook de arranque no corrió: corré doctor" y leé a mano `docs/SESSION_HANDOFF.md` y la cabecera de `docs/TODO.md`.
 2. **Cruzar con git** (todo local, mostrá solo lo que llame la atención):
    - `git fetch`, `git status -sb`, `git log -1 --format='%h %s (%cr)'`.
-   - La rama en la que estás, y la rama por defecto contra `origin/<rama por defecto>` (`git rev-list --left-right --count <rama por defecto>...origin/<rama por defecto>`): ¿adelantada, atrasada, distinta?
+   - La rama en la que estás, y la rama por defecto contra `origin/<rama por defecto>` (`git rev-list --left-right --count <rama por defecto>...origin/<rama por defecto>`): ¿adelantada, atrasada, distinta? Si hay que traer lo de origin: `git pull --rebase`, nunca un pull con merge sobre la rama por defecto (un merge deja el sello fuera de la historia de primer padre).
    - ¿El último commit y el árbol coinciden con lo que dice el handoff? ¿Dice "estado viejo", "hacé pull" o tiene más de 7 días? Entonces manda git, no el handoff.
 3. **Aprobados nuevos.** Corré `node .claude/scripts/cambios.cjs listar --aprobados-nuevos`. Si imprime líneas, mostrá "aprobados nuevos desde tu última sesión: <ids>" (el primer campo de cada línea) con quién los selló; si no imprime nada, no digas nada. Si el script falla, una línea que lo dice y seguí.
 4. **Confirmar en tres líneas**: **Estado** · **Próximo paso** (del handoff y del TODO) · **Bloqueos** (y lo que le espera al dueño, si el handoff lo trae). Si no dio la misión, preguntala.

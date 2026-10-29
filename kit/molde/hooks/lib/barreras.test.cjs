@@ -170,8 +170,8 @@ test('rango: con remoto, origin/main..HEAD; sin remoto fuera de main, main..HEAD
   assert.match(B.rango(s).como, /sin base/);
   const h = commit(s, { 'docs/SESSION_HANDOFF.md': '# Handoff\n' });
   const s2 = commit(s, { 'c.txt': 'c\n' });
-  assert.deepEqual(B.rango(s).commits, [s2], 'desde la base de todo.cjs, sin ella');
-  assert.ok(![s1, h].some((x) => B.rango(s).commits.includes(x)));
+  assert.deepEqual(B.rango(s).commits, [h, s2], 'desde la base de todo.cjs, con ella (rf-4)');
+  assert.ok(!B.rango(s).commits.includes(s1));
   g(s, 'checkout', '-q', '-b', 'otra');
   const s3 = commit(s, { 'd.txt': 'd\n' });
   assert.deepEqual(B.rango(s).commits, [s3], 'fuera de main: main..HEAD');
@@ -630,4 +630,245 @@ test('fichaEnAlgunLado: disco, índice, HEAD, la vigente o el padre de un commit
   commit(h, { '.claude/kit.md': FICHA() });
   g(h, 'rm', '-q', '--', '.claude/kit.md');
   assert.equal(B.fichaEnAlgunLado(h), true, 'HEAD la tiene');
+});
+
+// ---------------------------------------------------------------- el camino legítimo (revisor frío: rf-1, rf-2, rf-3, rf-4, rf-6, rf-12)
+
+// Otra PC: un clon del remoto de d.
+function otraPC(d) {
+  const p = path.join(TMP, `pc${n++}`);
+  g(TMP, 'clone', '-q', '-b', 'main', `${d}.git`, p);
+  return p;
+}
+// El recorrido entero en d: aprobado → el commit que quita el stash → anotar-sha → su commit. → { id, x }
+function aplicado(d) {
+  const { id } = aprobado(d);
+  const x = quitarStash(d);
+  const r = cli(d, 'anotar-sha', id, x);
+  assert.equal(r.codigo, 0, r.out);
+  commit(d, { [rel(id)]: leerArchivo(d, rel(id)) }, 'anota');
+  return { id, x };
+}
+
+test('rf-1: git pull con merge en la otra PC → verificar rojo (el sello quedó fuera del primer padre); rechazar el aplicado lo destraba', () => {
+  const d = repo();
+  const pc2 = otraPC(d);
+  const { id } = aplicado(d);
+  push(d);
+  commit(pc2, { 'c.txt': 'c\n' }, 'algo local');
+  g(pc2, 'pull', '-q', '--no-rebase', '--no-edit', 'origin', 'main');
+  assert.ok(C.verificar(pc2).some((f) => f.id === id && /llegó por un merge/.test(f.que)), JSON.stringify(C.verificar(pc2)));
+  verde(pc2); // el merge no introduce nada suyo; lo que trae ya lo juzgó la otra PC
+  const r = cli(pc2, 'rechazar', id, 'el merge sacó el sello');
+  assert.equal(r.codigo, 0, r.out);
+  assert.doesNotMatch(leerArchivo(pc2, rel(id)), /^sha:/m, 'el sha sale con el aplicado');
+  assert.deepEqual(C.verificar(pc2), []);
+  verde(pc2);
+});
+
+test('rf-2: pull --rebase reescribe el commit del aplicado → verificar da el anotar-sha listo; reapuntar lo destraba; uno que sigue en la historia, no', () => {
+  const d = repo();
+  const pc2 = otraPC(d);
+  commit(pc2, { 'c.txt': 'c\n' }, 'la otra PC avanza origin');
+  g(pc2, 'push', '-q', 'origin', 'HEAD');
+  const { id, x } = aplicado(d);
+  g(d, 'pull', '-q', '--rebase', 'origin', 'main');
+  const nuevo = g(d, 'rev-parse', 'HEAD~1');
+  assert.notEqual(nuevo, x);
+  const f = C.verificar(d).find((y) => y.id === id);
+  assert.ok(f && /ya no está en la historia de HEAD/.test(f.que), JSON.stringify(C.verificar(d)));
+  assert.equal(f.hacer, `${C.COMANDO} anotar-sha ${id} ${nuevo}`);
+  rojo(d, /sin un aprobado/); // el commit reescrito no lo cubre el sha viejo
+  const r = cli(d, 'anotar-sha', id, nuevo);
+  assert.equal(r.codigo, 0, r.out);
+  commit(d, { [rel(id)]: leerArchivo(d, rel(id)) }, 'reapunta');
+  assert.deepEqual(C.verificar(d), []);
+  verde(d);
+  // reapuntar un aplicado cuyo sha sigue en la historia: no (sería r5-1)
+  const otro = commit(d, { 'z.txt': 'z\n' });
+  assert.match(cli(d, 'anotar-sha', id, otro).out, /sigue en la historia: se reapunta solo si un rebase lo reescribió/);
+});
+
+test('rf-2: reapuntar exige lo mismo que un aprobado (el primer commit tras el sello que toca lo de "toca") y un commit de la historia de HEAD', () => {
+  const d = repo();
+  const { id, x } = aplicado(d);
+  const segundo = commit(d, { '.claude/kit.md': FICHA() }); // otro commit que toca frenos, después
+  const huerfano = g(d, 'commit-tree', 'HEAD^{tree}', '-m', 'fuera de la historia');
+  escribir(d, rel(id), C.ponerCampos(leerArchivo(d, rel(id)), { sha: huerfano }));
+  assert.ok(C.verificar(d).some((f) => /ya no está en la historia de HEAD/.test(f.que) && f.hacer.endsWith(` ${x}`)));
+  assert.match(cli(d, 'anotar-sha', id, segundo).out, new RegExp(`el primer commit después del sello que toca lo de "toca" es ${x.slice(0, 12)}`));
+  assert.match(cli(d, 'anotar-sha', id, huerfano).out, /no está en la historia de HEAD/);
+  assert.equal(cli(d, 'anotar-sha', id, x).codigo, 0);
+});
+
+test('rf-3: merge --no-ff de una rama con su aprobado → verde (el merge se juzga solo por lo que introduce); sin aprobado, rojo en el commit de la rama', () => {
+  const d = repo();
+  const { id } = aprobado(d);
+  g(d, 'checkout', '-q', '-b', 'modulo/x');
+  const x = quitarStash(d);
+  g(d, 'checkout', '-q', 'main');
+  commit(d, { 'b.txt': 'b\n' }, 'main avanza');
+  g(d, 'merge', '-q', '--no-ff', '-m', 'integrar', 'modulo/x');
+  verde(d);
+  assert.equal(cli(d, 'anotar-sha', id, x).codigo, 0);
+  commit(d, { [rel(id)]: leerArchivo(d, rel(id)) }, 'anota');
+  assert.deepEqual(C.verificar(d), []);
+  verde(d);
+
+  const e = repo();
+  g(e, 'checkout', '-q', '-b', 'modulo/x');
+  const y = quitarStash(e);
+  g(e, 'checkout', '-q', 'main');
+  g(e, 'merge', '-q', '--no-ff', '-m', 'integrar', 'modulo/x');
+  assert.deepEqual(rojo(e).map((f) => f.commit), [y], 'el rojo es del commit de la rama, no del merge');
+});
+
+test('rf-3: lo que el merge mismo introduce (difiere de TODOS los padres) sí se juzga; la validez del sello no cambia', () => {
+  const d = repo();
+  aprobado(d);
+  g(d, 'checkout', '-q', '-b', 'modulo/x');
+  quitarStash(d);
+  g(d, 'checkout', '-q', 'main');
+  commit(d, { 'b.txt': 'b\n' });
+  g(d, 'merge', '-q', '--no-ff', '--no-commit', 'modulo/x');
+  escribir(d, '.claude/kit.md', FICHA({ quitados: [STASH, OTRO] })); // el merge suma un freno quitado que nadie aprobó
+  g(d, 'add', '.claude/kit.md');
+  g(d, 'commit', '-q', '-m', 'merge con agregado');
+  const m = g(d, 'rev-parse', 'HEAD');
+  const f = rojo(d, /git clean/);
+  assert.deepEqual(f.map((x) => x.commit), [m]);
+  assert.doesNotMatch(f[0].que, /git stash/, 'lo que trae la rama no se le cuenta al merge');
+  assert.deepEqual(C.toca(d, m).ids, ['deny:Bash(git clean:*)']);
+  // un sello traído por merge sigue sin valer (como antes)
+  const s = repo();
+  const id = proponer(s);
+  g(s, 'checkout', '-q', '-b', 'modulo/y--1');
+  sellarAMano(s, id);
+  quitarStash(s);
+  g(s, 'checkout', '-q', 'main');
+  g(s, 'merge', '-q', '--no-ff', '-m', 'merge', 'modulo/y--1');
+  rojo(s, /sin un aprobado/);
+});
+
+test('rf-3: dos lados que tocan reglas distintas del settings, cada uno con su aprobado, y el merge que los combina → verde', () => {
+  const S = (allow, deny) => `{\n  "permissions": {\n    "allow": [\n${allow.map((x) => `      "${x}"`).join(',\n')}\n    ],\n    "ask": [],\n    "otra": 1,\n    "deny": [\n${deny.map((x) => `      "${x}"`).join(',\n')}\n    ]\n  }\n}\n`;
+  const d = repo({ archivos: { '.claude/settings.json': S(['Bash(a)'], ['Bash(z)']) } });
+  aprobado(d, { toca: 'settings', ids: ['allow:Bash(b)'] });
+  aprobado(d, { toca: 'settings', ids: ['deny:Bash(c)'] });
+  g(d, 'checkout', '-q', '-b', 'modulo/x');
+  commit(d, { '.claude/settings.json': S(['Bash(a)', 'Bash(b)'], ['Bash(z)']) });
+  g(d, 'checkout', '-q', 'main');
+  commit(d, { '.claude/settings.json': S(['Bash(a)'], ['Bash(z)', 'Bash(c)']) });
+  g(d, 'merge', '-q', '--no-ff', '-m', 'integrar', 'modulo/x');
+  assert.equal(leerArchivo(d, '.claude/settings.json'), S(['Bash(a)', 'Bash(b)'], ['Bash(z)', 'Bash(c)']), 'git combinó los dos');
+  verde(d);
+});
+
+test('rf-4: sin remoto, la base entra al rango: un commit que toca el handoff y quita un freno → rojo; el repo recién montado o la adopción → verde', () => {
+  const s = repo({ remoto: false });
+  commit(s, { 'docs/SESSION_HANDOFF.md': '# Handoff\n' }, 'cierre 1');
+  const x = commit(s, { 'docs/SESSION_HANDOFF.md': '# Handoff 2\n', '.claude/kit.md': FICHA({ quitados: [STASH] }) }, 'quita el freno junto con el handoff');
+  assert.equal(rojo(s, /deny:Bash\(git stash:\*\)/)[0].commit, x);
+  assert.match(B.rango(s).como, /con él/);
+  // recién montado: el primer commit trae el handoff, la ficha, el settings y los hooks
+  const m = repo({ remoto: false, archivos: { 'docs/SESSION_HANDOFF.md': '# Handoff\n', '.claude/settings.json': '{"permissions": {"allow": ["Bash(*)"]}}\n', '.claude/hooks/x.cjs': 'x\n' } });
+  assert.deepEqual(B.rango(m).commits, []);
+  assert.match(B.rango(m).como, /primer commit/);
+  verde(m);
+  // el primer commit con el handoff y sin ficha: también queda afuera (no hay padre que poner)
+  const p = repo({ remoto: false, ficha: false, archivos: { 'docs/SESSION_HANDOFF.md': '# Handoff\n' } });
+  assert.deepEqual(B.rango(p).commits, []);
+  assert.match(B.rango(p).como, /sin él \(es el primer commit/);
+  const sin = repo({ remoto: false, ficha: false });
+  const h = commit(sin, { 'docs/SESSION_HANDOFF.md': '# H\n' });
+  assert.equal(B.esAdopcion(sin, h, [g(sin, 'rev-parse', 'HEAD~1')]), false, 'sin ficha no es la adopción');
+  // la adopción sobre un repo con historia: el commit que crea la ficha, con el handoff y el settings
+  const a = repo({ remoto: false, ficha: false });
+  commit(a, { 'docs/SESSION_HANDOFF.md': '# H\n', '.claude/kit.md': FICHA(), '.claude/settings.json': '{"permissions": {"allow": ["Bash(*)"]}}\n' }, 'adopción');
+  assert.match(B.rango(a).como, /creó la ficha/);
+  verde(a);
+  // borrada y vuelta a crear junto con el handoff no es la adopción: ese commit sí se juzga
+  const b = repo({ remoto: false });
+  commit(b, { '.claude/kit.md': null, 'docs/SESSION_HANDOFF.md': '# H\n' }, 'cierre que la borra');
+  const v = commit(b, { '.claude/kit.md': FICHA({ quitados: [STASH] }), 'docs/SESSION_HANDOFF.md': '# H2\n' }, 'la vuelve a crear aflojada');
+  assert.equal(B.esAdopcion(b, v, [g(b, 'rev-parse', 'HEAD~1')]), false);
+  assert.ok(rojo(b).some((f) => f.commit === v));
+});
+
+test('rf-6 a: un archivo de barrera con skip-worktree o assume-unchanged → rojo con el comando que saca la marca; otro archivo, no', () => {
+  const d = repo({ archivos: { '.claude/settings.json': '{}\n' } });
+  g(d, 'update-index', '--skip-worktree', '.claude/settings.json');
+  escribir(d, '.claude/settings.json', '{"permissions": {"allow": ["Bash(*)"]}}\n');
+  let f = rojo(d, /skip-worktree/);
+  assert.equal(f.length, 1, 'lo pendiente no lo ve: solo la marca');
+  assert.equal(f[0].hacer, 'sacale la marca: git update-index --no-skip-worktree .claude/settings.json');
+  assert.equal(f[0].commit, B.PENDIENTE);
+  g(d, 'update-index', '--no-skip-worktree', '.claude/settings.json');
+  g(d, 'checkout', '-q', '--', '.claude/settings.json');
+  verde(d);
+  g(d, 'update-index', '--assume-unchanged', '.claude/kit.md');
+  f = rojo(d, /assume-unchanged/);
+  assert.equal(f[0].hacer, 'sacale la marca: git update-index --no-assume-unchanged .claude/kit.md');
+  g(d, 'update-index', '--no-assume-unchanged', '.claude/kit.md');
+  g(d, 'update-index', '--skip-worktree', '.claude/kit.md');
+  g(d, 'update-index', '--assume-unchanged', '.claude/kit.md'); // de a una: juntas en un llamado, git aplica solo la última
+  assert.match(rojo(d)[0].que, /skip-worktree y assume-unchanged/);
+  g(d, 'update-index', '--no-skip-worktree', '.claude/kit.md');
+  g(d, 'update-index', '--no-assume-unchanged', '.claude/kit.md');
+  g(d, 'update-index', '--skip-worktree', 'a.txt');
+  g(d, 'update-index', '--assume-unchanged', '.gitignore');
+  verde(d);
+});
+
+test('rf-6 b: un .propio.sh (o un script del candado, un githook) ignorado → rojo como pendiente; con un aprobado que lo nombra, verde', () => {
+  const ign = '/.claude/worktrees/\n/.kit-rol\n*.propio.sh\n/.claude/scripts/estructura.cjs\n/.githooks/\n/notas/\n';
+  for (const r of ['.claude/hooks/session-start.propio.sh', '.claude/scripts/estructura.cjs', '.githooks/pre-commit']) {
+    const d = repo({ archivos: { '.gitignore': ign } });
+    escribir(d, r, 'echo allow\n');
+    assert.equal(g(d, 'status', '--porcelain'), '', 'git no lo ve');
+    const f = rojo(d, new RegExp(r.replace(/\./g, '\\.')));
+    assert.equal(f[0].commit, B.PENDIENTE);
+  }
+  const d = repo({ archivos: { '.gitignore': ign } });
+  escribir(d, 'notas/x.propio.sh', 'x\n'); // ignorado, pero no es barrera
+  verde(d);
+  aprobado(d, { toca: 'hooks', ids: ['hooks:.claude/hooks/session-start.propio.sh'] });
+  escribir(d, '.claude/hooks/session-start.propio.sh', 'echo hola\n');
+  verde(d);
+});
+
+test('rf-6 c: settings.local.json ignorado con disableAllHooks o hooks → rojo; con solo permissions y env → verde', () => {
+  const d = repo({ archivos: { '.gitignore': '/.claude/worktrees/\n/.kit-rol\n/.claude/settings.local.json\n' } });
+  const R = '.claude/settings.local.json';
+  escribir(d, R, '{"permissions": {"allow": ["Bash(npm test:*)"], "defaultMode": "acceptEdits"}, "env": {"A": "1"}}\n');
+  verde(d);
+  escribir(d, R, '{"permissions": {"allow": []}, "disableAllHooks": true}\n');
+  const f = rojo(d, /trae la clave disableAllHooks/);
+  assert.equal(f[0].hacer, 'sacá esa clave: apaga o cambia los frenos en esta PC sin pasar por un aprobado');
+  assert.equal(f[0].detalle, R);
+  escribir(d, R, '{"hooks": {"PreToolUse": []}}\n');
+  rojo(d, /trae la clave hooks/);
+  escribir(d, R, '{"disableAllHooks": false}\n');
+  rojo(d, /disableAllHooks/); // la clave, con cualquier valor
+  escribir(d, R, '{"permissions": {}, "permissions": {"x": 1}}\n');
+  rojo(d, /no se lee como JSON/);
+  fs.unlinkSync(path.join(d, ...R.split('/')));
+  verde(d);
+  // seguido y sin ignorar (ya en el remoto): no es de esta PC, lo juzga lo pendiente como a cualquier settings
+  const t = repo({ archivos: { [R]: '{"hooks": {}}\n' } });
+  verde(t);
+});
+
+test('rf-3: en un merge, el padre cuya ficha no se lee no achica nada: se compara contra el otro', () => {
+  const d = repo({ ficha: '---\nkit: [\n---\n' }); // nació rota, en el remoto
+  g(d, 'checkout', '-q', '-b', 'modulo/x');
+  commit(d, { 'b.txt': 'b\n' });
+  g(d, 'checkout', '-q', 'main');
+  commit(d, { '.claude/kit.md': FICHA() }, 'la arregla');
+  push(d);
+  g(d, 'merge', '-q', '--no-ff', '--no-commit', 'modulo/x');
+  escribir(d, '.claude/kit.md', FICHA({ hash: 'aaaaaaaaaaaa' })); // contra main, solo un hash; contra la rama, ilegible
+  g(d, 'add', '.claude/kit.md');
+  g(d, 'commit', '-q', '-m', 'merge');
+  verde(d);
 });

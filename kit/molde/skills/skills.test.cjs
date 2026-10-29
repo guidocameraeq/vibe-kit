@@ -269,6 +269,16 @@ test('cierre: el orden del bloque F6', () => {
   assert.equal(verificar, 2, 'cambios verificar corre dos veces: antes y después del commit');
 });
 
+test('rf-1: /cierre e /inicio traen el remoto con git pull --rebase, nunca con merge, y dicen por qué; /cierre reapunta tras el rebase', () => {
+  for (const t of [TEXTOS.cierre, TEXTOS.inicio]) {
+    assert.match(t, /`git pull --rebase`/);
+    assert.match(t, /nunca un pull con merge sobre la rama por defecto/);
+    assert.match(t, /un merge deja el sello fuera de la historia de primer padre/);
+    assert.doesNotMatch(t, /`git pull`/, 'ningún pull a secas');
+  }
+  assert.match(TEXTOS.cierre, /Si el rebase reescribió el commit de un `aplicado`, `cambios\.cjs verificar` lo dice con el `anotar-sha` listo/);
+});
+
 test('cierre: rojo se arregla y nunca se commitea encima; sin node o sin salida, no se commitea', () => {
   const t = TEXTOS.cierre;
   assert.match(t, /nunca commitees encima de un rojo/);

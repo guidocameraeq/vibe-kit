@@ -414,26 +414,42 @@ function todosLosIds(datos) {
   return ids;
 }
 
-// idsFicha(antes, después) → { categorias, ids }. Cuentan los frenos, sensible y autorizado que cambian, y nivel y las dos
+// Un par categoría·id en un texto (la clave de los conjuntos que se intersecan en un merge; rf-3): el mismo id puede ser de dos
+// categorías (`deny:X` en frenos.quitados es frenos, en el settings es settings), así que se cruzan los pares, no los ids sueltos.
+const SEP_PAR = '\u0000';
+const par = (cat, id) => `${cat}${SEP_PAR}${normalizarId(id)}`;
+// { categorias, ids } a partir de un conjunto de pares.
+function desdePares(pares) {
+  const cats = new Set();
+  const ids = new Set();
+  for (const p of pares) {
+    const i = p.indexOf(SEP_PAR);
+    cats.add(p.slice(0, i));
+    ids.add(p.slice(i + 1));
+  }
+  return { categorias: unicos([...cats]), ids: unicos([...ids]) };
+}
+const TRES_FICHA = ['frenos', 'sensible', 'autorizado'];
+
+// idsFicha(antes, después) → { categorias, ids, pares }. Cuentan los frenos, sensible y autorizado que cambian, y nivel y las dos
 // piezas SOLO cuando aflojan (r5-3): la pieza pasa de algo distinto de `no` a `no` o a no estar; el nivel, de estandar a otro.
+// pares: cada id con su categoría (lo que no se lee, o la ficha borrada, cuenta en las tres).
 function idsFicha(antesB, despuesB) {
   const a = ladoFicha(antesB);
   const d = ladoFicha(despuesB);
-  const cats = new Set();
-  const ids = [];
-  if (!a && !d) return { categorias: [], ids: [] };
-  const todas = () => ['frenos', 'sensible', 'autorizado'].forEach((c) => cats.add(c));
+  const pares = new Set();
+  const salida = () => ({ ...desdePares(pares), pares });
+  if (!a && !d) return salida();
+  const enLasTres = (ids) => ids.forEach((id) => TRES_FICHA.forEach((c) => pares.add(par(c, id))));
   if ((a && a.rota) || (d && d.rota)) {
     // Lo que no se lee no se compara: el lado que se lee cuenta entero; si ninguno se lee, `ficha:rota` hay que declararlo.
-    todas();
     const sano = a && !a.rota ? a : d && !d.rota ? d : null;
-    if (sano) ids.push(...todosLosIds(sano.datos));
-    else ids.push('ficha:rota');
-    return { categorias: unicos([...cats]), ids: unicos(ids.map(normalizarId)) };
+    enLasTres(sano ? todosLosIds(sano.datos) : ['ficha:rota']);
+    return salida();
   }
   if (a && !d) {
-    todas();
-    return { categorias: unicos([...cats]), ids: unicos(todosLosIds(a.datos).map(normalizarId)) };
+    enLasTres(todosLosIds(a.datos));
+    return salida();
   }
   const A = a ? a.datos : {};
   const D = d.datos;
@@ -441,32 +457,20 @@ function idsFicha(antesB, despuesB) {
   const fa = frenosPorId(A);
   const fd = frenosPorId(D);
   for (const id of new Set([...fa.keys(), ...fd.keys()])) {
-    if (fa.get(id) !== fd.get(id)) {
-      ids.push(id);
-      cats.add('frenos');
-    }
+    if (fa.get(id) !== fd.get(id)) pares.add(par('frenos', id));
   }
   const fra = esMapa(A.frenos) ? A.frenos : {};
   const frd = esMapa(D.frenos) ? D.frenos : {};
   for (const k of new Set([...Object.keys(fra), ...Object.keys(frd)])) {
     if (k === 'quitados' || k === 'opcionales') continue;
-    if (canon(fra[k]) !== canon(frd[k])) {
-      ids.push(`frenos:${k}`);
-      cats.add('frenos');
-    }
+    if (canon(fra[k]) !== canon(frd[k])) pares.add(par('frenos', `frenos:${k}`));
   }
   if (a) {
-    if (A.nivel === 'estandar' && D.nivel !== 'estandar') {
-      ids.push('nivel');
-      cats.add('frenos');
-    }
+    if (A.nivel === 'estandar' && D.nivel !== 'estandar') pares.add(par('frenos', 'nivel'));
     for (const p of PIEZAS_FRENO) {
       const ea = estadoPieza(A, p);
       const ed = estadoPieza(D, p);
-      if (ea !== null && ea !== 'no' && (ed === null || ed === 'no')) {
-        ids.push(`pieza:${p}`);
-        cats.add('frenos');
-      }
+      if (ea !== null && ea !== 'no' && (ed === null || ed === 'no')) pares.add(par('frenos', `pieza:${p}`));
     }
   }
   // sensible y autorizado, por clave
@@ -474,13 +478,10 @@ function idsFicha(antesB, despuesB) {
     const ma = esMapa(A[cat]) ? A[cat] : {};
     const md = esMapa(D[cat]) ? D[cat] : {};
     for (const k of new Set([...Object.keys(ma), ...Object.keys(md)])) {
-      if (canon(ma[k]) !== canon(md[k])) {
-        ids.push(`${cat}:${k}`);
-        cats.add(cat);
-      }
+      if (canon(ma[k]) !== canon(md[k])) pares.add(par(cat, `${cat}:${k}`));
     }
   }
-  return { categorias: unicos([...cats]), ids: unicos(ids.map(normalizarId)) };
+  return salida();
 }
 
 // Un settings de un lado: { valor } (null = no está, como {}) o { roto: true }.
@@ -538,44 +539,69 @@ function idsSettings(antesB, despuesB, rel) {
   return unicos(ids.map(normalizarId));
 }
 
-// Lo que cambia entre un antes y uno o más después, por archivo: { rel, antes: Buffer|null, despues: [Buffer|null] }.
+// Lo ignorado que igual es barrera (rf-6 b): un hook, un script o un githook ignorado (un .propio.sh en .gitignore) corre y el
+// candado no lo veía. Cuenta como pendiente. Con :(icase): en Windows .Claude/Hooks es la misma carpeta.
+const IGNORADOS_BARRERA = [':(icase).claude/hooks', ':(icase).claude/scripts', ':(icase).githooks'];
+function ignoradosDeBarrera(raiz) {
+  const r = git.correr(['ls-files', '--others', '--ignored', '--exclude-standard', '-z', '--', ...IGNORADOS_BARRERA], { cwd: raiz });
+  if (!r.ok) throw new Error('git ls-files no anduvo');
+  return partirZ(r.stdout);
+}
+
+// Las rutas de lo pendiente: el índice y el disco contra HEAD (o todo el índice sin commits), lo no seguido y lo ignorado de barrera.
+function rutasPendientes(raiz, head) {
+  const rutas = new Set();
+  if (head) {
+    for (const args of [['diff', '--no-renames', '--name-only', '-z', 'HEAD'], ['diff', '--cached', '--no-renames', '--name-only', '-z', 'HEAD']]) {
+      const r = git.correr(args, { cwd: raiz });
+      if (!r.ok) throw new Error('git diff no anduvo');
+      partirZ(r.stdout).forEach((x) => rutas.add(x));
+    }
+  } else {
+    const r = git.correr(['ls-files', '-z'], { cwd: raiz });
+    if (!r.ok) throw new Error('git ls-files no anduvo');
+    partirZ(r.stdout).forEach((x) => rutas.add(x));
+  }
+  const o = git.correr(['ls-files', '--others', '--exclude-standard', '-z'], { cwd: raiz });
+  if (!o.ok) throw new Error('git ls-files no anduvo');
+  partirZ(o.stdout).forEach((x) => rutas.add(x));
+  ignoradosDeBarrera(raiz).forEach((x) => rutas.add(x));
+  return [...rutas].sort();
+}
+
+// Las rutas que cambian de <padre> (null: el commit raíz) a <sha>.
+function rutasContra(raiz, sha, padre) {
+  const r = padre
+    ? git.correr(['diff', '--no-renames', '--name-only', '-z', padre, sha], { cwd: raiz })
+    : git.correr(['diff-tree', '--root', '--no-renames', '--no-commit-id', '-r', '--name-only', '-z', sha], { cwd: raiz });
+  if (!r.ok) throw new Error('git diff no anduvo');
+  return partirZ(r.stdout).sort();
+}
+
+// Los lados de lo que hay que juzgar: [[{ rel, antes: () => Buffer|null, despues: () => [Buffer|null] }]], uno por padre.
+// Lo pendiente y un commit común tienen un lado; un merge, uno por padre (rf-3: se juzga solo lo que difiere de TODOS).
 function cambiosDe(raiz, cual) {
   if (cual === 'pendiente') {
     const head = shaDe(raiz, 'HEAD');
-    const rutas = new Set();
-    if (head) {
-      for (const args of [['diff', '--no-renames', '--name-only', '-z', 'HEAD'], ['diff', '--cached', '--no-renames', '--name-only', '-z', 'HEAD']]) {
-        const r = git.correr(args, { cwd: raiz });
-        if (!r.ok) throw new Error('git diff no anduvo');
-        partirZ(r.stdout).forEach((x) => rutas.add(x));
-      }
-    } else {
-      const r = git.correr(['ls-files', '-z'], { cwd: raiz });
-      if (!r.ok) throw new Error('git ls-files no anduvo');
-      partirZ(r.stdout).forEach((x) => rutas.add(x));
-    }
-    const o = git.correr(['ls-files', '--others', '--exclude-standard', '-z'], { cwd: raiz });
-    if (!o.ok) throw new Error('git ls-files no anduvo');
-    partirZ(o.stdout).forEach((x) => rutas.add(x));
-    return [...rutas].sort().map((rel) => ({
-      rel,
-      antes: () => (head ? blob(raiz, head, rel) : null),
-      // Lo que se commitearía (el índice) y lo del disco: se juzgan los dos, así no se escapa lo que está solo en uno.
-      despues: () => [blob(raiz, '', rel), leerDisco(path.join(raiz, ...rel.split('/')))],
-    }));
+    return [
+      rutasPendientes(raiz, head).map((rel) => ({
+        rel,
+        antes: () => (head ? blob(raiz, head, rel) : null),
+        // Lo que se commitearía (el índice) y lo del disco: se juzgan los dos, así no se escapa lo que está solo en uno.
+        despues: () => [blob(raiz, '', rel), leerDisco(path.join(raiz, ...rel.split('/')))],
+      })),
+    ];
   }
   const sha = shaDe(raiz, cual);
   if (!sha) throw new Error('ese commit no existe');
-  const p = padres(raiz, sha);
-  const r = p.length
-    ? git.correr(['diff', '--no-renames', '--name-only', '-z', p[0], sha], { cwd: raiz })
-    : git.correr(['diff-tree', '--root', '--no-renames', '--no-commit-id', '-r', '--name-only', '-z', sha], { cwd: raiz });
-  if (!r.ok) throw new Error('git diff no anduvo');
-  return partirZ(r.stdout).sort().map((rel) => ({
-    rel,
-    antes: () => (p.length ? blob(raiz, p[0], rel) : null),
-    despues: () => [blob(raiz, sha, rel)],
-  }));
+  const ps = padres(raiz, sha);
+  return (ps.length ? ps : [null]).map((p) =>
+    rutasContra(raiz, sha, p).map((rel) => ({
+      rel,
+      antes: () => (p ? blob(raiz, p, rel) : null),
+      despues: () => [blob(raiz, sha, rel)],
+    })),
+  );
 }
 
 function leerDisco(abs) {
@@ -589,33 +615,38 @@ function leerDisco(abs) {
   }
 }
 
-// toca(raiz, sha | 'pendiente') → { categorias, ids }: qué barreras toca un commit (contra su primer padre) o lo pendiente
-// (el índice y el disco contra HEAD, sin lo ignorado). Los ids, normalizados (r5-4). Tira si git no puede.
+// paresArchivo(cat, rel, antes, [después…]) → Set de pares categoría·id que cambian en ese archivo (cualquiera de los después).
+function paresArchivo(cat, rel, antes, despues) {
+  const s = new Set();
+  if (cat === 'ficha') {
+    for (const d of despues) idsFicha(antes, d).pares.forEach((p) => s.add(p));
+  } else if (cat === 'settings') {
+    for (const d of despues) idsSettings(antes, d, rel).forEach((id) => s.add(par('settings', id)));
+  } else s.add(par(cat, `${cat}:${rel}`));
+  return s;
+}
+
+// La intersección de varios conjuntos (null = "todo": el neutro).
+function interseccion(conjuntos) {
+  let r = null;
+  for (const c of conjuntos) r = r === null ? new Set(c) : new Set([...r].filter((x) => c.has(x)));
+  return r || new Set();
+}
+
+// toca(raiz, sha | 'pendiente') → { categorias, ids }: qué barreras toca un commit o lo pendiente (el índice y el disco contra HEAD,
+// sin lo ignorado salvo lo de barrera). Un commit común, contra su padre; un merge, solo lo que el merge mismo introduce (rf-3): los
+// pares que cambian contra CADA padre (lo que trae una rama ya lo juzgan sus commits, uno por uno). Ids normalizados (r5-4). Tira si git no puede.
 function toca(raiz, cual) {
-  const cats = new Set();
-  const ids = new Set();
-  for (const c of cambiosDe(raiz, cual)) {
-    const cat = categoriaDe(c.rel);
-    if (!cat) continue;
-    if (cat === 'ficha' || cat === 'settings') {
-      const antes = c.antes();
-      for (const despues of c.despues()) {
-        if (cat === 'ficha') {
-          const r = idsFicha(antes, despues);
-          r.categorias.forEach((x) => cats.add(x));
-          r.ids.forEach((x) => ids.add(x));
-        } else {
-          const r = idsSettings(antes, despues, c.rel);
-          if (r.length) cats.add('settings');
-          r.forEach((x) => ids.add(x));
-        }
-      }
-      continue;
+  const lados = cambiosDe(raiz, cual).map((lado) => {
+    const s = new Set();
+    for (const c of lado) {
+      const cat = categoriaDe(c.rel);
+      if (!cat) continue;
+      paresArchivo(cat, c.rel, cat === 'ficha' || cat === 'settings' ? c.antes() : null, cat === 'ficha' || cat === 'settings' ? c.despues() : []).forEach((p) => s.add(p));
     }
-    cats.add(cat);
-    ids.add(normalizarId(`${cat}:${c.rel}`));
-  }
-  return { categorias: unicos([...cats]), ids: unicos([...ids]) };
+    return s;
+  });
+  return desdePares(interseccion(lados));
 }
 
 // El primer commit de <desde>..<hasta> (en orden, del más viejo) que toca alguna de las categorías de `tocaLista`, o null.
@@ -778,7 +809,21 @@ function verificar(raiz) {
       sello = r.sello;
     }
     if (d.estado === 'aplicado' && esTexto(d.sha) && RE_SHA.test(d.sha)) {
-      if (!shaDe(raiz, d.sha) || shaDe(raiz, d.sha) !== d.sha) {
+      const existe = shaDe(raiz, d.sha) === d.sha;
+      // rf-2: un pull --rebase reescribe el commit y el sha anotado queda viejo (no está, o ya no es de la historia de HEAD).
+      // Con el sello en orden, el comando listo para reapuntarlo al primer commit de ahora (anotar-sha lo acepta solo así).
+      const reescrito = sello && head && (!existe || !esAncestro(raiz, d.sha, head));
+      if (reescrito) {
+        try {
+          const primero = esAncestro(raiz, sello, head) ? primerQueToca(raiz, sello, head, Array.isArray(d.toca) ? d.toca : []) : null;
+          mal(
+            `${existe ? 'el sha de aplicado ya no está en la historia de HEAD' : 'el sha de aplicado no existe en este repo'} (¿un pull --rebase lo reescribió?)`,
+            primero ? `${COMANDO} anotar-sha ${id} ${primero}` : `anotá el commit que lo aplicó: ${COMANDO} anotar-sha ${id} <sha>`,
+          );
+        } catch (e) {
+          mal('no se pudo leer la historia de git', 'corré doctor');
+        }
+      } else if (!existe) {
         mal('el sha de aplicado no existe en este repo', `anotá el commit que lo aplicó: ${COMANDO} anotar-sha ${id} <sha>`);
       } else if (sello) {
         try {
@@ -840,6 +885,14 @@ module.exports = {
   categoriaDe,
   idsFicha,
   idsSettings,
+  par,
+  desdePares,
+  paresArchivo,
+  interseccion,
+  ignoradosDeBarrera,
+  rutasPendientes,
+  rutasContra,
+  IGNORADOS_BARRERA,
   toca,
   primerQueToca,
   ramaLocal,

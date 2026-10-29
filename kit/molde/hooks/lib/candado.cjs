@@ -405,7 +405,8 @@ function prendido(datosFicha) {
 const linea = (f) => `candado:${f.id} · ${f.que} · ${f.hacer}`;
 
 // correr(raiz, {modo: 'todo' | 'parcial' | 'ids', ids, molde, log, ahora, home}) → { codigo, lineas, fallas, corrieron }.
-// codigo: 0 verde · 1 alguna falla (lecturas no cuenta) o la ficha rota. Tira si algo interno falla (el script lo vuelve "candado roto").
+// codigo: 0 verde · 1 alguna falla (lecturas no cuenta). La ficha vigente rota no da 1 sola: se avisa y corre todo con los frenos de
+// fábrica (rf-9). Tira si algo interno falla (el script lo vuelve "candado roto").
 function correr(raiz, opciones = {}) {
   const modo = opciones.modo || 'todo';
   const ahora = opciones.ahora || new Date();
@@ -415,21 +416,19 @@ function correr(raiz, opciones = {}) {
   };
 
   const fv = contexto.fichaVigente(raiz);
-  if (fv.estado === 'rota') {
-    const u = fv.ref ? barreras.ultimaFichaQueSeLee(raiz, fv.ref) : null;
+  // rf-9: la ficha vigente rota no traba sola (si no, el commit que la arregla no puede pasar): se avisa y se corre TODO con los
+  // frenos de fábrica, los más estrictos (candado entero, ningún freno quitado). barreras compara cada commit contra la última que lee.
+  const rota = fv.estado === 'rota';
+  const avisos = [];
+  if (rota) {
     anotar('candado:ficha', contexto.RUTA_FICHA);
-    return {
-      codigo: 1,
-      lineas: [`ficha rota: ${fv.donde} — corré doctor; ${u ? `la última que se lee: git show ${u.sha.slice(0, 12)}:${contexto.RUTA_FICHA}` : 'no hay ninguna anterior que se lea'}`],
-      fallas: [],
-      corrieron: [],
-    };
+    avisos.push(`ficha rota: ${fv.donde} — corré doctor (corro con los frenos de fábrica)`);
   }
   const datosFicha = fv.estado === 'ok' ? fv.datos : null;
-  if (!datosFicha && !barreras.fichaEnAlgunLado(raiz)) return { codigo: 0, lineas: ['sin ficha: candado apagado'], fallas: [], corrieron: [] };
+  if (!rota && !datosFicha && !barreras.fichaEnAlgunLado(raiz)) return { codigo: 0, lineas: ['sin ficha: candado apagado'], fallas: [], corrieron: [] };
 
-  const encendido = prendido(datosFicha);
-  const quitados = quitadosVigentes(datosFicha, ahora);
+  const encendido = rota || prendido(datosFicha);
+  const quitados = rota ? new Set() : quitadosVigentes(datosFicha, ahora);
   const pedidos = modo === 'parcial' ? PARCIAL : modo === 'ids' ? IDS.filter((x) => (opciones.ids || []).includes(x)) : IDS;
   const corrieron = pedidos.filter((id) => id === 'barreras' || (encendido && !quitados.has(id)));
   const op = { parcial: modo === 'parcial', molde: opciones.molde, fichaVigente: fv, ahora, home: opciones.home };
@@ -438,7 +437,7 @@ function correr(raiz, opciones = {}) {
 
   const frenan = fallas.filter((f) => !f.soloLista);
   for (const f of frenan) anotar(`candado:${f.id}`, f.detalle);
-  const lineas = fallas.map(linea);
+  const lineas = [...avisos, ...fallas.map(linea)];
   if (!frenan.length) {
     const nota = encendido ? '' : ' · candado apagado en la ficha (piezas.candado): solo barreras';
     lineas.push(corrieron.length ? `candado: en verde (${corrieron.join(', ')})${nota}` : `candado: no corrió nada de lo pedido${nota}`);

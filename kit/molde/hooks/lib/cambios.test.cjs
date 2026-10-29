@@ -361,14 +361,17 @@ test('toca de settings: una regla deny quitada, un hook con comillas y \\ (norma
   assert.ok(t.ids.includes('deny:Read(./.env)') && t.ids.includes('settings:disableAllHooks'), JSON.stringify(t));
 });
 
-test('toca pendiente: índice y disco contra HEAD, más lo no seguido; lo ignorado no cuenta', () => {
+test('toca pendiente: índice y disco contra HEAD, más lo no seguido; lo ignorado no cuenta, salvo bajo hooks, scripts y .githooks (rf-6 b)', () => {
   const d = repo({ '.claude/kit.md': FICHA(), '.claude/hooks/a.cjs': 'a' });
-  escribir(d, '.gitignore', '/.claude/worktrees/\n/.kit-rol\n/.claude/hooks/ignorado.cjs\n');
+  escribir(d, '.gitignore', '/.claude/worktrees/\n/.kit-rol\n/.claude/hooks/ignorado.cjs\n/notas/\n');
   g(d, 'add', '.gitignore');
   g(d, 'commit', '-q', '-m', 'ignorar');
   assert.deepEqual(C.toca(d, 'pendiente'), { categorias: [], ids: [] });
-  escribir(d, '.claude/hooks/ignorado.cjs', 'x');
+  escribir(d, 'notas/x.cjs', 'x');
   assert.deepEqual(C.toca(d, 'pendiente'), { categorias: [], ids: [] });
+  escribir(d, '.claude/hooks/ignorado.cjs', 'x');
+  assert.deepEqual(C.toca(d, 'pendiente'), { categorias: ['hooks'], ids: ['hooks:.claude/hooks/ignorado.cjs'] });
+  fs.unlinkSync(path.join(d, '.claude', 'hooks', 'ignorado.cjs'));
   escribir(d, '.claude/hooks/nuevo.cjs', 'x'); // sin seguir
   assert.deepEqual(C.toca(d, 'pendiente').ids, ['hooks:.claude/hooks/nuevo.cjs']);
   fs.unlinkSync(path.join(d, '.claude', 'hooks', 'nuevo.cjs'));
@@ -579,4 +582,40 @@ test('commitDelSello y primerQueToca: exportados para el candado (F4), solos', (
   assert.equal(C.primerQueToca(d, s, 'HEAD', ['settings']), null);
   assert.deepEqual(C.validarSello(d, { id, rel: rel(id), texto, datos }, C.ramaLocal(d)), { fallas: [], sello: s });
   assert.deepEqual(C.validarSello(d, { id, rel: rel(id), texto, datos }, null).sello, null);
+});
+
+test('toca de un merge (rf-3): solo lo que difiere de TODOS los padres; lo que trae la rama no; primerQueToca no lo cuenta como toque', () => {
+  const d = repo({ '.claude/kit.md': FICHA(), '.claude/hooks/a.cjs': 'a' });
+  g(d, 'checkout', '-q', '-b', 'modulo/x');
+  const x = commit(d, { '.claude/hooks/a.cjs': 'a2', '.claude/kit.md': FICHA({ plata: '[caja]' }) });
+  g(d, 'checkout', '-q', 'main');
+  const y = commit(d, { 'b.txt': 'b' });
+  g(d, 'merge', '-q', '--no-ff', '-m', 'integrar', 'modulo/x');
+  const m = g(d, 'rev-parse', 'HEAD');
+  assert.deepEqual(C.toca(d, m), { categorias: [], ids: [] });
+  assert.equal(C.primerQueToca(d, y, m, ['hooks', 'sensible']), x, 'el de la rama, no el merge');
+  assert.equal(C.primerQueToca(d, x, m, ['hooks', 'sensible']), null, 'desde la rama, el merge no toca nada');
+  // el merge que agrega lo suyo (en un archivo que también trae la rama): solo eso
+  g(d, 'checkout', '-q', '-b', 'modulo/z', y);
+  commit(d, { '.claude/hooks/a.cjs': 'a3' });
+  g(d, 'checkout', '-q', 'main');
+  spawnSync('git', ['merge', '-q', '--no-ff', '--no-commit', 'modulo/z'], { cwd: d, env: process.env }); // conflicto en a.cjs
+  escribir(d, '.claude/hooks/a.cjs', 'a4');
+  escribir(d, '.claude/kit.md', FICHA({ plata: '[caja]', merge: 'libre' }));
+  g(d, 'add', '.claude/hooks/a.cjs', '.claude/kit.md');
+  g(d, 'commit', '-q', '-m', 'merge resuelto a mano');
+  const m2 = g(d, 'rev-parse', 'HEAD');
+  assert.deepEqual(C.toca(d, m2), { categorias: ['autorizado', 'hooks'], ids: ['autorizado:merge-a-main', 'hooks:.claude/hooks/a.cjs'] });
+});
+
+test('idsFicha: los pares categoría·id (un id de frenos.quitados que se llama como una regla del settings sigue siendo de frenos)', () => {
+  const r = C.idsFicha(FICHA(), FICHA({ quitados: ['{id: "deny:Bash(x)", por: "p", hasta: siempre}'], plata: '[caja]' }));
+  assert.deepEqual(r.categorias, ['frenos', 'sensible']);
+  assert.deepEqual(r.ids, ['deny:Bash(x)', 'sensible:plata']);
+  assert.deepEqual([...r.pares].sort(), [C.par('frenos', 'deny:Bash(x)'), C.par('sensible', 'sensible:plata')].sort());
+  const s = C.paresArchivo('settings', '.claude/settings.json', '{}', ['{"permissions": {"deny": ["Bash(x)"]}}']);
+  assert.deepEqual(C.desdePares(C.interseccion([r.pares, s])), { categorias: [], ids: [] }, 'mismo id, otra categoría: no se cruzan');
+  const borrada = C.idsFicha(FICHA(), null);
+  assert.ok([...borrada.pares].includes(C.par('autorizado', 'nivel')), 'la borrada cuenta cada id en las tres');
+  assert.deepEqual(C.interseccion([]), new Set());
 });
