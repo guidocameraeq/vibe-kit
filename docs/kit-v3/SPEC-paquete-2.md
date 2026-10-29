@@ -540,6 +540,27 @@ E1 y E2 en paralelo (no comparten archivos), cada uno en su worktree; el resto e
   `CLAUDE.md` y `docs/{SESSION_HANDOFF,TODO,CHANGELOG}.md` v2 se pisan con los del molde y `session-start.sh` se borra. Corrido desde un
   worktree, la carpeta hermana cae adentro de `.claude/worktrees/`: pendiente para F7 (D2.2).
 
+## Lo que cambió en la construcción (D2.2, 2026-10-29)
+
+- **El detalle de D2.2 pasó por dos rondas más de red team** (4 y 5; tabla de abajo) antes de construir F3 y F4: `ids:` creció a archivos,
+  reglas, `nivel` y piezas; los scripts del candado pasaron a ser barrera; el hook devuelve "preguntar" en los modos con ventana.
+- **Las fichas de fábrica viven en `kit/molde/hooks/lib/fabrica/`** (no en `kit/molde/`), bajo la barrera `hooks`.
+- **`candado:rutas` no exige lo que el árbol crea a demanda** (las tres carpetas, `MAPA.md`, `frenos.log`, `cambios/`): sin eso, el `CLAUDE.md`
+  del molde daba rojo en un repo recién montado (lo encontró F4).
+- **La pregunta de tamaño de B §6 estaba al revés de su regla**: en el molde va en negativo ("¿hace falta algo más que el pedido y el `git
+  diff` para retomarlo?"); nota en B §6.
+- **`/inicio` del molde no espera otro OK** si el pedido vino con el mensaje (criterio 2).
+- **`claude.exe -p` 2.1.309** (F3): la entrada de `PreToolUse` **trae** `permission_mode`; la del `SessionStart` en `-p`, no (la cabecera dice
+  "(configurado)"). En `-p`, un proyecto que no es de confianza **ignora su `permissions.allow`**. Una sesión en `bypassPermissions` no se pudo
+  lanzar (el clasificador lo frenó): el hook se probó con `dontAsk`.
+- **`rehacer.sh`**: `molde v3 orden 2` sale del molde de D2.1 (`git archive 2c8eb7d`) y `molde v3 orden 2b` suma lo de D2.2 encima, con el
+  `settings` por `mezclarSettings` (el caso real de un actualizador sobre un proyecto v3). En `alfa` y `beta`: `barreras --molde` 0, sin
+  `--molde` 1, `todo` 0.
+- **El caso "sí" de 6.8a, a mano en un clon de `alfa`** (director, 2026-10-29): `nuevo` → `aprobar` (su commit y su renglón) → commit que quita
+  el freno declarado: `barreras` verde; el mismo cambio quitando además uno no declarado: rojo con el id; un segundo commit con el mismo
+  `aprobado`: rojo; `verificar` pide `anotar-sha` con el comando listo; después, `verificar` y `todo` verdes. **La ventana de permiso en una
+  pestaña real queda para Guido.**
+
 ## Red team (Opus, `redteam-spec`; los informes, al repo privado)
 
 | Ronda | ALTO | MEDIO | Integrado (RT-p2 n) |
