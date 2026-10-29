@@ -360,6 +360,41 @@ test('correr: parcial = topes (el handoff) y barreras; ids sueltos, solo esos', 
   assert.equal(i.codigo, 1);
 });
 
+test('correr (P4.6): indice y rango solo con ids = [barreras], no juntos; llegan a barreras y lo dicen en la línea verde', () => {
+  const d = repo({ 'docs/suelto.md': 'x\n', '.claude/hooks/x.cjs': 'x\n' });
+  const head = g(d, 'rev-parse', 'HEAD');
+  const rango = { desde: head, hasta: head };
+  for (const o of [{ indice: true }, { rango }, { modo: 'ids', ids: ['barreras', 'raiz'], indice: true }, { modo: 'parcial', rango }, { modo: 'ids', ids: ['barreras'], indice: true, rango }]) {
+    assert.throws(() => correr(d, o), /indice y rango/, JSON.stringify(o));
+  }
+  escribir(d, '.claude/hooks/x.cjs', 'otro\n'); // en el disco, sin git add
+  const i = correr(d, { modo: 'ids', ids: ['barreras'], indice: true });
+  assert.deepEqual([i.codigo, i.lineas], [0, ['candado: en verde (barreras) · solo el índice']]);
+  assert.equal(correr(d, { modo: 'ids', ids: ['barreras'] }).codigo, 1);
+  g(d, 'add', '.claude/hooks/x.cjs');
+  assert.equal(correr(d, { modo: 'ids', ids: ['barreras'], indice: true }).codigo, 1);
+  g(d, 'commit', '-q', '-m', 'hook');
+  const malo = g(d, 'rev-parse', 'HEAD');
+  const r = correr(d, { modo: 'ids', ids: ['barreras'], rango: { desde: head, hasta: malo } });
+  assert.equal(r.codigo, 1);
+  assert.match(r.lineas[0], new RegExp(`^candado:barreras · el commit ${malo.slice(0, 12)} toca hooks`));
+  assert.equal(correr(d, { modo: 'ids', ids: ['barreras'], rango: { desde: malo, hasta: malo } }).codigo, 0);
+  assert.deepEqual(K.resolverRango(d, { desde: 'HEAD~1', hasta: 'HEAD' }), { desde: head, hasta: malo });
+});
+
+test('correr (P4.6): con rango, la ficha que solo está en los commits del push prende el candado (no "sin ficha")', () => {
+  const d = repo({}, { ficha: false });
+  const base = g(d, 'rev-parse', 'HEAD');
+  g(d, 'checkout', '-q', '-b', 'otra');
+  commit(d, { '.claude/kit.md': FICHA() });
+  const malo = commit(d, { '.claude/hooks/x.cjs': 'x\n' });
+  g(d, 'checkout', '-q', 'main');
+  assert.deepEqual(correr(d, { modo: 'ids', ids: ['barreras'] }).lineas, ['sin ficha: candado apagado']);
+  const r = correr(d, { modo: 'ids', ids: ['barreras'], rango: { desde: base, hasta: malo } });
+  assert.equal(r.codigo, 1, r.lineas.join('\n'));
+  assert.ok(r.lineas.some((l) => l.includes(`el commit ${malo.slice(0, 12)} toca hooks`)), r.lineas.join('\n'));
+});
+
 test('correr: lecturas lista y no cambia la salida; cada frenada deja su renglón en frenos.log (herramienta estructura, detalle = ruta)', () => {
   const d = repo({ 'docs/referencia/grande.md': 'x'.repeat(110 * 1024), '.claude/skills/s/SKILL.md': '`docs/referencia/grande.md`\n' });
   const r = correr(d, { log: true });

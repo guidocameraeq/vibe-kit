@@ -318,6 +318,43 @@ test('toca de la ficha: borrarla cambia todos sus ids; crearla, los de su conten
   assert.deepEqual(C.toca(d, crear), { categorias: ['autorizado', 'frenos', 'sensible'], ids: ['autorizado:merge-a-main', 'hook:git-seguro/push-force', 'sensible:plata'] });
 });
 
+test('toca de la ficha, D-3: secretos:, publicas: y datos-de-prueba: cuentan en frenos SOLO cuando aflojan', () => {
+  const F = (s, p, dp) => FICHA().replace(/---\n$/, `${s === null ? '' : `secretos: ${s}\n`}${p === null ? '' : `publicas: ${p}\n`}${dp === null ? '' : `datos-de-prueba: ${dp}\n`}---\n`);
+  const d = repo({ '.claude/kit.md': F('[DB_URL, HUB_TOKEN]', '[SUPABASE_ANON_KEY]', 'docs/referencia/PRUEBA.md') });
+  const paso = (s, p, dp) => C.toca(d, commit(d, { '.claude/kit.md': F(s, p, dp) }));
+  const nada = { categorias: [], ids: [] };
+  // secretos: sacar afloja (cada nombre), sumar aprieta, sacar la clave entera saca todos
+  assert.deepEqual(paso('[HUB_TOKEN]', '[SUPABASE_ANON_KEY]', 'docs/referencia/PRUEBA.md'), { categorias: ['frenos'], ids: ['secretos:DB_URL'] });
+  assert.deepEqual(paso('[HUB_TOKEN, DB_URL, OTRO]', '[SUPABASE_ANON_KEY]', 'docs/referencia/PRUEBA.md'), nada);
+  assert.deepEqual(paso('[OTRO, HUB_TOKEN, DB_URL]', '[SUPABASE_ANON_KEY]', 'docs/referencia/PRUEBA.md'), nada, 'otro orden no cuenta');
+  assert.deepEqual(paso(null, '[SUPABASE_ANON_KEY]', 'docs/referencia/PRUEBA.md'), { categorias: ['frenos'], ids: ['secretos:DB_URL', 'secretos:HUB_TOKEN', 'secretos:OTRO'] });
+  // publicas: sumar afloja, sacar aprieta
+  assert.deepEqual(paso(null, '[SUPABASE_ANON_KEY, DB_URL]', 'docs/referencia/PRUEBA.md'), { categorias: ['frenos'], ids: ['publicas:DB_URL'] });
+  assert.deepEqual(paso(null, '[]', 'docs/referencia/PRUEBA.md'), nada);
+  assert.deepEqual(paso(null, null, 'docs/referencia/PRUEBA.md'), nada);
+  assert.deepEqual(paso(null, '[X_KEY]', 'docs/referencia/PRUEBA.md'), { categorias: ['frenos'], ids: ['publicas:X_KEY'] }, 'la clave que aparece');
+  // datos-de-prueba: cambiarlo o ponerlo afloja; sacarlo aprieta
+  assert.deepEqual(paso(null, '[X_KEY]', 'docs/referencia/OTRO.md'), { categorias: ['frenos'], ids: ['datos-de-prueba'] });
+  assert.deepEqual(paso(null, '[X_KEY]', null), nada);
+  assert.deepEqual(paso(null, '[X_KEY]', 'docs/referencia/PRUEBA.md'), { categorias: ['frenos'], ids: ['datos-de-prueba'] });
+  // borrar la ficha: todos sus ids, también los de D-3
+  const borrar = commit(d, { '.claude/kit.md': null });
+  const ids = C.toca(d, borrar).ids;
+  for (const x of ['publicas:X_KEY', 'datos-de-prueba']) assert.ok(ids.includes(x), x);
+  const e = repo({ '.claude/kit.md': F('[DB_URL]', null, null) });
+  assert.ok(C.toca(e, commit(e, { '.claude/kit.md': null })).ids.includes('secretos:DB_URL'));
+});
+
+test('validar: un 3-barrera de frenos con los ids de D-3 (secretos:<NOMBRE>, publicas:<NOMBRE>, datos-de-prueba) está en orden', () => {
+  const t = C.armar({ clase: '3-barrera', toca: ['frenos'], ids: ['secretos:DB_URL', 'publicas:SUPABASE_ANON_KEY', 'datos-de-prueba'], origen: 'o', cicatriz: 'no', chico: 'sí', urgente: 'no', cuerpo: CUERPO });
+  const { datos, cuerpo } = C.leer(t);
+  assert.deepEqual(datos.ids, ['secretos:DB_URL', 'publicas:SUPABASE_ANON_KEY', 'datos-de-prueba']);
+  assert.deepEqual(C.validar(datos, cuerpo), []);
+  const d = repo();
+  const id = proponer(d, { toca: 'frenos', ids: ['secretos:DB_URL', 'datos-de-prueba'] });
+  assert.deepEqual(C.leer(leerArchivo(d, rel(id))).datos.ids, ['secretos:DB_URL', 'datos-de-prueba']);
+});
+
 test('toca de la ficha rota: el lado que se lee cuenta entero; rota de los dos lados, ficha:rota', () => {
   const rota = '---\nkit: 2.4.3\nnivel: medio\nvars:\n  proyecto: x\n---\n';
   const d = repo({ '.claude/kit.md': FICHA() });

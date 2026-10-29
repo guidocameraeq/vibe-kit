@@ -3,7 +3,10 @@
 // ningún commit toca un freno sin el `aprobado` sellado del dueño que lo nombre. Lo corre scripts/estructura.cjs (vía candado.cjs).
 // Vive bajo .claude/hooks/** a propósito: su lógica es barrera (r4-3).
 //
-// Qué mira: el rango de la sesión (rango()) commit por commit, y lo pendiente (índice y disco) como un commit más.
+// Qué mira: el rango de la sesión (rango()) commit por commit, y lo pendiente (índice y disco) como un commit más. Dos modos más
+// (P4.6, los githooks): con `indice`, SOLO el índice (lo que lleva el commit en curso; lo del disco sin `git add` no traba, rf-10),
+// contra HEAD o, en un merge en curso (MERGE_HEAD), contra cada padre como un merge commiteado; con `rango` ({desde, hasta}), SOLO
+// los commits de desde..hasta (lo que sube un push; rf-7), con la misma lógica por commit.
 // Por commit: las barreras que toca, POR ARCHIVO (las categorías y los ids de cambios.cjs: categoriaDe, idsFicha, idsSettings),
 // menos lo que cubre una exención; lo que queda lo tiene que cubrir la unión de los cambios válidos (toca ⊇ categorías, ids ⊇ ids).
 // Cambio válido para un commit X: 3-barrera con el sello en orden (cambios.validar + cambios.validarSello, las reglas de verificar),
@@ -24,6 +27,9 @@ const { NIVELES } = require('./fabrica.cjs');
 
 const ID = 'candado:barreras';
 const PENDIENTE = 'pendiente';
+// Solo el índice (el pre-commit y el pre-merge-commit): un "commit más" como lo pendiente, sin el disco.
+const INDICE = 'indice';
+const esPendiente = (cual) => cual === PENDIENTE || cual === INDICE;
 // La base de scripts/todo.cjs: el último commit que tocó el handoff (el cierre anterior). todo.cjs no la exporta: es este git log.
 const RUTA_HANDOFF = 'docs/SESSION_HANDOFF.md';
 // Las fichas de fábrica, como quedan instanciadas (kit/molde/hooks/lib/fabrica/ → .claude/hooks/lib/fabrica/; F1).
@@ -76,6 +82,30 @@ function lista(raiz, args) {
   return r;
 }
 
+// Las rutas que cambian del commit <padre> al índice (sin commits: todo el índice).
+function rutasIndice(raiz, padre) {
+  const args = padre ? ['diff', '--cached', '--no-renames', '--name-only', '-z', padre] : ['ls-files', '-z'];
+  return partirZ(lista(raiz, args).stdout).sort();
+}
+// Los otros padres de un merge en curso: los SHA de MERGE_HEAD (uno por renglón; varios en un octopus), o [] si no hay merge.
+function mergeHeads(raiz) {
+  const donde = git.texto(['rev-parse', '--git-path', 'MERGE_HEAD'], { cwd: raiz });
+  if (!donde) throw new Error('git rev-parse no anduvo');
+  let t;
+  try {
+    t = fs.readFileSync(path.resolve(raiz, donde), 'utf8');
+  } catch (e) {
+    return [];
+  }
+  const out = [];
+  for (const l of t.split(/\r?\n/).map((x) => x.trim()).filter(Boolean)) {
+    const sha = shaDe(raiz, l);
+    if (!sha) throw new Error('MERGE_HEAD no se lee');
+    if (!out.includes(sha)) out.push(sha);
+  }
+  return out;
+}
+
 // ---------------------------------------------------------------- el rango
 
 // rango(raiz) → { commits: [sha] (del más viejo al más nuevo), desde, como }. Lo pendiente va siempre aparte.
@@ -117,6 +147,19 @@ function rango(raiz) {
   return { commits: r.stdout.split('\n').map((s) => s.trim()).filter(Boolean), desde, como };
 }
 
+// resolverRango(raiz, {desde, hasta}) → { desde: sha, hasta: sha } o { error }: los dos extremos tienen que ser commits del repo.
+function resolverRango(raiz, r) {
+  const desde = shaDe(raiz, r.desde);
+  if (!desde) return { error: `--rango: ${r.desde} no es un commit de este repo` };
+  const hasta = shaDe(raiz, r.hasta);
+  if (!hasta) return { error: `--rango: ${r.hasta} no es un commit de este repo` };
+  return { desde, hasta };
+}
+// Los commits de desde..hasta, del más viejo al más nuevo (vacío si hasta ya está en desde).
+function commitsDelRango(raiz, r) {
+  return lista(raiz, ['rev-list', '--reverse', '--topo-order', `${r.desde}..${r.hasta}`]).stdout.split('\n').map((s) => s.trim()).filter(Boolean);
+}
+
 // ¿<sha> es el commit que creó la ficha (la adopción)? La tiene, ninguno de sus padres la tiene y ningún commit anterior la tocó
 // (borrada y vuelta a crear no es la adopción: ese commit sí se juzga).
 function esAdopcion(raiz, sha, ps) {
@@ -127,8 +170,9 @@ function esAdopcion(raiz, sha, ps) {
 }
 
 // ¿La ficha está en algún lado? En el disco, el índice, HEAD, la ficha vigente o el padre de algún commit del rango (r4-2:
-// borrarla no apaga el candado). Sin ninguna, el candado entero está apagado.
-function fichaEnAlgunLado(raiz) {
+// borrarla no apaga el candado). Con un rango explícito, también sus commits y sus padres (un push puede subir otra rama que HEAD).
+// Sin ninguna, el candado entero está apagado.
+function fichaEnAlgunLado(raiz, opciones = {}) {
   const R = contexto.RUTA_FICHA;
   if (fs.existsSync(path.join(raiz, ...R.split('/')))) return true;
   if (blob(raiz, '', R) !== null) return true;
@@ -136,6 +180,9 @@ function fichaEnAlgunLado(raiz) {
   const rv = contexto.refVigente(raiz);
   if (rv && blob(raiz, rv.ref, R) !== null) return true;
   for (const c of rango(raiz).commits) for (const p of padres(raiz, c)) if (blob(raiz, p, R) !== null) return true;
+  if (opciones.rango) {
+    for (const c of commitsDelRango(raiz, opciones.rango)) for (const x of [c, ...padres(raiz, c)]) if (blob(raiz, x, R) !== null) return true;
+  }
   return false;
 }
 
@@ -152,23 +199,33 @@ function archivosDe(raiz, cual) {
   let ps = [];
   let bases = [];
   let despuesDe;
+  // Las rutas que cambian contra un padre p (en un merge, contra cada uno).
+  let rutasContraPadre = null;
   if (cual === PENDIENTE) {
     padre = shaDe(raiz, 'HEAD');
     rutas = C.rutasPendientes(raiz, padre);
     despuesDe = (rel) => [blob(raiz, '', rel), leerDisco(path.join(raiz, ...rel.split('/')))];
+  } else if (cual === INDICE) {
+    // Solo el índice (rf-10): ni el disco, ni lo no seguido, ni lo ignorado (no van en el commit; los mira barreras a secas).
+    padre = shaDe(raiz, 'HEAD');
+    ps = padre ? [padre, ...mergeHeads(raiz)] : [];
+    rutasContraPadre = (p) => rutasIndice(raiz, p);
+    rutas = rutasIndice(raiz, padre);
+    despuesDe = (rel) => [blob(raiz, '', rel)];
   } else {
     ps = padres(raiz, cual);
     padre = ps.length ? ps[0] : null;
+    rutasContraPadre = (p) => C.rutasContra(raiz, cual, p);
     rutas = C.rutasContra(raiz, cual, padre);
-    if (ps.length > 1) {
-      // rf-18: un merge se juzga contra CADA padre, así que entran las rutas que cambian contra cualquiera.
-      const s = new Set(rutas);
-      for (const p of ps.slice(1)) C.rutasContra(raiz, cual, p).forEach((x) => s.add(x));
-      rutas = [...s];
-      bases = ps.map((pi, i) => ps.map((pj, j) => (j === i ? [] : j < i ? null : C.basesDeMerge(raiz, pi, pj))));
-      bases.forEach((fila, i) => fila.forEach((x, j) => (x === null ? (fila[j] = bases[j][i]) : null)));
-    }
     despuesDe = (rel) => [blob(raiz, cual, rel)];
+  }
+  if (ps.length > 1) {
+    // rf-18: un merge se juzga contra CADA padre, así que entran las rutas que cambian contra cualquiera.
+    const s = new Set(rutas);
+    for (const p of ps.slice(1)) rutasContraPadre(p).forEach((x) => s.add(x));
+    rutas = [...s];
+    bases = ps.map((pi, i) => ps.map((pj, j) => (j === i ? [] : j < i ? null : C.basesDeMerge(raiz, pi, pj))));
+    bases.forEach((fila, i) => fila.forEach((x, j) => (x === null ? (fila[j] = bases[j][i]) : null)));
   }
   return rutas
     .sort()
@@ -268,6 +325,8 @@ function tocaronLaFicha(raiz, memo) {
     if (rv) refs.push(rv.ref);
     const rl = C.ramaLocal(raiz);
     if (rl && !refs.includes(rl.ref)) refs.push(rl.ref);
+    // Con --rango, también la historia de lo que se sube (puede ser otra rama que HEAD).
+    for (const x of memo.refsExtra || []) if (!refs.includes(x)) refs.push(x);
     const t = shaDe(raiz, 'HEAD') ? lista(raiz, ['log', '--full-history', '--format=%H', ...refs, '--', contexto.RUTA_FICHA]).stdout : '';
     memo.tocaron = [...new Set(t.split('\n').map((s) => s.trim()).filter(Boolean))];
   }
@@ -277,7 +336,7 @@ function tocaronLaFicha(raiz, memo) {
 // ¿La ficha existió antes de <cual>? Algún commit que la tocó y no es <cual> ni posterior a él (r4-2: (b) solo la primera vez).
 function fichaExistioAntes(raiz, cual, memo) {
   const t = tocaronLaFicha(raiz, memo);
-  if (cual === PENDIENTE) return t.length > 0;
+  if (esPendiente(cual)) return t.length > 0;
   return t.some((y) => y !== cual && !esAncestro(raiz, cual, y));
 }
 
@@ -385,7 +444,7 @@ function settingsComoElMolde(f, d, m, quitados) {
 // Los frenos quitados (ids normalizados) de la ficha que deja el commit (lo pendiente: la del disco, o la del índice).
 function quitadosDe(raiz, cual) {
   const R = contexto.RUTA_FICHA;
-  const b = cual === PENDIENTE ? leerDisco(path.join(raiz, ...R.split('/'))) || blob(raiz, '', R) : blob(raiz, cual, R);
+  const b = cual === PENDIENTE ? leerDisco(path.join(raiz, ...R.split('/'))) || blob(raiz, '', R) : blob(raiz, cual === INDICE ? '' : cual, R);
   const l = leerFicha(b);
   const q = l && !l.rota && esMapa(l.datos.frenos) && Array.isArray(l.datos.frenos.quitados) ? l.datos.frenos.quitados : [];
   return new Set(q.map((x) => (esMapa(x) ? x.id : x)).filter((x) => typeof x === 'string').map(zona.normalizarId));
@@ -445,7 +504,7 @@ function primero(raiz, desde, hasta, toca, memo) {
 // ¿El cambio cubre a <cual>? Un aprobado, el primer commit después del sello que toca su `toca` (lo pendiente: si todavía ninguno
 // lo tocó); un aplicado, solo el commit de su sha, y solo si ese es el primero (r5-1).
 function cubre(raiz, c, cual, memo) {
-  if (cual === PENDIENTE) {
+  if (esPendiente(cual)) {
     if (c.estado !== 'aprobado') return false;
     const head = shaDe(raiz, 'HEAD');
     return !!head && esAncestro(raiz, c.sello, head) && primero(raiz, c.sello, head, c.toca, memo) === null;
@@ -523,16 +582,27 @@ function settingsLocal(raiz) {
   return sale(`${RUTA_SETTINGS_LOCAL} trae la clave ${malas.join(' y ')}`, 'sacá esa clave: apaga o cambia los frenos en esta PC sin pasar por un aprobado');
 }
 
-// revisarBarreras(raiz, {molde}) → [{ id: 'candado:barreras', que, hacer, detalle, commit }]. Vacía = en orden.
+// revisarBarreras(raiz, {molde, indice, rango}) → [{ id: 'candado:barreras', que, hacer, detalle, commit }]. Vacía = en orden.
 // molde: carpeta ABSOLUTA del molde de afuera (exención a); sin ella, no hay exención (a). Tira si git no puede.
+// Sin indice ni rango: el rango de la sesión, lo pendiente y lo de esta PC (marcas y settings.local). indice: true → lo de esta PC y
+// SOLO el índice (rf-10). rango: { desde, hasta } (resolverRango) → SOLO esos commits, lo que sube el push (rf-7).
 function revisarBarreras(raiz, opciones = {}) {
+  if (opciones.indice && opciones.rango) throw new Error('indice y rango no van juntos');
   const memo = {};
-  const fallas = [...marcasOcultas(raiz), ...settingsLocal(raiz)];
-  const r = rango(raiz);
-  for (const cual of [...r.commits, PENDIENTE]) {
+  let fallas;
+  let cuales;
+  if (opciones.rango) {
+    fallas = [];
+    memo.refsExtra = [opciones.rango.hasta];
+    cuales = commitsDelRango(raiz, opciones.rango);
+  } else {
+    fallas = [...marcasOcultas(raiz), ...settingsLocal(raiz)];
+    cuales = opciones.indice ? [INDICE] : [...rango(raiz).commits, PENDIENTE];
+  }
+  for (const cual of cuales) {
     const n = lo(raiz, cual, opciones, memo);
     if (!n.cats.size && !n.ids.size && !n.imposibles.length) continue;
-    const quien = cual === PENDIENTE ? 'lo que está por commitearse' : `el commit ${corto(cual)}`;
+    const quien = cual === PENDIENTE ? 'lo que está por commitearse' : cual === INDICE ? 'lo que lleva este commit (el índice)' : `el commit ${corto(cual)}`;
     const detalle = n.primerArchivo || contexto.RUTA_FICHA;
     if (n.imposibles.length) {
       fallas.push({ id: ID, commit: cual, detalle, que: `${quien}: ${n.imposibles[0]}`, hacer: 'arreglá la ficha (corré doctor): ningún aprobado cubre lo que no se puede leer' });
@@ -548,8 +618,8 @@ function revisarBarreras(raiz, opciones = {}) {
       ? `${quien} toca ${listaCorta([...n.cats].sort())} y los aprobados que lo cubren no nombran ${listaCorta(faltanCats.length ? faltanCats : faltanIds)}`
       : `${quien} toca ${listaCorta([...n.cats].sort())} (${listaCorta(faltanIds)}) sin un aprobado sellado que lo cubra`;
     const hacer =
-      cual === PENDIENTE
-        ? 'proponelo con cambios nuevo (3-barrera, un --id por cada uno) y que el dueño lo apruebe con cambios aprobar antes de commitear; o sacalo'
+      esPendiente(cual)
+        ? `proponelo con cambios nuevo (3-barrera, un --id por cada uno) y que el dueño lo apruebe con cambios aprobar antes de commitear; o sacalo${cual === INDICE ? ' del índice (git restore --staged <archivo>)' : ''}`
         : 'proponé el cambio (cambios nuevo), que el dueño lo apruebe (cambios aprobar) y rehacé ese commit después del sello; o revertilo';
     fallas.push({ id: ID, commit: cual, detalle, que, hacer });
   }
@@ -559,10 +629,14 @@ function revisarBarreras(raiz, opciones = {}) {
 module.exports = {
   ID,
   PENDIENTE,
+  INDICE,
   RUTA_HANDOFF,
   CARPETA_FABRICA,
   RUTA_SETTINGS_LOCAL,
   rango,
+  resolverRango,
+  commitsDelRango,
+  mergeHeads,
   esAdopcion,
   marcasOcultas,
   settingsLocal,

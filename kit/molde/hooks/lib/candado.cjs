@@ -363,7 +363,9 @@ function datos(raiz) {
 
 // ---------------------------------------------------------------- candado:barreras
 
-const barreras_ = (raiz, opciones = {}) => barreras.revisarBarreras(raiz, { molde: opciones.molde }).map((f) => ({ ...f, id: 'barreras' }));
+// indice / rango (P4.6): solo el índice (pre-commit) o solo los commits de un rango ya resuelto (pre-push); sin ellos, como siempre.
+const barreras_ = (raiz, opciones = {}) =>
+  barreras.revisarBarreras(raiz, { molde: opciones.molde, indice: opciones.indice, rango: opciones.rango }).map((f) => ({ ...f, id: 'barreras' }));
 
 const CHEQUEOS = {
   raiz: raiz_,
@@ -405,11 +407,15 @@ function prendido(datosFicha) {
 
 const linea = (f) => `candado:${f.id} · ${f.que} · ${f.hacer}`;
 
-// correr(raiz, {modo: 'todo' | 'parcial' | 'ids', ids, molde, log, ahora, home}) → { codigo, lineas, fallas, corrieron }.
+// correr(raiz, {modo: 'todo' | 'parcial' | 'ids', ids, molde, indice, rango, log, ahora, home}) → { codigo, lineas, fallas, corrieron }.
 // codigo: 0 verde · 1 alguna falla (lecturas no cuenta). La ficha vigente rota no da 1 sola: se avisa y corre todo con los frenos de
-// fábrica (rf-9). Tira si algo interno falla (el script lo vuelve "candado roto").
+// fábrica (rf-9). indice (true) o rango ({desde, hasta}, de resolverRango) solo con ids = [barreras], y no los dos (P4.6).
+// Tira si algo interno falla o si lo llaman mal (el script lo vuelve "candado roto").
 function correr(raiz, opciones = {}) {
   const modo = opciones.modo || 'todo';
+  // Los dos juntos los frena barreras.revisarBarreras.
+  if ((opciones.indice || opciones.rango) && (modo !== 'ids' || (opciones.ids || []).join() !== 'barreras')) throw new Error('indice y rango van solo con barreras');
+  const alcance = opciones.indice ? ' · solo el índice' : opciones.rango ? ` · el rango ${opciones.rango.desde.slice(0, 12)}..${opciones.rango.hasta.slice(0, 12)}` : '';
   const ahora = opciones.ahora || new Date();
   const log = opciones.log !== false;
   const anotar = (id, detalle) => {
@@ -427,7 +433,7 @@ function correr(raiz, opciones = {}) {
     avisos.push(`ficha rota: ${fv.donde} — corré doctor (corro con los frenos de fábrica)`);
   }
   const datosFicha = fv.estado === 'ok' ? fv.datos : null;
-  if (!rota && !datosFicha && !barreras.fichaEnAlgunLado(raiz)) return { codigo: 0, lineas: ['sin ficha: candado apagado'], fallas: [], corrieron: [] };
+  if (!rota && !datosFicha && !barreras.fichaEnAlgunLado(raiz, { rango: opciones.rango })) return { codigo: 0, lineas: ['sin ficha: candado apagado'], fallas: [], corrieron: [] };
 
   let encendido = prendido(datosFicha);
   if (rota) {
@@ -437,7 +443,7 @@ function correr(raiz, opciones = {}) {
   const quitados = rota ? new Set() : quitadosVigentes(datosFicha, ahora);
   const pedidos = modo === 'parcial' ? PARCIAL : modo === 'ids' ? IDS.filter((x) => (opciones.ids || []).includes(x)) : IDS;
   const corrieron = pedidos.filter((id) => id === 'barreras' || (encendido && !quitados.has(id)));
-  const op = { parcial: modo === 'parcial', molde: opciones.molde, fichaVigente: fv, ahora, home: opciones.home };
+  const op = { parcial: modo === 'parcial', molde: opciones.molde, indice: !!opciones.indice, rango: opciones.rango, fichaVigente: fv, ahora, home: opciones.home };
   const fallas = [];
   for (const id of corrieron) fallas.push(...CHEQUEOS[id](raiz, op));
 
@@ -446,7 +452,7 @@ function correr(raiz, opciones = {}) {
   const lineas = [...avisos, ...fallas.map(linea)];
   if (!frenan.length) {
     const nota = encendido ? '' : ' · candado apagado en la ficha (piezas.candado): solo barreras';
-    lineas.push(corrieron.length ? `candado: en verde (${corrieron.join(', ')})${nota}` : `candado: no corrió nada de lo pedido${nota}`);
+    lineas.push(corrieron.length ? `candado: en verde (${corrieron.join(', ')})${alcance}${nota}` : `candado: no corrió nada de lo pedido${nota}`);
   }
   return { codigo: frenan.length ? 1 : 0, lineas, fallas, corrieron };
 }
@@ -461,4 +467,5 @@ module.exports = {
   quitadosVigentes,
   prendido,
   correr,
+  resolverRango: barreras.resolverRango,
 };
