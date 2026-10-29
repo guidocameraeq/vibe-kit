@@ -26,6 +26,8 @@ exec), G10 (instalador), G11 (`doctor`), G12 (`rehacer.sh`), G13 (sesión real `
 el `~/.claude/` real** (HOME falso); instalar en las dos PCs es de Guido (fila 4 de "Lo prueba una sesión real" del delta).
 
 **Para Guido, cuando pueda (no traba a D3.2)**: repasar las ⚠️ de D3.1 y de D2.2 en el tracker; las pruebas en una pestaña real de D2.2.
+**⏰ En `Usuario`, antes del 2026-11-20**: subir los chats que faltan (`vibe-research/chats/FALTAN.md`, con la receta en su `LEEME.md`;
+TODO "Juntar los chats"). La sesión que lo haga lo puede correr con un Sonnet, como D3.1 lo hizo con los de `clientes`.
 
 ## Cosas que muerden y no están en ningún otro doc
 
