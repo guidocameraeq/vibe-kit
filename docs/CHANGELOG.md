@@ -2,6 +2,30 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-29 — Misión 5, paquete 3 a medias: el delta sellado sin Guido y tres piezas (D3.1, cortada por cuota)
+
+PC `clientes`, chat `vibe-kit M5 · D3.1 · Paquete 3: seguridad — corrector, barreras, hooks por PC, doctor mínimo`, en Opus, sin Guido
+hasta la tarde. Guido volvió con poca cuota y pidió un punto de corte: G3-G6 se frenaron a medias y quedaron en ramas WIP locales (tracker,
+Pendientes). Sin tag. **Nada tocó el `~/.claude/` real**: la huella de `settings.json` y `hooks/` es igual a la de la apertura.
+
+**Added**
+- `docs/kit-v3/SPEC-paquete-3.md`: el delta del paquete 3, **sellado sin Guido (provisorio)** tras dos rondas de red team (r1: 6 ALTOS
+  integrados —variables `GIT_*`, ref vigente falsificable, listas de verbos, claves literales en el repo público, `reset` en `main`, gitleaks
+  colgado—; r2: 0 ALTOS, 11 medios y bajos). Decisiones D-1 a D-15 (las ⚠️, en el tracker).
+- `kit/molde/hooks/lib/comando.cjs` (G2): el recorrido de comandos de Bash y PowerShell, port del de Hermes más asignaciones; 976 casos,
+  mutación 384/384.
+- `kit/skills/arquitecto-skills/pc/cargar-secreto.{sh,ps1}` (G8): entrada oculta, almacén `~/.config/kit-secretos/<proyecto>.env`, relee y
+  compara, nunca imprime el valor; 38 pruebas.
+- `kit/molde/hooks/lib/db-guardia.cjs` (G9): `db migrar` contra `real` sin veredicto del revisor para el hash del plan → niega; borrar
+  `tabla:<x>` de `datos-reales` de noche → PARADA, de día → pide `--borra-datos-reales`; 38 pruebas, mutación 51/52.
+
+**Medido** (G0, G0b; `claude.exe` 2.1.309 `-p`)
+- `onFailure: "block"` frena las cuatro fallas de un hook (sin ejecutable, error, colgado a los `timeout` s, JSON inválido), con Bash y
+  PowerShell; sin el campo pasan. El `.cjs` se relee en cada llamada. `deny` con ruta absoluta anda en Windows.
+- La forma exec (`"command": "node"`, `"args": ["${CLAUDE_PROJECT_DIR}/…"]`) expande la variable sin Git Bash: todo hook del kit va así (D-7).
+- `gitleaks version`: 47 s en frío en `clientes`, ~2 s después. El `block_secrets.ps1` viejo suma ~10-11 s a cada Bash.
+- El corpus del historial (G1, solo en el scratchpad): 91.298 llamadas únicas de 2.218 transcripts, para medir los frenos.
+
 ## 2026-10-29 — Misión 5, paquete 2 ✅: zona propia, `cambios` con su sello, el candado, `/inicio` y `/cierre` del molde (D2.2, sin Guido)
 
 PC `clientes`, chat `vibe-kit M5 · D2.2 · Paquete 2, segunda mitad: candado, cambios, zona propia, /inicio y /cierre v3`, en Opus.
