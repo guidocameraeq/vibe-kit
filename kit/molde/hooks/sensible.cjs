@@ -35,7 +35,8 @@
 //   - Ficha ROTA: `sensible:` sale de la última ficha que se lee en la ref (hasta 20 commits atrás que la tocaron, como rf-14), sin
 //     NINGÚN quitado (fábrica), y el motivo suma «ficha rota: <archivo>:<línea> — corré doctor».
 //   - CACHÉ (r1-10): `<git-dir común>/kit-sensible.json`, con clave = huella sacada por fs SIN LANZAR PROCESOS: el contenido de la
-//     config del repo y de la global, el `refs/remotes/origin/HEAD` simbólico y el sha (archivo suelto o `packed-refs`) de
+//     config del repo, la global y la del sistema (rutas de siempre), las variables GIT_* del entorno, el `refs/remotes/origin/HEAD`
+//     simbólico y el sha (archivo suelto o `packed-refs`) de
 //     `refs/remotes/origin/<n>` y `refs/heads/<n>` para cada rama candidata (las de `contexto.candidatas`, guardadas en el caché).
 //     Todo lo que puede cambiar cuál es la ref vigente o a qué commit apunta cambia la huella. Solo si cambió se lanza git. Sin
 //     huella por fs (fuera de un repo, reftable, un `.git` que no se entiende) se cae a `contexto` en cada llamada: lento pero
@@ -46,6 +47,8 @@
 // de `decidir`, así una que falta es "freno roto" y no un hook que no arranca.
 // LO QUE NO CIERRA: es un patrón (F §21): un alias, una variable o un script intermedio lo esquivan; y el caché es un archivo del
 // git-dir común que un agente podría reescribir a propósito (lo cuida el corrector, `frenos-del-proyecto`, si lo suma a su lista).
+// La huella no sigue los `include.path` de las configs ni una config del sistema en una ruta rara: si ahí cambia init.defaultBranch,
+// el caché sigue con la rama de antes hasta que se mueva una ref (una ficha vieja, no un freno apagado: la ficha la elige git).
 // Es .cjs a propósito: corre igual en proyectos con "type": "module".
 
 const fs = require('fs');
@@ -210,6 +213,23 @@ function configsGlobales() {
   const xdg = env.XDG_CONFIG_HOME || (home ? path.join(home, '.config') : '');
   return [xdg ? path.join(xdg, 'git', 'config') : null, home ? path.join(home, '.gitconfig') : null].filter(Boolean);
 }
+// La del sistema: Git for Windows guarda ahí el init.defaultBranch que eligió el instalador. Las rutas de siempre (sin lanzar git).
+function configsSistema() {
+  const env = process.env;
+  if (env.GIT_CONFIG_NOSYSTEM) return [];
+  if (env.GIT_CONFIG_SYSTEM) return [env.GIT_CONFIG_SYSTEM];
+  const l = ['/etc/gitconfig'];
+  if (env.ProgramFiles || env.PROGRAMFILES) l.push(path.join(env.ProgramFiles || env.PROGRAMFILES, 'Git', 'etc', 'gitconfig'));
+  if (env.ProgramData || env.PROGRAMDATA) l.push(path.join(env.ProgramData || env.PROGRAMDATA, 'Git', 'config'));
+  return l;
+}
+// Las variables GIT_* del entorno (GIT_CONFIG_COUNT/_KEY_n/_VALUE_n, GIT_CONFIG_PARAMETERS, GIT_DIR…) también cambian lo que lee git.
+const entornoGit = () =>
+  Object.keys(process.env)
+    .filter((k) => /^GIT_/i.test(k))
+    .sort()
+    .map((k) => `${k}=${process.env[k]}`)
+    .join('\0');
 
 // huella(g, candidatas) → texto, o null si por fs no se puede.
 function huella(g, candidatas) {
@@ -221,11 +241,17 @@ function huella(g, candidatas) {
   }
   const partes = [`v${VERSION_CACHE}`];
   // Por contenido, no por ruta: el caché es uno para el principal y todos sus worktrees.
-  const configs = [['config', path.join(g.comun, 'config')], ['config.worktree', path.join(g.gitDir, 'config.worktree')], ...configsGlobales().map((c, i) => [`global${i}`, c])];
+  const configs = [
+    ['config', path.join(g.comun, 'config')],
+    ['config.worktree', path.join(g.gitDir, 'config.worktree')],
+    ...configsGlobales().map((c, i) => [`global${i}`, c]),
+    ...configsSistema().map((c, i) => [`sistema${i}`, c]),
+  ];
   for (const [nombre, c] of configs) {
     const t = leer(c);
     partes.push(`${nombre}=${t === null ? '-' : t}`);
   }
+  partes.push(`entorno=${entornoGit()}`);
   partes.push(`origin/HEAD=${(leer(path.join(g.comun, 'refs', 'remotes', 'origin', 'HEAD')) || '-').trim()}`);
   const paquete = empaquetadas(g.comun);
   for (const n of candidatas) {

@@ -471,6 +471,27 @@ test('caché: se rehace cuando cambia la ref vigente (push, fetch, packed-refs, 
   g(d, 'remote', 'set-head', 'origin', '-d');
   assert.equal(origen(), 'git');
   assert.equal(se.decidir(entrada(d, 'stripe x')).decision, 'ask');
+  assert.equal(origen(), 'cache');
+  // la config del sistema (Git for Windows guarda ahí init.defaultBranch) y las GIT_* del entorno también son parte de la clave
+  const sistema = path.join(TMP, `sistema${n++}`);
+  fs.writeFileSync(sistema, '');
+  const antes = { NOSYSTEM: process.env.GIT_CONFIG_NOSYSTEM, SYSTEM: process.env.GIT_CONFIG_SYSTEM };
+  delete process.env.GIT_CONFIG_NOSYSTEM;
+  process.env.GIT_CONFIG_SYSTEM = sistema;
+  try {
+    assert.equal(origen(), 'git');
+    assert.equal(origen(), 'cache');
+    fs.writeFileSync(sistema, '[init]\n\tdefaultBranch = otra\n');
+    assert.equal(origen(), 'git');
+    assert.equal(origen(), 'cache');
+    process.env.GIT_CONFIG_PARAMETERS = "'init.defaultbranch=otra2'";
+    assert.equal(origen(), 'git');
+    assert.equal(origen(), 'cache');
+  } finally {
+    delete process.env.GIT_CONFIG_PARAMETERS;
+    delete process.env.GIT_CONFIG_SYSTEM;
+    process.env.GIT_CONFIG_NOSYSTEM = antes.NOSYSTEM;
+  }
 });
 
 test('caché: uno roto, de otra forma o con otra clave se ignora y se rehace; uno falso con la clave correcta… es el riesgo escrito', () => {
