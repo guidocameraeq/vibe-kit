@@ -2,6 +2,28 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-29 — Retomar en `Usuario`: el historial de chats completo, la PC preparada y el paquete 3 partido en D3.2 y D3.3
+
+PC `Usuario`, sesión intermedia de la misión 5, en Opus, con Guido. Sin tag; `kit/` sin cambios.
+
+**Added**
+- `/cierre` (paso 5): **el chat de cada sesión sube al privado** `vibe-research/chats/<pc>/`, condensado con la receta de allá. Si la PC no
+  ve el repo privado, no se sube por otro lado: el handoff anota el id. Pedido de Guido: que el historial esté siempre completo.
+- Tracker: **"Abrir D3.2 y D3.3 sin Guido"**, los dos prompts; filas D3.2 y D3.3; en Pendientes, la PC `Usuario` preparada.
+- En el privado: los chats de vibe-kit que faltaban. Los **racimos A, C y E de la misión 4** y tres sesiones más (`chats/companero/`,
+  de la notebook del compañero: su cuenta no ve el privado, así que viajaron por un repo privado temporal suyo); dos sueltos de `Usuario`
+  y el de esta sesión (`chats/usuario/`); `FALTAN.md` sin pendientes; la fila del diario.
+
+**Changed**
+- **El paquete 3 pasa a tres directores**: D3.2 solo cierra G3-G6 (de a dos Opus), D3.3 hace G7, G10-G13, el revisor frío y el `/cierre`.
+  Por qué: D3.1 cortó por cuota al meter todo junto (tracker, "Cambios al plan").
+- PC `Usuario` al día: `kit-sync sync` → LIMPIO (le faltaban `VERSION`, `pc/` y una línea del Equipador); repos de prueba con
+  `rehacer.sh` (verdes); corpus del historial en `C:\Users\Usuario\vibe-historial\`: **16.470 llamadas únicas**, contra 91.298 de
+  `clientes` (esta PC borró sus crudos de vibe-kit el 2026-10-28).
+
+**Removed**
+- TODO: "Juntar los chats de todas las PCs" (hecho: completo hasta el 2026-10-29; lo que sigue lo hace el `/cierre`).
+
 ## 2026-10-29 — Misión 5, paquete 3 a medias: el delta sellado sin Guido y tres piezas (D3.1, cortada por cuota)
 
 PC `clientes`, chat `vibe-kit M5 · D3.1 · Paquete 3: seguridad — corrector, barreras, hooks por PC, doctor mínimo`, en Opus, sin Guido

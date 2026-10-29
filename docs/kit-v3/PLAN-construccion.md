@@ -48,7 +48,7 @@ propuso partir con 26% usado). Si la app compacta, relee este tracker y su delta
 | 0 | Misión 4½: ordenar la casa, `v2.4.3` | 1 | ✅ 2026-10-27 |
 | 1 | La ficha del kit, el parser, `kit/VERSION`, los repos de prueba | 1 | ✅ 2026-10-28 ([`SPEC-paquete-1.md`](SPEC-paquete-1.md)) |
 | 2 | Documentos con tope, hook en node, candado, `cambios`, `/inicio` y `/cierre` v3, **la zona propia (P3.2)**, `pruebas/pedidos.md` | 2 | ✅ 2026-10-29 (D2.1 y D2.2; lo que espera a Guido, en Pendientes) ([`SPEC-paquete-2.md`](SPEC-paquete-2.md)) |
-| 3 | Seguridad: corrector de secretos, barreras, hooks por PC, `doctor` mínimo | 2 | 🔨 D3.1 a medias (cuota, 2026-10-29); sigue D3.2 |
+| 3 | Seguridad: corrector de secretos, barreras, hooks por PC, `doctor` mínimo | 3 | 🔨 D3.1 a medias (cuota, 2026-10-29); siguen D3.2 (cerrar G3-G6) y D3.3 (G7, G10-G13, revisor frío) |
 | 4 | El Arquitecto v3, el script `worktree`, el sello, `formato-spec.md` | 1 | ⬜ |
 | 5 | Director/obrero, `/estado`, resumen del día, la mesa, subagentes | 2 | ⬜ |
 | 6 | Equipador v3, actualizador, adoptador, `doctor` completo | 1 | ⬜ |
@@ -57,7 +57,7 @@ propuso partir con 26% usado). Si la app compacta, relee este tracker y su delta
 | 8½ | Deptos prepara sus credenciales (**lo hace Guido**, sin director) | 0 | ⬜ |
 | 9 | Piloto en Deptos, un mes; después Hub y Portal | 2 en la madre | ⬜ |
 | 10 | Tag `v3.0` y nota de migración | 1 | ⬜ |
-| | **Total** (sin el 0, ya hecho) | **13** | |
+| | **Total** (sin el 0, ya hecho) | **14** | |
 
 Estado: ⬜ sin empezar · 🔨 en curso · ✅ cerrado (con fecha) · ⏸️ frenado (con razón).
 
@@ -73,7 +73,8 @@ cuántos lanzó y en qué modelo (por ejemplo `4 Sonnet · 2 Opus`): es la medid
 | DP | Sesión intermedia (pedido de Guido): planear la paralelización de lo que queda | 2026-10-29 | `vibe-kit M5 · DP · Planear la paralelización de lo que queda` | 0 | el cierre de DP | ✅ **Decidido: no se paraleliza**; la misión sigue un director por vez, en el orden de esta tabla (ver "Paralelizar") |
 | D2.2 | Paquete 2, segunda mitad: candado, `cambios` base y su sello, la zona propia (P3.2), `/inicio` y `/cierre` v3 con `pedidos.md`, revisor frío | 2026-10-28/29 (sin Guido) | `vibe-kit M5 · D2.2 · Paquete 2, segunda mitad: candado, cambios, zona propia, /inicio y /cierre v3` | 6 Sonnet (F1, F5, F6 con 3 correcciones, F7, sesión real `-p`, diez pedidos ×2) · 6 Opus (red team ×2 rondas, F2, F3, F4, revisor frío ×3 vueltas, RF-fix ×3) | `12b7317`…el cierre | ✅ F1-F7 y los "hecho cuando" de 3.2, 3.10, 5.2, 6.1, 6.8a; 5.1 con salvedad (diez pedidos: 6 de 10). Red team r4-r5 (5 ALTOS) y revisor frío (6 ALTOS en tres vueltas) integrados; suite **verde** (cifra en el CHANGELOG); mutación por encargo 24/24 · 67/68 · 98/99 · 99/105 · 43/48 · 10/11 (vivos equivalentes, explicados) y control del director 3/3 + 3/3. Criterio 14 ✅; 6, 12, 17, 18, 20 con lo que falta escrito. **Decisiones sin Guido**: abajo |
 | D3.1 | Paquete 3: spec delta + red team (obligatorio), corrector, barreras, hooks por PC, `doctor` mínimo | 2026-10-29 (sin Guido; frenada por cuota) | `vibe-kit M5 · D3.1 · Paquete 3: seguridad — corrector, barreras, hooks por PC, doctor mínimo` | 4 Sonnet (G0b, G1 corpus, G2, G8) · 8 Opus (G0, redactor del delta, red team ×2 rondas, G9; G3, G4, G5, G6 frenados a medias) | `1116698`…el cierre parcial | 🔨 **A medias, punto de corte pedido por Guido por la cuota.** Delta **sellado sin Guido** (r1: 6 ALTOS integrados; r2: 0 ALTOS). G0 y G0b verdes: `onFailure: "block"` frena las cuatro fallas, la forma exec anda sin Git Bash. En `main`: **G2** `comando.cjs` (976 casos, mutación 384/384), **G8** `cargar-secreto` (38/38, corridas por el director), **G9** `db-guardia.cjs` (38/38 por el director, mutación 51/52, el vivo equivalente y sacado). **G3-G6 en ramas WIP** (Pendientes). Huella del `~/.claude/` real igual a la de la apertura. **Decisiones sin Guido**: abajo |
-| D3.2 | Paquete 3, segunda vuelta: terminar G3-G6 desde sus ramas WIP, G7, G10-G13, revisor frío | | | | | |
+| D3.2 | Paquete 3, segunda vuelta: terminar G3, G4, G5 y G6 desde sus ramas WIP (medición, mutación, pruebas), mergearlos y borrar las ramas | | `vibe-kit M5 · D3.2 · Paquete 3, segunda vuelta: terminar G3-G6 desde sus ramas WIP` | | | |
+| D3.3 | Paquete 3, cierre: G7, G10, G11, G12, G13, revisor frío, `/cierre` completo | | `vibe-kit M5 · D3.3 · Paquete 3, cierre: githooks, instalador, doctor, sesión real, revisor frío` | | | |
 | D4.1 | Paquete 4: spec delta + red team, Arquitecto v3, sello, `formato-spec.md`, `worktree` y `.kit-rol` | | | | | |
 | D5.1 | Paquete 5, primera mitad: spec delta + red team, el canon director/obrero y sus correctores | | | | | |
 | D5.2 | Paquete 5, segunda mitad: `/estado`, resumen del día, subagentes, `CLAUDE.md` por criterios, la mesa | | | | | |
@@ -208,6 +209,40 @@ los ataques; `claude -p` desde Git Bash con un prompt que empieza con `/` necesi
 de un freno, horas: los mutantes sobre copias del molde, nunca sobre `kit/molde`; en `-p`, un clon que no es de confianza ignora el
 `permissions.allow` del proyecto. **El plan semanal estaba al 83% (renueva el 1-11)**: si corta, se retoma desde el último commit.
 
+## Abrir D3.2 y D3.3 sin Guido (los prompts)
+
+Las dos en la PC `Usuario`, en Opus, un chat nuevo en vibe-kit cada una. D3.3 se abre **recién cuando D3.2 cerró** (G3-G6 en `main`, las
+ramas `wip/*` borradas). Es el prompt de D3.1 con lo que cambia; las reglas de siempre siguen valiendo.
+
+**D3.2**:
+
+> inicio — misión 5, D3.2: terminar G3, G4, G5 y G6 del paquete 3 desde sus ramas WIP, sin mí.
+>
+> Me voy y te dejo trabajando solo. Te autorizo por adelantado a lo mismo que a D3.1 (su prompt, en el tracker, "Abrir D3.1 sin Guido"):
+> decidís con la recomendada, anotás en "Decisiones sin Guido" de la fila D3.2 (las ⚠️ arriba), no cortás por contexto, no tocás el
+> `~/.claude/` real, y lo que necesita una persona va a Pendientes. Lo que cambia:
+>
+> 1. **Alcance: solo G3, G4, G5 y G6.** G7 y lo que sigue es de D3.3: no lo empieces aunque te sobre cuota.
+> 2. **La PC ya está preparada**: kit-sync LIMPIO, repos de prueba armados, y el corpus en `C:\Users\Usuario\vibe-historial\` (16.470
+>    llamadas: lo dice "Pendientes" del tracker). Verificá las tres cosas en el /inicio; no lo rehagas si está.
+> 3. **De a dos Opus como máximo**: primero G3 ∥ G6 (a G6 le faltan las pruebas de `barreras`, no medición), después G4 ∥ G5. Cada encargo
+>    sigue desde el último commit de su rama `wip/d3.1-*` (en un worktree propio, con su subcarpeta del scratchpad), con el brief de "Los
+>    encargos" del delta y lo que dice su commit WIP. **La mutación con tope** (la de G2 tardó horas): si un freno pasa de ~1 h, que mute
+>    las reglas que frenan y anote el resto.
+> 4. Leés cada diff, corrés vos las pruebas de cada encargo y la suite entera una vez al final (~27 min, en segundo plano). Aceptado →
+>    merge a `main`, commit y push, y se borra la rama `wip/*` en `origin`. Si uno no cierra, queda en su rama con qué le falta en Pendientes.
+> 5. Al terminar los cuatro, /cierre completo (kit-sync LIMPIO, docs, diario, el chat al privado, gitleaks, commit y push), con el
+>    "Próximo paso" apuntando a D3.3 y su título. En el resumen final, primero "Decisiones sin Guido" y después lo que me espera a mí.
+
+**D3.3**:
+
+> inicio — misión 5, D3.3: cerrar el paquete 3, sin mí.
+>
+> Mismas autorizaciones que D3.2. Alcance: G7, G10, G11, G12 y G13 (en el orden de dependencias de "Los encargos" del delta: G7 y G10
+> primero, después G11 y G12, G13 al final), el revisor frío (que recorra el día normal, no solo los ataques: lección de D2.2) y lo que
+> encuentre, y lo de "Paquete 3 · de D2.2" de Pendientes. De a dos Opus como máximo; los Sonnet mecánicos no cuentan. Al terminar, la fila
+> del paquete 3 en ✅ con lo que espera a Guido (instalar los hooks por PC en las dos PCs) y /cierre completo, con el "Próximo paso" en D4.1.
+
 ## Paralelizar: decidido que no (DP, 2026-10-29)
 
 **La misión 5 sigue en secuencia: un director por vez, en el orden de la tabla de arriba.** Guido: "Prefiero hacerlo bien y que tarde
@@ -245,11 +280,14 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
   código escrito, las pruebas nuevas de `barreras` a medio escribir), **`wip/d3.1-g3-git-seguro`** (`98c79cd`: `git-seguro.cjs` +
   `lib/agente.cjs`), **`wip/d3.1-g4-sensible`** (`17aa488`: `sensible.cjs` + `kit.ejemplo.md`) y **`wip/d3.1-g5-secretos`** (`5d0444c`:
   `secretos.cjs` + `pc/lib/`, 23 pruebas verdes, sin la mutación). Al terminarlos, cada rama `wip/*` se mergea (o se rehace) y se borra. Ninguno tiene la
-  medición contra el historial ni la mutación cerradas. **Lo que falta, en orden**: terminar G3, G4 y G5 (relanzarlos sobre su rama WIP:
-  "seguí desde este commit"; medición + mutación + leer el diff), después G7, G10, G11, G12, G13, el revisor frío y el `/cierre`. Los
-  briefs están en "Los encargos" del delta. **El corpus del historial no viaja** (tiene secretos reales): en la PC donde siga D3.2, G1 se
-  rehace en ~8 min con `extraer.cjs`/`correr.cjs`, que están en el privado `vibe-research/mision-5/medicion-historial/` (mide contra los
-  transcripts de esa PC; anotar cuál fue).
+  medición contra el historial ni la mutación cerradas. **Lo que falta, en orden**: **D3.2** termina G3, G4, G5 y G6 (relanzarlos sobre su
+  rama WIP: "seguí desde este commit"; medición + mutación + leer el diff); **D3.3** hace G7, G10, G11, G12, G13, el revisor frío y el
+  `/cierre`. Los briefs están en "Los encargos" del delta. **El corpus del historial no viaja** (tiene secretos reales).
+- **La PC `Usuario` quedó preparada para D3.2 y D3.3** (2026-10-29, sesión "Git pull", antes de abrirlas): `kit-sync sync` → LIMPIO; los
+  repos de prueba armados con `rehacer.sh` en `../vibe-kit-pruebas/`; **el corpus en `C:\Users\Usuario\vibe-historial\`** (fuera de todo
+  repo; `extraer.cjs` y `correr.cjs` copiados del privado): **16.470 llamadas únicas** de 67 chats de esta PC (2026-06-13 a 2026-10-29),
+  contra las 91.298 de `clientes`. Es más chico porque esta PC borró sus crudos de vibe-kit el 2026-10-28: la medición de D3.2 lo dice en
+  cada resultado ("corpus `Usuario`, 16.470") y no se compara contra las cifras de G2 y G9, que se midieron en `clientes`.
 - **Paquete 3 · de D2.2**: (a) `KIT_PLAZO_ARRANQUE_MS` en `doctor` (era la (d) de D2.1); (b) el pre-commit corre `estructura.cjs` **desde
   la versión de `origin/<rama por defecto>`**, no la del disco (r4-3: un candado editado y corrido en el mismo commit se aprueba solo); (c)
   `niega-aprobar.cjs` en `bypassPermissions` **no se probó con `claude.exe`**: el clasificador del modo `auto` frenó lanzar una sesión en bypass
@@ -378,6 +416,7 @@ Del spec, sección "Lo que hacés vos de nuevo". Acá solo cuándo toca, para qu
 | 2026-10-29 | **El director no corta por contexto**; y **D2.2 corre sin Guido presente**, con su autorización previa: decide con la recomendada y lo anota en "Decisiones sin Guido" de su fila para que él lo revise al volver | Guido (DP): "lo que la sesión recomendaba tendía a ser lo correcto"; los directores anteriores cerraron con mucho contexto de sobra. Nada del molde v3 llega a la flota antes del tag, así que toda decisión es reversible hasta ahí |
 | 2026-10-29 | **D3.1 también corre sin Guido**, como D2.2, con dos diferencias: **el director sella el delta del paquete 3** (provisorio: "sellado sin Guido", después del red team sin ALTOS; Guido lo repasa al volver), y **nada toca el `~/.claude/` real de la PC**: los hooks por PC y el `doctor` se prueban con un `HOME` falso; instalarlos en `clientes` y `Usuario` (el "hecho cuando" del orden 3) queda para Guido. Las pruebas de D2.2 en una pestaña real, Guido las hace más adelante: no traban a D3.1 | Guido, al volver de D2.2: "hoy no tengo tiempo", quiere que siga codeando como a la noche. El sello a mano de los paquetes 1-3 era para que Guido leyera el formato que se congela antes de construir; como nada llega a la flota antes del tag, lo puede leer después y todo se deshace. La PC real no: un hook roto con `onFailure: block` traba todas sus sesiones |
 | 2026-10-29 | **El paquete 3 pasa a dos directores (D3.1 y D3.2)**: D3.1 cortó a medias en un punto pedido por Guido; sus encargos a medio hacer quedan en ramas WIP locales y D3.2 los termina | Guido, a la tarde: "estamos con poca cuota de sesión"; prefirió frenar G3-G6 y cerrar limpio antes que quemar 1-2 h más de cuota en trabajo que igual había que revisar |
+| 2026-10-29 | **El paquete 3 pasa a tres directores**: D3.2 solo cierra G3-G6 (de a dos Opus: G3 ∥ G6, después G4 ∥ G5) y D3.3 hace G7, G10-G13, el revisor frío y el `/cierre`. Las dos corren en la PC `Usuario`, preparada antes por otra sesión (abajo, "Abrir D3.2 y D3.3") | Guido, al retomar en `Usuario`: D3.1 cortó por meter todo junto; cada medición tarda 1-2 h y el plan semanal renueva el 1-11. Partido, si la cuota corta, corta en un punto limpio |
 | 2026-10-29 | **No se paraleliza: un director por vez**, en el orden de la tabla (DP) | Decisión de Guido: en la misma PC, paralelizar pedía reglas nuevas y un ensayo antes de saber si rendía; "prefiero hacerlo bien y que tarde más" |
 | 2026-10-28 | **Un director Opus por paquete con subagentes** en vez de una sesión por paso: de ~18-21 sesiones a 13 directores; los encargos mecánicos vuelven a Sonnet | ADR-028: propuesta de Guido (un orquestador para todo el spec), acotada a uno por paquete |
 
