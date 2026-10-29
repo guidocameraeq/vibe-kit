@@ -195,7 +195,10 @@ test('inicio: Estado · Próximo paso · Bloqueos y las dos preguntas del tamañ
   const t = TEXTOS.inicio;
   const e = t.indexOf('**Estado**');
   assert.ok(e >= 0 && e < t.indexOf('**Próximo paso**') && t.indexOf('**Próximo paso**') < t.indexOf('**Bloqueos**'));
-  assert.match(t, /¿se retoma solo con el pedido más el `git diff`\? ¿lleva más de una sesión\?/);
+  assert.match(t, /¿hace falta algo más que el pedido y el `git diff` para retomarlo\? ¿lleva más de una sesión\?/);
+  // B §6 estaba al revés: "¿se retoma solo?" con "ninguna sí = chico" daría "más que chico" para un pedido chico.
+  assert.doesNotMatch(t, /¿se retoma solo/);
+  assert.match(t, /Ninguna sí: \*"chico, lo hago acá"\*\. Alguna sí: \*"esto es más que chico/);
   assert.match(t, /\*"chico, lo hago acá"\*/);
   assert.match(t, /\*"esto es más que chico: llamo al Arquitecto"\*/);
   assert.match(t, /sin preguntar/);

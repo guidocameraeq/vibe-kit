@@ -193,6 +193,11 @@ se pierde en un archivo, queda como su documentación.
 *Qué cambia para Guido*: una feature que hace él solo entra en el mismo sistema que un tramo de Hermes, sin pagar el traje grande
 (criterio 9). Un hotfix se hace y ya.
 
+*Nota de la misión 5, paquete 2 (2026-10-29, D2.2, [SPEC-paquete-2](../kit-v3/SPEC-paquete-2.md)): la primera pregunta está escrita al revés
+de la regla: "¿se retoma solo con el pedido más el `git diff`?" con "si alguna es sí, es módulo" daría módulo justo al pedido chico. Lo que
+vale: **es módulo si NO se retoma solo con el pedido más el diff, o si lleva más de una sesión**. Así quedó en `pruebas/pedidos.md` y en el
+`/inicio` del molde.*
+
 *Nota de H (2026-10-25): los nombres quedan como están acá (chico · módulo · módulo con director) para el **tamaño del pedido**; el **nivel del proyecto** en la ficha del kit es `liviano` (sin código) o `estandar` (con código), y "largo" se calcula de `piezas.director-obrero`. La sesión plana dice el tamaño en una línea sin preguntar; director solo si hay dos o más tareas que se escriben a la vez o noche sin Guido; varias sesiones seguidas no hacen director ([DISENO-H](DISENO-H-niveles-y-puertas.md) §4-§6).*
 
 ## 7. Quién mantiene la estructura sin que nadie lo pida (decisión 4)
