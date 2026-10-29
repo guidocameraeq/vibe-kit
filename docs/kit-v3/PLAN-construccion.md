@@ -20,6 +20,7 @@ sesiones bajan a 13 directores y el contexto de cada director queda acotado a su
 1. **Abrir**: `/inicio` lee este tracker, la parte del spec del paquete y las secciones citadas de su diseño. Nada más.
 2. **Spec delta** (`docs/kit-v3/SPEC-paquete-<N>.md`, formato SPEC-0/delta): las piezas, qué NO SE TOCA, cómo se prueba, y **la lista
    de encargos** (abajo). Los de los paquetes 1 a 3 **los sella Guido a mano**; desde el 4, el script del sello. **El director frena acá.**
+   *(Salvo D3.1, que lo sella provisorio sin Guido: "Cambios al plan", 2026-10-29.)*
 3. **Red team** si toca permisos, secretos o datos (paquetes 2 a 5 seguro): subagente Opus con el agente `redteam-spec`, hasta 3 rondas.
    Lo que vuelva como decisión de diseño **se lo lleva a Guido**; lo demás lo integra. Los informes al repo privado.
 4. **Encargos**: el director parte el paquete. Cada encargo dice **qué archivos puede tocar, qué prueba tiene que pasar y qué no se
@@ -137,6 +138,41 @@ que viaja, barrera, o contra el SPEC-0 o un ADR) van arriba, y todas se deshacen
 - En `/inicio` del molde, con el pedido en el mensaje, la sesión dice el tamaño **y sigue**, sin esperar otro OK (criterio 2); el de vibe-kit
   espera el OK, pero es otra skill.
 
+## Abrir D3.1 sin Guido (el prompt)
+
+Guido abre un chat nuevo en vibe-kit, en Opus, pega esto y se va. Es el de D2.2 con lo que cambia para el paquete 3:
+
+> inicio — misión 5, D3.1: el paquete 3 entero (seguridad), sin mí.
+>
+> Me voy y te dejo trabajando solo hasta terminar. Te autorizo por adelantado a todo esto:
+>
+> 1. Después del /inicio no esperes mi OK. Si da limpio, arrancá. Si algo no está limpio (kit-sync sucio, git con cosas raras), no pises
+>    nada en ninguna dirección: anotalo y seguí con lo que no dependa de eso.
+> 2. Decidís vos. Todo lo que normalmente me preguntarías (el spec delta, lo que devuelva el red team, lo que encuentre el revisor frío) lo
+>    resolvés con la recomendada y seguís. Cada decisión va a "Decisiones sin Guido" en la fila D3.1 del tracker: qué decidiste, la
+>    alternativa y por qué. Si es un cambio de diseño grande (un formato que viaja a la flota, una barrera de seguridad, algo que contradice
+>    el SPEC-0 o un ADR), decidilo igual, de forma que se pueda deshacer, y marcalo con ⚠️ arriba de esa lista. **El delta del paquete 3 lo
+>    sellás vos** (provisorio, "sellado sin Guido", después del red team sin ALTOS): no frenes en el paso 2 de "Cómo se trabaja"; lo repaso
+>    al volver.
+> 3. No cortes por contexto ni partas en otro director. Hacé la fila D3.1 entera: delta, red team, encargos, el revisor frío y lo que
+>    encuentre, más lo de "Paquete 3 · de D2.2" de Pendientes. Si la app compacta, releé el tracker y el delta antes de seguir editando.
+> 4. Seguí las reglas de siempre: "Cómo se trabaja" del tracker (docs/kit-v3/PLAN-construccion.md). Opus para lo que decide y Sonnet para lo
+>    mecánico. Leés cada diff y corrés las pruebas vos. Prueba de mutación sobre cada freno. Nada se tapa.
+> 5. **No toques el `~/.claude/` real de esta PC** (ni `settings.json` ni hooks): los hooks por PC y el doctor se prueban con un HOME falso.
+>    Instalarlos en las dos PCs lo hago yo después; dejalo en Pendientes con qué tengo que correr.
+> 6. Lo que necesita una persona no te frena (una pestaña nueva, un pop-up, la segunda PC): hacé lo que se pueda con claude -p en un clon
+>    de un repo de prueba, y el resto va a Pendientes con qué tengo que mirar. No me esperes nunca: si algo se traba, va a Pendientes y
+>    seguís con lo que no depende de eso.
+> 7. Guardá a medida que avanzás: commit después de cada encargo aceptado y la fila del tracker al día. Si te corta el límite del plan,
+>    mañana se retoma desde ahí.
+> 8. Al terminar, /cierre completo: kit-sync LIMPIO, docs, diario, gitleaks, commit y push. En el resumen final poné primero "Decisiones
+>    sin Guido" (las ⚠️ arriba) y después lo que me espera a mí.
+
+**Lo que D2.2 aprendió y le sirve a D3.1**: el revisor frío tiene que recorrer el día normal (dos PCs, `pull`, `merge`, worktrees), no solo
+los ataques; `claude -p` desde Git Bash con un prompt que empieza con `/` necesita `MSYS_NO_PATHCONV=1`; la suite tarda ~20 min y la mutación
+de un freno, horas: los mutantes sobre copias del molde, nunca sobre `kit/molde`; en `-p`, un clon que no es de confianza ignora el
+`permissions.allow` del proyecto. **El plan semanal estaba al 83% (renueva el 1-11)**: si corta, se retoma desde el último commit.
+
 ## Paralelizar: decidido que no (DP, 2026-10-29)
 
 **La misión 5 sigue en secuencia: un director por vez, en el orden de la tabla de arriba.** Guido: "Prefiero hacerlo bien y que tarde
@@ -160,7 +196,7 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
 
 - **Paquete 1 · que un hook que lee una ficha rota frene** (SPEC-paquete-1, "Lo que se prueba más adelante"): el parser sale con 1;
   el freno se prueba en los órdenes 2 y 3, cuando existan los hooks.
-- **Paquete 2 · te espera a vos, Guido** (D2.2 no lo podía hacer sin una persona): (1) **decidir la ⚠️ de arriba** (una sesión en bypass en
+- **Paquete 2 · te espera a vos, Guido** (D2.2 no lo podía hacer sin una persona; **lo hace más adelante, no traba a D3.1**): (1) **decidir la ⚠️ de arriba** (una sesión en bypass en
   tu checkout principal puede fabricar un `aprobado`: ¿lo aceptás hasta el orden 3?) y repasar las otras ⚠️ de "Decisiones sin Guido"; (2) en
   una pestaña de VS Code en `../vibe-kit-pruebas/alfa`: **la ventana de `cambios aprobar` en modo `auto`** (pedile a la sesión que proponga quitar un freno
   y que lo apruebe: tiene que aparecer la ventana y, al aceptar, el commit `cambios: aprobado …`), **"creá `docs/notas.md`" sin pop-up**
@@ -291,6 +327,7 @@ Del spec, sección "Lo que hacés vos de nuevo". Acá solo cuándo toca, para qu
 | 2026-10-28 | **P3.2 (la zona propia) entra al orden 2**, y `pruebas/pedidos.md` pasa del orden 1 al 2 | P3.2 no tenía orden en el SPEC-0 y la necesitan `/inicio`/`/cierre` v3 y la exención de `candado:barreras`; `pedidos.md` lo usa `/inicio` v3 (P5.1). Decidido por Guido al sellar el delta del paquete 1 (D1.1) |
 | 2026-10-28 | **Los repos de prueba se mudan a `../vibe-kit-pruebas/`**, fuera del repo; `rehacer.sh` y `pedidos.md` se quedan en `pruebas/` | Adentro, leer un archivo suyo cargaba su `CLAUDE.md` (y, según la doc, sus skills `/inicio` y `/cierre`) en la sesión de vibe-kit, y una sesión abierta en un repo de prueba heredaba el `CLAUDE.md` de vibe-kit: las pruebas del hook del paquete 2 nacían sucias. Guido: "si molesta y no cambia nada, movelos" (D2.1) |
 | 2026-10-29 | **El director no corta por contexto**; y **D2.2 corre sin Guido presente**, con su autorización previa: decide con la recomendada y lo anota en "Decisiones sin Guido" de su fila para que él lo revise al volver | Guido (DP): "lo que la sesión recomendaba tendía a ser lo correcto"; los directores anteriores cerraron con mucho contexto de sobra. Nada del molde v3 llega a la flota antes del tag, así que toda decisión es reversible hasta ahí |
+| 2026-10-29 | **D3.1 también corre sin Guido**, como D2.2, con dos diferencias: **el director sella el delta del paquete 3** (provisorio: "sellado sin Guido", después del red team sin ALTOS; Guido lo repasa al volver), y **nada toca el `~/.claude/` real de la PC**: los hooks por PC y el `doctor` se prueban con un `HOME` falso; instalarlos en `clientes` y `Usuario` (el "hecho cuando" del orden 3) queda para Guido. Las pruebas de D2.2 en una pestaña real, Guido las hace más adelante: no traban a D3.1 | Guido, al volver de D2.2: "hoy no tengo tiempo", quiere que siga codeando como a la noche. El sello a mano de los paquetes 1-3 era para que Guido leyera el formato que se congela antes de construir; como nada llega a la flota antes del tag, lo puede leer después y todo se deshace. La PC real no: un hook roto con `onFailure: block` traba todas sus sesiones |
 | 2026-10-29 | **No se paraleliza: un director por vez**, en el orden de la tabla (DP) | Decisión de Guido: en la misma PC, paralelizar pedía reglas nuevas y un ensayo antes de saber si rendía; "prefiero hacerlo bien y que tarde más" |
 | 2026-10-28 | **Un director Opus por paquete con subagentes** en vez de una sesión por paso: de ~18-21 sesiones a 13 directores; los encargos mecánicos vuelven a Sonnet | ADR-028: propuesta de Guido (un orquestador para todo el spec), acotada a uno por paquete |
 

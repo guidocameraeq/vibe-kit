@@ -15,11 +15,15 @@
 
 ## Próximo paso
 
-1. **Guido repasa lo de D2.2** (tracker, "Decisiones sin Guido", las ⚠️ arriba, y "Pendientes" → "Paquete 2 · te espera a vos"): una
-   pregunta (bypass en el checkout principal puede fabricar un `aprobado`; ¿se acepta hasta el orden 3?) y cuatro pruebas en una pestaña
-   real de `alfa` (la ventana de `cambios aprobar` en modo `auto`, el "sin pop-up", el modo en la cabecera, la fila 6 en `auto`).
-2. Después, **D3.1**, en Opus: **`vibe-kit M5 · D3.1 · Paquete 3: seguridad — corrector, barreras, hooks por PC, doctor mínimo`**. Spec delta
-   + red team obligatorio, **sellado por Guido a mano** (paquetes 1-3). Lo de "Paquete 3 · de D2.2" del tracker entra en su lista.
+**D3.1, sola, sin Guido**, en Opus: **`vibe-kit M5 · D3.1 · Paquete 3: seguridad — corrector, barreras, hooks por PC, doctor mínimo`**.
+Guido abre el chat con el prompt de la sección "Abrir D3.1 sin Guido" del tracker (empieza con `inicio — misión 5, D3.1`) y se va:
+**después del `/inicio` no espera OK**. Como D2.2: decide con la recomendada y lo anota en "Decisiones sin Guido" de su fila, no corta por
+contexto, commitea después de cada encargo y cierra con `/cierre`. **Distinto de D2.2**: el delta lo sella el director (provisorio, tras el
+red team sin ALTOS) y **nada toca el `~/.claude/` real de la PC** (hooks por PC y `doctor` con un `HOME` falso; instalarlos es de Guido).
+Lo de "Paquete 3 · de D2.2" del tracker entra en su lista.
+
+**Para Guido, más adelante (no traba a D3.1)**: repasar las ⚠️ de D2.2, contestar la pregunta del bypass en el checkout principal, y las
+cuatro pruebas en una pestaña real de `alfa` ("Pendientes" → "Paquete 2 · te espera a vos").
 
 ## Cosas que muerden y no están en ningún otro doc
 
