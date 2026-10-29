@@ -1,17 +1,28 @@
 'use strict';
-// secretos.cjs — el corrector de secretos de la PC (SPEC-paquete-3 P4.3; diseño F §7, §8, §9, §11; RT1-4, RT2-2; r1-3, r1-9,
-// r1-12, r1-14, r1-15, r1-21). Corre en TODO proyecto, con kit o sin. Es un hook que NIEGA (P4.7): onFailure "block",
-// timeout 20 y forma exec los pone el instalador de la PC (G10), no este archivo.
+// secretos.cjs — el corrector de secretos de la PC (SPEC-paquete-3 P4.3; diseño F §5, §7, §8, §9, §11; RT1-4, RT2-2; r1-3, r1-9,
+// r1-12, r1-14, r1-15, r1-21). Corre en TODO proyecto, con kit o sin. Es un hook que NIEGA (P4.7): onFailure "block", timeout 20
+// y forma exec los pone el instalador de la PC (G10), no este archivo.
 //
 //   - PreToolUse sobre Bash|PowerShell|Write|Edit|MultiEdit|NotebookEdit: mira tool_input.command, content, new_string,
-//     edits[].new_string y new_source.
+//     edits[].new_string y new_source. Ids secretos:<qué>, uno por fila de la tabla de P4.3.
 //   - UserPromptSubmit (D-5): mira el prompt; si trae una clave con forma real, decision "block" con suppressOriginalPrompt
-//     (verificado en https://code.claude.com/docs/en/hooks el 2026-10-29: decision y reason al tope, suppressOriginalPrompt
-//     dentro de hookSpecificOutput). FALLA ABIERTO: ante cualquier error interno sale 0 sin bloquear.
+//     (doc de hooks, leída por D3.1 el 2026-10-29: decision y reason al tope, suppressOriginalPrompt dentro de
+//     hookSpecificOutput). FALLA ABIERTO: ante cualquier error interno sale 0 sin bloquear (el registro va sin onFailure).
 //
-// NUNCA hace require fuera de ./lib/ (D-12). <home> = la carpeta de usuario que contiene .claude, sacada del __dirname del
-// hook instalado (<home>/.claude/hooks/kit/secretos.cjs), NUNCA os.homedir() (r1-15): la prueba del criterio 13 corre este
-// archivo desde una copia sola con HOME/USERPROFILE apuntando a otro lado y el log tiene que caer bajo <home>.
+// FORMA (P4.7): decidir(entrada, {anotar}) pura salvo el renglón → { decision: 'nada' } · { decision: 'deny'|'ask', salida, id,
+//   detalle, motivo, renglon } · { evento: 'prompt', decision: 'block'|'nada', salida, id }. Tira solo si algo interno se rompe:
+//   principal() lo traduce al deny "freno roto: corré doctor" (en el prompt, a dejar pasar); si ni eso, sale 2 (el prompt, 0).
+// BARATO: sin ficha ni procesos hasta que algo de fábrica frenaría. La sesión sale de lib/agente.cjs (solo fs); el único git
+//   es fichaVigente, y corre recién con un candidato.
+// LA FICHA del cwd (contexto.fichaVigente): frenos.quitados con hasta: vigente apaga ESE id; secretos: suma nombres a
+//   imprime-variable y publicas: los saca. Sin ficha: fábrica. Rota: nada quitado, el motivo suma "ficha rota: <dónde> — corré
+//   doctor", y secretos:/publicas: salen de la última versión que se lee (hasta 20 commits, como rf-14).
+// EL RENGLÓN (formato de D2.1): con ficha (o rota), <raíz>/.claude/frenos.log; sin ficha, <home>/.claude/hooks/kit/frenos.log.
+//   Detalle = el caso, el NOMBRE de la variable o el archivo relativo; un ask, "preguntó: …". Nunca el comando ni un valor.
+//
+// NUNCA hace require fuera de ./lib/ (D-12). <home> = la carpeta que contiene el .claude donde está instalado
+// (<home>/.claude/hooks/kit/secretos.cjs), sacada de __dirname, NUNCA de os.homedir() (r1-15).
+// NO ES UNA FRONTERA (Lo que esto no cierra): alias, variables, base64 o un script lo esquivan; la red es el candado.
 // Node estándar salvo ./lib/. Es .cjs a propósito: corre igual en proyectos con "type": "module".
 
 const fs = require('fs');
@@ -19,36 +30,43 @@ const path = require('path');
 const comando = require('./lib/comando.cjs');
 const contexto = require('./lib/contexto.cjs');
 const agente = require('./lib/agente.cjs');
+const ficha = require('./lib/ficha.cjs');
+const git = require('./lib/git.cjs');
 const frenosLog = require('./lib/frenos-log.cjs');
 
 const HERRAMIENTAS_TOOL = ['Bash', 'PowerShell', 'Write', 'Edit', 'MultiEdit', 'NotebookEdit'];
 const COMANDO = ['Bash', 'PowerShell'];
 const ESCRITURA = ['Write', 'Edit', 'MultiEdit', 'NotebookEdit'];
-const CON_VENTANA = new Set(['default', 'acceptEdits', 'plan', 'auto']);
-const SIN_VENTANA_DURO = new Set(['bypassPermissions', 'dontAsk']);
+const CON_VENTANA = ['default', 'acceptEdits', 'plan', 'auto'];
+const SIN_VENTANA_DURO = ['bypassPermissions', 'dontAsk'];
+const PREFIJO = 'secretos:';
 const ROTO = 'freno roto: corré doctor';
+const WIN = process.platform === 'win32';
 
 // ---------------------------------------------------------------- <home> por __dirname (r1-15)
 
-// El hook instalado vive en <home>/.claude/hooks/kit/secretos.cjs; <home> es la carpeta ANTES de ese `.claude`.
-function homeDelHook() {
+function homeDelHook(dir = __dirname) {
   const marca = `${path.sep}.claude${path.sep}`;
-  const d = __dirname + path.sep;
+  const d = dir + path.sep;
   const i = d.toLowerCase().lastIndexOf(marca.toLowerCase());
   if (i >= 0) return d.slice(0, i);
-  return path.resolve(__dirname, '..', '..', '..'); // kit -> hooks -> .claude -> <home>
+  return path.resolve(dir, '..', '..', '..'); // kit -> hooks -> .claude -> <home>
 }
 const HOME = homeDelHook();
+// ¿Corre instalado (<home>/.claude/hooks/kit/)? Si no (desde kit/ en el repo, en las pruebas), el renglón de la PC no se escribe:
+// sin esto, una corrida desde el repo crearía kit/.claude/hooks/kit/frenos.log adentro del repo.
+const INSTALADO = path.resolve(__dirname) === path.join(HOME, '.claude', 'hooks', 'kit');
 
 // ---------------------------------------------------------------- patrones de clave (sin claves literales en kit/, r1-4)
 
-// Se arman de fragmentos: así el texto del propio archivo NO matchea sus regex (la prueba hace grep de estos mismos patrones
+// Se arman de fragmentos: así el texto de este archivo NO calza con sus regex (la prueba hace grep de estos mismos patrones
 // sobre kit/ y espera 0). El banco se exporta para que la prueba use EXACTAMENTE estos.
 function bancoPatrones() {
   return [
     { id: 'github-pat', re: new RegExp('gh' + 'p_[A-Za-z0-9]{30,}') },
     { id: 'github-fino', re: new RegExp('github' + '_pat_[A-Za-z0-9_]{30,}') },
-    { id: 'sk-api', re: new RegExp('sk' + '-(?:proj|ant)-[A-Za-z0-9_-]{20,}') },
+    // el cuerpo tiene que traer letras Y dígitos: `sk-proj-PONE-ACA-TU-CLAVE` es un ejemplo de .env.example, no una clave (medido)
+    { id: 'sk-api', re: new RegExp('sk' + '-(?:proj|ant)-[A-Za-z0-9_-]{20,}'), valida: (m) => { const c = m.replace(/^[a-z]+-[a-z]+-/, ''); return /[0-9]/.test(c) && /[A-Za-z]/.test(c); } },
     { id: 'supabase-token', re: new RegExp('sb' + 'p_[0-9a-f]{20,}') },
     { id: 'twilio', re: new RegExp('A' + 'C[0-9a-f]{32}:[0-9a-f]{16,}') },
     { id: 'aws', re: new RegExp('AK' + 'IA[0-9A-Z]{16}') },
@@ -60,46 +78,42 @@ function bancoPatrones() {
 const PATRONES = bancoPatrones();
 const RE_JWT = new RegExp('ey' + 'J[A-Za-z0-9_-]+\\.ey' + 'J[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]*');
 
-// ¿el cuerpo (segundo tramo) del jwt dice role anon? base64url → texto. service_role (o cualquier otro) NO es anon.
+// ¿el cuerpo (segundo tramo) del jwt dice "role":"anon"? service_role, o cualquier otro, NO es anon (r1-12).
 function jwtEsAnon(token) {
-  const tramos = token.split('.');
+  const tramos = String(token).split('.');
   if (tramos.length < 2) return false;
-  let b = tramos[1].replace(/-/g, '+').replace(/_/g, '/');
-  while (b.length % 4) b += '=';
-  let txt = '';
-  try {
-    txt = Buffer.from(b, 'base64').toString('utf8');
-  } catch (e) {
-    return false;
-  }
-  const sinEsp = txt.replace(/\s+/g, '');
-  return /"role":"anon"/.test(sinEsp);
+  const txt = Buffer.from(tramos[1], 'base64url').toString('utf8');
+  return /"role":"anon"/.test(txt.replace(/\s+/g, ''));
 }
 
-// textos → [{id}] de patrones que matchean. El jwt pasa solo si es anon.
+// textos → ids de los patrones que calzan. El jwt cuenta salvo que sea anon (también en datos-de-prueba: y en lo asignado a
+// publicas:: el texto no dice dónde va a parar, así que la regla es la misma en todos lados).
 function clavesEn(textos) {
-  const hits = [];
   const t = textos.filter((x) => typeof x === 'string').join('\n');
-  if (t === '') return hits;
-  for (const p of PATRONES) if (p.re.test(t)) hits.push({ id: `secretos:${p.id}` });
-  let m;
+  const ids = [];
+  if (t === '') return ids;
+  for (const p of PATRONES) {
+    const ms = p.valida ? t.match(new RegExp(p.re.source, 'g')) || [] : null;
+    if (ms ? ms.some(p.valida) : p.re.test(t)) ids.push(p.id);
+  }
   const re = new RegExp(RE_JWT.source, 'g');
+  let m;
   while ((m = re.exec(t)) !== null) {
     if (!jwtEsAnon(m[0])) {
-      hits.push({ id: 'secretos:jwt' });
+      ids.push('jwt');
       break;
     }
   }
-  return hits;
+  return ids;
 }
 
-// ---------------------------------------------------------------- nombres de variable sensibles
+// ---------------------------------------------------------------- nombres de variable sensibles (D-14, r2-6)
 
-// Los de fábrica (D-14, r2-6): se prueban como subcadena salvo las anclas _KEY$ / _DSN$ / ..._DSN.
 const FABRICA_VARS = [
   /TOKEN/, /SECRET/, /PASSWORD/, /PASS/, /PWD/, /API_KEY/, /PRIVATE_KEY/, /SERVICE_ROLE/,
   /_KEY$/, /CREDENTIAL/, /DATABASE_URL/, /DB_URL/, /_DSN/, /CONNECTION_STRING/,
 ];
+// publicas: gana (la ficha dice que no es secreto); secretos: suma; si no, la lista de fábrica.
 function varSensible(nombre, extra, publicas) {
   const n = String(nombre || '').toUpperCase();
   if (n === '') return false;
@@ -108,195 +122,213 @@ function varSensible(nombre, extra, publicas) {
   return FABRICA_VARS.some((re) => re.test(n));
 }
 
-// ---------------------------------------------------------------- rutas del deny (archivo-deny)
+// ---------------------------------------------------------------- rutas
 
-// Resuelve ~ contra <home>. Todo en minúscula y con / (Windows: sin mayúsculas).
-function norm(p) {
-  return String(p).replace(/\\/g, '/').toLowerCase();
-}
-const HOME_N = norm(HOME);
-function expandeTilde(p) {
-  const s = String(p);
-  if (s === '~') return HOME;
-  if (s.startsWith('~/') || s.startsWith('~\\')) return path.join(HOME, s.slice(2));
+// Todo con / y en minúscula (Windows: sin mayúsculas).
+const norm = (p) => String(p).replace(/\\/g, '/').toLowerCase();
+
+// ~, $HOME, $env:USERPROFILE, %USERPROFILE% → <home>; en Windows, /c/… (Git Bash) → c:/….
+function expandir(tok) {
+  let s = String(tok);
+  s = s.replace(/^(?:\$\{?HOME\}?|\$\{?env:(?:USERPROFILE|HOME)\}?|%(?:USERPROFILE|HOME)%)(?=$|[\\/])/i, () => HOME);
+  if (s === '~') s = HOME;
+  else if (/^~[\\/]/.test(s)) s = HOME + s.slice(1);
+  if (WIN) {
+    const m = /^\/([a-zA-Z])(\/|$)/.exec(s);
+    if (m) s = `${m[1]}:/${s.slice(3)}`;
+  }
   return s;
 }
+const absoluta = (tok, base) => norm(path.resolve(base || process.cwd(), expandir(tok)));
+const HOME_N = norm(HOME);
 
-// El token puede traer comodines (.e*, .en?) o ser una variable ya resuelta. Devuelve true si NOMBRA una ruta de F §5 u
-// otra del deny de archivo (no las de la PC, que van por su propia regla).
-function esRutaDenyArchivo(tokenCrudo, settingsDelProyecto) {
-  if (typeof tokenCrudo !== 'string' || tokenCrudo === '') return false;
-  const token = expandeTilde(tokenCrudo);
-  const n = norm(token);
-  const segs = n.split('/').filter((x) => x !== '');
-  const base = segs.length ? segs[segs.length - 1] : n;
+// Un glob de ruta → RegExp anclada (** cruza carpetas; * y ? no).
+function globARegex(glob) {
+  let r = '';
+  for (let i = 0; i < glob.length; i++) {
+    const ch = glob[i];
+    if (ch === '*' && glob[i + 1] === '*') {
+      if (glob[i + 2] === '/') {
+        r += '(?:.*/)?';
+        i += 2;
+      } else {
+        r += '.*';
+        i += 1;
+      }
+    } else if (ch === '*') r += '[^/]*';
+    else if (ch === '?') r += '[^/]';
+    else r += ch.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+  }
+  return new RegExp(`^${r}$`);
+}
 
-  // Un comodín del token que pueda matchear .env / .env.* / *.pem / *.key.
-  const tieneComodin = /[*?[]/.test(base);
-  const comodinMatchea = (objetivo) => {
-    if (!tieneComodin) return false;
-    const re = new RegExp('^' + base.replace(/[.+^${}()|\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.').replace(/\[/g, '[') + '$');
-    return re.test(objetivo);
-  };
+// Los nombres de F §5 (`.env`, `.env.*`, `*.pem`, `*.key`): el nombre tal cual o un comodín que pueda calzar con uno.
+const EJEMPLOS_DENY = ['.env', '.env.x', 'x.pem', 'x.key'];
+function nombreDeny(base) {
+  if (base === '.env' || base.startsWith('.env.') || base.endsWith('.pem') || base.endsWith('.key')) return true;
+  // Un comodín cuenta si puede calzar Y dice algo: empieza con punto (.e*, .*) o trae una letra (*.pe?). `*` o `dir/*` solos no
+  // (medido: frenaban `ls docs/*`, `wc -l *`); en Bash `*` ni siquiera calza con los archivos con punto.
+  if (/[*?]/.test(base) && (base.startsWith('.') || /[a-z]/.test(base))) {
+    const re = globARegex(base);
+    return EJEMPLOS_DENY.some((x) => re.test(x));
+  }
+  return false;
+}
 
-  if (base === '.env' || base.startsWith('.env.') || comodinMatchea('.env') || comodinMatchea('.env.x')) return true;
-  if (base.endsWith('.pem') || base.endsWith('.key') || comodinMatchea('x.pem') || comodinMatchea('x.key')) return true;
+// Carpetas de la casa (F §5 + el almacén de cargar-secreto).
+const CASA = ['.ssh', '.aws', '.config/gh', '.config/kit-secretos', 'appdata/roaming/github cli'];
+
+// Las reglas Read(...) del deny de los settings*.json del proyecto (raíz por git desde el cwd) → [RegExp] sobre rutas absolutas.
+function denyDeSettings(raiz) {
+  const res = [];
+  if (!raiz) return res;
+  const r = norm(raiz);
+  for (const f of ['settings.json', 'settings.local.json']) {
+    let j;
+    try {
+      j = JSON.parse(fs.readFileSync(path.join(raiz, '.claude', f), 'utf8').replace(/^\uFEFF/, ''));
+    } catch (e) {
+      continue; // sin archivo o roto: lo cuenta el doctor, no este freno
+    }
+    const deny = j && j.permissions && Array.isArray(j.permissions.deny) ? j.permissions.deny : [];
+    for (const regla of deny) {
+      const m = typeof regla === 'string' ? /^Read\((.+)\)$/.exec(regla.trim()) : null;
+      if (!m) continue;
+      let p = m[1].trim().replace(/\\/g, '/');
+      if (p.startsWith('//')) p = expandir(p.slice(1));
+      else if (p.startsWith('~/')) p = HOME + p.slice(1);
+      else if (p.startsWith('./')) p = `${r}/${p.slice(2)}`;
+      else if (p.startsWith('/')) p = `${r}${p}`;
+      else p = `${r}/**/${p}`;
+      p = norm(p);
+      res.push(globARegex(p));
+      if (p.endsWith('/**')) res.push(globARegex(p.slice(0, -3))); // la carpeta misma
+    }
+  }
+  return res;
+}
+
+// ¿el token NOMBRA una ruta del deny de archivo? (los 9 de F §5, el almacén, /proc/*/environ y los Read(...) del proyecto)
+function esRutaDenyArchivo(tok, ctx = {}) {
+  if (typeof tok !== 'string' || tok === '') return false;
+  // No es una ruta: un patrón de grep (`^/.env`, `a|.env`), un renglón de código, o un comando entero que va como texto a otro
+  // programa (`ssh host "cat .env"`, `docker exec x sh -c '…'`: lo de adentro corre en OTRA máquina; medido).
+  if (/[|^\n]/.test(tok) || (/\s/.test(tok) && /[&;'"<>()]/.test(tok))) return false;
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(tok)) return false; // una URL no es un archivo
+  const e = norm(expandir(tok));
+  if (/^\/proc\/[^/]+\/environ$/.test(e)) return true;
+  const segs = e.split('/').filter((x) => x !== '');
+  const base = segs.length ? segs[segs.length - 1] : '';
+  if (nombreDeny(base)) return true;
   if (segs.includes('secrets')) return true;
-
-  // Carpetas de la casa (F §5 + kit-secretos).
-  const casa = [['.ssh'], ['.aws'], ['.config', 'gh'], ['.config', 'kit-secretos'], ['appdata', 'roaming', 'github cli']];
-  for (const c of casa) {
-    const bajo = `${HOME_N}/${c.join('/')}`;
-    if (n === bajo || n.startsWith(`${bajo}/`)) return true;
+  const abs = absoluta(tok, ctx.cwd);
+  for (const c of CASA) {
+    const bajo = `${HOME_N}/${c}`;
+    if (abs === bajo || abs.startsWith(`${bajo}/`)) return true;
   }
-  // El token puede nombrarlas relativas a la casa aun sin resolver (~/.ssh/… ya se expandió arriba).
-
-  // /proc/self/environ y /proc/*/environ.
-  if (/^\/proc\/(self|[^/]+)\/environ$/.test(n)) return true;
-
-  // settings.json / settings.local.json del proyecto (.claude/…).
-  if ((base === 'settings.json' || base === 'settings.local.json') && segs.includes('.claude')) return true;
-
-  return !!settingsDelProyecto && settingsDelProyecto.has(n);
+  return (ctx.denySettings || []).some((re) => re.test(abs));
 }
 
-// ---------------------------------------------------------------- lectores permitidos (archivo-deny)
-
-const LECTORES_OK = new Set(['ls', 'dir', 'get-childitem', 'gci', 'stat', 'rm', 'remove-item', 'del', 'ri', 'test', '[', 'test-path']);
-function gitDeLectura(argv) {
-  const sub = (argv[1] || '').toLowerCase();
-  if (sub === 'status' || sub === 'check-ignore') return true;
-  if (sub === 'rm' && argv.slice(2).some((a) => a === '--cached')) return true;
-  return false;
-}
-// ¿este comando simple, que nombra una ruta del deny, es "seguro" (no revela contenido)?
-function comandoSeguroParaDeny(c, prog, hayPrinterOsetx) {
-  if (LECTORES_OK.has(prog)) {
-    if (prog === 'git') return gitDeLectura(c.argv);
-    return true;
-  }
-  if (prog === 'git') return gitDeLectura(c.argv);
-  // --env-file[= ]<ruta>: "usar sin ver" (§8).
-  if (c.argv.some((a) => a === '--env-file' || /^--env-file=/.test(a))) return true;
-  // source / . de la ruta: seguro si en la MISMA llamada no hay impresor ni set -x.
-  if ((prog === 'source' || prog === '.') && !hayPrinterOsetx) return true;
-  // echo/printf redirigido a .gitignore/.dockerignore: la ruta es texto.
-  if ((prog === 'echo' || prog === 'printf' || prog === 'write-output') && (c.redirecciones || []).some((r) => /^(>|>>)$/.test(r.op) && /(^|\/)\.(git|docker)ignore$/.test(norm(r.destino)))) {
-    return true;
-  }
-  return false;
-}
-
-// ---------------------------------------------------------------- impresores y verbosos
+// ---------------------------------------------------------------- lo que se invoca
 
 const IMPRESORES = new Set(['echo', 'printf', 'print', 'write-output', 'write-host', 'write-information', 'out-host', 'out-string', 'tee']);
-const RE_VERBOSO = /^(-v|--verbose|--trace.*|-x)$/i;
-function hayVerboso(c) {
-  if ((c.argv || []).some((a) => RE_VERBOSO.test(a))) return true;
-  const p = comando.programa(c.argv && c.argv[0]);
-  if ((p === 'bash' || p === 'sh') && (c.argv || []).some((a) => /^-[a-z]*x/i.test(a))) return true;
-  if (p === 'set' && (c.argv || []).some((a) => /^-[a-z]*x/i.test(a))) return true;
+const ESCRIBE = new Set(['>', '>>', '>|', '&>', '&>>', '2>', '2>>', '<>', '*>', '*>>']);
+const NO_ES_ARCHIVO = new Set(['<<', '<<-', '<<<']); // la marca de un heredoc y el texto de un here-string
+
+// Los tokens de ruta de un comando simple: argv[1..] (con las variables asignadas en la misma llamada ya resueltas) y los
+// destinos de redirección que son archivos. → [{tok, escribe}]
+function tokensDeRuta(c, resolver) {
+  const out = [];
+  const argv = (c.argv || []).map(String);
+  const patron = indicePatron(argv);
+  // El texto de `bash -c '…'` / `powershell -Command …` no es una ruta: comando.partir ya sacó lo de adentro como comandos propios.
+  const corte = SHELLS.has(comando.programa(c)) ? argv.findIndex((a, i) => i > 0 && /^(-c|\/c|-command|-encodedcommand)$/i.test(a)) : -1;
+  argv.forEach((a, i) => {
+    if (i > 0 && i !== patron && (corte < 0 || i < corte)) out.push({ tok: resolver(a), escribe: false });
+  });
+  for (const r of c.redirecciones || []) {
+    if (NO_ES_ARCHIVO.has(r.op)) continue;
+    out.push({ tok: resolver(r.destino), escribe: ESCRIBE.has(r.op) });
+  }
+  return out;
+}
+
+// En grep y compañía el primer argumento suelto es el PATRÓN, no una ruta (medido: `grep -n "secrets" docker-compose.yml`).
+// → su índice, o -1 (con -e/-f/--regexp/-Pattern el patrón va como valor de la opción y todo lo suelto es ruta).
+const BUSCADORES = new Set(['grep', 'egrep', 'fgrep', 'rg', 'findstr', 'select-string', 'sls']);
+const CON_VALOR = new Set(['-A', '-B', '-C', '-m', '--max-count', '-g', '--glob', '-t', '--type', '--include', '--exclude', '-Path', '-path']);
+function indicePatron(argv) {
+  if (!BUSCADORES.has(comando.programa(argv[0] || ''))) return -1;
+  if (argv.some((a) => /^(-e|-f|--regexp|--file|-pattern)$/i.test(a) || /^--regexp=/.test(a))) return -1;
+  for (let i = 1; i < argv.length; i++) {
+    if (CON_VALOR.has(argv[i])) i++;
+    else if (!argv[i].startsWith('-') && !(argv[i].startsWith('/') && comando.programa(argv[0]) === 'findstr')) return i;
+  }
+  return -1;
+}
+
+// El subcomando de git, salteando las opciones globales con valor (-C x, -c k=v, --git-dir x…).
+function subGit(argv) {
+  for (let i = 1; i < argv.length; i++) {
+    const a = String(argv[i]);
+    if (a === '-C' || a === '-c' || a === '--git-dir' || a === '--work-tree' || a === '--namespace') {
+      i++;
+      continue;
+    }
+    if (a.startsWith('-')) continue;
+    return { sub: a.toLowerCase(), resto: argv.slice(i + 1).map(String) };
+  }
+  return { sub: '', resto: [] };
+}
+
+const RE_VERBOSO = /^(?:-v+|--verbose|--trace(?:-.*|=.*)?|-verbose)$/;
+function esVerboso(c) {
+  const argv = (c.argv || []).map(String);
+  const p = comando.programa(c);
+  if (argv.slice(1).some((a) => RE_VERBOSO.test(a) || /^-verbose$/i.test(a))) return true;
+  if (p === 'curl' && argv.slice(1).some((a) => /^-[a-zA-Z]*v[a-zA-Z]*$/.test(a))) return true;
+  if ((p === 'bash' || p === 'sh' || p === 'zsh') && argv.slice(1).some((a) => /^-[a-zA-Z]*x[a-zA-Z]*$/.test(a))) return true;
+  if (p === 'set' && (argv.slice(1).some((a) => /^-[a-zA-Z]*x[a-zA-Z]*$/.test(a)) || (argv[1] === '-o' && argv[2] === 'xtrace'))) return true;
   return false;
 }
-// nombres de variable mencionados en un texto ($X, ${X}, $env:X, %X%, ${env:X}).
+
+// Nombres de variable mencionados en un texto ($X, ${X}, $env:X, ${env:X}, %X%).
 function varsEn(texto) {
   const out = [];
   const s = String(texto || '');
   let m;
-  const r1 = /\$\{?env:([A-Za-z_][A-Za-z0-9_]*)\}?/g;
-  while ((m = r1.exec(s))) out.push(m[1]);
-  const r2 = /\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?/g;
-  while ((m = r2.exec(s))) if (!/^env$/i.test(m[1])) out.push(m[1]);
-  const r3 = /%([A-Za-z_][A-Za-z0-9_]*)%/g;
-  while ((m = r3.exec(s))) out.push(m[1]);
+  const rEnv = /\$\{?env:([A-Za-z_][A-Za-z0-9_]*)\}?/gi;
+  while ((m = rEnv.exec(s))) out.push(m[1]);
+  const rSh = /\$\{?([A-Za-z_][A-Za-z0-9_]*)/g;
+  while ((m = rSh.exec(s))) if (!/^env$/i.test(m[1])) out.push(m[1]);
+  const rCmd = /%([A-Za-z_][A-Za-z0-9_]*)%/g;
+  while ((m = rCmd.exec(s))) out.push(m[1]);
   return out;
 }
 
-// ---------------------------------------------------------------- credencial-guardada
-
-function esCredencialGuardada(c) {
-  const p = comando.programa(c.argv && c.argv[0]);
-  const a = (c.argv || []).map((x) => String(x).toLowerCase());
-  if (p === 'gh' && a[1] === 'auth' && a[2] === 'token') return true;
-  if (p === 'gh' && a[1] === 'auth' && a[2] === 'status' && a.some((x) => x === '-t' || x === '--show-token')) return true;
-  if (p === 'git' && a[1] === 'credential' && a[2] === 'fill') return true;
-  if (p === 'git' && a[1] === 'credential-manager' && (a[2] === 'get')) return true;
-  if (p === 'git-credential-manager' && a[1] === 'get') return true;
-  return false;
-}
-
-// ---------------------------------------------------------------- frenos del proyecto / de la PC (rutas)
-
-// ¿la ruta (relativa al cwd o absoluta) es un freno del proyecto? g = datosGit del cwd.
-function rutaFrenoProyecto(tokenCrudo, g) {
-  if (typeof tokenCrudo !== 'string' || tokenCrudo === '' || !g) return null;
-  const abs = norm(path.resolve(g.raiz, expandeTilde(tokenCrudo)));
-  const raiz = norm(g.raiz);
-  const comun = norm(g.gitComun);
-  // 1) dentro del git-dir común (va primero: en el checkout principal raiz/.git === el común)
-  const bajoComun = abs === comun ? '' : abs.startsWith(`${comun}/`) ? abs.slice(comun.length + 1) : null;
-  if (bajoComun !== null && bajoComun !== '') {
-    if (bajoComun === 'index.lock') return null; // libre
-    if (bajoComun === 'config') return '<común>/config';
-    if (bajoComun === 'hooks' || bajoComun.startsWith('hooks/')) return `<común>/${bajoComun}`;
-    if (bajoComun === 'packed-refs' || bajoComun === 'fetch_head' || bajoComun.startsWith('refs/')) return `<común>/${bajoComun}`;
-    if (bajoComun.startsWith('logs/') || bajoComun.startsWith('worktrees/')) return `<común>/${bajoComun}`;
-    if (bajoComun.endsWith('.lock')) return `<común>/${bajoComun}`; // un .lock viejo: "pedíselo al director"
-    return null; // otras cosas del .git común (ORIG_HEAD, COMMIT_EDITMSG…) no están en la lista
-  }
-  // 2) relativas a la raíz del worktree
-  const rel = abs === raiz ? '' : abs.startsWith(`${raiz}/`) ? abs.slice(raiz.length + 1) : null;
-  if (rel !== null) {
-    if (rel === '.claude/hooks' || rel.startsWith('.claude/hooks/')) return rel;
-    if (rel === '.claude/settings.json' || rel === '.claude/settings.local.json') return rel;
-    if (rel === '.githooks' || rel.startsWith('.githooks/')) return rel;
-    if (rel === '.kit-rol') return rel;
-    if (rel === '.git') return rel; // el .git de la raíz del worktree, como entrada (r2-2 b)
-  }
-  return null;
-}
-function esLockViejo(detalle) {
-  return typeof detalle === 'string' && detalle.endsWith('.lock');
-}
-
-// ¿la ruta es un freno de la PC? → 'kit' (siempre) | 'settings' (agente/sin-ventana deny, sino ask) | null.
-function rutaFrenoPC(tokenCrudo) {
-  if (typeof tokenCrudo !== 'string' || tokenCrudo === '') return null;
-  const abs = norm(path.resolve(expandeTilde(tokenCrudo)));
-  const kit = `${HOME_N}/.claude/hooks/kit`;
-  if (abs === kit || abs.startsWith(`${kit}/`)) return 'kit';
-  if (abs === `${HOME_N}/.claude/settings.json`) return 'settings';
-  return null;
-}
-
-// Lectores de un freno: SOLO miran, no escriben ni borran (rm/Remove-Item NO entran). Lista de F §7: lectores de contenido,
-// ls, git diff/log/show/status, node <ruta> como programa, hashes.
-const RE_HASH = /^(sha\d+sum|md5sum|git-hash-object|certutil)$/i;
-const LECTORES_FRENO = new Set(['cat', 'less', 'more', 'head', 'tail', 'get-content', 'gc', 'type', 'ls', 'dir', 'get-childitem', 'gci', 'stat', 'test', '[', 'test-path']);
-function comandoLectorDeRuta(c, prog) {
-  if (LECTORES_FRENO.has(prog)) return true;
-  if (prog === 'git') {
-    const sub = (c.argv[1] || '').toLowerCase();
-    return ['diff', 'log', 'show', 'status', 'cat-file', 'check-ignore'].includes(sub);
-  }
-  if (prog === 'node' || prog === 'python' || prog === 'python3') {
-    // `node <la ruta>` como programa (la ruta es argv[1], sin -e/-p/-c)
-    return !(c.argv || []).some((a) => /^-[epc]$/.test(a));
-  }
-  if (RE_HASH.test(prog)) return true;
-  return false;
-}
-
-// ---------------------------------------------------------------- el mensaje de las claves
+// ---------------------------------------------------------------- los mensajes
 
 const LINEA_SH = 'bash ~/.claude/hooks/kit/cargar-secreto.sh NOMBRE';
 const LINEA_PS = 'powershell -File $env:USERPROFILE\\.claude\\hooks\\kit\\cargar-secreto.ps1 NOMBRE';
 const MSG_CLAVE =
   'no lo escribas ni lo pegues: pedile al humano `cargar-secreto NOMBRE` y usá el comando o la variable. ' +
-  `Git Bash: ${LINEA_SH} · PowerShell: ${LINEA_PS}`;
+  `Git Bash: \`${LINEA_SH}\` · PowerShell: \`${LINEA_PS}\``;
 const MSG_PROMPT =
-  'no pegues claves en el chat: una clave acá queda en tu historial local y arranca a Claude con ella a la vista. ' +
-  'Si ya pegaste una, ya quedó en tu historial local: rotala (runbook `se-filtro-una-credencial`).';
+  'frené el mensaje: trae una clave con forma real. Ya quedó en tu historial local: rotala (runbook `se-filtro-una-credencial`) ' +
+  'y guardá la nueva con `cargar-secreto NOMBRE`, sin pegarla acá.';
+const QUE = {
+  clave: (id) => `una clave con forma real (${id}) en lo que vas a ejecutar o escribir — `,
+  'archivo-deny': (d) => `${d} es un archivo de secretos: no se lee, no se copia ni se imprime (sí \`ls\`, \`test -f\`, \`rm\`, \`git status\`, \`--env-file\`, y \`source\` sin imprimir nada) — `,
+  'imprime-todas': () => 'eso imprime TODO el entorno, con las claves adentro — ',
+  'imprime-variable': (d) => `${d} es secreta: su valor no sale a la pantalla. Como argumento de otro programa, sin -v ni set -x, pasa ("usar sin ver") — `,
+  'credencial-guardada': () => 'eso imprime una credencial guardada (gh y git la usan solos, sin mostrarla) — ',
+};
+const MSG_FRENO_PROYECTO = 'no toques los frenos del proyecto (hooks, settings, .githooks, .kit-rol, el git-dir) desde una sesión de agente: son la red del método. Si hace falta, pedíselo al director.';
+const MSG_LOCK = 'un .lock viejo del git-dir: pedíselo al director (no lo borres desde una sesión de agente). `index.lock` sí se puede.';
+const MSG_PC_KIT = 'no toques el corrector de la PC (<home>/.claude/hooks/kit): lo pone y lo cura el instalador (`instalar-hooks-pc`). Leerlo pasa.';
+const MSG_PC_SETTINGS = 'no toques el settings de la PC (<home>/.claude/settings.json) desde una sesión de agente o sin ventana: el camino es el instalador.';
+const MSG_PC_SETTINGS_ASK = 'vas a tocar el settings de la PC (<home>/.claude/settings.json); el camino es el instalador — confirmá que es a propósito.';
+const MSG_CAMBIOS = 'sin ventana (bypass/dontAsk) no se toca .claude/cambios/ salvo con `node .claude/scripts/cambios.cjs` sin otra mención.';
 
 function salidaTool(decision, motivo) {
   return { hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: decision, permissionDecisionReason: motivo } };
@@ -307,375 +339,489 @@ function salidaPrompt(motivo) {
 
 // ---------------------------------------------------------------- la decisión
 
-// decidir(entrada, opciones) →
-//   { decision: 'nada' } ·
-//   { decision: 'deny'|'ask', salida, id, detalle, motivo } (PreToolUse) ·
-//   { evento: 'prompt', decision: 'block'|'nada', salida, id, detalle } (UserPromptSubmit)
-// Tira solo si algo interno se rompe: principal() lo traduce.
 function decidir(entrada, opciones = {}) {
-  const e = entrada && typeof entrada === 'object' && !Array.isArray(entrada) ? entrada : null;
-  if (!e) throw new Error('la entrada no es un objeto');
+  if (!entrada || typeof entrada !== 'object' || Array.isArray(entrada)) throw new Error('la entrada no es un objeto');
+  if (entrada.hook_event_name === 'UserPromptSubmit') return decidirPrompt(entrada, opciones);
 
-  if (e.hook_event_name === 'UserPromptSubmit') return decidirPrompt(e);
+  const tool = entrada.tool_name;
+  if (!HERRAMIENTAS_TOOL.includes(tool)) return { decision: 'nada' };
+  const i = entrada.tool_input && typeof entrada.tool_input === 'object' ? entrada.tool_input : {};
+  const modo = typeof entrada.permission_mode === 'string' ? entrada.permission_mode.trim() : '';
+  const cwd = contexto.cwdDe(entrada);
 
-  const tool = e.tool_name;
-  if (typeof tool === 'string' && !HERRAMIENTAS_TOOL.includes(tool)) return { decision: 'nada' };
-  const i = e.tool_input && typeof e.tool_input === 'object' ? e.tool_input : {};
-  const esComando = COMANDO.includes(tool);
-  const ps = tool === 'PowerShell';
+  // La sesión por fs (agente.cjs): sin .git subiendo, ni siquiera se le pregunta a git.
+  const ses = agente.raizDe(cwd) ? agente.sesionDeAgente(cwd) : { agente: false, rol: 'desconocido', rama: null, raiz: null, comun: null };
+  const ctx = { tool, modo, cwd, ses, conVentana: CON_VENTANA.includes(modo), duro: SIN_VENTANA_DURO.includes(modo) };
 
-  // Textos para los patrones de clave (barato, sin ficha ni git).
-  const textos = [];
-  if (typeof i.command === 'string') textos.push(i.command);
-  if (typeof i.content === 'string') textos.push(i.content);
-  if (typeof i.new_string === 'string') textos.push(i.new_string);
-  if (typeof i.new_source === 'string') textos.push(i.new_source);
-  if (Array.isArray(i.edits)) for (const ed of i.edits) if (ed && typeof ed.new_string === 'string') textos.push(ed.new_string);
-
-  const modo = typeof e.permission_mode === 'string' ? e.permission_mode.trim() : '';
-  const cwd = contexto.cwdDe(e);
-
-  // --- candidatos de fábrica (sin leer la ficha) ---
-  const candidatos = []; // {id, detalle, decision:'deny'|'ask', motivo, varNombre?}
-  const pushDeny = (id, detalle, motivo) => candidatos.push({ id, detalle, decision: 'deny', motivo: motivo || MSG_CLAVE });
-
-  for (const h of clavesEn(textos)) pushDeny(h.id, archivoRel(i, cwd), MSG_CLAVE);
-
-  // Comandos: se parten una sola vez.
-  let partido = { comandos: [] };
-  let g = null;
-  let ses = { agente: false };
-  if (esComando && typeof i.command === 'string') {
-    partido = comando.partir(i.command, { ps });
-    g = contexto.datosGit(cwd);
-    ses = agente.sesionDeAgente(cwd);
-    analizarComandos(partido, ps, i.command, { modo, g, ses, cwd }, candidatos, pushDeny);
+  const candidatos = []; // {id, decision, detalle, motivo, varNombre?}
+  const textos = [i.command, i.content, i.new_string, i.new_source];
+  if (Array.isArray(i.edits)) for (const ed of i.edits) if (ed) textos.push(ed.new_string);
+  for (const id of clavesEn(textos)) {
+    candidatos.push({ id, decision: 'deny', detalle: archivoRel(i.file_path || i.notebook_path, ctx), motivo: QUE.clave(id) + MSG_CLAVE });
   }
-  if (ESCRITURA.includes(tool)) {
-    g = g || contexto.datosGit(cwd);
-    ses = ses.agente ? ses : agente.sesionDeAgente(cwd);
-    analizarEscritura(i, tool, { g, ses, modo }, candidatos, pushDeny);
-  }
+
+  if (COMANDO.includes(tool) && typeof i.command === 'string') analizarComando(i.command, tool === 'PowerShell', ctx, candidatos);
+  if (ESCRITURA.includes(tool)) analizarEscritura(i.file_path || i.notebook_path, ctx, candidatos);
 
   if (candidatos.length === 0) return { decision: 'nada' };
 
-  // --- algo frenaría: recién ahora la ficha (regla 4.7), barata ---
-  const raiz = g ? g.raiz : null;
-  let quitados = new Set();
-  let secretosExtra = new Set();
-  let publicas = new Set();
-  let fichaRota = null;
-  if (raiz) {
-    try {
-      const fv = contexto.fichaVigente(raiz);
-      if (fv.estado === 'rota') fichaRota = fv.donde;
-      else if (fv.estado === 'ok' && fv.datos) {
-        const d = fv.datos;
-        if (Array.isArray(d.secretos)) for (const n of d.secretos) secretosExtra.add(String(n).toUpperCase());
-        if (Array.isArray(d.publicas)) for (const n of d.publicas) publicas.add(String(n).toUpperCase());
-        if (d.frenos && Array.isArray(d.frenos.quitados)) {
-          for (const q of d.frenos.quitados) {
-            if (q && typeof q.id === 'string' && q.id.startsWith('secretos:') && vigente(q.hasta)) quitados.add(q.id);
-          }
-        }
-      }
-    } catch (err) {
-      /* la ficha no frena sola: se trata como fábrica */
-    }
-  }
-
-  // imprime-variable: refinar contra publicas/secretos de la ficha.
-  const vivos = [];
-  for (const cand of candidatos) {
-    if (quitados.has(cand.id)) continue;
-    // imprime-variable con un nombre concreto: la ficha dice si es sensible. Los forzados (listado con comodín) no traen
-    // varNombre y pasan derecho.
-    if (cand.id === 'secretos:imprime-variable' && cand.varNombre !== undefined) {
-      if (!varSensible(cand.varNombre, secretosExtra, publicas)) continue;
-    }
-    vivos.push(cand);
-  }
+  // Algo frenaría: recién ahora la ficha (regla 4.7).
+  const f = leerFicha(ses.raiz);
+  const vivos = candidatos.filter((c) => {
+    if (f.quitados.has(PREFIJO + c.id)) return false;
+    if (c.varNombre !== undefined) return varSensible(c.varNombre, f.secretos, f.publicas);
+    return true;
+  });
   if (vivos.length === 0) return { decision: 'nada' };
 
-  // El más fuerte: un solo deny gana sobre un ask.
-  vivos.sort((a, b) => (a.decision === b.decision ? 0 : a.decision === 'deny' ? -1 : 1));
-  const elegido = vivos[0];
+  const elegido = vivos.find((c) => c.decision === 'deny') || vivos[0];
   let motivo = elegido.motivo;
-  if (fichaRota) motivo += ` (ficha rota: ${fichaRota} — corré doctor)`;
-
-  const renglon = anotar(opciones, raiz, { id: elegido.id, herramienta: tool || 'Bash', detalle: elegido.detalle, cwd, g });
-  return { decision: elegido.decision, salida: salidaTool(elegido.decision, motivo), id: elegido.id, detalle: elegido.detalle, motivo, renglon };
+  if (f.rota) motivo += ` · ficha rota: ${f.rota} — corré doctor`;
+  const id = PREFIJO + elegido.id;
+  const detalle = elegido.decision === 'ask' ? `preguntó: ${elegido.detalle}` : elegido.detalle;
+  const renglon = anotar(opciones, f.conFicha ? ses.raiz : null, { id, herramienta: tool, detalle, rol: ses.rol, rama: ses.rama });
+  return { decision: elegido.decision, salida: salidaTool(elegido.decision, motivo), id, detalle, motivo, renglon };
 }
 
-// ruta relativa de una escritura, para el detalle (nunca el valor).
-function archivoRel(i, cwd) {
-  const f = i.file_path || i.notebook_path;
-  if (typeof f !== 'string' || f === '') return '-';
+// La ficha del cwd → { conFicha, rota, quitados, secretos, publicas }. Nunca tira: una ficha que no se lee es fábrica.
+function leerFicha(raiz) {
+  const r = { conFicha: false, rota: null, quitados: new Set(), secretos: new Set(), publicas: new Set() };
+  if (!raiz) return r;
+  let fv;
   try {
-    const g = contexto.datosGit(cwd);
-    if (g) {
-      const rel = path.relative(g.raiz, path.resolve(cwd, f));
-      if (rel && !rel.startsWith('..') && !path.isAbsolute(rel)) return rel.split(path.sep).join('/');
-    }
+    fv = contexto.fichaVigente(raiz);
   } catch (e) {
-    /* da igual: el detalle es rastro */
+    return r;
   }
-  return path.basename(f);
+  let datos = null;
+  if (fv.estado === 'ok') {
+    r.conFicha = true;
+    datos = fv.datos;
+    r.quitados = quitadosVigentes(datos);
+  } else if (fv.estado === 'rota') {
+    r.conFicha = true;
+    r.rota = fv.donde;
+    datos = ultimaLegible(raiz, fv.ref);
+  }
+  if (datos) {
+    if (Array.isArray(datos.secretos)) for (const n of datos.secretos) r.secretos.add(String(n).toUpperCase());
+    if (Array.isArray(datos.publicas)) for (const n of datos.publicas) r.publicas.add(String(n).toUpperCase());
+  }
+  return r;
 }
 
-function vigente(hasta) {
-  if (hasta === 'siempre') return true;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(hasta)) return false;
-  const d = new Date();
-  const hoy = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  return hasta >= hoy;
+// Con la ficha rota, los datos de la última versión que se lee (hasta 20 commits de la ref vigente; rf-14).
+function ultimaLegible(raiz, ref) {
+  if (!ref) return null;
+  const shas = git.texto(['log', '-n', '20', '--format=%H', ref, '--', contexto.RUTA_FICHA], { cwd: raiz });
+  for (const sha of (shas || '').split('\n').map((s) => s.trim()).filter(Boolean)) {
+    const s = git.correr(['show', `${sha}:${contexto.RUTA_FICHA}`], { cwd: raiz });
+    if (!s.ok) continue;
+    try {
+      return ficha.leer(s.salida.toString('utf8')).datos;
+    } catch (e) {
+      /* esa también está rota: la anterior */
+    }
+  }
+  return null;
 }
 
-// ---------------------------------------------------------------- análisis de comandos
+function quitadosVigentes(datos, ahora = new Date()) {
+  const hoy = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
+  const q = datos && datos.frenos && Array.isArray(datos.frenos.quitados) ? datos.frenos.quitados : [];
+  return new Set(
+    q.filter((x) => x && typeof x.id === 'string' && (x.hasta === 'siempre' || (/^\d{4}-\d{2}-\d{2}$/.test(x.hasta) && x.hasta >= hoy))).map((x) => x.id),
+  );
+}
 
-function analizarComandos(partido, ps, textoCrudo, ctx, candidatos, pushDeny) {
-  const comandos = partido.comandos || [];
-  const sinVentana = !CON_VENTANA.has(ctx.modo);
-  const duro = SIN_VENTANA_DURO.has(ctx.modo);
+// El archivo de una escritura, relativo a la raíz (para el detalle; nunca el valor).
+function archivoRel(f, ctx) {
+  if (typeof f !== 'string' || f === '') return '-';
+  const abs = path.resolve(ctx.cwd, expandir(f));
+  if (ctx.ses.raiz) {
+    const rel = path.relative(ctx.ses.raiz, abs);
+    if (rel && !rel.startsWith('..') && !path.isAbsolute(rel)) return rel.split(path.sep).join('/');
+  }
+  return path.basename(abs);
+}
 
-  // mapa de asignaciones de la MISMA llamada (F=.env; cat $F)
+// ---------------------------------------------------------------- Bash / PowerShell
+
+function analizarComando(texto, ps, ctx, candidatos) {
+  const comandos = comando.partir(texto, { ps }).comandos || [];
+  const add = (id, decision, detalle, motivo, extra) => candidatos.push({ id, decision, detalle, motivo, ...extra });
+
+  // Las variables asignadas en la misma llamada (F=.env; cat "$F").
   const asign = new Map();
-  for (const c of comandos) for (const a of c.asignaciones || []) if (a && typeof a.nombre === 'string') asign.set(a.nombre, a.valor);
+  for (const c of comandos) for (const a of c.asignaciones || []) if (a && typeof a.nombre === 'string') asign.set(a.nombre.toLowerCase(), a.valor);
   const resolver = (tok) => {
-    const m = /^\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?$/.exec(String(tok)) || /^%([A-Za-z_][A-Za-z0-9_]*)%$/.exec(String(tok)) || /^\$\{?env:([A-Za-z_][A-Za-z0-9_]*)\}?$/.exec(String(tok));
-    if (m && asign.has(m[1])) return asign.get(m[1]);
-    return tok;
+    const s = String(tok);
+    const m = /^\$\{?(?:env:)?([A-Za-z_][A-Za-z0-9_]*)\}?$/i.exec(s) || /^%([A-Za-z_][A-Za-z0-9_]*)%$/.exec(s);
+    return m && asign.has(m[1].toLowerCase()) ? String(asign.get(m[1].toLowerCase())) : s;
   };
 
-  // settings del proyecto (raíz por git) para el deny de archivo
-  const settingsProy = new Set();
-  if (ctx.g) {
-    const r = norm(ctx.g.raiz);
-    settingsProy.add(`${r}/.claude/settings.json`);
-    settingsProy.add(`${r}/.claude/settings.local.json`);
-  }
+  const verboso = comandos.some(esVerboso);
+  // Un impresor que imprime una variable ($X): `echo "exit $?"` o `echo listo` no muestran nada del .env (medido).
+  const hayImpresor = verboso || comandos.some((c) => IMPRESORES.has(comando.programa(c)) && (c.argv || []).slice(1).some((a) => varsEn(a).length > 0));
+  ctx.denySettings = denyDeSettings(ctx.ses.raiz);
 
-  // ¿algún comando de la llamada es impresor o set -x? (para source/.)
-  const hayPrinterOsetx = comandos.some((c) => {
-    const p = comando.programa(c.argv && c.argv[0]);
-    return IMPRESORES.has(p) || hayVerboso(c);
-  });
-
-  // --- archivo-deny: pipeline entero ---
-  const nombraDeny = comandos.some((c) => {
-    const toks = [...(c.argv || []).map(resolver), ...(c.redirecciones || []).map((r) => r.destino)];
-    return toks.some((t) => esRutaDenyArchivo(t, settingsProy));
-  });
-  if (nombraDeny) {
-    const todoSeguro = comandos.every((c) => {
-      const prog = comando.programa(c.argv && c.argv[0]);
-      return comandoSeguroParaDeny(c, prog, hayPrinterOsetx);
-    });
-    if (!todoSeguro) {
-      const quien = comandos.find((c) => {
-        const toks = [...(c.argv || []).map(resolver), ...(c.redirecciones || []).map((r) => r.destino)];
-        return toks.some((t) => esRutaDenyArchivo(t, settingsProy));
-      });
-      const tok = quien ? [...(quien.argv || []).map(resolver), ...(quien.redirecciones || []).map((r) => r.destino)].find((t) => esRutaDenyArchivo(t, settingsProy)) : '';
-      pushDeny('secretos:archivo-deny', relOrBase(tok, ctx), MSG_CLAVE);
+  // --- archivo-deny: un comando que nombra la ruta tiene que estar en lo permitido; si es de los que LISTAN (ls, gci, test, git
+  // status…), todos los de su pipeline también (`gci .env | gc` frena). Los de "usar sin ver" (--env-file, dotenv -e, source) se
+  // juzgan solos: lo que sale por el caño es la salida del programa, no el archivo (medido: `npx dotenv -e .env -- npx playwright
+  // test | tail`). El pipeline = el tramo entre ; && || y saltos de renglón; si el texto no se deja cortar (heredoc, comillas sin
+  // cerrar), la llamada entera.
+  const tramos = tramosDeNivelCero(texto, ps);
+  const grupos = tramos ? tramos.map((t) => comando.partir(t, { ps }).comandos || []) : [comandos];
+  for (const grupo of grupos) {
+    const nombra = [];
+    const veredictos = [];
+    for (const c of grupo) {
+      const toks = tokensDeRuta(c, resolver).filter((t) => esRutaDenyArchivo(t.tok, ctx));
+      if (toks.length) nombra.push(toks[0].tok);
+      let v = permitidoConDeny(c, hayImpresor, ctx, resolver);
+      if (v === 'no' && !toks.length && (FILTROS_DE_TEXTO.has(comando.programa(c)) || esNeutro(c))) v = 'texto';
+      veredictos.push({ nombra: toks.length > 0, v });
+    }
+    const leeSuelto = veredictos.some((x) => x.nombra && x.v === 'no');
+    const listaYLee = veredictos.some((x) => x.nombra && x.v === 'lista') && veredictos.some((x) => x.v === 'no');
+    if (leeSuelto || listaYLee) {
+      const d = rutaParaDetalle(nombra[0], ctx);
+      add('archivo-deny', 'deny', d, QUE['archivo-deny'](d) + MSG_CLAVE);
+      break;
     }
   }
 
   for (const c of comandos) {
-    const prog = comando.programa(c.argv && c.argv[0]);
-    const argv = c.argv || [];
+    const prog = comando.programa(c);
+    const argv = (c.argv || []).map(String);
 
-    // imprime-todas
-    if (esImprimeTodas(prog, argv, ps)) pushDeny('secretos:imprime-todas', prog, MSG_CLAVE);
+    if (esImprimeTodas(prog, argv)) add('imprime-todas', 'deny', prog, QUE['imprime-todas']() + MSG_CLAVE);
+    if (esCredencialGuardada(prog, argv)) add('credencial-guardada', 'deny', prog, QUE['credencial-guardada']() + MSG_CLAVE);
 
-    // credencial-guardada
-    if (esCredencialGuardada(c)) pushDeny('secretos:credencial-guardada', prog, MSG_CLAVE);
-
-    // gci/ls/dir/Get-Item env:<comodín> lista un subconjunto del entorno (podría traer DATABASE_URL…): frena siempre (r2-6).
-    if (['get-childitem', 'gci', 'ls', 'dir', 'get-item', 'gi'].includes(prog) && typeof argv[1] === 'string' && /^env:.*[*?]/i.test(argv[1])) {
-      pushDeny('secretos:imprime-variable', argv[1], MSG_CLAVE);
-    } else {
-      // imprime-variable (candidato; la ficha refina si el nombre es sensible)
-      for (const nombre of impresoraDeVariable(c, prog, ps, textoCrudo)) {
-        candidatos.push({ id: 'secretos:imprime-variable', detalle: nombre, decision: 'deny', motivo: MSG_CLAVE, varNombre: nombre });
+    // imprime-variable: el listado del entorno con comodín frena siempre (puede traer cualquiera); un nombre, si es sensible.
+    const envArg = LISTA_ENV.has(prog) ? argv.slice(1).find((a) => /^env:/i.test(a)) : undefined;
+    if (envArg && /[*?]/.test(envArg)) add('imprime-variable', 'deny', envArg, QUE['imprime-variable'](envArg) + MSG_CLAVE);
+    else {
+      for (const n of variablesImpresas(c, prog, argv, verboso)) {
+        add('imprime-variable', 'deny', n, QUE['imprime-variable'](n) + MSG_CLAVE, { varNombre: n });
       }
     }
 
-    // frenos del proyecto (solo en sesión de agente)
-    if (ctx.ses && ctx.ses.agente && ctx.g) {
-      const toks = [...argv.map(resolver), ...(c.redirecciones || []).map((r) => r.destino)];
-      for (const t of toks) {
-        const fr = rutaFrenoProyecto(t, ctx.g);
-        if (fr && !comandoLectorDeRuta(c, prog)) {
-          const msg = esLockViejo(fr) ? 'un .lock viejo del repo: pedíselo al director (no lo toques).' : 'no toques los frenos del proyecto (hooks, settings, .githooks, .kit-rol, el git-dir): son la red del método.';
-          pushDeny('secretos:frenos-del-proyecto', relOrBase(fr, ctx), msg);
-          break;
+    for (const t of tokensDeRuta(c, resolver)) {
+      // frenos del proyecto: solo en sesión de agente; leer pasa, escribir por redirección nunca.
+      if (ctx.ses.agente) {
+        const fr = rutaFrenoProyecto(t.tok, ctx);
+        if (fr && (t.escribe || !esLectorDeRuta(prog, argv, t.tok))) {
+          add('frenos-del-proyecto', 'deny', fr.detalle, fr.lock ? MSG_LOCK : MSG_FRENO_PROYECTO);
         }
       }
+      // frenos de la PC
+      const fp = rutaFrenoPC(t.tok, ctx);
+      if (fp && (t.escribe || !esLectorDeRuta(prog, argv, t.tok))) frenoPC(fp, ctx, add);
+      // cambios-sin-ventana
+      if (ctx.duro && /(^|\/)\.claude\/cambios(\/|$)/.test(norm(expandir(t.tok)))) add('cambios-sin-ventana', 'deny', '.claude/cambios', MSG_CAMBIOS);
     }
+  }
 
-    // frenos de la PC
-    {
-      const toks = [...argv.map(resolver), ...(c.redirecciones || []).map((r) => r.destino)];
-      for (const t of toks) {
-        const fp = rutaFrenoPC(t);
-        if (!fp || comandoLectorDeRuta(c, prog)) continue;
-        if (fp === 'kit') {
-          pushDeny('secretos:frenos-de-la-pc', '<home>/.claude/hooks/kit', 'no toques el corrector de la PC (<home>/.claude/hooks/kit): lo pone y lo cura el instalador.');
-        } else if (ctx.ses.agente || !CON_VENTANA.has(ctx.modo)) {
-          pushDeny('secretos:frenos-de-la-pc', '<home>/.claude/settings.json', 'no toques el settings de la PC desde una sesión de agente o sin ventana: lo pone el instalador.');
-        } else {
-          candidatos.push({ id: 'secretos:frenos-de-la-pc', detalle: '<home>/.claude/settings.json', decision: 'ask', motivo: 'vas a tocar el settings de la PC (<home>/.claude/settings.json) — confirmá que es a propósito.' });
-        }
-        break;
-      }
+  // PowerShell (2): una sentencia que es solo la variable, un string que la interpola o GetEnvironmentVariable('X').
+  if (ps) for (const n of sentenciasQueImprimen(texto)) add('imprime-variable', 'deny', n, QUE['imprime-variable'](n) + MSG_CLAVE, { varNombre: n });
+}
+
+// Corta el texto en sus pipelines: los tramos de nivel cero separados por ; && || & y saltos de renglón (no por |), respetando
+// comillas, escapes y paréntesis. null si no se deja cortar con certeza (un heredoc, algo sin cerrar): ahí manda la llamada entera.
+function tramosDeNivelCero(texto, ps) {
+  const s = String(texto);
+  if (/<</.test(s) || (ps && /@['"]/.test(s))) return null;
+  const tramos = [];
+  let desde = 0;
+  let prof = 0;
+  let q = null;
+  const esc = ps ? '`' : '\\';
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (q) {
+      if (ch === esc && q !== "'") i++;
+      else if (ch === q) q = null;
+      continue;
     }
-
-    // cambios-sin-ventana (solo bypass/dontAsk)
-    if (duro) {
-      const toks = [...argv.map(resolver), ...(c.redirecciones || []).map((r) => r.destino)];
-      const nombraCambios = toks.some((t) => /(^|\/)\.claude\/cambios(\/|$)/.test(norm(expandeTilde(t))));
-      if (nombraCambios) {
-        const esElScript = prog === 'node' && argv.some((a) => /(^|\/)\.claude\/scripts\/cambios\.cjs$/.test(norm(a))) && !toks.some((t) => /(^|\/)\.claude\/cambios(\/|$)/.test(norm(expandeTilde(t))) && !/scripts\/cambios\.cjs$/.test(norm(t)));
-        if (!esElScript) pushDeny('secretos:cambios-sin-ventana', '.claude/cambios', 'en bypass no se toca .claude/cambios salvo `node .claude/scripts/cambios.cjs`.');
+    if (ch === esc) {
+      i++;
+      continue;
+    }
+    if (ch === "'" || ch === '"' || (!ps && ch === '`')) q = ch;
+    else if (ch === '(' || ch === '{') prof++;
+    else if (ch === ')' || ch === '}') prof--;
+    else if (prof === 0) {
+      let largo = 0;
+      if ((ch === '&' && s[i + 1] === '&') || (ch === '|' && s[i + 1] === '|')) largo = 2;
+      else if (ch === ';' || ch === '\n' || (ch === '&' && s[i + 1] !== '>' && s[i - 1] !== '>' && s[i - 1] !== '<')) largo = 1;
+      if (largo) {
+        tramos.push(s.slice(desde, i));
+        i += largo - 1;
+        desde = i + 1;
       }
     }
   }
+  if (q || prof !== 0) return null;
+  tramos.push(s.slice(desde));
+  return tramos.filter((t) => t.trim() !== '');
 }
 
-function esImprimeTodas(prog, argv, ps) {
-  const soloArgs = argv.slice(1);
-  if ((prog === 'printenv' || prog === 'env' || prog === 'set') && soloArgs.length === 0) return true;
-  if (prog === 'export' && soloArgs.length === 1 && soloArgs[0] === '-p') return true;
-  if (prog === 'declare' && soloArgs.length === 1 && soloArgs[0] === '-p') return true;
-  if ((prog === 'get-childitem' || prog === 'gci' || prog === 'ls' || prog === 'dir' || prog === 'get-item' || prog === 'gi') && soloArgs.length === 1 && /^env:\\?$/i.test(soloArgs[0])) return true;
+// Lo permitido con una ruta del deny → 'lista' (no revela contenido, pero su salida nombra el archivo: el resto del pipeline
+// también tiene que estar permitido) · 'usa' ("usar sin ver": se juzga solo) · 'no'.
+const PERMITIDOS_DENY = new Set(['ls', 'dir', 'get-childitem', 'gci', 'stat', 'test', '[', 'test-path', 'rm', 'remove-item', 'del', 'ri', 'erase']);
+// Crear la carpeta no muestra nada (medido: `mkdir -p "$S/secrets"` en un banco de pruebas).
+const CREAN = new Set(['mkdir', 'md', 'new-item']);
+// Los que lanzan un paquete: `npx [--prefix app] dotenv -e .env -- cmd` (medido).
+const LANZADORES = new Set(['npx', 'pnpx', 'bunx', 'pnpm', 'yarn']);
+// Lo que viene por el caño de un `ls` es TEXTO (nombres): estos filtros de texto no abren el archivo (medido: `ls app/.env* | head`).
+// En PowerShell por el caño van objetos de archivo, y los que leen su contenido (`gc`, `sls`, `type`) no están en esta lista.
+const FILTROS_DE_TEXTO = new Set(['head', 'tail', 'grep', 'egrep', 'wc', 'sort', 'uniq', 'cut', 'tr']);
+// Ni el shell que envuelve (`powershell -Command "…"`, `bash -c '…'`: lo de adentro sale como comandos propios y se juzga ahí) ni
+// un `cd` o un `Out-Null` leen nada (medido: `powershell -Command "New-Item …; Test-Path $W\app\.env.visual"`).
+const SHELLS = new Set(['bash', 'sh', 'zsh', 'dash', 'powershell', 'pwsh', 'cmd']);
+function esNeutro(c) {
+  const p = comando.programa(c);
+  const a = (c.argv || []).slice(1).map((x) => String(x).toLowerCase());
+  if (SHELLS.has(p)) return a.some((x) => x === '-c' || x === '/c' || x === '-command' || x === '-encodedcommand');
+  return ['cd', 'pushd', 'popd', 'set-location', 'sl', 'out-null'].includes(p);
+}
+function permitidoConDeny(c, hayImpresor, ctx, resolver) {
+  const prog = comando.programa(c);
+  const argv = (c.argv || []).map(String);
+  if (argv.length === 0) return 'usa'; // una asignación sola (F=.env) no lee nada
+  if (PERMITIDOS_DENY.has(prog)) return 'lista';
+  if (CREAN.has(prog)) return 'usa';
+  if (prog === 'git') {
+    const { sub, resto } = subGit(argv);
+    return sub === 'status' || sub === 'check-ignore' || (sub === 'rm' && resto.includes('--cached')) ? 'lista' : 'no';
+  }
+  // "Usar sin ver": --env-file[= ]<ruta> en cualquier programa, y dotenv-cli (`dotenv -e <ruta> -- cmd`, también por npx; medido).
+  // La ruta del deny tiene que ir SOLO como ese valor: `npx dotenv -e .env -- cat .env` lee el archivo igual.
+  const valor = new Set();
+  let usa = false;
+  const iDot = LANZADORES.has(prog) ? argv.findIndex((a, i) => i > 0 && /^dotenv(-cli)?$/i.test(a)) : prog === 'dotenv' ? 0 : -1;
+  const finDot = argv.indexOf('--') > iDot ? argv.indexOf('--') : argv.length;
+  argv.forEach((a, i) => {
+    if (a === '--env-file') (usa = true), valor.add(i + 1);
+    else if (a.startsWith('--env-file=')) (usa = true), valor.add(i);
+    else if (iDot >= 0 && i > iDot && i < finDot && a === '-e') (usa = true), valor.add(i + 1);
+  });
+  if (usa) {
+    const otra = argv.some((a, i) => i > 0 && !valor.has(i) && esRutaDenyArchivo(resolver(a), ctx)) ||
+      (c.redirecciones || []).some((r) => !NO_ES_ARCHIVO.has(r.op) && esRutaDenyArchivo(resolver(r.destino), ctx));
+    if (!otra) return 'usa';
+  }
+  if ((prog === 'source' || prog === '.') && !hayImpresor) return 'usa';
+  if ((prog === 'echo' || prog === 'printf') && (c.redirecciones || []).some((r) => (r.op === '>' || r.op === '>>') && /(^|\/)\.(git|docker)ignore$/.test(norm(r.destino)))) {
+    return 'usa';
+  }
+  return 'no';
+}
+
+const LISTA_ENV = new Set(['get-childitem', 'gci', 'ls', 'dir', 'get-item', 'gi']);
+function esImprimeTodas(prog, argv) {
+  const args = argv.slice(1);
+  if ((prog === 'printenv' || prog === 'env' || prog === 'set') && args.length === 0) return true;
+  if ((prog === 'export' || prog === 'declare') && args.length === 1 && args[0] === '-p') return true;
+  if (LISTA_ENV.has(prog)) {
+    const pos = args.filter((a) => !/^-/.test(a));
+    if (pos.length === 1 && /^env:[\\/]?$/i.test(pos[0])) return true;
+  }
   return false;
 }
 
-// nombres de variable que un comando IMPRIME (D-14). Devuelve lista de nombres (la ficha decide si son sensibles).
-function impresoraDeVariable(c, prog, ps, textoCrudo) {
+function esCredencialGuardada(prog, argv) {
+  const a = argv.map((x) => x.toLowerCase());
+  if (prog === 'gh' && a[1] === 'auth' && a[2] === 'token') return true;
+  if (prog === 'gh' && a[1] === 'auth' && a[2] === 'status' && a.some((x) => x === '-t' || x === '--show-token')) return true;
+  if (prog === 'git') {
+    const { sub, resto } = subGit(argv);
+    if (sub === 'credential' && (resto[0] || '').toLowerCase() === 'fill') return true;
+    if (sub === 'credential-manager' && (resto[0] || '').toLowerCase() === 'get') return true;
+  }
+  if (prog === 'git-credential-manager' && a[1] === 'get') return true;
+  return false;
+}
+
+// Los nombres de variable cuyo VALOR sale a la pantalla en este comando simple (D-14: (1), (3) y (4); la (2) va por sentencia).
+// Lo que imprime en node/python: el texto ENTRE los paréntesis de console.*( / process.stdout.write( / print( / sys.stdout.write(.
+// Asignar la variable (`os.environ['X'] = …`, `headers: {a: process.env.X}`) no la imprime (medido).
+const RE_LLAMADA_IMPRIME = /(?:console\.[a-z]+|process\.stdout\.write|sys\.stdout\.write|print)\s*\(/g;
+function loQueImprime(codigo) {
+  const tramos = [];
+  let m;
+  RE_LLAMADA_IMPRIME.lastIndex = 0;
+  while ((m = RE_LLAMADA_IMPRIME.exec(codigo))) {
+    let prof = 1;
+    let j = m.index + m[0].length;
+    for (; j < codigo.length && prof > 0; j++) {
+      if (codigo[j] === '(') prof++;
+      else if (codigo[j] === ')') prof--;
+    }
+    tramos.push(codigo.slice(m.index + m[0].length, j));
+  }
+  return tramos.join('\n');
+}
+function variablesImpresas(c, prog, argv, verboso) {
   const nombres = new Set();
-  const argv = c.argv || [];
-
-  // (1) impresor con $X/${X}/$env:X/%X%
-  if (IMPRESORES.has(prog)) {
-    for (const a of argv.slice(1)) for (const n of varsEn(a)) nombres.add(n);
-  }
-  // cat <<< $X
+  // (1) un impresor con la variable; cat <<< $X
+  if (IMPRESORES.has(prog)) for (const a of argv.slice(1)) for (const n of varsEn(a)) nombres.add(n);
   if (prog === 'cat') for (const r of c.redirecciones || []) if (r.op === '<<<') for (const n of varsEn(r.destino)) nombres.add(n);
-
-  // (3) printenv X
-  if (prog === 'printenv' && argv[1]) nombres.add(argv[1]);
-  // gci/ls/dir/Get-Item env:X (también comodín)
-  if ((prog === 'get-childitem' || prog === 'gci' || prog === 'ls' || prog === 'dir' || prog === 'get-item' || prog === 'gi') && argv[1]) {
-    const m = /^env:(.+)$/i.exec(argv[1]);
-    if (m) nombres.add(m[1].replace(/\*/g, '').replace(/\\$/, '') || m[1]);
+  // (3) printenv X · gci/ls/dir/Get-Item env:X · node -e/-p, python -c que imprimen la variable
+  if (prog === 'printenv') for (const a of argv.slice(1)) if (!a.startsWith('-')) nombres.add(a);
+  if (LISTA_ENV.has(prog)) for (const a of argv.slice(1)) {
+    const m = /^env:[\\/]?([A-Za-z_][A-Za-z0-9_]*)$/i.exec(a);
+    if (m) nombres.add(m[1]);
   }
-  // node -e/-p / python -c que imprime process.env.X / os.environ['X']
-  if ((prog === 'node' || prog === 'python' || prog === 'python3') && argv.some((a) => /^-[epc]$/.test(a))) {
-    const todo = argv.join(' ');
-    let m;
-    const r = /process\.env\.([A-Za-z_][A-Za-z0-9_]*)|process\.env\[['"]([^'"]+)['"]\]|os\.environ\[['"]([^'"]+)['"]\]|os\.environ\.get\(['"]([^'"]+)['"]\)|getenv\(['"]([^'"]+)['"]\)/g;
-    while ((m = r.exec(todo))) nombres.add(m[1] || m[2] || m[3] || m[4] || m[5]);
+  if (prog === 'node' || prog === 'python' || prog === 'python3' || prog === 'py') {
+    const i = argv.findIndex((a) => a === '-e' || a === '-p' || a === '-c' || a === '--eval' || a === '--print');
+    if (i > 0) {
+      const codigo = argv.slice(i + 1).join(' ');
+      const impreso = argv[i] === '-p' || argv[i] === '--print' ? codigo : loQueImprime(codigo);
+      const r = /process\.env\.([A-Za-z_][A-Za-z0-9_]*)|process\.env\[\s*['"]([^'"]+)['"]\s*\]|os\.environ\[\s*['"]([^'"]+)['"]\s*\]|(?:os\.environ\.get|os\.getenv|getenv)\(\s*['"]([^'"]+)['"]/g;
+      let m;
+      while ((m = r.exec(impreso))) nombres.add(m[1] || m[2] || m[3] || m[4]);
+    }
   }
-
-  // (2) PowerShell: una sentencia que ES la variable o un string que la interpola; GetEnvironmentVariable('X')
-  if (ps) {
-    const soloVar = argv.length === 1 && /^("?)\$\{?(env:)?[A-Za-z_][A-Za-z0-9_]*\}?\1$/.test(argv[0]);
-    if (soloVar) for (const n of varsEn(argv[0])) nombres.add(n);
-    const joined = argv.join(' ');
-    let m;
-    const r = /getenvironmentvariable\(\s*['"]([^'"]+)['"]/gi;
-    while ((m = r.exec(textoCrudo || joined))) nombres.add(m[1]);
-  }
-
-  // (4) la variable en la misma llamada que algo verboso
-  if (hayVerboso(c)) for (const a of argv) for (const n of varsEn(a)) nombres.add(n);
-
+  // (4) la variable en la misma llamada que algo verboso (-v, --verbose, --trace*, set -x, bash -x)
+  if (verboso) for (const a of argv) for (const n of varsEn(a)) nombres.add(n);
   return [...nombres];
 }
 
-// ---------------------------------------------------------------- escritura (Write/Edit/…)
+// PowerShell (2): cada sentencia (por renglón y por ;) que es solo `$env:X`, `${env:X}`, `$X`, un "string" con variables, o
+// [Environment]::GetEnvironmentVariable('X') (también como argumento de un impresor). Asignarla (`$t = …`) no imprime.
+function sentenciasQueImprimen(texto) {
+  const nombres = new Set();
+  for (let s of String(texto).split(/\r?\n|;/)) {
+    s = s.trim().replace(/^\(\s*(.*?)\s*\)$/, '$1');
+    if (s === '') continue;
+    if (/^\$\{?(?:env:)?[A-Za-z_][A-Za-z0-9_]*\}?$/i.test(s) || /^"[^"]*"$/.test(s)) for (const n of varsEn(s)) nombres.add(n);
+    const g = /^(?:(?:write-host|write-output|write-information|echo|out-host|out-string)\b.*?)?\(?\s*\[(?:system\.)?environment\]::getenvironmentvariable\(\s*['"]([^'"]+)['"]/i.exec(s);
+    if (g) nombres.add(g[1]);
+  }
+  return nombres;
+}
 
-function analizarEscritura(i, tool, ctx, candidatos, pushDeny) {
-  const f = i.file_path || i.notebook_path;
+// ---------------------------------------------------------------- Write / Edit / MultiEdit / NotebookEdit
+
+function analizarEscritura(f, ctx, candidatos) {
   if (typeof f !== 'string' || f === '') return;
-  // frenos del proyecto
-  if (ctx.ses && ctx.ses.agente && ctx.g) {
-    const fr = rutaFrenoProyecto(f, ctx.g);
-    if (fr) {
-      const msg = esLockViejo(fr) ? 'un .lock viejo del repo: pedíselo al director (no lo toques).' : 'no escribas sobre los frenos del proyecto (hooks, settings, .githooks, .kit-rol, el git-dir).';
-      pushDeny('secretos:frenos-del-proyecto', fr.startsWith('<común>') ? fr : relOrBaseFijo(ctx.g, f), msg);
-    }
+  const add = (id, decision, detalle, motivo) => candidatos.push({ id, decision, detalle, motivo });
+  if (ctx.ses.agente) {
+    const fr = rutaFrenoProyecto(f, ctx);
+    if (fr) add('frenos-del-proyecto', 'deny', fr.detalle, fr.lock ? MSG_LOCK : MSG_FRENO_PROYECTO);
   }
-  // frenos de la PC
-  const fp = rutaFrenoPC(f);
-  if (fp === 'kit') {
-    pushDeny('secretos:frenos-de-la-pc', '<home>/.claude/hooks/kit', 'no escribas sobre el corrector de la PC (<home>/.claude/hooks/kit).');
-  } else if (fp === 'settings') {
-    if ((ctx.ses && ctx.ses.agente) || !CON_VENTANA.has(ctx.modo)) {
-      pushDeny('secretos:frenos-de-la-pc', '<home>/.claude/settings.json', 'no escribas sobre el settings de la PC desde una sesión de agente o sin ventana.');
-    } else {
-      candidatos.push({ id: 'secretos:frenos-de-la-pc', detalle: '<home>/.claude/settings.json', decision: 'ask', motivo: 'vas a escribir el settings de la PC — confirmá.' });
-    }
-  }
+  const fp = rutaFrenoPC(f, ctx);
+  if (fp) frenoPC(fp, ctx, add);
 }
 
-function relOrBaseFijo(g, f) {
-  try {
-    const rel = path.relative(g.raiz, path.resolve(g.raiz, expandeTilde(f)));
-    if (rel && !rel.startsWith('..') && !path.isAbsolute(rel)) return rel.split(path.sep).join('/');
-  } catch (e) {
-    /* */
+// ---------------------------------------------------------------- frenos del proyecto y de la PC
+
+// ¿la ruta es un freno del proyecto? → { detalle, lock } o null. Relativa al cwd.
+const COMUN_FRENO = (rel) =>
+  rel === 'config' || rel === 'packed-refs' || rel === 'fetch_head' ||
+  /^(hooks|refs|logs|worktrees)(\/|$)/.test(rel);
+function rutaFrenoProyecto(tok, ctx) {
+  const { raiz, comun } = ctx.ses;
+  if (typeof tok !== 'string' || tok === '' || !raiz) return null;
+  const abs = absoluta(tok, ctx.cwd);
+  const debajo = (carpeta) => {
+    const c = norm(carpeta);
+    return abs === c ? '' : abs.startsWith(`${c}/`) ? abs.slice(c.length + 1) : null;
+  };
+  if (comun) {
+    const rel = debajo(comun);
+    if (rel !== null && rel !== '') {
+      if (/(^|\/)index\.lock$/.test(rel)) return null; // libre (r2-11)
+      if (rel.endsWith('.lock')) return COMUN_FRENO(rel.slice(0, -5)) ? { detalle: `<git-común>/${rel}`, lock: true } : null;
+      return COMUN_FRENO(rel) ? { detalle: `<git-común>/${rel}`, lock: false } : null;
+    }
   }
-  return path.basename(f);
+  const rel = debajo(raiz);
+  if (rel === null) return null;
+  if (
+    /^\.claude\/hooks(\/|$)/.test(rel) ||
+    /^\.claude\/settings(\.local)?\.json$/.test(rel) ||
+    /^\.githooks(\/|$)/.test(rel) ||
+    rel === '.kit-rol' ||
+    rel === '.git' // el .git de la raíz del worktree (r2-2 b); lo de adentro del común va arriba
+  ) {
+    return { detalle: rel, lock: false };
+  }
+  return null;
 }
-function relOrBase(tok, ctx) {
-  if (typeof tok !== 'string') return '-';
-  if (tok.startsWith('<común>') || tok.startsWith('<home>')) return tok;
-  if (ctx.g) return relOrBaseFijo(ctx.g, tok);
-  return path.basename(expandeTilde(tok)) || tok;
+
+// ¿la ruta es un freno de la PC? → 'kit' (siempre) · 'settings' (agente o sin ventana: deny; si no, ask) · null.
+function rutaFrenoPC(tok, ctx) {
+  if (typeof tok !== 'string' || tok === '') return null;
+  const abs = absoluta(tok, ctx.cwd);
+  const kit = `${HOME_N}/.claude/hooks/kit`;
+  if (abs === kit || abs.startsWith(`${kit}/`)) return 'kit';
+  if (abs === `${HOME_N}/.claude/settings.json`) return 'settings';
+  return null;
+}
+function frenoPC(fp, ctx, add) {
+  if (fp === 'kit') add('frenos-de-la-pc', 'deny', '<home>/.claude/hooks/kit', MSG_PC_KIT);
+  else if (ctx.ses.agente || !ctx.conVentana) add('frenos-de-la-pc', 'deny', '<home>/.claude/settings.json', MSG_PC_SETTINGS);
+  else add('frenos-de-la-pc', 'ask', '<home>/.claude/settings.json', MSG_PC_SETTINGS_ASK);
+}
+
+// La lista de lectura (F §7): lectores de contenido, ls, git diff/log/show/status, `node <la ruta>` como programa, hashes.
+const LECTORES = new Set([
+  'cat', 'less', 'more', 'head', 'tail', 'get-content', 'gc', 'type', 'ls', 'dir', 'get-childitem', 'gci', 'stat', 'test', '[',
+  'test-path', 'wc', 'grep', 'rg', 'findstr', 'select-string', 'sls', 'diff', 'cmp', 'file',
+  'sha1sum', 'sha256sum', 'sha512sum', 'md5sum', 'certutil', 'get-filehash',
+]);
+function esLectorDeRuta(prog, argv, tok) {
+  if (LECTORES.has(prog)) return true;
+  if (prog === 'git') {
+    const { sub } = subGit(argv);
+    return ['diff', 'log', 'show', 'status', 'hash-object'].includes(sub);
+  }
+  if (prog === 'node') return argv[1] === tok; // node <la ruta>: la ruta es el programa
+  return false;
+}
+
+function rutaParaDetalle(tok, ctx) {
+  const abs = absoluta(tok, ctx.cwd);
+  if (ctx.ses.raiz) {
+    const r = norm(ctx.ses.raiz);
+    if (abs.startsWith(`${r}/`)) return abs.slice(r.length + 1);
+  }
+  if (abs.startsWith(`${HOME_N}/`)) return `<home>/${abs.slice(HOME_N.length + 1)}`;
+  return path.basename(String(tok)) || '-';
 }
 
 // ---------------------------------------------------------------- UserPromptSubmit (D-5, r1-9)
 
-function decidirPrompt(e) {
-  const textos = [];
-  if (typeof e.prompt === 'string') textos.push(e.prompt);
-  const hits = clavesEn(textos);
-  if (hits.length === 0) return { evento: 'prompt', decision: 'nada' };
-  return { evento: 'prompt', decision: 'block', salida: salidaPrompt(MSG_PROMPT), id: hits[0].id, detalle: '(prompt)' };
+function decidirPrompt(e, opciones) {
+  const ids = clavesEn([e.prompt]);
+  if (ids.length === 0) return { evento: 'prompt', decision: 'nada' };
+  const id = PREFIJO + ids[0];
+  let renglon = null;
+  try {
+    renglon = anotar(opciones, null, { id, herramienta: 'UserPromptSubmit', detalle: '(prompt)', rol: 'pc', rama: '(sin rama)' });
+  } catch (err) {
+    /* el renglón no traba el freno */
+  }
+  return { evento: 'prompt', decision: 'block', salida: salidaPrompt(MSG_PROMPT), id, detalle: '(prompt)', renglon };
 }
 
 // ---------------------------------------------------------------- el renglón
 
+// Con raíz (hay ficha, sana o rota): el frenos.log del proyecto. Sin: el de la PC.
 function anotar(opciones, raiz, datos) {
-  try {
-    if (typeof opciones.anotar === 'function') {
-      return opciones.anotar(raiz, { id: datos.id, herramienta: datos.herramienta, detalle: datos.detalle });
-    }
-    if (raiz) {
-      return frenosLog.anotar(raiz, {
-        id: datos.id,
-        herramienta: datos.herramienta,
-        detalle: datos.detalle,
-        rol: contexto.rol(raiz),
-        rama: contexto.rama(raiz),
-      });
-    }
-    // sin repo/ficha: el log de la PC
-    return anotarPC({ id: datos.id, herramienta: datos.herramienta, detalle: datos.detalle });
-  } catch (err) {
-    return null;
-  }
+  if (typeof opciones.anotar === 'function') return opciones.anotar(raiz, datos);
+  if (raiz) return frenosLog.anotar(raiz, datos);
+  return anotarPC(datos);
 }
-function rutaLogPC() {
-  return path.join(HOME, '.claude', 'hooks', 'kit', 'frenos.log');
-}
+const rutaLogPC = () => path.join(HOME, '.claude', 'hooks', 'kit', 'frenos.log');
 function anotarPC(datos) {
+  if (!INSTALADO) return null;
   const archivo = rutaLogPC();
   fs.mkdirSync(path.dirname(archivo), { recursive: true });
-  const linea = frenosLog.renglon({ id: datos.id, herramienta: datos.herramienta, detalle: datos.detalle, rol: 'pc', rama: '(sin repo)' });
+  const linea = frenosLog.renglon(datos);
   let previo = '';
   try {
     const st = fs.statSync(archivo);
@@ -698,36 +844,22 @@ function anotarPC(datos) {
 
 // ---------------------------------------------------------------- principal
 
+let esPrompt = false;
 function principal() {
-  let entrada;
-  let texto;
+  let entrada = null;
   try {
-    texto = fs.readFileSync(0, 'utf8');
-    entrada = JSON.parse(texto);
+    entrada = JSON.parse(fs.readFileSync(0, 'utf8'));
   } catch (e) {
-    // No se pudo ni leer la entrada: no sé si es prompt o tool. Como PreToolUse: freno roto.
-    process.stdout.write(`${JSON.stringify(salidaTool('deny', ROTO))}\n`);
-    return;
+    entrada = null;
   }
-  const esPrompt = entrada && entrada.hook_event_name === 'UserPromptSubmit';
+  esPrompt = !!entrada && entrada.hook_event_name === 'UserPromptSubmit';
   let r;
   try {
+    if (entrada === null) throw new Error('entrada ilegible');
     r = decidir(entrada);
   } catch (e) {
-    if (esPrompt) {
-      // falla abierto (D-5): sale 0 sin bloquear, con un renglón si se puede.
-      try {
-        anotarPC({ id: 'secretos:prompt-error', herramienta: 'UserPromptSubmit', detalle: '(error interno)' });
-      } catch (err) {
-        /* ni el renglón: igual pasa */
-      }
-      return;
-    }
+    if (esPrompt) return; // falla abierto (D-5)
     process.stdout.write(`${JSON.stringify(salidaTool('deny', ROTO))}\n`);
-    return;
-  }
-  if (r.evento === 'prompt') {
-    if (r.decision === 'block') process.stdout.write(`${JSON.stringify(r.salida)}\n`);
     return;
   }
   if (r.decision !== 'nada') process.stdout.write(`${JSON.stringify(r.salida)}\n`);
@@ -738,13 +870,16 @@ if (require.main === module) {
     principal();
     process.exitCode = 0;
   } catch (e) {
-    process.exitCode = 2;
+    process.exitCode = esPrompt ? 0 : 2;
   }
 } else {
   module.exports = {
     HERRAMIENTAS_TOOL,
+    PREFIJO,
     HOME,
+    INSTALADO,
     ROTO,
+    MSG_PROMPT,
     bancoPatrones,
     PATRONES,
     RE_JWT,
@@ -752,9 +887,12 @@ if (require.main === module) {
     clavesEn,
     FABRICA_VARS,
     varSensible,
+    globARegex,
+    denyDeSettings,
     esRutaDenyArchivo,
     rutaFrenoProyecto,
     rutaFrenoPC,
+    quitadosVigentes,
     decidir,
     salidaTool,
     salidaPrompt,
