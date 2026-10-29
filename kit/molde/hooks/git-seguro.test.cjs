@@ -188,6 +188,8 @@ const FRENA = [
   ['restaurar-arbol', 'git restore --staged --worktree .'],
   ['restaurar-arbol', 'git restore -SW .'],
   ['restaurar-arbol', 'git restore --pathspec-from-file=lista.txt'],
+  ['restaurar-arbol', 'git restore --pathspec-from-file=lista.txt --'],
+  ['restaurar-arbol', 'git checkout --pathspec-from-file=lista.txt --'],
   ['restaurar-arbol', 'git switch -f main'],
   ['restaurar-arbol', 'git switch --discard-changes main'],
   ['restaurar-arbol', 'git restore docs'],
@@ -229,6 +231,7 @@ const FRENA = [
   ['config-default-branch', 'git config --global init.defaultBranch otra'],
   ['hooks-path', 'git config core.hooksPath /dev/null'],
   ['hooks-path', 'git config --unset core.hooksPath'],
+  ['hooks-path', 'git config --get --unset core.hooksPath'], // lee y escribe: cuenta como escritura
   ['hooks-path', 'git config core.hookspath .otra'],
   ['hooks-path', 'git config unset core.hooksPath'],
   ['hooks-path', 'git -c core.hooksPath=/dev/null commit -m x'],
@@ -674,10 +677,37 @@ test('historia-defecto sin remoto: ask en los cuatro modos con ventana (con reng
   }
   for (const modo of ['bypassPermissions', 'dontAsk', undefined, 'superModo']) niega(d, 'git reset --soft HEAD~1', 'historia-defecto', { modo });
   pasa(d, 'git reset');
+  // a HEAD mismo no tira ningún commit: ni ask ni deny, también sin ventana
+  for (const modo of ['default', 'bypassPermissions']) {
+    pasa(d, 'git reset --soft HEAD', { modo });
+    pasa(d, 'git rebase HEAD', { modo });
+  }
   // un ask y un deny juntos: gana el deny, y solo el deny deja renglón
   const r = niega(d, 'git reset --soft HEAD~1; git stash', 'stash');
   assert.deepEqual(r.casos, ['stash']);
   assert.equal(r.renglonesDatos.length, 1);
+});
+
+test('historia-defecto: si git no puede contar los commits, frena (no se sabe qué se tira)', () => {
+  const real = require(path.join(DIR, 'lib', 'git.cjs'));
+  const contarFalla = (cuando) => ({
+    ...real,
+    texto: (args, o) => (args[0] === 'rev-list' && cuando(args) ? null : real.texto(args, o)),
+  });
+  const conFalla = (d, c, git) => gs.decidir(entrada(d, c), { anotar: () => 'renglón', git });
+  // sin remoto: el primer conteo falla
+  const d = repo();
+  commitear(d);
+  const r = conFalla(d, 'git reset --soft HEAD~1', contarFalla(() => true));
+  assert.equal(r.decision, 'deny');
+  assert.match(r.salida.hookSpecificOutput.permissionDecisionReason, /no se pudo contar los commits/);
+  // con remoto: el segundo conteo (los propios, con --not) falla
+  const { d: dr } = conRemoto();
+  commitear(dr);
+  pasa(dr, 'git reset --soft HEAD~1');
+  const r2 = conFalla(dr, 'git reset --soft HEAD~1', contarFalla((args) => args.includes('--not')));
+  assert.equal(r2.decision, 'deny');
+  assert.match(r2.salida.hookSpecificOutput.permissionDecisionReason, /no se pudo contar los commits/);
 });
 
 // ---------------------------------------------------------------- push-borrar y branch -D (r1-7, r2-7)
@@ -701,7 +731,7 @@ test('push --delete / :rama de una mergeada pasa; de una no mergeada, o de la ra
   pasa(d, 'git push origin :mergeada');
   pasa(d, 'git push -d origin mergeada', { ps: true });
   const m = niega(d, 'git push origin --delete suelta', 'push-borrar').salida.hookSpecificOutput.permissionDecisionReason;
-  assert.match(m, /si ya está mergeada pasa; si no, `worktree cerrar`/);
+  assert.match(m, /si ya está mergeada pasa; si no, `worktree cerrar`/i);
   niega(d, 'git push origin :suelta', 'push-borrar');
   niega(d, 'git push origin --delete main', 'push-borrar');
   niega(d, 'git push origin :main', 'push-borrar', { modo: 'bypassPermissions' });
@@ -771,6 +801,10 @@ test('config-agente: en sesión de agente toda escritura de config frena (con la
   assert.match(m, /git pull --rebase/);
   assert.match(m, /git push -u origin HEAD/);
   assert.match(m, /safe\.directory` lo pone Guido/);
+  // la identidad en un clon de prueba (medición: 10 llamadas con `git config user.*` en sesión de agente): por comando, pasa
+  niega(w, 'git config user.email t@ejemplo.invalid', 'config-agente');
+  assert.match(m, /git -c user\.name=… -c user\.email=… commit/);
+  pasa(w, 'git -c user.name=T -c user.email=t@ejemplo.invalid commit -m x');
   pasa(w, 'git config core.longpaths true');
   pasa(w, 'git config rerere.enabled true');
   pasa(w, 'git config core.hooksPath .githooks', { modo: 'bypassPermissions' }); // r2-3: por encima de config-agente
@@ -930,6 +964,29 @@ test('el hook real: deny en JSON, salida 0, un renglón por caso en .claude/fren
   assert.match(log(sin), / · hook:git-seguro\/historia-defecto · Bash · preguntó: historia-defecto\n$/);
 });
 
+// 4.7 caso 1 (sin node): no lo puede ver el hook (no arranca); lo cubre onFailure "block" (G0, medido con la plataforma). El
+// registro en el settings.json del molde es de otro encargo (MODIFICA): mientras no esté, la prueba queda en skip y lo dice; cuando
+// esté, exige la forma de P4.7 (exec, timeout 20, block).
+test('4.7 caso 1 (sin node): si el settings.json del molde registra git-seguro, es en forma exec con timeout 20 y onFailure "block"', (t) => {
+  const s = JSON.parse(fs.readFileSync(path.join(MOLDE, 'settings.json'), 'utf8'));
+  const pre = (s.hooks && s.hooks.PreToolUse) || [];
+  const grupos = pre.filter((x) => (x.hooks || []).some((h) => /git-seguro\.cjs/.test(`${h.command} ${(h.args || []).join(' ')}`)));
+  if (!grupos.length) {
+    t.skip('git-seguro todavía no está registrado en kit/molde/settings.json (lo registra el encargo del settings)');
+    return;
+  }
+  assert.equal(grupos.length, 1);
+  assert.equal(grupos[0].matcher, 'Bash|PowerShell');
+  const [h] = grupos[0].hooks.filter((x) => /git-seguro\.cjs/.test(`${x.command} ${(x.args || []).join(' ')}`));
+  assert.equal(h.command, 'node');
+  assert.deepEqual(h.args, ['${CLAUDE_PROJECT_DIR}/.claude/hooks/git-seguro.cjs']);
+  assert.equal(h.timeout, 20);
+  assert.equal(h.onFailure, 'block');
+  // sin node, el proceso ni arranca: eso es lo que onFailure convierte en freno
+  const r = spawnSync(path.join(TMP, 'no-existe-node.exe'), [HOOK], { input: '{}', encoding: 'utf8' });
+  assert.ok(r.error || r.status !== 0);
+});
+
 test('4.7 caso 3 (error interno): no-JSON, vacía, no-objeto y una librería que falta → deny "freno roto: corré doctor", salida 0', () => {
   for (const t of ['no es json', '', '[]', 'null', '7']) {
     const r = correr(t);
@@ -995,9 +1052,18 @@ test('ningún git de los SKILL.md del molde frena (repo humano con .githooks y c
   const dirSkills = path.join(MOLDE, 'skills');
   const comando = require(path.join(DIR, 'lib', 'comando.cjs'));
   const comandos = [];
-  for (const s of fs.readdirSync(dirSkills, { withFileTypes: true })) {
-    if (!s.isDirectory()) continue;
-    const t = fs.readFileSync(path.join(dirSkills, s.name, 'SKILL.md'), 'utf8');
+  // todos los SKILL.md de kit/molde/skills/** (a cualquier profundidad)
+  const skills = [];
+  const recorrer = (dir) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (e.isDirectory()) recorrer(path.join(dir, e.name));
+      else if (e.name === 'SKILL.md') skills.push(path.join(dir, e.name));
+    }
+  };
+  recorrer(dirSkills);
+  assert.ok(skills.length >= 2, `pocas skills: ${skills.length}`);
+  for (const archivo of skills) {
+    const t = fs.readFileSync(archivo, 'utf8');
     const trozos = [];
     for (const m of t.matchAll(/```[^\n]*\n([\s\S]*?)```/g)) trozos.push(...m[1].split('\n'));
     for (const m of t.replace(/```[\s\S]*?```/g, '').matchAll(/`([^`\n]+)`/g)) trozos.push(m[1]);

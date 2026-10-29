@@ -155,6 +155,26 @@ test('enlace roto: .git que apunta a otro repo, .git ilegible, y un clon adentro
   assert.ok(ag.mismaRuta(sc.raiz, clon));
 });
 
+test('enlace roto: el commondir del worktree reescrito para apuntar al .git de otro repo', () => {
+  const d = repo();
+  const otro = repo();
+  const w = worktree(d, 'modulo/c--5');
+  assert.equal(ag.sesionDeAgente(w).enlace, 'ok');
+  const gitDir = fs.readFileSync(path.join(w, '.git'), 'utf8').replace(/^gitdir:\s*/, '').trim();
+  pisar(path.join(path.resolve(w, gitDir), 'commondir'), `${path.join(otro, '.git')}\n`);
+  const s = ag.sesionDeAgente(w);
+  assert.equal(s.enlace, 'roto');
+  assert.ok(ag.mismaRuta(s.comun, path.join(otro, '.git')));
+});
+
+test('nunca tira: un cwd que no es una ruta da la sesión vacía, no de agente', () => {
+  for (const x of [{}, 5]) {
+    const s = ag.sesionDeAgente(x);
+    assert.equal(s.agente, false);
+    assert.equal(s.raiz, null);
+  }
+});
+
 test('HEAD suelto: rama null, no es obrero por la rama', () => {
   const d = repo();
   const w = worktree(d, 'modulo/a--1');

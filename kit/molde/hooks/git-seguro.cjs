@@ -10,7 +10,7 @@
 // Ids: hook:git-seguro/<caso>. Cada fila dice qué frena, qué no y la alternativa (en el mensaje).
 //
 // REGLAS COMUNES (P4.7)
-//   - decidir(entrada, {anotar}) → { decision: 'nada' } · { decision: 'ask'|'deny', salida, casos, detalle, renglones }.
+//   - decidir(entrada, {anotar, memo, git}) → { decision: 'nada' } · { decision: 'ask'|'deny', salida, casos, detalle, renglones }.
 //     Tira solo si algo se rompe adentro: principal() lo traduce al deny "freno roto: corré doctor"; si ni eso, sale 2.
 //   - Barato cuando no frena: ni la ficha ni git hasta que algo de fábrica frenaría. Las consultas a git que necesita un caso
 //     (¿mergeada?, ¿publicado?, core.hooksPath) corren solo cuando el texto ya calzó con ese caso.
@@ -68,7 +68,7 @@ const MENSAJES = {
   'config-include':
     '`include.*`/`includeIf.*` mete config de otro archivo (puede apagar los hooks). No se escribe desde una sesión; si hace falta, Guido a mano.',
   'config-agente':
-    'en una sesión de agente no se escribe la config de git. En vez de `pull.rebase`, `git pull --rebase` (o `--no-rebase`); en vez de `push.autoSetupRemote`, `git push -u origin HEAD`; `safe.directory` lo pone Guido. `core.longpaths` y `rerere.*` pasan.',
+    'en una sesión de agente no se escribe la config de git. En vez de `pull.rebase`, `git pull --rebase` (o `--no-rebase`); en vez de `push.autoSetupRemote`, `git push -u origin HEAD`; `safe.directory` lo pone Guido; la identidad en un clon de prueba, por comando: `git -c user.name=… -c user.email=… commit`. `core.longpaths` y `rerere.*` pasan.',
   plomeria:
     'plomería de git (objetos, índice o remotos a mano) desde una sesión de agente. Usá los comandos comunes: add, commit, merge; el remoto lo arma el director.',
   'no-verify':
@@ -370,7 +370,7 @@ function nuevoContexto(entrada, opciones) {
     opciones,
     modo: typeof entrada.permission_mode === 'string' ? entrada.permission_mode.trim() : '',
     contexto: () => require('./lib/contexto.cjs'),
-    git: () => require('./lib/git.cjs'),
+    git: () => opciones.git || require('./lib/git.cjs'), // opciones.git: solo las pruebas (una falla de git a mano)
     agente: () => require('./lib/agente.cjs'),
     sesion: () => una('sesion', () => ctx.agente().sesionDeAgente(cwd)),
     // la raíz del repo que contiene `dir` (fs), o la del cwd si dir no se sabe
