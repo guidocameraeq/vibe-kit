@@ -34,7 +34,8 @@ sesiones bajan a 13 directores y el contexto de cada director queda acotado a su
 
 **Límites**: un subagente no lanza otros subagentes ni le puede preguntar a Guido: todo lo que necesite una decisión vuelve al
 director. **El director no edita código**: si se encuentra arreglando a mano, el encargo estaba mal escrito y se reescribe.
-**Si el contexto del director pasa la mitad** antes de terminar, cierra con lo hecho y el paquete sigue con un director nuevo.
+**El director no corta por contexto: termina su fila** (Guido, 2026-10-29: D1.1 y D2.1 cerraron con mucho contexto de sobra, y D2.1
+propuso partir con 26% usado). Si la app compacta, relee este tracker y su delta antes de seguir editando.
 
 **Modelos** (decisión de Guido, 2026-10-27): director, red team, revisor frío y encargos de riesgo en **Opus**; encargos mecánicos en
 **Sonnet**. **Fable** solo en la sesión donde Guido decide algo nuevo.
@@ -68,7 +69,7 @@ cuántos lanzó y en qué modelo (por ejemplo `4 Sonnet · 2 Opus`): es la medid
 |---|---|---|---|---|---|---|
 | D1.1 | Paquete 1 entero: spec delta (Guido sella), ficha, parser, `VERSION`, `pruebas/rehacer.sh` | 2026-10-28 | `vibe-kit M5 · D1.1 · Paquete 1: la ficha del kit y su parser` | 5 Sonnet · 1 Opus (revisor frío) | `68b75e1`…`16f7cb2` | ✅ Criterios 1-8 del delta verificados por el director; parser con 255 pruebas y 0 mutantes vivos en las reglas; el revisor frío cambió la gramática antes de congelarla (3 ALTOS) y Guido decidió `herramientas` aparte |
 | D2.1 | Paquete 2, primera mitad: spec delta + red team, `docs/` en capas, handoff y TODO con tope, hook node | 2026-10-28 | `vibe-kit M5 · D2.1 · Paquete 2, primera mitad: docs en capas, handoff y TODO con tope, hook node` | 4 Sonnet (mudanza, E1, E3, E6) · 7 Opus (redactor del delta, red team ×3 rondas, E0, E2, E4, E4b, E5) | `cf21f40`…`ab64c22` y el cierre | ✅ Criterios 1-15 del delta; suite **496 verde**; mutación por encargo 87/87 · 82/82 · 88/91 · 28/30 · 35/35 y control del director 6/6. **E4b** (fuera del delta): el hook de arranque tardaba 10-24 s con la PC cargada contra un `timeout` de 20 → plazo propio de 10 s. Hook de escritura medido: 5.007 `Write`, 0 frenadas sobre los seis y las tres |
-| **DP** | **Sesión intermedia (pedido de Guido, 2026-10-28): planear la paralelización** de lo que queda (ver "Paralelizar", abajo) y dejarla escrita acá antes de abrir D2.2 | | | | | |
+| DP | Sesión intermedia (pedido de Guido): planear la paralelización de lo que queda | 2026-10-29 | `vibe-kit M5 · DP · Planear la paralelización de lo que queda` | 0 | el cierre de DP | ✅ **Decidido: no se paraleliza**; la misión sigue un director por vez, en el orden de esta tabla (ver "Paralelizar") |
 | D2.2 | Paquete 2, segunda mitad: candado, `cambios` base y su sello, la zona propia (P3.2), `/inicio` y `/cierre` v3 con `pedidos.md`, revisor frío | | | | | |
 | D3.1 | Paquete 3: spec delta + red team (obligatorio), corrector, barreras, hooks por PC, `doctor` mínimo | | | | | |
 | D4.1 | Paquete 4: spec delta + red team, Arquitecto v3, sello, `formato-spec.md`, `worktree` y `.kit-rol` | | | | | |
@@ -81,20 +82,22 @@ cuántos lanzó y en qué modelo (por ejemplo `4 Sonnet · 2 Opus`): es la medid
 | D9.2 | Medir el mes del piloto contra TABLERO §1 | | | | | |
 | D10.1 | Tag `v3.0` y nota de migración | | | | | |
 
-## Paralelizar (evaluado por D2.1, 2026-10-28; lo planea DP)
+## Paralelizar: decidido que no (DP, 2026-10-29)
 
-Guido pidió avanzar más rápido con dos o tres directores a la vez ("cada tramo lleva el mismo tiempo; se avanza por paralelizar"). D2.1,
-contra la tabla "Orden de construcción" del SPEC-0, dice que **se puede en tres lugares**:
-1. **D2.2 ∥ paquete 3**: el 3 depende del 1, no del 2. Excepción: el pre-commit de P4.6 corre `candado:barreras` (D2.2): va al final del 3.
-2. **Adentro del paquete 5**: el SPEC-0 ya lo parte en módulos (núcleo · director · obrero/tramo · estado · mesa); núcleo primero, el resto
-   en paralelo donde no compartan archivos.
-3. **7 ∥ 8**: dependen los dos del 6, no entre sí (el 8½ es de Guido y corre aparte).
-**No se puede**: 4 → 5 → 6 es cadena. **Ganancia estimada**: de ~11 directores en fila a ~8 tandas (25-30% menos calendario).
-**Lo que DP tiene que dejar escrito**: el grafo de qué va con qué; **un dueño por archivo compartido** (`kit/molde/settings.json`,
-`kit/molde/hooks/lib/*`, `kit.ejemplo.md`, `rehacer.sh`); una rama por director y quién mergea a `main` y cuándo; cómo se reparten el
-tracker, el CHANGELOG y el handoff (cada director su fila/sección; uno solo integra el handoff); qué hace `/inicio` y `/cierre` con dos
-directores vivos; y el costo para Guido (dos chats, dos sellos, dos red teams: su atención es el cuello de botella). Es un ensayo de D
-(director/obrero) y G (la mesa): lo que duela, a "Lecciones".
+**La misión 5 sigue en secuencia: un director por vez, en el orden de la tabla de arriba.** Guido: "Prefiero hacerlo bien y que tarde
+más, porque esto es importante."
+
+Lo que se evaluó, para no volver a evaluarlo de cero (insumo de la misión 6):
+- **Dónde se podía** (D2.1, contra "Orden de construcción" del SPEC-0): D2.2 ∥ paquete 3 (el 3 depende del 1; el pre-commit de P4.6 iría al
+  final del 3) · adentro del paquete 5 (núcleo primero; después director/obrero ∥ estado/mesa) · 7 ∥ 8. 4 → 5 → 6 es cadena. Ganancia
+  estimada: antes del piloto, de 9 directores en fila a 6-7 pasos.
+- **Con una PC por director** rendía: cada uno con su suite, sus repos de prueba y su `~/.claude/`. Guido eligió **la misma PC**.
+- **En la misma PC** hacía falta sumar reglas: pruebas largas nunca a la vez (lección de los ~75 min), un `rehacer.sh` con carpeta
+  destino por director, el paquete 3 probando sus frenos en un `HOME` falso hasta que cierre el otro, más ramas `m5/<director>`, un dueño
+  por archivo compartido (`settings.json`, `hooks/lib/*`, `rehacer.sh`, `niega-aprobar.cjs`) y el handoff integrado por el último en
+  cerrar. Con la ganancia sin medir, eso pedía un ensayo primero.
+- **Por qué no**: la complejidad y el ensayo no valen el tiempo ganado en algo que define cómo se codea los próximos meses.
+- **Si se reabre** (por ejemplo, con las dos PCs): el plan de arriba sirve de punto de partida; lo que se decida va a "Cambios al plan".
 
 ## Pendientes de cada paquete
 
@@ -194,9 +197,16 @@ Del spec, sección "Lo que hacés vos de nuevo". Acá solo cuándo toca, para qu
 | 2026-10-27 | La construcción pasa de Sonnet a **Opus** | Decisión de Guido: es lo que define cómo se codea los próximos meses |
 | 2026-10-28 | **P3.2 (la zona propia) entra al orden 2**, y `pruebas/pedidos.md` pasa del orden 1 al 2 | P3.2 no tenía orden en el SPEC-0 y la necesitan `/inicio`/`/cierre` v3 y la exención de `candado:barreras`; `pedidos.md` lo usa `/inicio` v3 (P5.1). Decidido por Guido al sellar el delta del paquete 1 (D1.1) |
 | 2026-10-28 | **Los repos de prueba se mudan a `../vibe-kit-pruebas/`**, fuera del repo; `rehacer.sh` y `pedidos.md` se quedan en `pruebas/` | Adentro, leer un archivo suyo cargaba su `CLAUDE.md` (y, según la doc, sus skills `/inicio` y `/cierre`) en la sesión de vibe-kit, y una sesión abierta en un repo de prueba heredaba el `CLAUDE.md` de vibe-kit: las pruebas del hook del paquete 2 nacían sucias. Guido: "si molesta y no cambia nada, movelos" (D2.1) |
+| 2026-10-29 | **El director no corta por contexto**; y **D2.2 corre sin Guido presente**, con su autorización previa: decide con la recomendada y lo anota en "Decisiones sin Guido" de su fila para que él lo revise al volver | Guido (DP): "lo que la sesión recomendaba tendía a ser lo correcto"; los directores anteriores cerraron con mucho contexto de sobra. Nada del molde v3 llega a la flota antes del tag, así que toda decisión es reversible hasta ahí |
+| 2026-10-29 | **No se paraleliza: un director por vez**, en el orden de la tabla (DP) | Decisión de Guido: en la misma PC, paralelizar pedía reglas nuevas y un ensayo antes de saber si rendía; "prefiero hacerlo bien y que tarde más" |
 | 2026-10-28 | **Un director Opus por paquete con subagentes** en vez de una sesión por paso: de ~18-21 sesiones a 13 directores; los encargos mecánicos vuelven a Sonnet | ADR-028: propuesta de Guido (un orquestador para todo el spec), acotada a uno por paquete |
 
 ## Lecciones (insumo de la misión 6)
+
+- 2026-10-29 · **DP: paralelizar directores depende del hardware, no solo del grafo.** El grafo daba tres lugares; lo que lo hacía barato
+  era una PC por director. En una sola PC aparecen las pruebas que se pisan, los repos de prueba compartidos y los frenos globales de un
+  paquete metiéndose en la sesión del otro, y cada uno pide una regla. Para la misión 6 y para D (director/obrero): **antes de proponer
+  paralelizar, preguntar cuántas PCs hay**, y presentar el costo en reglas junto con la ganancia.
 
 - 2026-10-28 · **D2.1: el director no sabe cuánto contexto lleva.** Propuso cerrar "por pasar la mitad" con 26% usado (lo vio Guido en la
   app). La regla de "Límites" necesita una medida, no una impresión: hasta que exista el script `contexto` (P6.4, orden 5), el director

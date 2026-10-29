@@ -3,31 +3,30 @@
 > **Save game** del proyecto madre. `/cierre` lo sobreescribe entero; el hook SessionStart lo inyecta en cada chat
 > nuevo de esta carpeta. **Tope 5.500 bytes**; el hook corta y avisa "CORTADO" si se pasa, y termina con la huella.
 
-**Última sesión cerrada:** 2026-10-28, **misión 5, director D2.1: primera mitad del paquete 2 ✅**. PC `clientes`, Opus.
-`kit-sync` LIMPIO. Detalle: CHANGELOG del 2026-10-28 (D2.1), la fila D2.1 del tracker y "Lo que cambió en la construcción" del delta.
+**Última sesión cerrada:** 2026-10-29, **misión 5, sesión intermedia DP: decidido no paralelizar**. PC `clientes`, Opus.
+`kit-sync` LIMPIO. Detalle: CHANGELOG del 2026-10-29 (DP) y la sección "Paralelizar" del tracker.
 
 ## Dónde estamos
 
-- **Hecho en D2.1** (en `kit/molde/`, todavía no se instala en ningún proyecto): las plantillas de `docs/` en cuatro capas, el handoff
-  y el TODO con tope, los dos `.snippet`, las librerías de `hooks/lib/`, `scripts/todo.cjs`, el **hook de arranque en node** (con plazo
-  propio de 10 s) y el **hook de escritura en `docs/`**. Suite: **496 pruebas verdes**. `rehacer.sh` arma `alfa` y `beta` con el molde
-  nuevo; `gama` queda en `2.4.2`. Delta: `docs/kit-v3/SPEC-paquete-2.md` (READY; D2.1 ✅, D2.2 pendiente).
-- **Los repos de prueba viven en `../vibe-kit-pruebas/`** (fuera del repo, decisión de Guido): se rehacen con `bash pruebas/rehacer.sh`.
-- **Kit hecho**: 2 de 13 directores cerrados (D1.1 y D2.1 son el paquete 1 y medio paquete 2) y 8 de las 57 piezas del SPEC-0.
+- **DP decidió**: la misión 5 sigue **un director por vez**, en el orden del tracker. Paralelizar en la misma PC pedía reglas nuevas y un
+  ensayo; Guido: "prefiero hacerlo bien y que tarde más". Lo evaluado quedó en el tracker por si se reabre con las dos PCs.
+- **Dos reglas nuevas** (tracker, "Límites" y "Cambios al plan"): **el director no corta por contexto**, termina su fila; y **D2.2 corre
+  sin Guido** con su autorización previa: decide con la recomendada y anota cada decisión en "Decisiones sin Guido" de su fila.
+- **Kit hecho**: D1.1 y D2.1 (paquete 1 y medio paquete 2), 8 de las 57 piezas del SPEC-0; suite de 496 pruebas verde.
 - Hoja de ruta ADR-025: 4 ✅ → 4½ ✅ → **5 construir v3.0** (paquete 1 ✅, paquete 2 a medias) → 6 el ciclo → 7 mensajería v3.1.
 
-## Próximo paso: sesión intermedia DP
+## Próximo paso: D2.2, sola
 
-**Título: `vibe-kit M5 · DP · Planear la paralelización de lo que queda`**, en **Fable** (es una decisión nueva con Guido). Pedido de
-Guido: antes de D2.2, planear cómo trabajar con dos o tres directores a la vez y dejarlo escrito en el tracker para el resto de la
-misión. El insumo está en [`docs/kit-v3/PLAN-construccion.md`](kit-v3/PLAN-construccion.md), sección "Paralelizar" (dónde se puede, lo
-que DP tiene que dejar escrito) y "Lecciones" (dos encargos en la misma PC se pisan: tardaron ~75 min cada uno). La línea para abrir:
-`inicio — misión 5, sesión DP: planear la paralelización (docs/kit-v3/PLAN-construccion.md, "Paralelizar")`.
-Después de DP: **D2.2** (la segunda mitad del paquete 2 y su revisor frío), que abre haciendo las filas 1-7 de "Lo prueba una sesión
-real" del delta.
+**Título: `vibe-kit M5 · D2.2 · Paquete 2, segunda mitad: candado, cambios, zona propia, /inicio y /cierre v3`**, en **Opus**.
+Guido abre el chat con el prompt de DP (empieza con `inicio — misión 5, D2.2`) y se va: **después del `/inicio` no espera OK**. Hace
+la fila D2.2 entera (F1-F7 y el revisor frío del delta, sección "Los encargos"), decide con la recomendada y lo anota, no corta por
+contexto, deja lo que necesita una persona en "Pendientes", commitea después de cada encargo aceptado y termina con `/cierre` completo.
+Lo de "Paquete 2 · para D2.2" del tracker entra en su lista.
 
 ## Cosas que muerden y no están en ningún otro doc
 
+- 📉 **El plan semanal estaba al 75% el 2026-10-29 (renueva el 1-11)**: D2.1 gastó 36 M de caché y 7,4 M en subagentes. Si D2.2 se
+  corta por el límite, retoma desde el último commit y la fila del tracker.
 - 🧪 **Los repos de prueba se miran con Bash, nunca con Read**: leer un archivo suyo mete su `CLAUDE.md` en la sesión.
 - 🧪 **`node --test kit/` no anda en node 24**: el comando es `node --test "kit/**/*.test.cjs"`; tarda ~5 min, más con otra cosa corriendo.
 - 🧪 **Un obrero en worktree nace de un commit viejo**: el brief le pide `git merge --ff-only main` primero.

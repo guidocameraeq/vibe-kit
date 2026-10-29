@@ -2,6 +2,19 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-29 — Misión 5, sesión intermedia DP: no se paraleliza; el director no corta por contexto
+
+PC `clientes`, chat `vibe-kit M5 · DP · Planear la paralelización de lo que queda`, en Opus. Sin encargos ni código.
+
+**Changed**
+- Tracker (`docs/kit-v3/PLAN-construccion.md`): la sección "Paralelizar" pasa de evaluación a decisión: **un director por vez**, en el
+  orden de la tabla. Se evaluó D2.2 ∥ paquete 3, el 5 partido y 7 ∥ 8 (de 9 a 6-7 pasos antes del piloto); con una PC por director rendía,
+  en la misma PC pedía reglas nuevas (pruebas que se pisan, repos de prueba por director, frenos globales en un `HOME` falso, ramas y
+  dueños por archivo) y un ensayo. Guido: "prefiero hacerlo bien y que tarde más".
+- "Límites": **el director no corta por contexto**, termina su fila (D1.1 y D2.1 cerraron con mucho de sobra). **D2.2 corre sin Guido**
+  con su autorización previa: decide con la recomendada y lo anota en "Decisiones sin Guido".
+- Lección para la misión 6: paralelizar directores depende de cuántas PCs hay, no solo del grafo de dependencias.
+
 ## 2026-10-28 — Misión 5, paquete 2, primera mitad ✅: docs en capas, handoff y TODO con tope, hook de arranque en node y hook de escritura (D2.1)
 
 PC `clientes`, chat `vibe-kit M5 · D2.1 · Paquete 2, primera mitad: docs en capas, handoff y TODO con tope, hook node`, en Opus.
