@@ -1,0 +1,852 @@
+'use strict';
+// cambios.cjs — el registro de cambios de método del proyecto: formato, sello, `verificar` y `toca` (SPEC-paquete-2 P6.8a y
+// D2.2 F3; ADR-026; red team rondas 1 a 5). Lo usan scripts/cambios.cjs (el CLI) y el candado (F4, `candado:barreras`).
+// Vive bajo .claude/hooks/** a propósito: el formato y el sello son barrera (r4-3).
+//
+// Un archivo por cambio, .claude/cambios/<AAAA-MM-DD>-<slug>.md: cabecera con la gramática de la ficha (ficha.leerCabecera)
+// hasta el primer `---`, y un cuerpo con cuatro secciones: ## Caso de origen · ## Regla · ## Dónde vive · ## Medición.
+// El sello (`aprobo:`) lo escribe solo `cambios aprobar`, con su renglón en frenos.log y su propio commit en la rama por
+// defecto; `verificar` lo da por bueno solo si todo eso se ve en la historia --first-parent de refs/heads/<rama por defecto>.
+// Node estándar, cero dependencias. Es .cjs a propósito: corre igual en proyectos con "type": "module".
+
+const fs = require('fs');
+const path = require('path');
+const ficha = require('./ficha.cjs');
+const git = require('./git.cjs');
+const contexto = require('./contexto.cjs');
+const frenosLog = require('./frenos-log.cjs');
+const ruta = require('./cambios-ruta.cjs');
+const { normalizarId, reglas, leerJsonSinDuplicados } = require('./zona-propia.cjs');
+
+// ---------------------------------------------------------------- el formato (tabla de P6.8a, más `ids` de F3)
+
+const ESTADOS = ['propuesto', 'aprobado', 'aplicado', 'rechazado', 'subio-al-kit'];
+const CLASES = ['2', '3-barrera'];
+// La lista cerrada de `toca` en un 3-barrera: las barreras de candado:barreras. Se compara por igualdad.
+const BARRERAS = ['frenos', 'sensible', 'autorizado', 'settings', 'hooks', 'githooks', 'gitleaks'];
+const CICATRICES = ['seguridad', 'produccion', 'plata', 'no'];
+const SI_NO = ['sí', 'no'];
+const SECCIONES = ['Caso de origen', 'Regla', 'Dónde vive', 'Medición'];
+// En el orden en que los escribe el script (los de después del clic, al final).
+const CAMPOS = ['estado', 'clase', 'toca', 'ids', 'origen', 'cita', 'cicatriz', 'chico', 'chico-por', 'urgente', 'motivo', 'version', 'sha', 'aplico', 'aprobo'];
+const CAMPOS_SELLO = ['sesion', 'fecha', 'carpeta', 'rol', 'hash', 'freno'];
+// Lo que cambia después del clic y por eso no entra al hash del sello (RT-p2 r2-4): todo lo demás, sí.
+const FUERA_DEL_HASH = ['estado', 'aprobo', 'sha', 'aplico'];
+// El renglón que escribe `aprobar` en frenos.log.
+const ID_APROBAR = 'cambios:aprobar';
+const HERRAMIENTA_APROBAR = 'cambios.cjs';
+
+const RE_PIEZA = /^[a-z0-9][a-z0-9-]*$/;
+const RE_CITA = /^[a-z0-9-]+ \S+$/;
+const RE_SHA = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
+const RE_HASH = /^[0-9a-f]{12}$/;
+const RE_VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
+const RE_FECHA = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/;
+
+const tiene = (o, k) => o != null && Object.prototype.hasOwnProperty.call(o, k);
+const esTexto = (v) => typeof v === 'string';
+const esMapa = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+const unicos = (xs) => [...new Set(xs)].sort();
+
+// Un texto del usuario que va a la cabecera: la gramática no escapa nada, así que ni ", ni \, ni saltos de línea.
+function textoValido(s) {
+  return typeof s === 'string' && s.trim() !== '' && !/["\\\r\n]/.test(s) && s.length <= 300;
+}
+
+// ---------------------------------------------------------------- leer y escribir
+
+// Texto normalizado (sin BOM, LF) partido en renglones, con el índice del `---` que cierra la cabecera (-1 si no cierra).
+function partir(texto) {
+  let t = String(texto);
+  if (t.charCodeAt(0) === 0xfeff) t = t.slice(1);
+  t = t.replace(/\r\n/g, '\n');
+  const lineas = t.split('\n');
+  let cierre = -1;
+  if (lineas[0] === '---') {
+    for (let i = 1; i < lineas.length; i++) {
+      if (lineas[i] === '---') {
+        cierre = i;
+        break;
+      }
+    }
+  }
+  return { lineas, cierre };
+}
+
+// leer(texto) → { datos, cuerpo }. Un error de gramática tira ficha.ErrorFicha con su línea (igual que la ficha).
+function leer(texto) {
+  const { datos } = ficha.leerCabecera(texto);
+  const { lineas, cierre } = partir(texto);
+  return { datos, cuerpo: lineas.slice(cierre + 1).join('\n') };
+}
+
+// Los renglones de la cabecera que son de un campo de arriba (y lo que cuelga de él, con sangría): { campo: [i, …] }.
+function renglonesDeCampos(lineas, cierre) {
+  const res = {};
+  let actual = null;
+  for (let i = 1; i < cierre; i++) {
+    const l = lineas[i];
+    const m = /^([a-z0-9][a-z0-9_-]*):(?:\s|$)/.exec(l);
+    if (m) {
+      actual = m[1];
+      (res[actual] = res[actual] || []).push(i);
+    } else if (actual && /^\s/.test(l)) {
+      res[actual].push(i);
+    } else {
+      actual = null;
+    }
+  }
+  return res;
+}
+
+// El hash del sello: ficha.hash del archivo ENTERO (cabecera y cuerpo, LF) sin los renglones de estado, aprobo, sha y aplico.
+// Lo que Guido lee en "te espera" (la regla, el caso, los ids) no se puede editar después del clic sin que esto cambie.
+function hashSello(texto) {
+  const { lineas, cierre } = partir(texto);
+  if (cierre < 0) return ficha.hash(lineas.join('\n'));
+  const fuera = new Set();
+  const porCampo = renglonesDeCampos(lineas, cierre);
+  for (const c of FUERA_DEL_HASH) for (const i of porCampo[c] || []) fuera.add(i);
+  return ficha.hash(lineas.filter((_, i) => !fuera.has(i)).join('\n'));
+}
+
+// Un valor de la cabecera, escrito como lo escribe el script: textos entre comillas dobles (salvo los de vocabulario cerrado),
+// listas en línea, mapas en línea. Tira si un texto trae algo que la gramática no puede llevar.
+function comillas(s) {
+  if (typeof s !== 'string' || /["\\\r\n]/.test(s)) throw new Error('un texto con ", \\ o salto de línea no se puede escribir en la cabecera');
+  return `"${s}"`;
+}
+const listaCruda = (xs) => `[${xs.join(', ')}]`;
+const listaComillas = (xs) => `[${xs.map(comillas).join(', ')}]`;
+
+// Pone (o saca, con null) campos de arriba en la cabecera, renglón por renglón: lo demás queda byte por byte igual, que es
+// lo que mantiene el hash del sello. Un campo que no estaba va al final de la cabecera. → el texto nuevo, con LF.
+function ponerCampos(texto, cambios) {
+  const { lineas, cierre } = partir(texto);
+  if (cierre < 0) throw new Error('la cabecera no se cierra');
+  const porCampo = renglonesDeCampos(lineas, cierre);
+  const reemplazo = new Map();
+  const borrar = new Set();
+  const agregar = [];
+  for (const [campo, valor] of Object.entries(cambios)) {
+    const donde = porCampo[campo];
+    const renglon = valor === null ? null : `${campo}: ${valor}`;
+    if (donde && donde.length) {
+      donde.forEach((i, k) => (k === 0 && renglon !== null ? reemplazo.set(i, renglon) : borrar.add(i)));
+    } else if (renglon !== null) {
+      agregar.push(renglon);
+    }
+  }
+  const out = [];
+  lineas.forEach((l, i) => {
+    if (i === cierre) out.push(...agregar);
+    if (borrar.has(i)) return;
+    out.push(reemplazo.has(i) ? reemplazo.get(i) : l);
+  });
+  return out.join('\n');
+}
+
+// armar({...}) → el texto de un cambio nuevo, `propuesto`. ids normalizados y siempre entre comillas (r5-4: "nuevo escribe
+// entre comillas dobles todo id que tenga coma"; acá todos, que es lo mismo y más simple).
+function armar(c) {
+  const r = ['---', 'estado: propuesto', `clase: ${c.clase}`, `toca: ${listaCruda(c.toca)}`];
+  if (c.ids && c.ids.length) r.push(`ids: ${listaComillas(c.ids.map(normalizarId))}`);
+  if (c.origen != null) r.push(`origen: ${comillas(c.origen)}`);
+  if (c.cita != null) r.push(`cita: ${comillas(c.cita)}`);
+  r.push(`cicatriz: ${c.cicatriz}`, `chico: ${c.chico}`);
+  if (c.chicoPor != null) r.push(`chico-por: ${comillas(c.chicoPor)}`);
+  r.push(`urgente: ${c.urgente}`, '---', '');
+  const cuerpo = String(c.cuerpo).replace(/^﻿/, '').replace(/\r\n/g, '\n').replace(/^\n+/, '').replace(/\s+$/, '');
+  return `${r.join('\n')}\n${cuerpo}\n`;
+}
+
+// El sello en una línea: aprobo: {sesion: …, fecha: "…", carpeta: ., rol: …, hash: …, freno: "…"}. freno SIEMPRE entre comillas
+// (la gramática corta el mapa en las comas, y una rama puede tener comas).
+function textoSello(s) {
+  return `{sesion: ${s.sesion}, fecha: ${comillas(s.fecha)}, carpeta: ${s.carpeta}, rol: ${s.rol}, hash: ${s.hash}, freno: ${comillas(s.freno)}}`;
+}
+
+// ---------------------------------------------------------------- el cuerpo
+
+// Las secciones del cuerpo: { títulos: Set, regla: la primera línea no vacía de ## Regla (o null) }.
+function secciones(cuerpo) {
+  const titulos = new Set();
+  let regla = null;
+  let enRegla = false;
+  for (const l of String(cuerpo).split('\n')) {
+    const m = /^##\s+(.+?)\s*$/.exec(l);
+    if (m && !/^#/.test(m[1])) {
+      titulos.add(m[1]);
+      enRegla = m[1] === 'Regla';
+      continue;
+    }
+    if (enRegla && regla === null && l.trim() !== '') regla = l.trim();
+  }
+  return { titulos, regla };
+}
+
+const faltanSecciones = (cuerpo) => {
+  const { titulos } = secciones(cuerpo);
+  return SECCIONES.filter((s) => !titulos.has(s));
+};
+const reglaEnUnaLinea = (cuerpo) => secciones(cuerpo).regla;
+
+// ---------------------------------------------------------------- validar (lo que se ve sin git)
+
+// validar(datos, cuerpo) → [{campo, que, hacer}]. Vacía = en orden. Ningún mensaje repite un valor del archivo.
+function validar(datos, cuerpo) {
+  const f = [];
+  const mal = (campo, que, hacer) => f.push({ campo, que, hacer });
+  const d = esMapa(datos) ? datos : {};
+  const uno = (k, opciones, obligatorio = true) => {
+    if (!tiene(d, k)) {
+      if (obligatorio) mal(k, `falta "${k}"`, `agregalo: ${opciones.join(' · ')}`);
+      return;
+    }
+    if (!esTexto(d[k]) || !opciones.includes(d[k])) mal(k, `"${k}" tiene un valor que no se acepta`, `tiene que ser uno de: ${opciones.join(', ')}`);
+  };
+  const texto = (k) => {
+    if (!esTexto(d[k]) || d[k].trim() === '') mal(k, `"${k}" tiene que ser un texto no vacío`, 'escribilo entre comillas dobles');
+  };
+
+  for (const k of Object.keys(d)) if (!CAMPOS.includes(k)) mal(k, `campo desconocido "${k}"`, `los que valen son: ${CAMPOS.join(', ')}`);
+
+  uno('estado', ESTADOS);
+  uno('clase', CLASES);
+  const estado = esTexto(d.estado) && ESTADOS.includes(d.estado) ? d.estado : null;
+  const clase = esTexto(d.clase) && CLASES.includes(d.clase) ? d.clase : null;
+  const barrera = clase === '3-barrera';
+
+  if (!tiene(d, 'toca')) mal('toca', 'falta "toca"', `poné la lista: en un 3-barrera, de ${BARRERAS.join(', ')}`);
+  else if (!Array.isArray(d.toca) || !d.toca.length || !d.toca.every(esTexto)) mal('toca', '"toca" tiene que ser una lista no vacía [a, b]', 'escribila entre corchetes');
+  else if (barrera) {
+    if (!d.toca.every((t) => BARRERAS.includes(t))) mal('toca', '"toca" de un 3-barrera tiene algo que no es una barrera', `la lista cerrada es: ${BARRERAS.join(', ')}`);
+  } else if (clase === '2') {
+    if (d.toca.some((t) => BARRERAS.includes(t))) mal('toca', 'un cambio de clase 2 nombra una barrera en "toca"', 'si toca una barrera es 3-barrera: rehacelo con cambios nuevo');
+    else if (!d.toca.every((t) => RE_PIEZA.test(t))) mal('toca', '"toca" tiene un nombre de pieza que no se acepta', 'minúsculas, números y guiones');
+  }
+
+  if (tiene(d, 'ids')) {
+    if (!Array.isArray(d.ids) || !d.ids.every((x) => esTexto(x) && x.trim() !== '')) mal('ids', '"ids" tiene que ser una lista de textos', 'uno por id, entre comillas dobles');
+    else if (barrera && !d.ids.length) mal('ids', 'un 3-barrera sin ids', 'declarás los ids que cambia: rehacelo con cambios nuevo --id …');
+  } else if (barrera) mal('ids', 'un 3-barrera sin "ids"', 'declarás los ids que cambia: rehacelo con cambios nuevo --id …');
+
+  if (tiene(d, 'origen') === tiene(d, 'cita')) mal('origen', 'tiene que haber "origen" o "cita", uno solo', 'origen: "<texto>" o cita: "<alias> <id>"');
+  else if (tiene(d, 'origen')) texto('origen');
+  else if (!esTexto(d.cita) || !RE_CITA.test(d.cita)) mal('cita', '"cita" no tiene la forma "<alias> <id>"', 'escribila así, entre comillas dobles');
+
+  uno('cicatriz', CICATRICES);
+  uno('chico', SI_NO);
+  if (tiene(d, 'chico-por')) texto('chico-por');
+  else if (d.chico === 'sí' && esTexto(d.cicatriz) && d.cicatriz !== 'no') mal('chico-por', '"chico: sí" va contra la cicatriz y no dice por qué', 'agregá chico-por: "<razón>" (RT2-8)');
+  uno('urgente', SI_NO, false);
+
+  // Los datos de cada estado.
+  const soloCon = (k, estados) => {
+    if (tiene(d, k) && estado && !estados.includes(estado)) mal(k, `"${k}" en un cambio ${estado}`, `"${k}" va solo con ${estados.join(' o ')}`);
+  };
+  soloCon('sha', ['aplicado', 'subio-al-kit']);
+  soloCon('aplico', ['aplicado', 'subio-al-kit']);
+  soloCon('motivo', ['rechazado']);
+  soloCon('version', ['subio-al-kit']);
+  soloCon('aprobo', ['aprobado', 'aplicado', 'rechazado', 'subio-al-kit']);
+  if (estado === 'aplicado' && !tiene(d, 'sha')) mal('sha', 'aplicado sin "sha"', 'anotá el commit que lo aplicó: cambios anotar-sha <id> <sha>');
+  if (tiene(d, 'sha') && (!esTexto(d.sha) || !RE_SHA.test(d.sha))) mal('sha', '"sha" no es un SHA completo', 'anotalo con cambios anotar-sha (lo completa solo)');
+  if (estado === 'rechazado') {
+    if (!tiene(d, 'motivo')) mal('motivo', 'rechazado sin "motivo"', 'cambios rechazar <id> "<motivo>"');
+    else texto('motivo');
+  }
+  if (estado === 'subio-al-kit' && (!esTexto(d.version) || !RE_VERSION.test(d.version))) mal('version', 'subio-al-kit sin "version" N.N.N', 'poné la versión del kit que lo trajo');
+  if (tiene(d, 'aplico')) {
+    const a = d.aplico;
+    if (!esMapa(a) || Object.keys(a).sort().join() !== 'archivo,hash' || !esTexto(a.archivo) || !esTexto(a.hash) || !RE_HASH.test(a.hash)) {
+      mal('aplico', '"aplico" no es {archivo, hash} con 12 hexa', 'anotalo con cambios anotar-sha <id> <sha> --aplico <archivo>');
+    }
+  }
+
+  // El sello: su forma (lo de git y frenos.log lo mira validarSello).
+  if (estado === 'aprobado' && clase === '2') mal('estado', 'aprobado en un cambio de clase 2', 'aprobado es solo para 3-barrera: un clase 2 pasa de propuesto a aplicado');
+  if (barrera && (estado === 'aprobado' || estado === 'aplicado') && !tiene(d, 'aprobo')) {
+    mal('aprobo', `3-barrera ${estado} sin sello`, 'el único camino a aprobado es cambios aprobar <id>, desde tu checkout principal');
+  }
+  if (tiene(d, 'aprobo') && formaSello(d.aprobo)) mal('aprobo', `el sello está mal formado (${formaSello(d.aprobo)})`, 'el sello lo escribe solo cambios aprobar: no se arregla a mano');
+
+  // El cuerpo.
+  for (const s of faltanSecciones(cuerpo)) mal('cuerpo', `falta la sección "## ${s}"`, 'el cuerpo lleva las cuatro: Caso de origen, Regla, Dónde vive, Medición');
+  if (!faltanSecciones(cuerpo).includes('Regla') && reglaEnUnaLinea(cuerpo) === null) mal('cuerpo', 'la sección "## Regla" está vacía', 'su primera línea es la regla en una línea');
+  return f;
+}
+
+// null si el sello tiene la forma; si no, qué le pasa (sin repetir valores).
+function formaSello(s) {
+  if (!esMapa(s)) return 'no es un mapa en línea';
+  const claves = Object.keys(s).sort().join();
+  if (claves !== [...CAMPOS_SELLO].sort().join()) return `tiene que tener exactamente ${CAMPOS_SELLO.join(', ')}`;
+  if (!CAMPOS_SELLO.every((k) => esTexto(s[k]) && s[k] !== '')) return 'cada campo es un texto';
+  if (!RE_HASH.test(s.hash)) return 'el hash no son 12 hexa';
+  if (!RE_FECHA.test(s.fecha) || Number.isNaN(Date.parse(s.fecha))) return 'la fecha no es AAAA-MM-DDTHH:MM:SS±hh:mm';
+  return null;
+}
+
+// ---------------------------------------------------------------- git: utilidades
+
+const ARBOL_VACIO_SHA1 = '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
+
+function shaDe(raiz, rev) {
+  return git.texto(['rev-parse', '--verify', '-q', `${rev}^{commit}`], { cwd: raiz });
+}
+function padres(raiz, sha) {
+  const t = git.texto(['rev-list', '--parents', '-n', '1', sha], { cwd: raiz });
+  return t ? t.split(/\s+/).slice(1) : [];
+}
+// El contenido de <rev>:<ruta> como Buffer, o null si no está.
+function blob(raiz, rev, rel) {
+  const r = git.correr(['cat-file', 'blob', `${rev}:${rel}`], { cwd: raiz });
+  return r.ok ? r.salida : null;
+}
+const partirZ = (t) => (t ? t.split('\0').filter((x) => x !== '') : []);
+function esAncestro(raiz, a, b) {
+  return git.correr(['merge-base', '--is-ancestor', a, b], { cwd: raiz }).ok;
+}
+
+// cat-file --batch-check y --batch en una llamada cada uno: [entrada] → [{tipo, contenido (Buffer, solo con conContenido)} | null].
+function lotes(raiz, entradas, conContenido) {
+  if (!entradas.length) return [];
+  const r = git.correr(['cat-file', conContenido ? '--batch' : '--batch-check'], { cwd: raiz, entrada: `${entradas.join('\n')}\n`, tiempo: 20000 });
+  if (!r.ok) throw new Error('git cat-file no anduvo');
+  const b = r.salida;
+  const res = [];
+  let i = 0;
+  for (let k = 0; k < entradas.length; k++) {
+    const fin = b.indexOf(0x0a, i);
+    if (fin < 0) throw new Error('git cat-file cortado');
+    const cab = b.subarray(i, fin).toString('utf8');
+    i = fin + 1;
+    if (/ missing$/.test(cab) || / ambiguous$/.test(cab)) {
+      res.push(null);
+      continue;
+    }
+    const m = /^([0-9a-f]+) (\S+) (\d+)$/.exec(cab);
+    if (!m) throw new Error('git cat-file: salida inesperada');
+    const item = { objeto: m[1], tipo: m[2], tam: Number(m[3]) };
+    if (conContenido) {
+      item.contenido = b.subarray(i, i + item.tam);
+      i += item.tam + 1;
+    }
+    res.push(item);
+  }
+  return res;
+}
+
+// La rama por defecto LOCAL (refs/heads/<x>, donde corre aprobar; r4-5): { nombre, ref } o null.
+function ramaLocal(raiz) {
+  const nombre = contexto.ramaPorDefecto(raiz);
+  if (!nombre) return null;
+  const ref = `refs/heads/${nombre}`;
+  return shaDe(raiz, ref) ? { nombre, ref } : null;
+}
+
+// ---------------------------------------------------------------- toca: qué barreras toca un commit (o lo pendiente)
+
+// La categoría de barrera de una ruta (candado:barreras, P6.1; más los dos scripts del candado en `hooks`, r4-3), o null.
+// 'ficha' es .claude/kit.md: sus categorías (frenos, sensible, autorizado) salen de comparar el contenido. Sin mayúsculas:
+// en Windows .Claude/Hooks es la misma carpeta.
+function categoriaDe(rel) {
+  const r = String(rel).replace(/\\/g, '/').toLowerCase();
+  if (r === contexto.RUTA_FICHA) return 'ficha';
+  if (/^\.claude\/settings[^/]*\.json$/.test(r)) return 'settings';
+  if (r === '.claude/hooks' || r.startsWith('.claude/hooks/')) return 'hooks';
+  if (r === '.claude/scripts/estructura.cjs' || r === '.claude/scripts/cambios.cjs') return 'hooks';
+  if (r === '.githooks' || r.startsWith('.githooks/')) return 'githooks';
+  if (r === '.gitleaksignore' || r === '.gitleaks.toml') return 'gitleaks';
+  return null;
+}
+
+// Igualdad de valores JSON: el orden de las claves no importa; el de las listas, sí.
+function canon(v) {
+  if (Array.isArray(v)) return `[${v.map(canon).join(',')}]`;
+  if (esMapa(v)) return `{${Object.keys(v).sort().map((k) => `${JSON.stringify(k)}:${canon(v[k])}`).join(',')}}`;
+  return JSON.stringify(v);
+}
+
+const aTexto = (b) => (b == null ? null : Buffer.isBuffer(b) ? b.toString('utf8') : String(b));
+
+// La ficha de un lado: null (no está), { rota: true } o { datos }.
+function ladoFicha(b) {
+  const t = aTexto(b);
+  if (t === null) return null;
+  try {
+    return { datos: ficha.leer(t).datos };
+  } catch (e) {
+    return { rota: true };
+  }
+}
+
+const PIEZAS_FRENO = ['candado', 'hook-escritura'];
+const estadoPieza = (datos, p) => {
+  const v = datos && esMapa(datos.piezas) ? datos.piezas[p] : undefined;
+  if (v == null) return null;
+  if (esTexto(v)) return v;
+  return esMapa(v) && esTexto(v.estado) ? v.estado : null;
+};
+// Los frenos de la ficha por id: {id → canon del ítem}. quitados por su id; opcionales por su texto (o su id si es un mapa).
+function frenosPorId(datos) {
+  const m = new Map();
+  const fr = datos && esMapa(datos.frenos) ? datos.frenos : {};
+  const poner = (id, v) => {
+    if (!esTexto(id) || id === '') return;
+    const k = normalizarId(id);
+    m.set(k, `${m.has(k) ? `${m.get(k)}|` : ''}${canon(v)}`);
+  };
+  for (const lista of ['quitados', 'opcionales']) {
+    for (const it of Array.isArray(fr[lista]) ? fr[lista] : []) poner(esMapa(it) ? it.id : it, [lista, it]);
+  }
+  return m;
+}
+// Todos los ids de una ficha (borrarla los cambia todos; r4-2).
+function todosLosIds(datos) {
+  const ids = [...frenosPorId(datos).keys()];
+  const fr = datos && esMapa(datos.frenos) ? datos.frenos : {};
+  for (const k of Object.keys(fr)) if (k !== 'quitados' && k !== 'opcionales') ids.push(`frenos:${k}`);
+  for (const k of Object.keys(datos && esMapa(datos.sensible) ? datos.sensible : {})) ids.push(`sensible:${k}`);
+  for (const k of Object.keys(datos && esMapa(datos.autorizado) ? datos.autorizado : {})) ids.push(`autorizado:${k}`);
+  ids.push('nivel', ...PIEZAS_FRENO.map((p) => `pieza:${p}`));
+  return ids;
+}
+
+// idsFicha(antes, después) → { categorias, ids }. Cuentan los frenos, sensible y autorizado que cambian, y nivel y las dos
+// piezas SOLO cuando aflojan (r5-3): la pieza pasa de algo distinto de `no` a `no` o a no estar; el nivel, de estandar a otro.
+function idsFicha(antesB, despuesB) {
+  const a = ladoFicha(antesB);
+  const d = ladoFicha(despuesB);
+  const cats = new Set();
+  const ids = [];
+  if (!a && !d) return { categorias: [], ids: [] };
+  const todas = () => ['frenos', 'sensible', 'autorizado'].forEach((c) => cats.add(c));
+  if ((a && a.rota) || (d && d.rota)) {
+    // Lo que no se lee no se compara: el lado que se lee cuenta entero; si ninguno se lee, `ficha:rota` hay que declararlo.
+    todas();
+    const sano = a && !a.rota ? a : d && !d.rota ? d : null;
+    if (sano) ids.push(...todosLosIds(sano.datos));
+    else ids.push('ficha:rota');
+    return { categorias: unicos([...cats]), ids: unicos(ids.map(normalizarId)) };
+  }
+  if (a && !d) {
+    todas();
+    return { categorias: unicos([...cats]), ids: unicos(todosLosIds(a.datos).map(normalizarId)) };
+  }
+  const A = a ? a.datos : {};
+  const D = d.datos;
+  // frenos
+  const fa = frenosPorId(A);
+  const fd = frenosPorId(D);
+  for (const id of new Set([...fa.keys(), ...fd.keys()])) {
+    if (fa.get(id) !== fd.get(id)) {
+      ids.push(id);
+      cats.add('frenos');
+    }
+  }
+  const fra = esMapa(A.frenos) ? A.frenos : {};
+  const frd = esMapa(D.frenos) ? D.frenos : {};
+  for (const k of new Set([...Object.keys(fra), ...Object.keys(frd)])) {
+    if (k === 'quitados' || k === 'opcionales') continue;
+    if (canon(fra[k]) !== canon(frd[k])) {
+      ids.push(`frenos:${k}`);
+      cats.add('frenos');
+    }
+  }
+  if (a) {
+    if (A.nivel === 'estandar' && D.nivel !== 'estandar') {
+      ids.push('nivel');
+      cats.add('frenos');
+    }
+    for (const p of PIEZAS_FRENO) {
+      const ea = estadoPieza(A, p);
+      const ed = estadoPieza(D, p);
+      if (ea !== null && ea !== 'no' && (ed === null || ed === 'no')) {
+        ids.push(`pieza:${p}`);
+        cats.add('frenos');
+      }
+    }
+  }
+  // sensible y autorizado, por clave
+  for (const cat of ['sensible', 'autorizado']) {
+    const ma = esMapa(A[cat]) ? A[cat] : {};
+    const md = esMapa(D[cat]) ? D[cat] : {};
+    for (const k of new Set([...Object.keys(ma), ...Object.keys(md)])) {
+      if (canon(ma[k]) !== canon(md[k])) {
+        ids.push(`${cat}:${k}`);
+        cats.add(cat);
+      }
+    }
+  }
+  return { categorias: unicos([...cats]), ids: unicos(ids.map(normalizarId)) };
+}
+
+// Un settings de un lado: { valor } (null = no está, como {}) o { roto: true }.
+function ladoSettings(b) {
+  const t = aTexto(b);
+  if (t === null) return { valor: {} };
+  const r = leerJsonSinDuplicados(t);
+  return r.ok && esMapa(r.valor) ? { valor: r.valor } : { roto: true };
+}
+function reglasPorId(valor) {
+  const m = new Map();
+  for (const r of reglas(valor)) {
+    const c = r.tipo === 'hook' ? canon(r.entrada) : r.texto;
+    if (!m.has(r.id)) m.set(r.id, []);
+    m.get(r.id).push(c);
+  }
+  for (const [k, v] of m) m.set(k, v.sort().join('\n'));
+  return m;
+}
+
+// idsSettings(antes, después, rel) → los ids que cambian: las reglas (id de zona-propia.reglas, normalizado) que aparecen,
+// desaparecen o cambian (un hook con el mismo id y otro timeout u onFailure cuenta), y `settings:<clave>` por cualquier otra
+// clave (`settings:permissions.<clave>` adentro de permissions). Un lado que no abre como JSON: `settings:<archivo>` y todo lo del otro.
+function idsSettings(antesB, despuesB, rel) {
+  const a = ladoSettings(antesB);
+  const d = ladoSettings(despuesB);
+  const ids = [];
+  const A = a.roto ? {} : a.valor;
+  const D = d.roto ? {} : d.valor;
+  if (a.roto || d.roto) ids.push(`settings:${rel}`);
+  const ra = reglasPorId(A);
+  const rd = reglasPorId(D);
+  let hookCambio = false;
+  for (const id of new Set([...ra.keys(), ...rd.keys()])) {
+    if (ra.get(id) !== rd.get(id)) {
+      ids.push(id);
+      if (id.startsWith('hook:')) hookCambio = true;
+    }
+  }
+  // Lo de hooks que reglas() no ve (un grupo con otra forma, otro orden): que no se escape callado.
+  if (!hookCambio && canon(A.hooks) !== canon(D.hooks)) ids.push('settings:hooks');
+  for (const k of new Set([...Object.keys(A), ...Object.keys(D)])) {
+    if (k === 'hooks') continue;
+    if (k === 'permissions' && esMapa(A[k] || {}) && esMapa(D[k] || {})) {
+      const pa = A[k] || {};
+      const pd = D[k] || {};
+      for (const j of new Set([...Object.keys(pa), ...Object.keys(pd)])) {
+        if (['allow', 'ask', 'deny'].includes(j)) continue;
+        if (canon(pa[j]) !== canon(pd[j])) ids.push(`settings:permissions.${j}`);
+      }
+      continue;
+    }
+    if (canon(A[k]) !== canon(D[k])) ids.push(`settings:${k}`);
+  }
+  return unicos(ids.map(normalizarId));
+}
+
+// Lo que cambia entre un antes y uno o más después, por archivo: { rel, antes: Buffer|null, despues: [Buffer|null] }.
+function cambiosDe(raiz, cual) {
+  if (cual === 'pendiente') {
+    const head = shaDe(raiz, 'HEAD');
+    const rutas = new Set();
+    if (head) {
+      for (const args of [['diff', '--no-renames', '--name-only', '-z', 'HEAD'], ['diff', '--cached', '--no-renames', '--name-only', '-z', 'HEAD']]) {
+        const r = git.correr(args, { cwd: raiz });
+        if (!r.ok) throw new Error('git diff no anduvo');
+        partirZ(r.stdout).forEach((x) => rutas.add(x));
+      }
+    } else {
+      const r = git.correr(['ls-files', '-z'], { cwd: raiz });
+      if (!r.ok) throw new Error('git ls-files no anduvo');
+      partirZ(r.stdout).forEach((x) => rutas.add(x));
+    }
+    const o = git.correr(['ls-files', '--others', '--exclude-standard', '-z'], { cwd: raiz });
+    if (!o.ok) throw new Error('git ls-files no anduvo');
+    partirZ(o.stdout).forEach((x) => rutas.add(x));
+    return [...rutas].sort().map((rel) => ({
+      rel,
+      antes: () => (head ? blob(raiz, head, rel) : null),
+      // Lo que se commitearía (el índice) y lo del disco: se juzgan los dos, así no se escapa lo que está solo en uno.
+      despues: () => [blob(raiz, '', rel), leerDisco(path.join(raiz, ...rel.split('/')))],
+    }));
+  }
+  const sha = shaDe(raiz, cual);
+  if (!sha) throw new Error('ese commit no existe');
+  const p = padres(raiz, sha);
+  const r = p.length
+    ? git.correr(['diff', '--no-renames', '--name-only', '-z', p[0], sha], { cwd: raiz })
+    : git.correr(['diff-tree', '--root', '--no-renames', '--no-commit-id', '-r', '--name-only', '-z', sha], { cwd: raiz });
+  if (!r.ok) throw new Error('git diff no anduvo');
+  return partirZ(r.stdout).sort().map((rel) => ({
+    rel,
+    antes: () => (p.length ? blob(raiz, p[0], rel) : null),
+    despues: () => [blob(raiz, sha, rel)],
+  }));
+}
+
+function leerDisco(abs) {
+  try {
+    const st = fs.lstatSync(abs);
+    if (st.isSymbolicLink()) return Buffer.from(fs.readlinkSync(abs), 'utf8');
+    if (!st.isFile()) return null;
+    return fs.readFileSync(abs);
+  } catch (e) {
+    return null;
+  }
+}
+
+// toca(raiz, sha | 'pendiente') → { categorias, ids }: qué barreras toca un commit (contra su primer padre) o lo pendiente
+// (el índice y el disco contra HEAD, sin lo ignorado). Los ids, normalizados (r5-4). Tira si git no puede.
+function toca(raiz, cual) {
+  const cats = new Set();
+  const ids = new Set();
+  for (const c of cambiosDe(raiz, cual)) {
+    const cat = categoriaDe(c.rel);
+    if (!cat) continue;
+    if (cat === 'ficha' || cat === 'settings') {
+      const antes = c.antes();
+      for (const despues of c.despues()) {
+        if (cat === 'ficha') {
+          const r = idsFicha(antes, despues);
+          r.categorias.forEach((x) => cats.add(x));
+          r.ids.forEach((x) => ids.add(x));
+        } else {
+          const r = idsSettings(antes, despues, c.rel);
+          if (r.length) cats.add('settings');
+          r.forEach((x) => ids.add(x));
+        }
+      }
+      continue;
+    }
+    cats.add(cat);
+    ids.add(normalizarId(`${cat}:${c.rel}`));
+  }
+  return { categorias: unicos([...cats]), ids: unicos([...ids]) };
+}
+
+// El primer commit de <desde>..<hasta> (en orden, del más viejo) que toca alguna de las categorías de `tocaLista`, o null.
+// Un `aprobado` sirve para un solo commit: este (r5-1).
+function primerQueToca(raiz, desde, hasta, tocaLista) {
+  const t = git.texto(['rev-list', '--reverse', '--topo-order', `${desde}..${hasta}`], { cwd: raiz });
+  if (t === null) throw new Error('git rev-list no anduvo');
+  for (const c of t.split('\n').filter(Boolean)) {
+    if (toca(raiz, c).categorias.some((x) => tocaLista.includes(x))) return c;
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------- el sello contra git (RT-p2 1, r2-2, r4-5)
+
+const lineaAprobo = (texto) => {
+  if (texto == null) return null;
+  const { lineas, cierre } = partir(texto);
+  if (cierre < 0) return null;
+  const i = (renglonesDeCampos(lineas, cierre).aprobo || [])[0];
+  return i === undefined ? null : lineas[i];
+};
+
+// commitDelSello(raiz, rel, renglonAprobo, ramaRef) → { sha } o { falla: qué pasa }.
+// El commit que dejó el `aprobo:` de hoy, buscado en la historia --first-parent de la rama por defecto local: tiene que ser un
+// commit común (no un merge: así llega un sello hecho en un worktree), cuyo padre no tenía sello, que toca solo el archivo del
+// cambio y frenos.log, y que agrega a frenos.log el renglón que dice el sello.
+function commitDelSello(raiz, rel, renglonAprobo, ramaRef, freno) {
+  const t = git.texto(['rev-list', '--first-parent', '--reverse', ramaRef], { cwd: raiz });
+  if (!t) return { falla: 'no se pudo leer la historia de la rama por defecto' };
+  const commits = t.split('\n').filter(Boolean);
+  const check = lotes(raiz, commits.map((c) => `${c}:${rel}`), false);
+  const objetos = [...new Set(check.filter((x) => x && x.tipo === 'blob').map((x) => x.objeto))];
+  const contenidos = new Map();
+  lotes(raiz, objetos, true).forEach((x, k) => contenidos.set(objetos[k], x ? x.contenido.toString('utf8') : null));
+  const valores = check.map((x) => (x && x.tipo === 'blob' ? lineaAprobo(contenidos.get(x.objeto)) : null));
+  let k = -1;
+  for (let i = valores.length - 1; i >= 0; i--) {
+    if (valores[i] === renglonAprobo && (i === 0 || valores[i - 1] !== renglonAprobo)) {
+      k = i;
+      break;
+    }
+  }
+  if (k < 0) return { falla: 'el sello no está en la historia --first-parent de la rama por defecto (¿se escribió a mano o vino de otra rama?)' };
+  const sha = commits[k];
+  if (k > 0 && valores[k - 1] !== null) return { falla: 'el sello reemplazó a otro sello', sha };
+  const p = padres(raiz, sha);
+  if (p.length !== 1) return { falla: p.length > 1 ? 'el sello llegó por un merge, no por cambios aprobar en este checkout' : 'el sello está en el primer commit del repo', sha };
+  const r = git.correr(['diff', '--no-renames', '--name-only', '-z', p[0], sha], { cwd: raiz });
+  if (!r.ok) return { falla: 'no se pudo leer el commit del sello', sha };
+  const tocados = partirZ(r.stdout);
+  if (tocados.some((x) => x !== rel && x !== frenosLog.RUTA)) return { falla: 'el commit del sello toca algo más que el cambio y frenos.log', sha };
+  const conLog = (rev) => {
+    const b = blob(raiz, rev, frenosLog.RUTA);
+    return b ? b.toString('utf8').replace(/\r\n/g, '\n').split('\n') : [];
+  };
+  if (!conLog(sha).includes(freno) || conLog(p[0]).includes(freno)) return { falla: 'el renglón del sello no lo agregó a frenos.log el commit del sello', sha };
+  return { sha };
+}
+
+// validarSello(raiz, {rel, id, texto, datos}, rama) → { fallas: [{que, hacer}], sello: sha | null }. Solo lo que necesita git y
+// frenos.log; la forma ya la dijo validar(). `rama` = ramaLocal(raiz) (o null: sin rama por defecto local no hay sello que valga).
+function validarSello(raiz, c, rama) {
+  const fallas = [];
+  const mal = (que, hacer = 'el sello lo escribe solo cambios aprobar <id> desde tu checkout principal: si no lo apretaste vos, rechazalo') => fallas.push({ que, hacer });
+  const s = c.datos.aprobo;
+  if (s.carpeta !== '.') mal('el sello dice otra carpeta que el checkout principal');
+  if (s.rol !== 'humano') mal('el sello dice un rol que no es humano');
+  const partes = String(s.freno).split(frenosLog.SEP);
+  if (partes.length !== 6 || partes[3] !== ID_APROBAR || partes[4] !== HERRAMIENTA_APROBAR || partes[5] !== c.id || partes[0] !== s.fecha || partes[1] !== s.rol) {
+    mal('el renglón del sello no es el que escribe cambios aprobar para este cambio');
+  }
+  if (hashSello(c.texto) !== s.hash) mal('el hash del sello no coincide con el archivo: alguien lo editó después del clic', 'volvé a proponerlo (cambios nuevo) y aprobalo de nuevo');
+  if (!rama) {
+    mal('no hay rama por defecto local donde buscar el sello', 'corré doctor');
+    return { fallas, sello: null };
+  }
+  let r;
+  try {
+    r = commitDelSello(raiz, c.rel, lineaAprobo(c.texto), rama.ref, s.freno);
+  } catch (e) {
+    mal('no se pudo leer la historia de git', 'corré doctor');
+    return { fallas, sello: null };
+  }
+  if (r.falla) mal(r.falla);
+  return { fallas, sello: r.falla ? null : r.sha };
+}
+
+// ---------------------------------------------------------------- los cambios del disco
+
+// listarArchivos(raiz) → [{ id, rel, abs }] de .claude/cambios/*.md (también los de nombre inválido: id null).
+function listarArchivos(raiz) {
+  let nombres;
+  try {
+    nombres = fs.readdirSync(ruta.carpetaAbsoluta(raiz), { withFileTypes: true });
+  } catch (e) {
+    if (e && (e.code === 'ENOENT' || e.code === 'ENOTDIR')) return [];
+    throw e;
+  }
+  return nombres
+    .filter((e) => e.isFile() && e.name.endsWith(ruta.EXTENSION))
+    .map((e) => {
+      const rel = `${ruta.CARPETA}/${e.name}`;
+      return { id: ruta.idDeRuta(rel), nombre: e.name.slice(0, -ruta.EXTENSION.length), rel, abs: path.join(ruta.carpetaAbsoluta(raiz), e.name) };
+    })
+    .sort((a, b) => (a.nombre < b.nombre ? -1 : a.nombre > b.nombre ? 1 : 0));
+}
+
+// cargar(archivo) → { id, rel, abs, texto, datos, cuerpo } o { …, error: {linea, mensaje} }.
+function cargar(a) {
+  const texto = fs.readFileSync(a.abs, 'utf8');
+  try {
+    const { datos, cuerpo } = leer(texto);
+    return { ...a, texto, datos, cuerpo };
+  } catch (e) {
+    if (e instanceof ficha.ErrorFicha) return { ...a, texto, error: { linea: e.linea, mensaje: e.mensaje } };
+    throw e;
+  }
+}
+
+// ---------------------------------------------------------------- verificar
+
+const COMANDO = 'node .claude/scripts/cambios.cjs';
+
+// verificar(raiz) → [{ id, que, hacer }]. Vacía = en orden. Lo de "D2.2 — AGREGA" y F3: forma, estados, sello (carpeta,
+// rol, frenos.log, hash, --first-parent, solo esos dos archivos), sha que existe, aplicado = el primer commit tras el sello que
+// toca su `toca` (r5-1), y "consumido sin anotar" con el comando listo.
+function verificar(raiz) {
+  const fallas = [];
+  let rama;
+  let ramaLeida = false;
+  const laRama = () => {
+    if (!ramaLeida) {
+      rama = ramaLocal(raiz);
+      ramaLeida = true;
+    }
+    return rama;
+  };
+  const head = shaDe(raiz, 'HEAD');
+  for (const a of listarArchivos(raiz)) {
+    const id = a.id || a.nombre;
+    const mal = (que, hacer) => fallas.push({ id, que, hacer });
+    if (!a.id) {
+      mal('el nombre no es <AAAA-MM-DD>-<slug>.md', 'los cambios los crea solo cambios nuevo');
+      continue;
+    }
+    const c = cargar(a);
+    if (c.error) {
+      mal(`la cabecera no se lee (línea ${c.error.linea}: ${c.error.mensaje})`, 'los cambios los escribe solo el script: si alguien lo tocó a mano, volvelo atrás con git');
+      continue;
+    }
+    for (const f of validar(c.datos, c.cuerpo)) mal(f.que, f.hacer);
+    const d = c.datos;
+    const barrera = d.clase === '3-barrera';
+    const conSello = barrera && (d.estado === 'aprobado' || d.estado === 'aplicado') && tiene(d, 'aprobo') && !formaSello(d.aprobo);
+    let sello = null;
+    if (conSello) {
+      const r = validarSello(raiz, c, laRama());
+      r.fallas.forEach((f) => mal(f.que, f.hacer));
+      sello = r.sello;
+    }
+    if (d.estado === 'aplicado' && esTexto(d.sha) && RE_SHA.test(d.sha)) {
+      if (!shaDe(raiz, d.sha) || shaDe(raiz, d.sha) !== d.sha) {
+        mal('el sha de aplicado no existe en este repo', `anotá el commit que lo aplicó: ${COMANDO} anotar-sha ${id} <sha>`);
+      } else if (sello) {
+        try {
+          if (d.sha === sello || !esAncestro(raiz, sello, d.sha)) mal('el sha de aplicado no viene después del sello', 'anotá el primer commit después del sello que toca lo de "toca"');
+          else {
+            const primero = primerQueToca(raiz, sello, d.sha, d.toca);
+            if (primero !== d.sha) {
+              mal(
+                primero ? 'el sha de aplicado no es el primer commit que toca lo de "toca" después del sello' : 'el commit de aplicado no toca nada de lo de "toca"',
+                primero ? `${COMANDO} anotar-sha ${id} ${primero}` : 'anotá el commit que aplicó el cambio',
+              );
+            }
+          }
+        } catch (e) {
+          mal('no se pudo leer la historia de git', 'corré doctor');
+        }
+      }
+    }
+    if (d.estado === 'aprobado' && sello && head) {
+      try {
+        if (esAncestro(raiz, sello, head)) {
+          const primero = primerQueToca(raiz, sello, head, Array.isArray(d.toca) ? d.toca : []);
+          if (primero) mal('consumido sin anotar: ya hay un commit después del sello que toca lo de "toca"', `${COMANDO} anotar-sha ${id} ${primero}`);
+        }
+      } catch (e) {
+        mal('no se pudo leer la historia de git', 'corré doctor');
+      }
+    }
+  }
+  return fallas;
+}
+
+module.exports = {
+  ESTADOS,
+  CLASES,
+  BARRERAS,
+  CICATRICES,
+  SECCIONES,
+  CAMPOS,
+  CAMPOS_SELLO,
+  FUERA_DEL_HASH,
+  ID_APROBAR,
+  HERRAMIENTA_APROBAR,
+  COMANDO,
+  RE_SHA,
+  textoValido,
+  partir,
+  leer,
+  hashSello,
+  comillas,
+  ponerCampos,
+  armar,
+  textoSello,
+  secciones,
+  faltanSecciones,
+  reglaEnUnaLinea,
+  validar,
+  formaSello,
+  categoriaDe,
+  idsFicha,
+  idsSettings,
+  toca,
+  primerQueToca,
+  ramaLocal,
+  lineaAprobo,
+  commitDelSello,
+  validarSello,
+  listarArchivos,
+  cargar,
+  verificar,
+};
