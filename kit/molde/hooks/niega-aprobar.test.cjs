@@ -134,15 +134,15 @@ const P = repo({ '.claude/kit.md': FICHA });
 
 // ---------------------------------------------------------------- los modos
 
-test('default, acceptEdits y plan → ask (la ventana), sin renglón', () => {
-  for (const modo of ['default', 'acceptEdits', 'plan']) {
+test('default, acceptEdits, plan y auto → ask (la ventana), sin renglón', () => {
+  for (const modo of ['default', 'acceptEdits', 'plan', 'auto']) {
     const r = decide(P, entrada(P, APROBAR, { permission_mode: modo }), 'ask');
     assert.equal(r.motivo, na.MOTIVO_ASK);
   }
 });
 
-test('bypassPermissions, dontAsk y auto → deny, con renglón cuyo detalle es el modo', () => {
-  for (const modo of ['bypassPermissions', 'dontAsk', 'auto']) {
+test('bypassPermissions y dontAsk → deny, con renglón cuyo detalle es el modo', () => {
+  for (const modo of ['bypassPermissions', 'dontAsk']) {
     const r = niega(P, entrada(P, APROBAR, { permission_mode: modo }), modo);
     assert.match(r.motivo, new RegExp(`no corre en modo ${modo}.*Pasá a default`));
     assert.equal(r.rol, 'humano');
@@ -259,14 +259,14 @@ test('4.7 caso 4 (repo sin remoto ni ficha): los frenos de fábrica andan (bypas
 });
 
 test('sin poder escribir el renglón, el freno vale igual', () => {
-  const r = na.decidir(entrada(P, APROBAR, { permission_mode: 'auto' }), {
+  const r = na.decidir(entrada(P, APROBAR, { permission_mode: 'dontAsk' }), {
     anotar: () => {
       throw new Error('disco lleno');
     },
   });
   assert.equal(r.decision, 'deny');
   assert.equal(r.renglon, null);
-  assert.equal(r.detalle, 'auto');
+  assert.equal(r.detalle, 'dontAsk');
 });
 
 test('no corre ningún .propio.sh: un hermano que imprime un allow no cambia nada', () => {

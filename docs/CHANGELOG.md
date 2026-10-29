@@ -39,6 +39,10 @@ Guido" de la fila D2.2 del tracker (las ⚠️ arriba). 6 encargos Sonnet y 6 Op
   dos formas de borrar un freno con un merge) quedó integrado.
 - **Los diez pedidos dieron 6 de 10**: los "módulo solo" invocan al Arquitecto sin decir antes la línea del tamaño (pendiente al orden 4).
 
+**Decidido por Guido al volver**
+- `niega-aprobar.cjs` **pregunta en `auto`** en vez de negar (Guido trabaja siempre en `auto`, y ahí la ventana aparece); bypass y `dontAsk`
+  siguen negando (los obreros nocturnos corren en bypass). SPEC-0 4.5, 6.8a y criterio 18 corregidos.
+
 ## 2026-10-29 — Misión 5, sesión intermedia DP: no se paraleliza; el director no corta por contexto
 
 PC `clientes`, chat `vibe-kit M5 · DP · Planear la paralelización de lo que queda`, en Opus. Sin encargos ni código.

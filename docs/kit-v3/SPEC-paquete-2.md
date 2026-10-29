@@ -317,9 +317,9 @@ Guido"), con su alternativa; las ⚠️ son reversibles hasta el tag.
   con `origin/…`, el sello sin pushear daría rojo en el mismo `/cierre`.
 - **`niega-aprobar.cjs`** (`PreToolUse`, matcher `Bash|PowerShell`, `onFailure: "block"`, `timeout: 20`): el comando es "de aprobar" si
   contiene las dos palabras `cambios` y `aprobar` (a propósito ancho: un falso positivo solo frena en los modos donde aprobar no vale).
-  **Niega** con `permission_mode` `bypassPermissions`, `dontAsk` o `auto` (SPEC-0 4.5 y criterio 18: **los tres**, aunque el bloque de
-  arriba nombre solo bypass; ⚠️ en `auto`, Guido aprueba cambiando a `default`; la doc dice que una `ask` pregunta también en `auto`, así
-  que ahí es fricción y no seguridad: se puede aflojar) y **niega si la entrada no trae el modo** (r4-1: `--permission-mode` no deja rastro
+  **Niega** con `permission_mode` `bypassPermissions` o `dontAsk`, los modos sin ventana (*corregido el 2026-10-29 por Guido, que trabaja
+  siempre en `auto`: D2.2 lo había hecho negar también en `auto`, como decía el SPEC-0; la doc dice que una `ask` pregunta también en
+  `auto`, así que ahí negar era fricción y no seguridad: en `auto` pregunta*) y **niega si la entrada no trae el modo** (r4-1: `--permission-mode` no deja rastro
   en ningún `settings`). **En los demás modos devuelve `permissionDecision: "ask"`** (r4-1): la ventana no depende de la forma del comando
   (`'aprobar'`, dos espacios, `--` esquivan la regla `ask` y caen en el `allow`); la regla `ask` queda como segunda red. **Niega** con
   `.kit-rol` de agente (defensa doble con el script) y con ficha rota. Error interno → `deny` "freno roto: corré doctor"; si ni eso, la salida

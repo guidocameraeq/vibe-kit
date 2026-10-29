@@ -17,7 +17,7 @@
 
 1. **Guido repasa lo de D2.2** (tracker, "Decisiones sin Guido", las ⚠️ arriba, y "Pendientes" → "Paquete 2 · te espera a vos"): una
    pregunta (bypass en el checkout principal puede fabricar un `aprobado`; ¿se acepta hasta el orden 3?) y cuatro pruebas en una pestaña
-   real de `alfa` (la ventana de `cambios aprobar`, el "sin pop-up", el modo en la cabecera, la fila 6 en `auto`).
+   real de `alfa` (la ventana de `cambios aprobar` en modo `auto`, el "sin pop-up", el modo en la cabecera, la fila 6 en `auto`).
 2. Después, **D3.1**, en Opus: **`vibe-kit M5 · D3.1 · Paquete 3: seguridad — corrector, barreras, hooks por PC, doctor mínimo`**. Spec delta
    + red team obligatorio, **sellado por Guido a mano** (paquetes 1-3). Lo de "Paquete 3 · de D2.2" del tracker entra en su lista.
 

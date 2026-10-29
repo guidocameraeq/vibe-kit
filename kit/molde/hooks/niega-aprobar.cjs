@@ -2,11 +2,12 @@
 // niega-aprobar.cjs — el pedacito de 4.5 que se adelanta al orden 2 (SPEC-0 4.5 y 6.8a, criterio 18; SPEC-paquete-2 P6.8a y
 // D2.2 F3; red team RT-p2 3, r4-1). PreToolUse sobre Bash y PowerShell, cuando el comando es "de aprobar": contiene las dos
 // palabras `cambios` y `aprobar` (a propósito ancho: un falso positivo solo frena donde aprobar no vale).
-//   - NIEGA con permission_mode bypassPermissions, dontAsk o auto (los modos sin ventana), sin modo en la entrada (r4-1:
+//   - NIEGA con permission_mode bypassPermissions o dontAsk (los modos sin ventana), sin modo en la entrada (r4-1:
 //     --permission-mode no deja rastro en ningún settings) o con un modo que no conoce;
 //   - NIEGA con .kit-rol de agente (defensa doble con el script) y con la ficha rota;
-//   - en default, acceptEdits y plan devuelve "ask": la ventana aparece aunque el comando esquive la regla `ask` del settings
-//     ('aprobar' entre comillas, dos espacios, --), que queda como segunda red.
+//   - en default, acceptEdits, plan y auto devuelve "ask": la ventana aparece aunque el comando esquive la regla `ask` del
+//     settings ('aprobar' entre comillas, dos espacios, --), que queda como segunda red. Decisión de Guido, 2026-10-29: en auto
+//     la ventana aparece (una `ask` también pregunta en auto), así que negar ahí era fricción y no seguridad.
 // Cada negativa deja un renglón en .claude/frenos.log (cambios:aprobar-negado · Bash|PowerShell · el modo o el motivo; nunca el
 // comando). Es un hook que NIEGA: regla 4.7, onFailure "block" y timeout 20 en el settings.json. Ante un error propio imprime
 // el deny "freno roto: corré doctor"; si ni eso, sale distinto de 0 y onFailure frena. NO corre ningún .propio.sh (F2 ⚠️).
@@ -15,8 +16,8 @@
 const fs = require('fs');
 
 const HERRAMIENTAS = ['Bash', 'PowerShell'];
-const SIN_VENTANA = ['bypassPermissions', 'dontAsk', 'auto'];
-const CON_VENTANA = ['default', 'acceptEdits', 'plan'];
+const SIN_VENTANA = ['bypassPermissions', 'dontAsk'];
+const CON_VENTANA = ['default', 'acceptEdits', 'plan', 'auto'];
 const ID = 'cambios:aprobar-negado';
 const ROTO = 'freno roto: corré doctor';
 

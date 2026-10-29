@@ -101,11 +101,10 @@ que viaja, barrera, o contra el SPEC-0 o un ADR) van arriba, y todas se deshacen
 - ⚠️ **`estructura.cjs` y `cambios.cjs` cuentan como barrera** (categoría `hooks`), además de la lista del SPEC-0 4.6. *Alternativa*: la
   lista tal cual. *Por qué* (r4-3): si no, un commit edita el candado para que dé verde y quita un freno en el mismo commit.
 - ⚠️ **Borrar la ficha o volverla "a fábrica" no apaga las barreras** (r4-2): la exención (b) vale solo la primera vez que nace la ficha.
-- ⚠️ **`niega-aprobar.cjs` niega en `bypassPermissions`, `dontAsk` y `auto`**, no solo en bypass como dice el bloque "D2.2 — AGREGA" del
-  delta, **y niega si la entrada no trae el modo**; en los demás modos **devuelve "preguntar"** (r4-1: con `'aprobar'` entre comillas, la regla
-  `ask` no coincidía y el `allow` sí). *Alternativa*: solo bypass. *Por qué*: el SPEC-0 (4.5) y el criterio 18 nombran los tres. *Qué cambia
-  para vos*: si trabajás en `auto`, para aprobar pasás a `default`. La doc dice que una `ask` pregunta también en `auto`: ahí se podría
-  aflojar.
+- ✅ **Resuelto por Guido (2026-10-29): `niega-aprobar.cjs` niega en `bypassPermissions` y `dontAsk`, y en `auto` pregunta.** D2.2 lo
+  había hecho negar también en `auto` (el SPEC-0 nombraba los tres); Guido trabaja siempre en `auto` y ahí la ventana aparece, así que
+  negar era fricción. Bypass sigue negado porque los obreros nocturnos corren en bypass: sin el freno, un agente se aprobaría solo. Sigue
+  negando sin modo en la entrada, y en todos los modos con ventana **devuelve "preguntar"** (r4-1). SPEC-0 4.5, 6.8a y criterio 18 corregidos.
 - ⚠️ **Los hooks que niegan y el de escritura no corren su `.propio.sh`**; solo el de arranque (E §5 decía "los hooks llaman al hermano").
   *Alternativa*: todos lo corren. *Por qué*: un `.propio.sh` que imprime `allow` destrabaría un freno sin pasar por `barreras`.
 - Las fichas de fábrica van en `kit/molde/hooks/lib/fabrica/`, no en `kit/molde/`. *Alternativa*: `kit/molde/ficha.<nivel>.md`, como
@@ -163,7 +162,7 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
   el freno se prueba en los órdenes 2 y 3, cuando existan los hooks.
 - **Paquete 2 · te espera a vos, Guido** (D2.2 no lo podía hacer sin una persona): (1) **decidir la ⚠️ de arriba** (una sesión en bypass en
   tu checkout principal puede fabricar un `aprobado`: ¿lo aceptás hasta el orden 3?) y repasar las otras ⚠️ de "Decisiones sin Guido"; (2) en
-  una pestaña de VS Code en `../vibe-kit-pruebas/alfa`: **la ventana de `cambios aprobar`** (pedile a la sesión que proponga quitar un freno
+  una pestaña de VS Code en `../vibe-kit-pruebas/alfa`: **la ventana de `cambios aprobar` en modo `auto`** (pedile a la sesión que proponga quitar un freno
   y que lo apruebe: tiene que aparecer la ventana y, al aceptar, el commit `cambios: aprobado …`), **"creá `docs/notas.md`" sin pop-up**
   (fila 3), qué **modo** dice la cabecera del arranque (en `-p` no llega), y **la fila 6 en modo `auto`**. Corré antes `bash pruebas/rehacer.sh`.
 - **Paquete 2 · para D2.2** (de la construcción de D2.1): (a) `hook-escritura: molde` va sin hash: **decidido en D2.2, sigue así hasta
@@ -266,7 +265,7 @@ El tag `v3.0` no sale con uno sin tildar, salvo que Guido lo pase a fase 2 por e
 - [ ] 17 · Un obrero que edita sus frenos no se los saca — *D2.2: su commit da rojo en `barreras` (prueba) y los hooks leen la ficha de la
   rama por defecto (D2.1); que el corrector frene la edición misma de los hooks es del orden 3 (4.3)*
 - [ ] 18 · `cambios aprobar` se niega desde un worktree de obrero — *D2.2: se niega con cada `.kit-rol` de agente, por nombre y por ruta,
-  fuera del principal y fuera de la rama por defecto (pruebas); el hook niega en `dontAsk` (`claude.exe -p`) y bypass/`auto` (pruebas);
+  fuera del principal y fuera de la rama por defecto (pruebas); el hook niega en `dontAsk` (`claude.exe -p`) y bypass (pruebas), y en `auto` pregunta (Guido, 2026-10-29);
   sello a mano o de otra carpeta → rojo. **Falta**: la ventana en una pestaña real de Guido, bypass con `claude.exe`, y el resumen del día
   (orden 5)*
 - [ ] 19 · Una migración a `real` sin veredicto del revisor no corre
