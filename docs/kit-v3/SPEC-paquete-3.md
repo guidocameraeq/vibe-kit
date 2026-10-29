@@ -1,12 +1,13 @@
 # SPEC delta: paquete 3 — seguridad: corrector de secretos, hook de git, preguntas de `sensible:`, pre-commit, `cargar-secreto`, hooks por PC y `doctor` mínimo — vibe-kit
 Ningún agente ve, imprime ni commitea una clave; ningún git borra trabajo ni esquiva el pre-commit; las 5 de A preguntan solo donde la
 ficha dice que duelen; y si un freno se rompe, frena.
-- Estado: BORRADOR (D3.1, 2026-10-29) — se sella provisorio "sellado sin Guido" después del red team
+- Estado: **READY — sellado sin Guido (provisorio)**, 2026-10-29, por el director D3.1, después de la ronda 2 del red team sin ALTOS. Guido lo
+  repasa al volver; todo se deshace antes del tag
 - Fecha: 2026-10-29 · Misión: 5, director **D3.1**, sin Guido (tracker, "Cambios al plan", 2026-10-29)
 - Plano: [`SPEC-0-kit-v3.md`](SPEC-0-kit-v3.md), orden 3 = **P4.3-4.7, P6.6, P6.7, "instalar hooks por PC" (P2.2), `doctor` mínimo (P2.3)**,
   más **"Paquete 3 · de D2.2" (a)-(d)** del tracker y **las líneas de F del arranque** (P4.1, RF-9). Diseño: F §4-§17 · A §2-§6 · E §4, §5, §10 · B §9.
 - Sello del Arquitecto: `arquitecto: 2026-10-29 · kit 2.4.3 · chequeos: tamaño — (paquete del método) · entorno ✅ (../vibe-kit-pruebas/ y HOME
-  falso) · tope <al sellar> · sellado sin Guido (provisorio)` — pendiente del red team.
+  falso) · tope ⚠️ (44,7 KB y 18 criterios: paquete del método, no se parte; D3.1) · sellado sin Guido (provisorio)`.
 - Red team: **obligatorio** (RF-16), Opus con `redteam-spec`, hasta 3 rondas (ronda 1 integrada: tabla al final). Revisor frío Opus al
   cerrar, **recorriendo el día normal** (dos PCs, `pull`, worktrees, Modo A), no solo ataques (lección de D2.2).
 
@@ -89,19 +90,19 @@ escapes, `;`, `&&`, `||`, `|`, subshells, heredocs, y lo de adentro de `bash -c`
 |---|---|---|
 | `stash` · `reset-hard` · `clean-f` | stash salvo `list`/`show`; `reset --hard`; `clean -f` sin `-n` | commit de trabajo en curso por rutas |
 | `restaurar-arbol` | `checkout`/`restore` de `.`, `*`, `:/` o una carpeta; `checkout -f`; `switch -f`/`--discard-changes` | un archivo nombrado; **`restore --staged` sin `--worktree`** (r1-18) |
-| `push-force` · `push-borrar` · `push-punto` | `--force`, `-f`, `--force-with-lease`, refspec `+`; `--delete`, `:x`, `--prune`, `--mirror`; `push .` | **solo sobre ramas `kit/*`** (ahí "borrala y subila de nuevo", F §6) |
-| `update-ref` · `replace` · `symbolic-ref` · `branch-f` | los dos primeros; `symbolic-ref` con valor o `-d`; `branch -f`/`-M`/`-C`, `branch -D` de una no mergeada, `checkout -B`, `switch -C` | `symbolic-ref -q HEAD`, `branch -d` |
+| `push-force` · `push-borrar` · `push-punto` | `--force`, `-f`, `--force-with-lease`, refspec `+`; `--delete`/`:x` de una rama **no mergeada** o la por defecto; `--prune`, `--mirror` siempre; `push .` | **force solo sobre `kit/*`** (ahí "borrala y subila de nuevo", F §6); `--delete`/`:x` de una mergeada (r2-7). Mensaje: "si ya está mergeada pasa; si no, `worktree cerrar`" |
+| `update-ref` · `replace` · `symbolic-ref` · `branch-f` | los dos primeros; `symbolic-ref` con valor o `-d`; `branch -f`/`-M`/`-C`, `branch -D` de una no mergeada, `checkout -B`, `switch -C` | `symbolic-ref -q HEAD`, `branch -d`. **"Mergeada" = contenida en `origin/<defecto>` o en su upstream** (r2-7) |
 | `fetch-a-remotes` | `fetch` con destino `refs/remotes/*` | `fetch` sin refspec |
-| `remote-set-head` · `remote-set-url` · `remote-remove` · `config-default-branch` · `hooks-path` | esos; `core.hooksPath` por `config` (con `--unset`), `-c` o `--config-env`; `config init.defaultBranch <x>` | `config --get`; **`git config core.hooksPath .githooks`** (reponerlo) |
+| `remote-set-head` · `remote-set-url` · `remote-remove` · `config-default-branch` · `hooks-path` | esos; `core.hooksPath` por `config` (con `--unset`), `-c` o `--config-env`; `config init.defaultBranch <x>` | `config --get`; **`git config core.hooksPath .githooks`, exacto, pasa en todo rol y todo modo, por encima de `config-agente`** (reponerlo; r2-3) |
 | `hooks-path-ausente` (r1-8) | `commit`/`push`/`merge` con `.githooks/` en el árbol y `core.hooksPath` ≠ `.githooks` (un `config --get`, solo en esos tres) | "reponelo: `git config core.hooksPath .githooks`" |
-| `variables-peligrosas` (r1-1, D-13) | un git con asignada alguna de: `GIT_CONFIG*` (con `_COUNT`/`_KEY_n`/`_VALUE_n`, `_PARAMETERS`, `_GLOBAL`, `_SYSTEM`, `_NOSYSTEM`), `GIT_DIR`, `GIT_WORK_TREE`, `GIT_COMMON_DIR`, `GIT_INDEX_FILE`, `GIT_OBJECT_DIRECTORY`, `GIT_ALTERNATE_OBJECT_DIRECTORIES`, `GIT_NAMESPACE`, `GIT_EXEC_PATH`, `PATH` | `GIT_EDITOR`, `GIT_PAGER`, `GIT_SEQUENCE_EDITOR`, `GIT_AUTHOR_*`, `GIT_COMMITTER_*`, `GIT_TERMINAL_PROMPT` |
-| `config-include` · `config-agente` (r1-1) | `include.*`/`includeIf.*` siempre; en sesión de agente, toda escritura de `config` (set, `--add`, `--unset`, `--edit`, `--replace-all`; incluye `remote.*`, `branch.*`) | `core.longpaths`, `rerere.*` |
+| `variables-peligrosas` (r1-1, D-13) | un git con asignada alguna de: `GIT_CONFIG*` (con `_COUNT`/`_KEY_n`/`_VALUE_n`, `_PARAMETERS`, `_GLOBAL`, `_SYSTEM`, `_NOSYSTEM`), `GIT_DIR`, `GIT_WORK_TREE`, `GIT_COMMON_DIR`, `GIT_INDEX_FILE`, `GIT_OBJECT_DIRECTORY`, `GIT_ALTERNATE_OBJECT_DIRECTORIES`, `GIT_NAMESPACE`, `GIT_EXEC_PATH`, `GIT_TRACE*`, `GIT_CURL_VERBOSE` (r2-6), `PATH`. **La asignación misma de una de la lista (salvo `PATH`) se niega aunque no haya git en la llamada** (r2-8: la herramienta PowerShell podría guardar el entorno; G13 lo mide) | `GIT_EDITOR`, `GIT_PAGER`, `GIT_SEQUENCE_EDITOR`, `GIT_AUTHOR_*`, `GIT_COMMITTER_*`, `GIT_TERMINAL_PROMPT`; `export PATH=…` sin git |
+| `config-include` · `config-agente` (r1-1) | `include.*`/`includeIf.*` siempre; en sesión de agente, toda escritura de `config` (set, `--add`, `--unset`, `--edit`, `--replace-all`; incluye `remote.*`, `branch.*`) | `core.longpaths`, `rerere.*`. Mensaje con la alternativa (r2-9): `pull --rebase`/`--no-rebase` en vez de `pull.rebase`, `push -u origin HEAD` en vez de `push.autoSetupRemote`, "`safe.directory` lo pone Guido" |
 | `plomeria` (r1-2 c) | en sesión de agente: `remote add`/`rename`, `commit-tree`, `hash-object -w`, `mktree`, `read-tree`, `fast-import`, `update-index --index-info`/`--cacheinfo` | — |
 | `no-verify` | `--no-verify` en cualquier subcomando; `commit -n` (también `-an`) | **`push -n`** (es `--dry-run`); falsa alarma → `.gitleaksignore` (pide `aprobado`) |
 | `worktree-remove-force` · `matar-por-nombre` | `worktree remove -f`; `taskkill /IM`, `pkill`, `killall`, `Stop-Process -Name` | por PID |
 | `update-index` (d) | `--skip-worktree`, `--assume-unchanged` | `--no-…`, `--chmod` |
-| `historia-defecto` (d, rf-16, D-15) | en la rama por defecto, `reset <x>`/`rebase`: **con remoto, solo si el destino no contiene `origin/<rama por defecto>`** (tira lo publicado); **sin remoto, `ask` con ventana, `deny` sin ventana** | `pull --rebase` (rf-1), `fetch && rebase origin/main` (lo contiene), `--continue`/`--abort`; para deshacer, `git revert` |
-| `salir-del-worktree` (d, rf-5, r1-16) | en sesión de agente: `cd`/`pushd`/`Set-Location`, `git -C`, `--git-dir`, `--work-tree` a una ruta **bajo la raíz del principal y no bajo la propia**, resolviendo los `cd` en secuencia | director, humano |
+| `historia-defecto` (d, rf-16, D-15, r2-4) | en la rama por defecto, `reset <x>`/`rebase`: **con remoto, solo si alguno de los commits que tira o reescribe está en `origin/<rama por defecto>`** (`rev-list <destino>..HEAD --not origin/<defecto>` cuenta menos que `rev-list <destino>..HEAD`); **sin remoto, `ask` con ventana, `deny` sin ventana** | `reset --soft HEAD~1` de lo propio sin pushear, **también con la rama divergida** (dos PCs); `pull --rebase` (rf-1), `fetch && rebase origin/main`, `--continue`/`--abort`; para deshacer lo publicado, `git revert` |
+| `salir-del-worktree` (d, rf-5, r1-16, r2-2 c) | en sesión de agente: `cd`/`pushd`/`Set-Location`, `git -C`, `--git-dir`, `--work-tree` a una ruta **bajo la raíz del principal y no bajo la propia**, resolviendo los `cd` en secuencia; y `commit`/`push`/`merge` cuyo repo efectivo no es el propio worktree (un clon en otra carpeta). **El `.git` del worktree tiene que apuntar al `<principal>/.git` esperado** (una lectura de fs) | director, humano |
 
 Se porta la tabla de Hermes. Hecho cuando (SPEC-0 4.4): casos sí/no, los nuevos medidos contra el historial (los `reset HEAD~n` sobre `main`,
 aparte), ningún git de los `SKILL.md` del molde frena (una prueba los pasa por `decidir`), y `commit --no-verify` negado en todo modo.
@@ -129,11 +130,11 @@ Mira `command`, `content`, `new_string` (`edits[]`, `new_source`) y el prompt. I
 | `github-pat` · `github-fino` · `sk-api` · `supabase-token` · `twilio` | los cinco de `block_secrets.ps1` |
 | `aws` · `clave-privada` · `slack` · `stripe` | `AKIA[0-9A-Z]{16}`, `-----BEGIN … PRIVATE KEY-----`, `xox[baprs]-`, `sk_live_`/`rk_live_` (se miden; `google-api` sale: la de Firebase es pública y no hay cicatriz) |
 | `jwt` | `eyJ….eyJ….…` **salvo con `"role":"anon"` en el cuerpo**, exigido también en `datos-de-prueba:` y en lo asignado a `publicas:` (r1-12; un `service_role` frena en `PRUEBA.md`) |
-| `archivo-deny` (r1-3) | **todo comando simple cuyo argv o redirección nombre una ruta del deny, salvo lo permitido**: `ls`/`dir`/`Get-ChildItem` sin leer contenido, `test -f`/`-e`, `Test-Path`, `stat`, `rm`/`Remove-Item`, `git status`/`check-ignore`. Rutas: los 9 de F §5, `~/.config/kit-secretos/**`, `/proc/self/environ`, `/proc/*/environ` y los `Read(...)` de los `settings*.json` del proyecto (raíz por git desde el `cwd`) |
+| `archivo-deny` (r1-3, r2-1, r2-5) | **todo comando simple cuyo argv o redirección nombre una ruta del deny, salvo lo permitido**: `ls`/`dir`/`Get-ChildItem` sin leer contenido, `test -f`/`-e`, `Test-Path`, `stat`, `rm`/`Remove-Item`, `git status`/`check-ignore`/`rm --cached`; **"usar sin ver"**: `--env-file[= ]<ruta>` en cualquier programa, y `source`/`.` de la ruta si en la misma llamada no hay impresor ni `set -x`; `echo`/`printf` redirigidos a `.gitignore`/`.dockerignore` (ahí la ruta es texto). **Se juzga el pipeline entero**: si un comando nombra la ruta, todos los del pipeline tienen que estar en lo permitido (`gci .env \| gc` frena). **En Windows, sin mayúsculas**; un comodín que pueda matchear una ruta del deny (`.e*`, `.en?`) y una variable asignada en la misma llamada (`F=.env; cat "$F"`) cuentan como nombrarla. Rutas: los 9 de F §5, `~/.config/kit-secretos/**`, `/proc/self/environ`, `/proc/*/environ` y los `Read(...)` de los `settings*.json` del proyecto (raíz por git desde el `cwd`) |
 | `imprime-todas` | `printenv`, `env` y `set` **sin argumentos** (no `set -e`, no `env X=1 cmd`), `export -p`, `declare -p`, `Get-ChildItem Env:` sin nombre (F §9) |
-| `imprime-variable` (D-14) | **cuando el valor sale a la pantalla**, para un nombre de `secretos:` o con `TOKEN`, `SECRET`, `PASSWORD`, `API_KEY`: (1) argv[0] impresor (`echo`, `printf`, `print`, `Write-Output`, `Write-Host`, `Write-Information`, `Out-Host`, `Out-String`, `tee`, `cat <<<`) con `$X`/`${X}`/`$env:X`/`%X%`; (2) una sentencia de PowerShell que es solo la variable (`$env:X`, `${env:X}`, `GetEnvironmentVariable('X')`); (3) `printenv X`, `gci`/`ls`/`dir`/`Get-Item env:X`, `node -e`/`python -c` que imprimen `process.env.X`/`os.environ['X']`. **La variable como argumento de otro programa pasa** (`curl -H "Authorization: token $GH_TOKEN"`: "usar sin ver") |
+| `imprime-variable` (D-14, r2-6) | **cuando el valor sale a la pantalla**, para un nombre de `secretos:` o de fábrica (`TOKEN`, `SECRET`, `PASSWORD`, `PASS`, `PWD`, `API_KEY`, `PRIVATE_KEY`, `SERVICE_ROLE`, `_KEY$`, `CREDENTIAL`, `DATABASE_URL`, `DB_URL`, `_DSN`, `CONNECTION_STRING`; se mide): (1) argv[0] impresor (`echo`, `printf`, `print`, `Write-Output`, `Write-Host`, `Write-Information`, `Out-Host`, `Out-String`, `tee`, `cat <<<`) con `$X`/`${X}`/`$env:X`/`%X%`; (2) una sentencia de PowerShell que es solo la variable o un string que la interpola (`$env:X`, `"$env:X"`, `${env:X}`, `GetEnvironmentVariable('X')`); (3) `printenv X`, `gci`/`ls`/`dir`/`Get-Item env:X` (también con comodín, `env:*URL*`), `node -e`/`-p`/`python -c` que imprimen `process.env.X`/`os.environ['X']`; (4) **la variable en la misma llamada que algo verboso**: `-v`/`--verbose`/`--trace*`, `set -x`, `bash -x`. **La variable como argumento de otro programa, sin nada verboso, pasa** (`curl -H "Authorization: token $GH_TOKEN"`: "usar sin ver") |
 | `credencial-guardada` | `gh auth token`, `gh auth status -t`/`--show-token`, `git credential fill`, `git credential-manager get` |
-| `frenos-del-proyecto` | en sesión de agente: `Write`/`Edit` sobre `.claude/hooks/**`, `.claude/settings*.json`, `.githooks/**`, `.kit-rol`, y en `<git-common-dir>`: `config`, `hooks/**`, **`refs/**`, `packed-refs`, `FETCH_HEAD`, `logs/**`** (r1-2 b; D-10); y todo Bash/PowerShell que nombre esas rutas salvo la lista de lectura (lectores, `ls`, `git diff`/`log`/`show`/`status`, `node <la ruta>` como programa, hashes) |
+| `frenos-del-proyecto` | en sesión de agente: `Write`/`Edit` sobre `.claude/hooks/**`, `.claude/settings*.json`, `.githooks/**`, `.kit-rol`, **el `.git` de la raíz del worktree** (r2-2 b), y en `<git-common-dir>`: `config`, `hooks/**`, **`refs/**`, `packed-refs`, `FETCH_HEAD`, `logs/**`, `worktrees/**`** (r1-2 b, r2-2 b; D-10; un `.lock` viejo: "pedíselo al director", r2-11; `index.lock` libre); y todo Bash/PowerShell que nombre esas rutas salvo la lista de lectura (lectores, `ls`, `git diff`/`log`/`show`/`status`, `node <la ruta>` como programa, hashes) |
 | `frenos-de-la-pc` (r1-14) | `<home>/.claude/hooks/kit/**`, **siempre**; `<home>/.claude/settings.json`, en sesión de agente o sin ventana (en los demás, `ask`). El camino es el instalador |
 | `cambios-sin-ventana` | en `bypassPermissions`/`dontAsk`, Bash/PowerShell que nombre `.claude/cambios/` salvo `node .claude/scripts/cambios.cjs` sin otra mención (achica r4-1 b) |
 
@@ -155,9 +156,10 @@ patrones sobre lo que tipea Guido → `decision: block`, **`suppressOriginalProm
   --log-opts=<rango> --redact` y `barreras --rango` (rf-7). Sale 1 si alguno da rojo, con `archivo:línea` tapado.
 - **El candado corre dos veces** (pendiente b; r4-3, r1-2 a): **la versión de la ref vigente** (con remoto, `origin/<rama por defecto>`; sin
   remoto, la rama local, o sea lo commiteado), sacada con **un solo `git cat-file --batch`** a un temporal fuera del repo y corrida con el `cwd`
-  en el repo, **y la del índice**; rojo si cualquiera da rojo. Si la ref no lo tiene, solo el índice, y lo dice. Si la de la ref no conoce
+  en el repo, **y la del índice**; rojo si cualquiera da rojo. Si la ref no tiene ficha (nunca tuvo kit), solo el índice, y lo dice; **si la ref
+  tiene ficha y no tiene candado, o el de la ref sale 2 por otra cosa que "no conoce `--indice`", rojo** (r2-2 a). Si la de la ref no conoce
   `--indice` (es del orden 2), sin él, y lo dice. El runner corre del disco (D-12).
-- **gitleaks con plazo de 60 s** (r1-6); colgado = "sin escáner (colgado)". **Sin escáner**: `humano`, `director`, `obrero` pasan **en rojo**
+- **gitleaks con plazo de 60 s y un reintento** (r1-6, r2-10: 47 s en frío); dos veces colgado = "sin escáner (colgado)". **Sin escáner**: `humano`, `director`, `obrero` pasan **en rojo**
   (`⚠️ sin escáner en esta PC: corré "preparame esta PC"`) con renglón; `nocturno`, `actualizador`, **`desconocido`** → **1**.
 - `estructura.cjs` suma `--indice` y `--rango <a>..<b>`, solo con `barreras`.
 - **Líneas de F del arranque** (500): `barreras de fábrica: N de N ✅` o `⚠️ falta <regla> · corré doctor` (por nombre, contra el `settings` menos
@@ -191,7 +193,7 @@ lo deja y avisa; `--sacar-viejo` saca solo su registro. `--plan` no escribe. `--
 
 **`doctor.cjs [--home <dir>]`**, solo lectura, `✓|✗|⚠ <id> · qué · cómo se arregla`, orden fijo, **igual en dos corridas**, sale 0 sin `✗`; lo
 externo con plazo. `doctor:` `node` (≥ 20) · `gitleaks` (≥ 8.19; plazo 60 s, y la causa: "lento en frío: Defender") · `claude-code` (cada
-versión que encuentra contra **2.1.295**, D-8) · `git-bash` (`⚠`, informativo: solo lo usan los `.githooks/`, y su `sh` lo trae git) · `settings-pc` · `hooks-pc` (registrado con `block` y `timeout: 20`) ·
+versión que encuentra contra **2.1.295**, D-8) · `lefthook` (`⚠` si está: escribe en `.githooks/` y pisa el pre-commit del kit; r2-3) · `git-bash` (`⚠`, informativo: solo lo usan los `.githooks/`, y su `sh` lo trae git) · `settings-pc` · `hooks-pc` (registrado con `block` y `timeout: 20`) ·
 `hooks-pc-iguales` (contra `INSTALADO`; uno editado se reporta, no se pisa, F §7.3; **"hay versión nueva: corré el instalador"**, aparte) ·
 `deny-almacen` · `anti-secretos-viejo` (`⚠` "sacalo cuando confirmes; demora cada Bash") · **`plazo-arranque`** (a: `KIT_PLAZO_ARRANQUE_MS` en
 el entorno o en un `env` de los `settings` → `✗`) · `pre-commit` (en el repo del `cwd`) · `ficha` · `sensible-prosa` (`⚠` una entrada cuyo primer
@@ -358,6 +360,10 @@ Los cruces contra el SPEC-0 que piden decisión son D-1, D-2, D-5, D-6, D-8 y D-
 - `grep -r` sobre una carpeta con un `.env` sin nombrarlo; un programa que lee el `.env` o el almacén por adentro (sin sandbox).
   `.claude/revisiones/` escrito por Bash: hasta P6.10 nadie escribe veredictos y la guardia niega igual.
 - **La bandera de `db migrar` es texto** (r1-22): un script intermedio (`npm run x` que llama a `db migrar --borra-datos-reales`) pasa sin la ventana.
+- **Un clon temporal fuera del repo** (r2-2 c): sin `hooksPath`, pushea sin pre-push; `salir-del-worktree` frena los caminos conocidos, y si
+  pasa, el director lo frena en el merge (con un repo público, el secreto ya quedó arriba: runbook).
+- **husky y lefthook** (r2-3): husky pisa `core.hooksPath` en cada `npm install` (`hooks-path-ausente` lo caza en el próximo commit);
+  lefthook escribe en `.githooks/` (`doctor` avisa). Cuántos repos de la flota los usan: NO VERIFICADO (piloto).
 
 ## Lo que se prueba más adelante
 
@@ -377,3 +383,8 @@ ruta fija (Cruces 10), el `doctor` completo, `autoMode`, las líneas de `gh`. Gu
 | r1-7 a r1-12 | MEDIO | `push-borrar`, `branch -D`, `-B`/`-C` · `hooks-path-ausente` · `suppressOriginalPrompt` · caché por `fs`, D-9 a la alternativa, N ≥ 200 · `tabla:` · `role: anon` siempre y `datos-de-prueba` en D-3 |
 | r1-13 a r1-16 | MEDIO | G0b verde: todo en exec (D-7) · `frenos-de-la-pc` con `ask` · `<home>` por `__dirname` · `salir-del-worktree` definido |
 | r1-17 a r1-22 | BAJO | supuesto de `permission_mode` · `restore --staged` · runner da 1 · `INSTALADO` · sin `google-api` · la bandera de `db`, a "no cierra" |
+| r2-1 a r2-7 | MEDIO | pipeline entero, sin mayúsculas, comodines y variables en `archivo-deny` · candado de la ref ausente con ficha → rojo, `.git` del worktree y `worktrees/**` protegidos, el clon temporal a "no cierra" · `core.hooksPath .githooks` gana sobre `config-agente`, `lefthook` en `doctor` · `historia-defecto` por commits publicados (dos PCs) · "usar sin ver" en lo permitido · lo verboso y los nombres de fábrica en `imprime-variable` · `push --delete` de una mergeada pasa |
+| r2-8 a r2-11 | BAJO | la asignación misma de una variable peligrosa se niega · mensajes de `config-agente` con alternativa · gitleaks con un reintento · `.lock` viejo: "pedíselo al director" |
+
+**Ronda 2 (2026-10-29): sin ALTOS** → el delta se sella provisorio (sin Guido). La ronda 3 no hace falta (el SPEC dice "hasta 3, la última sin
+ALTOS"); lo que aparezca en los encargos va al revisor frío.
