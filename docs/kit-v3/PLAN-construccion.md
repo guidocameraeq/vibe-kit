@@ -88,13 +88,24 @@ D2.2 corrió sin Guido, con su autorización previa (Cambios al plan, 2026-10-29
 que viaja, barrera, o contra el SPEC-0 o un ADR) van arriba, y todas se deshacen antes del tag.** El detalle técnico, en la sección
 "D2.2 — el detalle" del delta.
 
-- ⚠️ **`ids:` en el archivo de `cambios` (r2-4 entra).** Un cambio `3-barrera` que toca `frenos`, `sensible` o `autorizado` declara los ids
-  que cambia, y `barreras` da rojo si el diff de la ficha cambia otro. *Alternativa*: dejar r2-4 como riesgo escrito. *Por qué*: es justo el
-  hueco "aprobaste quitar X y se quitó también Y", y el chequeo es mecánico. Campo nuevo en un formato que viaja: se saca borrándolo del
-  script y del candado.
+- ⚠️ **Te espera una pregunta (r4-1 b del red team): una sesión en bypass, en tu checkout principal, puede fabricar un `aprobado` sin
+  tu clic** (escribe el archivo, el renglón y el commit por Bash) y queda igual a uno legítimo. El orden 2 no lo puede cerrar: lo delata
+  `/inicio` ("aprobados nuevos desde tu última sesión"), y el orden 3 suma el hook de 4.5 y el pre-commit. *Lo que decidí*: aceptarlo
+  hasta el orden 3 y dejarlo escrito en el delta. *Alternativa*: frenar el paquete hasta que algo fuera del alcance de Bash firme el sello.
+  Vos decidís si te alcanza.
+- ⚠️ **`ids:` en el archivo de `cambios` (r2-4 entra, ampliado por el red team, rondas 4 y 5).** Todo cambio `3-barrera` declara los ids
+  que cambia (frenos de la ficha, cada archivo de hook, cada regla de `settings`, y `nivel`/`pieza:candado`/`pieza:hook-escritura` cuando
+  aflojan), y `barreras` da rojo si el commit cambia otro. *Alternativa*: dejar r2-4 como riesgo escrito. *Por qué*: es justo el hueco
+  "aprobaste quitar X y se quitó también Y" (y "tocar el hook A" vaciando el B), y el chequeo es mecánico. Campo nuevo en un formato que
+  viaja: se saca borrándolo del script y del candado.
+- ⚠️ **`estructura.cjs` y `cambios.cjs` cuentan como barrera** (categoría `hooks`), además de la lista del SPEC-0 4.6. *Alternativa*: la
+  lista tal cual. *Por qué* (r4-3): si no, un commit edita el candado para que dé verde y quita un freno en el mismo commit.
+- ⚠️ **Borrar la ficha o volverla "a fábrica" no apaga las barreras** (r4-2): la exención (b) vale solo la primera vez que nace la ficha.
 - ⚠️ **`niega-aprobar.cjs` niega en `bypassPermissions`, `dontAsk` y `auto`**, no solo en bypass como dice el bloque "D2.2 — AGREGA" del
-  delta. *Alternativa*: solo bypass. *Por qué*: el SPEC-0 (4.5) y el criterio 18 nombran los tres. *Qué cambia para vos*: si trabajás en
-  `auto`, para aprobar pasás a `default`. Si la `ask` pregunta en `auto` queda NO VERIFICADO.
+  delta, **y niega si la entrada no trae el modo**; en los demás modos **devuelve "preguntar"** (r4-1: con `'aprobar'` entre comillas, la regla
+  `ask` no coincidía y el `allow` sí). *Alternativa*: solo bypass. *Por qué*: el SPEC-0 (4.5) y el criterio 18 nombran los tres. *Qué cambia
+  para vos*: si trabajás en `auto`, para aprobar pasás a `default`. La doc dice que una `ask` pregunta también en `auto`: ahí se podría
+  aflojar.
 - ⚠️ **Los hooks que niegan y el de escritura no corren su `.propio.sh`**; solo el de arranque (E §5 decía "los hooks llaman al hermano").
   *Alternativa*: todos lo corren. *Por qué*: un `.propio.sh` que imprime `allow` destrabaría un freno sin pasar por `barreras`.
 - Las fichas de fábrica van en `kit/molde/hooks/lib/fabrica/`, no en `kit/molde/`. *Alternativa*: `kit/molde/ficha.<nivel>.md`, como

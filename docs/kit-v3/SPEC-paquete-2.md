@@ -278,42 +278,74 @@ Guido"), con su alternativa; las ⚠️ son reversibles hasta el tag.
 - La carpeta es una constante, `lib/cambios-ruta.cjs` (`.claude/cambios`), que usan el script, el `deny` y el candado (E0: no hace falta
   `.kit/`). El archivo: cabecera (`leerCabecera`) + `---` + cuerpo con **cuatro secciones obligatorias**, `## Caso de origen`, `## Regla`
   (la primera línea no vacía es "la regla en una línea"), `## Dónde vive`, `## Medición`. `cambios nuevo` se niega sin las cuatro.
-- **⚠️ `ids:` (r2-4, evaluado y entra):** un cambio `3-barrera` cuyo `toca` nombra `frenos`, `sensible` o `autorizado` **declara los
-  ids que cambia**: `frenos.quitados` y `frenos.opcionales` por su `id` (o su texto, en `opcionales`), `sensible.<clave>` como
-  `sensible:<clave>` y `autorizado.<clave>` como `autorizado:<clave>`. `barreras` calcula del diff de la ficha los ids que de verdad
-  cambiaron y da rojo si alguno no está declarado. Así "quitar el freno X" no deja pasar un commit que quite también Y. Los archivos
-  (`settings`, `hooks`, …) no tienen ids: los ata el `hash` del cambio y la línea de "te espera"; quitar una regla `deny` sí tiene id.
-- Comandos: `nuevo --slug <s> --clase <c> --toca <a,b> [--ids <a,b>] (--origen "<t>" | --cita "<alias> <id>") [--cicatriz <c>]
-  [--chico sí|no] [--chico-por "<t>"] [--urgente sí|no] [--cuerpo <archivo>]` (sin `--cuerpo`, de la entrada estándar); `chico` por
-  defecto: `sí` sin cicatriz, `no` con cicatriz; `chico: sí` con cicatriz pide `chico-por`. `listar [--te-espera | --aprobados-nuevos]`:
+- **⚠️ `ids:` (r2-4, evaluado y entra; ampliado por r4-2 y r4-4):** todo cambio `3-barrera` **declara los ids que cambia**, y
+  `barreras` da rojo si el commit cambia uno que no está declarado. Así "quitar el freno X" no deja pasar un commit que quite también Y,
+  ni "tocar el hook A" uno que vacíe el hook B. Los ids, por categoría:
+  - ficha (`frenos`, `sensible`, `autorizado`): `frenos.quitados` y `frenos.opcionales` por su `id` (o su texto); `sensible.<clave>` como
+    `sensible:<clave>`; `autorizado.<clave>` como `autorizado:<clave>`; **y bajo `frenos`, `nivel` y `pieza:candado` / `pieza:hook-escritura`
+    solo cuando aflojan** (r4-2, r5-3): el estado (`.estado` si la pieza es un mapa) pasa de algo distinto de `no` a `no` o a no estar, o el
+    nivel baja de `estandar` a `liviano`. Prender una pieza o cambiarle el hash no es barrera. **Borrar la ficha cambia todos sus ids.**
+  - archivos (`hooks`, `githooks`, `gitleaks`): `<categoría>:<ruta relativa>` por archivo tocado (`hooks:.claude/hooks/lib/contexto.cjs`).
+  - `settings`: las reglas que cambian, con el id de `zona-propia.reglas` (`deny:<texto>`, `allow:…`, `ask:…`, `hook:<evento>/<matcher>/<comando>`),
+    un cambio de otra clave, `settings:<clave>`. Quitar un `deny` del molde se hace sumando también su id a `frenos.quitados`, si no el
+    guardia lo ve como desvío.
+  - **Normalización, igual en `barreras`, `mezclarSettings` y `frenos.quitados`** (r5-4): sin comillas dobles y con `\` → `/` (la gramática no
+    escapa ninguna de las dos); `nuevo` escribe entre comillas dobles todo id que tenga coma.
+- **⚠️ Los scripts del candado son barrera (r4-3)**: `.claude/scripts/estructura.cjs` y `.claude/scripts/cambios.cjs` cuentan en la
+  categoría **`hooks`** (sin palabra nueva en `toca`; su id, `hooks:<ruta>`); su lógica compartida vive en `.claude/hooks/lib/` (ya barrera:
+  `lib/cambios-ruta.cjs`, `lib/cambios.cjs` con el formato y el sello, `lib/barreras.cjs`). *Lo que esto no cierra*: un candado editado y
+  corrido en el mismo commit se aprueba solo, hasta que el pre-commit del orden 3 corra la versión de `origin/<rama por defecto>` (anotado
+  al paquete 3).
+- Comandos: `nuevo --slug <s> --clase <c> --toca <a,b> [--id <x>]… (--origen "<t>" | --cita "<alias> <id>") [--cicatriz <c>]
+  [--chico sí|no] [--chico-por "<t>"] [--urgente sí|no] [--cuerpo <archivo>]` (sin `--cuerpo`, de la entrada estándar); `--id` se repite,
+  uno por id, y es **obligatorio** en `3-barrera`; `chico` por defecto: `sí` sin cicatriz, `no` con cicatriz; `chico: sí` con cicatriz pide
+  `chico-por`. **`nuevo` hace su propio commit** por rutas (`cambios: propuesto <id>`; r4-5), así `aprobar` no se traba en la misma sesión. `listar [--te-espera | --aprobados-nuevos]`:
   `--te-espera` da por cada `propuesto` `3-barrera` **la línea lista**, `<id> · <regla en una línea> · toca: … · ids: … · hash <8>`;
   `--aprobados-nuevos` da los sellados después de la marca de sesión anterior a la más nueva (lo usa `/inicio`). `anotar-sha <id> <sha>
   [--aplico <archivo>]` (`aplico.hash` = el `ficha.hash` de lo que hay **dentro** de las zonas de ese archivo en ese commit). `rechazar <id> "<motivo>"` desde `propuesto` o `aprobado`. Ningún texto del usuario con `"`, `\` o salto de línea.
 - **`aprobar <id>`**, en este orden, y se niega (salida 1, una línea que dice por qué y nada escrito) con: rol que no sea `humano`; fuera
-  del checkout principal; checkout fuera de la rama por defecto; árbol con cambios **en el archivo del cambio o en `frenos.log`**; cambio
-  que no es `propuesto` `3-barrera`; ficha rota (`ficha rota: <archivo>:<línea> — corré doctor`). Si pasa: renglón en `frenos.log` (id
+  del checkout principal; checkout fuera de la rama por defecto; el archivo del cambio con cambios sin commitear o sin commitear nunca;
+  cambio que no es `propuesto` `3-barrera`; ficha rota (`ficha rota: <archivo>:<línea> — corré doctor; la última que se lee: git show
+  <sha>:.claude/kit.md`). **`frenos.log` sucio no lo traba** (r4-5: el hook y el candado lo ensucian; solo se agrega y es `merge=union`): su
+  commit lo lleva como esté. Si pasa: renglón en `frenos.log` (id
   `cambios:aprobar`, herramienta `cambios.cjs`, detalle = el id del cambio), `estado: aprobado`, el sello `aprobo: {sesion, fecha, carpeta,
   rol, hash, freno}` y **su propio commit** con `git commit -- <cambio> .claude/frenos.log`, mensaje `cambios: aprobado <id>`. `sesion` = la
   marca más nueva de `<git-dir>/kit-sesiones/` (rastro, no candado; Supuestos). Un renglón con `"` no se puede sellar → se niega.
 - **`verificar`**: lo de "D2.2 — AGREGA", más **"consumido sin anotar"**: un `aprobado` que ya tiene después del sello un commit que toca su
   `toca` → rojo con el comando listo (`anotar-sha <id> <ese sha>`). Salidas 0 · 1 (`id · qué pasa · qué hacer`) · 2 mal llamado.
+- **`verificar` y `barreras` leen la historia `--first-parent` de `refs/heads/<rama por defecto>`** (la local, donde corre `aprobar`; r4-5):
+  con `origin/…`, el sello sin pushear daría rojo en el mismo `/cierre`.
 - **`niega-aprobar.cjs`** (`PreToolUse`, matcher `Bash|PowerShell`, `onFailure: "block"`, `timeout: 20`): el comando es "de aprobar" si
   contiene las dos palabras `cambios` y `aprobar` (a propósito ancho: un falso positivo solo frena en los modos donde aprobar no vale).
   **Niega** con `permission_mode` `bypassPermissions`, `dontAsk` o `auto` (SPEC-0 4.5 y criterio 18: **los tres**, aunque el bloque de
-  arriba nombre solo bypass; ⚠️ en `auto`, Guido aprueba cambiando a `default` — si la `ask` pregunta en `auto` es NO VERIFICADO); si la
-  entrada no trae el modo, el `defaultMode` de los `settings` (proyecto, local, PC) y, sin ninguno, deja pasar a la `ask`. **Niega** con
+  arriba nombre solo bypass; ⚠️ en `auto`, Guido aprueba cambiando a `default`; la doc dice que una `ask` pregunta también en `auto`, así
+  que ahí es fricción y no seguridad: se puede aflojar) y **niega si la entrada no trae el modo** (r4-1: `--permission-mode` no deja rastro
+  en ningún `settings`). **En los demás modos devuelve `permissionDecision: "ask"`** (r4-1): la ventana no depende de la forma del comando
+  (`'aprobar'`, dos espacios, `--` esquivan la regla `ask` y caen en el `allow`); la regla `ask` queda como segunda red. **Niega** con
   `.kit-rol` de agente (defensa doble con el script) y con ficha rota. Error interno → `deny` "freno roto: corré doctor"; si ni eso, la salida
   distinta de 0 y `onFailure` frenan. No corre lo propio.
+- **⚠️ Lo que esto no cierra (r4-1 b, para Guido)**: una sesión en bypass **en el checkout principal con rol `humano`** puede esquivar el hook
+  (`camb*.cjs`, `apro''bar`) o fabricar el sello sin el script (Bash escribe el archivo, el renglón y el commit: el `deny` cubre `Write` y
+  `Edit`, no Bash), y queda igual a uno legítimo. Guido aceptó en 6.8a el obrero que sale de su carpeta **en un modo con ventana**, no esto.
+  Lo que lo delata hoy: `/inicio` lista "aprobados nuevos" con quién los selló; el orden 3 suma el hook de 4.5 y el pre-commit, y el orden 5
+  el resumen del día. **Queda en "te espera"**: aceptarlo hasta el orden 3, o pedir más (por ejemplo, que el sello lo firme algo fuera del
+  alcance de Bash). De la misma familia, y también hasta el orden 3 (4.4 ya lo lista): un obrero que mueve el `main` del principal desde su
+  worktree, sin red, con `git update-ref refs/heads/main <sello falso>` (r5-5).
 - `settings.json` del molde suma: `ask` `Bash(node .claude/scripts/cambios.cjs aprobar:*)` y `PowerShell(node .claude/scripts/cambios.cjs
   aprobar:*)`; `allow` `Bash(node .claude/scripts/cambios.cjs:*)` (la `ask` gana sobre el `allow`); `deny` `Write(./.claude/cambios/**)` y
   `Edit(./.claude/cambios/**)`; el `PreToolUse` de `niega-aprobar.cjs`. **Antes de darlo por hecho, F3 lo prueba con `claude.exe -p` en un
   clon de `alfa`**: que el `settings` con `onFailure` carga y los hooks corren, que la entrada de `PreToolUse` trae `permission_mode`, que en
-  `-p` la `ask` no aprueba sola, que en bypass el hook niega y que un `Write` a `.claude/cambios/x.md` queda negado.
+  `-p` la `ask` no aprueba sola, que en bypass el hook niega, que un `Write` a `.claude/cambios/x.md` queda negado, **y que con
+  `--permission-mode default` `node .claude/scripts/cambios.cjs 'aprobar' <id>` no corre** aunque el `allow` coincida (el `ask` del hook
+  gana; r5-2). **Si la entrada no trae `permission_mode`**, "niega sin modo" dejaría a Guido sin poder aprobar: F3 usa entonces el
+  `defaultMode` de los `settings` (sin ninguno, `ask`) y queda ⚠️ para Guido.
+- `nuevo` y `aprobar` con un merge a medio hacer: "terminá el merge primero", no el error crudo de git (r5-5).
 
 **F4 · El candado, `scripts/estructura.cjs`** (los nueve de "D2.2 — AGREGA").
 - **Qué ficha**: `fichaVigente` (regla de 4.7); `frenos.quitados` y `piezas.candado` salen de ahí. **Prendido**: con `piezas.candado`
-  presente y distinto de `no` corre entero; ausente o `no`, solo `barreras` (Cruces 8: ausente = apagado). **Sin ficha** en HEAD, el índice
-  y el disco: nada, salida 0 y `sin ficha: candado apagado`. `todo` = los nueve; `parcial` = `topes` (solo el handoff) y `barreras`.
+  presente y distinto de `no` corre entero; ausente o `no`, solo `barreras` (Cruces 8: ausente = apagado). **Sin ficha**, salida 0 y
+  `sin ficha: candado apagado`, **solo si no está** en el disco, el índice, HEAD, la ficha vigente **ni el padre de ningún commit del rango**
+  (r4-2: borrarla no apaga el candado). `todo` = los nueve; `parcial` = `topes` (solo el handoff) y `barreras`.
 - `raiz`: `juzgarRuta` sobre `git ls-files --cached --others --exclude-standard -- docs` más que cada `docs/modulos/<x>/` tenga
   `README.md` con `Estado:`. `rutas`: en `CLAUDE.md`, `docs/README.md`, TODO, handoff, fichas de módulo y `docs/referencia/**`, los enlaces
   markdown relativos y las rutas entre comillas invertidas **cuyo primer tramo es una entrada de la raíz del repo según `git ls-files`**;
@@ -326,12 +358,16 @@ Guido"), con su alternativa; las ⚠️ son reversibles hasta el tag.
   (`X:\`, `/c/Users/`, `/home/`, `/Users/`), ids de sesión (`local_` + hexa, un UUID), ramas concretas (`modulo/<nombre>` sin `<`) y SHAs
   (7 a 40 hexa con al menos una letra y un número, fuera de una URL).
 - **`barreras`**: el rango es `origin/<rama por defecto>..HEAD` más lo pendiente (índice y disco) como un commit más; **sin remoto**, fuera de la
-  rama por defecto `<rama por defecto>..HEAD`, y en ella, desde la base de `todo.cjs`. Por commit: las categorías que toca (por ruta;
-  la ficha, por comparar `frenos`, `sensible` y `autorizado` de antes y después, y sus ids). Lo cubre la unión de los cambios válidos:
-  `aprobado` con sello válido (las reglas de `verificar`), sello anterior al commit y **ningún commit entre el sello y este** que toque su
-  `toca` (un `aprobado` = un commit), o `aplicado` con `sha` = ese commit; `toca` ⊇ categorías y `ids` ⊇ ids cambiados. Exención (a) solo
-  con `--molde <dir>`; exención (b) contra `fabrica(nivel)` **del árbol del padre** si el padre la tiene (el commit no se certifica solo), y
-  si no, la del commit. Con la ficha del padre rota, se compara contra la última versión que lee (hasta 20 commits atrás) o contra fábrica.
+  rama por defecto `<rama por defecto>..HEAD`, y en ella, desde la base de `todo.cjs`; **sin base, solo lo pendiente** (r4-5: si no, el
+  commit que creó el `settings` da rojo para siempre). Por commit: las categorías y los ids que toca (por ruta; la ficha, por comparar
+  `frenos`, `sensible`, `autorizado`, `nivel` y las dos piezas de antes y después; `settings`, por `reglas`). Lo cubre la unión de los
+  cambios válidos: `aprobado` con sello válido (las reglas de `verificar`), sello anterior al commit y **ningún commit entre el sello y
+  este** que toque su `toca` (un `aprobado` = un commit), o `aplicado` con `sha` = ese commit **y ese commit es el primero que toca su
+  `toca` después del sello** (`git rev-list --reverse <sello>..<commit>`; r5-1: si no, reapuntar el `sha` de un aprobado viejo tapa un
+  commit nuevo; `verificar` chequea lo mismo); `toca` ⊇ categorías y `ids` ⊇ ids cambiados. Exención (a) solo con `--molde <dir>`, y a la ficha le exige además que ni `nivel` ni las dos piezas aflojen (r5-3). **Exención (b) solo para el commit que crea la ficha por primera vez** (`.claude/kit.md`
+  nunca existió en `refs/heads/<rama por defecto>`; r4-2), contra `fabrica(nivel)` **del árbol del padre**; si el padre no la tiene, **no hay
+  exención** (la del commit se certificaría sola). Con la ficha del padre rota, se compara contra la última versión que lee (hasta 20
+  commits atrás); si no hay ninguna, rojo.
 - Cada falla: `candado:<id> · qué pasa · qué hacer` y su renglón en `frenos.log` (herramienta `estructura`, detalle = ruta o texto fijo).
   `--sin-log` solo para pruebas. **Los cuatro casos** (son scripts, no hooks): sin node, `/cierre` no commitea (lo dice la skill); ficha
   rota → 1 con `ficha rota: …`; error interno → 1 con `candado roto: corré doctor`, **nunca 0**; sin remoto ni ficha → 0 sin trabar.
@@ -511,3 +547,5 @@ E1 y E2 en paralelo (no comparten archivos), cada uno en su worktree; el resto e
 | 1 · 2026-10-28 | 2 | 3 | **1** sello falsificable desde un worktree → `hash`, `--first-parent`, un `aprobado` = un commit · **2** `carpeta` absoluta y "principal" sin definir → relativa y `git-dir` = `git-common-dir` · **3** bypass sin ventana entre el orden 2 y el 3 → `niega-aprobar.cjs` adelantado a D2.2 · **4** `origin/HEAD` movible sin red → solo vale si apunta a la rama por defecto; nota a P4.4 · **5** rango y vocabulario de `barreras` → fijados; el commit de `rehacer.sh` pasa por la exención (a). BAJOS: mayúsculas y `..` en el hook de escritura; id de sesión = rastro |
 | 2 · 2026-10-28 | 2 | 2 | **r2-1** la exención (a) se certificaba sola con los hashes del repo → compara contra un molde de afuera (`--molde`), sin molde no hay exención · **r2-2** `--first-parent` rompía el camino legítimo → `aprobar` hace su propio commit y exige la rama por defecto · **r2-3** caminos largos al first-parent → aceptados por Guido (6.8a); rastro adelantado a `/inicio` y `deny` de `Write`/`Edit` sobre `cambios/` · **r2-4** `hash` de todo el archivo; atar el commit al resultado, se evalúa en D2.2 · BAJO r2-5: `modulo/*`/`worktree-*` nunca rama por defecto |
 | 3 · 2026-10-28 | **0** | 2 | **r3-1** `--molde` lo elegía quien corre el candado → solo `rehacer.sh`; sin exención (a) hasta el orden 6 · **r3-2** el `deny` sobre `cambios/` chocaba con `cambios nuevo` → el cuerpo por entrada estándar · BAJO r3-3: "te espera" muestra la regla y el `hash` corto. **Criterio de salida cumplido: sin ALTOS** |
+| 4 · 2026-10-28 (D2.2, sobre "el detalle") | 4 | 1 | **r4-1** `'aprobar'` entre comillas esquivaba la `ask` → el hook devuelve `ask` en los modos con ventana y niega sin modo; bypass en el principal, a Guido · **r4-2** borrar o volver a fábrica la ficha lavaba las barreras → borrar = todos los ids, (b) solo la primera vez, `nivel` y piezas como ids · **r4-3** los scripts del candado no eran barrera → cuentan en `hooks` · **r4-4** un `aprobado` de archivos cubría cualquiera → `ids` por archivo y por regla · r4-5 trabas del camino legítimo (ref, `frenos.log`, `nuevo` sin commit, sin base) |
+| 5 · 2026-10-28 (D2.2) | 1 | 2 | **r5-1** un `aplicado` se podía reapuntar → cubre solo si es el primer commit tras el sello · r5-2 la prueba `-p` suma el `ask` del hook contra el `allow` · r5-3 `nivel` y piezas cuentan solo cuando aflojan · BAJOS r5-4 normalizar `\` y comillas en los ids, r5-5 `update-ref` desde un worktree (al orden 3) y merge a medias. **Integrado tal cual; el red team dijo que con r5-1 así no hacía falta otra ronda** |
