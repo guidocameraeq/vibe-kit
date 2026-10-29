@@ -10,7 +10,7 @@ const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
 const { spawnSync } = require('child_process');
-const { leer, leerArchivo, hash, compararVersiones, ErrorFicha } = require('./ficha.cjs');
+const { leer, leerCabecera, leerArchivo, hash, compararVersiones, ErrorFicha } = require('./ficha.cjs');
 
 const SCRIPT = path.join(__dirname, 'ficha.cjs');
 const EJEMPLO = path.join(__dirname, '..', '..', 'kit.ejemplo.md');
@@ -789,4 +789,129 @@ test('proyecto ESM: el .cjs corre igual con "type": "module" al lado', () => {
   const r = spawnSync(process.execPath, [path.join(lib, 'ficha.cjs'), 'leer', EJEMPLO], { cwd: dir, encoding: 'utf8' });
   assert.equal(r.status, 0, r.stderr);
   assert.deepStrictEqual(JSON.parse(r.stdout), ESPERADO);
+});
+
+// ---------------------------------------------------------------- leerCabecera: la gramática sin las reglas de la ficha
+
+// La cabecera de un archivo de cambio de método (.claude/cambios/): sin kit/nivel/vars, con el sello en un mapa en línea.
+const FRENO = '2026-10-28T23:10:00-03:00 · humano · main · cambios:aprobar · cambios.cjs · 2026-10-28-quitar-push, con coma';
+const CAMBIO = [
+  '---',
+  '# Cambio de método: lo lee cambios.cjs con la gramática de la ficha.',
+  'estado: propuesto',
+  'clase: 3-barrera',
+  'toca: [frenos]',
+  'ids: [hook:git-seguro/push-force]',
+  'origen: "bitácora 2026-10-28"',
+  'cicatriz: no',
+  'chico: sí',
+  'urgente: no',
+  `aprobo: {sesion: abc-123, fecha: 2026-10-28T23:10:00-03:00, carpeta: ., rol: humano, hash: 0123456789ab, freno: "${FRENO}"}`,
+  '---',
+  '',
+  '## Caso de origen',
+  'Texto: con dos puntos: y --- adentro no importa.',
+  '',
+].join('\n');
+
+test('leerCabecera: la cabecera de un cambio de método se lee entera, con su mapa en línea', () => {
+  const r = leerCabecera(CAMBIO);
+  assert.deepStrictEqual(r.datos, {
+    estado: 'propuesto',
+    clase: '3-barrera',
+    toca: ['frenos'],
+    ids: ['hook:git-seguro/push-force'],
+    origen: 'bitácora 2026-10-28',
+    cicatriz: 'no',
+    chico: 'sí',
+    urgente: 'no',
+    aprobo: {
+      sesion: 'abc-123',
+      fecha: '2026-10-28T23:10:00-03:00', // los dos puntos de adentro no cortan el valor
+      carpeta: '.',
+      rol: 'humano',
+      hash: '0123456789ab',
+      freno: FRENO, // entre comillas: las comas y el " · " quedan enteros
+    },
+  });
+  assert.deepStrictEqual(r.avisos, []);
+});
+
+test('leerCabecera acepta lo que leer rechaza: al cambio le falta kit:', () => {
+  assert.doesNotThrow(() => leerCabecera(CAMBIO));
+  assert.throws(() => leer(CAMBIO), (e) => e instanceof ErrorFicha && e.linea === 12 && /falta "kit"/.test(e.mensaje));
+});
+
+test('leerCabecera no valida los campos: un campo desconocido, un kit raro o una clase inventada pasan sin aviso', () => {
+  const r = leerCabecera('---\nkit: no-es-version\nnivel: raro\ncolorcito: x\nclase: 9\n---\n');
+  assert.deepStrictEqual(r.datos, { kit: 'no-es-version', nivel: 'raro', colorcito: 'x', clase: '9' });
+  assert.deepStrictEqual(r.avisos, []);
+});
+
+test('leerCabecera corta en el primer --- de la columna 0; el cuerpo no se lee', () => {
+  const r = leerCabecera('---\nestado: propuesto\n---\ncosa rara: {sin cerrar\n---\nmás: {\n');
+  assert.deepStrictEqual(r.datos, { estado: 'propuesto' });
+});
+
+test('leerCabecera: un --- con sangría no cierra la cabecera', () => {
+  assert.throws(() => leerCabecera('---\nestado: propuesto\n ---\n'), (e) => e instanceof ErrorFicha && /la cabecera no se cierra/.test(e.mensaje));
+});
+
+test('leerCabecera: BOM y CRLF dan lo mismo que LF', () => {
+  const raro = '\uFEFF' + CAMBIO.replace(/\n/g, '\r\n');
+  assert.deepStrictEqual(leerCabecera(raro).datos, leerCabecera(CAMBIO).datos);
+});
+
+test('leerCabecera: la lista de mapas en línea y el mapa en bloque valen (la misma gramática)', () => {
+  const r = leerCabecera('---\nfrenos:\n  quitados:\n    - {id: hook:a, por: x, hasta: siempre}\n    - {id: hook:b, por: y, hasta: siempre}\nmapa:\n  a:\n    b: c\n---\n');
+  assert.deepStrictEqual(r.datos, {
+    frenos: { quitados: [{ id: 'hook:a', por: 'x', hasta: 'siempre' }, { id: 'hook:b', por: 'y', hasta: 'siempre' }] },
+    mapa: { a: { b: 'c' } },
+  });
+});
+
+// [nombre, texto, línea, regex]: errores de gramática, con su línea y sin que ninguna regla de la ficha los tape.
+const CASOS_CABECERA = [
+  ['sin apertura', 'estado: propuesto\n---\n', 1, /tiene que empezar con ---/],
+  ['archivo vacío', '', 1, /tiene que empezar con ---/],
+  ['sin cierre', '---\nestado: propuesto\n', 1, /la cabecera no se cierra/],
+  ['comillas simples', "---\nestado: propuesto\norigen: 'x'\n---\n", 3, /comillas simples/],
+  ['comilla sin cerrar en el sello', '---\nestado: aprobado\naprobo: {sesion: a, freno: "sin cierre}\n---\n', 3, /comilla sin cerrar/],
+  ['llave sin cerrar en el sello', '---\nestado: aprobado\naprobo: {sesion: a, rol: humano\n---\n', 3, /llave sin cerrar/],
+  ['freno sin comillas con coma: el pedazo no es clave: valor', '---\nestado: aprobado\naprobo: {sesion: a, freno: 2026 · humano, con coma}\n---\n', 3, /no es "clave: valor"/],
+  ['freno sin comillas con dos puntos y espacio', '---\nestado: aprobado\naprobo: {sesion: a, freno: cambios: aprobar}\n---\n', 3, /dos puntos seguidos de espacio/],
+  ['clave repetida', '---\nestado: propuesto\nestado: aprobado\n---\n', 3, /clave repetida en el mismo mapa/],
+  ['tabulador', '---\naprobo:\n\tsesion: a\n---\n', 3, /tabulador en la sangría/],
+  ['cuarto nivel', '---\nm:\n  a:\n    b:\n      c: x\n---\n', 5, /más de tres niveles/],
+  ['lista dentro de lista', '---\ntoca: [[a]]\n---\n', 2, /lista dentro de otra lista/],
+  ['ítem "-" suelto', '---\nestado: propuesto\n- a\n---\n', 3, /ítem de lista "-" sin clave arriba/],
+  ['lista de texto en bloque', '---\ntoca:\n  - frenos\n---\n', 3, /lista de texto en bloque/],
+  ['barra dentro de comillas', '---\norigen: "a\\b"\n---\n', 2, /barra \\ dentro de comillas/],
+];
+
+for (const [nombre, texto, linea, re] of CASOS_CABECERA) {
+  test(`leerCabecera, error de gramática con su línea: ${nombre}`, () => {
+    assert.throws(
+      () => leerCabecera(texto),
+      (e) => e instanceof ErrorFicha && e.linea === linea && re.test(e.mensaje) && e.message === `línea ${linea}: ${e.mensaje}`,
+    );
+  });
+}
+
+test('leerCabecera: el mensaje de un error de gramática no repite lo que escribió el usuario', () => {
+  assert.throws(
+    () => leerCabecera("---\norigen: 'SECRETO-123'\n---\n"),
+    (e) => e instanceof ErrorFicha && !e.message.includes('SECRETO-123'),
+  );
+});
+
+test('leerCabecera: el mismo error de gramática que leer, con la misma línea y el mismo mensaje', () => {
+  const malo = ficha("datos-de-prueba: 'x'\n");
+  let a;
+  let b;
+  try { leer(malo); } catch (e) { a = e; }
+  try { leerCabecera(malo); } catch (e) { b = e; }
+  assert.ok(a instanceof ErrorFicha && b instanceof ErrorFicha);
+  assert.equal(b.linea, a.linea);
+  assert.equal(b.message, a.message);
 });

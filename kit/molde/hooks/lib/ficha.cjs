@@ -427,7 +427,8 @@ function validar(datos, st, cierre, avisos) {
 
 // ---------------------------------------------------------------- biblioteca
 
-function leer(texto) {
+// La gramática sola: parte la cabecera (hasta el primer --- en la columna 0) y la parsea. Sin ninguna regla de campos.
+function parsearCabecera(texto) {
   let t = String(texto);
   if (t.charCodeAt(0) === 0xfeff) t = t.slice(1);
   t = t.replace(/\r\n/g, '\n');
@@ -446,6 +447,18 @@ function leer(texto) {
   const items = prepararItems(lineas.slice(1, cierre), 2);
   const st = { items, i: 0, lineas: new Map() };
   const datos = parseMapa(st, 0, 1, '');
+  return { datos, st, lineas, cierre };
+}
+
+// Para los archivos que usan la gramática de la ficha sin ser la ficha (los cambios de método): {datos, avisos} sin validar nada
+// más que la gramática. Un error de gramática da ErrorFicha con su línea, igual que leer; los avisos de campos desconocidos son de leer.
+function leerCabecera(texto) {
+  const { datos } = parsearCabecera(texto);
+  return { datos, avisos: [] };
+}
+
+function leer(texto) {
+  const { datos, st, lineas, cierre } = parsearCabecera(texto);
   const avisos = [];
   validar(datos, st, cierre + 1, avisos);
   return { datos, prosa: lineas.slice(cierre + 1).join('\n'), avisos };
@@ -642,7 +655,7 @@ function cli(argv) {
   }
 }
 
-module.exports = { leer, leerArchivo, hash, compararVersiones, ErrorFicha };
+module.exports = { leer, leerCabecera, leerArchivo, hash, compararVersiones, ErrorFicha };
 
 if (require.main === module) {
   process.exitCode = cli(process.argv.slice(2));
