@@ -70,7 +70,7 @@ cuántos lanzó y en qué modelo (por ejemplo `4 Sonnet · 2 Opus`): es la medid
 | D1.1 | Paquete 1 entero: spec delta (Guido sella), ficha, parser, `VERSION`, `pruebas/rehacer.sh` | 2026-10-28 | `vibe-kit M5 · D1.1 · Paquete 1: la ficha del kit y su parser` | 5 Sonnet · 1 Opus (revisor frío) | `68b75e1`…`16f7cb2` | ✅ Criterios 1-8 del delta verificados por el director; parser con 255 pruebas y 0 mutantes vivos en las reglas; el revisor frío cambió la gramática antes de congelarla (3 ALTOS) y Guido decidió `herramientas` aparte |
 | D2.1 | Paquete 2, primera mitad: spec delta + red team, `docs/` en capas, handoff y TODO con tope, hook node | 2026-10-28 | `vibe-kit M5 · D2.1 · Paquete 2, primera mitad: docs en capas, handoff y TODO con tope, hook node` | 4 Sonnet (mudanza, E1, E3, E6) · 7 Opus (redactor del delta, red team ×3 rondas, E0, E2, E4, E4b, E5) | `cf21f40`…`ab64c22` y el cierre | ✅ Criterios 1-15 del delta; suite **496 verde**; mutación por encargo 87/87 · 82/82 · 88/91 · 28/30 · 35/35 y control del director 6/6. **E4b** (fuera del delta): el hook de arranque tardaba 10-24 s con la PC cargada contra un `timeout` de 20 → plazo propio de 10 s. Hook de escritura medido: 5.007 `Write`, 0 frenadas sobre los seis y las tres |
 | DP | Sesión intermedia (pedido de Guido): planear la paralelización de lo que queda | 2026-10-29 | `vibe-kit M5 · DP · Planear la paralelización de lo que queda` | 0 | el cierre de DP | ✅ **Decidido: no se paraleliza**; la misión sigue un director por vez, en el orden de esta tabla (ver "Paralelizar") |
-| D2.2 | Paquete 2, segunda mitad: candado, `cambios` base y su sello, la zona propia (P3.2), `/inicio` y `/cierre` v3 con `pedidos.md`, revisor frío | | | | | |
+| D2.2 | Paquete 2, segunda mitad: candado, `cambios` base y su sello, la zona propia (P3.2), `/inicio` y `/cierre` v3 con `pedidos.md`, revisor frío | 2026-10-28 (sin Guido) | `vibe-kit M5 · D2.2 · Paquete 2, segunda mitad: candado, cambios, zona propia, /inicio y /cierre v3` | 🔨 | | 🔨 en curso. **Decisiones sin Guido**: abajo |
 | D3.1 | Paquete 3: spec delta + red team (obligatorio), corrector, barreras, hooks por PC, `doctor` mínimo | | | | | |
 | D4.1 | Paquete 4: spec delta + red team, Arquitecto v3, sello, `formato-spec.md`, `worktree` y `.kit-rol` | | | | | |
 | D5.1 | Paquete 5, primera mitad: spec delta + red team, el canon director/obrero y sus correctores | | | | | |
@@ -81,6 +81,37 @@ cuántos lanzó y en qué modelo (por ejemplo `4 Sonnet · 2 Opus`): es la medid
 | D9.1 | Arrancar el piloto en Deptos | | | | | |
 | D9.2 | Medir el mes del piloto contra TABLERO §1 | | | | | |
 | D10.1 | Tag `v3.0` y nota de migración | | | | | |
+
+### D2.2 · Decisiones sin Guido
+
+D2.2 corrió sin Guido, con su autorización previa (Cambios al plan, 2026-10-29): cada decisión, con la recomendada. **Las ⚠️ (formato
+que viaja, barrera, o contra el SPEC-0 o un ADR) van arriba, y todas se deshacen antes del tag.** El detalle técnico, en la sección
+"D2.2 — el detalle" del delta.
+
+- ⚠️ **`ids:` en el archivo de `cambios` (r2-4 entra).** Un cambio `3-barrera` que toca `frenos`, `sensible` o `autorizado` declara los ids
+  que cambia, y `barreras` da rojo si el diff de la ficha cambia otro. *Alternativa*: dejar r2-4 como riesgo escrito. *Por qué*: es justo el
+  hueco "aprobaste quitar X y se quitó también Y", y el chequeo es mecánico. Campo nuevo en un formato que viaja: se saca borrándolo del
+  script y del candado.
+- ⚠️ **`niega-aprobar.cjs` niega en `bypassPermissions`, `dontAsk` y `auto`**, no solo en bypass como dice el bloque "D2.2 — AGREGA" del
+  delta. *Alternativa*: solo bypass. *Por qué*: el SPEC-0 (4.5) y el criterio 18 nombran los tres. *Qué cambia para vos*: si trabajás en
+  `auto`, para aprobar pasás a `default`. Si la `ask` pregunta en `auto` queda NO VERIFICADO.
+- ⚠️ **Los hooks que niegan y el de escritura no corren su `.propio.sh`**; solo el de arranque (E §5 decía "los hooks llaman al hermano").
+  *Alternativa*: todos lo corren. *Por qué*: un `.propio.sh` que imprime `allow` destrabaría un freno sin pasar por `barreras`.
+- Las fichas de fábrica van en `kit/molde/hooks/lib/fabrica/`, no en `kit/molde/`. *Alternativa*: `kit/molde/ficha.<nivel>.md`, como
+  el delta. *Por qué*: así se instancian bajo `.claude/hooks/**`, que es barrera, sin una regla nueva de instanciación.
+- El candado con `piezas.candado` **ausente** queda apagado (corre solo `barreras`). *Alternativa*: "no es `no`" = prendido. *Por qué*:
+  Cruces 8 y B §14 (un repo adoptado arranca con el candado apagado).
+- `estructura.cjs parcial` = `topes` del handoff **más `barreras`**. *Alternativa*: solo `topes` (B §14). *Por qué*: el cierre parcial
+  también commitea.
+- Pendiente (a) de D2.1: `hook-escritura: molde` **sigue sin hash** hasta el orden 6. *Alternativa*: `{estado, hash}` ya. *Por qué*: nadie
+  lo lee antes del actualizador, que es el que define qué piezas llevan hash.
+- Pendiente (d) de D2.1 (`KIT_PLAZO_ARRANQUE_MS` en `doctor`) **pasa al paquete 3**: `doctor` no existe todavía.
+- La exención (b) compara contra las fichas de fábrica **del árbol del padre** si las tiene, y si no, las del commit. *Por qué*: que el
+  commit no se certifique solo cuando ya había kit.
+- `cambios aprobar` también se niega **con ficha rota** y con cambios sin commitear en el archivo del cambio o en `frenos.log`.
+- El hash de `piezas.settings` = el del `settings.json` del molde (serialización estable); el desvío lo dice `desviosSettings` por regla.
+- `niega-aprobar.cjs` reconoce el comando por contener `cambios` y `aprobar` (ancho a propósito: el falso positivo solo frena donde aprobar
+  no vale).
 
 ## Paralelizar: decidido que no (DP, 2026-10-29)
 

@@ -236,6 +236,119 @@ final suma la huella de `alfa` y `beta`.
   preguntas de B §6. `/inicio` se prueba en chico / más que chico; solo / con director es del Arquitecto (orden 4).
 - `ficha.cjs` exporta `leerCabecera(texto)` (la gramática sin las reglas de la ficha); `rehacer.sh` suma su paso.
 
+## D2.2 — el detalle (al abrir, 2026-10-28; sin Guido, con su autorización previa)
+
+Lo que el bloque de arriba dejó "para al abrir". Cada decisión tomada sin Guido está en la fila D2.2 del tracker ("Decisiones sin
+Guido"), con su alternativa; las ⚠️ son reversibles hasta el tag.
+
+**F1 · `leerCabecera`, fichas de fábrica, `pedidos.md`.**
+- `ficha.cjs` exporta `leerCabecera(texto)` → `{datos, avisos}`: la misma gramática (cabecera hasta el primer `---` en la columna 0),
+  sin las reglas propias de la ficha (campos conocidos, `kit:`, estados). Error → `ErrorFicha` con línea, igual que `leer`.
+- **Las fichas de fábrica viven en `kit/molde/hooks/lib/fabrica/ficha.liviano.md` y `ficha.estandar.md`** (no en `kit/molde/`):
+  así "Cómo se instancia" las lleva a `.claude/hooks/lib/fabrica/`, **bajo `.claude/hooks/**`, que es barrera**: editarlas pide un
+  `aprobado`. Son fichas completas que `ficha.leer` acepta. `frenos: {opcionales: [], quitados: []}` en las dos; `autorizado` de E §4
+  (`liviano`: `merge-a-main: libre`, `escribir-produccion: libre`; `estandar`: `con-gate-verde`, `por-comando-con-foto`); `sensible`
+  con las cinco claves en `no` (lo que duele lo nombra el Arquitecto al montar). `lib/fabrica.cjs` exporta `fabrica(nivel)` → los tres
+  campos, y `NIVELES`.
+- `pruebas/pedidos.md`: diez pedidos textuales en criollo, cada uno con repo (`alfa`, `beta`), tamaño esperado (4 `chico`, 4 `módulo
+  solo`, 2 `con director`) y la respuesta esperada a las dos preguntas de B §6.
+
+**F2 · La zona propia, `lib/zona-propia.cjs`.**
+- **Textos**: `zonas(texto)` → `{ok, zonas: [{desde, hasta, contenido}]}` o `{ok: false, problema, linea}`; las marcas valen solas en su
+  renglón (`<!-- kit:propio -->` y `<!-- /kit:propio -->`, espacios alrededor tolerados). Problemas: apertura sin cierre, cierre sin
+  apertura, anidada. `mezclarTexto(moldeNuevo, proyecto)`: el molde nuevo con el contenido de las zonas del proyecto **por orden**; si
+  cualquiera de los dos tiene un problema, o la cantidad de zonas difiere → `{ok: false, problema}` y no se escribe nada.
+- **`hashPieza(texto)`** = `ficha.hash` del texto con el **contenido** de cada zona vaciado (las marcas quedan). Con una marca rota,
+  `hashPieza` del texto entero (no explota: el guardia lo verá distinto).
+- **Hooks**: `rutaPropia(hook)` → el hermano `<nombre>.propio.sh`. **Solo el hook de arranque lo corre** (ya lo hace, D2.1). **Los hooks
+  que niegan y el de escritura no corren lo propio** (⚠️): un `.propio.sh` que imprime un `allow` destrabaría un freno sin pasar por
+  `barreras` en su propio commit.
+- **`settings.json`, `mezclarSettings({viejo, nuevo, proyecto, quitados})`** → `{ok, settings, informe}` o `{ok: false, problema}`.
+  Una **regla** es un texto de `permissions.allow|ask|deny` (id `allow:<texto>`, `ask:<texto>`, `deny:<texto>`) o un hook
+  (`hook:<evento>/<matcher>/<comando>`). Por regla: queda todo lo del proyecto; **se suma lo de `nuevo` que no estaba en `viejo`**, salvo
+  que su id esté en `frenos.quitados` (vigente o no: lo quitado no vuelve); **se retira lo que `viejo` traía, `nuevo` ya no y el
+  proyecto tiene igual**. Las demás claves: tres puntas por clave (proyecto distinto de `viejo` → gana el proyecto, aunque sea `[]` o
+  `{}`; igual a `viejo` → `nuevo`). **Claves duplicadas** en cualquiera de los tres (`JSON.parse` las esconde: se detectan con un lector
+  propio) o JSON inválido → no se toca. Salida estable: claves en el orden del `nuevo`, dos espacios, LF, con salto final.
+- **El hash de `piezas.settings`** (pendiente b de D2.1) = `hashPieza` del `settings.json` **del molde** serializado así: dice qué molde se
+  escribió. Que el proyecto siga teniendo lo del molde lo dice `desviosSettings(molde, proyecto, quitados)` → las reglas del molde que
+  faltan sin estar quitadas.
+
+**F3 · `cambios`, su `ask` y `niega-aprobar.cjs`** (sobre lo de "D2.2 — AGREGA").
+- La carpeta es una constante, `lib/cambios-ruta.cjs` (`.claude/cambios`), que usan el script, el `deny` y el candado (E0: no hace falta
+  `.kit/`). El archivo: cabecera (`leerCabecera`) + `---` + cuerpo con **cuatro secciones obligatorias**, `## Caso de origen`, `## Regla`
+  (la primera línea no vacía es "la regla en una línea"), `## Dónde vive`, `## Medición`. `cambios nuevo` se niega sin las cuatro.
+- **⚠️ `ids:` (r2-4, evaluado y entra):** un cambio `3-barrera` cuyo `toca` nombra `frenos`, `sensible` o `autorizado` **declara los
+  ids que cambia**: `frenos.quitados` y `frenos.opcionales` por su `id` (o su texto, en `opcionales`), `sensible.<clave>` como
+  `sensible:<clave>` y `autorizado.<clave>` como `autorizado:<clave>`. `barreras` calcula del diff de la ficha los ids que de verdad
+  cambiaron y da rojo si alguno no está declarado. Así "quitar el freno X" no deja pasar un commit que quite también Y. Los archivos
+  (`settings`, `hooks`, …) no tienen ids: los ata el `hash` del cambio y la línea de "te espera"; quitar una regla `deny` sí tiene id.
+- Comandos: `nuevo --slug <s> --clase <c> --toca <a,b> [--ids <a,b>] (--origen "<t>" | --cita "<alias> <id>") [--cicatriz <c>]
+  [--chico sí|no] [--chico-por "<t>"] [--urgente sí|no] [--cuerpo <archivo>]` (sin `--cuerpo`, de la entrada estándar); `chico` por
+  defecto: `sí` sin cicatriz, `no` con cicatriz; `chico: sí` con cicatriz pide `chico-por`. `listar [--te-espera | --aprobados-nuevos]`:
+  `--te-espera` da por cada `propuesto` `3-barrera` **la línea lista**, `<id> · <regla en una línea> · toca: … · ids: … · hash <8>`;
+  `--aprobados-nuevos` da los sellados después de la marca de sesión anterior a la más nueva (lo usa `/inicio`). `anotar-sha <id> <sha>
+  [--aplico <archivo>]` (`aplico.hash` = el `ficha.hash` de lo que hay **dentro** de las zonas de ese archivo en ese commit). `rechazar <id> "<motivo>"` desde `propuesto` o `aprobado`. Ningún texto del usuario con `"`, `\` o salto de línea.
+- **`aprobar <id>`**, en este orden, y se niega (salida 1, una línea que dice por qué y nada escrito) con: rol que no sea `humano`; fuera
+  del checkout principal; checkout fuera de la rama por defecto; árbol con cambios **en el archivo del cambio o en `frenos.log`**; cambio
+  que no es `propuesto` `3-barrera`; ficha rota (`ficha rota: <archivo>:<línea> — corré doctor`). Si pasa: renglón en `frenos.log` (id
+  `cambios:aprobar`, herramienta `cambios.cjs`, detalle = el id del cambio), `estado: aprobado`, el sello `aprobo: {sesion, fecha, carpeta,
+  rol, hash, freno}` y **su propio commit** con `git commit -- <cambio> .claude/frenos.log`, mensaje `cambios: aprobado <id>`. `sesion` = la
+  marca más nueva de `<git-dir>/kit-sesiones/` (rastro, no candado; Supuestos). Un renglón con `"` no se puede sellar → se niega.
+- **`verificar`**: lo de "D2.2 — AGREGA", más **"consumido sin anotar"**: un `aprobado` que ya tiene después del sello un commit que toca su
+  `toca` → rojo con el comando listo (`anotar-sha <id> <ese sha>`). Salidas 0 · 1 (`id · qué pasa · qué hacer`) · 2 mal llamado.
+- **`niega-aprobar.cjs`** (`PreToolUse`, matcher `Bash|PowerShell`, `onFailure: "block"`, `timeout: 20`): el comando es "de aprobar" si
+  contiene las dos palabras `cambios` y `aprobar` (a propósito ancho: un falso positivo solo frena en los modos donde aprobar no vale).
+  **Niega** con `permission_mode` `bypassPermissions`, `dontAsk` o `auto` (SPEC-0 4.5 y criterio 18: **los tres**, aunque el bloque de
+  arriba nombre solo bypass; ⚠️ en `auto`, Guido aprueba cambiando a `default` — si la `ask` pregunta en `auto` es NO VERIFICADO); si la
+  entrada no trae el modo, el `defaultMode` de los `settings` (proyecto, local, PC) y, sin ninguno, deja pasar a la `ask`. **Niega** con
+  `.kit-rol` de agente (defensa doble con el script) y con ficha rota. Error interno → `deny` "freno roto: corré doctor"; si ni eso, la salida
+  distinta de 0 y `onFailure` frenan. No corre lo propio.
+- `settings.json` del molde suma: `ask` `Bash(node .claude/scripts/cambios.cjs aprobar:*)` y `PowerShell(node .claude/scripts/cambios.cjs
+  aprobar:*)`; `allow` `Bash(node .claude/scripts/cambios.cjs:*)` (la `ask` gana sobre el `allow`); `deny` `Write(./.claude/cambios/**)` y
+  `Edit(./.claude/cambios/**)`; el `PreToolUse` de `niega-aprobar.cjs`. **Antes de darlo por hecho, F3 lo prueba con `claude.exe -p` en un
+  clon de `alfa`**: que el `settings` con `onFailure` carga y los hooks corren, que la entrada de `PreToolUse` trae `permission_mode`, que en
+  `-p` la `ask` no aprueba sola, que en bypass el hook niega y que un `Write` a `.claude/cambios/x.md` queda negado.
+
+**F4 · El candado, `scripts/estructura.cjs`** (los nueve de "D2.2 — AGREGA").
+- **Qué ficha**: `fichaVigente` (regla de 4.7); `frenos.quitados` y `piezas.candado` salen de ahí. **Prendido**: con `piezas.candado`
+  presente y distinto de `no` corre entero; ausente o `no`, solo `barreras` (Cruces 8: ausente = apagado). **Sin ficha** en HEAD, el índice
+  y el disco: nada, salida 0 y `sin ficha: candado apagado`. `todo` = los nueve; `parcial` = `topes` (solo el handoff) y `barreras`.
+- `raiz`: `juzgarRuta` sobre `git ls-files --cached --others --exclude-standard -- docs` más que cada `docs/modulos/<x>/` tenga
+  `README.md` con `Estado:`. `rutas`: en `CLAUDE.md`, `docs/README.md`, TODO, handoff, fichas de módulo y `docs/referencia/**`, los enlaces
+  markdown relativos y las rutas entre comillas invertidas **cuyo primer tramo es una entrada de la raíz del repo según `git ls-files`**;
+  se saltean URLs, anclas, `<placeholder>`, comodines, `<alias>:`, lo que está bajo un `> Histórico` y el CHANGELOG. `topes`:
+  `revisarTopes`. `mesa`: verde. `estados`: el `SPEC*.md` más nuevo del módulo (`SPEC.md` = 1, `SPEC-2.md`…) contra el `Estado:` de la
+  ficha, y `COMPLETO` con `- [ ]` en la ficha → rojo. `lecturas`: lista (sin frenar) lo de más de 100 KB que cita una skill de
+  `.claude/skills/**`. `estado-viejo`: con cambios de código (fuera de `docs/` y `.claude/`) desde la base de `todo.cjs` (el último commit
+  que tocó el handoff) hasta el disco, la sección `## Próximo paso` del handoff tiene que haber cambiado en ese tramo; un módulo con `rama:`
+  igual a la rama actual, su `Estado:`. Sin base, verde. `datos`: en `.claude/skills/**` (zonas propias incluidas) cero rutas absolutas
+  (`X:\`, `/c/Users/`, `/home/`, `/Users/`), ids de sesión (`local_` + hexa, un UUID), ramas concretas (`modulo/<nombre>` sin `<`) y SHAs
+  (7 a 40 hexa con al menos una letra y un número, fuera de una URL).
+- **`barreras`**: el rango es `origin/<rama por defecto>..HEAD` más lo pendiente (índice y disco) como un commit más; **sin remoto**, fuera de la
+  rama por defecto `<rama por defecto>..HEAD`, y en ella, desde la base de `todo.cjs`. Por commit: las categorías que toca (por ruta;
+  la ficha, por comparar `frenos`, `sensible` y `autorizado` de antes y después, y sus ids). Lo cubre la unión de los cambios válidos:
+  `aprobado` con sello válido (las reglas de `verificar`), sello anterior al commit y **ningún commit entre el sello y este** que toque su
+  `toca` (un `aprobado` = un commit), o `aplicado` con `sha` = ese commit; `toca` ⊇ categorías y `ids` ⊇ ids cambiados. Exención (a) solo
+  con `--molde <dir>`; exención (b) contra `fabrica(nivel)` **del árbol del padre** si el padre la tiene (el commit no se certifica solo), y
+  si no, la del commit. Con la ficha del padre rota, se compara contra la última versión que lee (hasta 20 commits atrás) o contra fábrica.
+- Cada falla: `candado:<id> · qué pasa · qué hacer` y su renglón en `frenos.log` (herramienta `estructura`, detalle = ruta o texto fijo).
+  `--sin-log` solo para pruebas. **Los cuatro casos** (son scripts, no hooks): sin node, `/cierre` no commitea (lo dice la skill); ficha
+  rota → 1 con `ficha rota: …`; error interno → 1 con `candado roto: corré doctor`, **nunca 0**; sin remoto ni ficha → 0 sin trabar.
+
+**F5 · `agents.cjs`**: `generar [--raiz <dir>]`: con `multi-llm: sí` escribe `AGENTS.md` = `<!-- generado desde CLAUDE.md: no editar -->` +
+el `CLAUDE.md`; uno existente sin esa línea no se pisa (salida 1 y aviso); con `no` o sin campo, nada. Ficha por `fichaVigente`.
+
+**F6 · `/inicio` y `/cierre` del molde** (`kit/molde/skills/{inicio,cierre}/SKILL.md`), con una zona propia vacía cada una y su
+título. Las dos llaman a los scripts por ruta relativa (`node .claude/scripts/…`) y no traen datos de ningún proyecto (`candado:datos`).
+Orden del `/cierre`: cruce → `todo.cjs cierre` → `agents.cjs` → `cambios verificar` → `estructura.cjs todo` (rojo: se arregla, nunca se
+commitea encima) → `fetch` → commit **por rutas** con `frenos.log` → si un `aprobado` quedó consumido, `anotar-sha` y otro commit →
+`cambios verificar` → aviso de `push-publica` → push. Sin node o sin salida de un script: no se commitea.
+
+**F7 · `rehacer.sh`**: la carpeta hermana sale de `git rev-parse --git-common-dir` (pendiente c); `alfa` y `beta` reciben lo de D2.2 en un
+commit `molde v3 orden 2b` **sobre** el de D2.1, `settings` por `mezclarSettings` y los hashes por `hashPieza`; ese commit corre
+`estructura.cjs barreras --molde kit/molde` (caso "sí" de la exención a) y el resultado va a la tabla final.
+
 ## MODIFICA
 
 - `kit/molde/kit.ejemplo.md`: suma `hook-escritura: molde` (E §4 la tiene) y su esperado en `ficha.test.cjs`; el resto, igual. (D2.1)
