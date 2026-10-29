@@ -160,7 +160,15 @@ El detalle y cómo se prueba cada uno, en la sección "NO VERIFICADO" del spec. 
 si falla, se anota qué pasó y va a "Pendientes".
 
 **En la construcción** (los prueba la sesión del paquete):
-- [ ] Orden 2 · **Las filas 1-7 de "Lo prueba una sesión real" del SPEC-paquete-2** (pestaña nueva en `alfa`: huella, CORTADO, `docs/notas.md` frenado sin pop-up, worktree de encargo, y la 7: que con la PC cargada el hook entre en su `timeout`). Las hace D2.2 al abrir, o Guido
+- [ ] Orden 2 · **Las filas 1-7 de "Lo prueba una sesión real" del SPEC-paquete-2** — **D2.2, 2026-10-28, `claude.exe` 2.1.309 en `-p`
+  sobre clones de `alfa`**: [x] 1 (cabecera `kit 2.4.2 · hay kit nuevo: 2.4.3`, última línea `inyectado: 1.090 de 9.700`) · [x] 2 (handoff de
+  26 KB: primera línea `CORTADO: el handoff…`, huella `5.598 de 9.700`) · [x] 3 sin el pop-up (`Write` de `docs/notas.md` negado con el
+  mensaje de B §7, renglón `candado:raiz · Write · docs/notas.md` en `frenos.log`) · [x] 4 (worktree `modulo/x--01`: la ruta del encargo y la
+  cabecera de la ficha, ningún renglón del handoff) · [x] 7 a medias (6 sesiones con la suite corriendo y la CPU al ~60 %: todas con lo
+  inyectado en 6-10 s; el plazo de 10 s no llegó a actuar: el renglón `arranque lento` solo se vio forzado con `KIT_PLAZO_ARRANQUE_MS=300`).
+  **Falta, con una pestaña real (Guido)**: que en la 3 **no aparezca el pop-up**; la 6 en modo `auto`; y un dato raro: en `-p` la cabecera
+  dice `modo default (configurado)` aunque se pase `--permission-mode`, o sea que **la entrada del `SessionStart` en `-p` no trae
+  `permission_mode`**: mirá qué modo dice la cabecera en una pestaña de VS Code
 - [ ] Orden 2 · Que una escritura por script de node a `.claude/` no pregunte de día, también dentro de `.claude/worktrees/` — **E0 de D2.1,
   2026-10-28, `claude.exe` 2.1.309 en `-p`**: en `default` y `acceptEdits`, desde la raíz y desde `.claude/worktrees/w1/`, el script
   escribió y el control (`Write` directo a `.claude/`) quedó negado ("sensitive file") → **pasa; `.kit/` no hace falta**. En `auto` el
