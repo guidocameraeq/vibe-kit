@@ -1,7 +1,7 @@
 # SPEC delta: paquete 2 — documentos con tope, hook en node, candado, `cambios`, zona propia, `/inicio` y `/cierre` v3 — vibe-kit
 Cada proyecto arranca viendo un estado que no miente (con edad y huella), no puede tirar archivos sueltos en `docs/`, cierra con un
 candado que dice qué arreglar, y ningún freno se quita sin el clic de Guido.
-- Estado: READY (sellado por Guido el 2026-10-28) · **D2.1 ✅ IMPLEMENTADO 2026-10-28** (ver "Lo que cambió en la construcción") · D2.2 pendiente
+- Estado: READY (sellado por Guido el 2026-10-28) · **D2.1 ✅ IMPLEMENTADO 2026-10-28** · **D2.2 ✅ IMPLEMENTADO 2026-10-29**, sin Guido (ver "Lo que cambió en la construcción" de cada uno y "Decisiones sin Guido" en el tracker)
 - Fecha: 2026-10-28
 - Misión: 5, directores **D2.1** (este delta y la primera mitad) y **D2.2** (la segunda mitad y el revisor frío del paquete)
 - Plano: [`SPEC-0-kit-v3.md`](SPEC-0-kit-v3.md), orden 2 = **P3.3, P3.5, P3.6, P3.9, P3.10, P4.1, P4.2, P6.1, P6.8a, P5.1, P5.2**, más
@@ -587,6 +587,9 @@ el arreglo seguía trabado) → `piezas.candado` sale de la última ficha que se
 `NODE_OPTIONS`) → rojo; rf-16 BAJO (reescribir la historia local a propósito, un `reset` o un `rebase` de la rama por defecto, hace que un
 `aprobado` vuelva a servir) → escrito abajo y al orden 3 (4.4); rf-17 BAJO: **con la ficha vigente rota el candado avisa y corre con los
 frenos de fábrica** (salida según lo que encuentre), no "1 por la ficha" como decía F4: si no, el commit que la arregla no podía pasar.
+Una última verificación encontró **rf-18 ALTO** (ya pasaba antes de los arreglos): la rama vieja como **primer** padre del merge y después un
+fast-forward de `main` borraba el freno igual → **un merge se juzga contra cada uno de sus padres**, con la misma regla de descuento, en
+`barreras` y en `cambios.toca`. Verificado por el director en la reproducción del revisor.
 
 **Lo que esto no cierra (rf-5, rf-7, rf-8, rf-16; amplía r4-1 b)**: en bypass, una sesión que llega al checkout principal (la de Guido, o un obrero o
 nocturno que sale de su worktree con `cd`) puede esquivar el hook ofuscando el comando o fabricar el sello por Bash; lo ya pusheado no se

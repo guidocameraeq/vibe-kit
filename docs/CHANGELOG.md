@@ -2,6 +2,43 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-29 — Misión 5, paquete 2 ✅: zona propia, `cambios` con su sello, el candado, `/inicio` y `/cierre` del molde (D2.2, sin Guido)
+
+PC `clientes`, chat `vibe-kit M5 · D2.2 · Paquete 2, segunda mitad: candado, cambios, zona propia, /inicio y /cierre v3`, en Opus.
+**Primer director que corrió solo**, con la autorización previa de Guido: cada decisión con la recomendada, anotada en "Decisiones sin
+Guido" de la fila D2.2 del tracker (las ⚠️ arriba). 6 encargos Sonnet y 6 Opus. Sin tag: `kit/VERSION` sigue en `2.4.3`; todo vive en
+`kit/molde/` y no se instala en ningún proyecto hasta el orden 6.
+
+**Added**
+- `docs/kit-v3/SPEC-paquete-2.md`: la sección "D2.2 — el detalle" (F1-F7), dos rondas más de red team (r4-r5: 5 ALTOS integrados), "Lo que
+  cambió en la construcción (D2.2)" y "El revisor frío" con lo hecho en cada hallazgo; Estado `D2.2 ✅ IMPLEMENTADO 2026-10-29`.
+- `kit/molde/hooks/lib/zona-propia.cjs` (P3.2): zonas en textos, `hashPieza`, hermano `.propio.sh`, `settings.json` a tres puntas por regla
+  con ids normalizados, `desviosSettings`.
+- `kit/molde/hooks/lib/fabrica/ficha.{liviano,estandar}.md` y `fabrica.cjs`; `ficha.leerCabecera`.
+- `cambios` (P6.8a): `hooks/lib/cambios.cjs` y `scripts/cambios.cjs` (`nuevo`, `listar`, `verificar`, `anotar-sha`, `rechazar`, **`aprobar`**
+  con su sello y su commit), el campo nuevo **`ids:`**, y `hooks/niega-aprobar.cjs` (niega sin ventana o sin modo, pregunta con ventana).
+- El candado (P6.1): `scripts/estructura.cjs`, `hooks/lib/candado.cjs` (nueve chequeos) y `hooks/lib/barreras.cjs` (rango, ids, un
+  `aprobado` = un commit, las dos exenciones, merges juzgados contra cada padre).
+- `scripts/agents.cjs` (P3.10), `skills/inicio` y `skills/cierre` del molde (P5.1, P5.2) con su zona propia, y `pruebas/pedidos.md`.
+
+**Changed**
+- `kit/molde/settings.json`: la `ask` de `aprobar`, el `allow` del script, el `deny` de `Write`/`Edit` sobre `.claude/cambios/**` y el hook nuevo.
+- `pruebas/rehacer.sh`: carpeta hermana desde el checkout principal; `molde v3 orden 2` sale del molde de D2.1 y `molde v3 orden 2b` suma
+  lo de D2.2 (en `alfa` y `beta`: `barreras --molde` 0, sin `--molde` 1, `todo` 0); dos corridas y desde un worktree, mismos SHAs.
+- SPEC-0: los ✅ de 3.2, 3.10, 5.1 (con salvedad), 5.2, 6.1 y 6.8a, y la nota a 4.6. Notas en los diseños B §6 (la pregunta de tamaño estaba
+  al revés de su regla), D §22ter y E §5.
+- Tracker: fila D2.2, "Decisiones sin Guido", pendientes para los paquetes 3, 4 y 6, lo que espera a Guido, criterios y lecciones.
+
+**Verificado**
+- Suite **821 verde** (`node --test "kit/**/*.test.cjs"`, ~18 min). Mutación por encargo, vivos equivalentes y explicados; control del director 6/6.
+- `claude.exe -p` 2.1.309: las filas 1-4 y 7 de "Lo prueba una sesión real"; el `settings` con `onFailure` carga, `PreToolUse` trae
+  `permission_mode`, `'aprobar'` entre comillas no corre en `default`, `dontAsk` lo niega, `Write` a `cambios/` negado. **Bypass no se pudo
+  lanzar** (lo frenó el clasificador).
+- El caso "sí" de 6.8a, a mano en un clon de `alfa`: propuesto → aprobado → aplicado, con el id no declarado y el segundo uso en rojo.
+- El revisor frío (tres vueltas, 6 ALTOS: `pull` con merge o `--rebase` desde la otra PC, `merge --no-ff`, la base del rango sin remoto, y
+  dos formas de borrar un freno con un merge) quedó integrado.
+- **Los diez pedidos dieron 6 de 10**: los "módulo solo" invocan al Arquitecto sin decir antes la línea del tamaño (pendiente al orden 4).
+
 ## 2026-10-29 — Misión 5, sesión intermedia DP: no se paraleliza; el director no corta por contexto
 
 PC `clientes`, chat `vibe-kit M5 · DP · Planear la paralelización de lo que queda`, en Opus. Sin encargos ni código.
