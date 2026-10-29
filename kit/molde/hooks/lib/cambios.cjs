@@ -410,9 +410,13 @@ function todosLosIds(datos) {
   for (const k of Object.keys(fr)) if (k !== 'quitados' && k !== 'opcionales') ids.push(`frenos:${k}`);
   for (const k of Object.keys(datos && esMapa(datos.sensible) ? datos.sensible : {})) ids.push(`sensible:${k}`);
   for (const k of Object.keys(datos && esMapa(datos.autorizado) ? datos.autorizado : {})) ids.push(`autorizado:${k}`);
+  for (const k of ['secretos', 'publicas']) for (const x of nombresDe(datos, k)) ids.push(`${k}:${x}`);
+  if (tiene(datos, 'datos-de-prueba')) ids.push('datos-de-prueba');
   ids.push('nivel', ...PIEZAS_FRENO.map((p) => `pieza:${p}`));
   return ids;
 }
+// Los nombres de secretos: o publicas: (D-3): la lista de textos, o [] si no está o no es lista (eso lo dice ficha.cjs).
+const nombresDe = (datos, k) => [...new Set(datos && Array.isArray(datos[k]) ? datos[k].filter(esTexto) : [])];
 
 // Un par categoría·id en un texto (la clave de los conjuntos que se intersecan en un merge; rf-3): el mismo id puede ser de dos
 // categorías (`deny:X` en frenos.quitados es frenos, en el settings es settings), así que se cruzan los pares, no los ids sueltos.
@@ -433,6 +437,7 @@ const TRES_FICHA = ['frenos', 'sensible', 'autorizado'];
 
 // idsFicha(antes, después) → { categorias, ids, pares }. Cuentan los frenos, sensible y autorizado que cambian, y nivel y las dos
 // piezas SOLO cuando aflojan (r5-3): la pieza pasa de algo distinto de `no` a `no` o a no estar; el nivel, de estandar a otro.
+// Igual, en frenos, secretos:<NOMBRE>, publicas:<NOMBRE> y datos-de-prueba (D-3), y van en el `ids:` de un 3-barrera con toca frenos.
 // pares: cada id con su categoría (lo que no se lee, o la ficha borrada, cuenta en las tres).
 function idsFicha(antesB, despuesB) {
   const a = ladoFicha(antesB);
@@ -473,6 +478,14 @@ function idsFicha(antesB, despuesB) {
       if (ea !== null && ea !== 'no' && (ed === null || ed === 'no')) pares.add(par('frenos', `pieza:${p}`));
     }
   }
+  // D-3: secretos:, publicas: y datos-de-prueba:, en frenos y SOLO cuando aflojan: sacar un nombre de secretos: (el corrector deja
+  // de cuidarlo), sumar uno a publicas: (deja de frenarlo) o cambiar datos-de-prueba: (otra lista de lo que se deja pasar; ponerlo
+  // donde no estaba también). Sumar a secretos:, sacar de publicas: o sacar datos-de-prueba: aprieta y no cuenta.
+  const secretosD = new Set(nombresDe(D, 'secretos'));
+  for (const x of nombresDe(A, 'secretos')) if (!secretosD.has(x)) pares.add(par('frenos', `secretos:${x}`));
+  const publicasA = new Set(nombresDe(A, 'publicas'));
+  for (const x of nombresDe(D, 'publicas')) if (!publicasA.has(x)) pares.add(par('frenos', `publicas:${x}`));
+  if (tiene(D, 'datos-de-prueba') && canon(A['datos-de-prueba']) !== canon(D['datos-de-prueba'])) pares.add(par('frenos', 'datos-de-prueba'));
   // sensible y autorizado, por clave
   for (const cat of ['sensible', 'autorizado']) {
     const ma = esMapa(A[cat]) ? A[cat] : {};

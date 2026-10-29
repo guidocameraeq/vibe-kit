@@ -998,3 +998,240 @@ test('rf-18: el merge legítimo de rf-3 con la rama como primer padre (al revés
   assert.deepEqual(C.toca(d, m), { categorias: [], ids: [] });
   assert.equal(cli(d, 'anotar-sha', id, x).codigo, 0);
 });
+
+// ---------------------------------------------------------------- P4.6: --indice (el pre-commit) y --rango (el pre-push)
+
+const IDX = { indice: true };
+const RG = (d, desde, hasta) => ({ rango: B.resolverRango(d, { desde, hasta }) });
+
+test('indice (rf-10): un freno quitado en el disco sin git add → verde (a secas, rojo); con git add → rojo, como "este commit"', () => {
+  const d = repo();
+  escribir(d, '.claude/kit.md', FICHA({ quitados: [STASH] }));
+  escribir(d, '.claude/hooks/nuevo.cjs', 'x\n'); // nuevo, sin seguir: tampoco va en el commit
+  verde(d, IDX);
+  rojo(d); // barreras a secas sigue mirando el disco
+  g(d, 'add', '.claude/kit.md');
+  const f = rojo(d, /lo que lleva este commit \(el índice\) toca frenos \(deny:Bash\(git stash:\*\)\) sin un aprobado/, IDX);
+  assert.deepEqual(f.map((x) => x.commit), [B.INDICE]);
+  assert.match(f[0].hacer, /git restore --staged/);
+  // el disco vuelve atrás y el índice no: manda el índice
+  escribir(d, '.claude/kit.md', FICHA());
+  rojo(d, /git stash/, IDX);
+  // y al revés: el índice limpio, el disco sucio → verde
+  g(d, 'restore', '--staged', '.claude/kit.md');
+  escribir(d, '.claude/kit.md', FICHA({ quitados: [STASH] }));
+  verde(d, IDX);
+});
+
+test('indice: con su aprobado sellado → verde; un commit viejo de la sesión que quitó un freno no cuenta (eso es del pre-push)', () => {
+  const d = repo();
+  aprobado(d);
+  poner(d, { '.claude/kit.md': FICHA({ quitados: [STASH] }) });
+  verde(d, IDX);
+  const e = repo();
+  quitarStash(e);
+  rojo(e); // la sesión lo ve
+  verde(e, IDX); // el índice está limpio
+  poner(e, { '.claude/hooks/x.cjs': 'x\n' });
+  rojo(e, /hooks:\.claude\/hooks\/x\.cjs/, IDX);
+});
+
+test('indice: en un merge en curso (MERGE_HEAD) se juzga contra cada padre: lo que trajo la rama no cuenta; lo que agrega el merge, sí', () => {
+  const d = repo();
+  g(d, 'checkout', '-q', '-b', 'modulo/x');
+  quitarStash(d); // sin aprobado: lo frena el pre-push de la rama, no el merge
+  g(d, 'checkout', '-q', 'main');
+  commit(d, { 'b.txt': 'b\n' }, 'main avanza');
+  g(d, 'merge', '-q', '--no-ff', '--no-commit', 'modulo/x');
+  assert.equal(B.mergeHeads(d).length, 1);
+  verde(d, IDX);
+  escribir(d, '.claude/kit.md', FICHA({ quitados: [STASH, OTRO] })); // el merge suma uno que nadie trajo
+  g(d, 'add', '.claude/kit.md');
+  const f = rojo(d, /git clean/, IDX);
+  assert.doesNotMatch(f[0].que, /git stash/);
+  g(d, 'merge', '--abort');
+  assert.deepEqual(B.mergeHeads(d), []);
+});
+
+test('indice con --molde: la exención (a) lee los frenos quitados de la ficha del índice', () => {
+  const molde = JSON.parse(fs.readFileSync(path.join(MOLDE, 'settings.json'), 'utf8'));
+  const [X, Y] = molde.permissions.deny;
+  const sin = (...fuera) => {
+    const v = JSON.parse(JSON.stringify(molde));
+    v.permissions.deny = v.permissions.deny.filter((x) => !fuera.includes(x));
+    return zona.textoSettings(v);
+  };
+  const d = repo({ ficha: FICHA({ quitados: [`{id: deny:${X}, por: "lo pidió", hasta: siempre}`] }), archivos: { '.claude/settings.json': sin(X, Y) } });
+  poner(d, { '.claude/settings.json': sin(X) }); // el actualizador trae Y y respeta el quitado X
+  verde(d, { indice: true, molde: MOLDE });
+  rojo(d, /settings/, { indice: true }); // sin --molde no hay exención
+});
+
+test('rango (rf-7): cada commit de a..b; uno malo en el medio → rojo solo ese; vacío → verde; ni lo pendiente ni lo de esta PC', () => {
+  const d = repo();
+  const base = g(d, 'rev-parse', 'HEAD');
+  const c1 = commit(d, { 'b.txt': 'b\n' });
+  const malo = quitarStash(d);
+  const c3 = commit(d, { 'c.txt': 'c\n' });
+  const f = rojo(d, /sin un aprobado sellado/, RG(d, base, c3));
+  assert.deepEqual(f.map((x) => x.commit), [malo]);
+  assert.match(f[0].que, new RegExp(`el commit ${malo.slice(0, 12)} toca frenos`));
+  verde(d, RG(d, malo, c3)); // el malo queda afuera
+  verde(d, RG(d, c3, c1)); // vacío: c1 ya está en c3
+  verde(d, RG(d, c3, c3));
+  rojo(d, null, RG(d, c1, malo));
+  // lo pendiente y lo de esta PC no son del push
+  escribir(d, '.claude/hooks/y.cjs', 'y\n');
+  escribir(d, '.claude/settings.local.json', '{"disableAllHooks": true}\n');
+  fs.appendFileSync(path.join(d, '.git', 'info', 'exclude'), '/.claude/settings.local.json\n');
+  verde(d, RG(d, malo, c3));
+  // el rango de otra rama que HEAD
+  g(d, 'checkout', '-q', '-b', 'otra', c1);
+  const o = commit(d, { '.claude/hooks/z.cjs': 'z\n' });
+  g(d, 'checkout', '-q', 'main');
+  assert.deepEqual(rojo(d, /hooks:\.claude\/hooks\/z\.cjs/, RG(d, c1, 'otra')).map((x) => x.commit), [o]);
+});
+
+test('rango: el aprobado cubre el primer commit tras su sello, también en el push; un extremo que no existe → error', () => {
+  const d = repo();
+  const base = g(d, 'rev-parse', 'HEAD');
+  aprobado(d);
+  quitarStash(d);
+  const fin = commit(d, { 'b.txt': 'b\n' });
+  verde(d, RG(d, base, fin));
+  assert.match(B.resolverRango(d, { desde: 'no-existe', hasta: 'HEAD' }).error, /--rango: no-existe no es un commit de este repo/);
+  assert.match(B.resolverRango(d, { desde: 'HEAD', hasta: 'tampoco' }).error, /tampoco no es un commit/);
+  assert.throws(() => B.revisarBarreras(d, { indice: true, rango: RG(d, base, fin).rango }), /no van juntos/);
+});
+
+test('rango: la ficha solo en los commits del push (no en el disco, el índice, HEAD ni la ref vigente) igual prende el candado', () => {
+  const d = repo({ remoto: false, ficha: false });
+  const base = g(d, 'rev-parse', 'HEAD');
+  g(d, 'checkout', '-q', '-b', 'otra');
+  const x = commit(d, { '.claude/kit.md': FICHA() });
+  const y = commit(d, { '.claude/kit.md': null });
+  g(d, 'checkout', '-q', 'main');
+  assert.equal(B.fichaEnAlgunLado(d), false);
+  assert.equal(B.fichaEnAlgunLado(d, { rango: { desde: x, hasta: y } }), true, 'el padre del commit del push la tiene');
+  assert.equal(B.fichaEnAlgunLado(d, { rango: { desde: base, hasta: x } }), true, 'el commit del push la tiene');
+});
+
+test('rango de otra rama cuya ficha vive solo en ella: sus commits posteriores a la ficha se juzgan (no quedan "antes del kit")', () => {
+  const d = repo({ remoto: false, ficha: false });
+  const base = g(d, 'rev-parse', 'HEAD');
+  g(d, 'checkout', '-q', '-b', 'otra');
+  commit(d, { '.claude/kit.md': FICHA() });
+  const malo = commit(d, { '.claude/hooks/x.cjs': 'x\n' });
+  g(d, 'checkout', '-q', 'main');
+  assert.ok(rojo(d, null, RG(d, base, 'otra')).some((x) => x.commit === malo));
+});
+
+// ---------------------------------------------------------------- D-3: secretos:, publicas:, datos-de-prueba: (en frenos, cuando aflojan)
+
+const FICHA_D3 = (o = {}) =>
+  FICHA().replace(
+    /---\n$/,
+    `${o.secretos === undefined ? 'secretos: [DB_URL, HUB_TOKEN]\n' : o.secretos}${o.publicas === undefined ? 'publicas: [SUPABASE_ANON_KEY]\n' : o.publicas}${
+      o.prueba === undefined ? 'datos-de-prueba: docs/referencia/PRUEBA.md\n' : o.prueba
+    }---\n`,
+  );
+
+test('D-3: sacar un nombre de secretos:, sumar uno a publicas: o cambiar datos-de-prueba: → rojo sin aprobado; al revés → verde', () => {
+  const casos = [
+    { afloja: { secretos: 'secretos: [HUB_TOKEN]\n' }, aprieta: { secretos: 'secretos: [DB_URL, HUB_TOKEN, OTRO_TOKEN]\n' }, id: 'secretos:DB_URL' },
+    { afloja: { publicas: 'publicas: [SUPABASE_ANON_KEY, DB_URL]\n' }, aprieta: { publicas: 'publicas: []\n' }, id: 'publicas:DB_URL' },
+    { afloja: { prueba: 'datos-de-prueba: docs/referencia/OTRO.md\n' }, aprieta: { prueba: '' }, id: 'datos-de-prueba' },
+  ];
+  for (const c of casos) {
+    const d = repo({ ficha: FICHA_D3() });
+    escribir(d, '.claude/kit.md', FICHA_D3(c.afloja));
+    const f = rojo(d, /sin un aprobado sellado/);
+    assert.ok(f[0].que.includes(`toca frenos (${c.id})`), `${c.id}: ${f[0].que}`);
+    escribir(d, '.claude/kit.md', FICHA_D3(c.aprieta));
+    verde(d);
+    // con su aprobado (toca frenos, el id en ids:) → verde; con el aprobado de otro id, rojo
+    const e = repo({ ficha: FICHA_D3() });
+    aprobado(e, { toca: 'frenos', ids: [c.id] });
+    commit(e, { '.claude/kit.md': FICHA_D3(c.afloja) });
+    verde(e);
+    const h = repo({ ficha: FICHA_D3() });
+    aprobado(h, { toca: 'frenos', ids: ['secretos:HUB_TOKEN'] });
+    commit(h, { '.claude/kit.md': FICHA_D3(c.afloja) });
+    rojo(h, /no nombran/);
+  }
+  // datos-de-prueba: ponerlo donde no estaba también afloja
+  const d = repo({ ficha: FICHA_D3({ prueba: '' }) });
+  escribir(d, '.claude/kit.md', FICHA_D3());
+  rojo(d, /\(datos-de-prueba\)/);
+});
+
+// ---------------------------------------------------------------- P4.6: la ref nueva del pre-push y D-3 en los githooks
+
+const CEROS = '0'.repeat(40);
+
+test('rango con ref nueva (el sha de ceros del pre-push): solo lo que ningún remoto tiene; lo ya subido no cuenta', () => {
+  const d = repo();
+  quitarStash(d); // sin aprobado, pero ya está en origin: no es de este push
+  push(d);
+  g(d, 'checkout', '-q', '-b', 'nueva');
+  const bueno = commit(d, { 'b.txt': 'b\n' });
+  const r = B.resolverRango(d, { desde: CEROS, hasta: 'nueva' });
+  assert.deepEqual(r, { desde: null, hasta: bueno });
+  assert.deepEqual(B.commitsDelRango(d, r), [bueno]);
+  verde(d, { rango: r });
+  const malo = commit(d, { '.claude/hooks/x.cjs': 'x\n' });
+  const f = rojo(d, /hooks:\.claude\/hooks\/x\.cjs/, { rango: B.resolverRango(d, { desde: CEROS, hasta: 'nueva' }) });
+  assert.deepEqual(f.map((x) => x.commit), [malo]);
+  // sha256: 64 ceros también; 39 ceros no es el de la ref nueva (y no es un commit) → error
+  assert.deepEqual(B.resolverRango(d, { desde: '0'.repeat(64), hasta: 'nueva' }), { desde: null, hasta: malo });
+  assert.match(B.resolverRango(d, { desde: '0'.repeat(39), hasta: 'nueva' }).error, /no es un commit/);
+  // borrar una ref (hasta = ceros) no es un rango que se juzgue: error
+  assert.match(B.resolverRango(d, { desde: CEROS, hasta: CEROS }).error, /no es un commit/);
+  assert.match(B.resolverRango(d, { desde: 'HEAD', hasta: CEROS }).error, /no es un commit/);
+});
+
+test('rango con ref nueva sin ningún remoto (el primer push del repo): todo menos el primer commit, que no tenía un antes', () => {
+  const d = repo({ remoto: false, archivos: { '.claude/hooks/x.cjs': 'x\n', '.claude/settings.json': '{}\n' } });
+  const raiz = g(d, 'rev-parse', 'HEAD');
+  const r = () => B.resolverRango(d, { desde: CEROS, hasta: 'HEAD' });
+  assert.deepEqual(B.commitsDelRango(d, r()), [raiz]);
+  verde(d, { rango: r() }); // el recién montado no nace trabado (r4-5)
+  const malo = quitarStash(d);
+  assert.deepEqual(rojo(d, /git stash/, { rango: r() }).map((x) => x.commit), [malo]);
+  // una rama huérfana con un freno quitado sube (no hay antes), pero al mergearla se juzga contra main
+  g(d, 'checkout', '-q', '--orphan', 'huerfana');
+  const h = commit(d, { '.claude/kit.md': FICHA({ quitados: [OTRO] }) });
+  verde(d, { rango: B.resolverRango(d, { desde: CEROS, hasta: h }) });
+  g(d, 'checkout', '-q', 'main');
+  g(d, 'merge', '-q', '--no-ff', '--no-commit', '--allow-unrelated-histories', '-X', 'theirs', 'huerfana');
+  rojo(d, /git clean/, IDX);
+  g(d, 'merge', '--abort');
+});
+
+test('D-3 en los githooks: sacar un nombre de secretos: en el índice → rojo con --indice (en el disco solo, verde); sumarlo → verde; en el push, igual', () => {
+  const d = repo({ ficha: FICHA_D3() });
+  const base = g(d, 'rev-parse', 'HEAD');
+  escribir(d, '.claude/kit.md', FICHA_D3({ secretos: 'secretos: [HUB_TOKEN]\n' }));
+  verde(d, IDX);
+  g(d, 'add', '.claude/kit.md');
+  rojo(d, /toca frenos \(secretos:DB_URL\)/, IDX);
+  poner(d, { '.claude/kit.md': FICHA_D3({ secretos: 'secretos: [DB_URL, HUB_TOKEN, OTRO_TOKEN]\n', publicas: 'publicas: []\n' }) });
+  verde(d, IDX);
+  const aprieta = commit(d, {});
+  const afloja = commit(d, { '.claude/kit.md': FICHA_D3({ publicas: 'publicas: [SUPABASE_ANON_KEY, HUB_TOKEN]\n' }) });
+  const f = rojo(d, /publicas:HUB_TOKEN/, RG(d, base, afloja));
+  assert.deepEqual(f.map((x) => x.commit), [afloja]);
+  verde(d, RG(d, base, aprieta));
+});
+
+test('indice antes del primer commit: no se juzga (no hay antes ni aprobado posible; r4-5); a secas, lo pendiente sí', () => {
+  const d = path.join(TMP, `r${n++}`);
+  fs.mkdirSync(d, { recursive: true });
+  g(d, 'init', '-q', '-b', 'main');
+  poner(d, { '.claude/kit.md': FICHA({ quitados: [STASH] }), '.claude/hooks/x.cjs': 'x\n' });
+  verde(d, IDX);
+  rojo(d);
+  g(d, 'commit', '-q', '-m', 'base');
+  poner(d, { '.claude/hooks/x.cjs': 'y\n' });
+  rojo(d, /hooks:\.claude\/hooks\/x\.cjs/, IDX); // desde el segundo, sí
+});

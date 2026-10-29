@@ -101,6 +101,90 @@ test('mal llamado → 2 con el uso: id desconocido, bandera desconocida, todo co
   }
 });
 
+// ---------------------------------------------------------------- --indice y --rango (P4.6)
+
+test('argumentos: --indice y --rango <a>..<b> solo con barreras (con o sin candado:, con --molde y --sin-log)', () => {
+  assert.deepEqual(script.leerArgumentos(['barreras', '--indice']), { modo: 'ids', ids: ['barreras'], molde: null, log: true, indice: true });
+  assert.deepEqual(script.leerArgumentos(['--rango', 'origin/main..HEAD', 'candado:barreras', '--sin-log', '--molde', 'm']), {
+    modo: 'ids',
+    ids: ['barreras'],
+    molde: 'm',
+    log: false,
+    rango: { desde: 'origin/main', hasta: 'HEAD' },
+  });
+  assert.deepEqual(script.partirRango('a..b'), { desde: 'a', hasta: 'b' });
+  for (const malo of ['a...b', '..b', 'a..', 'a', 'a..b..c', '-x..b', 'a..-b', 'a b..c', '']) assert.equal(script.partirRango(malo), null, malo);
+});
+
+test('mal llamado → 2: --indice o --rango con otro chequeo, con todo/parcial o sin chequeo, los dos juntos, repetidos o --rango sin forma', () => {
+  const d = repo();
+  const casos = [
+    ['--indice'],
+    ['todo', '--indice'],
+    ['parcial', '--indice'],
+    ['raiz', '--indice'],
+    ['barreras', 'raiz', '--indice'],
+    ['barreras', 'candado:topes', '--rango', 'HEAD..HEAD'],
+    ['--rango', 'HEAD..HEAD'],
+    ['barreras', '--indice', '--rango', 'HEAD..HEAD'],
+    ['barreras', '--indice', '--indice'],
+    ['barreras', '--rango', 'HEAD..HEAD', '--rango', 'HEAD..HEAD'],
+    ['barreras', '--rango'],
+    ['barreras', '--rango', 'HEAD...HEAD'],
+    ['barreras', '--rango', 'HEAD'],
+    ['barreras', '--rango', '..HEAD'],
+  ];
+  for (const args of casos) {
+    const r = cli(d, args);
+    assert.equal(r.codigo, 2, JSON.stringify(args));
+    assert.match(r.err, /Uso: node \.claude\/scripts\/estructura\.cjs/);
+    assert.equal(r.out, '');
+  }
+});
+
+test('--rango con un extremo que no es un commit del repo → 2 con el motivo claro (sin tocar frenos.log)', () => {
+  const d = repo();
+  for (const [rango, re] of [['no-existe..HEAD', /--rango: no-existe no es un commit de este repo/], ['HEAD..tampoco', /--rango: tampoco no es un commit de este repo/]]) {
+    const r = cli(d, ['barreras', '--rango', rango]);
+    assert.equal(r.codigo, 2, rango);
+    assert.match(r.err, re);
+    assert.equal(r.out, '');
+  }
+  assert.equal(fs.existsSync(path.join(d, '.claude', 'frenos.log')), false);
+});
+
+test('--indice: un hook cambiado en el disco sin git add → 0; con git add → 1 con "lo que lleva este commit (el índice)"', () => {
+  const d = repo({ '.claude/hooks/x.cjs': 'x\n' });
+  escribir(d, '.claude/hooks/x.cjs', 'otro\n');
+  const v = cli(d, ['barreras', '--indice', '--sin-log']);
+  assert.equal(v.codigo, 0, v.out);
+  assert.equal(v.out, 'candado: en verde (barreras) · solo el índice\n');
+  assert.equal(cli(d, ['barreras', '--sin-log']).codigo, 1, 'a secas sigue mirando el disco');
+  g(d, 'add', '.claude/hooks/x.cjs');
+  const r = cli(d, ['candado:barreras', '--indice']);
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, /^candado:barreras · lo que lleva este commit \(el índice\) toca hooks \(hooks:\.claude\/hooks\/x\.cjs\) sin un aprobado/);
+  assert.match(fs.readFileSync(path.join(d, '.claude', 'frenos.log'), 'utf8'), / · candado:barreras · estructura · \.claude\/hooks\/x\.cjs\n$/);
+});
+
+test('--rango: un commit malo en el medio → 1; sin él o vacío → 0', () => {
+  const d = repo();
+  const base = g(d, 'rev-parse', 'HEAD');
+  commit(d, { 'b.txt': 'b\n' });
+  commit(d, { '.claude/settings.json': '{"permissions": {"allow": ["Bash(*)"]}}\n' });
+  const malo = g(d, 'rev-parse', 'HEAD');
+  commit(d, { 'c.txt': 'c\n' });
+  const r = cli(d, ['barreras', '--rango', `${base}..HEAD`, '--sin-log']);
+  assert.equal(r.codigo, 1, r.out);
+  assert.equal(r.out.trim().split('\n').length, 1);
+  assert.match(r.out, new RegExp(`^candado:barreras · el commit ${malo.slice(0, 12)} toca settings \\(allow:Bash\\(\\*\\)\\)`));
+  const v = cli(d, ['barreras', '--rango', `${malo}..HEAD`, '--sin-log']);
+  assert.equal(v.codigo, 0, v.out);
+  assert.match(v.out, /^candado: en verde \(barreras\) · el rango [0-9a-f]{12}\.\.[0-9a-f]{12}\n$/);
+  assert.equal(cli(d, ['barreras', '--rango', 'HEAD..HEAD', '--sin-log']).codigo, 0);
+  assert.equal(cli(d, ['barreras', '--rango', `HEAD..${base}`, '--sin-log']).codigo, 0);
+});
+
 // ---------------------------------------------------------------- salidas
 
 test('0 en verde con una línea; 1 con una línea "candado:<id> · qué pasa · qué hacer" por falla y su renglón en frenos.log', () => {
@@ -226,4 +310,30 @@ test('el script instanciado corre igual que en el molde: barreras en rojo da 1 y
   const o = cli(d, ['barreras', '--sin-log']);
   assert.equal(o.codigo, 1);
   assert.match(o.out, /^candado:barreras · lo que está por commitearse toca hooks \(hooks:\.claude\/scripts\/estructura\.cjs\)/);
+});
+
+test('rf-7: un commit hecho con --no-verify (el pre-commit no corrió) no sube: --rango da 1; con la ref nueva (ceros), también', () => {
+  const d = repo();
+  const base = g(d, 'rev-parse', 'HEAD');
+  // un pre-commit que traba todo: --no-verify lo saltea y el commit entra igual
+  escribir(d, 'ganchos/pre-commit', '#!/bin/sh\nexit 1\n');
+  g(d, 'config', 'core.hooksPath', 'ganchos');
+  escribir(d, '.claude/hooks/x.cjs', 'x\n');
+  g(d, 'add', '.claude/hooks/x.cjs');
+  assert.throws(() => g(d, 'commit', '-q', '-m', 'con el gancho'));
+  g(d, 'commit', '-q', '--no-verify', '-m', 'sin el gancho');
+  const malo = g(d, 'rev-parse', 'HEAD');
+  assert.equal(cli(d, ['barreras', '--indice', '--sin-log']).codigo, 0, 'el índice ya está limpio: el pre-commit no lo ve');
+  const r = cli(d, ['barreras', '--rango', `${base}..${malo}`, '--sin-log']);
+  assert.equal(r.codigo, 1, r.out);
+  assert.match(r.out, new RegExp(`^candado:barreras · el commit ${malo.slice(0, 12)} toca hooks`));
+  const n = cli(d, ['barreras', '--rango', `${'0'.repeat(40)}..${malo}`, '--sin-log']);
+  assert.equal(n.codigo, 1, n.out);
+  assert.match(n.out, new RegExp(`el commit ${malo.slice(0, 12)} toca hooks`));
+  const v = cli(d, ['barreras', '--rango', `${'0'.repeat(40)}..${base}`, '--sin-log']);
+  assert.equal(v.codigo, 0, v.out);
+  assert.match(v.out, /^candado: en verde \(barreras\) · el rango nuevo \.\.[0-9a-f]{12}\n$/);
+  const z = cli(d, ['barreras', '--rango', `HEAD..${'0'.repeat(40)}`]);
+  assert.equal(z.codigo, 2);
+  assert.match(z.err, /no es un commit de este repo/);
 });
