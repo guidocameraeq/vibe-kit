@@ -15,17 +15,11 @@
   permisos, revisor frío. **Piloto en Deptos**, un mes, medición contra TABLERO §1; su lista NO VERIFICADO y "Lo que hacés vos de nuevo" están
   en el spec. La primera sesión abre con la línea de la sección "Ejecución". **Por dónde vamos: `docs/kit-v3/PLAN-construccion.md`** (el tracker: no
   se repite acá; este ítem sale cuando el tracker diga ✅ el paquete 10).
-- [ ] **Juntar los chats de todas las PCs en el privado — ⏰ antes del 2026-11-20** (Claude Code borra los chats de más de 30 días). Todo el
-  historial de chats del trabajo sobre vibe-kit va al repo privado **`guidocameraeq/vibe-research`, carpeta `chats/`**, condensado (secretos
-  tapados), nunca a este repo (es público). **El protocolo**: `vibe-research/chats/LEEME.md`. **Lo que falta y cómo buscarlo**:
-  `vibe-research/chats/FALTAN.md` (los racimos A, C y E de la misión 4, el resto de los chats de `Usuario` y lo que se trabaje allá desde el
-  2026-10-29). Ya están los de `clientes` (22, hasta D3.1) y los racimos B, D, F, G, H de `Usuario`. *Es temporal*: cuando la misión 6
-  los haya leído, este ítem y `FALTAN.md` se borran (pedido de Guido, 2026-10-29).
 - [ ] **Misión 6 — escribir el ciclo de mejora del método** (al terminar la misión 5, con todo fresco; antes de la mensajería, porque es lo que
   más se evapora). Juntar en un documento reusable y genérico de vibe-kit lo que hoy está repartido (ADR-021, SPEC-investigacion-chats,
   observatorio/investigacion/METODO.md, docs/mision-4/PLAN.md):
   - **revisar cómo trabajamos de verdad en estas sesiones** (pedido de Guido, 2026-10-26): leer los chats de las misiones 1-5 en
-    `vibe-research/chats/` (ver el ítem de arriba, "Juntar los chats"), cómo fue cada sesión y cuánto costó cada racimo;
+    `vibe-research/chats/` (completo hasta el 2026-10-29, las tres PCs; desde ahí los sube el `/cierre`), cómo fue cada sesión y cuánto costó cada racimo;
   - cuándo arranca una vuelta y cada cuánto (el disparador: 3-4 meses, y recién con la versión nueva un mes andando en el piloto);
   - los 5 pasos: investigar → ordenar la casa → diseñar con Guido → construir con piloto → medir;
   - qué sale de cada paso y cuánto costó; los registros de cambios de método de los proyectos como fuente, además de los chats;
