@@ -168,6 +168,11 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
   la versión de `origin/<rama por defecto>`**, no la del disco (r4-3: un candado editado y corrido en el mismo commit se aprueba solo); (c)
   `niega-aprobar.cjs` en `bypassPermissions` **no se probó con `claude.exe`**: el clasificador del modo `auto` frenó lanzar una sesión en bypass
   ("Create Unsafe Agents") y F3 lo probó con `dontAsk`, que va por el mismo camino; en bypass lo cubren las pruebas.
+- **Paquete 4 · de D2.2: los diez pedidos de P5.1 dieron 6 de 10** (`claude.exe -p` 2.1.309, `--permission-mode plan`, dos corridas por
+  pedido, mismo veredicto). Los 4 chicos y los 2 con director, bien; **los 4 "módulo solo" invocan `/arquitecto` (la conducta correcta) pero
+  sin escribir antes la línea del tamaño**, aunque la skill lo pide "antes de cualquier herramienta"; y los chicos la dicen al final, no al
+  principio. *Arreglo propuesto para el orden 4*: que el Arquitecto v3 abra diciendo "esto es más que chico: …" como primera línea (es el
+  que siempre llega). Evidencia: `pedidos/v2/` del scratchpad de D2.2 (no se guarda). El criterio 2 del kit queda sin tildar.
 - **Paquete 6 · de D2.2 (F4)**: la exención (a) de `barreras` da rojo con una regla de `settings` que el molde nuevo retira, porque sin el
   molde viejo no la distingue de una propia: el actualizador tiene que pasarle también el molde viejo. Y la correspondencia de
   `.githooks/**` y gitleaks con el molde es provisoria (el molde todavía no los trae; orden 3).
@@ -273,6 +278,15 @@ Del spec, sección "Lo que hacés vos de nuevo". Acá solo cuándo toca, para qu
 | 2026-10-28 | **Un director Opus por paquete con subagentes** en vez de una sesión por paso: de ~18-21 sesiones a 13 directores; los encargos mecánicos vuelven a Sonnet | ADR-028: propuesta de Guido (un orquestador para todo el spec), acotada a uno por paquete |
 
 ## Lecciones (insumo de la misión 6)
+
+- 2026-10-29 · **D2.2: las pruebas de skills con `claude -p` desde Git Bash mienten si el prompt empieza con `/`**: MSYS convierte
+  `"/inicio …"` en `C:/Program Files/Git/inicio …` y la sesión nunca recibe la skill. La mitad de la primera vuelta de los diez pedidos
+  salió así. Se corre con `MSYS_NO_PATHCONV=1`, y el informe mira el primer mensaje del transcript, no solo la respuesta.
+- 2026-10-29 · **D2.2: el revisor frío encontró lo que el red team no podía ver**: el red team juzgó el texto (dos rondas, 5 ALTOS); el revisor
+  armó repos y siguió el camino legítimo con dos PCs (`pull` con merge, con `--rebase`, `integrar`), y ahí aparecieron 4 ALTOS que traban a
+  Guido, no a un atacante. Para lo que frena: el revisor tiene que recorrer el día normal, no solo los ataques.
+- 2026-10-29 · **D2.2 corrió sin Guido de punta a punta**: 9 encargos, red team, revisor frío y sus arreglos, con las decisiones en su lista.
+  Lo que no se pudo cerrar sin una persona (la ventana de `aprobar`, el pop-up, el modo `auto`, bypass con `claude.exe`) quedó en Pendientes.
 
 - 2026-10-29 · **DP: paralelizar directores depende del hardware, no solo del grafo.** El grafo daba tres lugares; lo que lo hacía barato
   era una PC por director. En una sola PC aparecen las pruebas que se pisan, los repos de prueba compartidos y los frenos globales de un

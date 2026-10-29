@@ -561,6 +561,31 @@ E1 y E2 en paralelo (no comparten archivos), cada uno en su worktree; el resto e
   `aprobado`: rojo; `verificar` pide `anotar-sha` con el comando listo; después, `verificar` y `todo` verdes. **La ventana de permiso en una
   pestaña real queda para Guido.**
 
+## El revisor frío (Opus, sin contexto, sobre `cf21f40^..HEAD`; 2026-10-29)
+
+4 ALTO · 5 MEDIO · 3 BAJO, los ALTOS reproducidos en repos de prueba. Lo que se hizo con cada uno:
+
+| Id | Qué encontró | Qué se hizo |
+|---|---|---|
+| rf-1 ALTO | Un `git pull` con merge en la otra PC deja el sello fuera del primer padre: sello legítimo roto, sin salida | `/inicio` y `/cierre` traen el remoto con `pull --rebase`; `rechazar` acepta un `aplicado` (solo quita cobertura). La regla `--first-parent` queda |
+| rf-2 ALTO | Con `pull --rebase` el `sha` anotado queda viejo y `anotar-sha` se negaba | `anotar-sha` reapunta un `aplicado` cuyo `sha` ya no está en la historia, con la regla del primer commit tras el sello |
+| rf-3 ALTO | El `merge --no-ff` de una rama con un cambio bien aprobado daba rojo para siempre | Un merge se juzga solo por lo que introduce respecto de todos sus padres; los commits de la rama, uno por uno |
+| rf-4 ALTO | Sin remoto, el commit base del rango quedaba afuera y dejaba pasar un freno | `<base>^..HEAD`, salvo el primer commit o el que creó la ficha |
+| rf-5 MEDIO | El hueco r4-1 b vale también para un obrero o nocturno en bypass que hace `cd` al principal y ofusca el comando | Escrito abajo, en "Lo que esto no cierra"; a Guido |
+| rf-6 MEDIO | `skip-worktree`, un `.propio.sh` ignorado o `settings.local.json` con `disableAllHooks`: el candado no los veía | Rojo en los tres |
+| rf-7 MEDIO | Lo ya pusheado no se vuelve a juzgar | Escrito abajo; el pre-commit del orden 3 lo cierra |
+| rf-8 MEDIO | "Aprobados nuevos" filtra por datos que el mismo falsificador escribe | Escrito abajo: es rastro, no candado |
+| rf-9 MEDIO | Una ficha rota en `origin` trababa el arreglo | El candado avisa y corre con los frenos de fábrica: el commit que la arregla pasa, nada se afloja |
+| rf-10 BAJO | En el pre-commit, lo pendiente tiene que ser solo el índice | Al paquete 3 |
+| rf-11 BAJO | El resultado de `barreras --molde` no está en la tabla de `rehacer.sh` | Se exige por la salida; la tabla trae `estruc` (el `todo`). Queda así |
+| rf-12 BAJO | Faltaban pruebas del camino legítimo | Sumadas con cada arreglo |
+
+**Lo que esto no cierra (rf-5, rf-7, rf-8; amplía r4-1 b)**: en bypass, una sesión que llega al checkout principal (la de Guido, o un obrero o
+nocturno que sale de su worktree con `cd`) puede esquivar el hook ofuscando el comando o fabricar el sello por Bash; lo ya pusheado no se
+vuelve a juzgar; y el aviso de `/inicio` lo puede esconder el mismo que falsifica (filtra por la fecha del sello y las marcas). Hasta el
+orden 3 (hook de 4.5 sobre `cd`/`update-index`/`update-ref`, pre-commit y pre-push) y el 5 (resumen del día), el rastro es git: cada
+`aprobado` tiene su commit propio en la rama por defecto.
+
 ## Red team (Opus, `redteam-spec`; los informes, al repo privado)
 
 | Ronda | ALTO | MEDIO | Integrado (RT-p2 n) |
