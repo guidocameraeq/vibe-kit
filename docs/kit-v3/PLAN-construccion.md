@@ -127,6 +127,16 @@ que viaja, barrera, o contra el SPEC-0 o un ADR) van arriba, y todas se deshacen
 - En un archivo de cambio, **un campo desconocido da rojo**, y un clase 2 que nombra una barrera en `toca` también. El renglón del sello se
   busca en el `frenos.log` **del commit del sello** (tiene que agregarlo ese commit), no en el del disco: vale igual en la otra PC.
   `aprobar` se niega si `frenos.log` está ignorado. *Por qué*: lo más estricto que no traba el camino de Guido.
+- `barreras` **no mira los commits de antes de que el proyecto tuviera ficha** (la ficha nunca existió antes y el commit no la toca).
+  *Alternativa*: mirarlos. *Por qué*: si no, el commit que instala hooks y `settings` antes de crear la ficha queda rojo para siempre; borrar
+  la ficha después no saca a nadie de la vista. Las exenciones valen **por archivo** y la (b) cubre **solo la ficha**.
+- La exención (a) del `settings` va **regla por regla**, y **una regla que el molde nuevo retira da rojo** (sin el molde viejo no se distingue de
+  una del proyecto). *Por qué*: lo que frena. Muerde al actualizador del orden 6 (anotado en Pendientes).
+- `candado:rutas` **no exige** lo que el árbol crea a demanda: las tres carpetas de `docs/`, `docs/MAPA.md`, `.claude/frenos.log` y
+  `.claude/cambios/` (lo de adentro, sí). *Alternativa*: un `.gitkeep` y un `frenos.log` de arranque en el molde. *Por qué*: git no guarda
+  carpetas vacías y el delta ya decía "una carpeta que falta no es falla"; sin esto, el `CLAUDE.md` del molde daba rojo en un repo recién montado.
+- En `/inicio` del molde, con el pedido en el mensaje, la sesión dice el tamaño **y sigue**, sin esperar otro OK (criterio 2); el de vibe-kit
+  espera el OK, pero es otra skill.
 
 ## Paralelizar: decidido que no (DP, 2026-10-29)
 
@@ -158,6 +168,9 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
   la versión de `origin/<rama por defecto>`**, no la del disco (r4-3: un candado editado y corrido en el mismo commit se aprueba solo); (c)
   `niega-aprobar.cjs` en `bypassPermissions` **no se probó con `claude.exe`**: el clasificador del modo `auto` frenó lanzar una sesión en bypass
   ("Create Unsafe Agents") y F3 lo probó con `dontAsk`, que va por el mismo camino; en bypass lo cubren las pruebas.
+- **Paquete 6 · de D2.2 (F4)**: la exención (a) de `barreras` da rojo con una regla de `settings` que el molde nuevo retira, porque sin el
+  molde viejo no la distingue de una propia: el actualizador tiene que pasarle también el molde viejo. Y la correspondencia de
+  `.githooks/**` y gitleaks con el molde es provisoria (el molde todavía no los trae; orden 3).
 - **Paquete 6/7 · de D2.2**: en `claude -p` sobre una carpeta que no es de confianza, **Claude Code ignora el `permissions.allow` del
   proyecto** ("this workspace has not been trusted"): el actualizador y todo agente de fondo en un clon nuevo lo van a sufrir.
 - **Paquete 1 · menor**: una ficha en Latin-1 da "valor inválido" (sin eco) en vez de "guardala en UTF-8". Se arregla si aparece en la flota.
