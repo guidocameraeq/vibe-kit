@@ -204,6 +204,22 @@ test('inicio: Estado · Próximo paso · Bloqueos y las dos preguntas del tamañ
   assert.match(t, /sin preguntar/);
 });
 
+test('inicio: la línea del tamaño va antes de cualquier herramienta o skill (F6b: p4 y p5 invocaban al Arquitecto sin decirla)', () => {
+  const t = TEXTOS.inicio;
+  assert.match(t, /en una línea y sin preguntar, antes de cualquier herramienta o skill\*\* \(antes de invocar `\/arquitecto`\)/);
+});
+
+test('inicio: criterio con ejemplos (F6b: una funcionalidad nueva con decisiones abiertas no es chica)', () => {
+  const t = TEXTOS.inicio;
+  assert.match(t, /Un arreglo o ajuste puntual de algo que ya existe es chico/);
+  assert.match(t, /algo nuevo con decisiones de diseño abiertas \(dónde se guarda, qué formato, qué pasa si…\) es más que chico/);
+});
+
+test('inicio: lo que el pedido nombra y no existe no frena la medida (F6b)', () => {
+  const t = TEXTOS.inicio;
+  assert.match(t, /Si el pedido nombra algo que no encontrás, igual medí por lo que pide; la duda va después de la línea/);
+});
+
 test('inicio: el worktree solo con otra marca de sesión de menos de 12 h, sin contar la propia', () => {
   const t = TEXTOS.inicio;
   assert.match(t, /<rama por defecto>/);
