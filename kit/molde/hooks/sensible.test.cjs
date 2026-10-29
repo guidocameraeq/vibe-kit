@@ -508,6 +508,11 @@ test('caché: uno roto, de otra forma o con otra clave se ignora y se rehace; un
   }
   // escritura atómica: no quedan temporales
   assert.deepEqual(fs.readdirSync(path.dirname(a)).filter((x) => x.startsWith(se.ARCHIVO_CACHE) && x !== se.ARCHIVO_CACHE), []);
+  // un quitado con un hasta que no es "siempre" ni una fecha (la ficha no lo deja pasar; en el caché sí cabe) no apaga nada
+  fs.writeFileSync(a, JSON.stringify({ ...bueno, quitados: [{ id: 'pregunta:release', hasta: 'zzz' }] }));
+  const r = se.decidir(entrada(d, 'npm run release'));
+  assert.equal(r.origen, 'cache');
+  assert.equal(r.decision, 'ask');
 });
 
 test('caché: si la ref cambia mientras se lee la ficha, no se guarda (la próxima vez se lee de nuevo)', () => {
