@@ -311,3 +311,29 @@ test('el script instanciado corre igual que en el molde: barreras en rojo da 1 y
   assert.equal(o.codigo, 1);
   assert.match(o.out, /^candado:barreras · lo que está por commitearse toca hooks \(hooks:\.claude\/scripts\/estructura\.cjs\)/);
 });
+
+test('rf-7: un commit hecho con --no-verify (el pre-commit no corrió) no sube: --rango da 1; con la ref nueva (ceros), también', () => {
+  const d = repo();
+  const base = g(d, 'rev-parse', 'HEAD');
+  // un pre-commit que traba todo: --no-verify lo saltea y el commit entra igual
+  escribir(d, 'ganchos/pre-commit', '#!/bin/sh\nexit 1\n');
+  g(d, 'config', 'core.hooksPath', 'ganchos');
+  escribir(d, '.claude/hooks/x.cjs', 'x\n');
+  g(d, 'add', '.claude/hooks/x.cjs');
+  assert.throws(() => g(d, 'commit', '-q', '-m', 'con el gancho'));
+  g(d, 'commit', '-q', '--no-verify', '-m', 'sin el gancho');
+  const malo = g(d, 'rev-parse', 'HEAD');
+  assert.equal(cli(d, ['barreras', '--indice', '--sin-log']).codigo, 0, 'el índice ya está limpio: el pre-commit no lo ve');
+  const r = cli(d, ['barreras', '--rango', `${base}..${malo}`, '--sin-log']);
+  assert.equal(r.codigo, 1, r.out);
+  assert.match(r.out, new RegExp(`^candado:barreras · el commit ${malo.slice(0, 12)} toca hooks`));
+  const n = cli(d, ['barreras', '--rango', `${'0'.repeat(40)}..${malo}`, '--sin-log']);
+  assert.equal(n.codigo, 1, n.out);
+  assert.match(n.out, new RegExp(`el commit ${malo.slice(0, 12)} toca hooks`));
+  const v = cli(d, ['barreras', '--rango', `${'0'.repeat(40)}..${base}`, '--sin-log']);
+  assert.equal(v.codigo, 0, v.out);
+  assert.match(v.out, /^candado: en verde \(barreras\) · el rango nuevo \.\.[0-9a-f]{12}\n$/);
+  const z = cli(d, ['barreras', '--rango', `HEAD..${'0'.repeat(40)}`]);
+  assert.equal(z.codigo, 2);
+  assert.match(z.err, /no es un commit de este repo/);
+});

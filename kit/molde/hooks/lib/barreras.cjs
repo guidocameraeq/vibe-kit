@@ -82,10 +82,9 @@ function lista(raiz, args) {
   return r;
 }
 
-// Las rutas que cambian del commit <padre> al índice (sin commits: todo el índice).
+// Las rutas que cambian del commit <padre> al índice (sin HEAD no se llama: revisarBarreras no juzga ese índice).
 function rutasIndice(raiz, padre) {
-  const args = padre ? ['diff', '--cached', '--no-renames', '--name-only', '-z', padre] : ['ls-files', '-z'];
-  return partirZ(lista(raiz, args).stdout).sort();
+  return partirZ(lista(raiz, ['diff', '--cached', '--no-renames', '--name-only', '-z', padre]).stdout).sort();
 }
 // Los otros padres de un merge en curso: los SHA de MERGE_HEAD (uno por renglón; varios en un octopus), o [] si no hay merge.
 function mergeHeads(raiz) {
@@ -147,17 +146,27 @@ function rango(raiz) {
   return { commits: r.stdout.split('\n').map((s) => s.trim()).filter(Boolean), desde, como };
 }
 
+// El sha de ceros que git le pasa al pre-push por una ref que el remoto no tiene (40 en sha1, 64 en sha256).
+const esCeros = (x) => /^0+$/.test(String(x)) && [40, 64].includes(String(x).length);
 // resolverRango(raiz, {desde, hasta}) → { desde: sha, hasta: sha } o { error }: los dos extremos tienen que ser commits del repo.
+// Una ref nueva (desde = el sha de ceros, como lo da el pre-push): { desde: null, hasta }, y sus commits son los que ningún remoto
+// tiene (`rev-list <hasta> --not --remotes`, P4.6).
 function resolverRango(raiz, r) {
-  const desde = shaDe(raiz, r.desde);
+  const nueva = esCeros(r.desde);
+  const desde = nueva ? null : shaDe(raiz, r.desde);
+  if (nueva) {
+    const h = shaDe(raiz, r.hasta);
+    return h ? { desde: null, hasta: h } : { error: `--rango: ${r.hasta} no es un commit de este repo` };
+  }
   if (!desde) return { error: `--rango: ${r.desde} no es un commit de este repo` };
   const hasta = shaDe(raiz, r.hasta);
   if (!hasta) return { error: `--rango: ${r.hasta} no es un commit de este repo` };
   return { desde, hasta };
 }
-// Los commits de desde..hasta, del más viejo al más nuevo (vacío si hasta ya está en desde).
+// Los commits de desde..hasta (o, con desde null, los de hasta que ningún remoto tiene), del más viejo al más nuevo.
 function commitsDelRango(raiz, r) {
-  return lista(raiz, ['rev-list', '--reverse', '--topo-order', `${r.desde}..${r.hasta}`]).stdout.split('\n').map((s) => s.trim()).filter(Boolean);
+  const que = r.desde === null ? [r.hasta, '--not', '--remotes'] : [`${r.desde}..${r.hasta}`];
+  return lista(raiz, ['rev-list', '--reverse', '--topo-order', ...que]).stdout.split('\n').map((s) => s.trim()).filter(Boolean);
 }
 
 // ¿<sha> es el commit que creó la ficha (la adopción)? La tiene, ninguno de sus padres la tiene y ningún commit anterior la tocó
@@ -208,7 +217,7 @@ function archivosDe(raiz, cual) {
   } else if (cual === INDICE) {
     // Solo el índice (rf-10): ni el disco, ni lo no seguido, ni lo ignorado (no van en el commit; los mira barreras a secas).
     padre = shaDe(raiz, 'HEAD');
-    ps = padre ? [padre, ...mergeHeads(raiz)] : [];
+    ps = [padre, ...mergeHeads(raiz)];
     rutasContraPadre = (p) => rutasIndice(raiz, p);
     rutas = rutasIndice(raiz, padre);
     despuesDe = (rel) => [blob(raiz, '', rel)];
@@ -585,7 +594,8 @@ function settingsLocal(raiz) {
 // revisarBarreras(raiz, {molde, indice, rango}) → [{ id: 'candado:barreras', que, hacer, detalle, commit }]. Vacía = en orden.
 // molde: carpeta ABSOLUTA del molde de afuera (exención a); sin ella, no hay exención (a). Tira si git no puede.
 // Sin indice ni rango: el rango de la sesión, lo pendiente y lo de esta PC (marcas y settings.local). indice: true → lo de esta PC y
-// SOLO el índice (rf-10). rango: { desde, hasta } (resolverRango) → SOLO esos commits, lo que sube el push (rf-7).
+// SOLO el índice (rf-10). rango: { desde, hasta } (resolverRango) → SOLO esos commits, lo que sube el push (rf-7); desde null = una
+// ref nueva (lo que ningún remoto tiene), y el primer commit del repo no se juzga.
 function revisarBarreras(raiz, opciones = {}) {
   if (opciones.indice && opciones.rango) throw new Error('indice y rango no van juntos');
   const memo = {};
@@ -594,10 +604,15 @@ function revisarBarreras(raiz, opciones = {}) {
   if (opciones.rango) {
     fallas = [];
     memo.refsExtra = [opciones.rango.hasta];
-    cuales = commitsDelRango(raiz, opciones.rango);
+    // Un commit sin padre (el primero del repo, o el de una rama huérfana) no afloja nada: no había un antes (r4-5, como rango()).
+    // La rama huérfana se juzga igual al mergearla, contra cada padre.
+    cuales = commitsDelRango(raiz, opciones.rango).filter((c) => padres(raiz, c).length > 0);
   } else {
     fallas = [...marcasOcultas(raiz), ...settingsLocal(raiz)];
-    cuales = opciones.indice ? [INDICE] : [...rango(raiz).commits, PENDIENTE];
+    // El índice del primer commit del repo no se juzga, como el primer commit en el rango: no había un antes y ningún aprobado puede
+    // existir todavía (el sello es un commit); si no, el repo recién montado nace trabado (r4-5).
+    if (opciones.indice) cuales = shaDe(raiz, 'HEAD') ? [INDICE] : [];
+    else cuales = [...rango(raiz).commits, PENDIENTE];
   }
   for (const cual of cuales) {
     const n = lo(raiz, cual, opciones, memo);

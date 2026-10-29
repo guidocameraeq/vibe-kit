@@ -415,7 +415,7 @@ function correr(raiz, opciones = {}) {
   const modo = opciones.modo || 'todo';
   // Los dos juntos los frena barreras.revisarBarreras.
   if ((opciones.indice || opciones.rango) && (modo !== 'ids' || (opciones.ids || []).join() !== 'barreras')) throw new Error('indice y rango van solo con barreras');
-  const alcance = opciones.indice ? ' · solo el índice' : opciones.rango ? ` · el rango ${opciones.rango.desde.slice(0, 12)}..${opciones.rango.hasta.slice(0, 12)}` : '';
+  const alcance = opciones.indice ? ' · solo el índice' : opciones.rango ? ` · el rango ${opciones.rango.desde === null ? 'nuevo ' : opciones.rango.desde.slice(0, 12)}..${opciones.rango.hasta.slice(0, 12)}` : '';
   const ahora = opciones.ahora || new Date();
   const log = opciones.log !== false;
   const anotar = (id, detalle) => {

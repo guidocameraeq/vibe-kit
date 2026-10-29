@@ -1164,3 +1164,74 @@ test('D-3: sacar un nombre de secretos:, sumar uno a publicas: o cambiar datos-d
   escribir(d, '.claude/kit.md', FICHA_D3());
   rojo(d, /\(datos-de-prueba\)/);
 });
+
+// ---------------------------------------------------------------- P4.6: la ref nueva del pre-push y D-3 en los githooks
+
+const CEROS = '0'.repeat(40);
+
+test('rango con ref nueva (el sha de ceros del pre-push): solo lo que ningún remoto tiene; lo ya subido no cuenta', () => {
+  const d = repo();
+  quitarStash(d); // sin aprobado, pero ya está en origin: no es de este push
+  push(d);
+  g(d, 'checkout', '-q', '-b', 'nueva');
+  const bueno = commit(d, { 'b.txt': 'b\n' });
+  const r = B.resolverRango(d, { desde: CEROS, hasta: 'nueva' });
+  assert.deepEqual(r, { desde: null, hasta: bueno });
+  assert.deepEqual(B.commitsDelRango(d, r), [bueno]);
+  verde(d, { rango: r });
+  const malo = commit(d, { '.claude/hooks/x.cjs': 'x\n' });
+  const f = rojo(d, /hooks:\.claude\/hooks\/x\.cjs/, { rango: B.resolverRango(d, { desde: CEROS, hasta: 'nueva' }) });
+  assert.deepEqual(f.map((x) => x.commit), [malo]);
+  // sha256: 64 ceros también; 39 ceros no es el de la ref nueva (y no es un commit) → error
+  assert.deepEqual(B.resolverRango(d, { desde: '0'.repeat(64), hasta: 'nueva' }), { desde: null, hasta: malo });
+  assert.match(B.resolverRango(d, { desde: '0'.repeat(39), hasta: 'nueva' }).error, /no es un commit/);
+  // borrar una ref (hasta = ceros) no es un rango que se juzgue: error
+  assert.match(B.resolverRango(d, { desde: CEROS, hasta: CEROS }).error, /no es un commit/);
+  assert.match(B.resolverRango(d, { desde: 'HEAD', hasta: CEROS }).error, /no es un commit/);
+});
+
+test('rango con ref nueva sin ningún remoto (el primer push del repo): todo menos el primer commit, que no tenía un antes', () => {
+  const d = repo({ remoto: false, archivos: { '.claude/hooks/x.cjs': 'x\n', '.claude/settings.json': '{}\n' } });
+  const raiz = g(d, 'rev-parse', 'HEAD');
+  const r = () => B.resolverRango(d, { desde: CEROS, hasta: 'HEAD' });
+  assert.deepEqual(B.commitsDelRango(d, r()), [raiz]);
+  verde(d, { rango: r() }); // el recién montado no nace trabado (r4-5)
+  const malo = quitarStash(d);
+  assert.deepEqual(rojo(d, /git stash/, { rango: r() }).map((x) => x.commit), [malo]);
+  // una rama huérfana con un freno quitado sube (no hay antes), pero al mergearla se juzga contra main
+  g(d, 'checkout', '-q', '--orphan', 'huerfana');
+  const h = commit(d, { '.claude/kit.md': FICHA({ quitados: [OTRO] }) });
+  verde(d, { rango: B.resolverRango(d, { desde: CEROS, hasta: h }) });
+  g(d, 'checkout', '-q', 'main');
+  g(d, 'merge', '-q', '--no-ff', '--no-commit', '--allow-unrelated-histories', '-X', 'theirs', 'huerfana');
+  rojo(d, /git clean/, IDX);
+  g(d, 'merge', '--abort');
+});
+
+test('D-3 en los githooks: sacar un nombre de secretos: en el índice → rojo con --indice (en el disco solo, verde); sumarlo → verde; en el push, igual', () => {
+  const d = repo({ ficha: FICHA_D3() });
+  const base = g(d, 'rev-parse', 'HEAD');
+  escribir(d, '.claude/kit.md', FICHA_D3({ secretos: 'secretos: [HUB_TOKEN]\n' }));
+  verde(d, IDX);
+  g(d, 'add', '.claude/kit.md');
+  rojo(d, /toca frenos \(secretos:DB_URL\)/, IDX);
+  poner(d, { '.claude/kit.md': FICHA_D3({ secretos: 'secretos: [DB_URL, HUB_TOKEN, OTRO_TOKEN]\n', publicas: 'publicas: []\n' }) });
+  verde(d, IDX);
+  const aprieta = commit(d, {});
+  const afloja = commit(d, { '.claude/kit.md': FICHA_D3({ publicas: 'publicas: [SUPABASE_ANON_KEY, HUB_TOKEN]\n' }) });
+  const f = rojo(d, /publicas:HUB_TOKEN/, RG(d, base, afloja));
+  assert.deepEqual(f.map((x) => x.commit), [afloja]);
+  verde(d, RG(d, base, aprieta));
+});
+
+test('indice antes del primer commit: no se juzga (no hay antes ni aprobado posible; r4-5); a secas, lo pendiente sí', () => {
+  const d = path.join(TMP, `r${n++}`);
+  fs.mkdirSync(d, { recursive: true });
+  g(d, 'init', '-q', '-b', 'main');
+  poner(d, { '.claude/kit.md': FICHA({ quitados: [STASH] }), '.claude/hooks/x.cjs': 'x\n' });
+  verde(d, IDX);
+  rojo(d);
+  g(d, 'commit', '-q', '-m', 'base');
+  poner(d, { '.claude/hooks/x.cjs': 'y\n' });
+  rojo(d, /hooks:\.claude\/hooks\/x\.cjs/, IDX); // desde el segundo, sí
+});

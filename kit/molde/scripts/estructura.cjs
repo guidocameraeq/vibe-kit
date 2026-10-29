@@ -9,6 +9,8 @@
 // Los githooks (P4.6), solo con `barreras` (con otro chequeo, o los dos juntos, es mal llamado): --indice juzga SOLO el índice, lo que
 // lleva el commit en curso (pre-commit y pre-merge-commit; lo del disco sin `git add` no traba, rf-10); --rango <a>..<b> juzga cada
 // commit de a..b, lo que sube el push (pre-push; rf-7): vacío = verde, y un extremo que no es un commit del repo = mal llamado (2).
+// Una ref nueva va con el sha de ceros que le da git al pre-push (<ceros>..<b>): los commits de b que ningún remoto tiene, sin el
+// primer commit del repo (no tenía un antes).
 // Salidas: 0 verde · 1 una línea `candado:<id> · qué pasa · qué hacer` por falla (candado:lecturas lista y no cambia la salida),
 // o `candado roto: corré doctor` si algo propio falla (nunca 0) · 2 mal llamado. La ficha vigente rota no da 1 sola: imprime
 // `ficha rota: <archivo>:<línea> — corré doctor (corro con los frenos de fábrica)` y corre todo, sin frenos quitados (rf-9). Sin node no arranca y no da 0:

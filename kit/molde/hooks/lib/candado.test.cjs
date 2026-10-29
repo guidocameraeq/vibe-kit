@@ -470,3 +470,11 @@ test('correr: ficha vigente rota con el candado apagado en la última que se lee
   assert.deepEqual(re.corrieron, K.IDS);
   assert.ok(re.lineas.some((l) => l.startsWith('candado:raiz · ')));
 });
+
+test('correr (P4.6): rango de una ref nueva (desde null) lo dice en la línea verde', () => {
+  const d = repo({ 'docs/suelto.md': 'x\n' });
+  commit(d, { 'b.txt': 'b\n' });
+  const r = correr(d, { modo: 'ids', ids: ['barreras'], rango: K.resolverRango(d, { desde: '0'.repeat(40), hasta: 'HEAD' }) });
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  assert.match(r.lineas[r.lineas.length - 1], /^candado: en verde \(barreras\) · el rango nuevo \.\.[0-9a-f]{12}$/);
+});
