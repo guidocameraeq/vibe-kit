@@ -265,11 +265,11 @@ el código de `niega-aprobar.cjs` (su registro pasa a exec).
 | G0 · G0b | director | `onFailure` — **✅** · la forma exec — **✅** (D-7) | nada del repo | 1 | — |
 | G1 | Sonnet | El corpus — **✅** | el scratchpad | 14 | — |
 | RT | Opus | Red team, hasta 3 rondas | nada | 18 | antes de G2 |
-| G2 | Sonnet | `comando.cjs` (Hermes + PowerShell + asignaciones) | `m/hooks/lib/comando.cjs` y su prueba | 2 | ∥ G6, G8, G9 |
-| G3 | Opus | `git-seguro.cjs` y su medición | `m/hooks/git-seguro.cjs` y su prueba | 2, 3, 5, 14 | G2 · ∥ G4, G5 |
-| G4 | Opus | `sensible.cjs` con el caché, `kit.ejemplo.md`, y su medición | `m/hooks/sensible.cjs`, `m/kit.ejemplo.md`, sus pruebas | 2, 3, 6, 7, 14 | G2 · ∥ G3, G5 |
-| G5 | Opus | `secretos.cjs`, `pc/lib/`, prompts al corpus, y su medición | `eq/pc/secretos.cjs`, `eq/pc/lib/**`, sus pruebas | 2, 3, 4, 13, 14 | G2 · ∥ G3, G4 |
-| G6 | Opus | `--indice`, `--rango`, ids de D-3 | `m/hooks/lib/{barreras,candado,cambios}.cjs`, `m/scripts/estructura.cjs`, sus pruebas | 2, 8 | ∥ G2 |
+| G2 | Sonnet | `comando.cjs` (Hermes + PowerShell + asignaciones) — **✅ D3.1** | `m/hooks/lib/comando.cjs` y su prueba | 2 | ∥ G6, G8, G9 |
+| G3 | Opus | `git-seguro.cjs` y su medición — **✅ D3.2** | `m/hooks/git-seguro.cjs` y su prueba | 2, 3, 5, 14 | G2 · ∥ G4, G5 |
+| G4 | Opus | `sensible.cjs` con el caché, `kit.ejemplo.md`, y su medición — **✅ D3.2** | `m/hooks/sensible.cjs`, `m/kit.ejemplo.md`, sus pruebas | 2, 3, 6, 7, 14 | G2 · ∥ G3, G5 |
+| G5 | Opus | `secretos.cjs`, `pc/lib/`, prompts al corpus, y su medición — **✅ D3.2** | `eq/pc/secretos.cjs`, `eq/pc/lib/**`, sus pruebas | 2, 3, 4, 13, 14 | G2 · ∥ G3, G4 |
+| G6 | Opus | `--indice`, `--rango`, ids de D-3 — **✅ D3.2** | `m/hooks/lib/{barreras,candado,cambios}.cjs`, `m/scripts/estructura.cjs`, sus pruebas | 2, 8 | ∥ G2 |
 | G7 | Opus | githooks, `hooksPath`, líneas de F, `settings.json` (todo en exec), `DENY_FABRICA`, `/cierre` | `m/githooks/**`, `m/hooks/session-start.cjs`, `m/hooks/lib/{inyeccion,fabrica}.cjs`, `m/settings.json`, `m/skills/cierre/SKILL.md`, sus pruebas | 2, 3, 8, 16 | G3, G4, G6 (**único dueño de `settings.json`**) |
 | G8 | Sonnet | `cargar-secreto.sh` y `.ps1` | `eq/pc/cargar-secreto.*` y su prueba | 9 | ∥ G2 |
 | G9 | Opus | `db-guardia.cjs` | `m/hooks/lib/db-guardia.cjs` y su prueba | 2, 10 | ∥ G2 |

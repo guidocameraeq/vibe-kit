@@ -2,6 +2,26 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-29 — Misión 5, paquete 3, segunda vuelta: G3-G6 terminados y en `main` (D3.2)
+
+PC `Usuario`, chat `vibe-kit M5 · D3.2 · Paquete 3, segunda vuelta: terminar G3-G6 desde sus ramas WIP`, en Opus, sin Guido. 4 encargos
+Opus, de a dos (G3 y G6 retomados después de un corte de cuota). Sin tag. Decisiones sin Guido: tracker, "D3.2 · Decisiones sin Guido".
+
+**Added** (en el molde y en `pc/`, sin registrar todavía en ningún `settings.json`: eso es D3.3)
+- **G3 · `m/hooks/git-seguro.cjs`** (P4.4, la tabla entera) y **`m/hooks/lib/agente.cjs`** ("sesión de agente" de P4.7): 41 pruebas (1 skip
+  hasta que G7 lo registre), mutación 136/137, medición sobre el corpus `Usuario` (16.470): 90 frenos, 0 falsos positivos.
+- **G4 · `m/hooks/sensible.cjs`** con el caché en el git-dir común (la huella suma la config del sistema y las `GIT_*`); `kit.ejemplo.md`
+  con entradas reales: 306 pruebas (con `ficha.test`), mutación 62/64, 0 `ask`/`deny` con humano de día; criterio 7 en un worktree real.
+- **G5 · `eq/pc/secretos.cjs`**, el corrector de la PC, y `pc/lib/` (copias byte a byte del molde, `agente.cjs` incluido): 29 pruebas,
+  mutación 178/181, medición 16.470 llamadas + 1.003 prompts: 38 frenos correctos, 0 falsos positivos (empezó en 308; las correcciones,
+  ⚠️ en el tracker).
+- **G6 · `barreras --indice` y `--rango`** (la ref nueva con el sha de ceros; sin juzgar el commit sin padre) e **ids de D-3** (`secretos:`,
+  `publicas:`, `datos-de-prueba` cuando aflojan): 134 pruebas, mutación 49/50.
+
+**Changed**
+- Tracker: fila D3.2 ✅, sus decisiones, y Pendientes con lo que G3-G6 dejaron para D3.3. Delta: G2-G6 con ✅ en "Los encargos".
+- **Suite entera: 1.994 pruebas, 1.993 verdes, 1 skip, 0 rojas** (10 min). gitleaks verde en cada merge. Las cuatro ramas `wip/d3.1-*`, borradas de `origin`.
+
 ## 2026-10-29 — Retomar en `Usuario`: el historial de chats completo, la PC preparada y el paquete 3 partido en D3.2 y D3.3
 
 PC `Usuario`, sesión intermedia de la misión 5, en Opus, con Guido. Sin tag; `kit/` sin cambios.

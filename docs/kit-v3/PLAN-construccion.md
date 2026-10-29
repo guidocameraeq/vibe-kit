@@ -48,7 +48,7 @@ propuso partir con 26% usado). Si la app compacta, relee este tracker y su delta
 | 0 | Misión 4½: ordenar la casa, `v2.4.3` | 1 | ✅ 2026-10-27 |
 | 1 | La ficha del kit, el parser, `kit/VERSION`, los repos de prueba | 1 | ✅ 2026-10-28 ([`SPEC-paquete-1.md`](SPEC-paquete-1.md)) |
 | 2 | Documentos con tope, hook en node, candado, `cambios`, `/inicio` y `/cierre` v3, **la zona propia (P3.2)**, `pruebas/pedidos.md` | 2 | ✅ 2026-10-29 (D2.1 y D2.2; lo que espera a Guido, en Pendientes) ([`SPEC-paquete-2.md`](SPEC-paquete-2.md)) |
-| 3 | Seguridad: corrector de secretos, barreras, hooks por PC, `doctor` mínimo | 3 | 🔨 D3.1 a medias (cuota, 2026-10-29); siguen D3.2 (cerrar G3-G6) y D3.3 (G7, G10-G13, revisor frío) |
+| 3 | Seguridad: corrector de secretos, barreras, hooks por PC, `doctor` mínimo | 3 | 🔨 D3.1 y D3.2 hechos (en `main`: G2-G6, G8, G9); sigue D3.3 (G7, G10-G13, revisor frío) |
 | 4 | El Arquitecto v3, el script `worktree`, el sello, `formato-spec.md` | 1 | ⬜ |
 | 5 | Director/obrero, `/estado`, resumen del día, la mesa, subagentes | 2 | ⬜ |
 | 6 | Equipador v3, actualizador, adoptador, `doctor` completo | 1 | ⬜ |
@@ -73,7 +73,7 @@ cuántos lanzó y en qué modelo (por ejemplo `4 Sonnet · 2 Opus`): es la medid
 | DP | Sesión intermedia (pedido de Guido): planear la paralelización de lo que queda | 2026-10-29 | `vibe-kit M5 · DP · Planear la paralelización de lo que queda` | 0 | el cierre de DP | ✅ **Decidido: no se paraleliza**; la misión sigue un director por vez, en el orden de esta tabla (ver "Paralelizar") |
 | D2.2 | Paquete 2, segunda mitad: candado, `cambios` base y su sello, la zona propia (P3.2), `/inicio` y `/cierre` v3 con `pedidos.md`, revisor frío | 2026-10-28/29 (sin Guido) | `vibe-kit M5 · D2.2 · Paquete 2, segunda mitad: candado, cambios, zona propia, /inicio y /cierre v3` | 6 Sonnet (F1, F5, F6 con 3 correcciones, F7, sesión real `-p`, diez pedidos ×2) · 6 Opus (red team ×2 rondas, F2, F3, F4, revisor frío ×3 vueltas, RF-fix ×3) | `12b7317`…el cierre | ✅ F1-F7 y los "hecho cuando" de 3.2, 3.10, 5.2, 6.1, 6.8a; 5.1 con salvedad (diez pedidos: 6 de 10). Red team r4-r5 (5 ALTOS) y revisor frío (6 ALTOS en tres vueltas) integrados; suite **verde** (cifra en el CHANGELOG); mutación por encargo 24/24 · 67/68 · 98/99 · 99/105 · 43/48 · 10/11 (vivos equivalentes, explicados) y control del director 3/3 + 3/3. Criterio 14 ✅; 6, 12, 17, 18, 20 con lo que falta escrito. **Decisiones sin Guido**: abajo |
 | D3.1 | Paquete 3: spec delta + red team (obligatorio), corrector, barreras, hooks por PC, `doctor` mínimo | 2026-10-29 (sin Guido; frenada por cuota) | `vibe-kit M5 · D3.1 · Paquete 3: seguridad — corrector, barreras, hooks por PC, doctor mínimo` | 4 Sonnet (G0b, G1 corpus, G2, G8) · 8 Opus (G0, redactor del delta, red team ×2 rondas, G9; G3, G4, G5, G6 frenados a medias) | `1116698`…el cierre parcial | 🔨 **A medias, punto de corte pedido por Guido por la cuota.** Delta **sellado sin Guido** (r1: 6 ALTOS integrados; r2: 0 ALTOS). G0 y G0b verdes: `onFailure: "block"` frena las cuatro fallas, la forma exec anda sin Git Bash. En `main`: **G2** `comando.cjs` (976 casos, mutación 384/384), **G8** `cargar-secreto` (38/38, corridas por el director), **G9** `db-guardia.cjs` (38/38 por el director, mutación 51/52, el vivo equivalente y sacado). **G3-G6 en ramas WIP** (Pendientes). Huella del `~/.claude/` real igual a la de la apertura. **Decisiones sin Guido**: abajo |
-| D3.2 | Paquete 3, segunda vuelta: terminar G3, G4, G5 y G6 desde sus ramas WIP (medición, mutación, pruebas), mergearlos y borrar las ramas | | `vibe-kit M5 · D3.2 · Paquete 3, segunda vuelta: terminar G3-G6 desde sus ramas WIP` | | | |
+| D3.2 | Paquete 3, segunda vuelta: terminar G3, G4, G5 y G6 desde sus ramas WIP (medición, mutación, pruebas), mergearlos y borrar las ramas | 2026-10-29 (sin Guido, PC `Usuario`) | `vibe-kit M5 · D3.2 · Paquete 3, segunda vuelta: terminar G3-G6 desde sus ramas WIP` | 4 Opus (G3, G4, G5, G6; nunca más de dos a la vez; G3 y G6 retomados tras un corte de cuota) | `10cd6e8` · `6714f43` · `4b28b45` · `7fcc734` y el cierre | ✅ **G3-G6 en `main`, las cuatro ramas `wip/*` borradas de `origin`.** Pruebas corridas por el director: G3 41 (40 + 1 skip hasta que G7 registre el hook), G6 134, G4 306 (con `ficha.test`), G5 29. **Mutación**: G3 136/137 · G6 49/50 · G4 62/64 · G5 178/181 (todos los vivos equivalentes, explicados). **Medición, corpus `Usuario` (16.470 llamadas únicas)**: `git-seguro` 90 frenos, 0 falsos positivos; `sensible` 0 `ask`/`deny` con humano de día con modo (1 `deny` correcto en bypass); `secretos` 38 frenos + 1.003 prompts con 0 frenos, 0 falsos positivos (empezó en 308: corregido). Suite: cifra en el CHANGELOG. **Decisiones sin Guido**: abajo |
 | D3.3 | Paquete 3, cierre: G7, G10, G11, G12, G13, revisor frío, `/cierre` completo | | `vibe-kit M5 · D3.3 · Paquete 3, cierre: githooks, instalador, doctor, sesión real, revisor frío` | | | |
 | D4.1 | Paquete 4: spec delta + red team, Arquitecto v3, sello, `formato-spec.md`, `worktree` y `.kit-rol` | | | | | |
 | D5.1 | Paquete 5, primera mitad: spec delta + red team, el canon director/obrero y sus correctores | | | | | |
@@ -173,6 +173,36 @@ arriba**, todas se deshacen antes del tag. El detalle, en [`SPEC-paquete-3.md`](
   `config`, `worktrees`…). D-11 · Las líneas de `gh` del arranque, al orden 6. D-12 · Las librerías del hook por PC van copiadas y
   versionadas, con una prueba que exige que sean idénticas a las del molde.
 - `gitleaks` con plazo de 60 s y un reintento: en `clientes` tardó **47 s en frío** (Defender) y ~2 s después.
+
+### D3.2 · Decisiones sin Guido
+
+D3.2 corrió sin Guido, con su autorización previa (su prompt, abajo): como D3.1, **las ⚠️ arriba** y todas se deshacen antes del tag.
+
+- ⚠️ **G5 · `archivo-deny` juzga el pipeline por tramos, no entero** (`;`, `&&`, `||`, renglón): la regla "todos los del pipeline en lo
+  permitido" vale para los que listan (`ls .env | cat` frena, `gci .env | gc` frena); "usar sin ver" se juzga solo, y después de un `ls`
+  pasan los filtros de texto (`grep`, `head`, `wc`). *Alternativa*: el texto literal del delta, que en el corpus daba ~100 falsos positivos
+  (`npx dotenv -e .env.x -- … | tail`). *Por qué*: el criterio 14 pide 0 falsos positivos y el caso que se frena sigue frenado.
+- ⚠️ **G5 · lo que el delta no nombraba y se decidió con la medición** (de 308 frenos a 38, todos correctos): `npx dotenv -e <ruta>` es "usar sin
+  ver" como `--env-file`; un texto con espacios y operadores de shell (`ssh host "cat .env; ls"`, `docker exec`) no es ruta: corre en otra
+  máquina; un patrón de `grep` y un comodín sin letras (`*`) no son ruta; `mkdir` permitido; con `source`, el impresor cuenta solo si
+  imprime una variable; `node -e`/`python -c` cuentan solo lo de adentro de `print`/`console`; `sk-api` exige letras y dígitos en el cuerpo
+  (frenaba ejemplos en mayúsculas). **Más estricto que la tabla**: `ls .env | cat` y `git rm .env` sin `--cached` frenan.
+- ⚠️ **G5 · `.env.example` sigue frenado** (14 de los 38 de la medición): F §5 nombra `.env*` a propósito. *Alternativa*: dejar pasar
+  `.env.example`. *Por qué*: el que lo cambie lo decide con la cicatriz; un `.env.example` con un valor real existe.
+- ⚠️ **G6 · una ref nueva del pre-push va en `--rango <sha de ceros>..<b>`** (lo que git le pasa al pre-push): sus commits son los que ningún
+  remoto tiene. *Alternativa*: una bandera aparte, o que G7 pase `origin/<defecto>..<b>`, que sin remoto no anda.
+- ⚠️ **G6 · el commit sin padre no se juzga en `--rango`, ni el índice sin `HEAD` en `--indice`**: si no, el primer commit y el primer push de
+  todo proyecto nuevo quedaban rojos para siempre (ningún `aprobado` puede existir antes). Una rama huérfana se juzga igual al mergearla.
+- **`lib/agente.cjs` entra al molde** (G3, fuera de su "puede tocar"): "sesión de agente" de P4.7 la usan `git-seguro` y `secretos`, y
+  `pc/lib/agente.cjs` es su copia byte a byte (la de 32 líneas de D3.1 se reemplazó). G4 tocó el `ESPERADO` de `lib/ficha.test.cjs` (fuera
+  de su lista) solo para seguir a `kit.ejemplo.md`; la gramática no cambió.
+- **G4 se lanzó cuando terminó G6, mientras G3 seguía** (el prompt decía G3 ∥ G6 y después G4 ∥ G5): nunca hubo más de dos Opus, y G5
+  esperó a G3 porque copia su `agente.cjs`.
+- G3: `decidir` acepta `opciones.git`, solo para que las pruebas simulen una falla de git; el mensaje de `config-agente` suma la identidad
+  por comando (`git -c user.name=… commit`). La prueba "sin node" queda en skip hasta que G7 registre el hook en `settings.json`.
+- G4: la clave del caché suma la config del sistema de git y las `GIT_*` del entorno (por fs, sin procesos); un caché con `hasta` que no es
+  fecha no apaga nada.
+- G5: el `frenos.log` de la PC se escribe solo si el hook corre instalado (con `INSTALADO`): las pruebas del WIP lo escribían adentro del repo.
 
 ## Abrir D3.1 sin Guido (el prompt)
 
@@ -274,20 +304,21 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
 - **Paquete 2 · para D2.2** (de la construcción de D2.1): (a) `hook-escritura: molde` va sin hash: **decidido en D2.2, sigue así hasta
   el orden 6** (Decisiones sin Guido); (b) el hash de `settings`: lo rehace F7 con `hashPieza`; (c) la carpeta hermana desde un worktree: F7;
   (d) pasó al paquete 3.
-- **Paquete 3 · D3.1 quedó a medias (cuota, 2026-10-29; lo retoma D3.2)**. En `main`: el delta sellado sin Guido, G2 (`lib/comando.cjs`),
-  G8 (`cargar-secreto`) y G9 (`lib/db-guardia.cjs`). **Frenados a medias por Guido para cuidar la cuota, guardados en un commit WIP cada
-  uno, en ramas de `origin` (no en `main`; gitleaks verde)**: **`wip/d3.1-g6-barreras`** (`a47232e`: `--indice`/`--rango` e ids de D-3; el
-  código escrito, las pruebas nuevas de `barreras` a medio escribir), **`wip/d3.1-g3-git-seguro`** (`98c79cd`: `git-seguro.cjs` +
-  `lib/agente.cjs`), **`wip/d3.1-g4-sensible`** (`17aa488`: `sensible.cjs` + `kit.ejemplo.md`) y **`wip/d3.1-g5-secretos`** (`5d0444c`:
-  `secretos.cjs` + `pc/lib/`, 23 pruebas verdes, sin la mutación). Al terminarlos, cada rama `wip/*` se mergea (o se rehace) y se borra. Ninguno tiene la
-  medición contra el historial ni la mutación cerradas. **Lo que falta, en orden**: **D3.2** termina G3, G4, G5 y G6 (relanzarlos sobre su
-  rama WIP: "seguí desde este commit"; medición + mutación + leer el diff); **D3.3** hace G7, G10, G11, G12, G13, el revisor frío y el
-  `/cierre`. Los briefs están en "Los encargos" del delta. **El corpus del historial no viaja** (tiene secretos reales).
-- **La PC `Usuario` quedó preparada para D3.2 y D3.3** (2026-10-29, sesión "Git pull", antes de abrirlas): `kit-sync sync` → LIMPIO; los
-  repos de prueba armados con `rehacer.sh` en `../vibe-kit-pruebas/`; **el corpus en `C:\Users\Usuario\vibe-historial\`** (fuera de todo
-  repo; `extraer.cjs` y `correr.cjs` copiados del privado): **16.470 llamadas únicas** de 67 chats de esta PC (2026-06-13 a 2026-10-29),
-  contra las 91.298 de `clientes`. Es más chico porque esta PC borró sus crudos de vibe-kit el 2026-10-28: la medición de D3.2 lo dice en
-  cada resultado ("corpus `Usuario`, 16.470") y no se compara contra las cifras de G2 y G9, que se midieron en `clientes`.
+- **Paquete 3 · lo que sigue es D3.3** (G7, G10, G11, G12, G13, el revisor frío y el `/cierre`; los briefs en "Los encargos" del delta). En
+  `main` ya están G2-G6, G8 y G9 (D3.1 y D3.2). **El corpus del historial no viaja** (tiene secretos reales): en `Usuario` vive en
+  `C:\Users\Usuario\vibe-historial\` (16.470 llamadas únicas; no se compara contra las cifras de `clientes`).
+- **Paquete 3 · de D3.2, para D3.3** (lo que dejaron G3-G6 y es de otro encargo): (a) **G7** registra `git-seguro` y `sensible` en
+  `settings.json` en forma exec con `timeout: 20` y `onFailure: "block"`: la prueba "sin node" de `git-seguro.test.cjs` se activa sola y lo
+  exige; (b) **G7, el runner del pre-push**: `--rango` sale 2 si el remoto tiene un sha que esta PC no (remoto adelantado, force push) → tiene
+  que darlo como rojo con motivo; y un `aprobado` que vive solo en la rama que se pushea (no en `HEAD`) da un rojo de más: correrlo con esa
+  rama, o aceptarlo; (c) **G10** registra `secretos` (el caso "sin node" depende de ese registro); (d) **G13/revisor frío**: `frenos-del-proyecto`
+  y `salir-del-worktree` no se midieron contra el historial con rol obrero (forzar el `cwd` vuelve todo `cd` "otro repo"): medirlos con el
+  `cwd` real de cada llamada, o en la sesión real; (e) **NO VERIFICADO**: los regex de los cinco de `block_secrets.ps1` en `secretos.cjs`
+  son los del WIP de D3.1; cruzarlos contra el archivo de `clientes` en esa PC; (f) `secretos` no cubre un heredoc sin comillas que imprime
+  `$X` en el cuerpo; (g) la huella del caché de `sensible` no sigue los `include.path` (git-seguro niega escribirlos).
+- **Paquete 3 · de D3.2, fuera del paquete** (vienen de antes de G6): la exención (b) de `barreras` compara solo `frenos`, `sensible` y
+  `autorizado`, así que la ficha puede nacer con `publicas:` cargado sin `aprobado` (es la adopción; gramática de D2.2); y `barreras` a secas
+  en un repo sin ningún commit da rojo con la ficha de fábrica. Decidir en el revisor frío de D3.3 si se tocan.
 - **Paquete 3 · de D2.2**: (a) `KIT_PLAZO_ARRANQUE_MS` en `doctor` (era la (d) de D2.1); (b) el pre-commit corre `estructura.cjs` **desde
   la versión de `origin/<rama por defecto>`**, no la del disco (r4-3: un candado editado y corrido en el mismo commit se aprueba solo); (c)
   `niega-aprobar.cjs` en `bypassPermissions` **no se probó con `claude.exe`**: el clasificador del modo `auto` frenó lanzar una sesión en bypass
