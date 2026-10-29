@@ -18,8 +18,10 @@
 - [ ] **Misión 6 — escribir el ciclo de mejora del método** (al terminar la misión 5, con todo fresco; antes de la mensajería, porque es lo que
   más se evapora). Juntar en un documento reusable y genérico de vibe-kit lo que hoy está repartido (ADR-021, SPEC-investigacion-chats,
   observatorio/investigacion/METODO.md, docs/mision-4/PLAN.md):
-  - **revisar cómo trabajamos de verdad en estas sesiones** (pedido de Guido, 2026-10-26): leer los chats de las misiones 2-5 (los de la 4 ya
-    guardados; sumar los de A, C, E, los tramos 0-3 y la misión 5 desde `vibe-research`), cómo fue cada sesión y cuánto costó cada racimo;
+  - **revisar cómo trabajamos de verdad en estas sesiones** (pedido de Guido, 2026-10-26): leer los chats de las misiones 1-5, que están
+    **todos en el privado `vibe-research/chats/`** (índice por PC y la receta en su `LEEME.md`; los de `clientes` hasta D3.1, los de `Usuario`
+    de la misión 4; faltan A, C y E), cómo fue cada sesión y cuánto costó cada racimo. **Antes, cada PC suma lo suyo con la receta**: al
+    terminar la misión 5 en `Usuario` (y en `clientes` si se vuelve a trabajar ahí), sus chats van a `chats/<pc>/`;
   - cuándo arranca una vuelta y cada cuánto (el disparador: 3-4 meses, y recién con la versión nueva un mes andando en el piloto);
   - los 5 pasos: investigar → ordenar la casa → diseñar con Guido → construir con piloto → medir;
   - qué sale de cada paso y cuánto costó; los registros de cambios de método de los proyectos como fuente, además de los chats;
