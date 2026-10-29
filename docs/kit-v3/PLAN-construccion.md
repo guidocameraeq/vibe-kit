@@ -143,7 +143,34 @@ que viaja, barrera, o contra el SPEC-0 o un ADR) van arriba, y todas se deshacen
 D3.1 corre sin Guido, con su autorización previa (Cambios al plan, 2026-10-29), como D2.2: cada decisión con la recomendada, **las ⚠️
 arriba**, todas se deshacen antes del tag. El detalle, en [`SPEC-paquete-3.md`](SPEC-paquete-3.md).
 
-- (se llena a medida que avanza la fila)
+- ⚠️ **Sellé yo el delta del paquete 3** (provisorio, como autorizaste), después de la ronda 2 del red team sin ALTOS (r1: 6 ALTOS
+  integrados; r2: 0 ALTOS, 11 medios/bajos integrados). *Alternativa*: esperarte. Repasalo al volver: las ⚠️ de abajo son lo que más pesa.
+- ⚠️ **D-1 · Las 5 de A salen de un hook (`sensible.cjs`) que lee `sensible:` de la ficha vigente**, no de reglas `ask`/`deny` escritas en el
+  `settings.json` (lo que decía el SPEC-0 6.7). *Por qué*: el `settings` es del árbol de trabajo (el obrero lo edita) y en bypass una `ask` no
+  pregunta. *Alternativa*: el script que escribe las reglas en la zona propia.
+- ⚠️ **D-2 · Por PC se registra solo el corrector de secretos**, no un hook de arranque por PC (el orden 3 del SPEC-0 nombraba los dos). El
+  arranque del proyecto ya dice si el corrector está.
+- ⚠️ **D-3 · `secretos:`, `publicas:` y `datos-de-prueba:` de la ficha cuentan como barrera cuando aflojan** (sacar un nombre de `secretos:`
+  apagaba un freno sin tu OK). Ids nuevos en `ids:` del archivo de cambio, sin palabra nueva en `toca`.
+- ⚠️ **D-4 · El "aprobado de día" para que `db migrar` borre datos reales = la bandera `--borra-datos-reales` + la ventana de `sensible`**,
+  no un archivo de `cambios` (el SPEC-0 decía "exige un `aprobado`"). *Alternativa*: `toca: datos`, palabra nueva en un formato que viaja.
+- ⚠️ **D-5 · El freno a una clave pegada en el chat (`UserPromptSubmit`) falla abierto**: con `block`, un bug te dejaría sin chat ni para
+  pedir el `doctor`. Contradice la regla 4.7 para ese único hook.
+- ⚠️ **D-6 · El `deny` de archivos de F §5 (`.env*`, `*.pem`, `*.key`, `secrets/`…) entra al molde ahora**: ninguna pieza lo construía y el
+  criterio 11 lo daba por hecho.
+- ⚠️ **D-7 · Todos los hooks del kit se registran en forma exec** (`"command": "node", "args": […]`), también los tres que ya existían. Medido
+  (G0b): así andan con y sin Git Bash. *Alternativa*: exigir Git Bash.
+- ⚠️ **D-13 · Las variables de entorno de git peligrosas van por lista** (`GIT_DIR`, `GIT_CONFIG_*`…), no todo `GIT_*`: `GIT_EDITOR=true git
+  rebase --continue` es legítimo.
+- ⚠️ **D-14 · Una variable secreta se frena solo cuando su valor sale a la pantalla** (`echo $X`, `$env:X` suelto, con `-v`/`set -x`); como
+  argumento de otro programa (`curl -H "…$GH_TOKEN"`) pasa: es "usar sin ver". *Alternativa del red team*: negar toda mención salvo una lista.
+- ⚠️ **D-15 · `reset`/`rebase` en `main` se frenan solo si tiran commits ya publicados en `origin`**; sin remoto, preguntan. *Alternativa*:
+  negar todo `reset`/`rebase` en `main`, que frenaba tu `reset --soft HEAD~1`.
+- D-8 · Versión mínima de Claude Code **2.1.295** (la de la doc; medido en 2.1.309). D-9 · `sensible` solo sobre Bash/PowerShell (las MCP ya
+  preguntan solas; sin cicatriz). D-10 · El corrector protege también `.kit-rol`, el `.git` del worktree y lo de adentro del git común (`refs`,
+  `config`, `worktrees`…). D-11 · Las líneas de `gh` del arranque, al orden 6. D-12 · Las librerías del hook por PC van copiadas y
+  versionadas, con una prueba que exige que sean idénticas a las del molde.
+- `gitleaks` con plazo de 60 s y un reintento: en `clientes` tardó **47 s en frío** (Defender) y ~2 s después.
 
 ## Abrir D3.1 sin Guido (el prompt)
 
