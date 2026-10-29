@@ -840,8 +840,11 @@ test('rf-6 b: un .propio.sh (o un script del candado, un githook) ignorado → r
 test('rf-6 c: settings.local.json ignorado con disableAllHooks o hooks → rojo; con solo permissions y env → verde', () => {
   const d = repo({ archivos: { '.gitignore': '/.claude/worktrees/\n/.kit-rol\n/.claude/settings.local.json\n' } });
   const R = '.claude/settings.local.json';
-  escribir(d, R, '{"permissions": {"allow": ["Bash(npm test:*)"], "defaultMode": "acceptEdits"}, "env": {"A": "1"}}\n');
+  escribir(d, R, '{"permissions": {"allow": ["Bash(npm test:*)"], "defaultMode": "acceptEdits"}}\n');
   verde(d);
+  // rf-15: env mete código en cada hook de node (NODE_OPTIONS) y Claude Code no la escribe solo
+  escribir(d, R, '{"permissions": {"allow": []}, "env": {"NODE_OPTIONS": "--require ./x.js"}}\n');
+  assert.equal(rojo(d, /trae la clave env/)[0].hacer, 'sacá esa clave: apaga o cambia los frenos en esta PC sin pasar por un aprobado');
   escribir(d, R, '{"permissions": {"allow": []}, "disableAllHooks": true}\n');
   const f = rojo(d, /trae la clave disableAllHooks/);
   assert.equal(f[0].hacer, 'sacá esa clave: apaga o cambia los frenos en esta PC sin pasar por un aprobado');
@@ -859,7 +862,7 @@ test('rf-6 c: settings.local.json ignorado con disableAllHooks o hooks → rojo;
   verde(t);
 });
 
-test('rf-3: en un merge, el padre cuya ficha no se lee no achica nada: se compara contra el otro', () => {
+test('rf-3 y rf-18: en un merge, el padre cuya ficha no se lee no achica nada, y contra él no se puede juzgar → imposible', () => {
   const d = repo({ ficha: '---\nkit: [\n---\n' }); // nació rota, en el remoto
   g(d, 'checkout', '-q', '-b', 'modulo/x');
   commit(d, { 'b.txt': 'b\n' });
@@ -870,5 +873,128 @@ test('rf-3: en un merge, el padre cuya ficha no se lee no achica nada: se compar
   escribir(d, '.claude/kit.md', FICHA({ hash: 'aaaaaaaaaaaa' })); // contra main, solo un hash; contra la rama, ilegible
   g(d, 'add', '.claude/kit.md');
   g(d, 'commit', '-q', '-m', 'merge');
+  const m = g(d, 'rev-parse', 'HEAD');
+  const f = rojo(d, /rota y no hay una anterior/);
+  assert.deepEqual(f.map((x) => x.commit), [m]);
+  // contra main sola (el primer padre), nada: lo que frena es el lado ilegible
+  const ficha = B.archivosDe(d, m).find((x) => x.cat === 'ficha');
+  assert.equal(B.tocaArchivo(d, { ...ficha, padres: undefined }).ids.size, 0);
+});
+
+test('rf-13: un merge que deshace un freno del primer padre (queda igual a un padre que no lo tocó) → rojo en el merge', () => {
+  const S = (deny) => `{\n  "permissions": {\n    "deny": [${deny.map((x) => `"${x}"`).join(', ')}]\n  }\n}\n`;
+  const d = repo({ archivos: { '.claude/settings.json': S([]) } });
+  g(d, 'branch', 'vieja'); // armada antes del deny
+  aprobado(d, { toca: 'settings', ids: ['deny:Bash(rm -rf:*)'] });
+  commit(d, { '.claude/settings.json': S(['Bash(rm -rf:*)']) }, 'deny x');
+  g(d, 'checkout', '-q', 'vieja');
+  commit(d, { 'docs/x.md': 'x\n' }, 'docs en rama vieja');
+  g(d, 'checkout', '-q', 'main');
+  g(d, 'merge', '-q', '--no-ff', '--no-commit', 'vieja');
+  g(d, 'checkout', 'vieja', '--', '.claude/settings.json'); // el resultado, igual a la rama que nunca lo tocó
+  g(d, 'commit', '-q', '-m', 'merge que deshace el deny');
+  const m = g(d, 'rev-parse', 'HEAD');
+  const f = rojo(d, /deny:Bash\(rm -rf:\*\)/);
+  assert.deepEqual(f.map((x) => x.commit), [m]);
+  assert.deepEqual(C.toca(d, m), { categorias: ['settings'], ids: ['deny:Bash(rm -rf:*)'] }, 'cambios.toca cuenta lo mismo');
+  // lo mismo en la ficha: el merge vuelve a la base lo que el primer padre (ya en el remoto) había cambiado
+  const e = repo();
+  g(e, 'branch', 'vieja');
+  commit(e, { '.claude/kit.md': FICHA({ quitados: [STASH] }) }, 'algo en main');
+  push(e);
+  g(e, 'checkout', '-q', 'vieja');
+  commit(e, { 'b.txt': 'b\n' });
+  g(e, 'checkout', '-q', 'main');
+  g(e, 'merge', '-q', '--no-ff', '--no-commit', 'vieja');
+  g(e, 'checkout', 'vieja', '--', '.claude/kit.md');
+  g(e, 'commit', '-q', '-m', 'merge que vuelve la ficha atrás');
+  rojo(e, /git stash/);
+});
+
+test('rf-13: la cuenta de tocaArchivo en un merge es la de cambios.toca (los dos lados cambiaron cosas, y uno se revierte)', () => {
+  const S = (allow, deny) => `{\n  "permissions": {\n    "allow": [\n${allow.map((x) => `      "${x}"`).join(',\n')}\n    ],\n    "ask": [],\n    "otra": 1,\n    "deny": [\n${deny.map((x) => `      "${x}"`).join(',\n')}\n    ]\n  }\n}\n`;
+  const d = repo({ archivos: { '.claude/settings.json': S(['Bash(a)'], ['Bash(z)']) } });
+  g(d, 'checkout', '-q', '-b', 'modulo/x');
+  commit(d, { '.claude/settings.json': S(['Bash(a)', 'Bash(b)'], ['Bash(z)']) });
+  g(d, 'checkout', '-q', 'main');
+  commit(d, { '.claude/settings.json': S(['Bash(a)'], ['Bash(z)', 'Bash(c)']) });
+  g(d, 'merge', '-q', '--no-ff', '--no-commit', 'modulo/x');
+  escribir(d, '.claude/settings.json', S(['Bash(a)', 'Bash(b)'], ['Bash(z)'])); // trae b y deshace c
+  g(d, 'add', '.claude/settings.json');
+  g(d, 'commit', '-q', '-m', 'merge');
+  const m = g(d, 'rev-parse', 'HEAD');
+  const ids = new Set();
+  for (const f of B.archivosDe(d, m)) B.tocaArchivo(d, f).ids.forEach((x) => ids.add(x));
+  assert.deepEqual([...ids].sort(), ['deny:Bash(c)']);
+  assert.deepEqual(C.toca(d, m).ids, ['deny:Bash(c)']);
+});
+
+test('rf-13: si la ficha de la base no se lee, no se sabe qué cambió el otro padre: el merge se juzga contra el primero', () => {
+  const d = repo({ ficha: '---\nkit: [\n---\n' }); // la base: rota y sin ninguna anterior
+  g(d, 'branch', 'vieja');
+  commit(d, { '.claude/kit.md': FICHA({ plata: '[caja]' }) });
+  push(d);
+  g(d, 'checkout', '-q', 'vieja');
+  commit(d, { '.claude/kit.md': FICHA() });
+  g(d, 'checkout', '-q', 'main');
+  spawnSync('git', ['merge', '-q', '--no-ff', '--no-commit', 'vieja'], { cwd: d, env: process.env }); // conflicto en la ficha
+  escribir(d, '.claude/kit.md', FICHA());
+  g(d, 'add', '.claude/kit.md');
+  g(d, 'commit', '-q', '-m', 'merge con la ficha de la rama');
+  const m = g(d, 'rev-parse', 'HEAD');
+  const ids = new Set();
+  for (const f of B.archivosDe(d, m)) B.tocaArchivo(d, f).ids.forEach((x) => ids.add(x));
+  assert.ok(ids.has('sensible:plata'), JSON.stringify([...ids]));
+});
+
+test('rf-13: un merge sin base común (historias sin relación) no descuenta nada: lo que trae la otra historia se juzga en el merge', () => {
+  const d = repo({ archivos: { '.claude/settings.json': '{}\n' } });
+  g(d, 'checkout', '-q', '--orphan', 'otra');
+  g(d, 'rm', '-rq', '--cached', '.');
+  for (const e of fs.readdirSync(d)) if (e !== '.git') fs.rmSync(path.join(d, e), { recursive: true, force: true });
+  commit(d, { '.claude/settings.json': '{"permissions": {"allow": ["Bash(*)"]}}\n' }, 'otra historia');
+  g(d, 'checkout', '-q', '-f', 'main');
+  spawnSync('git', ['merge', '-q', '--no-ff', '--no-commit', '--allow-unrelated-histories', 'otra'], { cwd: d, env: process.env });
+  g(d, 'checkout', 'otra', '--', '.claude/settings.json');
+  g(d, 'commit', '-q', '-m', 'merge de historias sin relación');
+  const m = g(d, 'rev-parse', 'HEAD');
+  assert.ok(C.toca(d, m).ids.includes('allow:Bash(*)'));
+  assert.ok(rojo(d).some((f) => f.commit === m));
+});
+
+test('rf-18: la rama vieja como primer padre (merge al revés) y después fast-forward: deshacer el freno de main → rojo', () => {
+  const S = (deny) => `{\n  "permissions": {\n    "deny": [${deny.map((x) => `"${x}"`).join(', ')}]\n  }\n}\n`;
+  const d = repo({ archivos: { '.claude/settings.json': S([]) } });
+  const antes = g(d, 'rev-parse', 'HEAD');
+  aprobado(d, { toca: 'settings', ids: ['deny:Bash(rm -rf:*)'] });
+  commit(d, { '.claude/settings.json': S(['Bash(rm -rf:*)']) }, 'deny x');
+  g(d, 'switch', '-q', '-c', 'vieja', antes);
+  commit(d, { 'docs/x.md': 'x\n' }, 'docs vieja');
+  g(d, 'merge', '-q', '--no-ff', '--no-commit', 'main');
+  g(d, 'checkout', 'vieja', '--', '.claude/settings.json');
+  g(d, 'commit', '-q', '-m', 'merge main en vieja, quedándome con su settings');
+  const m = g(d, 'rev-parse', 'HEAD');
+  g(d, 'switch', '-q', 'main');
+  g(d, 'merge', '-q', '--ff-only', 'vieja');
+  assert.equal(g(d, 'rev-parse', 'HEAD'), m, 'fast-forward');
+  const f = rojo(d, /deny:Bash\(rm -rf:\*\)/);
+  assert.ok(f.some((x) => x.commit === m));
+  assert.deepEqual(C.toca(d, m), { categorias: ['settings'], ids: ['deny:Bash(rm -rf:*)'] });
+});
+
+test('rf-18: el merge legítimo de rf-3 con la rama como primer padre (al revés) y fast-forward → verde', () => {
+  const d = repo();
+  const { id } = aprobado(d);
+  g(d, 'checkout', '-q', '-b', 'modulo/x');
+  const x = quitarStash(d);
+  g(d, 'checkout', '-q', 'main');
+  commit(d, { 'b.txt': 'b\n' }, 'main avanza');
+  g(d, 'checkout', '-q', 'modulo/x');
+  g(d, 'merge', '-q', '--no-ff', '-m', 'main en la rama', 'main');
+  const m = g(d, 'rev-parse', 'HEAD');
+  g(d, 'checkout', '-q', 'main');
+  g(d, 'merge', '-q', '--ff-only', 'modulo/x');
   verde(d);
+  assert.deepEqual(C.toca(d, m), { categorias: [], ids: [] });
+  assert.equal(cli(d, 'anotar-sha', id, x).codigo, 0);
 });

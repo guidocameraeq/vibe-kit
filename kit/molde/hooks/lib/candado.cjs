@@ -12,6 +12,7 @@ const contexto = require('./contexto.cjs');
 const arbol = require('./arbol.cjs');
 const topes = require('./topes.cjs');
 const frenosLog = require('./frenos-log.cjs');
+const ficha = require('./ficha.cjs');
 const { datosFichaModulo } = require('./inyeccion.cjs');
 const barreras = require('./barreras.cjs');
 const cambiosRuta = require('./cambios-ruta.cjs');
@@ -416,8 +417,9 @@ function correr(raiz, opciones = {}) {
   };
 
   const fv = contexto.fichaVigente(raiz);
-  // rf-9: la ficha vigente rota no traba sola (si no, el commit que la arregla no puede pasar): se avisa y se corre TODO con los
-  // frenos de fábrica, los más estrictos (candado entero, ningún freno quitado). barreras compara cada commit contra la última que lee.
+  // rf-9: la ficha vigente rota no traba sola (si no, el commit que la arregla no puede pasar): se avisa y se corre con los frenos de
+  // fábrica: ningún freno quitado. Qué corre (piezas.candado) sale de la última ficha que se lee (rf-14: si el proyecto lo tenía
+  // apagado, prenderlo traba el arreglo); sin ninguna que se lea, entero. barreras compara cada commit contra la última que lee.
   const rota = fv.estado === 'rota';
   const avisos = [];
   if (rota) {
@@ -427,7 +429,11 @@ function correr(raiz, opciones = {}) {
   const datosFicha = fv.estado === 'ok' ? fv.datos : null;
   if (!rota && !datosFicha && !barreras.fichaEnAlgunLado(raiz)) return { codigo: 0, lineas: ['sin ficha: candado apagado'], fallas: [], corrieron: [] };
 
-  const encendido = rota || prendido(datosFicha);
+  let encendido = prendido(datosFicha);
+  if (rota) {
+    const u = fv.ref ? barreras.ultimaFichaQueSeLee(raiz, fv.ref) : null;
+    encendido = u ? prendido(ficha.leer(u.texto.toString('utf8')).datos) : true;
+  }
   const quitados = rota ? new Set() : quitadosVigentes(datosFicha, ahora);
   const pedidos = modo === 'parcial' ? PARCIAL : modo === 'ids' ? IDS.filter((x) => (opciones.ids || []).includes(x)) : IDS;
   const corrieron = pedidos.filter((id) => id === 'barreras' || (encendido && !quitados.has(id)));

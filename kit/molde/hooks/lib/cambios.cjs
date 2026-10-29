@@ -578,30 +578,40 @@ function rutasContra(raiz, sha, padre) {
   return partirZ(r.stdout).sort();
 }
 
-// Los lados de lo que hay que juzgar: [[{ rel, antes: () => Buffer|null, despues: () => [Buffer|null] }]], uno por padre.
-// Lo pendiente y un commit común tienen un lado; un merge, uno por padre (rf-3: se juzga solo lo que difiere de TODOS).
-function cambiosDe(raiz, cual) {
-  if (cual === 'pendiente') {
-    const head = shaDe(raiz, 'HEAD');
-    return [
-      rutasPendientes(raiz, head).map((rel) => ({
-        rel,
-        antes: () => (head ? blob(raiz, head, rel) : null),
-        // Lo que se commitearía (el índice) y lo del disco: se juzgan los dos, así no se escapa lo que está solo en uno.
-        despues: () => [blob(raiz, '', rel), leerDisco(path.join(raiz, ...rel.split('/')))],
-      })),
-    ];
+// Las bases de un merge entre <a> y <b> (git merge-base --all): [sha]. Vacía si no tienen ancestro común.
+function basesDeMerge(raiz, a, b) {
+  const r = git.correr(['merge-base', '--all', a, b], { cwd: raiz });
+  if (!r.ok) {
+    if (r.codigo === 1 && !r.error) return [];
+    throw new Error('git merge-base no anduvo');
   }
-  const sha = shaDe(raiz, cual);
-  if (!sha) throw new Error('ese commit no existe');
-  const ps = padres(raiz, sha);
-  return (ps.length ? ps : [null]).map((p) =>
-    rutasContra(raiz, sha, p).map((rel) => ({
-      rel,
-      antes: () => (p ? blob(raiz, p, rel) : null),
-      despues: () => [blob(raiz, sha, rel)],
-    })),
-  );
+  return String(r.stdout || '').split(/\s+/).filter(Boolean);
+}
+
+// Los pares categoría·id que cambian de <desde> (null: nada) a <hasta>, dos commits.
+function paresEntre(raiz, desde, hasta) {
+  const s = new Set();
+  for (const rel of rutasContra(raiz, hasta, desde)) {
+    const cat = categoriaDe(rel);
+    if (!cat) continue;
+    const conContenido = cat === 'ficha' || cat === 'settings';
+    paresArchivo(cat, rel, conContenido && desde ? blob(raiz, desde, rel) : null, conContenido ? [blob(raiz, hasta, rel)] : []).forEach((p) => s.add(p));
+  }
+  return s;
+}
+
+// descontarMerge(juzgar, otros) → lo que queda por juzgar de un merge contra UNO de sus padres (rf-3, rf-13; se hace contra cada
+// padre, rf-18). juzgar: los pares que cambian contra ese padre. otros: por cada otro padre { distinto: pares en que el merge difiere de ese padre, cambio: pares que ese padre cambió
+// respecto de TODAS las bases del merge, o null si no se puede saber (sin base, o una ficha que no se lee) }. Un par se descuenta
+// solo si el merge quedó igual a un padre QUE LO CAMBIÓ: eso lo trajo la rama y lo juzgan sus commits. Si el merge quedó igual a un
+// padre que no lo tocó (igual a la base), el merge deshace lo del primer padre: se juzga como un commit común.
+function descontarMerge(juzgar, otros) {
+  const queda = new Set(juzgar);
+  for (const o of otros) {
+    if (!o.cambio) continue;
+    for (const x of juzgar) if (!o.distinto.has(x) && o.cambio.has(x)) queda.delete(x);
+  }
+  return queda;
 }
 
 function leerDisco(abs) {
@@ -634,19 +644,45 @@ function interseccion(conjuntos) {
 }
 
 // toca(raiz, sha | 'pendiente') → { categorias, ids }: qué barreras toca un commit o lo pendiente (el índice y el disco contra HEAD,
-// sin lo ignorado salvo lo de barrera). Un commit común, contra su padre; un merge, solo lo que el merge mismo introduce (rf-3): los
-// pares que cambian contra CADA padre (lo que trae una rama ya lo juzgan sus commits, uno por uno). Ids normalizados (r5-4). Tira si git no puede.
+// sin lo ignorado salvo lo de barrera). Un commit común, contra su padre; un merge, contra CADA padre menos lo que trajo otro padre
+// que lo cambió respecto de las bases (descontarMerge; rf-3, rf-13, rf-18), y cuenta la unión. Ids normalizados (r5-4). Tira si git no puede.
 function toca(raiz, cual) {
-  const lados = cambiosDe(raiz, cual).map((lado) => {
+  if (cual === 'pendiente') {
+    const head = shaDe(raiz, 'HEAD');
     const s = new Set();
-    for (const c of lado) {
-      const cat = categoriaDe(c.rel);
+    for (const rel of rutasPendientes(raiz, head)) {
+      const cat = categoriaDe(rel);
       if (!cat) continue;
-      paresArchivo(cat, c.rel, cat === 'ficha' || cat === 'settings' ? c.antes() : null, cat === 'ficha' || cat === 'settings' ? c.despues() : []).forEach((p) => s.add(p));
+      const conContenido = cat === 'ficha' || cat === 'settings';
+      // Lo que se commitearía (el índice) y lo del disco: se juzgan los dos, así no se escapa lo que está solo en uno.
+      const despues = conContenido ? [blob(raiz, '', rel), leerDisco(path.join(raiz, ...rel.split('/')))] : [];
+      paresArchivo(cat, rel, conContenido && head ? blob(raiz, head, rel) : null, despues).forEach((p) => s.add(p));
     }
-    return s;
+    return desdePares(s);
+  }
+  const sha = shaDe(raiz, cual);
+  if (!sha) throw new Error('ese commit no existe');
+  const ps = padres(raiz, sha);
+  if (ps.length < 2) return desdePares(paresEntre(raiz, ps.length ? ps[0] : null, sha));
+  // rf-18: contra CADA padre (si no, la rama vieja como primer padre y un fast-forward después lavan lo que deshace el merge).
+  const contra = ps.map((p) => paresEntre(raiz, p, sha));
+  const bases = new Map();
+  const basesDe = (i, j) => {
+    const k = i < j ? `${i}|${j}` : `${j}|${i}`;
+    if (!bases.has(k)) bases.set(k, basesDeMerge(raiz, ps[i], ps[j]));
+    return bases.get(k);
+  };
+  const total = new Set();
+  ps.forEach((_, i) => {
+    const otros = [];
+    ps.forEach((pj, j) => {
+      if (j === i) return;
+      const bs = basesDe(i, j);
+      otros.push({ distinto: contra[j], cambio: bs.length ? interseccion(bs.map((b) => paresEntre(raiz, b, pj))) : null });
+    });
+    descontarMerge(contra[i], otros).forEach((x) => total.add(x));
   });
-  return desdePares(interseccion(lados));
+  return desdePares(total);
 }
 
 // El primer commit de <desde>..<hasta> (en orden, del más viejo) que toca alguna de las categorías de `tocaLista`, o null.
@@ -892,6 +928,9 @@ module.exports = {
   ignoradosDeBarrera,
   rutasPendientes,
   rutasContra,
+  basesDeMerge,
+  paresEntre,
+  descontarMerge,
   IGNORADOS_BARRERA,
   toca,
   primerQueToca,

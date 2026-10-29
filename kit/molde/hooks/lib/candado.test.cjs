@@ -378,19 +378,25 @@ test('correr: lecturas lista y no cambia la salida; cada frenada deja su rengló
   assert.equal(leerArchivo(d, '.claude/frenos.log').trim().split('\n').length, 2);
 });
 
-test('correr: ficha vigente rota (rf-9) → no da 1 sola: avisa y corre los nueve con los frenos de fábrica; el arreglo que la deja legible pasa', () => {
-  const q = '{id: candado:raiz, por: "migrando", hasta: siempre}';
-  const vieja = FICHA({ candado: 'no', quitados: [q] }); // la última que se lee: candado apagado y raiz quitado
-  const ROTA = '---\nkit: 2.4.3\nnivel: raro\nvars:\n  proyecto: px\n---\n';
-  const d = repo({}, { ficha: vieja });
+const ROTA = '---\nkit: 2.4.3\nnivel: raro\nvars:\n  proyecto: px\n---\n';
+// Un repo con remoto cuya ficha vigente (origin/main) está rota; la última que se lee es `vieja`.
+function conFichaRota(vieja, archivos = {}) {
+  const d = repo(archivos, { ficha: vieja });
   const bare = `${d}.git`;
   g(TMP, 'init', '-q', '--bare', bare);
   g(d, 'remote', 'add', 'origin', bare);
   commit(d, { '.claude/kit.md': ROTA }, 'la rompe');
-  g(d, 'push', '-q', '-u', 'origin', 'main'); // la vigente (origin/main) está rota
+  g(d, 'push', '-q', '-u', 'origin', 'main');
+  return d;
+}
+
+test('correr: ficha vigente rota (rf-9) → no da 1 sola: avisa y corre con los frenos de fábrica (sin quitados); el arreglo que la deja legible pasa', () => {
+  const q = '{id: candado:raiz, por: "migrando", hasta: siempre}';
+  const vieja = FICHA({ quitados: [q] }); // la última que se lee: candado prendido y raiz quitado
+  const d = conFichaRota(vieja);
   const r = correr(d, { log: true });
   assert.equal(r.lineas[0], 'ficha rota: .claude/kit.md:3 — corré doctor (corro con los frenos de fábrica)');
-  assert.deepEqual(r.corrieron, K.IDS, 'entero, aunque la última que se lee lo apague y quite raiz');
+  assert.deepEqual(r.corrieron, K.IDS, 'entero: el quitado de raiz no vale con la ficha rota');
   assert.equal(r.codigo, 0, r.lineas.join('\n'));
   assert.match(r.lineas[r.lineas.length - 1], /^candado: en verde \(raiz, /);
   assert.match(leerArchivo(d, '.claude/frenos.log'), / · candado:ficha · estructura · \.claude\/kit\.md\n$/);
@@ -402,7 +408,7 @@ test('correr: ficha vigente rota (rf-9) → no da 1 sola: avisa y corre los nuev
   // el commit que la arregla (vuelve a la última que se lee) pasa; uno que además afloja, no
   commit(d, { '.claude/kit.md': vieja }, 'la arregla');
   assert.equal(correr(d).codigo, 0);
-  commit(d, { '.claude/kit.md': FICHA({ candado: 'no', quitados: [q, '{id: deny:Bash(git stash:*), por: "x", hasta: siempre}'] }) });
+  commit(d, { '.claude/kit.md': FICHA({ quitados: [q, '{id: deny:Bash(git stash:*), por: "x", hasta: siempre}'] }) });
   const a = correr(d);
   assert.equal(a.codigo, 1);
   assert.ok(a.lineas.some((l) => /^candado:barreras · .*git stash/.test(l)), a.lineas.join('\n'));
@@ -411,4 +417,21 @@ test('correr: ficha vigente rota (rf-9) → no da 1 sola: avisa y corre los nuev
   const re = correr(e);
   assert.equal(re.lineas[0], 'ficha rota: .claude/kit.md:2 — corré doctor (corro con los frenos de fábrica)');
   assert.deepEqual(re.corrieron, K.IDS);
+});
+
+test('correr: ficha vigente rota con el candado apagado en la última que se lee (rf-14) → solo barreras; el arreglo pasa con docs/ viejo', () => {
+  const vieja = FICHA({ candado: 'no' });
+  const d = conFichaRota(vieja, { 'docs/viejo.md': 'de antes del kit\n' });
+  const r = correr(d);
+  assert.equal(r.lineas[0], 'ficha rota: .claude/kit.md:3 — corré doctor (corro con los frenos de fábrica)');
+  assert.deepEqual(r.corrieron, ['barreras']);
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  commit(d, { '.claude/kit.md': vieja }, 'la arregla');
+  const a = correr(d);
+  assert.equal(a.codigo, 0, a.lineas.join('\n'));
+  // prendida en la última que se lee: corre entero y raiz frena
+  const e = conFichaRota(FICHA(), { 'docs/viejo.md': 'x\n' });
+  const re = correr(e);
+  assert.deepEqual(re.corrieron, K.IDS);
+  assert.ok(re.lineas.some((l) => l.startsWith('candado:raiz · ')));
 });

@@ -144,12 +144,13 @@ function fichaEnAlgunLado(raiz) {
 // Los archivos de barrera que cambian en un commit o en lo pendiente (índice y disco contra HEAD, sin lo ignorado salvo lo de
 // barrera, rf-6 b): [{ rel, cat, antes: Buffer|null, despues: [Buffer|null], padre: sha|null, padres? }]. Es la misma enumeración
 // que hace cambios.toca por dentro (rutasPendientes, rutasContra), con categoriaDe de cambios.cjs; acá, archivo por archivo.
-// Un merge (rf-3): solo las rutas que difieren de TODOS sus padres (la semántica de git diff-tree --cc), con `padres` = el antes
-// de cada uno; `padre` y `antes` son los del primero (las exenciones). Lo que trae la rama lo juzgan sus commits, uno por uno.
+// Un merge (rf-3, rf-13, rf-18): las rutas que cambian contra cualquier padre, con `padres` y `bases` (las de git merge-base
+// --all entre cada par de padres); tocaArchivo lo juzga contra cada padre y descuenta solo lo que trajo otro padre que lo cambió.
 function archivosDe(raiz, cual) {
   let rutas;
   let padre;
   let ps = [];
+  let bases = [];
   let despuesDe;
   if (cual === PENDIENTE) {
     padre = shaDe(raiz, 'HEAD');
@@ -159,9 +160,13 @@ function archivosDe(raiz, cual) {
     ps = padres(raiz, cual);
     padre = ps.length ? ps[0] : null;
     rutas = C.rutasContra(raiz, cual, padre);
-    for (const otro of ps.slice(1)) {
-      const s = new Set(C.rutasContra(raiz, cual, otro));
-      rutas = rutas.filter((r) => s.has(r));
+    if (ps.length > 1) {
+      // rf-18: un merge se juzga contra CADA padre, así que entran las rutas que cambian contra cualquiera.
+      const s = new Set(rutas);
+      for (const p of ps.slice(1)) C.rutasContra(raiz, cual, p).forEach((x) => s.add(x));
+      rutas = [...s];
+      bases = ps.map((pi, i) => ps.map((pj, j) => (j === i ? [] : j < i ? null : C.basesDeMerge(raiz, pi, pj))));
+      bases.forEach((fila, i) => fila.forEach((x, j) => (x === null ? (fila[j] = bases[j][i]) : null)));
     }
     despuesDe = (rel) => [blob(raiz, cual, rel)];
   }
@@ -171,7 +176,11 @@ function archivosDe(raiz, cual) {
     .filter((f) => f.cat)
     .map((f) => {
       const e = { ...f, padre, antes: padre ? blob(raiz, padre, f.rel) : null, despues: despuesDe(f.rel) };
-      if (ps.length > 1) e.padres = ps.map((p, i) => ({ sha: p, antes: i === 0 ? e.antes : blob(raiz, p, f.rel) }));
+      if (ps.length > 1) {
+        // padres: el antes de cada padre; bases[i][j]: las bases del merge entre el padre i y el j, con su antes.
+        e.padres = ps.map((p, i) => ({ sha: p, antes: i === 0 ? e.antes : blob(raiz, p, f.rel) }));
+        e.bases = bases.map((fila) => fila.map((bs) => bs.map((x) => ({ sha: x, antes: blob(raiz, x, f.rel) }))));
+      }
       return e;
     });
 }
@@ -221,13 +230,32 @@ function tocaContraUno(raiz, f) {
 }
 
 // Lo que toca UN archivo: { cats: Set, ids: Set, imposible: texto | null }. imposible = rojo que ningún cambio cubre.
-// En un merge (rf-3): los pares que cambian contra cada padre, intersecados (lo que el merge mismo introduce). Un padre cuya
-// ficha no se lee no achica nada (vale como "todo"); si no se lee la de ninguno, imposible.
+// En un merge (rf-3, rf-13, rf-18): contra CADA padre, lo que cambia menos lo que quedó igual a otro padre QUE LO CAMBIÓ respecto
+// de todas las bases (cambios.descontarMerge); cuenta la unión. Un lado cuya ficha no se lee no descuenta nada, y contra un padre
+// cuya ficha no se lee (ni la última), imposible.
 function tocaArchivo(raiz, f) {
-  const lados = (f.padres || [{ sha: f.padre, antes: f.antes }]).map((p) => tocaContraUno(raiz, { ...f, padre: p.sha, antes: p.antes }));
-  const sanos = lados.filter((l) => !l.imposible);
-  const r = C.desdePares(C.interseccion((sanos.length ? sanos : lados).map((l) => l.pares)));
-  return { cats: new Set(r.categorias), ids: new Set(r.ids), imposible: sanos.length ? null : lados[0].imposible };
+  if (!f.padres) {
+    const uno = tocaContraUno(raiz, f);
+    const r = C.desdePares(uno.pares);
+    return { cats: new Set(r.categorias), ids: new Set(r.ids), imposible: uno.imposible };
+  }
+  const contra = f.padres.map((p) => tocaContraUno(raiz, { ...f, padre: p.sha, antes: p.antes }));
+  const total = new Set();
+  let imposible = null;
+  f.padres.forEach((_, i) => {
+    const otros = [];
+    f.padres.forEach((pj, j) => {
+      if (j === i) return;
+      const bs = f.bases[i][j];
+      const desdeBases = bs.map((x) => tocaContraUno(raiz, { ...f, padre: x.sha, antes: x.antes, despues: [pj.antes] }));
+      const sinSaber = !bs.length || contra[j].imposible || desdeBases.some((x) => x.imposible);
+      otros.push({ distinto: contra[j].pares, cambio: sinSaber ? null : C.interseccion(desdeBases.map((x) => x.pares)) });
+    });
+    C.descontarMerge(contra[i].pares, otros).forEach((x) => total.add(x));
+    if (contra[i].imposible && !imposible) imposible = contra[i].imposible;
+  });
+  const r = C.desdePares(total);
+  return { cats: new Set(r.categorias), ids: new Set(r.ids), imposible };
 }
 
 // ---------------------------------------------------------------- exención (b): la ficha nace con los valores de fábrica
@@ -478,9 +506,10 @@ function marcasOcultas(raiz) {
 }
 
 // (c) .claude/settings.local.json (ignorado: es de esta PC) con disableAllHooks o hooks apaga o cambia los frenos sin pasar por un
-// aprobado. permissions y env no se juzgan (los escribe Claude Code). Si no está ignorado, lo juzga lo pendiente como a cualquier settings.
+// aprobado; con env (rf-15), mete código en cada hook (NODE_OPTIONS: "--require ./x.js"), y Claude Code no la escribe solo.
+// permissions no se juzga (la escribe Claude Code). Si no está ignorado, lo juzga lo pendiente como a cualquier settings.
 const RUTA_SETTINGS_LOCAL = '.claude/settings.local.json';
-const CLAVES_LOCALES = ['disableAllHooks', 'hooks'];
+const CLAVES_LOCALES = ['disableAllHooks', 'hooks', 'env'];
 function settingsLocal(raiz) {
   const b = leerDisco(path.join(raiz, ...RUTA_SETTINGS_LOCAL.split('/')));
   if (b === null) return [];

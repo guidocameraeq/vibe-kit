@@ -619,3 +619,19 @@ test('idsFicha: los pares categoría·id (un id de frenos.quitados que se llama 
   assert.ok([...borrada.pares].includes(C.par('autorizado', 'nivel')), 'la borrada cuenta cada id en las tres');
   assert.deepEqual(C.interseccion([]), new Set());
 });
+
+test('toca de un merge (rf-13): igual a un padre que NO lo cambió (deshace lo del primero) cuenta; sin base común, no se descuenta nada', () => {
+  const d = repo({ '.claude/hooks/a.cjs': 'a' });
+  g(d, 'branch', 'vieja');
+  commit(d, { '.claude/hooks/a.cjs': 'a2' });
+  g(d, 'checkout', '-q', 'vieja');
+  commit(d, { 'docs/x.md': 'x' });
+  g(d, 'checkout', '-q', 'main');
+  g(d, 'merge', '-q', '--no-ff', '--no-commit', 'vieja');
+  g(d, 'checkout', 'vieja', '--', '.claude/hooks/a.cjs');
+  g(d, 'commit', '-q', '-m', 'merge que vuelve el hook atrás');
+  assert.deepEqual(C.toca(d, g(d, 'rev-parse', 'HEAD')).ids, ['hooks:.claude/hooks/a.cjs']);
+  assert.deepEqual(C.descontarMerge(new Set(['p']), [{ distinto: new Set(), cambio: null }]), new Set(['p']), 'sin saber qué cambió el otro padre, nada se descuenta');
+  assert.deepEqual(C.descontarMerge(new Set(['p', 'q']), [{ distinto: new Set(['q']), cambio: new Set(['p', 'q']) }]), new Set(['q']));
+  assert.deepEqual(C.basesDeMerge(d, 'HEAD^1', 'HEAD^2').length, 1);
+});
