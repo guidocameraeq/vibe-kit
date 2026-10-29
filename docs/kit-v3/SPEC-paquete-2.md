@@ -580,7 +580,15 @@ E1 y E2 en paralelo (no comparten archivos), cada uno en su worktree; el resto e
 | rf-11 BAJO | El resultado de `barreras --molde` no está en la tabla de `rehacer.sh` | Se exige por la salida; la tabla trae `estruc` (el `todo`). Queda así |
 | rf-12 BAJO | Faltaban pruebas del camino legítimo | Sumadas con cada arreglo |
 
-**Lo que esto no cierra (rf-5, rf-7, rf-8; amplía r4-1 b)**: en bypass, una sesión que llega al checkout principal (la de Guido, o un obrero o
+**La vuelta de verificación** (el mismo revisor, sobre los arreglos): rf-1 a rf-6 cerrados; encontró **rf-13 ALTO**, una regresión del arreglo
+de rf-3 (un merge que se queda con el `settings` viejo de una rama deshacía un freno sin que nadie lo viera) → un merge descuenta solo lo que
+un padre **cambió respecto de la base del merge**; rf-14 MEDIO (con la ficha rota se prendían los chequeos que el proyecto tenía apagados y
+el arreglo seguía trabado) → `piezas.candado` sale de la última ficha que se lee; rf-15 BAJO (`env` en `settings.local.json`, por ejemplo
+`NODE_OPTIONS`) → rojo; rf-16 BAJO (reescribir la historia local a propósito, un `reset` o un `rebase` de la rama por defecto, hace que un
+`aprobado` vuelva a servir) → escrito abajo y al orden 3 (4.4); rf-17 BAJO: **con la ficha vigente rota el candado avisa y corre con los
+frenos de fábrica** (salida según lo que encuentre), no "1 por la ficha" como decía F4: si no, el commit que la arregla no podía pasar.
+
+**Lo que esto no cierra (rf-5, rf-7, rf-8, rf-16; amplía r4-1 b)**: en bypass, una sesión que llega al checkout principal (la de Guido, o un obrero o
 nocturno que sale de su worktree con `cd`) puede esquivar el hook ofuscando el comando o fabricar el sello por Bash; lo ya pusheado no se
 vuelve a juzgar; y el aviso de `/inicio` lo puede esconder el mismo que falsifica (filtra por la fecha del sello y las marcas). Hasta el
 orden 3 (hook de 4.5 sobre `cd`/`update-index`/`update-ref`, pre-commit y pre-push) y el 5 (resumen del día), el rastro es git: cada

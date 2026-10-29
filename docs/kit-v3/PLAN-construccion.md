@@ -167,7 +167,10 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
 - **Paquete 3 · de D2.2**: (a) `KIT_PLAZO_ARRANQUE_MS` en `doctor` (era la (d) de D2.1); (b) el pre-commit corre `estructura.cjs` **desde
   la versión de `origin/<rama por defecto>`**, no la del disco (r4-3: un candado editado y corrido en el mismo commit se aprueba solo); (c)
   `niega-aprobar.cjs` en `bypassPermissions` **no se probó con `claude.exe`**: el clasificador del modo `auto` frenó lanzar una sesión en bypass
-  ("Create Unsafe Agents") y F3 lo probó con `dontAsk`, que va por el mismo camino; en bypass lo cubren las pruebas.
+  ("Create Unsafe Agents") y F3 lo probó con `dontAsk`, que va por el mismo camino; en bypass lo cubren las pruebas; (d) del revisor frío
+  de D2.2: el hook de git de 4.4 suma `git update-index` (skip-worktree), `git reset`/`rebase` de la rama por defecto (rf-16) y `cd` al checkout
+  principal desde un worktree (rf-5); en el pre-commit, lo pendiente de `barreras` es solo el índice (rf-10); y lo ya pusheado se juzga en un
+  pre-push (rf-7).
 - **Paquete 4 · de D2.2: los diez pedidos de P5.1 dieron 6 de 10** (`claude.exe -p` 2.1.309, `--permission-mode plan`, dos corridas por
   pedido, mismo veredicto). Los 4 chicos y los 2 con director, bien; **los 4 "módulo solo" invocan `/arquitecto` (la conducta correcta) pero
   sin escribir antes la línea del tamaño**, aunque la skill lo pide "antes de cualquier herramienta"; y los chicos la dicen al final, no al
