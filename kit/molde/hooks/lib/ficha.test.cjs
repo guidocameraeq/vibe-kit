@@ -53,10 +53,10 @@ const ESPERADO = {
     'escribir-produccion': 'por-comando-con-foto',
   },
   sensible: {
-    'datos-reales': ['tabla clientes de la base real'],
+    'datos-reales': ['tabla:clientes', 'db borrar'],
     plata: 'no',
-    'sale-afuera': ['mails a gerencia'],
-    claves: ['cargar-secreto'],
+    'sale-afuera': ['node scripts/mandar-mails.cjs'],
+    claves: ['supabase secrets set', 'gh secret set'],
     release: ['npm run release'],
   },
   secretos: ['DB_URL', 'HUB_TOKEN'],
