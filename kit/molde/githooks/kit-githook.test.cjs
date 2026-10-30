@@ -2,7 +2,9 @@
 // Pruebas de los githooks del molde (P4.6; criterio 8 del delta del paquete 3): el `sh` de tres renglones, el runner kit-githook.cjs
 // corrido por git de verdad (git commit, git merge, git push contra un remoto bare local) y, lo que tarda, en proceso.
 // Repos temporales armados acá con el molde instanciado (hooks, scripts, githooks, settings), sin la configuración de git de la PC.
-// gitleaks: uno FALSO (node renombrado + un --require) en un PATH armado a mano, salvo la prueba con el de verdad (si está).
+// gitleaks: uno FALSO en un PATH armado a mano, salvo la prueba con el de verdad (si está). En Windows es node renombrado a
+// gitleaks.exe: su primer argumento ("git") lo toma como el script, y cada repo de prueba trae un git.js (excluido) que carga el falso.
+// (Antes iba con NODE_OPTIONS --require, y desde rf3-3 el sh y el runner sacan toda NODE_* del entorno.)
 // Ninguna clave literal: la de prueba se arma en tiempo de corrida. Corren con: node --test "kit/**/*.test.cjs".
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -63,9 +65,11 @@ fs.writeFileSync(
 const path = require('path');
 const fs = require('fs');
 function fake(args) {
-  if (args[0] && path.isAbsolute(args[0])) args[0] = path.basename(args[0]); // node renombrado: su primer argumento es el "script"
+  if (args[0] && path.isAbsolute(args[0])) args[0] = path.basename(args[0]).replace(/\\.js$/, ''); // node renombrado: el "script" es <repo>/git.js
   const modo = process.env.FAKE_GITLEAKS || 'verde';
   if (process.env.FAKE_GITLEAKS_LOG) fs.appendFileSync(process.env.FAKE_GITLEAKS_LOG, JSON.stringify(args) + '\\n');
+  // las variables que le llegan y no debería ver (rf3-2, rf3-3)
+  if (process.env.FAKE_GITLEAKS_ENV) fs.appendFileSync(process.env.FAKE_GITLEAKS_ENV, JSON.stringify(Object.keys(process.env).filter((k) => /^(node|gitleaks)_/i.test(k))) + '\\n');
   const i = args.indexOf('--report-path');
   const reporte = i >= 0 ? args[i + 1] : null;
   if (modo === 'colgado') Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 600000);
@@ -83,6 +87,12 @@ if (/^gitleaks/i.test(path.basename(process.execPath))) fake(process.argv.slice(
 else if (require.main === module) fake(process.argv.slice(2));
 `
 );
+// En Windows, lo que el gitleaks.exe falso corre como script desde la raíz del repo (git → git.js).
+const plantarFalso = (d) => {
+  if (!ES_WIN) return;
+  fs.writeFileSync(path.join(d, 'git.js'), `require(${JSON.stringify(FAKE_JS)});\n`);
+  fs.appendFileSync(path.join(d, '.git', 'info', 'exclude'), '/git.js\n');
+};
 if (ES_WIN) {
   fs.copyFileSync(process.execPath, path.join(FAKE_DIR, 'gitleaks.exe'));
 } else {
@@ -100,7 +110,6 @@ function entorno(gitleaks = 'verde', extra = {}) {
   else if (gitleaks) {
     p = `${FAKE_DIR}${path.delimiter}${p}`;
     env.FAKE_GITLEAKS = gitleaks;
-    if (ES_WIN) env.NODE_OPTIONS = `--require ${JSON.stringify(FAKE_JS)}`;
   }
   env.PATH = p;
   return { ...env, ...extra };
@@ -212,6 +221,7 @@ function repo(o = {}) {
   if (o.remoto === false) g(d, ['remote', 'remove', 'origin']);
   g(d, ['config', 'core.hooksPath', '.githooks']);
   if (!ES_WIN) for (const h of ['pre-commit', 'pre-merge-commit', 'pre-push']) fs.chmodSync(path.join(d, '.githooks', h), 0o755);
+  plantarFalso(d);
   return d;
 }
 const log = (d) => {
@@ -222,6 +232,14 @@ const log = (d) => {
   }
 };
 const head = (d) => gt(d, 'rev-parse', 'HEAD');
+// El log sin versionar (rf3-6): lo que un pase agrega va a <git-common-dir>/kit-frenos.log.
+const logLocal = (d) => {
+  try {
+    return fs.readFileSync(path.join(gt(d, 'rev-parse', '--path-format=absolute', '--git-common-dir'), 'kit-frenos.log'), 'utf8');
+  } catch (e) {
+    return '';
+  }
+};
 
 // Un barreras.cjs "editado para dar verde": revisarBarreras no encuentra nada nunca.
 const BARRERAS_TRAMPA = MOLDE_ARCHIVOS['.claude/hooks/lib/barreras.cjs'].replace('function revisarBarreras(raiz, opciones = {}) {', 'function revisarBarreras(raiz, opciones = {}) {\n  return [];');
@@ -239,7 +257,7 @@ test('los tres sh: tres renglones, llaman al runner con su nombre y "$@"; sin no
     const l = t.replace(/\n$/, '').split('\n');
     assert.equal(l.length, 3, h);
     assert.equal(l[0], '#!/bin/sh');
-    assert.equal(l[2], `exec node .githooks/kit-githook.cjs ${h} "$@"`);
+    assert.equal(l[2], `for v in $(env | sed -n 's/^\\([Nn][Oo][Dd][Ee]_[A-Za-z0-9_]*\\)=.*/\\1/p'); do unset "$v"; done; exec node .githooks/kit-githook.cjs ${h} "$@"`);
     assert.ok(!t.includes('\r'), `${h}: sin CRLF`);
     // sin node en el PATH (solo la carpeta del sh, que no lo trae)
     const shExe = fs.existsSync(sh) ? sh : 'sh';
@@ -288,21 +306,25 @@ test('criterio 8: una clave de prueba con el gitleaks de verdad → 1 tapada (ar
   assert.ok(!log(d).includes(clave.slice(4)));
 });
 
-test('criterio 8: sin gitleaks, humano, director y obrero pasan en rojo con aviso y renglón; nocturno, actualizador y desconocido → 1', () => {
+test('criterio 8: sin gitleaks, humano, director y obrero pasan en rojo con aviso y renglón (sin versionar, rf3-6); nocturno, actualizador y desconocido → 1', () => {
   const d = repo();
   let i = 0;
   for (const rol of [null, 'director', 'obrero', 'nocturno', 'actualizador', 'cualquiera']) {
     if (rol) escribir(d, '.kit-rol', `${rol}\n`);
     const quien = rol === null ? 'humano' : rol === 'cualquiera' ? 'desconocido' : rol;
     const antes = head(d);
+    const logAntes = log(d);
     const r = commitHook(d, { [`s${i++}.txt`]: 's\n' }, { gitleaks: null });
     assert.match(r.err, /⚠️ sin escáner en esta PC: corré "preparame esta PC" \(no está\)/, quien);
-    assert.match(log(d).trim().split('\n').pop(), new RegExp(` · ${quien} · main · githook:sin-escaner · pre-commit · no está$`));
+    const renglon = new RegExp(` · ${quien} · main · githook:sin-escaner · pre-commit · no está$`);
     if (kg.ROLES_PASAN_SIN_ESCANER.includes(quien)) {
       assert.equal(r.codigo, 0, `${quien}: ${r.err}`);
       assert.match(r.err, new RegExp(`pasa por ser ${quien}, en rojo`));
       assert.notEqual(head(d), antes);
+      assert.match(logLocal(d).trim().split('\n').pop(), renglon);
+      assert.equal(log(d), logAntes, 'un pase no toca el frenos.log versionado');
     } else {
+      assert.match(log(d).trim().split('\n').pop(), renglon);
       assert.equal(r.codigo, 1, quien);
       assert.match(r.err, new RegExp(`con rol ${quien} no se commitea sin escáner`));
       assert.equal(head(d), antes);
@@ -446,30 +468,94 @@ test('la ficha vigente rota: el candado lo dice y corre con los frenos de fábri
   assert.match(r.err, /ficha rota: \.claude\/kit\.md:\d+ — corré doctor/);
   g(d, ['reset', '-q', '--hard']);
   fs.rmSync(path.join(d, '.claude', 'hooks', 'x.cjs'), { force: true });
+  const logAntes = log(d);
   r = commitHook(d, { '.claude/kit.md': FICHA() });
   assert.match(r.err, /ficha rota/);
   assert.equal(r.codigo, 0, r.err);
+  // rf3-6: los renglones de los dos candados en un pase no quedan en el frenos.log versionado
+  assert.equal(log(d), logAntes);
+  assert.equal((logLocal(d).match(/candado:ficha/g) || []).length, 2, logLocal(d));
 });
 
 // ---------------------------------------------------------------- pre-merge-commit
 
-test('criterio 8: pre-merge-commit — un merge automático que trae un freno quitado → 1; uno limpio pasa', () => {
+// rf3-1: git no escribe MERGE_HEAD antes del pre-merge-commit, así que ahí el candado juzgaría el merge solo contra HEAD. No corre:
+// gitleaks sí; el merge lo juzga el pre-push (--rango), contra cada padre.
+test('criterio 8 + rf3-1: pre-merge-commit sin candado (lo dice) y con gitleaks; el merge que trae un freno quitado sin aprobado lo frena el pre-push', () => {
   const d = repo();
   g(d, ['checkout', '-q', '-b', 'tema']);
   commitArmado(d, { '.claude/kit.md': QUITA_STASH }, 'quita sin aprobado (sin hooks)');
   g(d, ['checkout', '-q', 'main']);
   commitArmado(d, { 'm.txt': 'm\n' }, 'algo en main');
-  let r = g(d, ['merge', '-q', '--no-edit', 'tema'], { env: entorno('verde'), puede: true });
+  // gitleaks corre en el pre-merge-commit
+  let r = g(d, ['merge', '-q', '--no-edit', 'tema'], { env: entorno('rojo'), puede: true });
   assert.notEqual(r.codigo, 0);
+  assert.match(r.err, /gitleaks: clave-de-prueba en x\.txt:2/);
   assert.match(r.err, /kit pre-merge-commit: ROJO/);
-  assert.match(r.err, /candado:barreras/);
   g(d, ['merge', '--abort']);
-  g(d, ['checkout', '-q', '-b', 'limpio', 'HEAD~1']);
+  r = g(d, ['merge', '-q', '--no-edit', 'tema'], { env: entorno('verde'), puede: true });
+  assert.equal(r.codigo, 0, r.err);
+  assert.match(r.err, /pre-merge-commit: el candado no corre acá \(git todavía no dice cuál es el otro padre del merge\) — el merge lo juzga el pre-push, contra cada padre/);
+  assert.ok(!/candado(:| de| del)/.test(r.err), r.err);
+  assert.match(r.err, /kit pre-merge-commit: en verde/);
+  r = g(d, ['push', '-q', 'origin', 'main'], { env: entorno('verde'), puede: true });
+  assert.notEqual(r.codigo, 0);
+  assert.match(r.err, /candado de origin\/main: candado:barreras · el commit [0-9a-f]{12} toca frenos/);
+  assert.match(r.err, /kit pre-push: ROJO/);
+});
+
+test('rf3-1: el pre-push juzga el merge mismo contra cada padre — un merge "malvado" (el freno lo quita el merge) → rojo con el sha del merge', () => {
+  const d = repo();
+  g(d, ['checkout', '-q', '-b', 'limpio']);
   commitArmado(d, { 'l.txt': 'l\n' });
   g(d, ['checkout', '-q', 'main']);
-  r = g(d, ['merge', '-q', '--no-edit', 'limpio'], { env: entorno('verde'), puede: true });
+  commitArmado(d, { 'm.txt': 'm\n' });
+  g(d, ['merge', '-q', '--no-commit', '--no-ff', 'limpio'], { env: entorno('verde') });
+  escribir(d, '.claude/kit.md', QUITA_STASH);
+  g(d, ['add', '.claude/kit.md']);
+  g(d, ['commit', '-q', '--no-verify', '--no-edit']);
+  assert.equal(gt(d, 'rev-list', '--parents', '-n', '1', 'HEAD').split(' ').length, 3, 'es un merge');
+  const r = g(d, ['push', '-q', 'origin', 'main'], { env: entorno('verde'), puede: true });
+  assert.notEqual(r.codigo, 0);
+  assert.match(r.err, new RegExp(`candado de origin/main: candado:barreras · el commit ${head(d).slice(0, 12)} toca frenos`));
+});
+
+const CUERPO_CAMBIO = '## Caso de origen\nel release usa stash (2026-10)\n\n## Regla\nquitar el freno del stash\n\n## Dónde vive\n.claude/kit.md\n\n## Medición\n| antes | después |\n';
+function cambios(d, args) {
+  const r = spawnSync(process.execPath, [path.join('.claude', 'scripts', 'cambios.cjs'), ...args], { cwd: d, input: CUERPO_CAMBIO, encoding: 'utf8', env: entorno('verde'), timeout: 600000 });
+  assert.equal(r.status, 0, `${r.stdout}${r.stderr}`);
+  return r.stdout;
+}
+
+test('rf3-1: un git pull con merge que trae un cambio de barrera APROBADO en la otra PC → el merge pasa y el push da verde (antes: ROJO)', () => {
+  const d = repo();
+  // el sello de aprobar va en frenos.log: versionado, como en el molde
+  commitArmado(d, { '.gitignore': '/.kit-rol\n', '.claude/frenos.log': '' }, 'frenos.log versionado');
+  g(d, ['push', '-q', '--no-verify', 'origin', 'main']);
+  const otra = carpeta('otra-pc');
+  g(TMP, ['clone', '-q', gt(d, 'remote', 'get-url', 'origin'), otra]);
+  g(otra, ['config', 'core.hooksPath', '.githooks']);
+  if (!ES_WIN) for (const h of kg.CUALES) fs.chmodSync(path.join(otra, '.githooks', h), 0o755);
+  plantarFalso(otra);
+  // en la otra PC: proponer, aprobar (cambios.cjs, con sus commits) y quitar el freno; sube con los hooks
+  const id = /propuesto (\S+)/.exec(cambios(otra, ['nuevo', '--slug', 'stash', '--clase', '3-barrera', '--toca', 'frenos', '--id', 'hook:git-seguro/stash', '--origen', 'lo pidió el dueño']))[1];
+  cambios(otra, ['aprobar', id]);
+  let r = commitHook(otra, { '.claude/kit.md': QUITA_STASH });
   assert.equal(r.codigo, 0, r.err);
-  assert.match(r.err, /kit pre-merge-commit: en verde/);
+  r = g(otra, ['push', '-q', 'origin', 'main'], { env: entorno('verde'), puede: true });
+  assert.equal(r.codigo, 0, r.err);
+  // acá: un commit propio y el pull que mergea
+  commitArmado(d, { 'mio.txt': 'm\n' });
+  r = g(d, ['pull', '-q', '--no-rebase', '--no-edit', 'origin', 'main'], { env: entorno('verde'), puede: true });
+  assert.equal(r.codigo, 0, r.err);
+  assert.match(r.err, /el merge lo juzga el pre-push/);
+  assert.ok(!/git restore --staged/.test(r.err), 'no sugiere tirar lo aprobado');
+  assert.equal(gt(d, 'rev-list', '--parents', '-n', '1', 'HEAD').split(' ').length, 3, 'es un merge');
+  r = g(d, ['push', '-q', 'origin', 'main'], { env: entorno('verde'), puede: true });
+  assert.equal(r.codigo, 0, r.err);
+  assert.match(r.err, /candado de origin\/main: candado: en verde \(barreras\) · el rango/);
+  assert.match(r.err, /candado del disco: candado: en verde \(barreras\) · el rango/);
+  assert.equal(gt(d, 'status', '--porcelain'), '');
 });
 
 // ---------------------------------------------------------------- pre-push
@@ -678,4 +764,180 @@ test('gitattributes.snippet: con core.autocrlf=true, los .githooks/ salen con LF
     g(TMP, ['-c', 'core.autocrlf=true', 'clone', '-q', d, c]);
     for (const f of ['pre-commit', 'kit-githook.cjs']) assert.equal(fs.readFileSync(path.join(c, '.githooks', f), 'utf8').includes('\r'), conCR, `${f} con ${JSON.stringify(attrs)}`);
   }
+});
+
+// ---------------------------------------------------------------- rf3-2: la configuración de gitleaks
+
+test('rf3-2 y rf3-3: ni GITLEAKS_* ni NODE_* (tampoco en minúsculas) le llegan a gitleaks ni al previo, por git (commit y push) ni directo al runner', () => {
+  const d = repo();
+  const vio = path.join(TMP, `vio-${n++}.log`);
+  const previoVio = path.join(TMP, `previo-vio-${n++}.log`);
+  fs.writeFileSync(previoVio, '');
+  escribir(d, 'otros/pre-commit', `#!/bin/sh\nenv | grep -i -E '^(node|gitleaks)_' | sed 's/=.*//' >> "${previoVio.split(path.sep).join('/')}"\nexit 0\n`);
+  g(d, ['config', 'kit.hooksPathPrevio', 'otros']);
+  const extra = { FAKE_GITLEAKS_ENV: vio, GITLEAKS_CONFIG: 'x.toml', gitleaks_config_toml: '[x]', NODE_OPTIONS: '--no-warnings', Node_Path: 'z' };
+  let r = commitHook(d, { 'b.txt': 'b\n' }, { env: entorno('verde', extra) });
+  assert.equal(r.codigo, 0, r.err);
+  assert.match(r.err, /el hook previo otros\/pre-commit: en verde/);
+  r = g(d, ['push', '-q', 'origin', 'main'], { env: entorno('verde', extra), puede: true });
+  assert.equal(r.codigo, 0, r.err);
+  escribir(d, 'c.txt', 'c\n');
+  g(d, ['add', 'c.txt']);
+  const directo = kg.principal(['pre-commit'], { cwd: d, env: entorno('verde', extra) });
+  assert.equal(directo.codigo, 0, directo.lineas.join('\n'));
+  const vistas = fs.readFileSync(vio, 'utf8').trim().split('\n');
+  assert.equal(vistas.length, 3);
+  for (const v of vistas) assert.deepEqual(JSON.parse(v), []);
+  assert.equal(fs.readFileSync(previoVio, 'utf8'), '', 'el previo no vio ninguna');
+  assert.deepEqual(Object.keys(kg.sinInyectadas({ PATH: 'p', NODE_OPTIONS: 'x', node_path: 'y', GITLEAKS_CONFIG: 'z', Gitleaks_Config_Toml: 'w', NODEX: 'v', MI_NODE_X: 'u' })), ['PATH', 'NODEX', 'MI_NODE_X']);
+});
+
+test('rf3-2: con el gitleaks de verdad, GITLEAKS_CONFIG o GITLEAKS_CONFIG_TOML con una regla que no matchea no tapan la clave (commit y push)', { skip: GITLEAKS_REAL ? false : 'gitleaks no está en esta PC' }, () => {
+  const d = repo();
+  const tomlTxt = '[[rules]]\nid = "nada"\nregex = "zzzzqqqq"\n';
+  const toml = path.join(TMP, `nada-${n++}.toml`);
+  fs.writeFileSync(toml, tomlTxt);
+  const clave = claveDePrueba();
+  const variantes = [{ GITLEAKS_CONFIG: toml }, { GITLEAKS_CONFIG_TOML: tomlTxt }];
+  for (const extra of variantes) {
+    const r = commitHook(d, { 'k.txt': `token = "${clave}"\n` }, { env: entorno('real', extra) });
+    assert.equal(r.codigo, 1, `${Object.keys(extra)}: ${r.err}`);
+    assert.match(r.err, /gitleaks: github-pat en k\.txt:1/);
+  }
+  g(d, ['commit', '-q', '--no-verify', '-m', 'k']);
+  for (const extra of variantes) {
+    const r = g(d, ['push', '-q', 'origin', 'main'], { env: entorno('real', extra), puede: true });
+    assert.notEqual(r.codigo, 0, `${Object.keys(extra)}: ${r.err}`);
+    assert.match(r.err, /gitleaks: github-pat en k\.txt:1/);
+  }
+  assert.ok(!log(d).includes(clave.slice(4)));
+});
+
+test('rf3-2: un .gitleaks.toml o .gitleaksignore del disco que no es el que se juzga → rojo (commit y push); igual, o sin gitleaks en la PC, pasa', () => {
+  const d = repo();
+  // sin git add (lo del disco no lo juzga el candado, rf-10): gitleaks igual lo lee
+  escribir(d, '.gitleaks.toml', '[[rules]]\nid = "nada"\nregex = "zzzzqqqq"\n');
+  let r = commitHook(d, { 'b.txt': 'b\n' });
+  assert.equal(r.codigo, 1, r.err);
+  assert.match(r.err, /gitleaks: el \.gitleaks\.toml del disco no es el que lleva este commit, y gitleaks lo lee del disco — hacé git add \(o git restore\)/);
+  assert.match(log(d), /githook:config-gitleaks · pre-commit · \.gitleaks\.toml/);
+  // sin gitleaks en la PC no lo lee nadie: no traba
+  r = commitHook(d, { 'b.txt': 'b\n' }, { gitleaks: null });
+  assert.equal(r.codigo, 0, r.err);
+  assert.ok(!/del disco no es/.test(r.err));
+  fs.rmSync(path.join(d, '.gitleaks.toml'));
+  // uno commiteado y cambiado en el disco
+  commitArmado(d, { '.gitleaksignore': 'a.txt:regla:1\n' });
+  escribir(d, '.gitleaksignore', 'a.txt:regla:1\nc.txt:github-pat:1\n');
+  r = commitHook(d, { 'c.txt': 'c\n' });
+  assert.equal(r.codigo, 1, r.err);
+  assert.match(r.err, /el \.gitleaksignore del disco no es el que lleva este commit/);
+  g(d, ['checkout', '-q', '--', '.gitleaksignore']);
+  r = g(d, ['commit', '-q', '-m', 'c'], { env: entorno('verde'), puede: true });
+  assert.equal(r.codigo, 0, r.err);
+  // con core.autocrlf=true el disco tiene CRLF y el blob LF: es el mismo
+  g(d, ['config', 'core.autocrlf', 'true']);
+  escribir(d, '.gitleaksignore', 'a.txt:regla:1\r\n');
+  r = commitHook(d, { 'e.txt': 'e\n' });
+  assert.equal(r.codigo, 0, r.err);
+  g(d, ['config', '--unset', 'core.autocrlf']);
+  g(d, ['checkout', '-q', '--', '.gitleaksignore']);
+  // push: lo que sube trae un .gitleaksignore y el disco tiene otro
+  escribir(d, '.gitleaksignore', 'otra cosa\n');
+  r = g(d, ['push', '-q', 'origin', 'main'], { env: entorno('verde'), puede: true });
+  assert.notEqual(r.codigo, 0);
+  assert.match(r.err, /gitleaks: el \.gitleaksignore del disco no es el de lo que sube, y gitleaks lo lee del disco — commitealo \(o git restore\), o pusheá desde esa rama · refs\/heads\/main/);
+  assert.equal(kg.configDistinta('HEAD', { raiz: d, cwd: d, env: entorno('verde') }), '.gitleaksignore');
+  g(d, ['checkout', '-q', '--', '.gitleaksignore']);
+  assert.equal(kg.configDistinta('HEAD', { raiz: d, cwd: d, env: entorno('verde') }), null);
+  // otra rama, con el disco limpio: se compara con lo que sube, no con el índice
+  g(d, ['checkout', '-q', '-b', 'otra-rama']);
+  commitArmado(d, { '.gitleaksignore': 'de la otra rama\n' });
+  g(d, ['checkout', '-q', 'main']);
+  assert.equal(gt(d, 'status', '--porcelain'), '');
+  r = g(d, ['push', '-q', 'origin', 'otra-rama'], { env: entorno('verde'), puede: true });
+  assert.notEqual(r.codigo, 0);
+  assert.match(r.err, /gitleaks: el \.gitleaksignore del disco no es el de lo que sube, .* · refs\/heads\/otra-rama/);
+  // una etiqueta en un commit que el remoto ya tiene (sin .gitleaksignore): no sube ningún commit, la config no importa
+  g(d, ['tag', 'viejo', 'origin/main']);
+  r = g(d, ['push', '-q', 'origin', 'viejo'], { env: entorno('verde'), puede: true });
+  assert.equal(r.codigo, 0, r.err);
+});
+
+// ---------------------------------------------------------------- rf3-3: NODE_OPTIONS
+
+test('rf3-3: NODE_OPTIONS="--require x.cjs" con un process.exit(0) no apaga el hook (commit y push; en Windows también node_options)', () => {
+  const d = repo();
+  const x = path.join(TMP, `sale0-${n++}.cjs`);
+  fs.writeFileSync(x, 'process.exit(0);\n');
+  const req = `--require ${JSON.stringify(x)}`;
+  const variantes = [{ NODE_OPTIONS: req }, ...(ES_WIN ? [{ node_options: req }] : [])];
+  for (const extra of variantes) {
+    const r = commitHook(d, { '.claude/kit.md': QUITA_STASH }, { env: entorno('verde', extra) });
+    assert.equal(r.codigo, 1, `${Object.keys(extra)}: ${r.err}`);
+    assert.match(r.err, /candado de origin\/main: candado:barreras/);
+    assert.match(r.err, /kit pre-commit: ROJO/);
+  }
+  g(d, ['commit', '-q', '--no-verify', '-m', 'quita']);
+  for (const extra of variantes) {
+    const r = g(d, ['push', '-q', 'origin', 'main'], { env: entorno('verde', extra), puede: true });
+    assert.notEqual(r.codigo, 0);
+    assert.match(r.err, /kit pre-push: ROJO/);
+  }
+  // directo al runner (sin el sh): los dos candados corren sin el --require (si no, salen 0 sin decir nada: "en verde")
+  g(d, ['reset', '-q', '--soft', 'origin/main']);
+  const res = kg.principal(['pre-commit'], { cwd: d, env: entorno('verde', { NODE_OPTIONS: req }) });
+  assert.equal(res.codigo, 1, res.lineas.join('\n'));
+  assert.ok(res.lineas.some((l) => /^candado de origin\/main: candado:barreras/.test(l)));
+  assert.ok(res.lineas.some((l) => /^candado del disco: candado:barreras/.test(l)));
+});
+
+// ---------------------------------------------------------------- rf3-6: un pase no ensucia el árbol
+
+test('rf3-6: sin gitleaks y con frenos.log versionado — commit, pull --rebase y push pasan y el árbol queda limpio; un rojo sí deja su renglón', () => {
+  const d = repo();
+  commitArmado(d, { '.gitignore': '/.kit-rol\n', '.claude/frenos.log': '' }, 'frenos.log versionado, como en el molde');
+  g(d, ['push', '-q', '--no-verify', 'origin', 'main']);
+  const otra = carpeta('otra-pc');
+  g(TMP, ['clone', '-q', gt(d, 'remote', 'get-url', 'origin'), otra]);
+  commitArmado(otra, { 'o.txt': 'o\n' });
+  g(otra, ['push', '-q', '--no-verify', 'origin', 'main']);
+  let r = commitHook(d, { 'y.txt': 'y\n' }, { gitleaks: null });
+  assert.equal(r.codigo, 0, r.err);
+  assert.match(r.err, /pasa por ser humano, en rojo/);
+  assert.equal(gt(d, 'status', '--porcelain'), '');
+  r = g(d, ['pull', '-q', '--rebase', 'origin', 'main'], { env: entorno(null), puede: true });
+  assert.equal(r.codigo, 0, r.err);
+  r = g(d, ['push', '-q', 'origin', 'main'], { env: entorno(null), puede: true });
+  assert.equal(r.codigo, 0, r.err);
+  assert.equal(gt(d, 'status', '--porcelain'), '');
+  assert.equal(log(d), '');
+  const local = logLocal(d).trim().split('\n');
+  assert.equal(local.length, 2, logLocal(d));
+  assert.match(local[0], / · humano · main · githook:sin-escaner · pre-commit · no está$/);
+  assert.match(local[1], / · humano · main · githook:sin-escaner · pre-push · no está$/);
+  // un worktree de obrero: pasa, queda limpio y worktree remove anda; su renglón queda en el log común
+  const wt = path.join(TMP, `wt-${n++}`);
+  g(d, ['worktree', 'add', '-q', '-b', 'obrero', wt]);
+  escribir(wt, '.kit-rol', 'obrero\n');
+  r = commitHook(wt, { 'w.txt': 'w\n' }, { gitleaks: null });
+  assert.equal(r.codigo, 0, r.err);
+  assert.equal(gt(wt, 'status', '--porcelain'), '');
+  g(d, ['worktree', 'remove', wt]);
+  assert.match(logLocal(d), / · obrero · obrero · githook:sin-escaner · pre-commit · no está\n$/);
+  // un rojo (nocturno sin escáner) sí escribe en el versionado
+  escribir(d, '.kit-rol', 'nocturno\n');
+  r = commitHook(d, { 'z.txt': 'z\n' }, { gitleaks: null });
+  assert.equal(r.codigo, 1);
+  assert.match(log(d), / · nocturno · main · githook:sin-escaner · pre-commit · no está\n$/);
+  // un frenos.log que no termina en LF (lo tocaron a mano): queda como estaba y el log local no gana un renglón vacío
+  fs.rmSync(path.join(d, '.kit-rol'));
+  commitArmado(d, { '.claude/frenos.log': 'a mano, sin fin de línea' });
+  escribir(d, 'u.txt', 'u\n');
+  g(d, ['add', 'u.txt']);
+  const res = kg.principal(['pre-commit'], { cwd: d, env: entorno(null) });
+  assert.equal(res.codigo, 0, res.lineas.join('\n'));
+  assert.equal(log(d), 'a mano, sin fin de línea');
+  assert.ok(!logLocal(d).includes('\n\n'), JSON.stringify(logLocal(d)));
+  assert.equal(logLocal(d).trim().split('\n').length, 4);
 });

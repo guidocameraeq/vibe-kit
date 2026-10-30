@@ -2,8 +2,11 @@
 // kit-githook.cjs — el runner de .githooks/pre-commit, pre-merge-commit y pre-push (SPEC-paquete-3 P4.6; F §10; RT1-7, RT2-4,
 // RT2-9; r4-3, rf-7, rf-10; r1-2, r1-6, r1-19). Lo llama el `sh` de tres renglones de cada hook: node .githooks/kit-githook.cjs <cuál> "$@".
 //
-// pre-commit y pre-merge-commit (un merge automático no corre pre-commit): gitleaks sobre lo staged; candado:barreras SOLO del índice
-// (lo del disco sin `git add` no traba, rf-10); el hook previo. pre-push: por cada ref que sube, lo que el remoto no tiene
+// pre-commit: gitleaks sobre lo staged; candado:barreras SOLO del índice (lo del disco sin `git add` no traba, rf-10); el hook previo.
+// pre-merge-commit (un merge automático no corre pre-commit): gitleaks y el previo, SIN candado (rf3-1): git no escribe MERGE_HEAD
+// antes de este hook, así que el candado juzgaría el merge solo contra HEAD y frenaría lo aprobado en la otra rama; el merge lo
+// juzga el pre-push, contra cada padre. (Un merge con conflictos se cierra con git commit: ahí corre el pre-commit, con MERGE_HEAD.)
+// pre-push: por cada ref que sube, lo que el remoto no tiene
 // (`<remoto>..<local>`, o para una ref nueva `<ceros>..<local>`: lo que ningún remoto tiene): gitleaks y `barreras --rango` (rf-7).
 // El candado corre DOS veces (r4-3, r1-2 a): la versión de la ref vigente (con remoto origin/<rama por defecto>; sin remoto la rama
 // local), sacada con UN `git cat-file --batch` a un temporal fuera del repo y corrida con el cwd en el repo, y la del disco. Rojo si
@@ -11,6 +14,12 @@
 // que sale 2 por otra cosa que "no conoce --indice/--rango", rojo. Si no conoce la bandera (es del orden 2): sin ella, y lo dice.
 // gitleaks: plazo de 60 s y un reintento (47 s en frío con Defender, r1-6, r2-10); dos veces colgado = "sin escáner (colgado)". Sin
 // escáner: humano, director y obrero pasan EN ROJO (con aviso y renglón); nocturno, actualizador y desconocido → 1.
+// gitleaks lee su configuración del disco (.gitleaks.toml, .gitleaksignore) y de GITLEAKS_*: el entorno sale sin GITLEAKS_* y,
+// si el del disco no es el que se juzga (el del índice; en el pre-push, el de lo que sube), rojo (rf3-2).
+// Entorno (rf3-3): el sh borra toda NODE_* antes de llamar a node (NODE_OPTIONS="--require x" corre antes que el runner), y el runner
+// saca NODE_* y GITLEAKS_* del entorno de todo lo que lanza (git, los dos candados, gitleaks y el previo).
+// frenos.log (rf3-6): lo que el hook agrega en un pase (aunque pase en rojo) se muda a <git-common-dir>/kit-frenos.log, sin
+// versionar: un pase no ensucia el árbol. Solo un 1 deja su renglón en .claude/frenos.log.
 // Todo error del runner → 1 con motivo (r1-19). Lo que imprime: `archivo:línea` y la regla; NUNCA un valor ni la salida de gitleaks.
 // El runner corre del disco (D-12): solo necesita node y git; las librerías del kit las usa la versión del candado que corre.
 // Node estándar, cero dependencias. Es .cjs a propósito: corre igual en proyectos con "type": "module".
@@ -47,6 +56,12 @@ const CEROS = /^0+$/;
 const RE_SHA = /^[0-9a-f]{40}([0-9a-f]{24})?$/;
 // Variables que, heredadas del hook, hacen que git mire otro repo que el del cwd (las de lib/git.cjs). El índice no: es el del commit.
 const DESVIAN = ['GIT_DIR', 'GIT_WORK_TREE', 'GIT_COMMON_DIR', 'GIT_PREFIX', 'GIT_OBJECT_DIRECTORY', 'GIT_ALTERNATE_OBJECT_DIRECTORIES', 'GIT_NAMESPACE', 'GIT_CEILING_DIRECTORIES'];
+// rf3-3 y rf3-2: las que meten código en un node (NODE_OPTIONS --require, NODE_PATH…) o cambian lo que gitleaks busca
+// (GITLEAKS_CONFIG, GITLEAKS_CONFIG_TOML…). Sin distinguir mayúsculas: en Windows node_options vale como NODE_OPTIONS.
+const INYECTAN = /^(node|gitleaks)_/i;
+// La configuración de gitleaks que lee del disco, del cwd (rf3-2): tiene que ser la que se juzga.
+const CONFIG_GITLEAKS = Object.freeze(['.gitleaks.toml', '.gitleaksignore']);
+const LOG_SIN_VERSIONAR = 'kit-frenos.log';
 
 class Falla extends Error {}
 const falla = (m) => {
@@ -55,6 +70,12 @@ const falla = (m) => {
 
 // ---------------------------------------------------------------- git
 
+// El entorno sin lo que inyecta (INYECTAN): el de todo lo que el runner lanza.
+function sinInyectadas(env) {
+  const e = {};
+  for (const [k, v] of Object.entries(env)) if (!INYECTAN.test(k)) e[k] = v;
+  return e;
+}
 function entornoGit(env, conIndice) {
   const e = { ...env };
   for (const v of DESVIAN) delete e[v];
@@ -135,6 +156,49 @@ function anotar(raiz, rol, cual, id, detalle, o) {
   } catch (e) {
     /* el renglón es rastro, no freno: sin él, la salida igual dice lo que pasó */
   }
+}
+
+// rf3-6: frenos.log está versionado; si un pase le agrega renglones (el sin-escaner del runner, la ficha rota de los candados), el
+// árbol queda sucio (pull --rebase falla, worktree remove también). Se saca una foto al empezar y, si el hook pasa, lo agregado se
+// muda a <git-common-dir>/kit-frenos.log (sin versionar; el común, para que sobreviva a un worktree remove) y frenos.log vuelve a
+// como estaba. Solo lo agregado al final: si alguien lo reescribió en el medio, no se toca.
+function fotoLog(raiz) {
+  const archivo = path.join(raiz, ...RUTA_FRENOS_LOG.split('/'));
+  try {
+    return { archivo, antes: fs.readFileSync(archivo) };
+  } catch (e) {
+    return { archivo, antes: null };
+  }
+}
+function mudarLoDelPase(foto, gitComun) {
+  try {
+    let ahora;
+    try {
+      ahora = fs.readFileSync(foto.archivo);
+    } catch (e) {
+      return;
+    }
+    const antes = foto.antes || Buffer.alloc(0);
+    if (ahora.length <= antes.length || !ahora.subarray(0, antes.length).equals(antes)) return;
+    const nuevo = ahora.subarray(antes.length).toString('utf8').replace(/^\n/, '');
+    fs.appendFileSync(path.join(gitComun, LOG_SIN_VERSIONAR), nuevo);
+    if (foto.antes === null) fs.rmSync(foto.archivo);
+    else fs.writeFileSync(foto.archivo, foto.antes);
+  } catch (e) {
+    /* rastro, no freno */
+  }
+}
+
+// rf3-2: gitleaks lee .gitleaks.toml y .gitleaksignore del disco (del cwd, aunque se le pase otra ruta). Si el del disco no es el
+// que se juzga (ref = '' para el índice del commit; si no, el commit que sube), un toml sin reglas sin `git add` lo apaga. → la
+// primera ruta distinta, o null.
+function configDistinta(ref, o) {
+  for (const rel of CONFIG_GITLEAKS) {
+    const enDisco = fs.existsSync(path.join(o.raiz, rel)) ? gitTexto(['hash-object', '--', rel], o) : null;
+    const juzgado = gitTexto(['rev-parse', '-q', '--verify', `${ref}:${rel}`], { ...o, indice: ref === '' });
+    if (enDisco !== juzgado) return rel;
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------- gitleaks
@@ -372,11 +436,13 @@ function principal(argv, opciones = {}) {
   const cual = argv[0];
   const args = argv.slice(1);
   if (!CUALES.includes(cual)) falla(`no sé qué hook es "${String(cual).slice(0, 40)}" (los que hay: ${CUALES.join(', ')})`);
-  const env = opciones.env || process.env;
+  const env = sinInyectadas(opciones.env || process.env);
   const cwd = opciones.cwd || process.cwd();
   const repo = datosRepo(cwd, env);
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'kit-githook-'));
-  const o = { ...repo, cwd: repo.raiz, env, tmp, ahora: opciones.ahora, plazo: opciones.plazoGitleaks, reintentos: opciones.reintentos, gitleaks: opciones.gitleaks };
+  const o = { ...repo, cwd: repo.raiz, env, tmp, ahora: opciones.ahora, plazo: opciones.plazoGitleaks, reintentos: opciones.reintentos };
+  o.gitleaks = opciones.gitleaks === undefined ? buscarGitleaks(env) : opciones.gitleaks;
+  const foto = fotoLog(repo.raiz);
   try {
     const stdin = cual === 'pre-push' ? (opciones.stdin !== undefined ? opciones.stdin : leerStdin()) : undefined;
     const rol = rolDe(repo.raiz);
@@ -398,6 +464,35 @@ function principal(argv, opciones = {}) {
       lineas.push('gitleaks: sacá el valor (pedile al humano cargar-secreto NOMBRE); si ya se commiteó, rotalo. Falsa alarma → .gitleaksignore, con aprobado');
     };
 
+    // gitleaks, si la config del disco es la que se juzga (rf3-2). → false si no hay escáner (no se vuelve a probar). En el pre-push,
+    // rango: si no sube ningún commit (una etiqueta vieja), no hay qué escanear y la config no importa.
+    const escanear = (argsGitleaks, refConfig, donde, rango) => {
+      const hayCommits = () => {
+        const r = git(['rev-list', '-n', '1', ...rango], o);
+        return !r.ok || r.stdout.trim() !== '';
+      };
+      if (o.gitleaks && (!rango || hayCommits())) {
+        const distinta = configDistinta(refConfig, o);
+        if (distinta) {
+          rojo = true;
+          anotar(repo.raiz, rol, cual, 'githook:config-gitleaks', distinta, o);
+          lineas.push(
+            refConfig === ''
+              ? `gitleaks: el ${distinta} del disco no es el que lleva este commit, y gitleaks lo lee del disco — hacé git add (o git restore) y volvé a commitear`
+              : `gitleaks: el ${distinta} del disco no es el de lo que sube, y gitleaks lo lee del disco — commitealo (o git restore), o pusheá desde esa rama${donde}`
+          );
+          return true;
+        }
+      }
+      const g = correrGitleaks(argsGitleaks, o);
+      if (g.estado === 'sin-escaner') {
+        sinEscaner(g.por);
+        return false;
+      }
+      if (g.estado === 'rojo') hallazgos(g.hallazgos, donde);
+      return true;
+    };
+
     if (cual === 'pre-push') {
       const head = gitTexto(['rev-parse', '-q', '--verify', 'HEAD^{commit}'], o);
       const refs = refsQueSuben(stdin);
@@ -410,14 +505,8 @@ function principal(argv, opciones = {}) {
           lineas.push(`pre-push: ${args[0] || 'el remoto'} tiene en ${x.refRemota} commits que esta PC no tiene (avanzó o lo reescribieron) — hacé git fetch y git pull --rebase, y volvé a pushear`);
           continue;
         }
-        if (escaner) {
-          const opts = x.nueva ? `--log-opts=${x.local} --not --remotes` : `--log-opts=${x.remoto}..${x.local}`;
-          const g = correrGitleaks(['git', opts], o);
-          if (g.estado === 'sin-escaner') {
-            escaner = false;
-            sinEscaner(g.por);
-          } else if (g.estado === 'rojo') hallazgos(g.hallazgos, donde);
-        }
+        const rango = x.nueva ? [x.local, '--not', '--remotes'] : [`${x.remoto}..${x.local}`];
+        if (escaner) escaner = escanear(['git', `--log-opts=${rango.join(' ')}`], x.local, donde, rango);
         const c = candado('--rango', `${x.nueva ? '0'.repeat(x.local.length) : x.remoto}..${x.local}`, o);
         lineas.push(...c.lineas.map((l) => `${l}${donde}`));
         if (c.rojo) {
@@ -427,18 +516,19 @@ function principal(argv, opciones = {}) {
         }
       }
     } else {
-      const g = correrGitleaks(['git', '--staged'], o);
-      if (g.estado === 'sin-escaner') sinEscaner(g.por);
-      else if (g.estado === 'rojo') hallazgos(g.hallazgos, '');
-      const aparte = indiceAparte(o);
-      if (aparte) {
-        rojo = true;
-        anotar(repo.raiz, rol, cual, 'githook:indice-aparte', aparte, o);
-        lineas.push(`pre-commit: este commit lleva ${aparte} desde un índice aparte (commit -a o commit <rutas>) y el candado lee el índice — hacé git add de lo que va (y git restore --staged de lo que no) y volvé a commitear`);
-      } else {
-        const c = candado('--indice', null, o);
-        lineas.push(...c.lineas);
-        if (c.rojo) rojo = true;
+      escanear(['git', '--staged'], '', '');
+      if (cual === 'pre-merge-commit') lineas.push('pre-merge-commit: el candado no corre acá (git todavía no dice cuál es el otro padre del merge) — el merge lo juzga el pre-push, contra cada padre');
+      else {
+        const aparte = indiceAparte(o);
+        if (aparte) {
+          rojo = true;
+          anotar(repo.raiz, rol, cual, 'githook:indice-aparte', aparte, o);
+          lineas.push(`pre-commit: este commit lleva ${aparte} desde un índice aparte (commit -a o commit <rutas>) y el candado lee el índice — hacé git add de lo que va (y git restore --staged de lo que no) y volvé a commitear`);
+        } else {
+          const c = candado('--indice', null, o);
+          lineas.push(...c.lineas);
+          if (c.rojo) rojo = true;
+        }
       }
     }
 
@@ -452,6 +542,7 @@ function principal(argv, opciones = {}) {
         } else lineas.push(`el hook previo ${p.ruta}: en verde`);
       }
     }
+    if (!rojo) mudarLoDelPase(foto, repo.gitComun);
     lineas.push(rojo ? `kit ${cual}: ROJO — no pasa` : `kit ${cual}: en verde`);
     return { codigo: rojo ? 1 : 0, lineas };
   } finally {
@@ -505,6 +596,9 @@ module.exports = {
   SIN_ESCANER,
   ROTO,
   Falla,
+  INYECTAN,
+  sinInyectadas,
+  configDistinta,
   rolDe,
   refVigente,
   buscarGitleaks,
