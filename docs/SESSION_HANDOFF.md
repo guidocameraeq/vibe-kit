@@ -11,15 +11,17 @@
 - **Paquete 3 cerrado**: githooks con candado doble y gitleaks, todos los hooks del molde registrados (exec, `onFailure: block`), instalador
   de hooks por PC, `doctor`, sesión real con `claude.exe`. **Los hooks por PC NO están instalados en ninguna PC real**: es de Guido.
 - **Decisiones sin Guido de D3.3**: tracker, "D3.3 · Decisiones sin Guido" (las ⚠️ arriba, también las del revisor frío).
-- **Regla nueva (Guido, 2026-10-30)**: el revisor frío de cada paquete hace **una vuelta con tope** (SPEC-0, "Ejecución"). D3.3 tardó ~9 h
-  por las vueltas: no repetir.
+- **ADR-029 (Guido, 2026-10-30): revisar y probar con presupuesto.** Contra accidentes, no contra trampas; revisor frío de una vuelta (≤10
+  hallazgos con escenario, arreglos en un encargo); mutación solo en piezas nuevas (20 min); **~4 h y ~8 encargos por director**. D3.3
+  costó 18 h de agentes y 21 M de tokens, el 61% en arreglos: no repetir. Las reglas, en "Cómo se trabaja" del tracker.
 - Hoja de ruta ADR-025: 4 ✅ → 4½ ✅ → **5 construir v3.0** (paquetes 1, 2 y 3 ✅; sigue el 4) → 6 el ciclo → 7 mensajería v3.1.
 
 ## Próximo paso
 
 **D4.1**, en Opus, en `Usuario`, sin Guido: **`vibe-kit M5 · D4.1 · Paquete 4: Arquitecto v3, sello, formato-spec, worktree y .kit-rol`**.
 Guido pega el prompt de "Abrir D4.1 sin Guido (el prompt)" del tracker (`docs/kit-v3/PLAN-construccion.md`) y se va. Primero el spec delta
-del paquete 4 con red team (lo sella el director), después los encargos; revisor frío de una vuelta; `/cierre` con el "Próximo paso" en D5.1.
+del paquete 4 con una ronda de red team (lo sella el director), después los encargos, con el presupuesto del ADR-029; si no entra en ~4 h,
+cierra limpio y arma D4.2. La fila anota horas y tokens: es la medida de si el ADR-029 rindió.
 
 **Para Guido, cuando pueda (no traba a D4.1)** — el detalle, en Pendientes del tracker, "Paquete 3 · te espera a vos":
 instalar los hooks por PC en `clientes` y `Usuario` (`--plan`, después sin él, reiniciar, `doctor` en `alfa`, `--sacar-viejo`); la pestaña

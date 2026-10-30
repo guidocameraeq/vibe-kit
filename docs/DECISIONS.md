@@ -34,6 +34,7 @@
 - ADR-026 · El registro de cambios de método es pieza del canon: por proyecto, en archivos chicos, clase 2 con diff; sube al kit por el ciclo con 3+ o cicatriz (2026-10-26)
 - ADR-027 · El OK de Guido a un cambio de barrera es el clic en la ventana de permiso, con tres candados; no una línea en la terminal (2026-10-27)
 - ADR-028 · La misión 5 se construye con un director Opus por paquete que reparte encargos a subagentes; no un orquestador para todo el spec (2026-10-28)
+- ADR-029 · Revisar y probar con presupuesto: contra accidentes, no contra trampas; pruebas proporcionales al riesgo; tope por sesión (2026-10-30)
 
 *Cada ADR nuevo suma su línea acá (lo pide `/cierre`).*
 
@@ -625,3 +626,37 @@ gestione toda la construcción.
   pruebas de sesión real quedan como pendientes para el director siguiente o para Guido. **NO VERIFICADO** (se mide en el tracker, columna
   "Encargos"): cuántos encargos entran en un director antes de llegar a la mitad del contexto, y si el ahorro de Sonnet compensa los
   encargos que haya que rehacer.
+
+## ADR-029 · Revisar y probar con presupuesto: contra accidentes, no contra trampas; pruebas proporcionales al riesgo; tope por sesión (2026-10-30)
+D3.3 (el cierre del paquete 3) tardó ~11 h de reloj y **18 h de agentes, 21 M de tokens nuevos**, medidos en los transcripts de sus 17
+encargos. **El 61% (11,3 h, 12,6 M) se fue en arreglar lo que encontró el revisor frío**: dos vueltas, 24 hallazgos y ocho rondas de
+arreglos. Cada arreglo pagaba el ritual completo, aunque fuera de 20 renglones: pruebas, mutación (hasta 1 h), las 16.470 llamadas del
+corpus (20-60 min) y la suite (27 min). La mayoría de los hallazgos eran trampas a propósito (alias en mayúsculas, `textconv`, ramas
+huérfanas), aunque el propio delta ya decía "todo freno de comando es un patrón: alias, variables, base64 o un script lo esquivan". D2.2
+había hecho tres vueltas. Guido, al ver las 9 h: *"hacer 60 revisiones en frío es una estupidez […] hay que probar lo que realmente
+importa, con criterio"*.
+- **Decisión (de Guido, con la recomendación de la sesión), cinco reglas:**
+  1. **Contra qué nos defendemos**: contra accidentes y descuidos (un agente distraído, un humano apurado, el día normal: dos PCs, `pull`,
+     merge, worktrees, un proyecto nuevo), **no contra un agente que quiere esquivar el freno a propósito**. Un hallazgo que necesita esa
+     intención va a "Lo que esto no cierra" del delta, sin arreglo. La red contra la trampa es el candado al commit y el gate, no el patrón.
+  2. **Revisor frío: una vuelta, hasta 10 hallazgos, cada uno con su escenario del día normal** ("en la otra PC, después de un `pull`, esto
+     se rompe"). Sin escenario, no se reporta. Los arreglos van todos en **un solo encargo**; no hay segunda vuelta. Si un arreglo cambió el
+     diseño, el director mira ese diff él mismo.
+  3. **Pruebas proporcionales al riesgo**: cada cambio, con sus casos de sí y de no. **Mutación** solo la primera vez que se construye una
+     pieza que decide un freno o un permiso, sobre las reglas que deciden, **tope 20 min**; nunca en un arreglo. **El corpus entero, una vez
+     por paquete** (al final); un arreglo se mide sobre una muestra (~2.000 llamadas) y solo si cambia lo que frena al humano. **La suite
+     entera, una vez** por sesión, al final.
+  4. **Presupuesto por sesión director: ~4 h de reloj y ~8 encargos.** Al llegar, cierra limpio (lo hecho en `main`, lo que falta en
+     Pendientes con su porqué) y Guido decide si sigue otra sesión. El director lo anota en su fila: horas, encargos, tokens.
+  5. **Red team del delta: una ronda.** Los arreglos chicos, en **Sonnet**; Opus para diseñar, para piezas nuevas de seguridad y para lo que
+     decide.
+- **Por qué:** mantiene la calidad de cara al uso real (lo que rompe el día normal se arregla igual) y saca lo que no protege nada: pulir
+  patrones contra quien los quiere esquivar, y repetir pruebas enteras por cambios chicos. Estimado sobre D3.3: ~6-7 h de agentes y ~8 M de
+  tokens en vez de 18 h y 21 M. **NO VERIFICADO**: se mide en D4.1 (fila del tracker).
+- **Descartado:** *seguir igual con el tope de una vuelta solamente* (la vuelta 1 de D3.3 sola ya trajo 14 hallazgos y 4 rondas de arreglos
+  que costaron 4,8 h) · *sacar el revisor frío* (en D1.1 y D2.2 fue el que más valió: encontró lo que el red team no podía ver) · *sacar la
+  mutación* (en D1.1 encontró 15 de 21 reglas sin prueba; sirve la primera vez, no en cada arreglo).
+- **Costo aceptado:** algunos huecos que un agente decidido podría usar quedan escritos y abiertos hasta el piloto. Un paquete grande puede
+  necesitar dos sesiones en vez de una larga.
+- **Alcance:** la construcción de vibe-kit (misión 5 en adelante). **El canon de pruebas de las apps** (paquete 5) se escribe con este mismo
+  criterio: el director del paquete 5 lo lleva al canon.

@@ -335,6 +335,11 @@ carpetas con espacios rompen todo lo demás).
   a producción o deploy. Medido: la auditoría adversarial corrigió el **46%** de los veredictos de
   una sola pasada, y la confianza autoreportada de los agentes es inútil (0 de 179 se declararon
   "baja confianza"). Auditá el subconjunto dudoso, no el censo entero.
+- **Revisar y probar con presupuesto** (vibe-kit, ADR-029, 2026-10-30). Medido: una sesión de construcción gastó el **61%** de sus 18 h
+  de agentes en arreglar lo que traía un revisor frío sin piso. (1) **Se defiende contra accidentes, no contra trampas**: lo que necesita a
+  alguien que quiere esquivar un freno se anota como riesgo, no se arregla. (2) **Revisor frío: una vuelta, hallazgos con su escenario del
+  día normal**, los arreglos juntos en un encargo. (3) **Pruebas proporcionales al riesgo**: la prueba cara (mutación, el corpus entero)
+  una vez por pieza nueva, no en cada arreglo. (4) **Tope por sesión** (horas y encargos): al llegar, se cierra limpio y se sigue en otra.
 - **Modelo barato para batch** (censos, transformaciones mecánicas); el modelo grande se reserva
   para diseño, debugging difícil y decisiones.
 - Si el batch consume una cuota compartida (API del bot, etc.): declarar costo estimado ANTES.

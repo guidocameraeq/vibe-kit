@@ -21,25 +21,35 @@ sesiones bajan a 13 directores y el contexto de cada director queda acotado a su
 2. **Spec delta** (`docs/kit-v3/SPEC-paquete-<N>.md`, formato SPEC-0/delta): las piezas, qué NO SE TOCA, cómo se prueba, y **la lista
    de encargos** (abajo). Los de los paquetes 1 a 3 **los sella Guido a mano**; desde el 4, el script del sello. **El director frena acá.**
    *(Salvo D3.1, que lo sella provisorio sin Guido: "Cambios al plan", 2026-10-29.)*
-3. **Red team** si toca permisos, secretos o datos (paquetes 2 a 5 seguro): subagente Opus con el agente `redteam-spec`, hasta 3 rondas.
+3. **Red team** si toca permisos, secretos o datos (paquetes 2 a 5 seguro): subagente Opus con el agente `redteam-spec`, **una ronda** (ADR-029; antes hasta 3).
    Lo que vuelva como decisión de diseño **se lo lleva a Guido**; lo demás lo integra. Los informes al repo privado.
 4. **Encargos**: el director parte el paquete. Cada encargo dice **qué archivos puede tocar, qué prueba tiene que pasar y qué no se
    toca**. **Sonnet** para lo mecánico (parsers, pruebas, documentos, plantillas); **Opus** para hooks, seguridad, permisos y lo que
    decide. Dos encargos en paralelo solo si no comparten archivos, cada uno en su worktree; si no, uno detrás del otro.
+   **Las pruebas de cada encargo, proporcionales al riesgo** (ADR-029): casos de sí y de no de lo que cambia; **mutación** solo al construir
+   una pieza que decide un freno o un permiso, sobre esas reglas, **tope 20 min**; **el corpus**, una muestra (~2.000) y solo si cambia
+   lo que frena al humano (el corpus entero, una vez por paquete, al final).
 5. **Revisar**: el director **lee cada diff y corre las pruebas él mismo**. El resumen del subagente no es evidencia. Si un encargo
    falla, se rehace con lo aprendido o va a "Pendientes"; nunca se tapa.
 6. **Pruebas que un subagente no puede hacer** (un chat nuevo para ver el hook, un pop-up de VS Code, la segunda PC): el director las
    lista en "Pendientes" con qué hay que mirar, y se hacen en una sesión real (la del director siguiente, o Guido).
-7. **Revisor frío** al cerrar: subagente Opus sin contexto, sobre el diff entero del paquete.
+7. **Revisor frío** al cerrar: subagente Opus sin contexto, sobre el diff entero del paquete. **Una vuelta, hasta 10 hallazgos, cada
+   uno con su escenario del día normal** (dos PCs, `pull`, merge, worktrees, un proyecto nuevo); sin escenario no se reporta. **Contra
+   accidentes, no contra trampas**: lo que necesita un agente que quiere esquivar el freno va a "Lo que esto no cierra", sin arreglo. Los
+   arreglos, en **un solo encargo** (Sonnet si son chicos); sin segunda vuelta (ADR-029).
 8. **Cerrar**: `kit-sync.sh sync` LIMPIO, los `✅ <fecha>` en el spec, la línea en el CHANGELOG, este tracker al día, `/cierre`.
+
+**Presupuesto** (ADR-029): **~4 h de reloj y ~8 encargos por director**. Al llegar, cierra limpio (lo hecho en `main`, lo que falta en
+Pendientes con su porqué) y Guido decide si sigue otra sesión; no se estira a 9 h. La fila del director anota horas, encargos y tokens.
+La suite entera corre **una vez**, al final.
 
 **Límites**: un subagente no lanza otros subagentes ni le puede preguntar a Guido: todo lo que necesite una decisión vuelve al
 director. **El director no edita código**: si se encuentra arreglando a mano, el encargo estaba mal escrito y se reescribe.
-**El director no corta por contexto: termina su fila** (Guido, 2026-10-29: D1.1 y D2.1 cerraron con mucho contexto de sobra, y D2.1
+**El director no corta por contexto: termina su fila** (dentro del presupuesto de arriba) (Guido, 2026-10-29: D1.1 y D2.1 cerraron con mucho contexto de sobra, y D2.1
 propuso partir con 26% usado). Si la app compacta, relee este tracker y su delta antes de seguir editando.
 
-**Modelos** (decisión de Guido, 2026-10-27): director, red team, revisor frío y encargos de riesgo en **Opus**; encargos mecánicos en
-**Sonnet**. **Fable** solo en la sesión donde Guido decide algo nuevo.
+**Modelos** (decisión de Guido, 2026-10-27): director, red team, revisor frío y encargos de riesgo en **Opus**; encargos mecánicos **y
+los arreglos chicos** en **Sonnet** (ADR-029). **Fable** solo en la sesión donde Guido decide algo nuevo.
 
 ## El estado, de un vistazo
 
@@ -74,7 +84,7 @@ cuántos lanzó y en qué modelo (por ejemplo `4 Sonnet · 2 Opus`): es la medid
 | D2.2 | Paquete 2, segunda mitad: candado, `cambios` base y su sello, la zona propia (P3.2), `/inicio` y `/cierre` v3 con `pedidos.md`, revisor frío | 2026-10-28/29 (sin Guido) | `vibe-kit M5 · D2.2 · Paquete 2, segunda mitad: candado, cambios, zona propia, /inicio y /cierre v3` | 6 Sonnet (F1, F5, F6 con 3 correcciones, F7, sesión real `-p`, diez pedidos ×2) · 6 Opus (red team ×2 rondas, F2, F3, F4, revisor frío ×3 vueltas, RF-fix ×3) | `12b7317`…el cierre | ✅ F1-F7 y los "hecho cuando" de 3.2, 3.10, 5.2, 6.1, 6.8a; 5.1 con salvedad (diez pedidos: 6 de 10). Red team r4-r5 (5 ALTOS) y revisor frío (6 ALTOS en tres vueltas) integrados; suite **verde** (cifra en el CHANGELOG); mutación por encargo 24/24 · 67/68 · 98/99 · 99/105 · 43/48 · 10/11 (vivos equivalentes, explicados) y control del director 3/3 + 3/3. Criterio 14 ✅; 6, 12, 17, 18, 20 con lo que falta escrito. **Decisiones sin Guido**: abajo |
 | D3.1 | Paquete 3: spec delta + red team (obligatorio), corrector, barreras, hooks por PC, `doctor` mínimo | 2026-10-29 (sin Guido; frenada por cuota) | `vibe-kit M5 · D3.1 · Paquete 3: seguridad — corrector, barreras, hooks por PC, doctor mínimo` | 4 Sonnet (G0b, G1 corpus, G2, G8) · 8 Opus (G0, redactor del delta, red team ×2 rondas, G9; G3, G4, G5, G6 frenados a medias) | `1116698`…el cierre parcial | 🔨 **A medias, punto de corte pedido por Guido por la cuota.** Delta **sellado sin Guido** (r1: 6 ALTOS integrados; r2: 0 ALTOS). G0 y G0b verdes: `onFailure: "block"` frena las cuatro fallas, la forma exec anda sin Git Bash. En `main`: **G2** `comando.cjs` (976 casos, mutación 384/384), **G8** `cargar-secreto` (38/38, corridas por el director), **G9** `db-guardia.cjs` (38/38 por el director, mutación 51/52, el vivo equivalente y sacado). **G3-G6 en ramas WIP** (Pendientes). Huella del `~/.claude/` real igual a la de la apertura. **Decisiones sin Guido**: abajo |
 | D3.2 | Paquete 3, segunda vuelta: terminar G3, G4, G5 y G6 desde sus ramas WIP (medición, mutación, pruebas), mergearlos y borrar las ramas | 2026-10-29 (sin Guido, PC `Usuario`) | `vibe-kit M5 · D3.2 · Paquete 3, segunda vuelta: terminar G3-G6 desde sus ramas WIP` | 4 Opus (G3, G4, G5, G6; nunca más de dos a la vez; G3 y G6 retomados tras un corte de cuota) | `10cd6e8` · `6714f43` · `4b28b45` · `7fcc734` y el cierre | ✅ **G3-G6 en `main`, las cuatro ramas `wip/*` borradas de `origin`.** Pruebas corridas por el director: G3 41 (40 + 1 skip hasta que G7 registre el hook), G6 134, G4 306 (con `ficha.test`), G5 29. **Mutación**: G3 136/137 · G6 49/50 · G4 62/64 · G5 178/181 (todos los vivos equivalentes, explicados). **Medición, corpus `Usuario` (16.470 llamadas únicas)**: `git-seguro` 90 frenos, 0 falsos positivos; `sensible` 0 `ask`/`deny` con humano de día con modo (1 `deny` correcto en bypass); `secretos` 38 frenos + 1.003 prompts con 0 frenos, 0 falsos positivos (empezó en 308: corregido). Suite: cifra en el CHANGELOG. **Decisiones sin Guido**: abajo |
-| D3.3 | Paquete 3, cierre: G7, G10, G11, G12, G13, revisor frío, `/cierre` completo | 2026-10-29/30 (sin Guido, PC `Usuario`, ~9 h) | `vibe-kit M5 · D3.3 · Paquete 3, cierre: githooks, instalador, doctor, sesión real, revisor frío` | 3 Sonnet (G11, G12, G13) · 14 Opus (G7, G10, G5b, G6b, revisor frío ×2 vueltas, RF-A, RF-B, RF-C, RF-D, RF-A2, RF-B2, RF-C2, RF-D2; dos se colgaron y se retomaron) | `797eddc`…`387f481` y el cierre | ✅ **G7** githooks con candado doble y gitleaks, todos los hooks registrados en forma exec; **G10** instalador por PC (`--plan`, `--quitar` byte a byte, `--sacar-viejo`); **G11** `doctor` (14 chequeos); **G12** `rehacer.sh` con el paso "orden 3"; **G13** sesión real con `claude.exe` (niega-aprobar en bypass, `salir-del-worktree` y `frenos-del-proyecto` vivos); G5b y G6b de yapa. Pendientes a-g de D3.2 y a-d de D2.2 cerrados salvo (e), que es de `clientes`. Revisor frío: dos vueltas, todo lo del día normal arreglado; el resto a "no cierra". Suite y mutaciones: cifras en el CHANGELOG. Huella del `~/.claude/` real igual a la de la apertura. **Decisiones sin Guido**: arriba |
+| D3.3 | Paquete 3, cierre: G7, G10, G11, G12, G13, revisor frío, `/cierre` completo | 2026-10-29/30 (sin Guido, PC `Usuario`; ~10 h de reloj, 18 h de agentes, 21 M de tokens nuevos) | `vibe-kit M5 · D3.3 · Paquete 3, cierre: githooks, instalador, doctor, sesión real, revisor frío` | 3 Sonnet (G11, G12, G13) · 14 Opus (G7, G10, G5b, G6b, revisor frío ×2 vueltas, RF-A, RF-B, RF-C, RF-D, RF-A2, RF-B2, RF-C2, RF-D2; dos se colgaron y se retomaron) | `797eddc`…`387f481` y el cierre | ✅ **G7** githooks con candado doble y gitleaks, todos los hooks registrados en forma exec; **G10** instalador por PC (`--plan`, `--quitar` byte a byte, `--sacar-viejo`); **G11** `doctor` (14 chequeos); **G12** `rehacer.sh` con el paso "orden 3"; **G13** sesión real con `claude.exe` (niega-aprobar en bypass, `salir-del-worktree` y `frenos-del-proyecto` vivos); G5b y G6b de yapa. Pendientes a-g de D3.2 y a-d de D2.2 cerrados salvo (e), que es de `clientes`. Revisor frío: dos vueltas, todo lo del día normal arreglado; el resto a "no cierra". Suite y mutaciones: cifras en el CHANGELOG. Huella del `~/.claude/` real igual a la de la apertura. **Decisiones sin Guido**: arriba |
 | D4.1 | Paquete 4: spec delta + red team, Arquitecto v3, sello, `formato-spec.md`, `worktree` y `.kit-rol` | | | | | |
 | D5.1 | Paquete 5, primera mitad: spec delta + red team, el canon director/obrero y sus correctores | | | | | |
 | D5.2 | Paquete 5, segunda mitad: `/estado`, resumen del día, subagentes, `CLAUDE.md` por criterios, la mesa | | | | | |
@@ -357,32 +367,34 @@ ramas `wip/*` borradas). Es el prompt de D3.1 con lo que cambia; las reglas de s
 
 ## Abrir D4.1 sin Guido (el prompt)
 
-*(Armado en el cierre de D3.3, 2026-10-30, con lo que D3.3 aprendió: el revisor frío con tope.)* En la PC `Usuario`, en Opus, chat nuevo en vibe-kit.
+*(Armado en el cierre de D3.3, 2026-10-30, y reescrito ese día con el ADR-029: revisar y probar con presupuesto.)* En la PC `Usuario`, en
+Opus, chat nuevo en vibe-kit.
 
-> inicio — misión 5, D4.1: el paquete 4 entero, sin mí.
+> inicio — misión 5, D4.1: el paquete 4, sin mí, con el presupuesto del ADR-029.
 >
 > Me voy y te dejo trabajando solo. Te autorizo por adelantado a lo mismo que a D3.1-D3.3 (el prompt de D3.1, en el tracker, "Abrir D3.1
 > sin Guido"): después del /inicio no esperás mi OK, decidís con la recomendada, anotás en "Decisiones sin Guido" de una sección D4.1 nueva
-> (las ⚠️ arriba), no cortás por contexto, no tocás el `~/.claude/` real (todo lo que instale, con un HOME falso), y lo que necesita una
-> persona va a Pendientes. Lo que cambia:
+> (las ⚠️ arriba), no tocás el `~/.claude/` real (todo lo que instale, con un HOME falso), y lo que necesita una persona va a Pendientes.
+> Lo que cambia:
 >
 > 1. **Alcance: el paquete 4** (SPEC-0, orden 4): el Arquitecto v3, el sello, `formato-spec.md`, el script `worktree` y `.kit-rol`. Primero
->    **el spec delta** (`docs/kit-v3/SPEC-paquete-4.md`, como el del 3), con **red team obligatorio** (toca permisos: el rol de cada worktree),
->    hasta 2 rondas; lo **sellás vos** ("sellado sin Guido", sin ALTOS abiertos) y yo lo repaso al volver. Después los encargos.
->    Entran también: "Paquete 4 · de D2.2" de Pendientes (el Arquitecto abre diciendo el tamaño como primera línea; los diez pedidos tienen
->    que dar 10 de 10) y "Paquete 4 · de D3.3" (`worktree cerrar` no se traba con el `frenos.log` del obrero).
-> 2. **El revisor frío: UNA vuelta, con tope** (SPEC-0, "Ejecución"). Arreglás en el paquete solo lo que rompe el día normal o deja pasar una
->    clave sin que nadie lo intente; lo rebuscado va a "Lo que esto no cierra" del delta, sin arreglo. Sin segunda vuelta.
-> 3. **La PC ya está preparada** (kit-sync LIMPIO, repos de prueba, corpus en `C:\Users\Usuario\vibe-historial\`). Verificalo en el /inicio.
-> 4. **De a dos Opus como máximo** (los Sonnet mecánicos no cuentan). Cada encargo en su worktree en `scratchpad/<x>/wt`, con el `cwd`
->    adentro de su subcarpeta. **Mutación con tope de ~45 min por encargo**: muta las reglas que deciden y anota el resto. Si un encargo se
->    cuelga o la cuota corta, retomalo con un mensaje ("seguí desde donde quedaste"), no lo relances de cero.
-> 5. Leés cada diff, corrés vos las pruebas de cada encargo y la suite entera al final, en segundo plano. Aceptado → merge a `main`,
->    gitleaks, commit y push.
-> 6. Las pruebas que necesitan una persona (pestaña real, la otra PC) van a Pendientes con qué tengo que mirar y qué correr.
-> 7. Al terminar, la fila del paquete 4 en ✅ con lo que me espera, **el prompt de D5.1 sin mí** armado en el tracker como este, y /cierre
->    completo (kit-sync LIMPIO, docs, diario, el chat al privado, gitleaks, commit y push) con el "Próximo paso" en D5.1 y su título. En el
->    resumen final, primero "Decisiones sin Guido" y después lo que me espera a mí.
+>    **el spec delta** (`docs/kit-v3/SPEC-paquete-4.md`, como el del 3) con **una ronda de red team**; lo **sellás vos** ("sellado sin
+>    Guido", sin ALTOS abiertos) y yo lo repaso al volver. Después los encargos. Entran también "Paquete 4 · de D2.2" de Pendientes (el
+>    Arquitecto abre diciendo el tamaño como primera línea; los diez pedidos tienen que dar 10 de 10) y "Paquete 4 · de D3.3" (`worktree
+>    cerrar` no se traba con el `frenos.log` del obrero).
+> 2. **El presupuesto manda (ADR-029; "Cómo se trabaja" del tracker)**: **~4 h de reloj y ~8 encargos**. Si llegás y no terminaste, cerrás
+>    limpio: lo hecho en `main`, lo que falta en Pendientes con su porqué, y el prompt de D4.2 armado. No estires.
+> 3. **Contra accidentes, no contra trampas.** El revisor frío: **una vuelta, hasta 10 hallazgos, cada uno con su escenario del día
+>    normal**; los arreglos, en un solo encargo (Sonnet si son chicos); lo que pide un agente que quiere esquivar el freno va a "Lo que
+>    esto no cierra", sin arreglo. Sin segunda vuelta.
+> 4. **Pruebas proporcionales**: casos de sí y de no de cada cambio; mutación solo en las piezas nuevas que deciden un freno o un permiso
+>    (tope 20 min); la suite entera una vez, al final, en segundo plano. De a dos Opus como máximo; cada encargo en su worktree en
+>    `scratchpad/<x>/wt`. Si un encargo se cuelga, retomalo con un mensaje, no lo relances.
+> 5. Leés cada diff y corrés las pruebas de cada encargo. Aceptado → merge a `main`, gitleaks, commit y push.
+> 6. Las pruebas que necesitan una persona van a Pendientes con qué tengo que mirar y qué correr.
+> 7. Al terminar, la fila D4.1 con **horas, encargos y tokens** (para ver si el ADR-029 rindió), el paquete 4 en ✅ si cerró, el prompt
+>    de la sesión siguiente armado como este, y /cierre completo con el "Próximo paso" y su título. En el resumen final, primero
+>    "Decisiones sin Guido" y después lo que me espera a mí.
 
 ## Paralelizar: decidido que no (DP, 2026-10-29)
 
@@ -429,6 +441,8 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
      frenó que una sesión los borrara: es tuyo.
   6. La ruta de la app de escritorio en el `doctor` (NO VERIFICADO): con la app abierta, `doctor` tiene que decir `claude-code ✓`.
   7. Repasar las ⚠️ de D2.2, D3.1 y D3.3 (arriba).
+- **Paquete 5 · del ADR-029**: el canon de pruebas de las apps (revisor, mutación, gate) se escribe con el mismo criterio: contra
+  accidentes, pruebas proporcionales al riesgo, una vuelta de revisor con escenario.
 - **Paquete 4 · de D3.3** (el "aparte" de la segunda vuelta del revisor frío): los renglones que escriben los hooks de sesión ensucian
   `frenos.log` dentro del worktree obrero y traban `git worktree remove` (archivo modificado). Lo resuelve el script `worktree cerrar` del orden 4
   (o que los hooks de sesión escriban en `<git-common-dir>`, como ya hacen los githooks desde RF-A2).
@@ -558,10 +572,16 @@ Del spec, sección "Lo que hacés vos de nuevo". Acá solo cuándo toca, para qu
 | 2026-10-29 | **El paquete 3 pasa a dos directores (D3.1 y D3.2)**: D3.1 cortó a medias en un punto pedido por Guido; sus encargos a medio hacer quedan en ramas WIP locales y D3.2 los termina | Guido, a la tarde: "estamos con poca cuota de sesión"; prefirió frenar G3-G6 y cerrar limpio antes que quemar 1-2 h más de cuota en trabajo que igual había que revisar |
 | 2026-10-29 | **El paquete 3 pasa a tres directores**: D3.2 solo cierra G3-G6 (de a dos Opus: G3 ∥ G6, después G4 ∥ G5) y D3.3 hace G7, G10-G13, el revisor frío y el `/cierre`. Las dos corren en la PC `Usuario`, preparada antes por otra sesión (abajo, "Abrir D3.2 y D3.3") | Guido, al retomar en `Usuario`: D3.1 cortó por meter todo junto; cada medición tarda 1-2 h y el plan semanal renueva el 1-11. Partido, si la cuota corta, corta en un punto limpio |
 | 2026-10-29 | **No se paraleliza: un director por vez**, en el orden de la tabla (DP) | Decisión de Guido: en la misma PC, paralelizar pedía reglas nuevas y un ensayo antes de saber si rendía; "prefiero hacerlo bien y que tarde más" |
-| 2026-10-30 | **El revisor frío del paquete: una vuelta, con tope** (la regla, en la sección "Ejecución" del SPEC-0): se arregla en el paquete solo lo que rompe el día normal o deja pasar una clave sin que nadie lo intente; los ataques rebuscados van a "Lo que esto no cierra" y a Pendientes. D3.3 termina las rondas que ya corrían (RF-C2, RF-D2) y no hace una tercera vuelta | Guido, al ver D3.3 en ~9 h: "hay que corregir ese revisor frío, no hay que hacer tantas vueltas". D2.2 hizo tres vueltas; D3.3, dos vueltas y seis rondas de arreglos, cada una más cara (mutación + 16.470 llamadas del corpus) y rindiendo menos |
+| 2026-10-30 | **Revisar y probar con presupuesto (ADR-029)**: contra accidentes y no contra trampas; revisor frío de una vuelta con hasta 10 hallazgos con escenario, y los arreglos en un encargo; mutación solo en piezas nuevas que deciden (tope 20 min); el corpus entero una vez por paquete; red team de una ronda; **~4 h y ~8 encargos por director**. Las reglas, en "Cómo se trabaja" y en el SPEC-0, "Ejecución" | Guido, después de D3.3 (18 h de agentes, 21 M de tokens, el 61% en arreglos del revisor frío): "hacer 60 revisiones en frío es una estupidez […] hay que probar lo que realmente importa, con criterio" |
+| 2026-10-30 | **El revisor frío del paquete: una vuelta, con tope** (primer paso, a mitad de D3.3; lo amplió el ADR-029 el mismo día): se arregla en el paquete solo lo que rompe el día normal o deja pasar una clave sin que nadie lo intente; los ataques rebuscados van a "Lo que esto no cierra" y a Pendientes. D3.3 termina las rondas que ya corrían (RF-C2, RF-D2) y no hace una tercera vuelta | Guido, al ver D3.3 en ~9 h: "hay que corregir ese revisor frío, no hay que hacer tantas vueltas". D2.2 hizo tres vueltas; D3.3, dos vueltas y seis rondas de arreglos, cada una más cara (mutación + 16.470 llamadas del corpus) y rindiendo menos |
 | 2026-10-28 | **Un director Opus por paquete con subagentes** en vez de una sesión por paso: de ~18-21 sesiones a 13 directores; los encargos mecánicos vuelven a Sonnet | ADR-028: propuesta de Guido (un orquestador para todo el spec), acotada a uno por paquete |
 
 ## Lecciones (insumo de la misión 6)
+
+- 2026-10-30 · **D3.3: el revisor frío sin piso de severidad se come la sesión.** 17 encargos, 18 h de agentes y 21 M de tokens nuevos; **el
+  61% en ocho rondas de arreglos** de 24 hallazgos, casi todos trampas a propósito que el delta ya daba por perdidas ("todo freno es un
+  patrón"). Cada arreglo pagaba mutación + corpus entero + suite. El costo no estaba en revisar (20 min por vuelta) sino en arreglar todo
+  lo que salía. → ADR-029.
 
 - 2026-10-29 · **D2.2: las pruebas de skills con `claude -p` desde Git Bash mienten si el prompt empieza con `/`**: MSYS convierte
   `"/inicio …"` en `C:/Program Files/Git/inicio …` y la sesión nunca recibe la skill. La mitad de la primera vuelta de los diez pedidos
