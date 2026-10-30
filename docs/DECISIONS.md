@@ -35,6 +35,7 @@
 - ADR-027 · El OK de Guido a un cambio de barrera es el clic en la ventana de permiso, con tres candados; no una línea en la terminal (2026-10-27)
 - ADR-028 · La misión 5 se construye con un director Opus por paquete que reparte encargos a subagentes; no un orquestador para todo el spec (2026-10-28)
 - ADR-029 · Revisar y probar con presupuesto: contra accidentes, no contra trampas; pruebas proporcionales al riesgo; tope por sesión (2026-10-30)
+- ADR-030 · Las sesiones que deciden sin Guido usan su vara: las cuatro cosas, el filtro pragmático y los 11 criterios; si no alcanza, preguntan (2026-10-30)
 
 *Cada ADR nuevo suma su línea acá (lo pide `/cierre`).*
 
@@ -660,3 +661,19 @@ importa, con criterio"*.
   necesitar dos sesiones en vez de una larga.
 - **Alcance:** la construcción de vibe-kit (misión 5 en adelante). **El canon de pruebas de las apps** (paquete 5) se escribe con este mismo
   criterio: el director del paquete 5 lo lleva al canon.
+
+## ADR-030 · Las sesiones que deciden sin Guido usan su vara: las cuatro cosas, el filtro pragmático y los 11 criterios; si no alcanza, preguntan (2026-10-30)
+Desde D2.2, los directores de la misión 5 corren sin Guido con "decidís con la recomendada" y las ⚠️ arriba. **Nada les decía con qué
+vara elegir la recomendada**: las cuatro cosas de Guido estaban solo en la memoria de una PC y en el diseño H, y los 11 criterios en
+`docs/mision-4/PLAN.md`, usados para diseñar pero no para construir. D3.3 lo mostró: ocho rondas de arreglos chocaban con los criterios 2
+(pragmático), 5 (tokens) y 9 (lo chico no paga lo grande), y ninguna de sus decisiones decía qué movía. Guido, al cerrar D3.3: que de
+ahora en más toda decisión use eso, y que si aun así no se puede resolver, quede para más adelante y se le pregunte.
+- **Decisión (de Guido):** toda decisión de una sesión sin Guido se elige con (1) **sus cuatro cosas** (workflow · mejor código ·
+  consistencia · acordarse de menos), con la etiqueta en la línea de la decisión, y **si no mueve ninguna, sobra**; (2) **el filtro
+  pragmático** (¿error real o "por las dudas"?, ¿el costo se paga con lo que mejora?; lo overkill se recorta); (3) **los 11 criterios** como
+  desempate; (4) el ADR-029. **Si con eso no alcanza**, no se decide: pregunta arriba de Pendientes con las opciones y la recomendada, y la
+  sesión sigue con lo demás. Vive en "Cómo decide una sesión sin Guido" del tracker; lo cita cada prompt "sin Guido".
+- **Por qué:** Guido revisa las decisiones al volver con su propio criterio (la etiqueta se lo da hecho), y la sesión deja de elegir "lo
+  más completo" cuando la vara pide "lo que rinde". Es la misma idea del ADR-029 llevada a cada decisión.
+- **Descartado:** *que la sesión pregunte más* (rompe el trabajo sin Guido; criterio 1) · *dejarlo en la memoria* (no viaja a la otra PC
+  ni a una sesión en otro lado; criterio 8).

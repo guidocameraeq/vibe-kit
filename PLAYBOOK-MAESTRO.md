@@ -340,6 +340,9 @@ carpetas con espacios rompen todo lo demás).
   alguien que quiere esquivar un freno se anota como riesgo, no se arregla. (2) **Revisor frío: una vuelta, hallazgos con su escenario del
   día normal**, los arreglos juntos en un encargo. (3) **Pruebas proporcionales al riesgo**: la prueba cara (mutación, el corpus entero)
   una vez por pieza nueva, no en cada arreglo. (4) **Tope por sesión** (horas y encargos): al llegar, se cierra limpio y se sigue en otra.
+- **Una sesión que decide sola necesita la vara del dueño por escrito** (vibe-kit, ADR-030): "decidí con la recomendada" sin criterio
+  termina eligiendo lo más completo, no lo que rinde. La vara va en el repo (no en la memoria de una PC): qué mejora para el dueño, el
+  filtro de "¿error real o por las dudas?", y qué hacer si no alcanza (no decidir: dejar la pregunta con opciones y seguir).
 - **Modelo barato para batch** (censos, transformaciones mecánicas); el modelo grande se reserva
   para diseño, debugging difícil y decisiones.
 - Si el batch consume una cuota compartida (API del bot, etc.): declarar costo estimado ANTES.

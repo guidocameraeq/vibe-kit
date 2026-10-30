@@ -24,6 +24,8 @@ PC `Usuario`, chat `vibe-kit M5 · D3.3 · Paquete 3, cierre: githooks, instalad
   en arreglos del revisor frío): contra accidentes y no contra trampas; revisor frío de una vuelta, hasta 10 hallazgos con escenario, arreglos
   en un encargo; mutación solo en piezas nuevas que deciden (20 min); corpus entero una vez por paquete; red team de una ronda; ~4 h y ~8
   encargos por director. En el SPEC-0 ("Ejecución"), el tracker ("Cómo se trabaja", el prompt de D4.1) y el playbook (§2.7).
+- **ADR-030 · la vara para decidir sin Guido**: sus cuatro cosas (con etiqueta; si no mueve ninguna, sobra), el filtro pragmático y los 11
+  criterios; si no alcanza, pregunta arriba de Pendientes. En el tracker ("Cómo decide una sesión sin Guido", el prompt de D4.1), el SPEC-0 y el playbook.
 - Tracker: paquete 3 ✅, fila D3.3, Pendientes con lo que espera a Guido, el prompt de D4.1. Delta: ✅ IMPLEMENTADO.
 - **Suite entera: 2.121 pruebas, 2.121 verdes** (27 min). `rehacer.sh` ×2, mismos SHAs. Huella del `~/.claude/` real (settings y hooks) igual a la de la apertura.
 

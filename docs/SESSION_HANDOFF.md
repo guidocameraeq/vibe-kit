@@ -14,6 +14,8 @@
 - **ADR-029 (Guido, 2026-10-30): revisar y probar con presupuesto.** Contra accidentes, no contra trampas; revisor frío de una vuelta (≤10
   hallazgos con escenario, arreglos en un encargo); mutación solo en piezas nuevas (20 min); **~4 h y ~8 encargos por director**. D3.3
   costó 18 h de agentes y 21 M de tokens, el 61% en arreglos: no repetir. Las reglas, en "Cómo se trabaja" del tracker.
+- **ADR-030: toda decisión sin Guido se elige con su vara** (sus cuatro cosas con etiqueta, el filtro pragmático, los 11 criterios); si no
+  alcanza, pregunta arriba de Pendientes. En "Cómo decide una sesión sin Guido" del tracker.
 - Hoja de ruta ADR-025: 4 ✅ → 4½ ✅ → **5 construir v3.0** (paquetes 1, 2 y 3 ✅; sigue el 4) → 6 el ciclo → 7 mensajería v3.1.
 
 ## Próximo paso

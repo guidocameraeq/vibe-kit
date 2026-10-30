@@ -51,6 +51,24 @@ propuso partir con 26% usado). Si la app compacta, relee este tracker y su delta
 **Modelos** (decisión de Guido, 2026-10-27): director, red team, revisor frío y encargos de riesgo en **Opus**; encargos mecánicos **y
 los arreglos chicos** en **Sonnet** (ADR-029). **Fable** solo en la sesión donde Guido decide algo nuevo.
 
+### Cómo decide una sesión sin Guido: la vara (ADR-030)
+
+Vale para **toda decisión** de una sesión que trabaja sin Guido (el delta, lo que traiga el red team o el revisor frío, un encargo que
+se desvía, qué se arregla y qué no). "Decidís con la recomendada" quiere decir: **la que mejor pasa esta vara**, no la más completa.
+
+1. **Tus cuatro cosas** (las de Guido, 2026-10-24): ¿mejora el **workflow**? ¿da **mejor código**? ¿más **consistencia**? ¿hay que
+   **acordarse de menos**? Cada decisión que se anota lleva su etiqueta, por ejemplo `[workflow · acordarse de menos]`. **Si no mueve
+   ninguna, sobra: se descarta.**
+2. **El filtro pragmático**: ¿corrige un error real o es "por las dudas"? ¿Lo que cuesta (horas, tokens, encargos, pruebas) se paga con lo
+   que mejora? Si es overkill, se recorta a lo que rinde y el resto se anota como riesgo. No se aplica "todo" porque venga en una lista.
+3. **Los 11 criterios del diseño** ([`docs/mision-4/PLAN.md`](../mision-4/PLAN.md), "Los 11 criterios"), como desempate. Deciden sobre
+   todo el 1 (menos intervención de Guido), el 2 (pragmático), el 4 (software que anda y se sostiene) y el 5 (tokens y el modelo justo).
+4. **Contra accidentes, no contra trampas, y con el presupuesto de la sesión** (ADR-029).
+
+**Si con la vara no alcanza** (dos opciones empatadas en las cuatro cosas, o una que contradice el SPEC-0 o un ADR y no se puede hacer
+reversible): **no se decide**. Va arriba de Pendientes como pregunta para Guido, con las opciones, sus pros y contras y la recomendada, y la
+sesión sigue con lo que no depende de eso. Lo que sí se decide y es grande se marca ⚠️, como siempre.
+
 ## El estado, de un vistazo
 
 | Paquete | Qué | Directores | Estado |
@@ -382,17 +400,20 @@ Opus, chat nuevo en vibe-kit.
 >    Guido", sin ALTOS abiertos) y yo lo repaso al volver. Después los encargos. Entran también "Paquete 4 · de D2.2" de Pendientes (el
 >    Arquitecto abre diciendo el tamaño como primera línea; los diez pedidos tienen que dar 10 de 10) y "Paquete 4 · de D3.3" (`worktree
 >    cerrar` no se traba con el `frenos.log` del obrero).
-> 2. **El presupuesto manda (ADR-029; "Cómo se trabaja" del tracker)**: **~4 h de reloj y ~8 encargos**. Si llegás y no terminaste, cerrás
+> 2. **Decidís con la vara** ("Cómo decide una sesión sin Guido" del tracker, ADR-030): mis cuatro cosas, el filtro pragmático y los 11
+>    criterios. Cada decisión lleva su etiqueta; si no mueve ninguna, sobra. Si con la vara no alcanza, no la decidas: pregunta arriba de
+>    Pendientes con las opciones y la recomendada, y seguís con lo demás.
+> 3. **El presupuesto manda (ADR-029; "Cómo se trabaja" del tracker)**: **~4 h de reloj y ~8 encargos**. Si llegás y no terminaste, cerrás
 >    limpio: lo hecho en `main`, lo que falta en Pendientes con su porqué, y el prompt de D4.2 armado. No estires.
-> 3. **Contra accidentes, no contra trampas.** El revisor frío: **una vuelta, hasta 10 hallazgos, cada uno con su escenario del día
+> 4. **Contra accidentes, no contra trampas.** El revisor frío: **una vuelta, hasta 10 hallazgos, cada uno con su escenario del día
 >    normal**; los arreglos, en un solo encargo (Sonnet si son chicos); lo que pide un agente que quiere esquivar el freno va a "Lo que
 >    esto no cierra", sin arreglo. Sin segunda vuelta.
-> 4. **Pruebas proporcionales**: casos de sí y de no de cada cambio; mutación solo en las piezas nuevas que deciden un freno o un permiso
+> 5. **Pruebas proporcionales**: casos de sí y de no de cada cambio; mutación solo en las piezas nuevas que deciden un freno o un permiso
 >    (tope 20 min); la suite entera una vez, al final, en segundo plano. De a dos Opus como máximo; cada encargo en su worktree en
 >    `scratchpad/<x>/wt`. Si un encargo se cuelga, retomalo con un mensaje, no lo relances.
-> 5. Leés cada diff y corrés las pruebas de cada encargo. Aceptado → merge a `main`, gitleaks, commit y push.
-> 6. Las pruebas que necesitan una persona van a Pendientes con qué tengo que mirar y qué correr.
-> 7. Al terminar, la fila D4.1 con **horas, encargos y tokens** (para ver si el ADR-029 rindió), el paquete 4 en ✅ si cerró, el prompt
+> 6. Leés cada diff y corrés las pruebas de cada encargo. Aceptado → merge a `main`, gitleaks, commit y push.
+> 7. Las pruebas que necesitan una persona van a Pendientes con qué tengo que mirar y qué correr.
+> 8. Al terminar, la fila D4.1 con **horas, encargos y tokens** (para ver si el ADR-029 rindió), el paquete 4 en ✅ si cerró, el prompt
 >    de la sesión siguiente armado como este, y /cierre completo con el "Próximo paso" y su título. En el resumen final, primero
 >    "Decisiones sin Guido" y después lo que me espera a mí.
 
@@ -572,6 +593,7 @@ Del spec, sección "Lo que hacés vos de nuevo". Acá solo cuándo toca, para qu
 | 2026-10-29 | **El paquete 3 pasa a dos directores (D3.1 y D3.2)**: D3.1 cortó a medias en un punto pedido por Guido; sus encargos a medio hacer quedan en ramas WIP locales y D3.2 los termina | Guido, a la tarde: "estamos con poca cuota de sesión"; prefirió frenar G3-G6 y cerrar limpio antes que quemar 1-2 h más de cuota en trabajo que igual había que revisar |
 | 2026-10-29 | **El paquete 3 pasa a tres directores**: D3.2 solo cierra G3-G6 (de a dos Opus: G3 ∥ G6, después G4 ∥ G5) y D3.3 hace G7, G10-G13, el revisor frío y el `/cierre`. Las dos corren en la PC `Usuario`, preparada antes por otra sesión (abajo, "Abrir D3.2 y D3.3") | Guido, al retomar en `Usuario`: D3.1 cortó por meter todo junto; cada medición tarda 1-2 h y el plan semanal renueva el 1-11. Partido, si la cuota corta, corta en un punto limpio |
 | 2026-10-29 | **No se paraleliza: un director por vez**, en el orden de la tabla (DP) | Decisión de Guido: en la misma PC, paralelizar pedía reglas nuevas y un ensayo antes de saber si rendía; "prefiero hacerlo bien y que tarde más" |
+| 2026-10-30 | **La vara para decidir sin Guido (ADR-030)**: toda decisión de una sesión sin Guido se elige con sus cuatro cosas (con etiqueta; si no mueve ninguna, sobra), el filtro pragmático y los 11 criterios; si no alcanza, no se decide: pregunta arriba de Pendientes. En "Cómo decide una sesión sin Guido" | Guido: las decisiones sin él decían "la recomendada" sin vara; "de ahora en más, cuando se tengan que tomar decisiones, que use eso; y si aun así no puede resolver, que la deje para más adelante y pregunte" |
 | 2026-10-30 | **Revisar y probar con presupuesto (ADR-029)**: contra accidentes y no contra trampas; revisor frío de una vuelta con hasta 10 hallazgos con escenario, y los arreglos en un encargo; mutación solo en piezas nuevas que deciden (tope 20 min); el corpus entero una vez por paquete; red team de una ronda; **~4 h y ~8 encargos por director**. Las reglas, en "Cómo se trabaja" y en el SPEC-0, "Ejecución" | Guido, después de D3.3 (18 h de agentes, 21 M de tokens, el 61% en arreglos del revisor frío): "hacer 60 revisiones en frío es una estupidez […] hay que probar lo que realmente importa, con criterio" |
 | 2026-10-30 | **El revisor frío del paquete: una vuelta, con tope** (primer paso, a mitad de D3.3; lo amplió el ADR-029 el mismo día): se arregla en el paquete solo lo que rompe el día normal o deja pasar una clave sin que nadie lo intente; los ataques rebuscados van a "Lo que esto no cierra" y a Pendientes. D3.3 termina las rondas que ya corrían (RF-C2, RF-D2) y no hace una tercera vuelta | Guido, al ver D3.3 en ~9 h: "hay que corregir ese revisor frío, no hay que hacer tantas vueltas". D2.2 hizo tres vueltas; D3.3, dos vueltas y seis rondas de arreglos, cada una más cara (mutación + 16.470 llamadas del corpus) y rindiendo menos |
 | 2026-10-28 | **Un director Opus por paquete con subagentes** en vez de una sesión por paso: de ~18-21 sesiones a 13 directores; los encargos mecánicos vuelven a Sonnet | ADR-028: propuesta de Guido (un orquestador para todo el spec), acotada a uno por paquete |
