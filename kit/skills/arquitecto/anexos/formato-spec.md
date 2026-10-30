@@ -238,6 +238,9 @@ Una línea cada una; el porqué largo, en el spec.
 
 ## Pendientes y "te espera"
 Lo pendiente del módulo y lo que necesita del dueño.
+
+## Sesiones vivas
+Solo con `director: sí`; lo mantiene el director. Un renglón por sesión abierta: `- <nombre> · <id de sesión o —> · <ruta> · <rama> · <modo>`.
 ```
 
 - **`Estado:` de la ficha, valores fijos**: `EN OBRA` · `PAUSADO (hasta <fecha>)` · `COMPLETO <fecha>` · `ABANDONADO <fecha> (por qué)`. `arquitecto.cjs ready --pendientes` saltea los que empiezan con `COMPLETO` o `ABANDONADO` y lista el resto cuyo `SPEC.md` no tiene un sello válido: `sin sello`, `borrador a medias` (un `SPEC.md` en BORRADOR sin sello: se retoma), `sello inválido: <qué>` o `cambió después del sello`.

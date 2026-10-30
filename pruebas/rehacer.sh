@@ -491,6 +491,12 @@ for (const [de, a] of [['hooks', '.claude/hooks'], ['scripts', '.claude/scripts'
 // orden 3: githooks/** → .githooks/** (sin los *.test.cjs; el +x lo pone rehacer.sh en el índice) y el snippet de .gitattributes
 if (paso === '3') {
   for (const rel of archivos(path.join(molde22, 'githooks'))) escribir(path.join(repo, '.githooks', rel), leerT(path.join(molde22, 'githooks', rel)));
+  // paquete 5 (D5.1 · E4): agents/ y las skills nuevas (nucleo, director, obrero) tal cual: son nuevas, no hay zona propia que mezclar
+  const nuevas = [['agents', '.claude/agents'], ...['nucleo', 'director', 'obrero'].map((s) => [`skills/${s}`, `.claude/skills/${s}`])];
+  for (const [de, a] of nuevas) {
+    if (!fs.existsSync(path.join(molde22, de))) continue;
+    for (const rel of archivos(path.join(molde22, de))) escribir(path.join(repo, a, rel), leerT(path.join(molde22, de, rel)));
+  }
   const ga = path.join(repo, '.gitattributes');
   let actual = fs.existsSync(ga) ? leerT(ga) : '';
   const ya = new Set(actual.split('\n').map((l) => l.trim()));
