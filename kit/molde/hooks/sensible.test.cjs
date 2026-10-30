@@ -260,6 +260,15 @@ test('matchea (rf3-9): las banderas no fijan la posición; las palabras que no s
   assert.equal(m('npm run --silent', 'npm run release'), false);
   assert.equal(m('npm publish --access public', 'npm publish --tag beta'), false);
   assert.equal(m('git -C x push --tags', 'git push --tags'), false); // lo que no cierra: la opción con valor corre las palabras
+  // rf2-9 (documentado): programa + bandera no fija subcomando; un lanzador de paquetes no es intérprete
+  assert.equal(m('vercel --prod', 'vercel --prod'), true);
+  assert.equal(m('vercel deploy --prod', 'vercel --prod'), true);
+  assert.equal(m('vercel logs --prod', 'vercel --prod'), true);
+  assert.equal(m('vercel env pull --prod', 'vercel --prod'), true);
+  assert.equal(m('vercel logs', 'vercel --prod'), false);
+  assert.equal(m('vercel logs --prod', 'vercel deploy --prod'), false); // con su subcomando, no pregunta de más
+  assert.equal(m('npx vercel --prod', 'vercel --prod'), false);
+  assert.equal(m('npx vercel --prod', 'npx vercel --prod'), true);
   // un "-" solo no es bandera (es la entrada estándar)
   assert.equal(m('db borrar -', 'db borrar -'), true);
   assert.equal(m('db borrar x -', 'db borrar -'), false);
