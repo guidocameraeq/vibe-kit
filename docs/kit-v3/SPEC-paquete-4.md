@@ -2,7 +2,8 @@
 Toda sesión dice el tamaño en la primera línea y, si no es chico, el Arquitecto viene solo, termina armando y deja su sello por
 script; sin sello no hay READY; y los worktrees nacen, se abren y se cierran por un script que escribe el rol y no lleva la credencial
 de escritura.
-- Estado: **DRAFT — falta el red team**
+- Estado: **READY — sellado sin Guido (provisorio)**, 2026-10-30, por el director D4.1, después de la ronda única del red team con sus 5
+  ALTOS integrados. Guido lo repasa al volver; todo se deshace antes del tag
 - Fecha: 2026-10-30 · Misión: 5, director **D4.1**, sin Guido (tracker, "Abrir D4.1 sin Guido"; la vara: ADR-030; el presupuesto: ADR-029)
 - Plano: [`SPEC-0-kit-v3.md`](SPEC-0-kit-v3.md), orden 4 = **P1.1-1.8 (con P1.4), P6.2**, y "se completa la parte de `/inicio` que invoca
   al Arquitecto sin sello" (P5.1); más, del tracker, **"Paquete 4 · de D2.2"** (la línea del tamaño primero; 10 de 10), **"Paquete 4 · de
@@ -81,10 +82,13 @@ Salidas como `cambios.cjs`: 0 anduvo · 1 negado o con fallas (una línea por qu
 **La línea** (en la lista de la cabecera, primeras 20 líneas; si falta, `sello` la pone después de `- Fecha:`):
 `- Sello del Arquitecto: \`arquitecto: <AAAA-MM-DD> · kit <X.Y.Z> · chequeos: tamaño <c> · entorno <c> · tope <c> · hash <12 hexa>[ · <nota>]\``
 - `<c>` = `✅` · `— (<razón>)` · y solo en tope `⚠️ (<KB> KB y <N> criterios; no partir: <quién>)`. `<nota>`: texto libre sin ` · `.
-- **`hash`** (D4-8): 12 hexa del sha256 del spec con CRLF→LF, **sin la línea `Estado:` ni la del sello**. Es "el spec no crece en la obra"
-  (H §12) hecho chequeo: tocar el spec después del sello lo invalida, y un sello tipeado a mano no trae el hash bueno.
+- **`hash`** (D4-8): 12 hexa del sha256 del spec **normalizado** (r1-7): sin BOM, CRLF→LF, sin espacios al final de cada renglón y sin
+  saltos de línea al final; **se excluyen solo la primera línea `- Estado:` y la línea del sello, las dos dentro de las primeras 20 líneas**
+  (un `Estado:` del cuerpo, como el esqueleto de la ficha, cuenta). Es "el spec no crece en la obra" (H §12) hecho chequeo: tocar el spec
+  después del sello lo invalida, y un sello tipeado a mano no trae el hash bueno. **La línea del sello va en un solo renglón**, nunca partida.
 - **`— (<razón>)` vale solo en un repo sin ficha** (`.claude/kit.md`): vibe-kit y los proyectos v2. Con ficha, tamaño y tope piden ✅ (o el ⚠️
-  de tope), y entorno ✅, o `— (quitado: <por>)` si `gate:entorno-prueba` está en `frenos.quitados`.
+  de tope), y entorno ✅, o `— (quitado: <por>)` si `gate:entorno-prueba` está en `frenos.quitados`. **"¿Hay ficha?" se decide igual en
+  `sello` y en `ready`**: `.claude/kit.md` en el disco de la raíz del checkout del spec (r1-7).
 
 **Los chequeos de `sello`** (cualquiera en rojo → 1 y no escribe nada):
 - **tamaño**: el spec trae `## Ejecución` y su primera línea con texto dice `módulo solo` o `módulo con director`; si al lado está
@@ -102,12 +106,14 @@ Salidas como `cambios.cjs`: 0 anduvo · 1 negado o con fallas (una línea por qu
 **`ready <spec>`** (P1.4; criterio 3 del kit): sin línea → 1 "spec sin sello: corré el Arquitecto (Modo B)"; gramática rota, un chequeo
 que no vale (la tabla de arriba) → 1 "sello inválido: <qué>"; hash distinto → 1 "el spec cambió después del sello: corré sello de nuevo";
 faltan secciones → 1 con cuáles: **todos** `## Ejecución` y `## Entorno de prueba`; **un delta** (H1 `# SPEC:` o `docs/modulos/*/SPEC.md`)
-además `## Pedido original, textual` como primera sección y `## NO SE TOCA`. Con todo: cambia `Estado: BORRADOR` por `Estado: READY` y nada
+además `## Pedido original, textual` como primera sección y `## NO SE TOCA` (`ready` mira que los títulos existan, no su texto: un spec
+anterior al kit v3 puede decir "(no quedó registrado: spec anterior al kit v3)"; el modelo **nunca lo inventa**; r1-3). Con todo: cambia `Estado: BORRADOR` por `Estado: READY` y nada
 más, relee y compara (F §9) → 0; ya READY → 0 "ya estaba". **No vuelve a correr los chequeos** (los corrió `sello`; el hash prueba que
 nada cambió).
 
-**`ready --pendientes`**: una línea `<x> · sin sello | cambió después del sello` por cada `docs/modulos/<x>/` con `Estado:` que no es
-`COMPLETO` ni `ABANDONADO` y cuyo `SPEC.md` no pasaría `ready` por el sello; sin nada, no imprime nada. Sale 0 siempre.
+**`ready --pendientes`**: una línea `<x> · sin sello | cambió después del sello` por cada `docs/modulos/<x>/` cuyo `Estado:` (en su
+`README.md`) no empieza con `COMPLETO` ni `ABANDONADO` (pueden llevar fecha al lado; los valores, fijos en `formato-spec.md`; r1-11) y cuyo
+`SPEC.md` no pasaría `ready` por el sello; sin nada, no imprime nada. Sale 0 siempre.
 
 **`registro <carpeta>`** (P1.8; E §9): `{version: 1, fichas: [{alias, repo, tipo, kit}], conexiones: [{de, a, texto}]}` por stdout, una ficha
 por `<carpeta>/*/.claude/kit.md` que se lee (una rota: se saltea con una línea por stderr). `alias` = `vars.proyecto` o la carpeta; `repo` =
@@ -142,9 +148,12 @@ por `<carpeta>/*/.claude/kit.md` que se lee (una rota: se saltea con una línea 
     escrita, antes del spec (H §13) · **corto** (con plan charlado: explora, NO SE TOCA, chequeos, director sí/no, Ejecución; sin entrevista;
     E §2.1) y **largo** (entrevista + "¿cómo lo resuelven otros?": investigador Sonnet, ~15 búsquedas, sección "Qué robar y qué no"; P1.3)
     · director **solo** si hay dos o más tareas que se escriben a la vez o noche sin Guido (H §6) · **termina armando** (H §8.2): `sello`,
-    el OK de Guido, `ready`, **un commit en la rama por defecto** con la carpeta, la ficha y el `SPEC.md` (push si hay remoto, con las reglas
-    del paso de push del `/cierre`); con director, después `node .claude/scripts/worktree.cjs crear <x>`; y la línea de apertura. Parado en
-    otra rama: no arma; una línea "el módulo nace en la rama por defecto: abrí una sesión ahí" (lo resuelve `integrar`, orden 5; D4-2).
+    el OK de Guido, `ready`, **un commit en la rama por defecto** con la carpeta, la ficha y el `SPEC.md`, **con `git commit -- <esas rutas>`,
+    nunca `add -A`** (push si hay remoto, con las reglas del paso de push del `/cierre`); con director, después `node .claude/scripts/worktree.cjs
+    crear <x>`; y la línea de apertura. Parado en otra rama: no arma; una línea "el módulo nace en la rama por defecto: abrí una sesión ahí"
+    (lo resuelve `integrar`, orden 5; D4-2). **Si no está `.claude/scripts/worktree.cjs`**: lo dice en una línea y **no arma el worktree a
+    mano** (r1-6). **Sin ficha** (proyectos v2, r1-3): corren `sello` y `ready` sobre `docs/SPEC-<x>.md`, la Ejecución dice `módulo solo`, **sin
+    commit, sin push, sin worktree y sin la regla de "otra rama"**: queda como hoy, para el `/cierre` del proyecto.
   - **`flota.md`**: la PC → `/arquitecto-skills`; "¿cómo está la flota?" → `registro` y una tabla; "poné al día X" y "adoptá X" → una línea:
     "llega con el kit v3 (orden 6); hoy: `actualizate` del Equipador para la PC, el §2.9 del playbook para adoptar".
 - **`formato-spec.md` v3** (P1.5; B §5; H §8, §9, §12): "Pedido original, textual" primero (delta); "Ejecución" (tamaño, sesiones, solo el
@@ -163,7 +172,8 @@ por `<carpeta>/*/.claude/kit.md` que se lee (una rota: se saltea con una línea 
 - **`/inicio`** (los pasos siguen en el mismo orden): el paso 5 dice además que **con el pedido en el mensaje, esa línea va primera en la
   respuesta, antes de las tres de confirmación**; paso nuevo, después de "aprobados nuevos": `node ~/.claude/skills/arquitecto/scripts/arquitecto.cjs
   ready --pendientes` → si lista un módulo: sin pedido en el mensaje, *"el módulo <x> nació sin sello: llamo al Arquitecto (Modo B corto)"* y
-  lo invoca; con pedido, esa línea y sigue con el pedido (B §6; RT1-11); si el script falla, una línea y sigue. La línea 28 deja de decir
+  lo invoca; con pedido, esa línea y sigue con el pedido (B §6; RT1-11); **`cambió después del sello` no invoca a nadie**: una línea "el spec
+de <x> cambió después del sello; si fue a propósito, corré `sello` de nuevo" (r1-11); si el script falla, una línea y sigue. La línea 28 deja de decir
   "el sello" (la mesa sigue pendiente, orden 5).
 
 ### P6.2 · `worktree.cjs` (H §10; F §9; RT1-3, RT1-14, RT2-5, RT2-9, RT2-12; RF-11)
@@ -179,30 +189,49 @@ Salidas 0/1/2 como `cambios.cjs`. **Un solo `.cjs` de node** (D4-4). Las carpeta
 
 - **Nombres** (H §7.1, §10.1): `<x>` = `^[a-z0-9]+(-[a-z0-9]+)*$`, ≤ 20, sin `--`; `<ID>` = dos dígitos. Rama `modulo/<x>` →
   `.claude/worktrees/modulo--<x>`; `modulo/<x>--<ID>` → `.claude/worktrees/modulo--<x>--<ID>`. Otro nombre → 2.
-- **`crear`**: se niega (1, con la línea que lo arregla) si `.claude/worktrees/` o `.kit-rol` no están ignorados (`git check-ignore`: un
-  `.kit-rol` commiteado viajaría a `main` con el merge y haría "obrero" al checkout de Guido) · si `docs/modulos/<x>/README.md` no está
+- **`crear`**: se niega (1, con la línea que lo arregla: pegar el `gitignore.snippet` entero) si `.claude/worktrees/`, `.kit-rol` o
+  `.claude/settings.local.json` no están ignorados (`git check-ignore`: un `.kit-rol` commiteado viajaría a `main` con el merge y haría
+  "obrero" al checkout de Guido; un `settings.local.json` sin ignorar deja sucio el worktree o viaja con rutas de otra PC; r1-5) · si `docs/modulos/<x>/README.md` no está
   commiteado en la rama por defecto (H §8.2: primero el commit del módulo) · si la rama o la carpeta ya existen (eso es `abrir`). Base: `<x>`
   desde la rama por defecto local; `<x>--<ID>` desde la punta de `modulo/<x>` (H §10.1). Después: **`.kit-rol`** (`director` para `<x>`;
   `obrero` para `<x>--<ID>`; `nocturno` con `--noche`), escrito por node en ASCII, sin BOM, con LF: **los mismos bytes desde PowerShell o
   Bash**; **las credenciales** (abajo); `core.longpaths true` en Windows; `vars.comando-setup` de la ficha, en el worktree (si falla, lo dice
   y no borra nada). Al final, **la línea de apertura**: `cd "<ruta absoluta>"; claude --name director-<x> --model opus` (obrero:
   `obrero-<x>--<ID>`, `sonnet`; D §6; `--model` la cambia). Con `;` y no `&&` (D4-12).
-- **`abrir`**: la rama existe local o en `origin` y la carpeta no está en esta PC (otra PC, el compañero; H §10.2, R-21): la crea sobre esa
-  rama y hace lo mismo que `crear` desde `.kit-rol`.
-- **Credenciales** (RT1-3, RT2-5; D4-5): se copia lo que lista `.worktreeinclude` (sin el archivo: los `.env` y `.env.*` ignorados, y una
-  línea que lo dice). **De cada `.env*` copiado se saca todo renglón cuyo nombre esté en el almacén del proyecto**
-  (`<HOME>/.config/kit-secretos/<proyecto>.env`, el mismo `<proyecto>` que calcula `cargar-secreto`), con una línea "no copié <NOMBRE>: vive
-  en el almacén"; del almacén se leen **solo los nombres**, y ningún valor sale nunca por pantalla ni a un renglón. Y el
+- **`abrir`**: la rama existe local o en `origin` y la carpeta no está en esta PC (otra PC, el compañero; H §10.2, R-21). Antes: **las
+  mismas negativas de `crear`** (lo ignorado), `git fetch` (sin remoto, sigue) y `git worktree prune` (una carpeta borrada a mano que
+  seguía registrada); si la rama local está atrás de la de `origin` y se adelanta sin conflicto, la adelanta; **si divergió → 1** (r1-10).
+  Después la crea sobre esa rama y hace lo mismo que `crear` desde `.kit-rol`.
+- **Credenciales** (RT1-3, RT2-5; D4-5; r1-4): se copia lo que lista `.worktreeinclude` (sin el archivo: los `.env` y `.env.*` ignorados, y
+  una línea que lo dice). **De cada `.env*` copiado se saca todo renglón cuyo nombre esté en el almacén del proyecto**
+  (`<HOME>/.config/kit-secretos/<proyecto>.env`), con una línea "no copié <NOMBRE>: vive en el almacén"; del almacén se leen **solo los
+  nombres**, y ningún valor sale nunca por pantalla ni a un renglón. Las reglas que lo hacen fallar cerrado y no abierto:
+  - **`<proyecto>` sale siempre del checkout principal** (el padre del `git-common-dir`), con la misma regla que `cargar-secreto` aplicada a
+    esa carpeta, también corrido desde el worktree del director (si no, saldría `modulo--x` y no encontraría el almacén).
+  - **Almacén que no existe** → una línea "sin almacén para <proyecto>: no saqué nada" y sigue. **Almacén ilegible** (UTF-16, o renglones que
+    no son `NOMBRE=…`, comentarios y vacíos aparte) → **1 sin copiar ningún `.env`**. El BOM UTF-8 se saca.
+  - El nombre de cada renglón del `.env` se lee aceptando `export `, espacios alrededor del `=` y CRLF; un valor entre comillas que sigue en
+    otros renglones se saca entero.
+  - **`crear`/`abrir` → 1 si hay un `.env*` trackeado** (llega por el checkout, no por la copia) **con un nombre del almacén**. Y el
   `.claude/settings.local.json` del worktree **suma** (mezcla, no pisa: ahí van a ir las `allow` de AUTORIZADO, P6.5) un `deny` de `Read`,
   `Edit` y `Write` por ruta absoluta (`//c/…`, verificado en G0) al `.env` y `.env.*` del checkout principal.
-- **`sync-env`**: vuelve a hacer el paso de credenciales en cada worktree vivo de `.claude/worktrees/modulo--*` (para el `cargar-secreto`
-  que llega después; R-33). Ignora los `worktree-*` del `-w` nativo.
-- **`cerrar`** (H §10.2; R-22; el pendiente de D3.3; D4-3): se niega (1) si se corre desde adentro de ese worktree · si la rama **no está
-  mergeada en su madre** (`modulo/<x>` para un encargo; la rama por defecto para `<x>`) · si `git status --porcelain` del worktree no está vacío
-  **después de** este paso: **lo que los hooks de sesión agregaron al final de `.claude/frenos.log` se muda a `<git-common-dir>/kit-frenos.log`**
-  (con el nombre del worktree) y el archivo vuelve a como estaba, como hacen los githooks (RF-A2); si `frenos.log` cambió en el medio, no se
-  toca y cuenta como sucio. Pasando todo: `git worktree remove` **sin `--force`** y `git branch -d`. Una carpeta ya borrada a mano: `prune` y
-  la rama, con las mismas condiciones.
+- **`sync-env`**: en cada worktree vivo de `.claude/worktrees/modulo--*`, **saca de los `.env*` que ya están ahí** los renglones con nombres
+  del almacén (para el `cargar-secreto` que llega después; R-33). **Nunca vuelve a copiar** (pisaría el `PORT` o la base propios del
+  worktree; r1-8). Ignora los `worktree-*` del `-w` nativo.
+- **`cerrar`** (H §10.2; R-22; el pendiente de D3.3; D4-3). **Todos los chequeos primero, después `remove`, después la rama** (r1-2):
+  - se niega (1) si se corre desde adentro de ese worktree;
+  - si la rama **no está mergeada en su madre**: `git merge-base --is-ancestor <rama> <madre>`, con madre = `modulo/<x>` para un encargo y la
+    rama por defecto para `<x>`, **la local o la de `origin`, cualquiera de las dos** (no `git branch -d`, que mira contra `HEAD`);
+  - la mudanza de `frenos.log` (r1-1): la base es `git show HEAD:.claude/frenos.log` del worktree; se comparan **los dos lados normalizados a
+    LF** (con `core.autocrlf=true` el archivo sale con CRLF y los hooks agregan LF; verificado en `Usuario`); si el archivo es la base más
+    renglones al final, esos renglones van a `<git-common-dir>/kit-frenos.log` (con el nombre del worktree), como los githooks (RF-A2), y el
+    archivo vuelve con `git checkout -- .claude/frenos.log`; si no está en `HEAD` (lo creó un hook), se muda entero y se borra; si cambió en
+    el medio, no se toca y cuenta como sucio;
+  - si `git status --porcelain` del worktree no está vacío después de la mudanza.
+
+  Pasando todo: `git worktree remove` **sin `--force`**; **si falla** (una pestaña o un `claude` vivos en Windows dejan archivos tomados: "cerrá
+  la pestaña de ese worktree"), lo dice y **no borra la rama** (r1-9); si anduvo, `git branch -D` (ya se probó que está mergeada). Una carpeta
+  ya borrada a mano: `prune` y la rama, con las mismas condiciones.
 - **`integrar`: al orden 5** (D4-2).
 
 ### `pruebas/pedidos.md` (P1.1, P1.2, P1.3, P1.6)
@@ -245,11 +274,15 @@ asistente en el transcript (después de las herramientas que haya), y en los sei
 3. `grep -rniE "bolsillo|en una tarde|o riesgosa|toca permisos/datos/plata" kit/` → 0 (P1.7).
 4. **Los diez pedidos: 10 de 10** con `claude.exe -p` (una corrida cada uno, `--permission-mode plan`, `MSYS_NO_PATHCONV=1`, clones de
    `alfa`/`beta` tras `rehacer.sh`): el primer bloque de texto es la línea con el tamaño esperado, y los seis "más que chico" invocan
-   `arquitecto` → **crit. 2 del kit**.
+   `arquitecto` → **crit. 2 del kit** con 10; **con menos, el paquete cierra igual**: el número y el transcript que falló van a Pendientes
+   y el crit. 2 queda sin tildar (r1-12).
 5. **Las cinco entradas** rutean (las tres sueltas + filas 3 y 6), "adoptá" incluida (P1.1).
 6. **Modo B corto**: pedido 5 con plan → sin preguntas, spec sellado (`ready` 0) en **≤ 15 min de reloj** del transcript (P1.2); commit en la
    rama por defecto con `docs/modulos/<x>/README.md` (`director: sí`, `rama: modulo/<x>`) y `SPEC.md` con "Ejecución" y su línea; rama
-   `modulo/<x>` y `.claude/worktrees/modulo--<x>` creadas por el script, con `.kit-rol` = `director` → **crit. 4 del kit**.
+   `modulo/<x>` y `.claude/worktrees/modulo--<x>` creadas por el script, con `.kit-rol` = `director` → **crit. 4 del kit**. Si `--resume`
+   no destraba el OK en `-p`, se mide hasta el pedido de OK y el resto (commit, rama, worktree) lo prueba J2 a mano (r1-12).
+6b. **Sin ficha** (r1-3): en un clon sin `.claude/kit.md`, parado en una rama `feature` con un archivo en stage, el Modo B corto termina
+   con `docs/SPEC-<x>.md` READY (`ready` 0), **sin commit en `main`, sin push y sin worktree**, y lo de Guido en stage sigue ahí.
 7. Modo B largo: la sección "Qué robar y qué no" (P1.3) y la lectura de `NORTE.md` antes del explorador (P1.6). Pantalla: `prototipo/` antes
    del `SPEC.md` (P1.6). Modo A desde una carpeta vacía: monta ahí, y la línea del registro antes de la primera pregunta (P1.6, P1.8).
 8. `registro ../vibe-kit-pruebas` devuelve las fichas de `alfa` y `beta` con la forma del contrato (P1.8).
@@ -260,12 +293,18 @@ asistente en el transcript (después de las herramientas que haya), y en los sei
    la mitad de `ready`**.
 10. `ready --pendientes` y el paso de `/inicio`, en un clon: un módulo con `SPEC.md` sin sello → la línea y la invocación; sellado → nada.
 11. `worktree`, casos sí/no de cada subcomando; **H §19bis reproducida** en un repo temporal (nombres, base del encargo en la punta de
-    `modulo/<x>`, `.env` copiado, `comando-setup` corrido, la línea de apertura).
+    `modulo/<x>`, `.env` copiado, `comando-setup` corrido, la línea de apertura). `crear` y `abrir` → 1 si `.kit-rol`, `worktrees/` o
+    `settings.local.json` no están ignorados (r1-5); `abrir` con la rama local atrás → la adelanta; divergida → 1; carpeta borrada a mano y
+    registrada → anda (r1-10).
 12. **Credenciales**: una variable que está en el almacén falso **y también, por error, en el `.env` del principal** → `grep` en el `.env` del
     worktree da 0, el resto sí viaja, y el valor no aparece en ninguna salida; `settings.local.json` del worktree con los `deny` absolutos y
-    lo que ya tenía, intacto; `Read` del `.env` del padre desde el worktree → negado (fila 7). **Mutación** sobre el filtro, tope 20 min.
-13. **`cerrar`**: sin mergear → 1; sucio → 1; desde adentro → 1; con solo renglones agregados a `frenos.log` → mudados al `kit-frenos.log` común,
-    el archivo como estaba y `git worktree remove` **sin `--force`** anda; `frenos.log` cambiado en el medio → 1. **Mutación** sobre las
+    lo que ya tenía, intacto; `Read` del `.env` del padre desde el worktree → negado (fila 7). Y (r1-4): corrido **desde el worktree del
+    director** saca lo mismo; almacén con BOM → saca; almacén en UTF-16 → 1 y ningún `.env` copiado; renglón `export NOMBRE = "…"` → sacado;
+    `.env` trackeado con un nombre del almacén → 1; `sync-env` no pisa un `PORT` propio del worktree (r1-8). **Mutación** sobre el filtro, tope 20 min.
+13. **`cerrar`**: sin mergear → 1 y nada borrado; sucio → 1; desde adentro → 1; con solo renglones agregados a `frenos.log` → mudados al
+    `kit-frenos.log` común, el archivo como estaba y `git worktree remove` **sin `--force`** anda, **también con `core.autocrlf=true`** (r1-1);
+    `frenos.log` cambiado en el medio → 1; **`cerrar x--01` desde el principal parado en `main`, mergeado en `modulo/x` y no en `main` → 0 y
+    rama borrada** (r1-2); mergeado solo en `origin/<madre>` → 0; `remove` que falla → la rama sigue. **Mutación** sobre las
     negativas, tope 20 min → cierra "Paquete 4 · de D3.3".
 14. **`.kit-rol`**: bytes iguales creado desde PowerShell y desde Bash; `rol()` lo lee con BOM y CRLF; uno en UTF-16 da `desconocido`, nunca
     `humano`; y vivo en `claude.exe -p` lanzado desde PowerShell en el worktree del obrero (fila 7) → **tacha la mitad PowerShell** del NO
@@ -297,8 +336,8 @@ Cada encargo en su worktree en `scratchpad/<j>/wt`, con el `cwd` adentro.
 - **Pruebas proporcionales**: casos sí/no de cada regla; mutación solo en J1 (`ready` y la línea) y J2 (el filtro y las negativas de
   `cerrar`), en copias, nunca sobre `kit/`, tope 20 min cada una; la suite entera la corre el director una vez, al final, en segundo plano.
 - **J5 corre por prioridad** (D4-18, del director: `[workflow]`, filtro pragmático: ~18 sesiones `-p` no entran enteras en el presupuesto):
-  primero las filas 1, 2, 3 y 7 (crit. 2, 4, 5, 12, 14, 15: lo que más mueve); después 4, 5, 6 y 8 si queda reloj. Lo que no corra va a
-  Pendientes con su porqué, no se estira.
+  primero las filas que **no necesitan J2**: 1, 2 y 3b (crit. 2, 5 y 6b); después, **si J2 está en `main`**, 3 y 7 (crit. 4, 12, 14, 15); y 4,
+  5, 6 y 8 si queda reloj (alineado con el corte; r1-6). Lo que no corra va a Pendientes con su porqué, no se estira.
 - **J5 no repite**: si una corrida falla, el director mira el transcript; si el arreglo toca lo que esa corrida mide, se repite **esa** sola, una vez.
 - **El orden de prioridad y el corte** (si el director llega a ~3 h sin J2 aceptado, corta ahí):
   1. **J1** y **J3** (el sello y la skill: el crit. 2 vive en J3); 2. **J4**; 3. **las corridas que no necesitan `worktree`** (diez pedidos,
@@ -315,6 +354,7 @@ Cada encargo en su worktree en `scratchpad/<j>/wt`, con el `cwd` adentro.
 | 1 | J5 · `-p` plan, clones de `alfa` y `beta` | Los diez pedidos (crit. 4) |
 | 2 | J5 · ídem | Las tres entradas sueltas (crit. 5) |
 | 3 | J5 · bypass, clon de `alfa` | Modo B corto con plan (crit. 6); el OK de Guido es un segundo mensaje por `--resume` ("aprobado") |
+| 3b | J5 · bypass, clon sin ficha, en una rama `feature` con algo en stage | Modo B corto sin ficha (crit. 6b) |
 | 4 | J5 · ídem | Modo B largo con "dale con los defaults" (crit. 7) |
 | 5 | J5 · ídem | Pantalla: `prototipo/` antes del `SPEC.md`, aprobado por `--resume` (crit. 7) |
 | 6 | J5 · bypass, carpeta vacía en `../vibe-kit-pruebas/` | Modo A con "dale con los defaults": monta ahí, la línea del registro, el molde v2 (crit. 1, 7) |
@@ -408,6 +448,12 @@ Ninguna: todo se pudo decidir con la vara. Las que más pesan son D4-1 y D4-3.
   commit, y `cerrar` no lo toca.
 - **Un programa del obrero que lee el almacén por adentro** (sin sandbox; ya en Riesgos del SPEC-0).
 - Un obrero que edita `worktree.cjs` en su rama (llega al módulo con el merge); los frenos de sus herramientas no lo miran.
+- Del red team (r1, "para no cierra"): el obrero que lee el `.env` del principal por Bash (`cat ../../../.env`; el `deny` es de
+  Read/Edit/Write, y el corrector de secretos lo frena solo si el nombre está en `secretos:`); los `.env` anidados del principal
+  (`backend/.env`), fuera del `deny` absoluto; un `.env.production` viejo con una credencial real que nunca pasó por el almacén (lo atajan el
+  8½ y el `doctor`); un formateador que parte la línea del sello (`sello` de nuevo); un `comando-test` intermitente que impide sellar
+  (salida: `gate:entorno-prueba` en `frenos.quitados`).
+- `cargar-secreto` corrido adentro de un worktree guarda en otro almacén (calcula `<proyecto>` desde el `cwd`): pendiente del orden 6, no de este.
 
 ## Lo que se prueba más adelante
 
@@ -420,4 +466,18 @@ Modo A con el molde v3 y `docs/modulos/v1/`, el molde en las PCs, "adoptá" y "p
 
 | Id | Sev | Qué se hizo |
 |---|---|---|
-| | | |
+| r1-1 | ALTO | `cerrar` compara `frenos.log` contra `HEAD` normalizado a LF y lo devuelve con `git checkout --` (`core.autocrlf=true` verificado en `Usuario`); caso en crit. 13 |
+| r1-2 | ALTO | `cerrar`: `merge-base --is-ancestor` contra la madre local u `origin`, chequeos → `remove` → `branch -D`; caso "desde el principal" en crit. 13 |
+| r1-3 | ALTO | `modo-b.md` sin ficha: sin commit, push ni worktree; "Pedido original" puede decir "(no quedó registrado)", nunca inventado; crit. 6b y fila 3b |
+| r1-4 | ALTO | El filtro falla cerrado: `<proyecto>` del principal, almacén ilegible → 1, BOM, `export`, multilínea, `.env` trackeado → 1; casos en crit. 12 |
+| r1-5 | ALTO | `crear` y `abrir` exigen `settings.local.json` ignorado, y la línea pega el snippet entero |
+| r1-6 | MEDIO | `modo-b.md`: sin `worktree.cjs`, no lo arma a mano; prioridad de J5 alineada con el corte |
+| r1-7 | MEDIO | El hash normaliza (BOM, CRLF, espacios finales, saltos finales) y excluye solo la primera `- Estado:`; "¿hay ficha?" igual en `sello` y `ready` |
+| r1-8 | MEDIO | `sync-env` solo saca, nunca vuelve a copiar |
+| r1-9 | MEDIO | `remove` que falla → lo dice y no borra la rama. *Recortado*: la marca de sesiones vivas de menos de 12 h (no existe ese mecanismo; "por las dudas") |
+| r1-10 | MEDIO | `abrir`: mismas negativas, `fetch`, `prune`, adelanta o 1 si divergió |
+| r1-11 | MEDIO | `/inicio`: "cambió después del sello" da una línea y no invoca; valores de `Estado:` fijos en `formato-spec.md` |
+| r1-12 | MEDIO | Crit. 4: con menos de 10 cierra igual con el número en Pendientes; crit. 6: sin `--resume`, se mide hasta el OK |
+
+**Ronda 1 (2026-10-30): 5 ALTOS, los cinco integrados** (texto, sin rediseño); veredicto del red team: "con eso aplicado se puede sellar sin
+otra ronda". ADR-029: una ronda. **El director sella el delta sin Guido.** Informe: `vibe-research/mision-5/redteam-paquete-4/RONDA-1.md`.
