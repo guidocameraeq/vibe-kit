@@ -544,6 +544,7 @@ test('caché (g): rutasIncluidas e incluidas — secciones, comillas, comentario
     ['a', 'b c', '~/d', 'e', 'f'],
   );
   assert.deepEqual(se.rutasIncluidas('[includex]\n\tpath = no\n[include]\n\tnopath = no\n'), []);
+  assert.deepEqual(se.rutasIncluidas('[include]\n\tpath = "a\\"b"\n\tpath = c\\\\d\n'), ['a"b', 'c\\d']);
   const dir = path.join(TMP, `ciclo${n++}`);
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, 'x'), '[include]\npath = y\n');

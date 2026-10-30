@@ -250,8 +250,9 @@ function rutasIncluidas(texto) {
     if (!m) continue;
     let v = m[1].trim();
     if (v.startsWith('"')) {
-      const f = v.indexOf('"', 1);
-      v = f > 0 ? v.slice(1, f) : v.slice(1);
+      let f = 1;
+      while (f < v.length && v[f] !== '"') f += v[f] === '\\' ? 2 : 1; // la comilla que cierra, salteando las escapadas
+      v = v.slice(1, f);
     } else v = v.replace(/\s[#;].*$/, '').trim();
     v = v.replace(/\\(["\\])/g, '$1');
     if (v !== '') out.push(v);
