@@ -14,12 +14,20 @@
 // que sale 2 por otra cosa que "no conoce --indice/--rango", rojo. Si no conoce la bandera (es del orden 2): sin ella, y lo dice.
 // gitleaks: plazo de 60 s y un reintento (47 s en frío con Defender, r1-6, r2-10); dos veces colgado = "sin escáner (colgado)". Sin
 // escáner: humano, director y obrero pasan EN ROJO (con aviso y renglón); nocturno, actualizador y desconocido → 1.
-// gitleaks lee su configuración del disco (.gitleaks.toml, .gitleaksignore) y de GITLEAKS_*: el entorno sale sin GITLEAKS_* y,
-// si el del disco no es el que se juzga (el del índice; en el pre-push, el de lo que sube), rojo (rf3-2).
-// Entorno (rf3-3): el sh borra toda NODE_* antes de llamar a node (NODE_OPTIONS="--require x" corre antes que el runner), y el runner
-// saca NODE_* y GITLEAKS_* del entorno de todo lo que lanza (git, los dos candados, gitleaks y el previo).
-// frenos.log (rf3-6): lo que el hook agrega en un pase (aunque pase en rojo) se muda a <git-common-dir>/kit-frenos.log, sin
-// versionar: un pase no ensucia el árbol. Solo un 1 deja su renglón en .claude/frenos.log.
+// Lo que ve gitleaks lo arma el runner (rf2-1): `gitleaks git` le pide el diff a git, y un `.gitattributes` con `-diff` (o un
+// `git -c core.attributesFile=…`) lo vuelve "binario" y la clave pasa. El runner saca él las líneas agregadas — pre-commit
+// `git diff --cached`, pre-push `git log -p --cc <rango>` (también lo que agrega un merge), siempre con --text --no-textconv
+// --no-ext-diff — y las escribe en un temporal, cada una en su archivo y su línea (más un renglón de cabecera, para que gitleaks no
+// tome el archivo por binario); corre `gitleaks dir .` ahí, con el cwd en el temporal (las rutas que ve son las del repo: sus
+// allowlist de rutas valen igual) y mapea cada hallazgo a su archivo:línea (y commit) de verdad.
+// La configuración de gitleaks (rf3-2, rf2-6): la que se juzga, no la del disco — el .gitleaks.toml del índice (en el pre-push, el de
+// lo que sube) va con -c (sin él, uno que solo extiende el de fábrica) y su .gitleaksignore lo aplica el runner (archivo:regla:línea
+// o commit:archivo:regla:línea); gitleaks no lee nada del repo. Lo del disco sin `git add` no cambia nada (ni traba).
+// Entorno (rf3-3, rf2-1, rf2-4): el sh deshace las funciones env, sed, command y echo que bash importa del entorno
+// (BASH_FUNC_env%%) y borra toda NODE_* antes de llamar a node; el runner saca NODE_*, GITLEAKS_* y las GIT_CONFIG_* de un `git -c`
+// del entorno de todo lo que lanza (git, los dos candados, gitleaks y el previo).
+// frenos.log (rf3-6, rf2-3): todo lo que el hook agrega a .claude/frenos.log (verde o ROJO, el runner o los candados) se muda a
+// <git-common-dir>/kit-frenos.log, sin versionar: un githook nunca ensucia el árbol (si no, el `git pull --rebase` que pide falla).
 // Todo error del runner → 1 con motivo (r1-19). Lo que imprime: `archivo:línea` y la regla; NUNCA un valor ni la salida de gitleaks.
 // El runner corre del disco (D-12): solo necesita node y git; las librerías del kit las usa la versión del candado que corre.
 // Node estándar, cero dependencias. Es .cjs a propósito: corre igual en proyectos con "type": "module".
@@ -56,11 +64,23 @@ const CEROS = /^0+$/;
 const RE_SHA = /^[0-9a-f]{40}([0-9a-f]{24})?$/;
 // Variables que, heredadas del hook, hacen que git mire otro repo que el del cwd (las de lib/git.cjs). El índice no: es el del commit.
 const DESVIAN = ['GIT_DIR', 'GIT_WORK_TREE', 'GIT_COMMON_DIR', 'GIT_PREFIX', 'GIT_OBJECT_DIRECTORY', 'GIT_ALTERNATE_OBJECT_DIRECTORIES', 'GIT_NAMESPACE', 'GIT_CEILING_DIRECTORIES'];
-// rf3-3 y rf3-2: las que meten código en un node (NODE_OPTIONS --require, NODE_PATH…) o cambian lo que gitleaks busca
-// (GITLEAKS_CONFIG, GITLEAKS_CONFIG_TOML…). Sin distinguir mayúsculas: en Windows node_options vale como NODE_OPTIONS.
-const INYECTAN = /^(node|gitleaks)_/i;
-// La configuración de gitleaks que lee del disco, del cwd (rf3-2): tiene que ser la que se juzga.
-const CONFIG_GITLEAKS = Object.freeze(['.gitleaks.toml', '.gitleaksignore']);
+// rf3-3, rf3-2 y rf2-1: las que meten código en un node (NODE_OPTIONS --require, NODE_PATH…), cambian lo que gitleaks busca
+// (GITLEAKS_CONFIG, GITLEAKS_CONFIG_TOML…) o le meten configuración a git (las de `git -c`: GIT_CONFIG_PARAMETERS, y
+// GIT_CONFIG_COUNT con sus GIT_CONFIG_KEY_n / GIT_CONFIG_VALUE_n). Sin distinguir mayúsculas: en Windows node_options vale como NODE_OPTIONS.
+const INYECTAN = /^(node|gitleaks)_|^git_config_(parameters|count|key_\d+|value_\d+)$/i;
+// Las que cambian el diff que el runner le pide a git (además, va con --no-ext-diff y -U0).
+const DESVIAN_DIFF = ['GIT_EXTERNAL_DIFF', 'GIT_DIFF_OPTS', 'GIT_DIFF_PATH_COUNTER', 'GIT_DIFF_PATH_TOTAL'];
+// rf2-1: las banderas del diff que se le muestra a gitleaks — texto siempre (ni -diff, ni binary, ni bigFileThreshold), sin textconv
+// ni diff externo, sin renombres (un archivo movido trae todas sus líneas), sin relative, sin contexto y con los prefijos fijos.
+const DIFF_TEXTO = Object.freeze(['--no-color', '--no-ext-diff', '--no-textconv', '--text', '--no-renames', '--no-relative', '-U0', '--src-prefix=a/', '--dst-prefix=b/']);
+const MARCA_COMMIT = '\x01kit-commit ';
+// El renglón 1 de cada archivo que ve gitleaks: así ninguno empieza con la firma de un binario (gitleaks salta un PK\x03\x04).
+const CABECERA = 'kit-githook';
+// Sin .gitleaks.toml en lo que se juzga: el de fábrica, explícito (sin -c, gitleaks buscaría uno en el cwd).
+const TOML_DE_FABRICA = '[extend]\nuseDefault = true\n';
+// Lo que gitleaks levanta solo de la raíz que escanea: un archivo agregado con ese nombre va a un cajón aparte.
+const LEE_GITLEAKS = /^\.?gitleaks(ignore|\.toml)$|^\.gitleaksbaseline/i;
+const CAJON = '.kit-githook-';
 const LOG_SIN_VERSIONAR = 'kit-frenos.log';
 
 class Falla extends Error {}
@@ -78,7 +98,7 @@ function sinInyectadas(env) {
 }
 function entornoGit(env, conIndice) {
   const e = { ...env };
-  for (const v of DESVIAN) delete e[v];
+  for (const k of Object.keys(e)) if (DESVIAN.includes(k.toUpperCase()) || DESVIAN_DIFF.includes(k.toUpperCase())) delete e[k];
   if (!conIndice) delete e.GIT_INDEX_FILE;
   e.GIT_TERMINAL_PROMPT = '0';
   return e;
@@ -158,10 +178,10 @@ function anotar(raiz, rol, cual, id, detalle, o) {
   }
 }
 
-// rf3-6: frenos.log está versionado; si un pase le agrega renglones (el sin-escaner del runner, la ficha rota de los candados), el
-// árbol queda sucio (pull --rebase falla, worktree remove también). Se saca una foto al empezar y, si el hook pasa, lo agregado se
-// muda a <git-common-dir>/kit-frenos.log (sin versionar; el común, para que sobreviva a un worktree remove) y frenos.log vuelve a
-// como estaba. Solo lo agregado al final: si alguien lo reescribió en el medio, no se toca.
+// rf3-6 y rf2-3: frenos.log está versionado; si el hook le agrega renglones (los del runner, la ficha rota de los candados), el árbol
+// queda sucio (pull --rebase falla —el que pide el rojo remoto-adelantado—, worktree remove también). Se saca una foto al empezar y,
+// al terminar (verde, ROJO o error), lo agregado se muda a <git-common-dir>/kit-frenos.log (sin versionar; el común, para que
+// sobreviva a un worktree remove) y frenos.log vuelve a como estaba. Solo lo agregado al final: si alguien lo reescribió en el medio, no se toca.
 function fotoLog(raiz) {
   const archivo = path.join(raiz, ...RUTA_FRENOS_LOG.split('/'));
   try {
@@ -189,16 +209,177 @@ function mudarLoDelPase(foto, gitComun) {
   }
 }
 
-// rf3-2: gitleaks lee .gitleaks.toml y .gitleaksignore del disco (del cwd, aunque se le pase otra ruta). Si el del disco no es el
-// que se juzga (ref = '' para el índice del commit; si no, el commit que sube), un toml sin reglas sin `git add` lo apaga. → la
-// primera ruta distinta, o null.
-function configDistinta(ref, o) {
-  for (const rel of CONFIG_GITLEAKS) {
-    const enDisco = fs.existsSync(path.join(o.raiz, rel)) ? gitTexto(['hash-object', '--', rel], o) : null;
-    const juzgado = gitTexto(['rev-parse', '-q', '--verify', `${ref}:${rel}`], { ...o, indice: ref === '' });
-    if (enDisco !== juzgado) return rel;
+// ---------------------------------------------------------------- rf2-1: lo que ve gitleaks
+
+// Un archivo de lo que se juzga (ref = '' para el índice del commit; si no, un commit) → Buffer, o null si no está.
+function blobDe(ref, rel, o) {
+  const r = git(['cat-file', 'blob', `${ref}:${rel}`], { ...o, indice: ref === '' });
+  return r.ok ? r.salida : null;
+}
+
+// Las líneas agregadas del diff que dio git (pre-commit) o del log -p --cc (pre-push, con MARCA_COMMIT). El texto viene en latin1
+// (un char = un byte: las líneas vuelven a escribirse tal cual). → [{ commit, archivo, linea, texto }]. Tira (Falla) si no lo entiende.
+function agregadas(texto) {
+  const out = [];
+  let commit = null;
+  let archivo = null;
+  let hunk = null; // { n (padres), nueva (la línea que sigue), quedan: { nueva, viejas[] } }
+  for (const l of texto.split('\n')) {
+    if (hunk) {
+      if (l.startsWith('\\')) continue; // "\ No newline at end of file"
+      const pre = l.slice(0, hunk.n).padEnd(hunk.n, ' '); // diff.suppressBlankEmpty: un contexto vacío viene sin el espacio
+      if (!/^[ +-]*$/.test(pre)) falla('no entendí el diff de git (una línea rara adentro de un bloque)');
+      const enResultado = !pre.includes('-');
+      if (enResultado) {
+        if (pre.includes('+') && archivo !== null) out.push({ commit, archivo, linea: hunk.nueva, texto: l.slice(hunk.n) });
+        hunk.nueva++;
+        hunk.quedan.nueva--;
+      }
+      // en el padre i: la quitó ('-'), o está en el resultado y no la agregó ese padre (' ')
+      for (let i = 0; i < hunk.n; i++) if (pre[i] === '-' || (pre[i] === ' ' && enResultado)) hunk.quedan.viejas[i]--;
+      if (hunk.quedan.nueva <= 0 && hunk.quedan.viejas.every((x) => x <= 0)) hunk = null;
+      continue;
+    }
+    if (l.startsWith(MARCA_COMMIT)) {
+      commit = l.slice(MARCA_COMMIT.length).trim();
+      if (!RE_SHA.test(commit)) falla('no entendí el log de git (un commit sin sha)');
+      archivo = null;
+    } else if (l.startsWith('diff ')) archivo = null;
+    else if (l.startsWith('+++ ')) archivo = rutaDelDiff(l.slice(4));
+    else if (l.startsWith('@@')) {
+      const m = /^(@{2,}) (.+?) \1(?: |$)/.exec(l);
+      if (!m) falla('no entendí el diff de git (un encabezado de bloque raro)');
+      const n = m[1].length - 1;
+      const rangos = m[2].split(' ');
+      const cuenta = (r, signo) => {
+        const x = new RegExp(`^\\${signo}(\\d+)(?:,(\\d+))?$`).exec(r || '');
+        if (!x) falla('no entendí el diff de git (un rango raro)');
+        return { desde: Number(x[1]), largo: x[2] === undefined ? 1 : Number(x[2]) };
+      };
+      if (rangos.length !== n + 1) falla('no entendí el diff de git (un rango raro)');
+      const viejas = rangos.slice(0, n).map((r) => cuenta(r, '-').largo);
+      const nueva = cuenta(rangos[n], '+');
+      hunk = { n, nueva: nueva.desde, quedan: { nueva: nueva.largo, viejas } };
+      if (nueva.largo <= 0 && viejas.every((x) => x <= 0)) hunk = null;
+    }
   }
-  return null;
+  return out;
+}
+
+// "+++ b/ruta", "+++ /dev/null" o entre comillas a lo C (core.quotePath). → la ruta (utf8) o null (se borró).
+function rutaDelDiff(s) {
+  s = s.replace(/\t$/, ''); // git le agrega un tab a un nombre con espacios
+  if (s === '/dev/null') return null;
+  if (s.startsWith('"')) {
+    if (!s.endsWith('"') || s.length < 2) falla('no entendí el diff de git (una ruta entre comillas rota)');
+    const ESC = { a: '\x07', b: '\b', t: '\t', n: '\n', v: '\v', f: '\f', r: '\r', '"': '"', '\\': '\\' };
+    s = s.slice(1, -1).replace(/\\([0-7]{3}|.)/g, (_, c) => (c.length === 3 ? String.fromCharCode(parseInt(c, 8)) : ESC[c] !== undefined ? ESC[c] : c));
+  }
+  if (!s.startsWith('b/')) falla('no entendí el diff de git (una ruta sin b/)');
+  return Buffer.from(s.slice(2), 'latin1').toString('utf8');
+}
+
+// Un pedazo de ruta que se pueda escribir en cualquier PC (Windows: sin <>:"|?*, sin nombres reservados, sin punto o espacio al final).
+function segmentoSeguro(s) {
+  let t = s.replace(/[<>:"\\|?*\x00-\x1f]/g, '_');
+  if (t === '' || t === '.' || t === '..' || /[. ]$/.test(t)) t += '_';
+  if (/^(con|prn|aux|nul|com[0-9¹²³]|lpt[0-9¹²³])(\..*)?$/i.test(t)) t = `_${t}`;
+  return t;
+}
+
+// Escribe las líneas agregadas en <dir>/<ruta> (renglón 1: CABECERA; la línea L del repo es la L+1 del archivo). Si dos chocan (la
+// misma línea del mismo archivo en dos commits, dos rutas que solo difieren en mayúsculas, un archivo y una carpeta con el mismo
+// nombre, o un archivo que gitleaks leería como su configuración), el segundo va a un cajón .kit-githook-N/. → Map(ruta escrita →
+// { archivo, lineas: Map(línea escrita → { linea, commit }) }).
+function materializar(lineas, dir) {
+  const cajones = []; // [{ archivos: Map(clave → {escrita, archivo, contenido: Map}), carpetas: Set(clave) }]
+  const mapa = new Map();
+  for (const x of lineas) {
+    const segs = x.archivo.split('/').map(segmentoSeguro);
+    const raizDe = segs[0].toLowerCase();
+    const aparte = (segs.length === 1 && LEE_GITLEAKS.test(segs[0])) || raizDe.startsWith(CAJON);
+    for (let c = aparte ? 1 : 0; ; c++) {
+      if (!cajones[c]) cajones[c] = { archivos: new Map(), carpetas: new Set() };
+      const cajon = cajones[c];
+      const escrita = (c === 0 ? segs : [`${CAJON}${c}`, ...segs]).join('/');
+      const clave = escrita.toLowerCase();
+      const padres = [];
+      for (let i = 1; i < segs.length; i++) padres.push((c === 0 ? segs.slice(0, i) : [`${CAJON}${c}`, ...segs.slice(0, i)]).join('/').toLowerCase());
+      const ya = cajon.archivos.get(clave);
+      const choca = ya ? ya.archivo !== x.archivo || ya.contenido.has(x.linea) : cajon.carpetas.has(clave) || padres.some((p) => cajon.archivos.has(p));
+      if (choca) continue;
+      let f = ya;
+      if (!f) {
+        f = { escrita, archivo: x.archivo, contenido: new Map(), commits: new Map() };
+        cajon.archivos.set(clave, f);
+        for (const p of padres) cajon.carpetas.add(p);
+      }
+      f.contenido.set(x.linea, x.texto);
+      f.commits.set(x.linea, x.commit);
+      break;
+    }
+  }
+  const base = path.resolve(dir);
+  for (const cajon of cajones) {
+    if (!cajon) continue;
+    for (const f of cajon.archivos.values()) {
+      const destino = path.join(base, ...f.escrita.split('/'));
+      if (!destino.startsWith(base + path.sep)) falla('una ruta rara en lo que se le muestra a gitleaks');
+      let max = 0;
+      for (const i of f.contenido.keys()) if (i > max) max = i;
+      const renglones = [CABECERA];
+      const lineas = new Map();
+      for (let i = 1; i <= max; i++) {
+        renglones.push(f.contenido.has(i) ? f.contenido.get(i) : '');
+        if (f.contenido.has(i)) lineas.set(i + 1, { linea: i, commit: f.commits.get(i) });
+      }
+      fs.mkdirSync(path.dirname(destino), { recursive: true });
+      fs.writeFileSync(destino, Buffer.from(renglones.join('\n') + '\n', 'latin1'));
+      mapa.set(f.escrita, { archivo: f.archivo, lineas });
+    }
+  }
+  return mapa;
+}
+
+// El .gitleaksignore de lo que se juzga → Set de huellas (archivo:regla:línea o commit:archivo:regla:línea).
+function huellasIgnoradas(buf) {
+  const s = new Set();
+  if (!buf) return s;
+  for (const l of buf.toString('utf8').replace(/^\uFEFF/, '').split('\n')) {
+    const t = l.trim();
+    if (t && !t.startsWith('#')) s.add(t);
+  }
+  return s;
+}
+
+let vueltaGitleaks = 0;
+// gitleaks sobre las líneas agregadas de `texto` (un diff o un log -p), con la configuración de `refConfig`. → lo de correrGitleaks,
+// con los hallazgos ya en el archivo:línea (y commit) del repo y sin los del .gitleaksignore.
+function escanearCambios(texto, refConfig, o) {
+  if (!o.gitleaks) return { estado: 'sin-escaner', por: 'no está' };
+  const lineas = agregadas(texto);
+  if (!lineas.length) return { estado: 'verde' };
+  const k = vueltaGitleaks++;
+  const dir = path.join(o.tmp, `escaneo-${k}`);
+  const conf = path.join(o.tmp, `conf-${k}`);
+  fs.mkdirSync(dir, { recursive: true });
+  fs.mkdirSync(conf, { recursive: true });
+  const mapa = materializar(lineas, dir);
+  const toml = path.join(conf, 'gitleaks.toml');
+  fs.writeFileSync(toml, blobDe(refConfig, '.gitleaks.toml', o) || TOML_DE_FABRICA);
+  const ignorar = huellasIgnoradas(blobDe(refConfig, '.gitleaksignore', o));
+  // -i: una carpeta vacía (el .gitleaksignore lo aplica el runner, con las líneas del repo)
+  const g = correrGitleaks(['dir', '.', '--config', toml, '--gitleaks-ignore-path', conf], { ...o, cwdGitleaks: dir });
+  if (g.estado !== 'rojo') return g;
+  const hallazgos = [];
+  for (const h of g.hallazgos) {
+    const f = mapa.get(h.archivo.replace(/^\.\//, ''));
+    const l = f && f.lineas.get(h.linea);
+    const x = { archivo: f ? f.archivo : '?', linea: l ? l.linea : '?', regla: h.regla, commit: l ? l.commit : null };
+    if (l && (ignorar.has(`${x.archivo}:${x.regla}:${x.linea}`) || (x.commit && ignorar.has(`${x.commit}:${x.archivo}:${x.regla}:${x.linea}`)))) continue;
+    hallazgos.push(x);
+  }
+  return hallazgos.length ? { estado: 'rojo', hallazgos } : { estado: 'verde' };
 }
 
 // ---------------------------------------------------------------- gitleaks
@@ -247,8 +428,8 @@ function correrGitleaks(args, o) {
   for (let i = 0; i < intentos; i++) {
     const reporte = path.join(o.tmp, `gitleaks-${i}-${process.pid}.json`);
     const r = spawnSync(exe, [...args, '--redact', '--no-banner', '--report-format', 'json', '--report-path', reporte], {
-      cwd: o.raiz,
-      env: o.env, // con GIT_INDEX_FILE: --staged mira el índice del commit (también el de commit -a)
+      cwd: o.cwdGitleaks || o.raiz, // el temporal con lo que se juzga: gitleaks no lee nada del repo
+      env: o.env,
       windowsHide: true,
       timeout: o.plazo || PLAZO_GITLEAKS,
       maxBuffer: 64 * 1024 * 1024,
@@ -464,27 +645,16 @@ function principal(argv, opciones = {}) {
       lineas.push('gitleaks: sacá el valor (pedile al humano cargar-secreto NOMBRE); si ya se commiteó, rotalo. Falsa alarma → .gitleaksignore, con aprobado');
     };
 
-    // gitleaks, si la config del disco es la que se juzga (rf3-2). → false si no hay escáner (no se vuelve a probar). En el pre-push,
-    // rango: si no sube ningún commit (una etiqueta vieja), no hay qué escanear y la config no importa.
-    const escanear = (argsGitleaks, refConfig, donde, rango) => {
-      const hayCommits = () => {
-        const r = git(['rev-list', '-n', '1', ...rango], o);
-        return !r.ok || r.stdout.trim() !== '';
-      };
-      if (o.gitleaks && (!rango || hayCommits())) {
-        const distinta = configDistinta(refConfig, o);
-        if (distinta) {
-          rojo = true;
-          anotar(repo.raiz, rol, cual, 'githook:config-gitleaks', distinta, o);
-          lineas.push(
-            refConfig === ''
-              ? `gitleaks: el ${distinta} del disco no es el que lleva este commit, y gitleaks lo lee del disco — hacé git add (o git restore) y volvé a commitear`
-              : `gitleaks: el ${distinta} del disco no es el de lo que sube, y gitleaks lo lee del disco — commitealo (o git restore), o pusheá desde esa rama${donde}`
-          );
-          return true;
-        }
+    // gitleaks sobre las líneas agregadas (rf2-1), con la configuración de refConfig ('' = el índice; si no, lo que sube). → false si
+    // no hay escáner (no se vuelve a probar).
+    const escanear = (argsGit, conIndice, refConfig, donde) => {
+      let g;
+      if (!o.gitleaks) g = { estado: 'sin-escaner', por: 'no está' };
+      else {
+        const r = git(argsGit, { ...o, indice: conIndice });
+        if (!r.ok) falla(`no pude sacar de git lo que se le muestra a gitleaks (git ${argsGit[0]} salió con ${r.codigo})`);
+        g = escanearCambios(r.salida.toString('latin1'), refConfig, o);
       }
-      const g = correrGitleaks(argsGitleaks, o);
       if (g.estado === 'sin-escaner') {
         sinEscaner(g.por);
         return false;
@@ -506,7 +676,7 @@ function principal(argv, opciones = {}) {
           continue;
         }
         const rango = x.nueva ? [x.local, '--not', '--remotes'] : [`${x.remoto}..${x.local}`];
-        if (escaner) escaner = escanear(['git', `--log-opts=${rango.join(' ')}`], x.local, donde, rango);
+        if (escaner) escaner = escanear(['log', '-p', '--cc', '--root', '--no-notes', '--no-show-signature', `--format=${MARCA_COMMIT.replace('', '%x01')}%H`, ...DIFF_TEXTO, ...rango, '--'], false, x.local, donde);
         const c = candado('--rango', `${x.nueva ? '0'.repeat(x.local.length) : x.remoto}..${x.local}`, o);
         lineas.push(...c.lineas.map((l) => `${l}${donde}`));
         if (c.rojo) {
@@ -516,7 +686,7 @@ function principal(argv, opciones = {}) {
         }
       }
     } else {
-      escanear(['git', '--staged'], '', '');
+      escanear(['diff', '--cached', ...DIFF_TEXTO], true, '', '');
       if (cual === 'pre-merge-commit') lineas.push('pre-merge-commit: el candado no corre acá (git todavía no dice cuál es el otro padre del merge) — el merge lo juzga el pre-push, contra cada padre');
       else {
         const aparte = indiceAparte(o);
@@ -542,10 +712,10 @@ function principal(argv, opciones = {}) {
         } else lineas.push(`el hook previo ${p.ruta}: en verde`);
       }
     }
-    if (!rojo) mudarLoDelPase(foto, repo.gitComun);
     lineas.push(rojo ? `kit ${cual}: ROJO — no pasa` : `kit ${cual}: en verde`);
     return { codigo: rojo ? 1 : 0, lineas };
   } finally {
+    mudarLoDelPase(foto, repo.gitComun);
     try {
       fs.rmSync(tmp, { recursive: true, force: true });
     } catch (e) {
@@ -598,7 +768,11 @@ module.exports = {
   Falla,
   INYECTAN,
   sinInyectadas,
-  configDistinta,
+  agregadas,
+  rutaDelDiff,
+  materializar,
+  huellasIgnoradas,
+  escanearCambios,
   rolDe,
   refVigente,
   buscarGitleaks,
