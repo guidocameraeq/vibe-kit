@@ -36,6 +36,7 @@
 - ADR-028 · La misión 5 se construye con un director Opus por paquete que reparte encargos a subagentes; no un orquestador para todo el spec (2026-10-28)
 - ADR-029 · Revisar y probar con presupuesto: contra accidentes, no contra trampas; pruebas proporcionales al riesgo; tope por sesión (2026-10-30)
 - ADR-030 · Las sesiones que deciden sin Guido usan su vara: las cuatro cosas, el filtro pragmático y los 11 criterios; si no alcanza, preguntan (2026-10-30)
+- ADR-031 · El Arquitecto es la puerta única con cinco entradas; la PC y la flota derivan, no ejecutan (2026-10-30)
 
 *Cada ADR nuevo suma su línea acá (lo pide `/cierre`).*
 
@@ -677,3 +678,18 @@ ahora en más toda decisión use eso, y que si aun así no se puede resolver, qu
   más completo" cuando la vara pide "lo que rinde". Es la misma idea del ADR-029 llevada a cada decisión.
 - **Descartado:** *que la sesión pregunte más* (rompe el trabajo sin Guido; criterio 1) · *dejarlo en la memoria* (no viaja a la otra PC
   ni a una sesión en otro lado; criterio 8).
+
+## ADR-031 · El Arquitecto es la puerta única con cinco entradas; la PC y la flota derivan, no ejecutan (2026-10-30)
+REJ-003 descartó meter el setup de la máquina adentro del Arquitecto ("Modo M") y lo resolvió con una skill hermana (ADR-004). El diseño E
+§3 pidió que el Arquitecto v3 sea **la puerta**: que Guido no tenga que acordarse de qué skill llamar para la PC, la flota o adoptar un
+repo, y que E §3 lo dejara en un ADR al construir. D4.1 lo construyó (SPEC-paquete-4, P1.1).
+- **Decisión (D4.1, sin Guido, con la vara del ADR-030; Guido la repasa):** la skill del Arquitecto tiene **cinco entradas** (la PC ·
+  proyecto nuevo · feature · consultorio · la flota, con "adoptá X" y "poné al día X") y una primera línea que dice cuál es. **La PC y la
+  flota derivan, no ejecutan**: la PC invoca al Equipador (`/arquitecto-skills`, que sigue siendo la hermana de ADR-004); "¿cómo está la
+  flota?" lee el registro (`arquitecto.cjs registro`) y arma una tabla; "adoptá" y "poné al día" dicen en una línea dónde está hoy hasta que
+  llegue el actualizador (orden 6). REJ-003 **se reabre solo en la forma de ruteo**: el setup sigue viviendo en el Equipador.
+  `[workflow · acordarse de menos · consistencia]`
+- **Por qué:** una puerta que reconoce el pedido le ahorra a Guido elegir la skill, sin sumar al Arquitecto el estado ni el código del
+  Equipador (la razón de REJ-003 sigue valiendo). El `SKILL.md` queda en 5,6 KB con un anexo por entrada, leído bajo demanda.
+- **Descartado:** *que el Arquitecto haga el setup* (es REJ-003 de nuevo) · *dejar las entradas como hoy* (tres puertas, y Guido tiene que
+  saber que existe `/arquitecto-skills`).

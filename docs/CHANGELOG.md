@@ -2,6 +2,35 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-30 — Misión 5, paquete 4 (D4.1): el Arquitecto v3, el sello, `formato-spec` v3, `worktree` y `.kit-rol`
+
+PC `Usuario`, chat `vibe-kit M5 · D4.1 · Paquete 4: Arquitecto v3, sello, formato-spec, worktree y .kit-rol`, en Opus, sin Guido, **primera
+sesión con el presupuesto del ADR-029**: ~3,2 h de reloj, 10 encargos (7 Opus · 3 Sonnet), ~2,0 M de tokens de subagentes. Sin tag. Decisiones
+sin Guido: tracker, "D4.1 · Decisiones sin Guido". **El paquete sigue en D4.2** (las sesiones reales del Modo B corto).
+
+**Added**
+- **Spec delta del paquete 4** (`docs/kit-v3/SPEC-paquete-4.md`): red team de una ronda (5 ALTOS integrados), **sellado sin Guido y por
+  script**: el primer sello escrito por `sello`.
+- **`arquitecto.cjs`** en la skill (`sello` con hash del spec normalizado, `ready`, `ready --pendientes`, `tope`, `entorno`, `registro`) y
+  `lib/sello.cjs`. Mutación 72/75 (vivos equivalentes).
+- **`worktree.cjs`** en el molde (`crear`, `abrir`, `sync-env`, `cerrar`): escribe `.kit-rol`, el filtro de credenciales falla cerrado (lo
+  del almacén no viaja; `deny` absoluto al `.env` del principal), `cerrar` muda `frenos.log` al `kit-frenos.log` común (cierra el pendiente
+  de D3.3) y no se traba con CRLF. Mutación 32/33.
+- **El Arquitecto v3**: `SKILL.md` de 20,7 a 5,6 KB con cinco entradas y la línea del tamaño primero; anexos `modo-a.md`, `modo-b.md`
+  (corto y largo, termina armando, sin ficha como hoy), `flota.md`; `formato-spec.md` v3 (Pedido original, Ejecución, Entorno de prueba,
+  sello, no se archiva). **ADR-031**: la puerta única con cinco entradas (REJ-003 reabierto solo en el ruteo).
+- La regla del tamaño en `CLAUDE.md` y `/inicio` del molde; `/inicio` mira los módulos sin sello. Pedidos de prueba 11-17.
+
+**Changed**
+- Revisor frío de una vuelta: 9 hallazgos con escenario, arreglados en un encargo (la línea de apertura por VS Code, `$HOME`, el quitado
+  contra la fecha del sello, borrador a medias, `cerrar` con fetch y carpeta vacía, el tope del SPEC-0, timeouts, plantillas `.env`).
+- Guía y manual del Arquitecto: la regla vieja ("en una tarde", "grande o riesgosa") por la prueba de tamaño en dos preguntas.
+- Sesiones reales: el obrero en su worktree desde PowerShell no aprueba, no lee el `.env` del principal y su commit que quita un freno da
+  rojo (**crit. 17 ✅**; `.kit-rol` mitad PowerShell ✅); **diez pedidos 8 de 10** (eran 6); el Modo B corto no se midió (el pedido de prueba
+  era chico por la regla): D4.2.
+- Tracker: fila D4.1, paquete 4 🔨, Pendientes "para D4.2" y "te espera a vos", el prompt de D4.2, lecciones. SPEC-0: ✅ en 1.1, 1.3-1.5,
+  1.7, 1.8 y 6.2. **Suite entera: 2.188 pruebas, 2.188 verdes** (39 min, con la PC cargada). `kit-sync` LIMPIO (en el `/cierre`). Huella del `~/.claude/` real: `settings.json` y `hooks/` iguales a la apertura; cambió solo `skills/arquitecto/` (el `kit-sync` del cierre).
+
 ## 2026-10-30 — Misión 5, paquete 3 cerrado: githooks, instalador por PC, doctor, sesión real y revisor frío (D3.3)
 
 PC `Usuario`, chat `vibe-kit M5 · D3.3 · Paquete 3, cierre: githooks, instalador, doctor, sesión real, revisor frío`, en Opus, sin Guido

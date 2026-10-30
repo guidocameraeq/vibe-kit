@@ -2,14 +2,15 @@
 Toda sesión dice el tamaño en la primera línea y, si no es chico, el Arquitecto viene solo, termina armando y deja su sello por
 script; sin sello no hay READY; y los worktrees nacen, se abren y se cierran por un script que escribe el rol y no lleva la credencial
 de escritura.
-- Estado: **READY — sellado sin Guido (provisorio)**, 2026-10-30, por el director D4.1, después de la ronda única del red team con sus 5
-  ALTOS integrados. Guido lo repasa al volver; todo se deshace antes del tag
+- Estado: **🔨 EN CONSTRUCCIÓN — el código entero en `main` (D4.1, 2026-10-30); faltan las sesiones reales del crit. 4 (Modo B corto), 10 de 10
+  y el prototipo: D4.2** (tracker, Pendientes "Paquete 4 · para D4.2") · **READY — sellado sin Guido (provisorio)**, 2026-10-30, por el director
+  D4.1, después de la ronda única del red team con sus 5 ALTOS integrados. Guido lo repasa al volver; todo se deshace antes del tag
 - Fecha: 2026-10-30 · Misión: 5, director **D4.1**, sin Guido (tracker, "Abrir D4.1 sin Guido"; la vara: ADR-030; el presupuesto: ADR-029)
 - Plano: [`SPEC-0-kit-v3.md`](SPEC-0-kit-v3.md), orden 4 = **P1.1-1.8 (con P1.4), P6.2**, y "se completa la parte de `/inicio` que invoca
   al Arquitecto sin sello" (P5.1); más, del tracker, **"Paquete 4 · de D2.2"** (la línea del tamaño primero; 10 de 10), **"Paquete 4 · de
   D3.3"** (`cerrar` no se traba con `frenos.log`) y el NO VERIFICADO **"Orden 4 · `.kit-rol`"**. Diseño: H §4-§14, §17, §17bis, §19bis ·
   E §2-§3, §9 · B §5-§6 · F §9, §13.
-- Sello del Arquitecto: `arquitecto: 2026-10-30 · kit 2.4.3 · chequeos: tamaño — (paquete del método) · entorno — (sin ficha del kit) · tope ⚠️ (49,0 KB y 19 criterios; no partir: D4.1) · hash 5341840ebcd0`
+- Sello del Arquitecto: `arquitecto: 2026-10-30 · kit 2.4.3 · chequeos: tamaño — (paquete del método) · entorno — (sin ficha del kit) · tope ⚠️ (49,2 KB y 19 criterios; no partir: D4.1) · hash d20de2987a9a`
 - Red team: **obligatorio** (RF-16: P6.2 toca credenciales; el sello es un permiso), Opus con `redteam-spec`, **una ronda** (ADR-029).
   Revisor frío Opus al cerrar, una vuelta, hasta 10 hallazgos con su escenario del día normal.
 

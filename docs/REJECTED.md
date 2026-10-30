@@ -10,7 +10,7 @@
   Next.js que mantener para mejorar el 5% del flujo (el arranque), reintroduciendo copy-paste.
   Los 3 jueces del v1 ya lo habían descartado; sigue muerto.
 - **REJ-003 · "Modo M" (setup de máquina) adentro del Arquitecto** — scope-creep; se resolvió
-  como skill hermana (ADR-004).
+  como skill hermana (ADR-004). Reabierto solo en la forma de ruteo: ADR-031 (2026-10-30).
 - **REJ-004 · Sub-skills jerárquicas** (`/arquitecto:skills`) — Claude Code no tiene jerarquía
   real de skills; nombres planos con prefijo común (`arquitecto-skills`) dan la misma
   agrupación mental sin inventar mecanismos.

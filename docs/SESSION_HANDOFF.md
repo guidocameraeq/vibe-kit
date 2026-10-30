@@ -3,48 +3,47 @@
 > **Save game** del proyecto madre. `/cierre` lo sobreescribe entero; el hook SessionStart lo inyecta en cada chat
 > nuevo de esta carpeta. **Tope 5.500 bytes**; el hook corta y avisa "CORTADO" si se pasa, y termina con la huella.
 
-**Última sesión cerrada:** 2026-10-30, **D3.3** de la misión 5 en la PC `Usuario` (Opus, sin Guido, ~9 h): **paquete 3 ✅**. G7, G10-G13
-(más G5b y G6b) y dos vueltas del revisor frío, todo en `main`. Suite 2.121/2.121. `kit-sync` LIMPIO. Huella del `~/.claude/` real sin tocar.
+**Última sesión cerrada:** 2026-10-30, **D4.1** de la misión 5 en la PC `Usuario` (Opus, sin Guido, ~3,2 h, 10 encargos, ~2,0 M de tokens
+de subagentes: **el ADR-029 rindió**). Todo el código del paquete 4 en `main`; el paquete **sigue en D4.2**. `kit-sync` LIMPIO.
 
 ## Dónde estamos
 
-- **Paquete 3 cerrado**: githooks con candado doble y gitleaks, todos los hooks del molde registrados (exec, `onFailure: block`), instalador
-  de hooks por PC, `doctor`, sesión real con `claude.exe`. **Los hooks por PC NO están instalados en ninguna PC real**: es de Guido.
-- **Decisiones sin Guido de D3.3**: tracker, "D3.3 · Decisiones sin Guido" (las ⚠️ arriba, también las del revisor frío).
-- **ADR-029 (Guido, 2026-10-30): revisar y probar con presupuesto.** Contra accidentes, no contra trampas; revisor frío de una vuelta (≤10
-  hallazgos con escenario, arreglos en un encargo); mutación solo en piezas nuevas (20 min); **~4 h y ~8 encargos por director**. D3.3
-  costó 18 h de agentes y 21 M de tokens, el 61% en arreglos: no repetir. Las reglas, en "Cómo se trabaja" del tracker.
-- **ADR-030: toda decisión sin Guido se elige con su vara** (sus cuatro cosas con etiqueta, el filtro pragmático, los 11 criterios); si no
-  alcanza, pregunta arriba de Pendientes. En "Cómo decide una sesión sin Guido" del tracker.
-- Hoja de ruta ADR-025: 4 ✅ → 4½ ✅ → **5 construir v3.0** (paquetes 1, 2 y 3 ✅; sigue el 4) → 6 el ciclo → 7 mensajería v3.1.
+- **Paquete 4 🔨**: `arquitecto.cjs` (sello con hash, `ready`, `--pendientes`, `tope`, `entorno`, `registro`), `worktree.cjs` (`crear`,
+  `abrir`, `sync-env`, `cerrar`, `.kit-rol`, credenciales que fallan cerrado), el Arquitecto v3 (5,6 KB, cinco entradas, la línea primero,
+  `modo-a`/`modo-b`/`flota`, `formato-spec` v3), la regla del tamaño en el molde. Delta **sellado sin Guido y por script**; red team y
+  revisor frío de una vuelta, todo integrado.
+- **El Arquitecto v3 ya está instalado en `Usuario`** (`kit-sync` del cierre; D4-1): en tus proyectos v2 sin ficha trabaja como hoy, sin
+  commitear nada. En `clientes` llega con el próximo `kit-sync` allá.
+- **Lo que no cerró** (tracker, Pendientes "Paquete 4 · para D4.2"): el Modo B corto de punta a punta (crit. 4: el pedido 14 era chico por
+  la regla y así lo midieron), los diez pedidos en **8 de 10** (fallan el 8 y el 10) y el prototipo de pantalla (16).
+- **Decisiones sin Guido de D4.1**: tracker, "D4.1 · Decisiones sin Guido" (las ⚠️ arriba). Ninguna pregunta abierta.
+- Hoja de ruta ADR-025: 5 construir v3.0 (paquetes 1-3 ✅, el 4 en D4.2) → 6 el ciclo → 7 mensajería v3.1.
 
 ## Próximo paso
 
-**D4.1**, en Opus, en `Usuario`, sin Guido: **`vibe-kit M5 · D4.1 · Paquete 4: Arquitecto v3, sello, formato-spec, worktree y .kit-rol`**.
-Guido pega el prompt de "Abrir D4.1 sin Guido (el prompt)" del tracker (`docs/kit-v3/PLAN-construccion.md`) y se va. Primero el spec delta
-del paquete 4 con una ronda de red team (lo sella el director), después los encargos, con el presupuesto del ADR-029; si no entra en ~4 h,
-cierra limpio y arma D4.2. La fila anota horas y tokens: es la medida de si el ADR-029 rindió.
+**D4.2**, en Opus, en `Usuario`, sin Guido: **`vibe-kit M5 · D4.2 · Paquete 4, cierre: Modo B corto real, 10 de 10 y prototipo`**. Guido
+pega el prompt de "Abrir D4.2 sin Guido (el prompt)" del tracker (`docs/kit-v3/PLAN-construccion.md`) y se va. Es corto (~2 h, ~3
+encargos): arreglos de texto, `rehacer.sh`, el `kit-sync` del cierre y las corridas; el paquete 4 a ✅ y el prompt de D5.1.
 
-**Para Guido, cuando pueda (no traba a D4.1)** — el detalle, en Pendientes del tracker, "Paquete 3 · te espera a vos":
-instalar los hooks por PC en `clientes` y `Usuario` (`--plan`, después sin él, reiniciar, `doctor` en `alfa`, `--sacar-viejo`); la pestaña
-real de VS Code; cruzar `block_secrets.ps1` en `clientes`; **borrar 4 transcripts con la clave FALSA de prueba** en `~/.claude/projects`
-(`grep -rl "ghp_FALSO" ~/.claude/projects`; el clasificador no dejó que una sesión los borre); repasar las ⚠️ de D2.2, D3.1 y D3.3; borrar
-el repo temporal `jrobilara/vibe-chats-paso`.
+**Para Guido, cuando pueda (no traba a D4.2)** — el detalle, en Pendientes del tracker, "Paquete 4 · te espera a vos" y "Paquete 3 · te
+espera a vos": probar el Arquitecto nuevo en un proyecto v2 de verdad; una pestaña de VS Code en un worktree creado por `worktree.cjs`
+(la mitad VS Code de `.kit-rol`); instalar los hooks por PC en las dos PCs; borrar los 4 transcripts con la clave FALSA de D3.3; repasar
+las ⚠️ de D2.2, D3.1, D3.3 y D4.1.
 
 ## Cosas que muerden y no están en ningún otro doc
 
-- ⏱️ **Los encargos Opus se cuelgan** ("stalled: no progress for 600s"): se retoman con `SendMessage` y siguen, sin perder trabajo. Un
-  encargo que terminó con trabajo de fondo vivo (una mutación), pararlo con `TaskStop` para que la PC no se arrastre.
-- 🧪 **La suite entera tarda ~27 min** (2.121 pruebas) y la de `barreras` sola ~20 con la PC cargada: siempre en segundo plano.
-- 🗂️ **El corpus no viaja** (secretos reales): `C:\Users\Usuario\vibe-historial\`. Cada encargo copia `correr.cjs` a su subcarpeta del
-  scratchpad y lo corre con `--corpus` absoluto y `--cwd-raiz` propio.
-- 🗂️ **Cada encargo, su worktree en `scratchpad/<x>/wt`**, con el `cwd` adentro: anduvo sin pisarse.
-- 🧪 **`claude.exe`** está en la extensión de VS Code (`…/anthropic.claude-code-*/resources/native-binary/`), no en el PATH; con un `HOME`
-  falso da "Not logged in": la PC falsa va por `--settings`. Prompt que empieza con `/` → `MSYS_NO_PATHCONV=1`.
+- ⏱️ **Los encargos Opus se cuelgan** a veces: se retoman con `SendMessage`. Un encargo que terminó con trabajo de fondo vivo: `TaskStop`.
+- 🧪 **La suite entera tarda ~30 min**: siempre en segundo plano, una vez, al final.
+- 🧪 **`claude.exe`** está en la extensión de VS Code (`…/anthropic.claude-code-*/resources/native-binary/`), no en el PATH (por eso la
+  línea de apertura de `worktree.cjs` dice `code "<ruta>"`). Con un `HOME` falso da "Not logged in". **`MSYS_NO_PATHCONV=1` solo en el
+  lanzador**: si la sesión lo hereda, `node ~/…` falla con `C:\c\Users\…`.
+- 🔒 **El clasificador del modo `auto` frena `kit-sync sync` a mitad de sesión** (prompt "no toques el `~/.claude/` real"); en el `/cierre`
+  pasa. Una skill del proyecto no le gana a la personal del mismo nombre: las sesiones reales de una skill nueva van después del sync.
+- 🗂️ **Cada encargo, su worktree en `scratchpad/<x>/wt`**; los clones de los repos de prueba no traen `core.hooksPath` (ponerlo a mano).
 - 🧪 **Los repos de prueba se miran con Bash, nunca con Read**. La suite: `node --test "kit/**/*.test.cjs"`.
-- 🔑 **Identidad de git**: `guido.camera.eq@gmail.com`. Nunca `eq.chatgpt`. Los repos de prueba, `kit-pruebas`.
+- 🔑 **Identidad de git**: `guido.camera.eq@gmail.com`. Nunca `eq.chatgpt`.
 - 📬 **El Hub pushea a este repo desde otra sesión**: `git fetch` antes de cerrar. 🔴 **vibe-kit es PÚBLICO**: gitleaks antes de cada push.
 
 ## Bloqueos
 
-Ninguno para D4.1.
+Ninguno para D4.2.
