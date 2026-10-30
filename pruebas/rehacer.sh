@@ -13,8 +13,8 @@
 # candado, cambios-metodo y los hashes por hashPieza. Antes del commit corre `estructura.cjs barreras --molde` (0) y sin --molde
 # (1, candado:barreras); después del push, `estructura.cjs todo` (0). Todo con --sin-log: nada mete la hora actual.
 # Encima, en un TERCER commit "molde v3 orden 3" (D3.3), alfa y beta reciben lo de kit/molde/ del árbol de trabajo (sin los
-# *.test.cjs): hooks (git-seguro, sensible, comando, db-guardia, agente…), scripts, skills, settings por mezclarSettings (viejo = el de
-# D22, todo en exec), el snippet de .gitattributes (.githooks/* eol=lf) y githooks/** → .githooks/** con +x en el índice
+# *.test.cjs): hooks (git-seguro, sensible, comando, db-guardia, agente…), scripts, skills, el CLAUDE.md del árbol de trabajo (con la
+# sección "El tamaño del pedido"; el 2b no lo toca), settings por mezclarSettings (viejo = el de D22, todo en exec), el snippet de .gitattributes (.githooks/* eol=lf) y githooks/** → .githooks/** con +x en el índice
 # (update-index --chmod=+x; los tres sh; el runner .cjs queda 100644 como en el kit). NO setea core.hooksPath (lo hace el arranque).
 # Mismos candados que el 2b: `barreras --molde` 0, sin --molde 1, `todo` 0 tras el push. gama no recibe ninguno de los tres.
 # Los arma AFUERA de vibe-kit, en la carpeta hermana vibe-kit-pruebas/ (junto a la raíz del checkout PRINCIPAL, también si se corre
@@ -514,6 +514,24 @@ if (!mez.ok) falla('mezclarSettings no pudo: ' + mez.problema);
 escribir(path.join(repo, '.claude/settings.json'), mez.texto);
 const hashSettings = Z.hashPieza(Z.textoSettings(JSON.parse(textoMolde)));
 
+// orden 3: el CLAUDE.md del molde (con la regla del tamaño del pedido). Mismo relleno que molde-v3.cjs: {{PROYECTO}} → el nombre del repo.
+// Si el del repo trae zona propia, mezclarTexto la respeta; si no (el de un repo de prueba recién armado), se pisa entero.
+if (paso === '3') {
+  const rutaC = path.join(repo, 'CLAUDE.md');
+  const delMoldeC = leerT(path.join(molde22, 'CLAUDE.md')).split('{{PROYECTO}}').join(path.basename(repo));
+  const actualC = fs.existsSync(rutaC) ? leerT(rutaC) : '';
+  const zC = Z.zonas(actualC);
+  if (!zC.ok) falla(`el CLAUDE.md del repo tiene una zona rota: ${zC.problema} (renglón ${zC.linea})`);
+  let escritoC = delMoldeC;
+  if (zC.zonas.length > 0) {
+    const m = Z.mezclarTexto(delMoldeC, actualC);
+    if (!m.ok) falla(`mezclarTexto del CLAUDE.md: ${m.problema}`);
+    escritoC = m.texto;
+  }
+  if (escritoC.includes('{{')) falla('quedó un {{ sin reemplazar en CLAUDE.md');
+  escribir(rutaC, escritoC);
+}
+
 // skills: las v2 no tienen zonas propias → se escribe la del molde tal cual; si las tienen, mezclarTexto
 const hashSkill = {};
 for (const s of ['inicio', 'cierre']) {
@@ -742,6 +760,7 @@ for x in alfa beta gama; do
     [ "$hf" = "$(hash_de "$d" .claude/hooks/session-start.cjs)" ] || FALLOS+=("$x: el hash de hook-arranque en la ficha no es el del archivo")
     [ -z "$(git_pruebas -C "$d" status --porcelain)" ] || FALLOS+=("$x: el árbol quedó sucio tras los commits del molde v3")
     # los tres commits, en orden: el de D2.1, encima el de D2.2 y encima el de D3.3
+    grep -qF '## El tamaño del pedido' "$d/CLAUDE.md" || FALLOS+=("$x: el CLAUDE.md no tiene la sección '## El tamaño del pedido' (paso orden 3)")
     [ "$(git_pruebas -C "$d" log -1 --format=%s)" = "molde v3 orden 3" ] || FALLOS+=("$x: el último commit no es 'molde v3 orden 3'")
     [ "$(git_pruebas -C "$d" log -2 --format=%s | tail -n1)" = "molde v3 orden 2b" ] || FALLOS+=("$x: el penúltimo commit no es 'molde v3 orden 2b'")
     [ "$(git_pruebas -C "$d" log -3 --format=%s | tail -n1)" = "molde v3 orden 2" ] || FALLOS+=("$x: el antepenúltimo commit no es 'molde v3 orden 2'")
