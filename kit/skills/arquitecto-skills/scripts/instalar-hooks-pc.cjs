@@ -13,7 +13,8 @@
 // - Toda escritura: temporal, renombre, relee y compara (si no da igual, sale 1).
 // - El anti-secretos viejo (un PreToolUse fuera de hooks/kit/ cuyo archivo trae el prefijo de un token de GitHub): lo deja y avisa;
 //   --sacar-viejo saca solo su registro (el archivo queda).
-// - --plan no escribe nada: dice qué haría. --quitar deja todo como estaba antes de la primera instalación.
+// - --plan no escribe nada: dice qué haría. --quitar deja todo como estaba antes de la primera instalación: si --sacar-viejo
+//   había sacado el viejo y su archivo sigue, lo vuelve a registrar donde estaba (rf3-7: quitar no deja la PC sin anti-secretos).
 // Sin --home apunta al ~/.claude/ real: las pruebas SIEMPRE pasan uno falso.
 //
 // Vive en eq/scripts/ y se instala (kit-sync / el Equipador) en ~/.claude/skills/arquitecto-skills/scripts/: solo hace require de
@@ -392,6 +393,9 @@ function planQuitar(r, s) {
   let nuevoTexto = null;
   if (s.existe) {
     const antes = antesTexto != null ? leerJsonSinDuplicados(antesTexto) : null;
+    // rf3-7: si antes de instalar estaba registrado el anti-secretos viejo y ya no (--sacar-viejo), se repone: quitar el
+    // corrector no puede dejar la PC sin ninguno. Solo si su archivo sigue ahí (viejos() lo lee).
+    if (antes && antes.ok) for (const x of reponerViejos(limpio, antes.valor, r)) acciones.push(`repongo el registro del anti-secretos viejo (${barras(x)}): estaba antes de instalar`);
     if (antes && antes.ok && igualJson(podar(limpio), podar(antes.valor))) {
       nuevoTexto = antesTexto; // nada ajeno cambió desde que se instaló: vuelve byte a byte
     } else if (!previo.existia && igualJson(podar(limpio), {})) {
@@ -401,7 +405,7 @@ function planQuitar(r, s) {
     }
     if (nuevoTexto === s.texto) nuevoTexto = null;
     if (accionSettings === 'borrar') acciones.push(`borro ${barras(r.settings)} (no existía antes de instalar y no quedó nada más)`);
-    else if (nuevoTexto != null) acciones.push(`saco del ${barras(r.settings)} solo los registros del kit`);
+    else if (nuevoTexto != null) acciones.push(`saco del ${barras(r.settings)} los registros del kit`);
   }
   const hayCarpeta = fs.existsSync(r.kit);
   if (hayCarpeta) acciones.push(`borro ${barras(r.kit)}/`);
@@ -409,6 +413,40 @@ function planQuitar(r, s) {
   const creadas = previo.creadas.slice().sort().reverse().map((c) => path.join(r.home, c));
   return { acciones, avisos: [], accionSettings, nuevoTexto, hayCarpeta, creadas };
 }
+// Los hooks del anti-secretos viejo que están en `antes` y faltan en `limpio` vuelven a su lugar (cambia `limpio`): adentro de su
+// grupo si lo que quedó de él sigue (mismo matcher y sus otros hooks), si no, su grupo entero en la posición que tenía. → [archivo]
+function reponerViejos(limpio, antes, r) {
+  const repuestos = [];
+  const listaAntes = esMapa(antes.hooks) && Array.isArray(antes.hooks.PreToolUse) ? antes.hooks.PreToolUse : [];
+  const presente = (h) => {
+    const l = esMapa(limpio.hooks) && Array.isArray(limpio.hooks.PreToolUse) ? limpio.hooks.PreToolUse : [];
+    return l.some((g) => esMapa(g) && Array.isArray(g.hooks) && g.hooks.some((x) => igualJson(x, h)));
+  };
+  for (const { hook, archivo } of viejos(antes, r)) {
+    if (presente(hook)) continue;
+    const gi = listaAntes.findIndex((g) => esMapa(g) && Array.isArray(g.hooks) && g.hooks.includes(hook));
+    if (gi < 0) continue;
+    const gAntes = listaAntes[gi];
+    if (!esMapa(limpio.hooks)) limpio.hooks = {};
+    if (!Array.isArray(limpio.hooks.PreToolUse)) limpio.hooks.PreToolUse = [];
+    const lista = limpio.hooks.PreToolUse;
+    const otros = gAntes.hooks.filter((x) => x !== hook);
+    const resto = otros.length
+      ? lista.find((g) => esMapa(g) && Array.isArray(g.hooks) && g.matcher === gAntes.matcher && g.hooks.length && g.hooks.every((x) => otros.some((o) => igualJson(o, x))))
+      : null;
+    if (resto) {
+      const hi = gAntes.hooks.indexOf(hook);
+      resto.hooks.splice(Math.min(hi, resto.hooks.length), 0, JSON.parse(JSON.stringify(hook)));
+    } else {
+      const g = JSON.parse(JSON.stringify(gAntes));
+      g.hooks = [JSON.parse(JSON.stringify(hook))];
+      lista.splice(Math.min(gi, lista.length), 0, g);
+    }
+    repuestos.push(archivo);
+  }
+  return repuestos;
+}
+
 function aplicarQuitar(r, s, p) {
   if (p.accionSettings === 'borrar') fs.rmSync(r.settings);
   else if (p.nuevoTexto != null) escribir(r.settings, p.nuevoTexto);

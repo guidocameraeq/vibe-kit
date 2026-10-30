@@ -137,12 +137,16 @@ const FABRICA_VARS = [
   /TOKEN/, /SECRET/, /PASSWORD/, /PASS/, /PWD/, /API_KEY/, /PRIVATE_KEY/, /SERVICE_ROLE/,
   /_KEY$/, /CREDENTIAL/, /DATABASE_URL/, /DB_URL/, /_DSN/, /CONNECTION_STRING/,
 ];
+// Los de la shell que caen en /PWD/ y no son secreto (rf3-12): la carpeta actual y la anterior (Bash y PowerShell). Solo
+// exactos: DB_PWD, MYSQL_PWD siguen frenando. La ficha (secretos:) los puede volver a sumar.
+const SHELL_NO_SECRETO = new Set(['PWD', 'OLDPWD']);
 // publicas: gana (la ficha dice que no es secreto); secretos: suma; si no, la lista de fábrica.
 function varSensible(nombre, extra, publicas) {
   const n = String(nombre || '').toUpperCase();
   if (n === '') return false;
   if (publicas && publicas.has(n)) return false;
   if (extra && extra.has(n)) return true;
+  if (SHELL_NO_SECRETO.has(n)) return false;
   return FABRICA_VARS.some((re) => re.test(n));
 }
 
@@ -531,6 +535,18 @@ function analizarComando(texto, ps, ctx, candidatos) {
       }
     }
 
+    // frenos del proyecto (rf3-14): borrar, mover o pisar la carpeta que CONTIENE un freno (`rm -rf .claude`, `mv ../../.. x`,
+    // `cp -r x .claude`, `Remove-Item *`) es lo mismo que nombrarlo.
+    if (ctx.ses.agente) {
+      for (const tok of objetivosDestructivos(prog, argv, resolver, ps, ctx)) {
+        const fr = contieneFreno(tok, ctx, ps);
+        if (fr) {
+          add('frenos-del-proyecto', 'deny', fr, MSG_FRENO_PROYECTO);
+          break;
+        }
+      }
+    }
+
     for (const t of tokensDeRuta(c, resolver)) {
       // frenos del proyecto: solo en sesión de agente; leer pasa, escribir por redirección nunca.
       if (ctx.ses.agente) {
@@ -828,18 +844,208 @@ function rutaFrenoProyecto(tok, ctx) {
       return COMUN_FRENO(rel) ? { detalle: `<git-común>/${rel}`, lock: false } : null;
     }
   }
-  const rel = debajo(raiz);
-  if (rel === null) return null;
-  if (
-    /^\.claude\/hooks(\/|$)/.test(rel) ||
-    /^\.claude\/settings(\.local)?\.json$/.test(rel) ||
-    /^\.githooks(\/|$)/.test(rel) ||
-    rel === '.kit-rol' ||
-    rel === '.git' // el .git de la raíz del worktree (r2-2 b); lo de adentro del común va arriba
-  ) {
-    return { detalle: rel, lock: false };
+  // rf3-5: las raíces protegidas son la propia y TODAS las del git común (el principal y los otros worktrees): un obrero que
+  // escribe `../../../.claude/hooks/…` le apaga los frenos a la pestaña de Guido y el pre-commit al merge del director.
+  for (const r of raicesProtegidas(ctx)) {
+    const rel = debajo(r.dir);
+    if (rel === null || !RAIZ_FRENO(rel)) continue;
+    return { detalle: r.prefijo + rel, lock: false };
   }
   return null;
+}
+const RAIZ_FRENO = (rel) =>
+  /^\.claude\/hooks(\/|$)/.test(rel) ||
+  /^\.claude\/settings(\.local)?\.json$/.test(rel) ||
+  /^\.githooks(\/|$)/.test(rel) ||
+  rel === '.kit-rol' ||
+  rel === '.git'; // el .git de la raíz del worktree (r2-2 b); lo de adentro del común va arriba
+
+// Las raíces cuyos frenos se cuidan → [{ dir, prefijo }]: la propia (prefijo ''), el principal (`dirname(común)` cuando el común se
+// llama `.git`) y los otros worktrees (`<común>/worktrees/*/gitdir` → `<wt>/.git`). Solo fs; una vez por llamada (en ctx).
+function raicesProtegidas(ctx) {
+  if (ctx.raices) return ctx.raices;
+  const { raiz, comun } = ctx.ses;
+  const lista = [{ dir: raiz, prefijo: '' }];
+  const ya = new Set([norm(path.resolve(raiz))]);
+  const sumar = (dir, prefijo) => {
+    const n = norm(path.resolve(dir));
+    if (ya.has(n)) return;
+    ya.add(n);
+    lista.push({ dir, prefijo });
+  };
+  if (comun) {
+    if (path.basename(comun).toLowerCase() === '.git') sumar(path.dirname(comun), '<principal>/');
+    let nombres = [];
+    try {
+      nombres = fs.readdirSync(path.join(comun, 'worktrees'));
+    } catch (e) {
+      nombres = [];
+    }
+    for (const n of nombres) {
+      const base = path.join(comun, 'worktrees', n);
+      let t = null;
+      try {
+        t = fs.readFileSync(path.join(base, 'gitdir'), 'utf8').replace(/^﻿/, '').trim();
+      } catch (e) {
+        t = null;
+      }
+      if (!t) continue;
+      const g = path.resolve(base, t);
+      if (path.basename(g).toLowerCase() === '.git') sumar(path.dirname(g), `<worktree ${n}>/`);
+    }
+  }
+  ctx.raices = lista;
+  return lista;
+}
+
+// ---- rf3-14: la carpeta que contiene un freno
+// Los frenos como rutas absolutas → [{ segs, carpeta, detalle }] (de las tres raíces y del git común). Una vez por llamada.
+const FRENOS_RAIZ = [['.claude/hooks', true], ['.claude/settings.json', false], ['.claude/settings.local.json', false], ['.githooks', true], ['.kit-rol', false], ['.git', true]];
+const FRENOS_COMUN = [['config', false], ['hooks', true], ['refs', true], ['packed-refs', false], ['fetch_head', false], ['logs', true], ['worktrees', true]];
+function frenosAbsolutos(ctx) {
+  if (ctx.frenosAbs) return ctx.frenosAbs;
+  const out = [];
+  const sumar = (base, rel, carpeta, detalle) => {
+    const abs = norm(path.resolve(base, rel)).replace(/\/+$/, '');
+    out.push({ segs: abs.split('/'), carpeta, detalle });
+  };
+  for (const r of raicesProtegidas(ctx)) for (const [rel, carpeta] of FRENOS_RAIZ) sumar(r.dir, rel, carpeta, r.prefijo + rel);
+  if (ctx.ses.comun) for (const [rel, carpeta] of FRENOS_COMUN) sumar(ctx.ses.comun, rel, carpeta, `<git-común>/${rel}`);
+  ctx.frenosAbs = out;
+  return out;
+}
+
+// Un segmento con comodín (* ? [..]) → RegExp. En Bash `*`/`?` no agarran un nombre con punto adelante (sin dotglob); en
+// PowerShell, sí.
+function segmentoGlob(seg, ps) {
+  let r = '';
+  for (let i = 0; i < seg.length; i++) {
+    const ch = seg[i];
+    if (ch === '*') r += '[^/]*';
+    else if (ch === '?') r += '[^/]';
+    else if (ch === '[') {
+      const fin = seg.indexOf(']', i + 2);
+      if (fin < 0) r += '\\[';
+      else {
+        r += `[${seg.slice(i + 1, fin).replace(/^!/, '^').replace(/\\/g, '\\\\')}]`;
+        i = fin;
+      }
+    } else r += ch.replace(/[.+^${}()|\\]/g, '\\$&');
+  }
+  const re = new RegExp(`^${r}$`);
+  const conPunto = seg.startsWith('.');
+  return (nombre) => re.test(nombre) && (ps || conPunto || !nombre.startsWith('.'));
+}
+const tieneComodin = (s) => /[*?[]/.test(s);
+
+// ¿La ruta `tok` es (o con comodín puede ser) una carpeta que contiene un freno, o el freno mismo? → el detalle del freno o null.
+// Debajo de un freno-carpeta con comodín (`.claude/hooks/*`) también cuenta; el nombre literal de adentro ya lo mira rutaFrenoProyecto.
+function contieneFreno(tok, ctx, ps) {
+  if (typeof tok !== 'string' || tok === '' || !ctx.ses.raiz) return null;
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(tok) || /[\n|]/.test(tok)) return null;
+  const abs = absoluta(tok, ctx.cwd).replace(/\/+$/, '');
+  const segs = abs.split('/');
+  const conComodin = tieneComodin(tok);
+  const igual = segs.map((s) => (conComodin && tieneComodin(s) ? segmentoGlob(s, ps) : (n) => n === s));
+  for (const f of frenosAbsolutos(ctx)) {
+    if (segs.length > f.segs.length && !(conComodin && f.carpeta)) continue;
+    const n = Math.min(segs.length, f.segs.length);
+    let ok = true;
+    for (let i = 0; i < n && ok; i++) ok = igual[i](f.segs[i]);
+    if (ok) return f.detalle;
+  }
+  return null;
+}
+
+// Lo que un comando borra, mueve, pisa o le cambia permisos → [ruta] (resueltas). Lo que no está acá (leer, listar, buscar,
+// git add/status…) no cuenta. `cd x && rm -rf hooks` (la carpeta relativa a un cd) no se sigue.
+const BORRA_O_MUEVE = new Set([
+  'rm', 'rmdir', 'unlink', 'shred', 'mv', 'chmod', 'chown', 'chgrp', 'chattr', 'attrib', 'icacls', 'takeown',
+  'remove-item', 'ri', 'del', 'erase', 'rd', 'move-item', 'mi', 'move', 'rename-item', 'rni', 'ren', 'rename', 'set-acl',
+]);
+const PISA_DESTINO = new Set(['cp', 'copy', 'copy-item', 'cpi', 'rsync', 'ln', 'install', 'xcopy', 'robocopy', 'new-item', 'ni']);
+function objetivosDestructivos(prog, argv, resolver, ps, ctx) {
+  const args = argv.slice(1);
+  const ops = []; // operandos: lo que no es opción (en PowerShell, sin los valores de -Filter/-Include/-Exclude/-NewName)
+  const conValor = {};
+  let finOpc = false;
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (!finOpc && a === '--') {
+      finOpc = true;
+      continue;
+    }
+    if (!finOpc && /^-/.test(a)) {
+      const m = /^(-{1,2}[A-Za-z][\w-]*)(?:[=:](.*))?$/.exec(a);
+      const nombre = m ? m[1].toLowerCase() : a.toLowerCase();
+      if (m && m[2] !== undefined) conValor[nombre] = m[2];
+      else if (ps && /^-(filter|include|exclude|newname|destination|destinationpath|path|value|target|itemtype|name)$/i.test(nombre) && i + 1 < args.length) {
+        conValor[nombre] = args[++i];
+        if (/^-(path|literalpath)$/i.test(nombre)) ops.push(conValor[nombre]);
+      } else if (!ps && /^(-t|--target-directory|-C|--directory|-d|-S|--suffix)$/.test(m ? m[1] : a) && i + 1 < args.length) {
+        conValor[m ? m[1] : a] = args[++i];
+      }
+      continue;
+    }
+    ops.push(a);
+  }
+  const r = (x) => (x === undefined ? [] : [resolver(x)]);
+  if (prog === 'git') {
+    const { sub, resto } = subGit(argv);
+    if (sub === 'rm' || sub === 'mv') return resto.filter((a) => !/^-/.test(a)).map(resolver);
+    if (sub === 'clean' && resto.some((a) => /^-[a-zA-Z]*[xX]/.test(a))) {
+      const ps2 = resto.filter((a) => !/^-/.test(a)).map(resolver);
+      return ps2.length ? ps2 : [ctx.cwd];
+    }
+    return [];
+  }
+  if (BORRA_O_MUEVE.has(prog)) return ops.map(resolver);
+  if (PISA_DESTINO.has(prog)) {
+    if (prog === 'new-item' || prog === 'ni') return /^(symboliclink|junction|hardlink)$/i.test(conValor['-itemtype'] || '') ? ops.map(resolver) : [];
+    // rsync, robocopy y xcopy sincronizan (pueden borrar o pisar lo que haya): cuenta el destino entero.
+    if (prog === 'robocopy' || prog === 'xcopy') return r(ops[1]);
+    if (prog === 'rsync') return ops.length >= 2 ? r(ops[ops.length - 1]) : [];
+    // cp, ln, install, Copy-Item: lo que se crea o pisa es <destino>/<nombre del origen> (`cp x .` en la raíz no toca un freno;
+    // `cp -r otro/.claude .` sí). Que el destino SEA un freno ya lo mira rutaFrenoProyecto, token por token.
+    let dest;
+    let origenes;
+    const t = conValor['-t'] !== undefined ? conValor['-t'] : conValor['--target-directory'] !== undefined ? conValor['--target-directory'] : conValor['-destination'];
+    if (t !== undefined) {
+      dest = t;
+      origenes = ops;
+    } else if (ps && (prog === 'copy-item' || prog === 'cpi' || prog === 'copy' || prog === 'cp')) {
+      dest = ops[1];
+      origenes = ops.slice(0, 1);
+    } else {
+      if (ops.length === 1 && prog === 'ln') ops.push('.'); // `ln -s <origen>`: el enlace va a la carpeta actual
+      if (ops.length < 2) return [];
+      dest = ops[ops.length - 1];
+      origenes = ops.slice(0, -1);
+    }
+    if (dest === undefined) return [];
+    const d = resolver(dest);
+    return origenes.map((o) => `${String(d).replace(/[\\/]+$/, '')}/${path.basename(String(resolver(o)).replace(/[\\/]+$/, '')) || '.'}`);
+  }
+  if (prog === 'tar' && (args.some((a) => /^(-[a-zA-Z]*x|--extract|--get)/.test(a)) || /^[a-zA-Z]*x[a-zA-Z]*$/.test(args[0] || ''))) {
+    return r(conValor['-C'] !== undefined ? conValor['-C'] : conValor['--directory']);
+  }
+  if (prog === 'unzip') return r(conValor['-d']);
+  if (prog === 'expand-archive') return r(conValor['-destinationpath'] !== undefined ? conValor['-destinationpath'] : ops[1]);
+  if (prog === 'find') {
+    const i = args.findIndex((a, k) => a === '-delete' || (/^-(exec|execdir|ok|okdir)$/.test(a) && BORRA_O_MUEVE.has(comando.programa(args[k + 1] || ''))));
+    if (i < 0) return [];
+    const inicio = [];
+    for (const a of args) {
+      if (/^[-(!]/.test(a)) break;
+      inicio.push(resolver(a));
+    }
+    return inicio.length ? inicio : [ctx.cwd];
+  }
+  if (prog === '7z' && args[0] === 'x') {
+    const o = args.find((a) => /^-o./.test(a));
+    return o ? [resolver(o.slice(2))] : [];
+  }
+  return [];
 }
 
 // ¿la ruta es un freno de la PC? → 'kit' (siempre) · 'settings' (agente o sin ventana: deny; si no, ask) · null.
