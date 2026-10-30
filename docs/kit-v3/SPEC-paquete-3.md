@@ -104,6 +104,12 @@ escapes, `;`, `&&`, `||`, `|`, subshells, heredocs, y lo de adentro de `bash -c`
 | `historia-defecto` (d, rf-16, D-15, r2-4) | en la rama por defecto, `reset <x>`/`rebase`: **con remoto, solo si alguno de los commits que tira o reescribe está en `origin/<rama por defecto>`** (`rev-list <destino>..HEAD --not origin/<defecto>` cuenta menos que `rev-list <destino>..HEAD`); **sin remoto, `ask` con ventana, `deny` sin ventana** | `reset --soft HEAD~1` de lo propio sin pushear, **también con la rama divergida** (dos PCs); `pull --rebase` (rf-1), `fetch && rebase origin/main`, `--continue`/`--abort`; para deshacer lo publicado, `git revert` |
 | `salir-del-worktree` (d, rf-5, r1-16, r2-2 c) | en sesión de agente: `cd`/`pushd`/`Set-Location`, `git -C`, `--git-dir`, `--work-tree` a una ruta **bajo la raíz del principal y no bajo la propia**, resolviendo los `cd` en secuencia; y `commit`/`push`/`merge` cuyo repo efectivo no es el propio worktree (un clon en otra carpeta). **El `.git` del worktree tiene que apuntar al `<principal>/.git` esperado** (una lectura de fs) | director, humano |
 
+*(D3.3, del revisor frío: tres casos nuevos. `alias`: `-c alias.*`/`--config-env=alias.*` siempre, y guardar un alias de shell o con
+`--no-verify`/`commit -n` en todo rol; un alias ya guardado se resuelve leyendo la config cuando el subcomando no es de git (rf3-4).
+`rm-forzado`: `git rm -f` sobre `.`, carpeta, comodín o `:/` (rf3-11). `red-de-rescate`: `gc --prune=now`, `prune`, `reflog expire`/`delete`
+cortos (rf3-13). `variables-peligrosas` suma `GITLEAKS_*` y, con git en la llamada, `NODE_OPTIONS`/`NODE_PATH`; git se reconoce también con
+escapes, `g\it` (rf3-10).)*
+
 Se porta la tabla de Hermes. Hecho cuando (SPEC-0 4.4): casos sí/no, los nuevos medidos contra el historial (los `reset HEAD~n` sobre `main`,
 aparte), ningún git de los `SKILL.md` del molde frena (una prueba los pasa por `decidir`), y `commit --no-verify` negado en todo modo.
 
@@ -152,7 +158,10 @@ patrones sobre lo que tipea Guido → `decision: block`, **`suppressOriginalProm
   <cuál> "$@"`. **Sin node, sale 1 para todos.** `pre-merge-commit` porque un merge automático no corre `pre-commit`. **Todo error del runner
   da 1 con motivo** (r1-19).
 - **pre-commit** (y pre-merge-commit): gitleaks `git --staged --redact --no-banner`; `barreras --indice` (**solo el índice**, rf-10); el hook
-  previo. **pre-push**: por cada ref que sube, `<remoto>..<local>` o, si es nueva, `rev-list <local> --not --remotes`: gitleaks `git
+  previo. *(D3.3, rf3-1: **el pre-merge-commit no corre el candado** —git no escribe `MERGE_HEAD` antes de ese hook y juzgaba el merge solo
+  contra `HEAD`, rojo ante un cambio aprobado en la otra PC—; corre gitleaks y el previo y dice "el merge lo juzga el pre-push", que juzga
+  cada padre con `--rango`. El `sh` borra toda `NODE_*` antes del `exec node` (rf3-3) y el runner, toda `GITLEAKS_*` (rf3-2); la config de
+  gitleaks del disco distinta de la del índice → rojo. Lo que pasa anota en `<git-common-dir>/kit-frenos.log`, no en el versionado (rf3-6).)* **pre-push**: por cada ref que sube, `<remoto>..<local>` o, si es nueva, `rev-list <local> --not --remotes`: gitleaks `git
   --log-opts=<rango> --redact` y `barreras --rango` (rf-7). Sale 1 si alguno da rojo, con `archivo:línea` tapado.
 - **El candado corre dos veces** (pendiente b; r4-3, r1-2 a): **la versión de la ref vigente** (con remoto, `origin/<rama por defecto>`; sin
   remoto, la rama local, o sea lo commiteado), sacada con **un solo `git cat-file --batch`** a un temporal fuera del repo y corrida con el `cwd`
@@ -291,7 +300,8 @@ encargo aceptado; commit por encargo.
 | 3 | G13 | `UserPromptSubmit` con una clave falsa: bloqueado, y **la salida no trae la clave** |
 | 4 | **Guido, `clientes` y `Usuario`** (el "hecho cuando" del orden 3) | Kit al día (`kit-sync.sh sync` acá; "actualizate" allá); `node ~/.claude/skills/arquitecto-skills/scripts/instalar-hooks-pc.cjs --plan`, sin `--plan`, reiniciar; en `../vibe-kit-pruebas/alfa`, `node ~/.claude/skills/arquitecto-skills/scripts/doctor.cjs` → **todo `✓`**; después `… --sacar-viejo` |
 | 5 | Guido · VS Code en `alfa` | "Mostrame `ALFA_DB_URL`" y "hacé `git stash`" → frenados; una clave pegada → bloqueada; una entrada de `sensible:` → la ventana (y que la extensión mande `permission_mode`) |
-| 6 | Guido · VS Code, las dos PCs | `onFailure` y la forma exec en la extensión (ficha de `alfa` rota en `origin`: `git status` dice "ficha rota", `ls` pasa) |
+| 6 | Guido · VS Code, las dos PCs | `onFailure` y la forma exec en la extensión (ficha de `alfa` rota en `origin`: `ls` y `git status` pasan sin decir nada —el hook es barato
+cuando no frena—, y `git stash` frena con "ficha rota: …:<línea> — corré doctor"; G13, 2026-10-30, en `-p`) |
 | 7 | Guido o el piloto · Windows sin Git Bash (NO VERIFICADO) | Que los hooks anden en exec y los `.githooks/` con el `sh` de git |
 
 ## Cruces contra los diseños (la lección de D1.1)
@@ -362,6 +372,10 @@ Los cruces contra el SPEC-0 que piden decisión son D-1, D-2, D-5, D-6, D-8 y D-
 - **La bandera de `db migrar` es texto** (r1-22): un script intermedio (`npm run x` que llama a `db migrar --borra-datos-reales`) pasa sin la ventana.
 - **Un clon temporal fuera del repo** (r2-2 c): sin `hooksPath`, pushea sin pre-push; `salir-del-worktree` frena los caminos conocidos, y si
   pasa, el director lo frena en el merge (con un repo público, el secreto ya quedó arriba: runbook).
+- **Lo que el revisor frío de D3.3 dejó afuera** (de nicho): git por `xargs`, `find -exec`, `submodule foreach` o `Start-Process`; un
+  `git-<algo>` externo en el `PATH`; un alias de shell `!sh script.sh` ya guardado (se ve el `sh`, no el script); `git config --edit` de un
+  humano; la clave en el `prompt` de un subagente (`Agent`/`Task`) o en una herramienta `mcp__*` (rf3-14; `secretos` no mira esos, D-9).
+- **El pre-merge-commit no corre el candado** (rf3-1): un rol que mergea local y nunca pushea deja sus merges sin juzgar (sus commits, sí).
 - **husky y lefthook** (r2-3): husky pisa `core.hooksPath` en cada `npm install` (`hooks-path-ausente` lo caza en el próximo commit);
   lefthook escribe en `.githooks/` (`doctor` avisa). Cuántos repos de la flota los usan: NO VERIFICADO (piloto).
 
