@@ -20,17 +20,17 @@ Explora el código real → spec delta sellado → **termina armando** → una l
 
 ## B2 — Pantalla → prototipo, antes del spec
 
-Si la feature es de pantalla (H §13): un **prototipo HTML estático** hecho por un subagente Sonnet, en `docs/modulos/<x>/prototipo/` (sin ficha: `docs/prototipo-<x>/`), que se abre en el navegador (nada depende de la app de escritorio), **con una pregunta escrita** ("¿esta pantalla te alcanza para decidir X?"). Lo aprueba Guido o la usuaria final; **el spec se escribe desde lo aprobado** y lo cita. Reemplaza las preguntas de pantalla. Es descartable: nunca pasa a producción.
+Si la feature es de pantalla (H §13; cualquier cosa que el usuario va a ver: una pantalla, una página, un formulario) **lleva prototipo siempre, antes del `SPEC.md`**: también en Modo B corto, con "dale con los defaults" (saltea las preguntas, no el prototipo) y aunque parezca chica. Es un **prototipo HTML estático** hecho por un subagente Sonnet, en `docs/modulos/<x>/prototipo/` (sin ficha: `docs/prototipo-<x>/`), que se abre en el navegador (nada depende de la app de escritorio), **con una pregunta escrita** ("¿esta pantalla te alcanza para decidir X?"). Lo aprueba Guido o la usuaria final; **el spec se escribe desde lo aprobado** y lo cita. Reemplaza las preguntas de pantalla. Es descartable: nunca pasa a producción. Si nadie puede aprobarlo en el momento (de noche, por ejemplo), igual se arma y el OK del spec lo incluye.
 
 ## B3 — Corto o largo
 
-- **Corto** (E §2.1): **sin entrevista**; el plan es la entrada. Hacés solo lo que el plan no trae: explorar, el NO SE TOCA, los chequeos, director sí/no y "Ejecución". "¿Cómo lo resuelven otros?" es opcional.
+- **Corto** (E §2.1): **sin entrevista**; el plan es la entrada. Hacés solo lo que el plan no trae (y el prototipo de B2, si hay pantalla): explorar, el NO SE TOCA, los chequeos, director sí/no y "Ejecución". "¿Cómo lo resuelven otros?" es opcional.
 - **Largo**: entrevista corta, anclada al código:
   - ¿Qué tiene que pasar que hoy no pasa? (el resultado, no la implementación) · ¿Quién lo usa? ¿Cambia algo para los usuarios actuales?
   - **Las consecuencias que VOS ves en el código real**: *"tu tabla X ya tiene tal campo: ¿esto lo reemplaza o conviven?"*, *"esto toca los permisos que ya andan"*. Es tu valor acá.
   - Concerns SOLO del delta: ¿toca permisos? ¿datos que él creó (tabla "esto cambio / esto preservo")? ¿plata? ¿puede romper algo que hoy anda?
   - **"¿Cómo lo resuelven otros?"** (P1.3): un investigador Sonnet en background, tope ~15 búsquedas, que deja la sección **"Qué robar y qué no"** en el spec antes de las decisiones.
-  - Fast-path igual que en A: "dale con los defaults" → todo a Supuestos.
+  - Fast-path igual que en A: "dale con los defaults" → todo a Supuestos, salvo el prototipo de pantalla (B2).
   - Si hay enfoques para elegir: **EnterPlanMode**, 2-3 con pros y contras y uno "(Recomendado)", **ExitPlanMode** aprueba el enfoque. Saliste de Plan Mode antes de escribir el spec.
 
 ## B4 — El spec delta

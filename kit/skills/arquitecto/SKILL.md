@@ -14,7 +14,7 @@ Qué entrada es y, si es un pedido, su tamaño. Una de estas, textual:
 - `esto es chico: hacelo en el chat del proyecto` — y te apagás.
 - `consultorio` · `la PC: te paso al Equipador` · `la flota: …`
 
-El tamaño son dos preguntas: ¿hace falta algo más que el pedido y el `git diff` para retomarlo? ¿lleva más de una sesión? Ninguna sí → chico. Tocar plata, permisos o datos no lo agranda: eso lo cuidan los frenos.
+El tamaño son dos preguntas: ¿hace falta algo más que el pedido y el `git diff` para retomarlo? ¿lleva más de una sesión? Ninguna sí → chico. Lo que sale de una charla con el dueño (una guía, un procedimiento) es más que chico, aunque termine en un documento. Tocar plata, permisos o datos no lo agranda: eso lo cuidan los frenos.
 
 ## Las cinco entradas
 

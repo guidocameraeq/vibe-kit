@@ -76,7 +76,7 @@ Lo que tiene `beta`: solo el `CLAUDE.md` y `docs/` del molde (`NORTE.md`, `MAPA.
 > "Armame una guía de cómo se hace el cierre de mes en beta, paso por paso, con quién hace cada cosa y qué se controla. Hoy está todo en mi cabeza, así que vas a tener que ir preguntándome."
 
 - Tamaño esperado: **módulo solo**.
-- ¿Hace falta algo más que el pedido y el `git diff` para retomarlo? **Sí**: la guía sale de lo que el dueño cuenta; sin esa charla el diff no explica el porqué de cada paso.
+- ¿Hace falta algo más que el pedido y el `git diff` para retomarlo? **Sí**: la guía sale de lo que el dueño cuenta; sin esa charla el diff no explica el porqué de cada paso. Lo que sale de una charla con el dueño es más que chico aunque termine siendo un documento: "es un documento" no lo hace chico.
 - ¿Lleva más de una sesión? **Sí**.
 - Primer bloque de texto: "más que chico: llamo al Arquitecto"; el transcript invoca `arquitecto`.
 
@@ -92,7 +92,7 @@ Lo que tiene `beta`: solo el `CLAUDE.md` y `docs/` del molde (`NORTE.md`, `MAPA.
 > "Esta noche no voy a estar. Dejá armadas, mientras duermo, las tres guías de beta: la de clientes, la de proveedores y la de cobranzas. Que cada una avance por su lado y a la mañana me muestres todo junto."
 
 - Tamaño esperado: **módulo con director** (noche sin el dueño, y tres tareas que se escriben a la vez).
-- ¿Hace falta algo más que el pedido y el `git diff` para retomarlo? **Sí**.
+- ¿Hace falta algo más que el pedido y el `git diff` para retomarlo? **Sí**. La noche no lo saca: más que chico siempre invoca `/arquitecto`, también si es para la noche o sin el dueño; quién trabaja solo y cómo lo decide el Arquitecto, no la sesión ("esta noche no puedo dejarlo corriendo solo" es un fallo).
 - ¿Lleva más de una sesión? **Sí**.
 - Primer bloque de texto: "más que chico: llamo al Arquitecto"; el transcript invoca `arquitecto` (el director lo decide él al listar las tareas).
 
@@ -102,7 +102,7 @@ La línea del tamaño es el **primer bloque de texto del asistente** en el trans
 
 ## Las demás entradas y los modos del Arquitecto (P1.1, P1.2, P1.3, P1.6)
 
-Estas corridas prueban al Arquitecto v3, no solo el tamaño. Mismo formato; el "primer bloque de texto" es la línea con que abre la sesión o el Arquitecto (D4-10). Donde la prueba tiene que escribir (14 a 17) no sirve `--permission-mode plan`: la corrida se hace con permisos de edición sobre un clon recién armado por `rehacer.sh`, y el OK de Guido se da con un segundo mensaje.
+Estas corridas prueban al Arquitecto v3, no solo el tamaño. Mismo formato; el "primer bloque de texto" es la línea con que abre la sesión o el Arquitecto (D4-10). Donde la prueba tiene que escribir (14, 14b, 15, 16 y 17) no sirve `--permission-mode plan`: la corrida se hace con permisos de edición sobre un clon recién armado por `rehacer.sh`, y el OK de Guido se da con un segundo mensaje.
 
 ### 11 · entrada suelta · la PC (`beta`)
 > "Preparame esta máquina."
@@ -123,12 +123,33 @@ Estas corridas prueban al Arquitecto v3, no solo el tamaño. Mismo formato; el "
 - Responde la línea de `flota.md` (*"llega con el kit v3 (orden 6); hoy: `actualizate` del Equipador para la PC, el §2.9 del playbook para adoptar"*) y no toca `beta` ni `~/.claude/`.
 
 ### 14 · Modo B corto (`alfa`)
-> "Hay que hacer dos cosas nuevas de alfa a la vez porque no queremos esperar: el historial de cuentas y una calculadora de línea de comandos con las cuatro operaciones. Son independientes, que se hagan en paralelo. El plan ya lo charlamos, es este: (1) `historial.js` guarda cada suma en `historial.json` con fecha, los dos números y el resultado; (2) `listar(dia)` devuelve las de un día; (3) `cli.js` con suma, resta, producto y cociente, y la división por cero tira un error claro; (4) cada una con su prueba en `node --test`; (5) `suma.js` no se toca y cada tarea va en archivos propios."
+> "Esto no entra en una sesión: cada parte lleva su tarde, así que quiero que avancen a la vez. Son dos cosas nuevas de alfa, independientes. El plan ya lo charlamos, es este. **Historial** (`historial.js` y `historial.test.js`): (1) guarda cada cuenta en `historial.json` con fecha, los dos números, la operación y el resultado, y le pone un id; (2) lista las de un día y las de un rango de fechas; (3) borra una por id, pidiendo confirmación; (4) exporta todo a CSV; (5) si `historial.json` está roto o vacío, la app no se cae: arranca con el historial vacío y avisa; (6) exporta una función `registrar(operacion, a, b, resultado)` para que otros anoten cuentas. **Calculadora** (`cli.js` y `cli.test.js`): (1) suma, resta, producto y cociente; (2) la división por cero tira un error claro; (3) un modo interactivo donde se tipean cuentas hasta salir; (4) `--ayuda`; (5) códigos de salida: 0 bien, 1 mal usada, 2 error de cuenta; (6) cada cuenta se anota en el historial llamando a `registrar`. Cada parte con sus pruebas en `node --test`, `suma.js` no se toca y cada tarea va en archivos propios."
+
+- Tamaño esperado: **módulo con director**. El plan viene charlado (por eso es "corto": el Arquitecto no pregunta), pero por la regla es más que chico sin discusión: no entra en una sesión (dos partes, cada una con su tarde) y sin el plan el diff no se retoma. Son dos tareas que se escriben a la vez, en archivos distintos.
+- Primer bloque de texto: "más que chico: llamo al Arquitecto"; el transcript invoca `arquitecto` (Modo B corto).
+- **Sin preguntas** de datos: el plan viene dado. Spec sellado (`arquitecto.cjs ready` sale 0) en **≤ 15 minutos de reloj** del transcript.
+- **El OK del dueño va por un segundo mensaje con `--resume`** ("aprobado"); hasta ahí no hay commit. Después de ese OK:
+  - Un commit en la rama por defecto con `docs/modulos/<x>/README.md` (`director: sí`, `rama: modulo/<x>`) y un `SPEC.md` con "Ejecución" y su línea para abrir.
+  - La rama `modulo/<x>` y `.claude/worktrees/modulo--<x>` creadas por `worktree.cjs crear`, con `.kit-rol` = `director` adentro.
+  - La línea de apertura al final.
+
+### 14b · Modo B corto sin ficha (`alfa`)
+Repo: un clon de `alfa` (recién armado por `rehacer.sh`) al que se le saca la ficha, así:
+
+```
+git rm -q .claude/kit.md && git commit -q -m "prueba: sin ficha"
+git switch -c feature
+echo "x" > pendiente.txt && git add pendiente.txt      # algo en stage, sin commitear
+```
+
+> El pedido 14, tal cual.
 
 - Primer bloque de texto: "más que chico: llamo al Arquitecto"; el transcript invoca `arquitecto` (Modo B corto).
-- **Sin preguntas**: el plan viene dado. Spec sellado (`arquitecto.cjs ready` sale 0) en **≤ 15 minutos de reloj** del transcript.
-- Un commit en la rama por defecto con `docs/modulos/<x>/README.md` (`director: sí`, `rama: modulo/<x>`) y un `SPEC.md` con "Ejecución" y su línea para abrir.
-- La rama `modulo/<x>` y `.claude/worktrees/modulo--<x>` creadas por `worktree.cjs crear`, con `.kit-rol` = `director` adentro.
+- Sin ficha siempre es **módulo solo**: la primera línea de "Ejecución" dice `módulo solo` aunque el plan traiga dos partes.
+- Termina con `docs/SPEC-<x>.md` READY (`arquitecto.cjs ready` sale 0); no existe `docs/modulos/`.
+- **Sin commit en `main`, sin push y sin worktree** (ni `modulo/<x>` ni `.claude/worktrees/`); la rama sigue siendo `feature`.
+- Lo que estaba en stage (`pendiente.txt`) **sigue en stage**, intacto: `git diff --cached --name-only` imprime solo ese archivo.
+- La línea de apertura final es la de sin ficha (*"abrí un chat NUEVO… `inicio — ejecutá el spec docs/SPEC-<x>.md (está READY)`"*).
 
 ### 15 · Modo B largo (`alfa`)
 > El pedido 3, y al primer pedido de datos del Arquitecto: "dale con los defaults".
@@ -140,7 +161,7 @@ Estas corridas prueban al Arquitecto v3, no solo el tamaño. Mismo formato; el "
 > El pedido 4, y al primer pedido de datos del Arquitecto: "dale con los defaults".
 
 - Primer bloque de texto: "más que chico: llamo al Arquitecto".
-- Existe `docs/modulos/<x>/prototipo/` (HTML hecho por un Sonnet, con una pregunta escrita) y en el transcript se crea **antes** que el `SPEC.md`.
+- Existe `docs/modulos/<x>/prototipo/` (HTML hecho por un Sonnet, con una pregunta escrita) y en el transcript se crea **antes** que el `SPEC.md`: el prototipo va aunque la pantalla parezca chica y con "dale con los defaults" (que saltea las preguntas, no el prototipo).
 
 ### 17 · Modo A desde una carpeta vacía
 Repo: una carpeta nueva y vacía dentro de `../vibe-kit-pruebas/` (la crea quien corre; `rehacer.sh` no la toca).
@@ -150,8 +171,8 @@ Repo: una carpeta nueva y vacía dentro de `../vibe-kit-pruebas/` (la crea quien
 - **Monta ahí**, en la carpeta vacía donde corre, sin crear otra al lado.
 - La línea del registro (`arquitecto.cjs registro ../vibe-kit-pruebas` y la pregunta "¿proyecto nuevo, módulo de otro o feature de otro?") sale **antes** de la primera pregunta.
 
-Las entradas "proyecto nuevo" y "feature" las cubren 17 y 14 a 16.
+Las entradas "proyecto nuevo" y "feature" las cubren 17 y 14 a 16 (con 14b).
 
 ## Cuenta
 
-4 `chico` (1, 2, 6, 7) · 4 `módulo solo` (3, 4, 8, 9) · 2 `con director` (5, 10) · 3 entradas sueltas (11, 12, 13) · Modo B corto (14), Modo B largo (15), pantalla (16) y Modo A (17).
+4 `chico` (1, 2, 6, 7) · 4 `módulo solo` (3, 4, 8, 9) · 2 `con director` (5, 10) · 3 entradas sueltas (11, 12, 13) · Modo B corto (14) y sin ficha (14b), Modo B largo (15), pantalla (16) y Modo A (17).
