@@ -1,7 +1,7 @@
 'use strict';
 // Pruebas de scripts/worktree.cjs (SPEC-paquete-4 P6.2; criterios 11, 12, 13, 14 y 16): cada subcomando con sus casos sí y no, H §19bis
 // reproducida, el filtro de credenciales que falla cerrado (r1-4), las negativas de cerrar (r1-1, r1-2, r1-9, también con
-// core.autocrlf=true) y .kit-rol con los mismos bytes desde PowerShell y desde Bash. Repos temporales con un remoto bare, sin la
+// core.autocrlf=true) y .kit-rol con los mismos bytes desde PowerShell y desde Bash. Y `integrar` (SPEC-paquete-5, crit. 7; r1-1). Repos temporales con un remoto bare, sin la
 // configuración de git de la PC y con un HOME falso (el almacén de verdad no se toca). Corren con: node --test "kit/**/*.test.cjs".
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -85,7 +85,7 @@ function proyecto(o = {}) {
   if (o.autocrlf) g(P, 'config', 'core.autocrlf', 'true');
   const archivos = {
     '.gitignore': o.gitignore !== undefined ? o.gitignore : `${SNIPPET}/setup-hecho\n`,
-    '.claude/kit.md': ficha(nombre, o.setup),
+    '.claude/kit.md': o.ficha ? o.ficha(nombre) : ficha(nombre, o.setup),
     'docs/modulos/x/README.md': '# x\nEstado: en curso\n',
     'docs/modulos/y/README.md': '# y\nEstado: en curso\n',
     'a.txt': 'a\n',
@@ -652,4 +652,287 @@ test('.kit-rol: los mismos bytes creado desde PowerShell y desde Bash; rol() lo 
   assert.equal(contexto.rol(w), 'obrero', 'BOM y CRLF');
   fs.writeFileSync(path.join(w, '.kit-rol'), Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from('obrero\r\n', 'utf16le')]));
   assert.equal(contexto.rol(w), 'desconocido', 'UTF-16: nunca humano');
+});
+
+// ---------------------------------------------------------------- integrar (SPEC-paquete-5, crit. 7; D5-3, D5-11, D5-14, r1-1)
+
+// La ficha de los proyectos de integrar: comando-setup crea setup-hecho; comando-test lo necesita, y además mira que el temporal se
+// equipó como `equipar` (r1-1): .kit-rol director y el .env copiado sin lo del almacén. Con KIT_PRUEBA_AVANZA, el test empuja otro
+// clon a origin/main antes de terminar: origin avanza entre el fetch y el push.
+const fichaI = (nombre, o = {}) =>
+  [
+    '---',
+    'kit: 2.4.3',
+    'nivel: estandar',
+    'vars:',
+    `  proyecto: ${nombre}`,
+    ...(o.setup === null ? [] : [`  comando-setup: ${o.setup || 'node setup.cjs'}`]),
+    ...(o.test === null ? [] : [`  comando-test: ${o.test || 'node test.cjs'}`]),
+    'frenos:',
+    '  opcionales: []',
+    ...(o.quitados ? ['  quitados:', ...o.quitados.map((q) => `    - ${q}`)] : ['  quitados: []']),
+    ...(o.merge ? ['autorizado:', `  merge-a-main: ${o.merge}`] : []),
+    '---',
+    '',
+  ].join('\n');
+const SETUP = "require('fs').writeFileSync('setup-hecho', 'si');\n";
+const PRUEBA = [
+  "const fs = require('fs');",
+  "const env = fs.existsSync('.env') ? fs.readFileSync('.env', 'utf8') : '';",
+  "const ok = fs.existsSync('setup-hecho') && fs.readFileSync('.kit-rol', 'utf8') === 'director\\n' && env.includes('PORT=3000') && !env.includes('SECRET_KEY');",
+  "if (ok && process.env.KIT_PRUEBA_AVANZA) require('child_process').execFileSync('git', ['-C', process.env.KIT_PRUEBA_AVANZA, 'push', '-q', 'origin', 'HEAD:main'], { stdio: 'ignore' });",
+  'process.exit(ok ? 0 : 1);',
+  '',
+].join('\n');
+function proyectoI(o = {}) {
+  return proyecto({ ficha: (nombre) => fichaI(nombre, o), archivos: { 'setup.cjs': SETUP, 'test.cjs': PRUEBA, ...(o.archivos || {}) } });
+}
+const enOrigin = (p, ref = 'main') => g(p.remoto, 'rev-parse', ref);
+const sinTemporal = (p, x = 'x') => {
+  assert.ok(!fs.existsSync(p.wt(`integrar--${x}`)), 'el temporal se borró');
+  assert.ok(!g(p.P, 'worktree', 'list').includes(`integrar--${x}`), 'y su registro');
+};
+// Un módulo x con un commit propio, abierto en su worktree del director.
+function moduloX(p, archivos = { 'm.txt': 'del módulo\n' }, crea = 0) {
+  assert.equal(cli(p.P, ['crear', 'x']).codigo, crea);
+  const wx = p.wt('modulo--x');
+  commit(wx, archivos, 'trabajo del módulo');
+  return wx;
+}
+
+test('integrar, mal llamado → 2 (con encargo, sin nombre, bandera repetida o en otro comando); el USO lo nombra; sin origin o sin fetch → 1', () => {
+  const p = proyectoI();
+  for (const args of [['integrar'], ['integrar', 'x--01'], ['integrar', 'x', '--ok-de-guido', '--ok-de-guido'], ['crear', 'x', '--ok-de-guido'], ['integrar', 'x', '--noche']]) {
+    const r = cli(p.P, args);
+    assert.equal(r.codigo, 2, JSON.stringify(args));
+    assert.match(r.err, /integrar <x> \[--ok-de-guido\]/);
+  }
+  moduloX(p);
+  // La ficha vigente (la de origin/main) rota: no se sabe qué autoriza → 1.
+  commit(p.P, { '.claude/kit.md': '---\nkit: 2.4.3\n---\n' }, 'ficha rota');
+  g(p.P, 'push', '-q', 'origin', 'main');
+  let r = cli(p.P, ['integrar', 'x']);
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, /la ficha vigente está rota \(\.claude\/kit\.md:\d+\): corré doctor/);
+  g(p.P, 'remote', 'set-url', 'origin', path.join(p.base, 'no-existe.git'));
+  r = cli(p.P, ['integrar', 'x']);
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, /no pude hacer fetch de origin .*sin origin al día no integro/);
+  g(p.P, 'remote', 'remove', 'origin');
+  r = cli(p.P, ['integrar', 'x']);
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, /integrar necesita origin; sin remoto, mergealo desde el checkout principal/);
+  sinTemporal(p);
+});
+
+test('integrar verde: frenos.log del director commiteado antes, merge --no-ff en origin/main, setup→test (r1-1), temporal borrado; dos veces → la segunda no rompe nada', () => {
+  const p = proyectoI();
+  const wx = moduloX(p);
+  const renglon = frenosLog.anotar(wx, { id: 'deny:x', herramienta: 'Bash', detalle: 'algo', rol: 'director', rama: 'modulo/x' });
+  const base = enOrigin(p);
+  const r = cli(p.P, ['integrar', 'x']);
+  assert.equal(r.codigo, 0, r.out);
+  sinValores(r);
+  sinTemporal(p);
+  // D5-11: el commit de frenos.log, por ruta, en el worktree del director, y subido con la rama.
+  assert.equal(g(wx, 'log', '-1', '--format=%s', 'modulo/x'), 'frenos.log del módulo x');
+  assert.equal(g(wx, 'status', '--porcelain'), '', 'el director quedó limpio');
+  assert.equal(enOrigin(p, 'modulo/x'), g(p.P, 'rev-parse', 'modulo/x'));
+  // El merge: --no-ff, con los dos padres y el mensaje; frenos.log del director presente en main.
+  const merge = enOrigin(p);
+  assert.equal(g(p.remoto, 'rev-list', '--parents', '-n', '1', merge), `${merge} ${base} ${g(p.P, 'rev-parse', 'modulo/x')}`);
+  assert.equal(g(p.remoto, 'log', '-1', '--format=%B', merge), 'integrar: módulo x');
+  assert.ok(g(p.remoto, 'show', `${merge}:.claude/frenos.log`).includes(renglon));
+  assert.equal(g(p.remoto, 'show', `${merge}:m.txt`), 'del módulo');
+  assert.match(r.out, new RegExp(`^worktree integrar: módulo x en origin/main — merge ${merge}$`, 'm'));
+  assert.match(r.out, /comando-setup anduvo: node setup\.cjs/);
+  assert.match(r.out, /comando-test en verde: node test\.cjs/);
+  assert.ok(r.out.endsWith('los docs del proyecto, en el próximo /cierre de main\n'), r.out);
+  assert.ok(existeRama(p.P, 'modulo/x') && fs.existsSync(wx), 'integrar no cierra el módulo: eso es cerrar');
+  // La segunda: nada que integrar, nada cambia.
+  const r2 = cli(p.P, ['integrar', 'x']);
+  assert.equal(r2.codigo, 0, r2.out);
+  assert.match(r2.out, /modulo\/x ya está en origin\/main — nada que integrar/);
+  assert.equal(enOrigin(p), merge);
+  sinTemporal(p);
+  // Y después cerrar anda (estaba mergeada en origin/main).
+  assert.equal(cli(p.P, ['cerrar', 'x']).codigo, 0);
+});
+
+test('integrar con un encargo abierto (local o solo en origin) → 1 y nada sube; mergeado en modulo/x → sigue', () => {
+  const p = proyectoI();
+  const wx = moduloX(p);
+  assert.equal(cli(p.P, ['crear', 'x--01']).codigo, 0);
+  commit(p.wt('modulo--x--01'), { 'e.txt': 'encargo\n' });
+  const base = enOrigin(p);
+  let r = cli(p.P, ['integrar', 'x']);
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, /hay un encargo abierto \(modulo\/x--01\) que no está en modulo\/x: cerralo o cancelalo/);
+  assert.equal(enOrigin(p), base);
+  sinTemporal(p);
+  // Solo en origin (lo empujó otra PC): igual.
+  g(p.P, 'push', '-q', 'origin', 'modulo/x--01');
+  g(p.P, 'worktree', 'remove', p.wt('modulo--x--01'));
+  g(p.P, 'branch', '-D', 'modulo/x--01');
+  r = cli(p.P, ['integrar', 'x']);
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, /encargo abierto \(modulo\/x--01\)/);
+  assert.equal(enOrigin(p), base);
+  g(wx, 'merge', '-q', '--no-ff', '-m', 'encargo 01', 'origin/modulo/x--01');
+  r = cli(p.P, ['integrar', 'x']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.equal(g(p.remoto, 'show', 'main:e.txt'), 'encargo');
+});
+
+test('integrar con conflicto → 1, merge --abort, temporal borrado y nada sube', () => {
+  const p = proyectoI();
+  moduloX(p, { 'a.txt': 'del módulo\n' });
+  commit(p.P, { 'a.txt': 'de main\n' }, 'main avanza');
+  g(p.P, 'push', '-q', 'origin', 'main');
+  const base = enOrigin(p);
+  const r = cli(p.P, ['integrar', 'x']);
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, /conflicto en a\.txt: es un encargo a un obrero/);
+  assert.equal(enOrigin(p), base);
+  sinTemporal(p);
+  assert.equal(g(p.P, 'status', '--porcelain'), '', 'el principal ni se enteró');
+});
+
+test('integrar con el gate en rojo → 1 y nada sube: un commit que toca una barrera sin aprobado', () => {
+  const p = proyectoI();
+  moduloX(p, { '.claude/kit.md': fichaI(p.nombre, { quitados: ['{id: "hook:git-seguro/stash", por: "lo usa el release", hasta: siempre}'] }) });
+  const base = enOrigin(p);
+  const r = cli(p.P, ['integrar', 'x']);
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, /^candado:barreras · .*toca/m);
+  assert.match(r.out, /no corrí comando-test: el gate ya está rojo/);
+  assert.match(r.out, /el gate está en rojo: nada subió/);
+  assert.equal(enOrigin(p), base);
+  sinTemporal(p);
+});
+
+test('integrar con el gate en rojo → 1 y nada sube: comando-test rojo, sin comando-test, colgado (el vigía mata el árbol)', () => {
+  let r;
+  let base;
+  const casos = [
+    [{ test: 'node rojo.cjs', archivos: { 'rojo.cjs': 'process.exit(4)\n' } }, {}, /comando-test en rojo \(salida 4\): node rojo\.cjs/],
+    [{ test: null }, {}, /NO VERIFICADO: la ficha no tiene vars\.comando-test/],
+    [{ test: 'node colgado.cjs', archivos: { 'colgado.cjs': 'setTimeout(() => {}, 20000);\n' } }, { plazoTest: 1500 }, /NO VERIFICADO: comando-test no terminó en \d+ min/],
+  ];
+  for (const [o, extra, esperado] of casos) {
+    const q = proyectoI(o);
+    moduloX(q);
+    base = enOrigin(q);
+    r = cli(q.P, ['integrar', 'x'], extra);
+    assert.equal(r.codigo, 1, r.out);
+    assert.match(r.out, esperado);
+    assert.equal(enOrigin(q), base);
+    sinTemporal(q);
+  }
+});
+
+test('integrar con la ficha que endurece merge-a-main → 1 sin --ok-de-guido, 0 con él (y queda en el commit de merge); libre → sigue', () => {
+  const p = proyectoI({ merge: 'con-ok-de-guido' });
+  const wx = moduloX(p);
+  frenosLog.anotar(wx, { id: 'deny:x', herramienta: 'Bash', detalle: 'algo', rol: 'director', rama: 'modulo/x' });
+  const base = enOrigin(p);
+  let r = cli(p.P, ['integrar', 'x']);
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, /la ficha pide el OK de Guido para mergear a main \(merge-a-main: con-ok-de-guido\): preguntale \(clase 3\) y corré con --ok-de-guido/);
+  assert.equal(enOrigin(p), base);
+  assert.equal(g(p.P, 'log', '-1', '--format=%s', 'modulo/x'), 'trabajo del módulo', 'ni el commit de frenos.log: los chequeos van antes');
+  sinTemporal(p);
+  r = cli(p.P, ['integrar', 'x', '--ok-de-guido']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.equal(g(p.remoto, 'log', '-1', '--format=%B', 'main'), 'integrar: módulo x\n\ncon --ok-de-guido (la ficha pide merge-a-main: con-ok-de-guido)');
+  const q = proyectoI({ merge: 'libre' });
+  moduloX(q);
+  r = cli(q.P, ['integrar', 'x']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.equal(g(q.remoto, 'log', '-1', '--format=%B', 'main'), 'integrar: módulo x');
+});
+
+test('integrar: origin que avanzó entre el fetch y el push → 1 "corré integrar de nuevo"; de nuevo → 0', () => {
+  const p = proyectoI();
+  moduloX(p);
+  const otra = path.join(p.base, 'otra');
+  g(p.base, 'clone', '-q', p.remoto, otra);
+  const nuevo = commit(otra, { 'otra.txt': 'de otra PC\n' }, 'otra PC');
+  process.env.KIT_PRUEBA_AVANZA = otra;
+  let r;
+  try {
+    r = cli(p.P, ['integrar', 'x']);
+  } finally {
+    delete process.env.KIT_PRUEBA_AVANZA;
+  }
+  assert.equal(r.codigo, 1, r.out);
+  assert.match(r.out, /origin avanzó: corré integrar de nuevo/);
+  assert.equal(enOrigin(p), nuevo, 'quedó lo de la otra PC, sin pisarlo');
+  sinTemporal(p);
+  r = cli(p.P, ['integrar', 'x']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.equal(g(p.remoto, 'rev-parse', 'main^1'), nuevo);
+});
+
+test('integrar: comando-setup que falla → 1 NO VERIFICADO, temporal borrado y nada sube', () => {
+  const p = proyectoI({ setup: 'node falla.cjs', archivos: { 'falla.cjs': 'process.exit(3)\n' } });
+  moduloX(p, undefined, 1); // crear ya avisa que el setup falla, y crea igual
+  const base = enOrigin(p);
+  const r = cli(p.P, ['integrar', 'x']);
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, /NO VERIFICADO — comando-setup falló \(salida 3\) en el temporal: nada subió/);
+  assert.doesNotMatch(r.out, /comando-test/);
+  assert.equal(enOrigin(p), base);
+  sinTemporal(p);
+});
+
+test('integrar se niega antes de tocar nada: lo ignorado, director sucio, frenos.log cambiado en el medio o borrado, temporal que ya existe, rama divergida', () => {
+  const p = proyectoI();
+  const wx = moduloX(p);
+  const base = enOrigin(p);
+  const nada = () => {
+    assert.equal(enOrigin(p), base);
+    assert.ok(!gOk(p.P, 'rev-parse', '--verify', '-q', 'refs/remotes/origin/modulo/x'), 'modulo/x no subió');
+  };
+  fs.writeFileSync(path.join(p.P, '.gitignore'), SNIPPET.replace('/.kit-rol\n', ''));
+  let r = cli(p.P, ['integrar', 'x']);
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, /\.kit-rol no está ignorado/);
+  g(p.P, 'checkout', '--', '.gitignore');
+  fs.writeFileSync(path.join(wx, 'a.txt'), 'sin commitear\n');
+  r = cli(p.P, ['integrar', 'x']);
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, /el worktree del director tiene cambios sin commitear: .*a\.txt/);
+  nada();
+  g(wx, 'checkout', '--', 'a.txt');
+  fs.writeFileSync(path.join(wx, '.claude', 'frenos.log'), `editado a mano\n${RENGLON}`);
+  r = cli(p.P, ['integrar', 'x']);
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, /frenos\.log del director cambió en el medio/);
+  assert.match(leer(wx, '.claude/frenos.log'), /editado a mano/, 'no lo tocó');
+  nada();
+  fs.rmSync(path.join(wx, '.claude', 'frenos.log'));
+  r = cli(p.P, ['integrar', 'x']);
+  assert.equal(r.codigo, 1, 'frenos.log borrado');
+  assert.match(r.out, /cambió en el medio/);
+  nada();
+  g(wx, 'checkout', '--', '.claude/frenos.log');
+  fs.mkdirSync(p.wt('integrar--x'), { recursive: true });
+  r = cli(p.P, ['integrar', 'x']);
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, /el temporal \.claude\/worktrees\/integrar--x ya existe .*git worktree remove "/);
+  assert.ok(fs.existsSync(p.wt('integrar--x')), 'no borra lo que no creó');
+  nada();
+  fs.rmSync(p.wt('integrar--x'), { recursive: true });
+  // Divergida: un commit acá y otro en origin/modulo/x.
+  const otra = path.join(p.base, 'otra');
+  g(p.base, 'clone', '-q', p.remoto, otra);
+  g(otra, 'checkout', '-q', '-b', 'modulo/x', 'origin/main');
+  commit(otra, { 'alla.txt': '1\n' });
+  g(otra, 'push', '-q', 'origin', 'modulo/x');
+  r = cli(p.P, ['integrar', 'x']);
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, /modulo\/x divergió de origin\/modulo\/x/);
+  assert.equal(enOrigin(p), base);
+  sinTemporal(p);
 });
