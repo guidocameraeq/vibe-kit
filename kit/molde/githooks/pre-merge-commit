@@ -1,0 +1,3 @@
+#!/bin/sh
+command -v node >/dev/null 2>&1 || { echo "kit pre-merge-commit: no hay node en esta PC — no pasa (instalalo o corré doctor)" >&2; exit 1; }
+exec node .githooks/kit-githook.cjs pre-merge-commit "$@"

@@ -457,7 +457,14 @@ test('criterio 20: el actualizador toca un settings molde+propio sin cambiar lo 
     const m4 = JSON.parse(JSON.stringify(m.settings));
     cambiar(m4);
     commit(h, { '.claude/settings.json': zona.textoSettings(m4) });
-    rojo(h, /settings:(permissions\.defaultMode|env)/, { molde: MOLDE });
+    // El renglón corta la lista de ids a 4 (listaCorta) y con el molde de hoy cambian más ids que esos: la clave se busca en la lista
+    // ENTERA de lo que toca el commit (la misma que arma el renglón), y el rojo se le atribuye porque sin ella el mismo commit es verde.
+    rojo(h, /^el commit [0-9a-f]{12} toca settings \(/, { molde: MOLDE });
+    const ids = C.idsSettings(Buffer.from(zona.textoSettings(proyecto)), Buffer.from(zona.textoSettings(m4)), '.claude/settings.json');
+    assert.ok(ids.some((x) => /^settings:(permissions\.defaultMode|env)$/.test(x)), ids.join(', '));
+    const sin = repo({ archivos: { '.claude/settings.json': zona.textoSettings(proyecto) } });
+    commit(sin, { '.claude/settings.json': zona.textoSettings(m.settings) });
+    verde(sin, { molde: MOLDE });
   }
 });
 

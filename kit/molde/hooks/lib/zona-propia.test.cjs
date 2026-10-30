@@ -668,3 +668,34 @@ test('el settings.json del molde de hoy abre sin duplicados y su hash es estable
 function copiar(v) {
   return JSON.parse(JSON.stringify(v));
 }
+
+// ---------------------------------------------------------------- hooks en forma exec (D-7; G7): el id suma los args
+
+test('forma exec: dos hooks con el mismo command y distintos args tienen ids distintos; sin args, el id de siempre', () => {
+  const ex = (a) => ({ type: 'command', command: 'node', args: [`\${CLAUDE_PROJECT_DIR}/.claude/hooks/${a}.cjs`], timeout: 20 });
+  const v = { hooks: { PreToolUse: [{ matcher: 'Bash|PowerShell', hooks: [ex('a'), ex('b')] }] } };
+  const ids = reglas(v).map((r) => r.id);
+  assert.deepEqual(ids, ['hook:PreToolUse/Bash|PowerShell/node ${CLAUDE_PROJECT_DIR}/.claude/hooks/a.cjs', 'hook:PreToolUse/Bash|PowerShell/node ${CLAUDE_PROJECT_DIR}/.claude/hooks/b.cjs']);
+  // la forma de texto no cambia de id (los quitados viejos siguen valiendo)
+  const t = { hooks: { SessionStart: [{ matcher: '', hooks: [{ type: 'command', command: 'node "$CLAUDE_PROJECT_DIR/x.cjs"' }] }] } };
+  assert.deepEqual(reglas(t).map((r) => r.id), ['hook:SessionStart//node $CLAUDE_PROJECT_DIR/x.cjs']);
+});
+
+test('forma exec: mezclarSettings conserva los tres hooks de Bash|PowerShell del molde (del viejo en texto al nuevo en exec, y del molde consigo mismo)', () => {
+  const fs = require('fs');
+  const nuevo = fs.readFileSync(path.join(__dirname, '..', '..', 'settings.json'), 'utf8');
+  const nombres = ['niega-aprobar', 'git-seguro', 'sensible'];
+  const args = (s) => s.hooks.PreToolUse.flatMap((g) => g.hooks.flatMap((h) => h.args || []));
+  const viejo = JSON.stringify({ hooks: { PreToolUse: [{ matcher: 'Bash|PowerShell', hooks: [{ type: 'command', command: 'node "$CLAUDE_PROJECT_DIR/.claude/hooks/niega-aprobar.cjs"', timeout: 20, onFailure: 'block' }] }] } });
+  for (const [v, p] of [[viejo, viejo], [null, null], [nuevo, nuevo]]) {
+    const m = mezclarSettings({ viejo: v, nuevo, proyecto: p });
+    assert.equal(m.ok, true, m.problema);
+    for (const n of nombres) assert.equal(args(m.settings).filter((a) => a.endsWith(`/${n}.cjs`)).length, 1, n);
+    assert.ok(!JSON.stringify(m.settings).includes('"$CLAUDE_PROJECT_DIR'), 'el texto viejo se retira');
+  }
+  // un hook exec quitado por el proyecto (id con args) no vuelve; los otros dos sí
+  const q = [{ id: 'hook:PreToolUse/Bash|PowerShell/node ${CLAUDE_PROJECT_DIR}/.claude/hooks/sensible.cjs', hasta: 'siempre' }];
+  const m = mezclarSettings({ viejo: null, nuevo, proyecto: '{}', quitados: q });
+  assert.deepEqual(args(m.settings).filter((a) => /niega-aprobar|git-seguro|sensible/.test(a)).length, 2);
+  assert.ok(!args(m.settings).some((a) => a.endsWith('/sensible.cjs')));
+});

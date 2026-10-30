@@ -358,3 +358,173 @@ test('buscarBash: en Windows no elige el bash de WSL', () => {
     assert.ok(fs.existsSync(b), b);
   } else assert.equal(b, 'bash');
 });
+
+// ---------------------------------------------------------------- core.hooksPath y las líneas de F (SPEC-paquete-3 P4.6; crit. 8 y 16)
+
+// El PATH de la PC sin gitleaks, y con un gitleaks "de mentira" (solo se busca el archivo: nunca se corre).
+const CLAVE_PATH = Object.keys(process.env).find((k) => k.toLowerCase() === 'path');
+const PATH_SIN_GITLEAKS = String(process.env[CLAVE_PATH] || '')
+  .split(path.delimiter)
+  .filter((d) => d && !['gitleaks', 'gitleaks.exe'].some((x) => fs.existsSync(path.join(d, x))))
+  .join(path.delimiter);
+const DIR_GITLEAKS = path.join(TMP, 'con-gitleaks');
+fs.mkdirSync(DIR_GITLEAKS);
+fs.writeFileSync(path.join(DIR_GITLEAKS, process.platform === 'win32' ? 'gitleaks.exe' : 'gitleaks'), '');
+const PATH_CON_GITLEAKS = `${DIR_GITLEAKS}${path.delimiter}${PATH_SIN_GITLEAKS}`;
+const SETTINGS_MOLDE = fs.readFileSync(path.join(MOLDE_HOOKS, '..', 'settings.json'), 'utf8');
+const GITHOOKS = { '.githooks/pre-commit': '#!/bin/sh\n', '.githooks/pre-merge-commit': '#!/bin/sh\n', '.githooks/pre-push': '#!/bin/sh\n', '.githooks/kit-githook.cjs': '\n' };
+const lineaDe = (r, prefijo) => r.lineas.find((l) => l.startsWith(prefijo));
+const configGit = (d, k) => {
+  const x = spawnSync('git', ['config', '--get', k], { cwd: d, encoding: 'utf8' });
+  return x.status === 0 ? x.stdout.trim() : null;
+};
+
+test('P4.6: core.hooksPath vacío → .githooks una sola vez (la segunda corrida no toca nada); la línea pre-commit lo dice', () => {
+  const { d, hook } = repoCon({ 'docs/SESSION_HANDOFF.md': handoff(), '.claude/settings.json': SETTINGS_MOLDE, ...GITHOOKS });
+  assert.equal(configGit(d, 'core.hooksPath'), null);
+  let r = correr(hook, { cwd: d, session_id: 'hp1' }, { path: PATH_CON_GITLEAKS });
+  assert.equal(configGit(d, 'core.hooksPath'), '.githooks');
+  assert.equal(configGit(d, 'kit.hooksPathPrevio'), null);
+  assert.equal(lineaDe(r, 'pre-commit:'), 'pre-commit: ✅ · core.hooksPath puesto ahora');
+  const config = fs.readFileSync(path.join(d, '.git', 'config'), 'utf8');
+  r = correr(hook, { cwd: d, session_id: 'hp2' }, { path: PATH_CON_GITLEAKS });
+  assert.equal(lineaDe(r, 'pre-commit:'), 'pre-commit: ✅');
+  assert.equal(fs.readFileSync(path.join(d, '.git', 'config'), 'utf8'), config, 'la segunda vez no escribe');
+  chequearHuella(r);
+  // desde un worktree: el mismo valor relativo (vale en cada worktree) y no se vuelve a escribir
+  g(d, 'worktree', 'add', '-q', '-b', 'worktree-hp', '.claude/worktrees/hp', 'main');
+  const wt = path.join(d, '.claude', 'worktrees', 'hp');
+  r = correr(instanciar(wt), { cwd: wt, session_id: 'hp3' }, { path: PATH_CON_GITLEAKS });
+  assert.equal(lineaDe(r, 'pre-commit:'), 'pre-commit: ✅');
+  assert.equal(fs.readFileSync(path.join(d, '.git', 'config'), 'utf8'), config);
+});
+
+test('P4.6: core.hooksPath de otro (husky) no se pierde: va a kit.hooksPathPrevio y apunta a .githooks; la segunda vez, nada', () => {
+  const { d, hook } = repoCon({ 'docs/SESSION_HANDOFF.md': handoff(), ...GITHOOKS });
+  g(d, 'config', 'core.hooksPath', '.husky/_');
+  let r = correr(hook, { cwd: d, session_id: 'hu1' }, { path: PATH_CON_GITLEAKS });
+  assert.equal(configGit(d, 'core.hooksPath'), '.githooks');
+  assert.equal(configGit(d, 'kit.hooksPathPrevio'), '.husky/_');
+  assert.equal(lineaDe(r, 'pre-commit:'), 'pre-commit: ✅ · core.hooksPath puesto ahora; el anterior (".husky/_") queda encadenado');
+  r = correr(hook, { cwd: d, session_id: 'hu2' }, { path: PATH_CON_GITLEAKS });
+  assert.equal(lineaDe(r, 'pre-commit:'), 'pre-commit: ✅');
+  assert.equal(configGit(d, 'kit.hooksPathPrevio'), '.husky/_');
+  // husky lo vuelve a pisar en un npm install: el arranque siguiente lo repone y guarda el nuevo previo
+  g(d, 'config', 'core.hooksPath', '.husky/otro');
+  correr(hook, { cwd: d, session_id: 'hu3' }, { path: PATH_CON_GITLEAKS });
+  assert.equal(configGit(d, 'core.hooksPath'), '.githooks');
+  assert.equal(configGit(d, 'kit.hooksPathPrevio'), '.husky/otro');
+});
+
+test('P4.6: sin .githooks/ no se toca core.hooksPath, y la línea lo dice', () => {
+  const { d, hook } = repoCon({ 'docs/SESSION_HANDOFF.md': handoff() });
+  const r = correr(hook, { cwd: d, session_id: 'sg' }, { path: PATH_CON_GITLEAKS });
+  assert.equal(configGit(d, 'core.hooksPath'), null);
+  assert.equal(lineaDe(r, 'pre-commit:'), 'pre-commit: ⚠️ no hay .githooks/ en este repo · corré doctor');
+  assert.deepEqual(ss.ponerHooksPath(d), { estado: 'sin-githooks' });
+});
+
+test('líneas de F: pre-commit ⚠️ sin gitleaks (se busca el archivo, no se corre) y sin un hook de .githooks/', () => {
+  const sinPush = { ...GITHOOKS };
+  delete sinPush['.githooks/pre-push'];
+  const { d, hook } = repoCon({ 'docs/SESSION_HANDOFF.md': handoff(), ...sinPush });
+  const r = correr(hook, { cwd: d, session_id: 'sl' }, { path: PATH_SIN_GITLEAKS });
+  assert.equal(lineaDe(r, 'pre-commit:'), 'pre-commit: ⚠️ falta .githooks/pre-push · sin gitleaks en esta PC: corré "preparame esta PC"');
+});
+
+test('líneas de F: core.hooksPath que no es .githooks (leído sin el hook) → ⚠️ con el valor', () => {
+  const { d } = repoCon({ ...GITHOOKS });
+  g(d, 'config', 'core.hooksPath', 'otra/cosa');
+  const iny = require('./lib/inyeccion.cjs');
+  assert.equal(iny.lineaPreCommit(d, true, undefined, { PATH: DIR_GITLEAKS }), 'pre-commit: ⚠️ core.hooksPath es "otra/cosa" y no .githooks');
+  g(d, 'config', '--unset', 'core.hooksPath');
+  assert.equal(iny.lineaPreCommit(d, true, undefined, { PATH: DIR_GITLEAKS }), 'pre-commit: ⚠️ core.hooksPath vacío');
+  g(d, 'config', 'core.hooksPath', '.githooks');
+  assert.equal(iny.lineaPreCommit(d, true, undefined, { PATH: DIR_GITLEAKS }), 'pre-commit: ✅');
+  assert.equal(iny.lineaPreCommit(d, true, { estado: 'no-pudo' }, { PATH: DIR_GITLEAKS }), 'pre-commit: ⚠️ no pude poner core.hooksPath · corré doctor');
+  assert.equal(iny.lineaPreCommit(d, true, { estado: 'sin-tiempo' }, { PATH: DIR_GITLEAKS }), 'pre-commit: ⚠️ core.hooksPath sin leer (git no respondió a tiempo)');
+  assert.equal(iny.lineaPreCommit(d, false, undefined, {}), 'pre-commit: ⚠️ sin git');
+});
+
+test('líneas de F: corrector de la PC ✅ solo con un hook registrado bajo /.claude/hooks/kit/ en <home>/.claude/settings.json', () => {
+  const { d, hook } = repoCon({ 'docs/SESSION_HANDOFF.md': handoff() });
+  const conHome = (settings) => {
+    const home = carpeta('home');
+    if (settings !== undefined) escribir(home, '.claude/settings.json', typeof settings === 'string' ? settings : JSON.stringify(settings));
+    return lineaDe(correr(hook, { cwd: d, session_id: 'pc' }, { home }), 'corrector de la PC:');
+  };
+  const NO = 'corrector de la PC: ⚠️ no está · pedile al Equipador "instalar hooks por PC"';
+  const registro = (ruta) => ({ hooks: { PreToolUse: [{ matcher: 'Bash', hooks: [{ type: 'command', command: 'node', args: [ruta], timeout: 20, onFailure: 'block' }] }] } });
+  const barra = String.fromCharCode(92);
+  assert.equal(conHome(registro(['C:', 'Users', 'x', '.claude', 'hooks', 'kit', 'secretos.cjs'].join(barra))), 'corrector de la PC: ✅');
+  assert.equal(conHome(registro('/home/x/.claude/hooks/kit/secretos.cjs')), 'corrector de la PC: ✅');
+  assert.equal(conHome(registro('/home/x/.claude/hooks/otro/secretos.cjs')), NO);
+  assert.equal(conHome(undefined), NO);
+  assert.equal(conHome('{ roto'), NO);
+  assert.equal(conHome({ permissions: { deny: ['Read(/home/x/.claude/hooks/kit/**)'] } }), NO, 'una regla no es un hook registrado');
+});
+
+test('líneas de F: barreras de fábrica N de N contra el settings menos frenos.quitados vigentes', () => {
+  const { DENY_FABRICA } = require('./lib/fabrica.cjs');
+  assert.equal(DENY_FABRICA.length, 9);
+  const conSettings = (settings, ficha) => {
+    const archivos = { 'docs/SESSION_HANDOFF.md': handoff() };
+    if (settings !== null) archivos['.claude/settings.json'] = settings;
+    if (ficha) archivos['.claude/kit.md'] = ficha;
+    const { d, hook } = repoCon(archivos);
+    return lineaDe(correr(hook, { cwd: d, session_id: 'bf' }), 'barreras de fábrica:');
+  };
+  assert.equal(conSettings(SETTINGS_MOLDE), 'barreras de fábrica: 9 de 9 ✅');
+  const s = JSON.parse(SETTINGS_MOLDE);
+  s.permissions.deny = s.permissions.deny.filter((x) => x !== 'Read(./**/.env)' && x !== 'Read(~/.ssh/**)');
+  assert.equal(conSettings(JSON.stringify(s)), 'barreras de fábrica: 7 de 9 ⚠️ falta Read(./**/.env), Read(~/.ssh/**) · corré doctor');
+  const ficha = (hasta) => `---\nkit: 2.4.3\nnivel: liviano\nvars:\n  proyecto: px\nfrenos:\n  quitados:\n    - {id: "deny:Read(./**/.env)", por: "prueba", hasta: ${hasta}}\n---\n`;
+  assert.equal(conSettings(JSON.stringify(s), ficha('siempre')), 'barreras de fábrica: 7 de 8 ⚠️ falta Read(~/.ssh/**) · corré doctor');
+  s.permissions.deny.push('Read(~/.ssh/**)');
+  assert.equal(conSettings(JSON.stringify(s), ficha('siempre')), 'barreras de fábrica: 8 de 8 ✅ (1 quitada en la ficha)');
+  assert.equal(conSettings(JSON.stringify(s), ficha('2099-01-01')), 'barreras de fábrica: 8 de 8 ✅ (1 quitada en la ficha)');
+  assert.equal(conSettings(JSON.stringify(s), ficha('2020-01-01')), 'barreras de fábrica: 8 de 9 ⚠️ falta Read(./**/.env) · corré doctor', 'vencido: vuelve a contar');
+  assert.equal(conSettings(null), 'barreras de fábrica: ⚠️ no hay .claude/settings.json · corré doctor');
+  assert.equal(conSettings('{ roto'), 'barreras de fábrica: ⚠️ .claude/settings.json no se lee · corré doctor');
+});
+
+test('criterio 16: el arranque imprime las tres líneas de F, después de la cabecera y antes del handoff, y la huella sigue ≤ 9.700', () => {
+  const extra = Array.from({ length: 500 }, (_, i) => `- relleno ${i} con tildes áéíóú`).join('\n');
+  const { d, hook } = repoCon({ 'docs/SESSION_HANDOFF.md': handoff('H', extra), '.claude/settings.json': SETTINGS_MOLDE, '.claude/kit.md': fichaKit(), ...GITHOOKS });
+  const r = correr(hook, { cwd: d, session_id: 'c16' }, { path: PATH_CON_GITLEAKS });
+  const i = r.lineas.findIndex((l) => l.startsWith('barreras de fábrica:'));
+  assert.deepEqual(r.lineas.slice(i, i + 3), ['barreras de fábrica: 9 de 9 ✅', 'corrector de la PC: ⚠️ no está · pedile al Equipador "instalar hooks por PC"', 'pre-commit: ✅ · core.hooksPath puesto ahora']);
+  assert.ok(i > 0 && r.lineas[i + 3] === '' && r.lineas[i + 4].startsWith('=== handoff'), r.lineas.slice(0, i + 5).join('\n'));
+  assert.ok(r.lineas[0].startsWith('CORTADO: el handoff'));
+  chequearHuella(r);
+});
+
+test('P4.6 con el plazo vencido: core.hooksPath no se toca y el arranque sale 0 con su huella', () => {
+  const { d, hook } = repoCon({ 'docs/SESSION_HANDOFF.md': handoff(), ...GITHOOKS });
+  const r = correr(hook, { cwd: d, session_id: 'hpz' }, { env: { KIT_PLAZO_ARRANQUE_MS: '0' }, path: PATH_CON_GITLEAKS });
+  assert.equal(configGit(d, 'core.hooksPath'), null);
+  assert.equal(r.codigo, 0);
+  chequearHuella(r);
+});
+
+test('ponerHooksPath: sin-tiempo con el plazo vencido (y no escribe); no-pudo con el config trabado; puesto; ya', () => {
+  const { d } = repoCon({ ...GITHOOKS });
+  const git = require('./lib/git.cjs');
+  git.fijarPlazo(Date.now() - 1);
+  try {
+    assert.deepEqual(ss.ponerHooksPath(d), { estado: 'sin-tiempo' });
+  } finally {
+    git.fijarPlazo(null);
+  }
+  assert.equal(configGit(d, 'core.hooksPath'), null);
+  fs.writeFileSync(path.join(d, '.git', 'config.lock'), '');
+  assert.deepEqual(ss.ponerHooksPath(d), { estado: 'no-pudo' });
+  fs.rmSync(path.join(d, '.git', 'config.lock'));
+  assert.deepEqual(ss.ponerHooksPath(d), { estado: 'puesto', valor: '.githooks', previo: null });
+  assert.deepEqual(ss.ponerHooksPath(d), { estado: 'ya', valor: '.githooks' });
+});
+
+test('settings.json del molde: session-start en exec, timeout 20 y sin onFailure (el arranque nunca traba: sin node, la sesión arranca sin inyección)', () => {
+  const s = JSON.parse(SETTINGS_MOLDE);
+  assert.deepEqual(s.hooks.SessionStart, [{ matcher: '', hooks: [{ type: 'command', command: 'node', args: ['${CLAUDE_PROJECT_DIR}/.claude/hooks/session-start.cjs'], timeout: 20 }] }]);
+});

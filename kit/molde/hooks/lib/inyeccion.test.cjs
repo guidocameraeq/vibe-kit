@@ -826,3 +826,46 @@ test('plazo: el renglón lento tiene su lugar reservado — lo propio se corta a
   assert.match(penultima(r.texto), /^arranque lento: /);
   chequearHuella(r);
 });
+
+// ---------------------------------------------------------------- las líneas de F (SPEC-paquete-3 P4.6; F §15)
+
+test('líneas de F: van tercero (después de la cabecera), las tres, dentro de sus 500; sin git dicen "sin git"; no escriben nada', () => {
+  const d = repo();
+  commit(d, { 'docs/SESSION_HANDOFF.md': handoff(), '.githooks/pre-commit': '#!/bin/sh\n' });
+  const home = carpeta('home');
+  const antes = foto(d);
+  const r = iny.armar({ cwd: d, entrada: {}, home, ahora: AHORA, tiempoBlame: 60000, hooksPath: { estado: 'ya', valor: '.githooks' }, env: { PATH: '' } });
+  const l = lineas(r.texto);
+  const i = l.findIndex((x) => x.startsWith('barreras de fábrica:'));
+  assert.equal(i, 3, l.slice(0, 5).join('\n')); // cabecera, "sin ficha", el renglón en blanco entre bloques, y acá
+  assert.equal(l[i], 'barreras de fábrica: ⚠️ no hay .claude/settings.json · corré doctor');
+  assert.equal(l[i + 1], 'corrector de la PC: ⚠️ no está · pedile al Equipador "instalar hooks por PC"');
+  assert.equal(l[i + 2], 'pre-commit: ⚠️ falta .githooks/pre-merge-commit · falta .githooks/pre-push · falta .githooks/kit-githook.cjs · sin gitleaks en esta PC: corré "preparame esta PC"');
+  assert.ok(l.slice(i, i + 3).join('\n').length <= 500);
+  assert.equal(foto(d), antes);
+  chequearHuella(r);
+  // fuera de un repo
+  const suelto = carpeta('suelto');
+  const r2 = iny.armar({ cwd: suelto, entrada: {}, home, ahora: AHORA, env: { PATH: '' } });
+  assert.ok(lineas(r2.texto).includes('pre-commit: ⚠️ sin git'));
+});
+
+test('líneas de F: bloqueLineasF se corta en renglones enteros a los 500 (nunca más), con textos largos', () => {
+  const d = repo();
+  commit(d, { 'a.txt': 'a\n' });
+  const largo = 'x'.repeat(400);
+  const l = iny.bloqueLineasF({ raiz: d, gitOk: true, fv: { estado: 'sin-ficha' }, home: null, ahora: AHORA.getTime(), hooksPath: { estado: 'otro', valor: largo }, env: {} });
+  assert.ok(l.join('\n').length <= 500, String(l.join('\n').length));
+  assert.ok(l.every((x) => x.length <= 240));
+});
+
+test('líneas de F: en la pestaña del obrero también (después de la cabecera)', () => {
+  const d = repo();
+  commit(d, { 'docs/SESSION_HANDOFF.md': handoff(), 'docs/modulos/x/README.md': fichaModulo('x', 'EN OBRA') });
+  g(d, 'branch', 'modulo/x');
+  g(d, 'checkout', '-q', '-b', 'modulo/x--E1');
+  const r = armar(d);
+  assert.ok(lineas(r.texto).some((x) => x.startsWith('barreras de fábrica:')));
+  assert.ok(lineas(r.texto).some((x) => x.startsWith('pre-commit:')));
+  chequearHuella(r);
+});
