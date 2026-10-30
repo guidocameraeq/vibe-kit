@@ -230,10 +230,10 @@ test('fuera de un repo git → deny (rol desconocido), sin renglón donde escrib
 
 test('4.7 caso 1 (sin node): lo cubre onFailure "block" — el settings.json del molde lo registra así, con timeout 20', () => {
   const s = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'settings.json'), 'utf8'));
-  const grupos = s.hooks.PreToolUse.filter((x) => x.hooks.some((h) => /niega-aprobar\.cjs/.test(h.command)));
+  const grupos = s.hooks.PreToolUse.filter((x) => x.hooks.some((h) => /niega-aprobar\.cjs/.test(`${h.command} ${(h.args || []).join(' ')}`)));
   assert.equal(grupos.length, 1);
   assert.equal(grupos[0].matcher, 'Bash|PowerShell');
-  assert.deepEqual(grupos[0].hooks, [{ type: 'command', command: 'node "$CLAUDE_PROJECT_DIR/.claude/hooks/niega-aprobar.cjs"', timeout: 20, onFailure: 'block' }]);
+  assert.deepEqual(grupos[0].hooks.filter((h) => /niega-aprobar\.cjs/.test((h.args || []).join(' '))), [{ type: 'command', command: 'node', args: ['${CLAUDE_PROJECT_DIR}/.claude/hooks/niega-aprobar.cjs'], timeout: 20, onFailure: 'block' }]);
 });
 
 test('4.7 caso 3 (error interno): entrada que no es JSON, vacía o que no es un objeto, y una librería que falta → deny "freno roto: corré doctor", salida 0', () => {
@@ -284,9 +284,9 @@ test('settings.json: la ask de aprobar en Bash y PowerShell, el allow del resto,
   const { CARPETA } = require('./lib/cambios-ruta.cjs');
   assert.deepEqual(s.permissions.ask, ['Bash(node .claude/scripts/cambios.cjs aprobar:*)', 'PowerShell(node .claude/scripts/cambios.cjs aprobar:*)']);
   assert.deepEqual(s.permissions.allow, ['Bash(node .claude/scripts/cambios.cjs:*)']);
-  assert.deepEqual(s.permissions.deny, [`Write(./${CARPETA}/**)`, `Edit(./${CARPETA}/**)`]);
-  assert.deepEqual(s.hooks.SessionStart, [{ matcher: '', hooks: [{ type: 'command', command: 'node "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.cjs"', timeout: 20 }] }]);
-  assert.deepEqual(s.hooks.PreToolUse[0], { matcher: 'Write', hooks: [{ type: 'command', command: 'node "$CLAUDE_PROJECT_DIR/.claude/hooks/escritura-docs.cjs"', timeout: 20 }] });
+  assert.deepEqual(s.permissions.deny.slice(0, 2), [`Write(./${CARPETA}/**)`, `Edit(./${CARPETA}/**)`]); // el resto (revisiones/, F §5): settings.test.cjs
+  assert.deepEqual(s.hooks.SessionStart, [{ matcher: '', hooks: [{ type: 'command', command: 'node', args: ['${CLAUDE_PROJECT_DIR}/.claude/hooks/session-start.cjs'], timeout: 20 }] }]);
+  assert.deepEqual(s.hooks.PreToolUse[0], { matcher: 'Write', hooks: [{ type: 'command', command: 'node', args: ['${CLAUDE_PROJECT_DIR}/.claude/hooks/escritura-docs.cjs'], timeout: 20, onFailure: 'block' }] });
   // las rutas de los comandos existen en el molde (hooks/ y scripts/)
   assert.ok(fs.existsSync(path.join(__dirname, 'niega-aprobar.cjs')));
   assert.ok(fs.existsSync(path.join(__dirname, '..', 'scripts', 'cambios.cjs')));

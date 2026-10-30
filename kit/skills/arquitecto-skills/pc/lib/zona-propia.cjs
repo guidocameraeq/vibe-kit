@@ -200,7 +200,7 @@ const LISTAS = ['allow', 'ask', 'deny'];
 const normalizarId = (id) => String(id).replace(/"/g, '').replace(/\\/g, '/');
 
 // El comando de un hook; los de tipo prompt/agent no traen command y se reconocen por su prompt.
-const comandoDe = (h) => (typeof h.command === 'string' ? h.command : typeof h.prompt === 'string' ? h.prompt : '');
+const comandoDe = (h) => (typeof h.command === 'string' ? [h.command, ...(Array.isArray(h.args) ? h.args.map(String) : [])].join(' ') : typeof h.prompt === 'string' ? h.prompt : '');
 const matcherDe = (g) => (g.matcher == null ? '' : String(g.matcher)); // sin matcher = '' (Claude Code los trata igual)
 const idHook = (evento, matcher, h) => normalizarId(`hook:${evento}/${matcher}/${comandoDe(h)}`);
 

@@ -40,9 +40,18 @@ test('P4.7: niega-aprobar, git-seguro y sensible en PreToolUse sobre Bash|PowerS
     grupos[0].hooks,
     ['niega-aprobar.cjs', 'git-seguro.cjs', 'sensible.cjs'].map((nombre) => ({ type: 'command', command: 'node', args: [`\${CLAUDE_PROJECT_DIR}/.claude/hooks/${nombre}`], timeout: 20, onFailure: 'block' }))
   );
-  // los que no niegan por P4.7 no frenan si fallan: el arranque nunca traba; escritura-docs, como estaba
+  // el arranque no niega: si falla, no traba (la sesión arranca sin inyección)
   assert.deepEqual(S.hooks.SessionStart, [{ matcher: '', hooks: [{ type: 'command', command: 'node', args: ['${CLAUDE_PROJECT_DIR}/.claude/hooks/session-start.cjs'], timeout: 20 }] }]);
-  assert.deepEqual(pre[0], { matcher: 'Write', hooks: [{ type: 'command', command: 'node', args: ['${CLAUDE_PROJECT_DIR}/.claude/hooks/escritura-docs.cjs'], timeout: 20 }] });
+});
+
+test('escritura-docs niega escrituras: registrado con onFailure "block" (crit. 16 del kit); sin node, el proceso ni arranca y eso es lo que block frena', () => {
+  const pre = S.hooks.PreToolUse;
+  assert.deepEqual(pre[0], { matcher: 'Write', hooks: [{ type: 'command', command: 'node', args: ['${CLAUDE_PROJECT_DIR}/.claude/hooks/escritura-docs.cjs'], timeout: 20, onFailure: 'block' }] });
+  // todo hook del molde que niega (todos menos el arranque) va con block
+  for (const { evento, h } of todos()) assert.equal(h.onFailure, evento === 'SessionStart' ? undefined : 'block', h.args[0]);
+  const { spawnSync } = require('child_process');
+  const r = spawnSync(path.join(__dirname, 'no-existe-node.exe'), [path.join(__dirname, 'hooks', 'escritura-docs.cjs')], { input: '{}', encoding: 'utf8' });
+  assert.ok(r.error || r.status !== 0);
 });
 
 test('deny: las 9 de F §5 (= DENY_FABRICA, D-6), ninguna Bash(...) (apagaría PowerShell), y Write/Edit sobre cambios/ y revisiones/', () => {
@@ -73,10 +82,9 @@ test('abre sin claves repetidas y con la forma que pide la mezcla', () => {
   assert.equal(zona.mezclarSettings({ viejo: null, nuevo: TEXTO, proyecto: null }).ok, true);
 });
 
-// ⚠️ De otro encargo: zona-propia.comandoDe arma el id de un hook con `command` solo; en exec todos dicen "node", así que los tres de
-// Bash|PowerShell comparten id y la mezcla del actualizador (y rehacer.sh) se queda con el primero. Arreglo propuesto (una línea en
-// zona-propia.cjs): sumar los args al comando. Queda como todo hasta que lo aplique el director.
-test('cada hook del molde tiene un id propio en zona-propia (si no, la mezcla pierde git-seguro y sensible)', { todo: 'zona-propia.comandoDe no mira args (de otro encargo; lo arregla el director)' }, () => {
+// En exec todos los hooks dicen command "node": el id de zona-propia suma los args (G7). Si no, los tres de Bash|PowerShell compartían
+// id y la mezcla del actualizador (y rehacer.sh) se quedaba con el primero.
+test('cada hook del molde tiene un id propio en zona-propia (si no, la mezcla pierde git-seguro y sensible)', () => {
   const ids = zona.reglas(S).filter((r) => r.tipo === 'hook').map((r) => r.id);
   assert.equal(new Set(ids).size, ids.length, ids.join('\n'));
   const viejo = JSON.stringify({ hooks: { PreToolUse: [] } });

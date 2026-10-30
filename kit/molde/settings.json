@@ -49,7 +49,8 @@
             "args": [
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/escritura-docs.cjs"
             ],
-            "timeout": 20
+            "timeout": 20,
+            "onFailure": "block"
           }
         ]
       },
