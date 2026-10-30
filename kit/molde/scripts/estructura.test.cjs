@@ -219,6 +219,44 @@ test('--molde llega a barreras (exención a), relativo al cwd', () => {
   assert.equal(r.codigo, 0, r.out);
 });
 
+test('--molde-viejo: solo junto con --molde, una vez, con una carpeta que existe; si no, 2 con el uso', () => {
+  assert.deepEqual(script.leerArgumentos(['barreras', '--molde', 'm', '--molde-viejo', 'v']), { modo: 'ids', ids: ['barreras'], molde: 'm', moldeViejo: 'v', log: true });
+  assert.deepEqual(script.leerArgumentos(['--molde-viejo', 'v', '--molde', 'm', 'barreras', '--indice']).moldeViejo, 'v');
+  assert.equal('moldeViejo' in script.leerArgumentos(['--molde', 'm']), false, 'sin la bandera, la forma de siempre');
+  const d = repo();
+  escribir(d, 'nuevo/hooks/x.cjs', 'x\n');
+  escribir(d, 'viejo/hooks/x.cjs', 'x\n');
+  fs.appendFileSync(path.join(d, '.git', 'info', 'exclude'), '/nuevo/\n/viejo/\n');
+  for (const args of [
+    ['barreras', '--molde-viejo', 'viejo'],
+    ['--molde-viejo', 'viejo'],
+    ['barreras', '--molde', 'nuevo', '--molde-viejo'],
+    ['barreras', '--molde', 'nuevo', '--molde-viejo', '--sin-log'],
+    ['barreras', '--molde', 'nuevo', '--molde-viejo', 'viejo', '--molde-viejo', 'viejo'],
+    ['barreras', '--molde', 'nuevo', '--molde-viejo', 'no-existe'],
+  ]) {
+    const r = cli(d, args);
+    assert.equal(r.codigo, 2, JSON.stringify(args));
+    assert.match(r.err, /Uso: node \.claude\/scripts\/estructura\.cjs/);
+    assert.match(r.err, /--molde-viejo/);
+    assert.equal(r.out, '');
+  }
+});
+
+test('--molde-viejo llega a barreras, relativo al cwd: el hook que el molde nuevo retira se va solo si el proyecto lo tenía como el viejo', () => {
+  const d = repo({ '.claude/hooks/viejo.cjs': 'del molde viejo\n' });
+  escribir(d, 'nuevo/hooks/x.cjs', 'x\n');
+  escribir(d, 'viejo/hooks/viejo.cjs', 'del molde viejo\n');
+  escribir(d, 'otro/hooks/viejo.cjs', 'otra cosa\n');
+  fs.appendFileSync(path.join(d, '.git', 'info', 'exclude'), '/nuevo/\n/viejo/\n/otro/\n');
+  g(d, 'rm', '-q', '--', '.claude/hooks/viejo.cjs');
+  assert.equal(cli(d, ['barreras', '--sin-log']).codigo, 1);
+  assert.equal(cli(d, ['barreras', '--molde', 'nuevo', '--molde-viejo', 'viejo', '--sin-log']).codigo, 0);
+  const r = cli(d, ['barreras', '--molde', 'nuevo', '--molde-viejo', 'otro', '--sin-log']);
+  assert.equal(r.codigo, 1, r.out);
+  assert.match(r.out, /candado:barreras · .*hooks/);
+});
+
 test('fuera de un repo git: 1 con una línea', () => {
   const d = path.join(TMP, `suelto${n++}`);
   fs.mkdirSync(d);
