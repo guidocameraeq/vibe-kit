@@ -160,8 +160,11 @@ patrones sobre lo que tipea Guido → `decision: block`, **`suppressOriginalProm
 - **pre-commit** (y pre-merge-commit): gitleaks `git --staged --redact --no-banner`; `barreras --indice` (**solo el índice**, rf-10); el hook
   previo. *(D3.3, rf3-1: **el pre-merge-commit no corre el candado** —git no escribe `MERGE_HEAD` antes de ese hook y juzgaba el merge solo
   contra `HEAD`, rojo ante un cambio aprobado en la otra PC—; corre gitleaks y el previo y dice "el merge lo juzga el pre-push", que juzga
-  cada padre con `--rango`. El `sh` borra toda `NODE_*` antes del `exec node` (rf3-3) y el runner, toda `GITLEAKS_*` (rf3-2); la config de
-  gitleaks del disco distinta de la del índice → rojo. Lo que pasa anota en `<git-common-dir>/kit-frenos.log`, no en el versionado (rf3-6).)* **pre-push**: por cada ref que sube, `<remoto>..<local>` o, si es nueva, `rev-list <local> --not --remotes`: gitleaks `git
+  cada padre con `--rango`. El `sh` hace `unset -f` de lo que usa y borra toda `NODE_*` antes del `exec node` (rf3-3, rf2-4); el runner borra
+  `GITLEAKS_*` y `GIT_CONFIG_*` (rf3-2, rf2-1). **gitleaks no corre `git --staged`/`--log-opts`**: el runner saca las líneas agregadas (`git
+  diff --cached` / `git log -p --cc --root`, con `--text --no-textconv --no-ext-diff`), las escribe en un temporal y corre `gitleaks dir` ahí,
+  con el `.gitleaks.toml` commiteado (o uno que extiende el de fábrica) y el `.gitleaksignore` commiteado: nada del disco ni de los atributos
+  cuenta (rf2-1, rf2-6). Todo lo que escribe un githook, verde o rojo, va a `<git-common-dir>/kit-frenos.log`, no al versionado (rf3-6, rf2-3).)* **pre-push**: por cada ref que sube, `<remoto>..<local>` o, si es nueva, `rev-list <local> --not --remotes`: gitleaks `git
   --log-opts=<rango> --redact` y `barreras --rango` (rf-7). Sale 1 si alguno da rojo, con `archivo:línea` tapado.
 - **El candado corre dos veces** (pendiente b; r4-3, r1-2 a): **la versión de la ref vigente** (con remoto, `origin/<rama por defecto>`; sin
   remoto, la rama local, o sea lo commiteado), sacada con **un solo `git cat-file --batch`** a un temporal fuera del repo y corrida con el `cwd`
