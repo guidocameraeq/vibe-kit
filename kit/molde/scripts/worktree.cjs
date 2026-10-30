@@ -10,10 +10,12 @@
 // `crear`/`abrir` escriben .kit-rol (ASCII, sin BOM, LF: los mismos bytes desde PowerShell o Bash), copian lo que lista
 // .worktreeinclude (sin él: los .env y .env.* ignorados) SACANDO todo renglón cuyo nombre esté en el almacén del proyecto
 // (~/.config/kit-secretos/<proyecto>.env: de ahí se leen solo los NOMBRES; ningún valor sale por pantalla), suman al
-// .claude/settings.local.json del worktree un deny absoluto al .env del principal, corren vars.comando-setup e imprimen la línea de
-// apertura. El filtro falla cerrado: almacén ilegible, o un .env* trackeado con un nombre del almacén → 1 sin crear nada.
-// `cerrar`: todos los chequeos primero (desde adentro, sin mergear en su madre local u origin, sucio; frenos.log mudado al
-// <git-common-dir>/kit-frenos.log), después `git worktree remove` sin --force, y solo si anduvo, `git branch -D`.
+// .claude/settings.local.json del worktree un deny absoluto al .env del principal, corren vars.comando-setup e imprimen la
+// apertura: primero `code "<ruta>"` y la pestaña de Claude (VS Code), la línea de terminal solo si `claude` está en el PATH (rf-1).
+// El filtro falla cerrado: almacén ilegible, o un .env* trackeado con un nombre del almacén → 1 sin crear nada.
+// `cerrar`: fetch de origin (rf-5), todos los chequeos primero (desde adentro, sin mergear en su madre local u origin, sucio;
+// frenos.log mudado al <git-common-dir>/kit-frenos.log), después `git worktree remove` sin --force, y solo si anduvo,
+// `git branch -D`. Una carpeta sin registro con solo lo ignorado se borra y sigue (rf-6).
 // Salidas: 0 anduvo · 1 negado o con fallas (una línea por qué) · 2 mal llamado. Un error propio: "worktree roto: corré doctor", 1.
 // Node estándar, cero dependencias. Es .cjs a propósito: corre igual en proyectos con "type": "module".
 
@@ -36,6 +38,7 @@ const RE_X = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const RE_ID = /^[0-9]{2}$/;
 const RE_MODELO = /^[A-Za-z0-9][A-Za-z0-9._\-[\]]*$/;
 const RE_ENV = /^\.env(\..+)?$/;
+const RE_PLANTILLA = /^\.env\.(example|sample|template)$/i;
 const IGNORADOS = ['.claude/worktrees/', '.kit-rol', '.claude/settings.local.json'];
 const LOG = '.claude/frenos.log';
 const LOG_COMUN = 'kit-frenos.log';
@@ -316,12 +319,18 @@ function trackeadosConNombre(L, principal, base, alm) {
     const s = G(L, ['show', `${base}:${rel}`], principal);
     if (!s.ok) return { error: `no pude leer ${rel} de ${base}` };
     if (ilegible(s.salida)) {
-      malos.push(`${rel} (UTF-16: no lo puedo revisar)`);
+      malos.push(`${rel} (UTF-16: no lo puedo revisar) — guardalo en UTF-8`);
       continue;
     }
     const t = s.salida.toString('utf8').replace(/^\uFEFF/, '');
     const con = bloquesEnv(t).bloques.filter((b) => b.nombre !== null && !b.vacio && alm.nombres.has(b.nombre.toUpperCase()));
-    if (con.length) malos.push(`${rel} (${[...new Set(con.map((b) => b.nombre))].join(', ')})`);
+    if (!con.length) continue;
+    const nombres = [...new Set(con.map((b) => b.nombre))];
+    // Una plantilla se queda en el repo con el valor vacío (rf-9); el resto, afuera del repo o vacío.
+    const consejo = RE_PLANTILLA.test(rel.split('/').pop())
+      ? `es una plantilla: dejá ${nombres.map((x) => `${x}=`).join(', ')} vacío en la plantilla`
+      : 'sacalo del repo (git rm --cached) o vacía ese valor';
+    malos.push(`${rel} (${nombres.join(', ')}) — ${consejo}`);
   }
   return { malos };
 }
@@ -411,8 +420,25 @@ function sumarDeny(wt, principal) {
 // ---------------------------------------------------------------- crear y abrir
 
 const rolDe = (n, noche) => (noche ? 'nocturno' : n.id === null ? 'director' : 'obrero');
-const lineaApertura = (wt, n, modelo) =>
-  `cd "${barras(wt)}"; claude --name ${n.id === null ? `director-${n.x}` : `obrero-${n.x}--${n.id}`} --model ${modelo || (n.id === null ? 'opus' : 'sonnet')}`;
+
+// ¿`claude` está en el PATH? (rf-1: en la PC de Guido solo está el de la extensión de VS Code). Las pruebas lo inyectan con
+// opciones.claudeEnPath; si no, `where`/`which` con su tiempo, sin colgarse. Se pregunta una vez por corrida.
+function claudeEnPath(opciones) {
+  if (typeof opciones.claudeEnPath === 'boolean') return opciones.claudeEnPath;
+  const r = spawnSync(WIN ? 'where' : 'which', ['claude'], { stdio: 'ignore', timeout: 5000, windowsHide: true });
+  opciones.claudeEnPath = !r.error && r.status === 0;
+  return opciones.claudeEnPath;
+}
+
+// La apertura (rf-1): primero la vía de VS Code; la de terminal, solo si `claude` está en el PATH.
+function lineasApertura(wt, n, modelo, opciones) {
+  const sesion = n.id === null ? `director-${n.x}` : `obrero-${n.x}--${n.id}`;
+  const m = modelo || (n.id === null ? 'opus' : 'sonnet');
+  const nombre = /^[a-z]+$/.test(m) ? m[0].toUpperCase() + m.slice(1) : m;
+  const lineas = [`abrilo en VS Code: code "${barras(wt)}"`, `en esa ventana, abrí la pestaña de Claude y elegí ${nombre} (nombre sugerido para la sesión: ${sesion})`];
+  if (claudeEnPath(opciones)) lineas.push(`o en una terminal: cd "${barras(wt)}"; claude --name ${sesion} --model ${m}`);
+  return lineas;
+}
 
 // La rama por defecto LOCAL (la base de un módulo): el nombre de la regla de 4.7, como rama de esta PC.
 function porDefectoLocal(L, cwd) {
@@ -428,7 +454,7 @@ function chequeosDeCredenciales(L, principal, base, cmd) {
   if (alm.estado === 'ilegible') return no(`el almacén de ${alm.proyecto} ${alm.motivo}: no copié ningún .env — rehacelo con cargar-secreto (UTF-8, NOMBRE=…)`);
   const t = trackeadosConNombre(L, principal, base, alm);
   if (t.error) return no(t.error);
-  if (t.malos.length) return no(`hay un .env trackeado con un nombre del almacén: ${t.malos.join('; ')} — sacalo del repo (git rm --cached) o vacía ese valor`);
+  if (t.malos.length) return no(`hay un .env trackeado con un nombre del almacén: ${t.malos.join('; ')}`);
   const c = prepararCopia(L, principal, alm);
   if (c.error) return no(c.error);
   return { codigo: 0, copia: c };
@@ -459,7 +485,7 @@ function equipar(L, wt, principal, n, a, copia, opciones) {
   lineas.push(s.linea);
   if (s.falla) codigo = 1;
   lineas.push(`worktree ${a.comando}: ${n.rama} en ${CARPETAS}/${n.carpeta} (rol ${rol})`);
-  lineas.push(lineaApertura(wt, n, a.modelo));
+  lineas.push(...lineasApertura(wt, n, a.modelo, opciones));
   return { codigo, lineas };
 }
 
@@ -520,7 +546,9 @@ function abrir(L, u, n, a, opciones) {
   G(L, ['worktree', 'prune'], P);
   const wt = path.join(P, ...CARPETAS.split('/'), n.carpeta);
   const lista = worktrees(L, P);
-  if (lista.some((w) => mismaRuta(w.ruta, wt))) return no(`${CARPETAS}/${n.carpeta} ya está abierto en esta PC: ${lineaApertura(wt, n, a.modelo)}`);
+  if (lista.some((w) => mismaRuta(w.ruta, wt))) {
+    return { codigo: 1, lineas: [...lineas, `worktree abrir: no — ${CARPETAS}/${n.carpeta} ya está abierto en esta PC:`, ...lineasApertura(wt, n, a.modelo, opciones)] };
+  }
   if (fs.existsSync(wt)) return no(`${CARPETAS}/${n.carpeta} existe pero no es un worktree: movela o borrala a mano`);
   const ocupada = lista.find((w) => w.rama === `refs/heads/${n.rama}`);
   if (ocupada) return no(`${n.rama} está abierta en ${barras(ocupada.ruta)}`);
@@ -646,30 +674,86 @@ const porcelana = (L, wt) => {
   return r.ok ? r.stdout.split('\n').map((s) => s.replace(/\r$/, '')).filter(Boolean) : null;
 };
 
+// Los archivos de una carpeta (rutas con '/', relativas a ella), sin el `.git` de arriba (el puntero de un worktree). null si son
+// demasiados para revisarlos.
+function archivosDe(dir, tope = 2000) {
+  const out = [];
+  const pila = [''];
+  while (pila.length) {
+    const rel = pila.pop();
+    for (const e of fs.readdirSync(path.join(dir, ...rel.split('/').filter(Boolean)), { withFileTypes: true })) {
+      const r = rel ? `${rel}/${e.name}` : e.name;
+      if (r === '.git') continue;
+      if (e.isDirectory()) pila.push(r);
+      else out.push(r);
+      if (out.length > tope) return null;
+    }
+  }
+  return out;
+}
+
+// rf-6: una carpeta que ya no es worktree (remove borró el registro y no la carpeta: la tenía abierta VS Code) se puede borrar si
+// está vacía o tiene solo lo que el principal ignora en la misma ruta (.env, .kit-rol, node_modules…). → true si la borró.
+function borrarSiSobra(L, P, wt) {
+  let archivos;
+  try {
+    archivos = archivosDe(wt);
+  } catch (e) {
+    return false;
+  }
+  if (archivos === null) return false;
+  if (archivos.length) {
+    const ci = G(L, ['check-ignore', '-z', '--stdin'], P, { entrada: `${archivos.join('\0')}\0` });
+    if (ci.codigo !== 0) return false; // 1: alguno no está ignorado; otro: no se pudo ver
+    const ign = new Set(ci.stdout.split('\0').filter(Boolean));
+    if (!archivos.every((a) => ign.has(a))) return false;
+  }
+  try {
+    fs.rmSync(wt, { recursive: true, force: true });
+  } catch (e) {
+    return false;
+  }
+  return !fs.existsSync(wt);
+}
+
 function cerrar(L, u, n) {
-  const no = (m) => ({ codigo: 1, lineas: [`worktree cerrar: no — ${m}`] });
+  const lineas = [];
+  const no = (m) => ({ codigo: 1, lineas: [...lineas, `worktree cerrar: no — ${m}`] });
   const P = u.principal;
   const wt = path.join(P, ...CARPETAS.split('/'), n.carpeta);
   if (mismaRuta(u.raiz, wt) || dentroDe(u.cwd, wt)) return no(`estás adentro de ${CARPETAS}/${n.carpeta}: corré cerrar desde el principal o desde el director`);
+  // rf-5: lo mergeado en GitHub se ve recién después del fetch. Sin remoto, o si falla, se sigue con lo que hay.
+  const remotos = (G(L, ['remote'], P).stdout || '').split('\n').map((s) => s.trim());
+  if (remotos.includes('origin')) {
+    const f = G(L, ['fetch', '-q', 'origin'], P);
+    if (!f.ok) lineas.push(`no pude hacer fetch de origin (${primeraLinea(f.stderr) || f.error}): sigo con lo que hay en esta PC`);
+  }
   if (!existeRef(L, P, `refs/heads/${n.rama}`)) return no(`no existe la rama ${n.rama} en esta PC`);
   const madre = n.madre || L.contexto.ramaPorDefecto(P);
   if (!madre) return no('no encuentro la rama por defecto (main o master)');
   const refs = [`refs/heads/${madre}`, `refs/remotes/origin/${madre}`].filter((r) => existeRef(L, P, r));
   if (!refs.length) return no(`no existe ${madre}, ni acá ni en origin`);
   const mergeada = refs.some((r) => G(L, ['merge-base', '--is-ancestor', `refs/heads/${n.rama}`, r], P).ok);
-  if (!mergeada) return no(`${n.rama} no está mergeada en ${madre} (ni en la local ni en la de origin) — nada borrado`);
+  if (!mergeada) {
+    return no(
+      `${n.rama} no está mergeada en ${madre} (ni en la local ni en la de origin) — nada borrado. ¿Lo mergeaste en GitHub? hacé \`git pull\`; ` +
+        `con squash, borrá la rama a mano (\`git branch -D ${n.rama}\`)`,
+    );
+  }
   const lista = worktrees(L, P);
   const entrada = lista.find((w) => w.rama === `refs/heads/${n.rama}`);
   if (entrada && !mismaRuta(entrada.ruta, wt)) return no(`${n.rama} está abierta en ${barras(entrada.ruta)}, no en ${CARPETAS}/${n.carpeta}`);
-  const lineas = [];
   if (!fs.existsSync(wt)) {
     // Carpeta borrada a mano: prune (si seguía registrada) y la rama, con las mismas condiciones.
     if (entrada) {
       G(L, ['worktree', 'prune'], P);
       lineas.push(`${CARPETAS}/${n.carpeta} ya no estaba: hice prune`);
     }
+  } else if (!entrada) {
+    // rf-6: sin registro y vacía (o con solo lo ignorado) → se borra y sigue a la rama; con cualquier otra cosa, a mano.
+    if (!borrarSiSobra(L, P, wt)) return no(`${CARPETAS}/${n.carpeta} existe pero no es el worktree de ${n.rama}: revisala a mano`);
+    lineas.push(`${CARPETAS}/${n.carpeta} ya no era un worktree y tenía solo lo ignorado: la borré`);
   } else {
-    if (!entrada) return no(`${CARPETAS}/${n.carpeta} existe pero no es el worktree de ${n.rama}: revisala a mano`);
     const antes = porcelana(L, wt);
     if (antes === null) return no('no pude leer el estado del worktree');
     const otros = antes.filter((l) => l.slice(3).replace(/^"|"$/g, '') !== LOG);

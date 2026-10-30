@@ -1,6 +1,6 @@
 # Modo B — feature más que chica sobre una app que YA anda
 
-Explora el código real → spec delta sellado → **termina armando** → una línea para abrir. Las reglas de oro del `SKILL.md` valen enteras (una pregunta por vez, borrador en disco, YAGNI, el que piensa no construye). `<arq>` = `node ~/.claude/skills/arquitecto/scripts/arquitecto.cjs` (en PowerShell, `$HOME` en vez de `~`).
+Explora el código real → spec delta sellado → **termina armando** → una línea para abrir. Las reglas de oro del `SKILL.md` valen enteras (una pregunta por vez, borrador en disco, YAGNI, el que piensa no construye). `<arq>` = `node "$HOME/.claude/skills/arquitecto/scripts/arquitecto.cjs"` (anda igual en Bash y en PowerShell).
 
 ## B0 — Dónde, con ficha o sin ficha, corto o largo
 
@@ -9,7 +9,7 @@ Explora el código real → spec delta sellado → **termina armando** → una l
   - **Con ficha**: el módulo vive en `docs/modulos/<x>/`: `README.md` (la ficha, con el esqueleto de `formato-spec.md`, en `Estado: EN OBRA`) y `SPEC.md` (el delta, en `- Estado: BORRADOR`). `<x>`: minúsculas, números y guiones simples (`^[a-z0-9]+(-[a-z0-9]+)*$`), ≤ 20, nunca `--`, único en el repo. Si es un tramo de una iniciativa abierta, `parte-de: <iniciativa>`; si no, módulo suelto (lo decidís vos).
     **Parado en otra rama** que no es la por defecto (`git symbolic-ref --short refs/remotes/origin/HEAD`; sin remoto, `main` o `master`): **no armás**. Una línea, *"el módulo nace en la rama por defecto: abrí una sesión ahí"*, y te apagás (lo resuelve `integrar`, orden 5; D4-2).
   - **Sin ficha** (los proyectos v2): como siempre, `docs/SPEC-<x>.md` (creá `docs/` si no existe), sin carpeta de módulo y sin worktree; la regla de "otra rama" no aplica.
-- **Retome**: un `docs/SPEC-*.md` o `docs/modulos/*/SPEC.md` en BORRADOR que eligió retomar. Si "Contexto del código" está completo, seguí desde la primera sección `(pendiente)` (salteás B1); si está vacío o el código cambió desde su fecha (`git log`), B1 primero. Es retome de Modo B, nunca de A. Un módulo que **nació sin sello** (te llama `/inicio`) se toma en Modo B corto con lo que tiene.
+- **Retome**: un `docs/SPEC-*.md` o `docs/modulos/*/SPEC.md` en BORRADOR que eligió retomar. Si "Contexto del código" está completo, seguí desde la primera sección `(pendiente)` (salteás B1); si está vacío o el código cambió desde su fecha (`git log`), B1 primero. Es retome de Modo B, nunca de A. Un `SPEC.md` en BORRADOR y sin sello (`/inicio` lo lista como `borrador a medias`) es un retome, no un Modo B corto: el largo sigue con las preguntas que faltaban, no las improvisa. Solo el módulo que **nació sin sello** (sin `SPEC.md`, o con uno que no está en BORRADOR; te llama `/inicio`) se toma en Modo B corto con lo que tiene.
 - **Corto o largo**: **corto** si el pedido trae un plan ya charlado (con Guido o con el director); **largo** si no.
 
 ## B1 — `NORTE.md`, después la exploración
@@ -45,13 +45,13 @@ Formato delta de `formato-spec.md`. Lo propio de acá:
 
 ## B5 — Termina armando (H §8.2)
 
-1. **`<arq> sello <spec>`** (desde la raíz). Si niega, arreglá lo que dice y volvé a correrlo. Tope pasado y Guido eligió seguir entero: `--no-partir "Guido"`.
+1. **`<arq> sello <spec>`** (desde la raíz; corré `sello` y `worktree.cjs crear` con timeout 600000: `comando-test` y el setup pueden pasar los 2 min). Si niega, arreglá lo que dice y volvé a correrlo. Tope pasado y Guido eligió seguir entero: `--no-partir "Guido"`.
 2. **El OK de Guido** sobre el spec sellado (y el `NORTE.md`, si lo armaste): AskUserQuestion "¿Aprobás el spec? / Cambiar algo / Cancelar". Si cambia algo, editás y **`sello` de nuevo** (el hash cambió).
 3. **`<arq> ready <spec>`**.
 4. **Con ficha**, en este orden:
    1. **Un commit en la rama por defecto**, solo con lo del módulo: `git add -- docs/modulos/<x>` (y `docs/NORTE.md` si lo armaste) y `git commit -m "módulo <x>: ficha y spec sellado" -- <esas mismas rutas>`. **Nunca `git add -A` ni `commit -a`**: lo que Guido tenga en stage queda como estaba. Si el pre-commit frena, se arregla lo que dice; nunca `--no-verify`.
    2. **Push si hay remoto** (`git remote`), con las reglas del paso de push del `/cierre` del proyecto: si origin avanzó, `git pull --rebase`, nunca un merge sobre la rama por defecto; nunca `--force` ni `--no-verify`.
-   3. **Con director**: `node .claude/scripts/worktree.cjs crear <x>` desde la raíz. Crea la rama `modulo/<x>` y `.claude/worktrees/modulo--<x>` con su `.kit-rol`, y al final imprime la línea de apertura. Si niega, decí su línea tal cual (dice qué hacer) y preguntá. **Si no existe `.claude/scripts/worktree.cjs`**, una línea: *"este proyecto todavía no tiene `worktree.cjs`: la rama y el worktree del módulo quedan para cuando llegue"*, y **no armás el worktree a mano** (ni `git worktree add` ni `claude -w`).
+   3. **Con director**: `node .claude/scripts/worktree.cjs crear <x>` desde la raíz (timeout 600000). Crea la rama `modulo/<x>` y `.claude/worktrees/modulo--<x>` con su `.kit-rol`, y al final imprime la apertura. Si niega, decí su línea tal cual (dice qué hacer) y preguntá. **Si no existe `.claude/scripts/worktree.cjs`**, una línea: *"este proyecto todavía no tiene `worktree.cjs`: la rama y el worktree del módulo quedan para cuando llegue"*, y **no armás el worktree a mano** (ni `git worktree add` ni `claude -w`).
 5. **Sin ficha**: **sin commit, sin push y sin worktree**. El spec queda READY en `docs/SPEC-<x>.md` para el `/cierre` del proyecto, y lo que Guido tenga en stage, intacto.
 6. ¿El proyecto no tiene su sistema (no existe `.claude/skills/inicio/`)? Ofrecé montarlo primero (§2.9 del playbook, los templates de esta skill) como paso aparte, con su propio OK.
 
@@ -60,8 +60,8 @@ Formato delta de `formato-spec.md`. Lo propio de acá:
 Listo para copiar; es la de "Ejecución":
 
 > **Feature diseñada, sellada y armada.** Para construirla:
-> - **Módulo solo**: abrí un chat NUEVO en `<ruta absoluta del proyecto>` (en terminal: `cd "<ruta>"; claude --name sesion-<x>`) y pegá `inicio — ejecutá docs/modulos/<x>/SPEC.md (está READY)`.
-> - **Con director**: pegá en una terminal la línea que imprimió `worktree.cjs` (`cd "<ruta del worktree>"; claude --name director-<x> --model opus`) y adentro, `inicio — ejecutá docs/modulos/<x>/SPEC.md (está READY)`.
+> - **Módulo solo**: abrí un chat NUEVO en `<ruta absoluta del proyecto>` (en VS Code, una pestaña de Claude nueva ahí; sesión `sesion-<x>`) y pegá `inicio — ejecutá docs/modulos/<x>/SPEC.md (está READY)`.
+> - **Con director**: lo que imprimió `worktree.cjs`: `code "<ruta del worktree>"`, y en esa ventana la pestaña de Claude con Opus (sesión `director-<x>`); adentro, `inicio — ejecutá docs/modulos/<x>/SPEC.md (está READY)`. La línea de terminal (`cd "<ruta>"; claude --name director-<x> --model opus`) la da solo si `claude` está en el PATH.
 > - **Sin ficha**: abrí un chat NUEVO en `<ruta>` y pegá `inicio — ejecutá el spec docs/SPEC-<x>.md (está READY)`.
 >
 > El que piensa no construye. Verificá con `/smoke` (el criterio #1: lo de NO SE TOCA sigue andando) y cerrá con `cierre`.

@@ -51,7 +51,7 @@ Bajo demanda: `banco-de-preguntas.md`, `concerns.md`, `matriz-stacks.md`, `forma
 
 ## Los scripts
 
-En Bash: `node ~/.claude/skills/arquitecto/scripts/arquitecto.cjs <comando>`. **En PowerShell, `$HOME` en vez de `~`** (5.1 no expande `~` en los argumentos). Los comandos:
+`node "$HOME/.claude/skills/arquitecto/scripts/arquitecto.cjs" <comando>` (igual en Bash y en PowerShell). Los comandos:
 - `sello <spec> [--no-partir "<quién>"] [--no-aplica tamaño|entorno "<razón>"]` · `ready <spec>` · `ready --pendientes`
 - `tope <spec>` · `entorno` · `registro <carpeta de proyectos>`
 

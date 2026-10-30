@@ -101,7 +101,7 @@ Tamaño: módulo solo
 
 - **Su primera línea con texto dice `módulo solo` o `módulo con director`**, una sola de las dos (la lee `sello`). Con ficha, coincide con la ficha del módulo: `módulo solo` ↔ `director: no`; `módulo con director` ↔ `director: sí` y `rama: modulo/<x>`.
 - **Director, solo** con dos o más tareas que se escriben a la vez o noche sin Guido; varias sesiones seguidas son módulo solo.
-- **La línea para abrir**: módulo solo, `inicio — ejecutá docs/modulos/<x>/SPEC.md (está READY)` en un chat nuevo en la raíz del proyecto; con director, la que imprime `worktree.cjs` (`cd "<ruta del worktree>"; claude --name director-<x> --model opus`, con `;` y no `&&`: PowerShell 5.1 no tiene `&&`); SPEC-0, `inicio — ejecutá el SPEC-0 (SPEC-0.md, está READY)`; sin ficha, `inicio — ejecutá el spec docs/SPEC-<x>.md (está READY)`.
+- **La línea para abrir**: módulo solo, `inicio — ejecutá docs/modulos/<x>/SPEC.md (está READY)` en un chat nuevo en la raíz del proyecto; con director, lo que imprime `worktree.cjs`: primero la vía de VS Code (`code "<ruta del worktree>"` y, en esa ventana, la pestaña de Claude con Opus, sesión `director-<x>`) y, solo si `claude` está en el PATH, la de terminal (`cd "<ruta>"; claude --name director-<x> --model opus`, con `;` y no `&&`: PowerShell 5.1 no tiene `&&`); adentro, la misma línea de `inicio`; SPEC-0, `inicio — ejecutá el SPEC-0 (SPEC-0.md, está READY)`; sin ficha, `inicio — ejecutá el spec docs/SPEC-<x>.md (está READY)`.
 
 ## La sección Entorno de prueba (todo spec READY la lleva)
 
@@ -128,7 +128,7 @@ Tamaño: módulo solo
 
 ## Los topes (el script mide y avisa; Guido decide)
 
-- **Módulo solo: ≤ 10 KB y ≤ 8 criterios. Con director: ≤ 30 KB** con las tareas listadas. Sin tamaño: 30 KB. KB = 1.024 bytes; criterios = renglones `- ` o `N. ` de primer nivel bajo `## Criterios de aceptación`. Números NO VERIFICADO: se calibran en el piloto.
+- **Módulo solo: ≤ 10 KB y ≤ 8 criterios. Con director: ≤ 30 KB** con las tareas listadas. Sin tamaño: 30 KB. **Un SPEC-0** (H1 `# SPEC-0:`): 30 KB y sin tope de criterios, diga lo que diga su Ejecución. KB = 1.024 bytes del texto normalizado (el mismo del hash: sin BOM, saltos LF, sin espacios finales, sin la línea del Estado ni la del sello); criterios = renglones `- ` o `N. ` de primer nivel bajo `## Criterios de aceptación`. Números NO VERIFICADO: se calibran en el piloto.
 - **Es un aviso, no un corte**: `arquitecto.cjs tope <spec>` da los números y las secciones de mayor a menor; el Arquitecto **propone dónde cortar** y Guido decide con un clic. Si parte, lo que sobra es **otro módulo hermano** (mismo `parte-de:`), nunca hijo de un módulo con tareas. Si sigue entero: `sello <spec> --no-partir "Guido"` (el sello dice ⚠️ con los números).
 - **El spec no crece durante la obra.** Un cambio de pedido aprobado va como `SPEC-2.md` en el mismo módulo mientras el conjunto quepa en el tope; lo que lo pasa, es otro módulo. El READY no se edita.
 
@@ -240,6 +240,6 @@ Una línea cada una; el porqué largo, en el spec.
 Lo pendiente del módulo y lo que necesita del dueño.
 ```
 
-- **`Estado:` de la ficha, valores fijos**: `EN OBRA` · `PAUSADO (hasta <fecha>)` · `COMPLETO <fecha>` · `ABANDONADO <fecha> (por qué)`. `arquitecto.cjs ready --pendientes` saltea los que empiezan con `COMPLETO` o `ABANDONADO` y lista el resto cuyo `SPEC.md` no tiene un sello válido.
+- **`Estado:` de la ficha, valores fijos**: `EN OBRA` · `PAUSADO (hasta <fecha>)` · `COMPLETO <fecha>` · `ABANDONADO <fecha> (por qué)`. `arquitecto.cjs ready --pendientes` saltea los que empiezan con `COMPLETO` o `ABANDONADO` y lista el resto cuyo `SPEC.md` no tiene un sello válido: `sin sello`, `borrador a medias` (un `SPEC.md` en BORRADOR sin sello: se retoma), `sello inválido: <qué>` o `cambió después del sello`.
 - **`director:`** dice `sí` o `no` (lo mira `sello` contra la Ejecución). **`rama:`** existe solo con director, y es `modulo/<x>`; sin director, el renglón no va. **`parte-de:`** solo si el módulo es un tramo de una iniciativa abierta; si no, el renglón no va.
 - Al terminar: `- Estado: COMPLETO <fecha>` y la ficha pasa a ser **el manual del módulo** (qué hace, cómo se usa, qué no toca); la lista de tareas se borra. **La carpeta se queda en `docs/modulos/`.**

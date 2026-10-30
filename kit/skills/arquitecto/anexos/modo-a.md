@@ -1,6 +1,6 @@
 # Modo A — proyecto nuevo
 
-Entrevista → `SPEC-0.md` sellado → montaje del sistema → una línea para abrir. Las reglas de oro del `SKILL.md` valen enteras. **El montaje sigue siendo el molde v2 de `templates/`** (el molde v3 y `docs/modulos/v1/` llegan con el instanciador del orden 6; D4-6). `<arq>` = `node ~/.claude/skills/arquitecto/scripts/arquitecto.cjs` (en PowerShell, `$HOME` en vez de `~`).
+Entrevista → `SPEC-0.md` sellado → montaje del sistema → una línea para abrir. Las reglas de oro del `SKILL.md` valen enteras. **El montaje sigue siendo el molde v2 de `templates/`** (el molde v3 y `docs/modulos/v1/` llegan con el instanciador del orden 6; D4-6). `<arq>` = `node "$HOME/.claude/skills/arquitecto/scripts/arquitecto.cjs"` (anda igual en Bash y en PowerShell).
 
 ## Paso 0 — ¿Retomamos algo?
 
@@ -48,7 +48,7 @@ Persistí el resultado al borrador.
 
 En orden, mostrando qué hacés:
 
-1. **SPEC-0 final, sellado y READY**: completá `SPEC-0.md` (cero `(pendiente)`, con "Ejecución" y "Entorno de prueba") y dejalo en `BORRADOR`. Corré `<arq> sello "<ruta absoluta>/SPEC-0.md"`. Si niega, arreglá lo que dice y volvé a correrlo. **Tope pasado**: proponé dónde cortar (las secciones que imprime, de mayor a menor) y Guido decide con un clic; si sigue entero, `--no-partir "Guido"`. Con el sello, `<arq> ready "<ruta>/SPEC-0.md"` (el OK fue el de ExitPlanMode; si el final agregó algo que el plan no tenía, mostráselo y pedí el OK antes). La sesión constructora solo ejecuta specs READY.
+1. **SPEC-0 final, sellado y READY**: completá `SPEC-0.md` (cero `(pendiente)`, con "Ejecución" y "Entorno de prueba") y dejalo en `BORRADOR`. Corré `<arq> sello "<ruta absoluta>/SPEC-0.md"` con timeout 600000 (`comando-test` puede pasar los 2 min). Si niega, arreglá lo que dice y volvé a correrlo. El SPEC-0 va con el tope de 30 KB (sin tope de criterios), aunque su Ejecución diga `módulo solo`. **Tope pasado**: proponé dónde cortar (las secciones que imprime, de mayor a menor) y Guido decide con un clic; si sigue entero, `--no-partir "Guido"`. Con el sello, `<arq> ready "<ruta>/SPEC-0.md"` (el OK fue el de ExitPlanMode; si el final agregó algo que el plan no tenía, mostráselo y pedí el OK antes). La sesión constructora solo ejecuta specs READY.
 2. **Scaffolding oficial** del carril elegido (comando exacto en `matriz-stacks.md`), dentro de la carpeta. En `liviano`, no hay.
 3. **git init** + `.gitignore`: EDITÁ el que generó el scaffolding (trae las reglas del stack): agregale `settings.local.json` y `launch.json`, y verificá que NO aparezca `.claude/` (regla §2.6). Sin uno, crealo con las reglas del stack más esas dos.
 4. **Sistema del playbook** desde `templates/` (instanciá: reemplazá los `{{...}}` con lo de la entrevista):

@@ -34,7 +34,7 @@ Los rituales viven en `.claude/skills/`: **`/inicio` · `/cierre`{{OTRAS_SKILLS}
 3. **En tareas aprobadas no freno a pedir permiso intermedio.** Trabajos >2 min → `run_in_background` y reporte al terminar; nunca dejar al usuario esperando sin ETA. Servidores/túneles SIEMPRE en background.
 4. **Post-compactación asumo que NO leí ningún archivo**: Read antes de cualquier Edit.
 5. Ante errores: diagnosticar root cause, no aplicar parches encima.
-6. **Toda spec se escribe en un formato del anexo** `~/.claude/skills/arquitecto/anexos/formato-spec.md`, venga de donde venga (incluso si la produce otra skill, ej. brainstorming): **SPEC-0** si es un proyecto/módulo nuevo, **SPEC delta** (con su NO SE TOCA) si toca algo que ya anda. Formatos únicos para que `/inicio` y `/cierre` siempre sepan qué archivar.
+6. **Toda spec se escribe en un formato del anexo** `~/.claude/skills/arquitecto/anexos/formato-spec.md`, venga de donde venga (incluso si la produce otra skill, ej. brainstorming): **SPEC-0** si es un proyecto/módulo nuevo, **SPEC delta** (con su NO SE TOCA) si toca algo que ya anda. Formatos únicos para que `/inicio` y `/cierre` siempre sepan leerla. Implementada, no se archiva: su línea de Estado pasa a `COMPLETO <fecha>` y el spec se queda donde está.
 7. **Si la charla diseñó una feature no-trivial y todavía no hay spec escrito, OFREZCO cristalizarla en spec antes de empezar a construir** — el usuario no tiene que acordarse de pedirlo. (No-trivial = más que chico: hace falta algo más que el pedido y el `git diff` para retomarlo, o lleva más de una sesión. Tocar plata, permisos o datos no lo agranda: eso lo cuidan los frenos.)
 
 ## Reglas operativas del stack
@@ -52,7 +52,7 @@ Los rituales viven en `.claude/skills/`: **`/inicio` · `/cierre`{{OTRAS_SKILLS}
 | `docs/CHANGELOG.md` | Historia de cambios | `/cierre`: entrada por sesión |
 | {{OTROS_DOCS — STATUS, DECISIONS, REJECTED, ARCHITECTURE… agregarlos recién cuando duela no tenerlos}} | | |
 
-**Reglas del sistema**: una sola narrativa por sesión (HANDOFF + CHANGELOG y nada más). Un número vive en UN archivo. Lo derivable del código o de git NO se escribe en un doc. SPEC implementada → estado en línea 1 y a `docs/archive/`.
+**Reglas del sistema**: una sola narrativa por sesión (HANDOFF + CHANGELOG y nada más). Un número vive en UN archivo. Lo derivable del código o de git NO se escribe en un doc. SPEC implementada → `COMPLETO <fecha>` en su línea de Estado, y el spec se queda (no se archiva).
 
 ## Comunicación
 
