@@ -8,7 +8,7 @@
 // final (así se come lo que sobre del plazo, no lo de git).
 //
 // Los bloques, en este orden (P4.1):
-//  1 CORTADO (si algo se cortó) · 2 cabecera · 3 líneas de F (nada: 500 reservados, orden 3) · 4 por pestaña ·
+//  1 CORTADO (si algo se cortó) · 2 cabecera · 3 líneas de F (barreras de fábrica, corrector de la PC, pre-commit; 500) · 4 por pestaña ·
 //  5 edades (al lado de Estado y Próximo paso) · 6 módulos activos · 7 cabecera del TODO · 8 git · 9 recordatorio de /inicio ·
 //  10 lo propio, con lo que sobre · (E4b) "arranque lento", si el plazo de git.cjs salteó algo · 11 la huella `inyectado: N de 9.700`.
 //
@@ -22,6 +22,7 @@ const contexto = require('./contexto.cjs');
 const topes = require('./topes.cjs');
 const todo = require('./todo.cjs');
 const ficha = require('./ficha.cjs');
+const { DENY_FABRICA } = require('./fabrica.cjs');
 
 const B = topes.BLOQUES;
 const PRESUPUESTO = topes.PRESUPUESTO;
@@ -376,6 +377,124 @@ function bloqueCabecera({ raiz, nombreRama, ramaSinTiempo, fv, entrada, home, gi
   return [acortar(segs.join(' · '), Math.max(lugar, 20))].concat(segundo);
 }
 
+// ---------------------------------------------------------------- las líneas de F (500; F §15, SPEC-paquete-3 P4.6)
+// Baratas a propósito (el plazo del arranque, E4b): leen archivos y el PATH; git, a lo sumo una vez (core.hooksPath, si el hook no lo
+// trajo ya). Ninguna corre gitleaks ni nada externo: se busca el archivo.
+
+const MARCA_PC = '/.claude/hooks/kit/'; // lo que registra instalar-hooks-pc (el corrector de la PC), en <home>/.claude/settings.json
+const HOOKS_PATH = '.githooks';
+const leerJsonF = (abs) => {
+  const t = leerDisco(abs);
+  if (t === null) return { falta: true };
+  try {
+    return { valor: JSON.parse(limpiar(t)) };
+  } catch (e) {
+    return { rota: true };
+  }
+};
+const esMapaF = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+const dosF = (x) => String(x).padStart(2, '0');
+const hoyDe = (ms) => {
+  const d = new Date(ms);
+  return `${d.getFullYear()}-${dosF(d.getMonth() + 1)}-${dosF(d.getDate())}`;
+};
+const listaCortaF = (xs, n = 3) => (xs.length > n ? `${xs.slice(0, n).join(', ')} y ${xs.length - n} más` : xs.join(', '));
+
+// Los ids de frenos.quitados con hasta: vigente (siempre, o una fecha de hoy en adelante). Una regla deny va por su texto (con o sin
+// "deny:", sin comillas: como zona-propia.normalizarId).
+function quitadosVigentesF(fv, ahora) {
+  const q = fv && fv.estado === 'ok' && esMapaF(fv.datos.frenos) && Array.isArray(fv.datos.frenos.quitados) ? fv.datos.frenos.quitados : [];
+  const hoy = hoyDe(ahora);
+  const s = new Set();
+  for (const x of q) {
+    if (!esMapaF(x) || typeof x.id !== 'string') continue;
+    if (x.hasta === 'siempre' || (typeof x.hasta === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(x.hasta) && x.hasta >= hoy)) s.add(x.id.replace(/"/g, '').replace(/^deny:/, ''));
+  }
+  return s;
+}
+
+// barreras de fábrica: N de N ✅ · o ⚠️ falta <regla> · corré doctor — por nombre, contra el settings.json del checkout menos los
+// frenos.quitados vigentes de la ficha (F §15; rota o sin ficha: ninguno quitado).
+function lineaBarreras(raiz, fv, ahora) {
+  const s = leerJsonF(path.join(raiz, '.claude', 'settings.json'));
+  if (s.falta) return 'barreras de fábrica: ⚠️ no hay .claude/settings.json · corré doctor';
+  if (s.rota || !esMapaF(s.valor)) return 'barreras de fábrica: ⚠️ .claude/settings.json no se lee · corré doctor';
+  const perm = esMapaF(s.valor.permissions) ? s.valor.permissions : {};
+  const deny = new Set(Array.isArray(perm.deny) ? perm.deny.filter((x) => typeof x === 'string') : []);
+  const quitados = quitadosVigentesF(fv, ahora);
+  const esperadas = DENY_FABRICA.filter((r) => !quitados.has(r));
+  const faltan = esperadas.filter((r) => !deny.has(r));
+  const nq = DENY_FABRICA.length - esperadas.length;
+  const nota = nq ? ` (${nq} ${nq === 1 ? 'quitada' : 'quitadas'} en la ficha)` : '';
+  if (!faltan.length) return `barreras de fábrica: ${esperadas.length} de ${esperadas.length} ✅${nota}`;
+  return `barreras de fábrica: ${esperadas.length - faltan.length} de ${esperadas.length} ⚠️ falta ${listaCortaF(faltan)} · corré doctor`;
+}
+
+// ¿<home>/.claude/settings.json registra un hook bajo /.claude/hooks/kit/? (lo que escribe instalar-hooks-pc; D-2)
+function correctorRegistrado(home) {
+  if (!home) return false;
+  const s = leerJsonF(path.join(home, '.claude', 'settings.json'));
+  if (!esMapaF(s.valor) || !esMapaF(s.valor.hooks)) return false;
+  for (const grupos of Object.values(s.valor.hooks)) {
+    for (const gr of Array.isArray(grupos) ? grupos : []) {
+      for (const h of esMapaF(gr) && Array.isArray(gr.hooks) ? gr.hooks : []) {
+        if (!esMapaF(h)) continue;
+        const texto = [h.command, ...(Array.isArray(h.args) ? h.args : [])].filter((x) => typeof x === 'string').join(' ');
+        if (texto.replace(/\\/g, '/').toLowerCase().includes(MARCA_PC)) return true;
+      }
+    }
+  }
+  return false;
+}
+
+// gitleaks en el PATH: se busca el archivo, no se corre.
+function hayGitleaks(env) {
+  const clave = Object.keys(env || {}).find((k) => k.toLowerCase() === 'path');
+  const nombre = process.platform === 'win32' ? 'gitleaks.exe' : 'gitleaks';
+  for (const d of clave ? String(env[clave]).split(path.delimiter) : []) {
+    if (!d) continue;
+    try {
+      if (fs.statSync(path.join(d.replace(/^"|"$/g, ''), nombre)).isFile()) return true;
+    } catch (e) {
+      /* acá no está */
+    }
+  }
+  return false;
+}
+
+// pre-commit: ✅ · o ⚠️ <qué falta>. hooksPath: lo que hizo el hook de arranque ({estado, valor, previo}); si no vino, se lee (un git).
+function lineaPreCommit(raiz, gitOk, hooksPath, env) {
+  if (!gitOk) return 'pre-commit: ⚠️ sin git';
+  const dir = path.join(raiz, HOOKS_PATH);
+  if (!fs.existsSync(dir)) return `pre-commit: ⚠️ no hay ${HOOKS_PATH}/ en este repo · corré doctor`;
+  const falta = [];
+  for (const f of ['pre-commit', 'pre-merge-commit', 'pre-push', 'kit-githook.cjs']) if (!fs.existsSync(path.join(dir, f))) falta.push(`falta ${HOOKS_PATH}/${f}`);
+  let hp = hooksPath;
+  if (!hp || typeof hp !== 'object') {
+    const r = git.correr(['config', '--get', 'core.hooksPath'], { cwd: raiz });
+    const v = r.stdout.trim();
+    if (r.error === 'plazo') hp = { estado: 'sin-tiempo' };
+    else if (r.codigo === 0 || r.codigo === 1) hp = { estado: v === HOOKS_PATH ? 'ya' : 'otro', valor: v };
+    else hp = { estado: 'no-pudo' };
+  }
+  let nota = '';
+  if (hp.estado === 'sin-tiempo') falta.push('core.hooksPath sin leer (git no respondió a tiempo)');
+  else if (hp.estado === 'no-pudo') falta.push('no pude poner core.hooksPath · corré doctor');
+  else if (hp.estado === 'otro') falta.push(hp.valor ? `core.hooksPath es "${acortar(hp.valor, 40)}" y no ${HOOKS_PATH}` : 'core.hooksPath vacío');
+  else if (hp.estado === 'puesto') nota = hp.previo ? ` · core.hooksPath puesto ahora; el anterior ("${acortar(hp.previo, 40)}") queda encadenado` : ' · core.hooksPath puesto ahora';
+  if (!hayGitleaks(env)) falta.push('sin gitleaks en esta PC: corré "preparame esta PC"');
+  return falta.length ? `pre-commit: ⚠️ ${falta.join(' · ')}` : `pre-commit: ✅${nota}`;
+}
+
+function bloqueLineasF({ raiz, gitOk, fv, home, ahora, hooksPath, env }) {
+  const lineas = [
+    lineaBarreras(raiz, fv, ahora),
+    correctorRegistrado(home) ? 'corrector de la PC: ✅' : 'corrector de la PC: ⚠️ no está · pedile al Equipador "instalar hooks por PC"',
+    lineaPreCommit(raiz, gitOk, hooksPath, env),
+  ].map((l) => acortar(l, 240));
+  return cortarRenglones(lineas, B.lineasF, null).lineas;
+}
+
 // ---------------------------------------------------------------- el encargo del obrero
 
 function bloqueEncargo({ raiz, pest, gitOk }) {
@@ -453,7 +572,9 @@ function aEntrada(e) {
 //  cwd: de dónde parte (si falta, el de la entrada) · entrada: el JSON del hook (objeto o texto) · home: la carpeta donde está
 //  .claude/VERSION (sin home, no compara versiones) · ahora: Date o ms (para las edades) · propio: { salida, falla } ya corrido,
 //  o una función que lo da (se llama después de todo lo de git) ·
-//  tiempoBlame: ms por blame (2.000 si no viene; pasado eso, "edad: sin datos").
+//  tiempoBlame: ms por blame (2.000 si no viene; pasado eso, "edad: sin datos") · hooksPath: lo que hizo el hook de arranque con
+//  core.hooksPath ({estado: 'ya'|'puesto'|'otro'|'sin-tiempo'|'no-pudo'|'sin-githooks', valor, previo}; si no viene, se lee) ·
+//  env: de dónde sale el PATH para buscar gitleaks (process.env si no viene).
 function armar(opciones = {}) {
   const entrada = aEntrada(opciones.entrada);
   const cwd = typeof opciones.cwd === 'string' && opciones.cwd ? opciones.cwd : contexto.cwdDe(entrada);
@@ -498,7 +619,8 @@ function armar(opciones = {}) {
     })
   );
 
-  // 3 · líneas de F: nada todavía (orden 3).
+  // 3 · líneas de F
+  bloques.push(bloqueLineasF({ raiz, gitOk, fv, home, ahora, hooksPath: opciones.hooksPath, env: opciones.env || process.env }));
 
   // 4 · por pestaña (con 5, las edades)
   if (pest.tipo === 'director' || pest.tipo === 'obrero') {
@@ -630,6 +752,11 @@ module.exports = {
   FICHA_SIN_TIEMPO,
   BLOQUE_SIN_TIEMPO,
   LENTO_MAX,
+  MARCA_PC,
+  lineaBarreras,
+  correctorRegistrado,
+  lineaPreCommit,
+  bloqueLineasF,
   lineaLento,
   miles,
   huella,

@@ -1,7 +1,8 @@
 'use strict';
 // session-start.cjs — el hook de arranque del molde v3 (SPEC-paquete-2 P4.1; B §9; H §10.3, §11). Node directo, sin .sh.
 // Lee la entrada JSON por stdin, imprime lo que arma lib/inyeccion.cjs, deja la marca de sesión en el git-dir propio del
-// checkout y corre el hermano session-start.propio.sh con bash si existe. SALE SIEMPRE CON 0: no niega nada.
+// checkout, pone core.hooksPath=.githooks si el repo trae .githooks/ (P4.6) y corre el hermano session-start.propio.sh con bash si
+// existe. SALE SIEMPRE CON 0: no niega nada.
 // Fallas (P4.1): ficha rota → arriba, y sigue · error interno → una línea de error, el handoff crudo (hasta 5.000 bytes) y la
 // huella · sin remoto ni ficha → entero · sin git → lo dice. Es .cjs a propósito: corre igual con "type": "module".
 // Plazo (E4b): todo lo que lanza procesos (git, la búsqueda de bash, lo propio) tiene que terminar a los 10 s del arranque del
@@ -138,6 +139,39 @@ function gitDirPorDisco(cwd) {
   }
 }
 
+// ---------------------------------------------------------------- core.hooksPath (P4.6; F §10)
+
+const HOOKS_PATH = '.githooks';
+const CLAVE_PREVIO = 'kit.hooksPathPrevio';
+
+// ponerHooksPath(raiz) → { estado, valor, previo } (lo lee la línea "pre-commit:" de la inyección). Solo si el repo trae .githooks/:
+// core.hooksPath vacío → .githooks (relativo: vale en cada worktree); ya .githooks → nada; otra cosa (husky, lefthook) → no se pierde:
+// va a kit.hooksPathPrevio (el runner la encadena) y apunta a .githooks. Con su propio git (lib/git.cjs, con el plazo): un git cuando
+// ya está, tres la primera vez. estado: 'sin-githooks' · 'ya' · 'puesto' · 'sin-tiempo' · 'no-pudo'.
+function ponerHooksPath(raiz) {
+  let st = null;
+  try {
+    st = fs.statSync(path.join(raiz, HOOKS_PATH));
+  } catch (e) {
+    st = null;
+  }
+  if (!st || !st.isDirectory()) return { estado: 'sin-githooks' };
+  const git = require('./lib/git.cjs');
+  const r = git.correr(['config', '--get', 'core.hooksPath'], { cwd: raiz });
+  if (r.error === 'plazo') return { estado: 'sin-tiempo' };
+  if (r.error || (r.codigo !== 0 && r.codigo !== 1)) return { estado: 'no-pudo' };
+  const actual = r.codigo === 0 ? r.stdout.trim() : '';
+  if (actual === HOOKS_PATH) return { estado: 'ya', valor: actual };
+  const sinTiempo = (x) => (x.error === 'plazo' ? { estado: 'sin-tiempo' } : { estado: 'no-pudo' });
+  if (actual) {
+    const p = git.correr(['config', CLAVE_PREVIO, actual], { cwd: raiz });
+    if (!p.ok) return sinTiempo(p);
+  }
+  const s = git.correr(['config', 'core.hooksPath', HOOKS_PATH], { cwd: raiz });
+  if (!s.ok) return sinTiempo(s);
+  return { estado: 'puesto', valor: HOOKS_PATH, previo: actual || null };
+}
+
 // ---------------------------------------------------------------- de emergencia (error interno)
 
 // Sin las librerías: la línea de error, el handoff crudo hasta 5.000 bytes (cortado en renglón) y la huella.
@@ -183,7 +217,16 @@ function principal() {
     gitDir = g ? g.gitDir : git.salteadasPorPlazo() > 0 ? gitDirPorDisco(cwd) : null;
     // Lo propio corre al final, con lo que sobre del plazo: primero lo de git, que es lo que la sesión necesita.
     const propio = () => correrPropio(g ? g.raiz : cwd);
-    texto = inyeccion.armar({ cwd, entrada, home: os.homedir(), ahora: new Date(), propio }).texto;
+    // core.hooksPath, antes de armar: la línea "pre-commit:" dice lo que quedó. Una falla acá no tira el arranque.
+    let hooksPath;
+    if (g) {
+      try {
+        hooksPath = ponerHooksPath(g.raiz);
+      } catch (e) {
+        hooksPath = { estado: 'no-pudo' };
+      }
+    }
+    texto = inyeccion.armar({ cwd, entrada, home: os.homedir(), ahora: new Date(), propio, hooksPath }).texto;
   } catch (e) {
     texto = deEmergencia(entrada);
   }
@@ -214,6 +257,9 @@ if (require.main === module) {
     PROPIO,
     PLAZO_ARRANQUE,
     VAR_PLAZO,
+    HOOKS_PATH,
+    CLAVE_PREVIO,
+    ponerHooksPath,
     plazoDelArranque,
     gitDirPorDisco,
     buscarBash,
