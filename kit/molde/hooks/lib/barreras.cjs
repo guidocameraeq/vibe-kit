@@ -23,6 +23,7 @@ const git = require('./git.cjs');
 const contexto = require('./contexto.cjs');
 const ficha = require('./ficha.cjs');
 const C = require('./cambios.cjs');
+const rutaCambio = require('./cambios-ruta.cjs');
 const zona = require('./zona-propia.cjs');
 const { NIVELES } = require('./fabrica.cjs');
 
@@ -114,7 +115,8 @@ function mergeHeads(raiz) {
 //  · sin remoto, en la rama por defecto: desde la base de todo.cjs (el último commit que tocó el handoff) INCLUIDA (rf-4: si no, un
 //    commit que toca el handoff y vacía los deny se lava solo), salvo que la base sea el primer commit del repo o el que creó la
 //    ficha (la adopción): ahí, <base>..HEAD (r4-5: si no, el repo recién montado nace trabado);
-//  · sin base (o sin rama por defecto, o sin commits): solo lo pendiente (r4-5: si no, el commit que creó el settings da rojo siempre).
+//  · sin base (o sin rama por defecto): solo lo pendiente (r4-5: si no, el commit que creó el settings da rojo siempre). Sin commits,
+//    ni eso: revisarBarreras no juzga lo pendiente sin HEAD (fuera del paquete b, D3.3).
 function rango(raiz) {
   const head = shaDe(raiz, 'HEAD');
   if (!head) return { commits: [], desde: null, como: 'sin commits: solo lo pendiente' };
@@ -549,6 +551,41 @@ function cubre(raiz, c, cual, memo) {
   return primero(raiz, c.sello, cual, c.toca, memo) === cual;
 }
 
+// ---------------------------------------------------------------- rf3-8: el aplicado que un rebase reescribió
+
+// El patch-id estable de un commit de un solo padre (lo que un rebase sin conflictos conserva), o null (merge, raíz, git que falla).
+function patchId(raiz, sha, memo) {
+  if (!memo.patchIds) memo.patchIds = new Map();
+  if (!memo.patchIds.has(sha)) {
+    let v = null;
+    if (padres(raiz, sha).length === 1) {
+      const d = git.correr(['diff-tree', '-p', '--no-color', '--no-ext-diff', sha], { cwd: raiz, tiempo: 20000 });
+      if (d.ok && d.salida.length) {
+        const p = git.correr(['patch-id', '--stable'], { cwd: raiz, entrada: d.salida });
+        const m = p.ok ? /^([0-9a-f]{40,64})\s/.exec(p.stdout) : null;
+        v = m ? m[1] : null;
+      }
+    }
+    memo.patchIds.set(sha, v);
+  }
+  return memo.patchIds.get(sha);
+}
+
+// Los aplicados que cubrirían a <cual> si su sha fuera <cual>: su sha existe pero ya no es de la historia de HEAD (un rebase lo
+// reescribió), <cual> sí lo es, es el primer commit tras el sello que toca su `toca`, y los dos tienen el mismo patch-id. NO cubren
+// (sigue rojo hasta el anotar-sha): solo cambian el "qué hacer", con el comando listo, el mismo que acepta anotar-sha.
+function rebaseados(raiz, cual, memo) {
+  const head = shaDe(raiz, 'HEAD');
+  if (!head || !esAncestro(raiz, cual, head)) return [];
+  return cambiosValidos(raiz, memo).filter((c) => {
+    if (c.estado !== 'aplicado' || !c.sha || c.sha === cual) return false;
+    if (shaDe(raiz, c.sha) !== c.sha || esAncestro(raiz, c.sha, head)) return false;
+    if (cual === c.sello || !esAncestro(raiz, c.sello, cual) || primero(raiz, c.sello, cual, c.toca, memo) !== cual) return false;
+    const a = patchId(raiz, c.sha, memo);
+    return a !== null && a === patchId(raiz, cual, memo);
+  });
+}
+
 // ---------------------------------------------------------------- revisar
 
 const sinPunto = (s) => String(s).replace(/·/g, '-');
@@ -622,7 +659,8 @@ function settingsLocal(raiz) {
 // molde del que viene el proyecto (solo con molde; si no, tira): deja ir lo que el nuevo retira. Tira si git no puede.
 // Sin indice ni rango: el rango de la sesión, lo pendiente y lo de esta PC (marcas y settings.local). indice: true → lo de esta PC y
 // SOLO el índice (rf-10). rango: { desde, hasta } (resolverRango) → SOLO esos commits, lo que sube el push (rf-7); desde null = una
-// ref nueva (lo que ningún remoto tiene), y el primer commit del repo no se juzga.
+// ref nueva (lo que ningún remoto tiene), y el primer commit del repo no se juzga. Sin HEAD, ni el índice ni lo pendiente: a secas
+// sale un renglón con soloLista (no frena) que lo dice.
 function revisarBarreras(raiz, opciones = {}) {
   if (opciones.indice && opciones.rango) throw new Error('indice y rango no van juntos');
   if (opciones.moldeViejo && !opciones.molde) throw new Error('el molde viejo va solo con el molde');
@@ -639,8 +677,15 @@ function revisarBarreras(raiz, opciones = {}) {
     fallas = [...marcasOcultas(raiz), ...settingsLocal(raiz)];
     // El índice del primer commit del repo no se juzga, como el primer commit en el rango: no había un antes y ningún aprobado puede
     // existir todavía (el sello es un commit); si no, el repo recién montado nace trabado (r4-5).
-    if (opciones.indice) cuales = shaDe(raiz, 'HEAD') ? [INDICE] : [];
-    else cuales = [...rango(raiz).commits, PENDIENTE];
+    // Lo mismo a secas (fuera del paquete b, D3.3): sin ningún commit, lo pendiente no se juzga y se dice en una línea que no frena
+    // (soloLista); si no, el /cierre de un proyecto de Modo A que corre estructura.cjs todo antes de su primer commit queda trabado.
+    const head = shaDe(raiz, 'HEAD');
+    if (opciones.indice) cuales = head ? [INDICE] : [];
+    else if (head) cuales = [...rango(raiz).commits, PENDIENTE];
+    else {
+      cuales = [];
+      fallas.push({ id: ID, commit: PENDIENTE, detalle: contexto.RUTA_FICHA, soloLista: true, que: 'sin ningún commit todavía: lo pendiente no se juzga (no hay un antes ni un aprobado posible)', hacer: 'se juzga desde el primer commit' });
+    }
   }
   for (const cual of cuales) {
     const n = lo(raiz, cual, opciones, memo);
@@ -657,6 +702,25 @@ function revisarBarreras(raiz, opciones = {}) {
     const faltanCats = [...n.cats].filter((x) => !toca.has(x)).sort();
     const faltanIds = [...n.ids].filter((x) => !cubiertos.has(x)).sort();
     if (!faltanCats.length && !faltanIds.length) continue;
+    // rf3-8: si lo que falta lo cubren aplicados cuyo sha reescribió un rebase (mismo patch), el "qué hacer" es reapuntarlos.
+    const reb = esPendiente(cual) ? [] : rebaseados(raiz, cual, memo);
+    if (reb.length) {
+      const conReb = [...validos, ...reb];
+      const toca2 = new Set(conReb.flatMap((c) => c.toca));
+      const ids2 = new Set(conReb.flatMap((c) => [...c.ids]));
+      if ([...n.cats].every((x) => toca2.has(x)) && [...n.ids].every((x) => ids2.has(x))) {
+        const ruts = reb.map((c) => rutaCambio.rutaRelativa(c.id)).join(' ');
+        const cmds = reb.map((c) => `${C.COMANDO} anotar-sha ${c.id} ${cual}`).join(' y ');
+        fallas.push({
+          id: ID,
+          commit: cual,
+          detalle,
+          que: `${quien} toca ${listaCorta([...n.cats].sort())} y su aplicado apunta al sha de antes de un rebase (${reb.map((c) => `${c.id}: ${corto(c.sha)}`).join(', ')}; el mismo cambio)`,
+          hacer: `se rebaseó: ${cmds}, y commit por rutas (git commit -m "cambios: aplicado ${reb.map((c) => c.id).join(', ')}" -- ${ruts})`,
+        });
+        continue;
+      }
+    }
     const que = validos.length
       ? `${quien} toca ${listaCorta([...n.cats].sort())} y los aprobados que lo cubren no nombran ${listaCorta(faltanCats.length ? faltanCats : faltanIds)}`
       : `${quien} toca ${listaCorta([...n.cats].sort())} (${listaCorta(faltanIds)}) sin un aprobado sellado que lo cubra`;

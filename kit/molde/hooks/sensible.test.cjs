@@ -236,6 +236,42 @@ test('matchea: palabras enteras desde el principio de un comando simple; el prog
   assert.equal(se.mismoPrograma('', 'npm'), false);
 });
 
+test('matchea (rf3-9): las banderas no fijan la posición; las palabras que no son banderas, en orden, desde el principio', () => {
+  const m = (cmd, ent, ps = false) => se.matchea(comando.partir(cmd, { ps }).comandos[0].argv, se.clasificar(ent, comando).argv, ps, comando);
+  // sí
+  assert.equal(m('git push --tags', 'git push --tags'), true);
+  assert.equal(m('git push origin --tags', 'git push --tags'), true);
+  assert.equal(m('git push --tags origin', 'git push --tags'), true);
+  assert.equal(m('git push -f origin main --tags', 'git push --tags'), true);
+  assert.equal(m('npm --silent run release', 'npm run release'), true);
+  assert.equal(m('supabase --debug secrets set X=1', 'supabase secrets set'), true);
+  assert.equal(m('gh secret set FOO --body x', 'gh secret set'), true);
+  assert.equal(m('git push --TAGS origin', 'git push --tags', true), true); // PowerShell: sin mayúsculas, también la bandera
+  assert.equal(m('npm publish --access public --tag beta', 'npm publish --access public'), true);
+  assert.equal(m('npm publish --tag beta --access public', 'npm publish --access public'), false); // el valor de otra opción corre las palabras
+  // no
+  assert.equal(m('git push --follow-tags', 'git push --tags'), false); // otra bandera (decisión: si duele, otra entrada)
+  assert.equal(m('git push origin main', 'git push --tags'), false); // falta la bandera
+  assert.equal(m('git push --tags=no', 'git push --tags'), false); // palabra entera
+  assert.equal(m('git push --TAGS', 'git push --tags'), false); // Bash: tal cual
+  assert.equal(m('git --tags push', 'git push --tags'), true); // la bandera en cualquier lugar (git la rechaza, igual pregunta)
+  assert.equal(m('git fetch --tags', 'git push --tags'), false);
+  assert.equal(m('git origin push --tags', 'git push --tags'), false); // las que no son banderas, en orden desde el principio
+  assert.equal(m('npm run --silent', 'npm run release'), false);
+  assert.equal(m('npm publish --access public', 'npm publish --tag beta'), false);
+  assert.equal(m('git -C x push --tags', 'git push --tags'), false); // lo que no cierra: la opción con valor corre las palabras
+  // un "-" solo no es bandera (es la entrada estándar)
+  assert.equal(m('db borrar -', 'db borrar -'), true);
+  assert.equal(m('db borrar x -', 'db borrar -'), false);
+});
+
+test('rf3-9 por decidir: con release: [git push --tags], preguntan git push origin --tags y el de PowerShell; --follow-tags y git push a secas, no', () => {
+  const d = conRemoto({ '.claude/kit.md': ficha({ sensible: { release: '[git push --tags]' } }) });
+  for (const c of ['git push --tags', 'git push origin --tags', 'git push origin main --tags', 'git pull && git push -u origin --tags']) decide(d, entrada(d, c), 'ask', 'pregunta:release');
+  decide(d, entrada(d, 'git push origin --TAGS', { tool_name: 'PowerShell' }), 'ask', 'pregunta:release');
+  for (const c of ['git push --follow-tags', 'git push origin main', 'git push', 'git tag v1 && git fetch --tags']) decide(d, entrada(d, c), 'nada');
+});
+
 // ---------------------------------------------------------------- los modos y el rol
 
 test('criterio 6: ask en default, acceptEdits, plan y auto, con humano y con obrero; renglón "preguntó <clave>"', () => {
