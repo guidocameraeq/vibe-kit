@@ -395,6 +395,36 @@ test('rf3-7: instalar → --sacar-viejo → --quitar repone el viejo (la PC nunc
   assert.doesNotMatch(r.out, /repongo/);
   assert.doesNotMatch(fs.readFileSync(settingsDe(h3), 'utf8'), /anti-secretos/);
 
+  // el grupo del viejo tenía un vecino: si lo que quedó cambió (otro matcher, o el usuario lo borró), el viejo vuelve SOLO, en su
+  // lugar, sin arrastrar al vecino ni meterse en un grupo ajeno; con dos grupos del mismo matcher, vuelve al suyo
+  const conViejo = (armar, tocar, esperado) => {
+    const hh = home();
+    const vv = path.join(hh, '.claude', 'hooks', 'anti-secretos.js');
+    fs.mkdirSync(path.dirname(vv), { recursive: true });
+    fs.writeFileSync(vv, VIEJO_TXT);
+    const hk = { type: 'command', command: `node "${vv.replace(/\\/g, '/')}"` };
+    const orig = JSON.stringify(armar(hk), null, 2);
+    ponerSettings(hh, orig);
+    assert.equal(correr(hh).codigo, 0);
+    assert.equal(correr(hh, '--sacar-viejo').codigo, 0);
+    if (tocar) {
+      const y = JSON.parse(fs.readFileSync(settingsDe(hh), 'utf8'));
+      tocar(y);
+      fs.writeFileSync(settingsDe(hh), JSON.stringify(y, null, 2));
+    }
+    assert.equal(correr(hh, '--quitar').codigo, 0);
+    if (esperado) assert.deepEqual(JSON.parse(fs.readFileSync(settingsDe(hh), 'utf8')), esperado(hk));
+    else assert.equal(fs.readFileSync(settingsDe(hh), 'utf8'), orig);
+  };
+  const vec = { type: 'command', command: 'echo vecino' };
+  const otroA = { type: 'command', command: 'echo a' };
+  // el usuario borró el grupo que quedó del vecino
+  conViejo((hk) => ({ hooks: { PreToolUse: [{ matcher: 'Bash', hooks: [hk, vec] }] }, model: 'm' }), (y) => y.hooks.PreToolUse.splice(0, 1), (hk) => ({ hooks: { PreToolUse: [{ matcher: 'Bash', hooks: [hk] }] }, model: 'm' }));
+  // el usuario le cambió el matcher al que quedó
+  conViejo((hk) => ({ hooks: { PreToolUse: [{ matcher: 'Bash', hooks: [hk, vec] }] }, model: 'm' }), (y) => { y.hooks.PreToolUse[0].matcher = 'Edit'; }, (hk) => ({ hooks: { PreToolUse: [{ matcher: 'Bash', hooks: [hk] }, { matcher: 'Edit', hooks: [vec] }] }, model: 'm' }));
+  // dos grupos Bash: vuelve al suyo (byte a byte)
+  conViejo((hk) => ({ hooks: { PreToolUse: [{ matcher: 'Bash', hooks: [otroA] }, { matcher: 'Bash', hooks: [hk, vec] }] } }), null, null);
+
   // sin --sacar-viejo: el viejo sigue registrado y --quitar no lo duplica
   const h4 = home();
   const v4 = path.join(h4, '.claude', 'hooks', 'anti-secretos.js');

@@ -435,6 +435,7 @@ test('rf3-5: un obrero en su worktree no escribe los frenos del principal ni de 
   // un gitdir roto en el común no rompe nada
   fs.mkdirSync(path.join(P, '.git', 'worktrees', 'roto'), { recursive: true });
   assert.equal(d(W(path.join(P, '.claude/settings.json'), 'x', 'default', wt)).decision, 'deny');
+  assert.equal(d(W(path.join(otro, '.claude/settings.json'), 'x', 'default', wt)).decision, 'deny', 'los que vienen después del roto siguen');
 });
 
 // ================================================================ frenos de la PC
