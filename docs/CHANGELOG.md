@@ -2,6 +2,28 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-30 — Misión 5, paquete 3 cerrado: githooks, instalador por PC, doctor, sesión real y revisor frío (D3.3)
+
+PC `Usuario`, chat `vibe-kit M5 · D3.3 · Paquete 3, cierre: githooks, instalador, doctor, sesión real, revisor frío`, en Opus, sin Guido
+(~9 h). 3 Sonnet y 14 Opus (nunca más de dos Opus a la vez; dos encargos colgados se retomaron). Sin tag. Decisiones sin Guido: tracker,
+"D3.3 · Decisiones sin Guido".
+
+**Added**
+- **G7 · githooks** (`pre-commit`, `pre-merge-commit`, `pre-push` y `kit-githook.cjs`): candado doble (ref vigente + índice), `barreras
+  --indice/--rango`, gitleaks sobre las líneas agregadas con la config commiteada; todos los hooks del molde registrados en forma exec con
+  `onFailure: "block"`. 47 pruebas.
+- **G10 · `instalar-hooks-pc.cjs`** (`--plan`, `--quitar` byte a byte, `--sacar-viejo`, `--home`). **G11 · `doctor.cjs`** (14 chequeos, solo
+  lectura). **G12 · `rehacer.sh`** con el paso "molde v3 orden 3". **G13 · sesión real** con `claude.exe -p` (niega-aprobar en bypass,
+  `salir-del-worktree` y `frenos-del-proyecto` vivos).
+- **G5b** (`secretos`: `sk-viejo`, `conexion-con-clave`, `telegram`) y **G6b** (`barreras --molde-viejo`, adelantado del paquete 6).
+
+**Changed**
+- Revisor frío, dos vueltas: RF-A…D y RF-A2…D2 (githooks, `git-seguro`, `secretos`, `barreras`, `sensible`), cada uno con pruebas, mutación
+  y medición del corpus (0 diferencias para el humano). Lo que dejó, en "Lo que esto no cierra" del delta.
+- **El revisor frío de cada paquete pasa a una vuelta con tope** (decisión de Guido; SPEC-0, "Ejecución").
+- Tracker: paquete 3 ✅, fila D3.3, Pendientes con lo que espera a Guido, el prompt de D4.1. Delta: ✅ IMPLEMENTADO.
+- **Suite entera: 2.121 pruebas, 2.121 verdes** (27 min). `rehacer.sh` ×2, mismos SHAs. Huella del `~/.claude/` real (settings y hooks) igual a la de la apertura.
+
 ## 2026-10-29 — Misión 5, paquete 3, segunda vuelta: G3-G6 terminados y en `main` (D3.2)
 
 PC `Usuario`, chat `vibe-kit M5 · D3.2 · Paquete 3, segunda vuelta: terminar G3-G6 desde sus ramas WIP`, en Opus, sin Guido. 4 encargos

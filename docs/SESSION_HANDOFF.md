@@ -3,44 +3,44 @@
 > **Save game** del proyecto madre. `/cierre` lo sobreescribe entero; el hook SessionStart lo inyecta en cada chat
 > nuevo de esta carpeta. **Tope 5.500 bytes**; el hook corta y avisa "CORTADO" si se pasa, y termina con la huella.
 
-**Última sesión cerrada:** 2026-10-29, **D3.2** de la misión 5 en la PC `Usuario` (Opus, sin Guido): G3, G4, G5 y G6 del paquete 3
-terminados, revisados y en `main`; las ramas `wip/d3.1-*` borradas de `origin`. Suite 1.994 (1 skip, 0 rojas). `kit-sync` LIMPIO.
+**Última sesión cerrada:** 2026-10-30, **D3.3** de la misión 5 en la PC `Usuario` (Opus, sin Guido, ~9 h): **paquete 3 ✅**. G7, G10-G13
+(más G5b y G6b) y dos vueltas del revisor frío, todo en `main`. Suite 2.121/2.121. `kit-sync` LIMPIO. Huella del `~/.claude/` real sin tocar.
 
 ## Dónde estamos
 
-- **Paquete 3**: en `main` G2-G6, G8, G9 (`comando`, `git-seguro` + `agente`, `sensible`, `secretos` + `pc/lib/`, `barreras --indice/--rango`,
-  `cargar-secreto`, `db-guardia`). **Ningún hook nuevo está registrado todavía** en el `settings.json` del molde ni en una PC: eso es G7 y G10.
-- Lo que G3-G6 dejaron para D3.3, con qué falta: tracker, "Pendientes" → "de D3.2, para D3.3" (a-g).
-- **Decisiones sin Guido de D3.2**: tracker, "D3.2 · Decisiones sin Guido" (5 ⚠️, casi todas de `secretos`, salidas de la medición).
-- Hoja de ruta ADR-025: 4 ✅ → 4½ ✅ → **5 construir v3.0** (paquetes 1 y 2 ✅, 3 🔨) → 6 el ciclo → 7 mensajería v3.1.
+- **Paquete 3 cerrado**: githooks con candado doble y gitleaks, todos los hooks del molde registrados (exec, `onFailure: block`), instalador
+  de hooks por PC, `doctor`, sesión real con `claude.exe`. **Los hooks por PC NO están instalados en ninguna PC real**: es de Guido.
+- **Decisiones sin Guido de D3.3**: tracker, "D3.3 · Decisiones sin Guido" (las ⚠️ arriba, también las del revisor frío).
+- **Regla nueva (Guido, 2026-10-30)**: el revisor frío de cada paquete hace **una vuelta con tope** (SPEC-0, "Ejecución"). D3.3 tardó ~9 h
+  por las vueltas: no repetir.
+- Hoja de ruta ADR-025: 4 ✅ → 4½ ✅ → **5 construir v3.0** (paquetes 1, 2 y 3 ✅; sigue el 4) → 6 el ciclo → 7 mensajería v3.1.
 
 ## Próximo paso
 
-**D3.3**, en Opus, en `Usuario`, sin Guido: **`vibe-kit M5 · D3.3 · Paquete 3, cierre: githooks, instalador, doctor, sesión real, revisor frío`**.
-Guido pega el prompt **D3.3** de "Abrir D3.2 y D3.3 sin Guido" del tracker (`docs/kit-v3/PLAN-construccion.md`) y se va. Alcance: G7 y G10
-primero, después G11 y G12, G13 al final; el revisor frío (el día normal, no solo ataques) y lo de "Pendientes" del paquete 3; `/cierre`
-con el "Próximo paso" en D4.1.
+**D4.1**, en Opus, en `Usuario`, sin Guido: **`vibe-kit M5 · D4.1 · Paquete 4: Arquitecto v3, sello, formato-spec, worktree y .kit-rol`**.
+Guido pega el prompt de "Abrir D4.1 sin Guido (el prompt)" del tracker (`docs/kit-v3/PLAN-construccion.md`) y se va. Primero el spec delta
+del paquete 4 con red team (lo sella el director), después los encargos; revisor frío de una vuelta; `/cierre` con el "Próximo paso" en D5.1.
 
-**Para Guido, cuando pueda (no traba a D3.3)**: repasar las ⚠️ de D2.2 y D3.1 en el tracker (las de D3.2 ya las aprobó); las pruebas en
-una pestaña real de D2.2 **las posterga a propósito**: D3.3 no lo espera. El prompt de D3.3 se reescribió al cierre de D3.2.
-**Pendiente de la notebook**: borrar el repo temporal `jrobilara/vibe-chats-paso` (ya está todo en el privado).
+**Para Guido, cuando pueda (no traba a D4.1)** — el detalle, en Pendientes del tracker, "Paquete 3 · te espera a vos":
+instalar los hooks por PC en `clientes` y `Usuario` (`--plan`, después sin él, reiniciar, `doctor` en `alfa`, `--sacar-viejo`); la pestaña
+real de VS Code; cruzar `block_secrets.ps1` en `clientes`; **borrar 4 transcripts con la clave FALSA de prueba** en `~/.claude/projects`
+(`grep -rl "ghp_FALSO" ~/.claude/projects`; el clasificador no dejó que una sesión los borre); repasar las ⚠️ de D2.2, D3.1 y D3.3; borrar
+el repo temporal `jrobilara/vibe-chats-paso`.
 
 ## Cosas que muerden y no están en ningún otro doc
 
-- 📉 **Cuota**: D3.2 cortó una vez a mitad (los dos encargos frenaron y se retomaron con `SendMessage` al renovar, sin perder nada). G5
-  tardó ~2 h (la medición empezó con 308 frenos). Las mutaciones: G3 74 min, G6 40, G5 30, G4 25.
-- 🧪 **Con dos encargos Opus a la vez la PC se arrastra**: 4 archivos de prueba de G6 tardaron 11-26 min (solos, ~2). La suite entera sola: 10 min.
+- ⏱️ **Los encargos Opus se cuelgan** ("stalled: no progress for 600s"): se retoman con `SendMessage` y siguen, sin perder trabajo. Un
+  encargo que terminó con trabajo de fondo vivo (una mutación), pararlo con `TaskStop` para que la PC no se arrastre.
+- 🧪 **La suite entera tarda ~27 min** (2.121 pruebas) y la de `barreras` sola ~20 con la PC cargada: siempre en segundo plano.
 - 🗂️ **El corpus no viaja** (secretos reales): `C:\Users\Usuario\vibe-historial\`. Cada encargo copia `correr.cjs` a su subcarpeta del
-  scratchpad y lo corre con `--corpus` absoluto y `--cwd-raiz` propio (así nada escribe en vibe-historial).
-- 🗂️ **Cada encargo, su worktree en `scratchpad/<gN>/wt` y su carpeta**: anduvo sin pisarse. Un archivo vacío `r2.txt` apareció en la raíz
-  de vibe-kit mientras corrían G4 y G5 (algún `2>` con el `cwd` mal): se borró. Si vuelve a pasar, mirar el `cwd` de los encargos.
-- 🗄️ **vibe-research está clonado** en `Desktop\Proyectos\vibe-research`. La cuenta de la notebook (`jrobilara`) no tiene acceso.
-- 🧪 **`claude -p` desde Git Bash con un prompt que empieza con `/`**: `MSYS_NO_PATHCONV=1`. En `-p` un clon que no es de confianza ignora el
-  `permissions.allow` del proyecto.
+  scratchpad y lo corre con `--corpus` absoluto y `--cwd-raiz` propio.
+- 🗂️ **Cada encargo, su worktree en `scratchpad/<x>/wt`**, con el `cwd` adentro: anduvo sin pisarse.
+- 🧪 **`claude.exe`** está en la extensión de VS Code (`…/anthropic.claude-code-*/resources/native-binary/`), no en el PATH; con un `HOME`
+  falso da "Not logged in": la PC falsa va por `--settings`. Prompt que empieza con `/` → `MSYS_NO_PATHCONV=1`.
 - 🧪 **Los repos de prueba se miran con Bash, nunca con Read**. La suite: `node --test "kit/**/*.test.cjs"`.
 - 🔑 **Identidad de git**: `guido.camera.eq@gmail.com`. Nunca `eq.chatgpt`. Los repos de prueba, `kit-pruebas`.
 - 📬 **El Hub pushea a este repo desde otra sesión**: `git fetch` antes de cerrar. 🔴 **vibe-kit es PÚBLICO**: gitleaks antes de cada push.
 
 ## Bloqueos
 
-Ninguno para D3.3.
+Ninguno para D4.1.

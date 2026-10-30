@@ -115,6 +115,9 @@ manual de actualización; de ahí en más, "actualizate".)*
 *"qué skills tengo"* (censo), *"actualizá las skills"* (update del menú con diff),
 **`actualizate`** (el propio kit se baja lo último del repo y se auto-actualiza), *"agregá tal
 skill al menú"* (la investiga primero — nada entra sin curaduría).
+**Frenos de la PC** (kit v3, en construcción): *"instalar hooks por PC"* (el corrector de secretos en toda
+la máquina; primero te muestra el plan, y se deshace byte a byte) y *"corré el doctor"* (dice qué anda y
+qué no, sin tocar nada). El detalle, en `kit/skills/arquitecto-skills/SKILL.md`.
 
 ### 🔧 "Quiero cambiar algo del método / del Arquitecto / del menú"
 Chat nuevo **en la raíz de este repo** → pedilo. La regla la sabe Claude: se edita en `kit/`,
@@ -164,6 +167,7 @@ de la anterior en `tips/tanda-2026-10-chats.md` §0; lo ya hallado en `D:\vibe-h
 | `/docs-fyd` | Documenta el repo para la auditoría FyD (te pregunta por opciones lo que el código no sabe) |
 | `docs-fyd auditar` | Chequeo antes de entregar a FyD: qué quedó viejo, dudas abiertas, secretos — no escribe |
 | `actualizate` | El Equipador baja lo último del repo y se actualiza a sí mismo |
+| `instalar hooks por PC` · `corré el doctor` | El Equipador pone los frenos de la PC (con plan y vuelta atrás) · revisa qué anda |
 | *(pegar links en `observatorio/extractor/`)* | Informe de tips con veredictos, listo para procesar |
 
 ## Dónde profundizar

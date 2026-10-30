@@ -1,7 +1,7 @@
 # SPEC delta: paquete 3 — seguridad: corrector de secretos, hook de git, preguntas de `sensible:`, pre-commit, `cargar-secreto`, hooks por PC y `doctor` mínimo — vibe-kit
 Ningún agente ve, imprime ni commitea una clave; ningún git borra trabajo ni esquiva el pre-commit; las 5 de A preguntan solo donde la
 ficha dice que duelen; y si un freno se rompe, frena.
-- Estado: **READY — sellado sin Guido (provisorio)**, 2026-10-29, por el director D3.1, después de la ronda 2 del red team sin ALTOS. Guido lo
+- Estado: **✅ IMPLEMENTADO 2026-10-30** (D3.1-D3.3; lo que espera a Guido, en Pendientes del tracker) · **READY — sellado sin Guido (provisorio)**, 2026-10-29, por el director D3.1, después de la ronda 2 del red team sin ALTOS. Guido lo
   repasa al volver; todo se deshace antes del tag
 - Fecha: 2026-10-29 · Misión: 5, director **D3.1**, sin Guido (tracker, "Cambios al plan", 2026-10-29)
 - Plano: [`SPEC-0-kit-v3.md`](SPEC-0-kit-v3.md), orden 3 = **P4.3-4.7, P6.6, P6.7, "instalar hooks por PC" (P2.2), `doctor` mínimo (P2.3)**,
@@ -45,7 +45,7 @@ Abreviaturas: **`m/`** = `kit/molde/`, **`eq/`** = `kit/skills/arquitecto-skills
 | Hook de git (4.4) · las 5 de A (4.5, 6.7) | `m/hooks/git-seguro.cjs` · `sensible.cjs` | `.claude/hooks/` del proyecto | `settings.json` del molde |
 | Recorrido de comandos · guardia de `db` (6.6) | `m/hooks/lib/comando.cjs` · `db-guardia.cjs` | ídem | — · el `db` de cada stack (orden 4) |
 | pre-commit, pre-merge-commit, pre-push (4.6) | `m/githooks/` | `.githooks/` (con `+x`) | `core.hooksPath`, el arranque |
-| Corrector (4.3) · `cargar-secreto` | `eq/pc/` (`secretos.cjs`, `lib/`, `cargar-secreto.sh`/`.ps1`) | `<home>/.claude/hooks/kit/` | `instalar-hooks-pc.cjs` |
+| Corrector (4.3) · `cargar-secreto` | `eq/pc/` (`secretos.cjs`, `lib/`, `cargar-secreto.sh`/`.ps1`) | `<home>/.claude/hooks/kit/` | `instalar-hooks-pc.cjs` — **✅ D3.3** |
 | Instalador y `doctor` | `eq/scripts/` | `~/.claude/skills/…` (`kit-sync`/Equipador) | — |
 
 - `m/githooks/**` → `.githooks/**`, ejecutable (`update-index --chmod=+x`). `pc/` no se instancia.
@@ -282,13 +282,13 @@ el código de `niega-aprobar.cjs` (su registro pasa a exec).
 | G4 | Opus | `sensible.cjs` con el caché, `kit.ejemplo.md`, y su medición — **✅ D3.2** | `m/hooks/sensible.cjs`, `m/kit.ejemplo.md`, sus pruebas | 2, 3, 6, 7, 14 | G2 · ∥ G3, G5 |
 | G5 | Opus | `secretos.cjs`, `pc/lib/`, prompts al corpus, y su medición — **✅ D3.2** | `eq/pc/secretos.cjs`, `eq/pc/lib/**`, sus pruebas | 2, 3, 4, 13, 14 | G2 · ∥ G3, G4 |
 | G6 | Opus | `--indice`, `--rango`, ids de D-3 — **✅ D3.2** | `m/hooks/lib/{barreras,candado,cambios}.cjs`, `m/scripts/estructura.cjs`, sus pruebas | 2, 8 | ∥ G2 |
-| G7 | Opus | githooks, `hooksPath`, líneas de F, `settings.json` (todo en exec), `DENY_FABRICA`, `/cierre` | `m/githooks/**`, `m/hooks/session-start.cjs`, `m/hooks/lib/{inyeccion,fabrica}.cjs`, `m/settings.json`, `m/skills/cierre/SKILL.md`, sus pruebas | 2, 3, 8, 16 | G3, G4, G6 (**único dueño de `settings.json`**) |
+| G7 | Opus | githooks, `hooksPath`, líneas de F, `settings.json` (todo en exec), `DENY_FABRICA`, `/cierre` — **✅ D3.3** | `m/githooks/**`, `m/hooks/session-start.cjs`, `m/hooks/lib/{inyeccion,fabrica}.cjs`, `m/settings.json`, `m/skills/cierre/SKILL.md`, sus pruebas | 2, 3, 8, 16 | G3, G4, G6 (**único dueño de `settings.json`**) |
 | G8 | Sonnet | `cargar-secreto.sh` y `.ps1` | `eq/pc/cargar-secreto.*` y su prueba | 9 | ∥ G2 |
 | G9 | Opus | `db-guardia.cjs` | `m/hooks/lib/db-guardia.cjs` y su prueba | 2, 10 | ∥ G2 |
 | G10 | Opus | `instalar-hooks-pc.cjs` | `eq/scripts/instalar-hooks-pc.cjs` y su prueba | 11 | G5, G8 |
-| G11 | Sonnet | `doctor.cjs` y el modo del Equipador | `eq/scripts/doctor.cjs` y su prueba, `eq/SKILL.md` | 12 | G7, G10 |
-| G12 | Sonnet | El paso de `rehacer.sh` | `pruebas/rehacer.sh` | 15 | G7, G9 |
-| G13 | Sonnet | Sesión real `claude.exe -p` (`MSYS_NO_PATHCONV=1`; la PC por `--settings`, también con `HOME`/`USERPROFILE` falsos) | clones en el scratchpad | 3, 5-9, 13 vivos | todo |
+| G11 | Sonnet | `doctor.cjs` y el modo del Equipador — **✅ D3.3** | `eq/scripts/doctor.cjs` y su prueba, `eq/SKILL.md` | 12 | G7, G10 |
+| G12 | Sonnet | El paso de `rehacer.sh` — **✅ D3.3** | `pruebas/rehacer.sh` | 15 | G7, G9 |
+| G13 | Sonnet | Sesión real `claude.exe -p` (`MSYS_NO_PATHCONV=1`; la PC por `--settings`, también con `HOME`/`USERPROFILE` falsos) — **✅ D3.3** | clones en el scratchpad | 3, 5-9, 13 vivos | todo |
 | RF | Opus | Revisor frío | nada | 18 | G13 |
 
 Paralelo solo donde dice, cada uno en su worktree. **Mutación**: G2-G7, G9, G10, en copias. La suite (15-20 min), el director tras cada
@@ -378,6 +378,11 @@ Los cruces contra el SPEC-0 que piden decisión son D-1, D-2, D-5, D-6, D-8 y D-
 - **Lo que el revisor frío de D3.3 dejó afuera** (de nicho): git por `xargs`, `find -exec`, `submodule foreach` o `Start-Process`; un
   `git-<algo>` externo en el `PATH`; un alias de shell `!sh script.sh` ya guardado (se ve el `sh`, no el script); `git config --edit` de un
   humano; la clave en el `prompt` de un subagente (`Agent`/`Task`) o en una herramienta `mcp__*` (rf3-14; `secretos` no mira esos, D-9).
+- **De la segunda vuelta del revisor frío (RF-C2, RF-D2)**: extraer un archivo en la raíz (`tar -C .`, `unzip -d .`) pasa aunque traiga
+  `.claude/hooks/…` adentro (lo caza `barreras` al commit); `find` con `-prune` o filtros dentro de `-exec` se aproxima para el lado de frenar;
+  un `cd` dentro de un subshell se juzga desde los dos lados (falso positivo raro); `archivo-deny` no sigue el `cd` (`cd ~ && cat .ssh/id_rsa`);
+  un `aprobado` sin aplicar puede cubrir dos ramas huérfanas (igual pide el sello del dueño). **No hubo tercera vuelta**: desde el 2026-10-30
+  el revisor frío de cada paquete es una vuelta con tope (SPEC-0, "Ejecución").
 - **El pre-merge-commit no corre el candado** (rf3-1): un rol que mergea local y nunca pushea deja sus merges sin juzgar (sus commits, sí).
 - **husky y lefthook** (r2-3): husky pisa `core.hooksPath` en cada `npm install` (`hooks-path-ausente` lo caza en el próximo commit);
   lefthook escribe en `.githooks/` (`doctor` avisa). Cuántos repos de la flota los usan: NO VERIFICADO (piloto).

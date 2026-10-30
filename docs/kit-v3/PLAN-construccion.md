@@ -48,7 +48,7 @@ propuso partir con 26% usado). Si la app compacta, relee este tracker y su delta
 | 0 | Misión 4½: ordenar la casa, `v2.4.3` | 1 | ✅ 2026-10-27 |
 | 1 | La ficha del kit, el parser, `kit/VERSION`, los repos de prueba | 1 | ✅ 2026-10-28 ([`SPEC-paquete-1.md`](SPEC-paquete-1.md)) |
 | 2 | Documentos con tope, hook en node, candado, `cambios`, `/inicio` y `/cierre` v3, **la zona propia (P3.2)**, `pruebas/pedidos.md` | 2 | ✅ 2026-10-29 (D2.1 y D2.2; lo que espera a Guido, en Pendientes) ([`SPEC-paquete-2.md`](SPEC-paquete-2.md)) |
-| 3 | Seguridad: corrector de secretos, barreras, hooks por PC, `doctor` mínimo | 3 | 🔨 D3.1 y D3.2 hechos (en `main`: G2-G6, G8, G9); sigue D3.3 (G7, G10-G13, revisor frío) |
+| 3 | Seguridad: corrector de secretos, barreras, hooks por PC, `doctor` mínimo | 3 | ✅ 2026-10-30 (D3.1, D3.2, D3.3; **te espera**: instalar los hooks por PC en las dos PCs, la pestaña real, borrar 4 transcripts de prueba: Pendientes) ([`SPEC-paquete-3.md`](SPEC-paquete-3.md)) |
 | 4 | El Arquitecto v3, el script `worktree`, el sello, `formato-spec.md` | 1 | ⬜ |
 | 5 | Director/obrero, `/estado`, resumen del día, la mesa, subagentes | 2 | ⬜ |
 | 6 | Equipador v3, actualizador, adoptador, `doctor` completo | 1 | ⬜ |
@@ -74,7 +74,7 @@ cuántos lanzó y en qué modelo (por ejemplo `4 Sonnet · 2 Opus`): es la medid
 | D2.2 | Paquete 2, segunda mitad: candado, `cambios` base y su sello, la zona propia (P3.2), `/inicio` y `/cierre` v3 con `pedidos.md`, revisor frío | 2026-10-28/29 (sin Guido) | `vibe-kit M5 · D2.2 · Paquete 2, segunda mitad: candado, cambios, zona propia, /inicio y /cierre v3` | 6 Sonnet (F1, F5, F6 con 3 correcciones, F7, sesión real `-p`, diez pedidos ×2) · 6 Opus (red team ×2 rondas, F2, F3, F4, revisor frío ×3 vueltas, RF-fix ×3) | `12b7317`…el cierre | ✅ F1-F7 y los "hecho cuando" de 3.2, 3.10, 5.2, 6.1, 6.8a; 5.1 con salvedad (diez pedidos: 6 de 10). Red team r4-r5 (5 ALTOS) y revisor frío (6 ALTOS en tres vueltas) integrados; suite **verde** (cifra en el CHANGELOG); mutación por encargo 24/24 · 67/68 · 98/99 · 99/105 · 43/48 · 10/11 (vivos equivalentes, explicados) y control del director 3/3 + 3/3. Criterio 14 ✅; 6, 12, 17, 18, 20 con lo que falta escrito. **Decisiones sin Guido**: abajo |
 | D3.1 | Paquete 3: spec delta + red team (obligatorio), corrector, barreras, hooks por PC, `doctor` mínimo | 2026-10-29 (sin Guido; frenada por cuota) | `vibe-kit M5 · D3.1 · Paquete 3: seguridad — corrector, barreras, hooks por PC, doctor mínimo` | 4 Sonnet (G0b, G1 corpus, G2, G8) · 8 Opus (G0, redactor del delta, red team ×2 rondas, G9; G3, G4, G5, G6 frenados a medias) | `1116698`…el cierre parcial | 🔨 **A medias, punto de corte pedido por Guido por la cuota.** Delta **sellado sin Guido** (r1: 6 ALTOS integrados; r2: 0 ALTOS). G0 y G0b verdes: `onFailure: "block"` frena las cuatro fallas, la forma exec anda sin Git Bash. En `main`: **G2** `comando.cjs` (976 casos, mutación 384/384), **G8** `cargar-secreto` (38/38, corridas por el director), **G9** `db-guardia.cjs` (38/38 por el director, mutación 51/52, el vivo equivalente y sacado). **G3-G6 en ramas WIP** (Pendientes). Huella del `~/.claude/` real igual a la de la apertura. **Decisiones sin Guido**: abajo |
 | D3.2 | Paquete 3, segunda vuelta: terminar G3, G4, G5 y G6 desde sus ramas WIP (medición, mutación, pruebas), mergearlos y borrar las ramas | 2026-10-29 (sin Guido, PC `Usuario`) | `vibe-kit M5 · D3.2 · Paquete 3, segunda vuelta: terminar G3-G6 desde sus ramas WIP` | 4 Opus (G3, G4, G5, G6; nunca más de dos a la vez; G3 y G6 retomados tras un corte de cuota) | `10cd6e8` · `6714f43` · `4b28b45` · `7fcc734` y el cierre | ✅ **G3-G6 en `main`, las cuatro ramas `wip/*` borradas de `origin`.** Pruebas corridas por el director: G3 41 (40 + 1 skip hasta que G7 registre el hook), G6 134, G4 306 (con `ficha.test`), G5 29. **Mutación**: G3 136/137 · G6 49/50 · G4 62/64 · G5 178/181 (todos los vivos equivalentes, explicados). **Medición, corpus `Usuario` (16.470 llamadas únicas)**: `git-seguro` 90 frenos, 0 falsos positivos; `sensible` 0 `ask`/`deny` con humano de día con modo (1 `deny` correcto en bypass); `secretos` 38 frenos + 1.003 prompts con 0 frenos, 0 falsos positivos (empezó en 308: corregido). Suite: cifra en el CHANGELOG. **Decisiones sin Guido**: abajo |
-| D3.3 | Paquete 3, cierre: G7, G10, G11, G12, G13, revisor frío, `/cierre` completo | | `vibe-kit M5 · D3.3 · Paquete 3, cierre: githooks, instalador, doctor, sesión real, revisor frío` | | | |
+| D3.3 | Paquete 3, cierre: G7, G10, G11, G12, G13, revisor frío, `/cierre` completo | 2026-10-29/30 (sin Guido, PC `Usuario`, ~9 h) | `vibe-kit M5 · D3.3 · Paquete 3, cierre: githooks, instalador, doctor, sesión real, revisor frío` | 3 Sonnet (G11, G12, G13) · 14 Opus (G7, G10, G5b, G6b, revisor frío ×2 vueltas, RF-A, RF-B, RF-C, RF-D, RF-A2, RF-B2, RF-C2, RF-D2; dos se colgaron y se retomaron) | `797eddc`…`387f481` y el cierre | ✅ **G7** githooks con candado doble y gitleaks, todos los hooks registrados en forma exec; **G10** instalador por PC (`--plan`, `--quitar` byte a byte, `--sacar-viejo`); **G11** `doctor` (14 chequeos); **G12** `rehacer.sh` con el paso "orden 3"; **G13** sesión real con `claude.exe` (niega-aprobar en bypass, `salir-del-worktree` y `frenos-del-proyecto` vivos); G5b y G6b de yapa. Pendientes a-g de D3.2 y a-d de D2.2 cerrados salvo (e), que es de `clientes`. Revisor frío: dos vueltas, todo lo del día normal arreglado; el resto a "no cierra". Suite y mutaciones: cifras en el CHANGELOG. Huella del `~/.claude/` real igual a la de la apertura. **Decisiones sin Guido**: arriba |
 | D4.1 | Paquete 4: spec delta + red team, Arquitecto v3, sello, `formato-spec.md`, `worktree` y `.kit-rol` | | | | | |
 | D5.1 | Paquete 5, primera mitad: spec delta + red team, el canon director/obrero y sus correctores | | | | | |
 | D5.2 | Paquete 5, segunda mitad: `/estado`, resumen del día, subagentes, `CLAUDE.md` por criterios, la mesa | | | | | |
@@ -243,6 +243,28 @@ D3.3 corrió sin Guido, con su autorización previa (su prompt, abajo): como D3.
 - (e) de D3.2: los regex de los cinco de `block_secrets.ps1` siguen **NO VERIFICADOS** contra el archivo de `clientes` (no está en esta PC):
   te queda a vos. Lo local (`anti-secretos.js` de `Usuario`), cruzado y cerrado en G5b. (g): cerrado (el caché sigue `include.path`).
 
+**Lo que decidió el revisor frío** (dos vueltas, Opus; arreglos RF-A…D y RF-A2…D2, cada uno con pruebas, mutación y la medición del corpus):
+
+- ⚠️ **RF-A · el `pre-merge-commit` no corre el candado** (rf3-1): un merge local con una barrera cambiada lo juzga el `pre-push`, por padre.
+  *Por qué*: el candado en el merge frenaba merges legítimos (dos PCs, `pull`). Riesgo escrito en "no cierra": un rol que mergea y nunca pushea.
+- ⚠️ **RF-A2 · gitleaks no corre sobre git sino sobre las líneas agregadas** (`gitleaks dir` en un temporal), con el `.gitleaks.toml`
+  commiteado: un atributo `-diff`, un `textconv` o un diff externo ya no esconden una clave, y una config del disco distinta no cuenta.
+- ⚠️ **RF-A/A2 · todo lo que escribe un githook, verde o rojo, va a `<git-common-dir>/kit-frenos.log`**, no al `frenos.log` versionado
+  (antes ensuciaba el árbol y trababa el `pull --rebase`).
+- ⚠️ **RF-B/B2 · `git-seguro` frena más**: alias con `--no-verify` (resueltos como git 2.54: `alias.x.command`, mayúsculas), `HOME`/`XDG_CONFIG_HOME`
+  delante de git, `GITLEAKS_*`/`NODE_*` cuando llegan al git, `core.attributesFile`/`--attr-source`, `git rm -f` de carpetas-freno, la red de
+  rescate, y **`--orphan` en sesión de agente**. Medición: 0 diferencias en 11.304 llamadas.
+- ⚠️ **RF-C2 · `secretos` deja pasar más al obrero**: extraer un archivo en la raíz (`tar -C .`, `unzip -d .`), `find -name … -delete` cuando el
+  filtro no puede agarrar un freno, y `cp -r <dir>/.` de una carpeta sin `.claude`. Y **sigue los `cd`** (`cd .claude && echo > settings.json`
+  ahora frena). Medición: humano 0 diferencias; obrero, 8 falsos positivos menos.
+- ⚠️ **RF-D2 · `barreras` juzga una rama huérfana** contra la ref vigente: lo que trae se mira; lo que no trae no cuenta como borrado (una
+  `gh-pages` vaciada queda verde). Una prueba vieja cambió de verde a rojo: era el hueco.
+- RF-C · `secretos` cuida también los frenos del checkout principal y de los otros worktrees, y deja pasar `$PWD`; `--quitar` repone el
+  anti-secretos viejo. RF-D · `barreras` da el `anotar-sha` listo tras un rebase; `sensible` matchea las banderas en cualquier lugar.
+- **"De D3.2, fuera del paquete"**: (a) la exención (b) con `publicas:` sin `aprobado` **no se toca** (es la adopción; riesgo en "no cierra");
+  (b) `barreras` en un repo sin ningún commit **arreglado** (RF-D, afinado en RF-D2: sin commits = sin `HEAD` y sin ninguna rama).
+- **No hubo tercera vuelta**: Guido, al ver ~9 h, puso el tope (una vuelta por paquete; SPEC-0, "Ejecución"). Lo que la segunda dejó, a "no cierra".
+
 ## Abrir D3.1 sin Guido (el prompt)
 
 Guido abre un chat nuevo en vibe-kit, en Opus, pega esto y se va. Es el de D2.2 con lo que cambia para el paquete 3:
@@ -333,6 +355,35 @@ ramas `wip/*` borradas). Es el prompt de D3.1 con lo que cambia; las reglas de s
 >    completo (kit-sync LIMPIO, docs, diario, el chat al privado, gitleaks, commit y push) con el "Próximo paso" en D4.1 y su título. En
 >    el resumen final, primero "Decisiones sin Guido" y después lo que me espera a mí.
 
+## Abrir D4.1 sin Guido (el prompt)
+
+*(Armado en el cierre de D3.3, 2026-10-30, con lo que D3.3 aprendió: el revisor frío con tope.)* En la PC `Usuario`, en Opus, chat nuevo en vibe-kit.
+
+> inicio — misión 5, D4.1: el paquete 4 entero, sin mí.
+>
+> Me voy y te dejo trabajando solo. Te autorizo por adelantado a lo mismo que a D3.1-D3.3 (el prompt de D3.1, en el tracker, "Abrir D3.1
+> sin Guido"): después del /inicio no esperás mi OK, decidís con la recomendada, anotás en "Decisiones sin Guido" de una sección D4.1 nueva
+> (las ⚠️ arriba), no cortás por contexto, no tocás el `~/.claude/` real (todo lo que instale, con un HOME falso), y lo que necesita una
+> persona va a Pendientes. Lo que cambia:
+>
+> 1. **Alcance: el paquete 4** (SPEC-0, orden 4): el Arquitecto v3, el sello, `formato-spec.md`, el script `worktree` y `.kit-rol`. Primero
+>    **el spec delta** (`docs/kit-v3/SPEC-paquete-4.md`, como el del 3), con **red team obligatorio** (toca permisos: el rol de cada worktree),
+>    hasta 2 rondas; lo **sellás vos** ("sellado sin Guido", sin ALTOS abiertos) y yo lo repaso al volver. Después los encargos.
+>    Entran también: "Paquete 4 · de D2.2" de Pendientes (el Arquitecto abre diciendo el tamaño como primera línea; los diez pedidos tienen
+>    que dar 10 de 10) y "Paquete 4 · de D3.3" (`worktree cerrar` no se traba con el `frenos.log` del obrero).
+> 2. **El revisor frío: UNA vuelta, con tope** (SPEC-0, "Ejecución"). Arreglás en el paquete solo lo que rompe el día normal o deja pasar una
+>    clave sin que nadie lo intente; lo rebuscado va a "Lo que esto no cierra" del delta, sin arreglo. Sin segunda vuelta.
+> 3. **La PC ya está preparada** (kit-sync LIMPIO, repos de prueba, corpus en `C:\Users\Usuario\vibe-historial\`). Verificalo en el /inicio.
+> 4. **De a dos Opus como máximo** (los Sonnet mecánicos no cuentan). Cada encargo en su worktree en `scratchpad/<x>/wt`, con el `cwd`
+>    adentro de su subcarpeta. **Mutación con tope de ~45 min por encargo**: muta las reglas que deciden y anota el resto. Si un encargo se
+>    cuelga o la cuota corta, retomalo con un mensaje ("seguí desde donde quedaste"), no lo relances de cero.
+> 5. Leés cada diff, corrés vos las pruebas de cada encargo y la suite entera al final, en segundo plano. Aceptado → merge a `main`,
+>    gitleaks, commit y push.
+> 6. Las pruebas que necesitan una persona (pestaña real, la otra PC) van a Pendientes con qué tengo que mirar y qué correr.
+> 7. Al terminar, la fila del paquete 4 en ✅ con lo que me espera, **el prompt de D5.1 sin mí** armado en el tracker como este, y /cierre
+>    completo (kit-sync LIMPIO, docs, diario, el chat al privado, gitleaks, commit y push) con el "Próximo paso" en D5.1 y su título. En el
+>    resumen final, primero "Decisiones sin Guido" y después lo que me espera a mí.
+
 ## Paralelizar: decidido que no (DP, 2026-10-29)
 
 **La misión 5 sigue en secuencia: un director por vez, en el orden de la tabla de arriba.** Guido: "Prefiero hacerlo bien y que tarde
@@ -364,36 +415,31 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
 - **Paquete 2 · para D2.2** (de la construcción de D2.1): (a) `hook-escritura: molde` va sin hash: **decidido en D2.2, sigue así hasta
   el orden 6** (Decisiones sin Guido); (b) el hash de `settings`: lo rehace F7 con `hashPieza`; (c) la carpeta hermana desde un worktree: F7;
   (d) pasó al paquete 3.
-- **Paquete 3 · lo que sigue es D3.3** (G7, G10, G11, G12, G13, el revisor frío y el `/cierre`; los briefs en "Los encargos" del delta). En
-  `main` ya están G2-G6, G8 y G9 (D3.1 y D3.2). **El corpus del historial no viaja** (tiene secretos reales): en `Usuario` vive en
-  `C:\Users\Usuario\vibe-historial\` (16.470 llamadas únicas; no se compara contra las cifras de `clientes`).
-- **Paquete 3 · de D3.2, para D3.3** (lo que dejaron G3-G6 y es de otro encargo): (a) **G7** registra `git-seguro` y `sensible` en
-  `settings.json` en forma exec con `timeout: 20` y `onFailure: "block"`: la prueba "sin node" de `git-seguro.test.cjs` se activa sola y lo
-  exige; (b) **G7, el runner del pre-push**: `--rango` sale 2 si el remoto tiene un sha que esta PC no (remoto adelantado, force push) → tiene
-  que darlo como rojo con motivo; y un `aprobado` que vive solo en la rama que se pushea (no en `HEAD`) da un rojo de más: correrlo con esa
-  rama, o aceptarlo; (c) **G10** registra `secretos` (el caso "sin node" depende de ese registro); (d) **G13/revisor frío**: `frenos-del-proyecto`
-  y `salir-del-worktree` no se midieron contra el historial con rol obrero (forzar el `cwd` vuelve todo `cd` "otro repo"): medirlos con el
-  `cwd` real de cada llamada, o en la sesión real; (e) **NO VERIFICADO**: los regex de los cinco de `block_secrets.ps1` en `secretos.cjs`
-  son los del WIP de D3.1; cruzarlos contra el archivo de `clientes` en esa PC; (f) `secretos` no cubre un heredoc sin comillas que imprime
-  `$X` en el cuerpo; (g) la huella del caché de `sensible` no sigue los `include.path` (git-seguro niega escribirlos).
-- **Paquete 3 · de D3.2, fuera del paquete** (vienen de antes de G6): la exención (b) de `barreras` compara solo `frenos`, `sensible` y
-  `autorizado`, así que la ficha puede nacer con `publicas:` cargado sin `aprobado` (es la adopción; gramática de D2.2); y `barreras` a secas
-  en un repo sin ningún commit da rojo con la ficha de fábrica. Decidir en el revisor frío de D3.3 si se tocan.
-- **Paquete 3 · de D2.2**: (a) `KIT_PLAZO_ARRANQUE_MS` en `doctor` (era la (d) de D2.1); (b) el pre-commit corre `estructura.cjs` **desde
-  la versión de `origin/<rama por defecto>`**, no la del disco (r4-3: un candado editado y corrido en el mismo commit se aprueba solo); (c)
-  `niega-aprobar.cjs` en `bypassPermissions` **no se probó con `claude.exe`**: el clasificador del modo `auto` frenó lanzar una sesión en bypass
-  ("Create Unsafe Agents") y F3 lo probó con `dontAsk`, que va por el mismo camino; en bypass lo cubren las pruebas; (d) del revisor frío
-  de D2.2: el hook de git de 4.4 suma `git update-index` (skip-worktree), `git reset`/`rebase` de la rama por defecto (rf-16) y `cd` al checkout
-  principal desde un worktree (rf-5); en el pre-commit, lo pendiente de `barreras` es solo el índice (rf-10); y lo ya pusheado se juzga en un
-  pre-push (rf-7).
+- **Paquete 3 · te espera a vos, Guido** (D3.3 no lo podía hacer sin una persona; **no traba a D4.1**):
+  1. **Instalar los hooks por PC, en `clientes` y en `Usuario`**: `node ~/.claude/skills/arquitecto-skills/scripts/instalar-hooks-pc.cjs --plan`
+     (mirá qué va a tocar), después lo mismo sin `--plan`, reiniciá VS Code, y `node ~/.claude/skills/arquitecto-skills/scripts/doctor.cjs`
+     parado en `../vibe-kit-pruebas/alfa` (tiene que dar todo ✓ o ⚠ explicado). Si está bien, `--sacar-viejo` saca el anti-secretos viejo.
+     Si algo traba, `--quitar` deja el `settings.json` byte a byte como estaba.
+  2. **En una pestaña real de VS Code en `alfa`** (filas 5-6 de "Lo prueba una sesión real" del delta): qué `permission_mode` dice el
+     arranque; pedile `vercel --prod` y fijate que aparezca la ventana de `sensible`; y que un hook roto frene (`onFailure`/exec).
+  3. **Windows sin Git Bash** (fila 7): si tenés una PC así a mano; si no, queda para el piloto.
+  4. **(e) de D3.2**: en `clientes`, cruzar los cinco regex de `block_secrets.ps1` con los de `secretos.cjs` (o pedírselo a una sesión allá).
+  5. **Borrar 4 transcripts con la clave FALSA de prueba** (`ghp_FALSO…`, no es real) que dejó G13 en `~/.claude/projects` (carpetas
+     `…scratchpad-g13-c7-sec` ×3 y `…scratchpad-g13-c12-sinremoto-sinficha` ×1; `grep -rl "ghp_FALSO" ~/.claude/projects`). El clasificador
+     frenó que una sesión los borrara: es tuyo.
+  6. La ruta de la app de escritorio en el `doctor` (NO VERIFICADO): con la app abierta, `doctor` tiene que decir `claude-code ✓`.
+  7. Repasar las ⚠️ de D2.2, D3.1 y D3.3 (arriba).
+- **Paquete 4 · de D3.3** (el "aparte" de la segunda vuelta del revisor frío): los renglones que escriben los hooks de sesión ensucian
+  `frenos.log` dentro del worktree obrero y traban `git worktree remove` (archivo modificado). Lo resuelve el script `worktree cerrar` del orden 4
+  (o que los hooks de sesión escriban en `<git-common-dir>`, como ya hacen los githooks desde RF-A2).
 - **Paquete 4 · de D2.2: los diez pedidos de P5.1 dieron 6 de 10** (`claude.exe -p` 2.1.309, `--permission-mode plan`, dos corridas por
   pedido, mismo veredicto). Los 4 chicos y los 2 con director, bien; **los 4 "módulo solo" invocan `/arquitecto` (la conducta correcta) pero
   sin escribir antes la línea del tamaño**, aunque la skill lo pide "antes de cualquier herramienta"; y los chicos la dicen al final, no al
   principio. *Arreglo propuesto para el orden 4*: que el Arquitecto v3 abra diciendo "esto es más que chico: …" como primera línea (es el
   que siempre llega). Evidencia: `pedidos/v2/` del scratchpad de D2.2 (no se guarda). El criterio 2 del kit queda sin tildar.
 - **Paquete 6 · de D2.2 (F4)**: la exención (a) de `barreras` da rojo con una regla de `settings` que el molde nuevo retira, porque sin el
-  molde viejo no la distingue de una propia: el actualizador tiene que pasarle también el molde viejo. Y la correspondencia de
-  `.githooks/**` y gitleaks con el molde es provisoria (el molde todavía no los trae; orden 3).
+  molde viejo no la distingue de una propia. **Resuelto en `barreras` en D3.3 (G6b, `--molde-viejo`)**: falta que el actualizador se
+  lo pase. Los `.githooks/**` y gitleaks ya están en el molde (G7).
 - **Paquete 6/7 · de D2.2**: en `claude -p` sobre una carpeta que no es de confianza, **Claude Code ignora el `permissions.allow` del
   proyecto** ("this workspace has not been trusted"): el actualizador y todo agente de fondo en un clon nuevo lo van a sufrir.
 - **Paquete 1 · menor**: una ficha en Latin-1 da "valor inválido" (sin eco) en vez de "guardala en UTF-8". Se arregla si aparece en la flota.
@@ -467,7 +513,8 @@ El tag `v3.0` no sale con uno sin tildar, salvo que Guido lo pase a fase 2 por e
 - [ ] 8 · El director no escribe ante un aviso sin novedad
 - [ ] 9 · "Poné al día la flota" devuelve una tabla por repo
 - [ ] 10 · Adoptar un repo viejo con un OK
-- [ ] 11 · La lista cerrada de lo que se frena, también en bypass
+- [ ] 11 · La lista cerrada de lo que se frena, también en bypass — *D3.3: los hooks del paquete 3 registrados en el molde (G7) y
+  vivos en `claude.exe -p` en bypass (G13); falta la pestaña real y los hooks por PC instalados (Guido)*
 - [ ] 12 · Los cambios de método de clase 2 quedan en `.claude/cambios/` — *D2.2: el script es el único camino (el `Write` a `cambios/`
   negado en `-p`), un `3-barrera` queda `propuesto` con su línea de "te espera" y `barreras` da rojo sin el sellado (caso a mano en `alfa`);
   falta que un agente aplique uno de clase 2 en una sesión real*
@@ -475,12 +522,14 @@ El tag `v3.0` no sale con uno sin tildar, salvo que Guido lo pase a fase 2 por e
 - [x] 14 · Ninguna skill con rutas absolutas, sesiones, ramas ni SHAs — 2026-10-29, D2.2: `candado:datos` verde sobre las skills del molde
   instaladas en `alfa` y `beta` (`estructura.cjs todo` 0), con casos sí/no en sus pruebas
 - [ ] 15 · Lo `sensible:` pregunta solo en el paso que lo toca
-- [ ] 16 · Si un hook que niega falla, la acción se frena
+- [ ] 16 · Si un hook que niega falla, la acción se frena — *D3.3: los cinco que niegan con `onFailure: "block"` en el molde (G7) y
+  los cuatro casos de falla frenan en `-p` (G0); falta VS Code y la otra PC (Guido)*
 - [ ] 17 · Un obrero que edita sus frenos no se los saca — *D2.2: su commit da rojo en `barreras` (prueba) y los hooks leen la ficha de la
-  rama por defecto (D2.1); que el corrector frene la edición misma de los hooks es del orden 3 (4.3)*
+  rama por defecto (D2.1); que el corrector frene la edición misma de los hooks es del orden 3 (4.3)* — *D3.3: `frenos-del-proyecto` y `salir-del-worktree`
+  vivos en una sesión real de obrero (G13), siguiendo los `cd` (RF-C2); se tilda con el `worktree` del orden 4*
 - [ ] 18 · `cambios aprobar` se niega desde un worktree de obrero — *D2.2: se niega con cada `.kit-rol` de agente, por nombre y por ruta,
   fuera del principal y fuera de la rama por defecto (pruebas); el hook niega en `dontAsk` (`claude.exe -p`) y bypass (pruebas), y en `auto` pregunta (Guido, 2026-10-29);
-  sello a mano o de otra carpeta → rojo. **Falta**: la ventana en una pestaña real de Guido, bypass con `claude.exe`, y el resumen del día
+  sello a mano o de otra carpeta → rojo. **Falta**: la ventana en una pestaña real de Guido y (bypass con `claude.exe`: ✅ D3.3, G13) el resumen del día
   (orden 5)*
 - [ ] 19 · Una migración a `real` sin veredicto del revisor no corre
 - [ ] 20 · El actualizador respeta la zona propia de cada `settings.json` — *D2.2: `mezclarSettings` a tres puntas (pruebas) y el commit
