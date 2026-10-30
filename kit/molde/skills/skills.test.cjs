@@ -348,6 +348,41 @@ test('molde/CLAUDE.md: la sección "El tamaño del pedido" (P1.7), corta y sin a
   assert.ok(Buffer.byteLength(claude) <= 3500, `${Buffer.byteLength(claude)} bytes: el CLAUDE.md del molde tiene que seguir chico`);
 });
 
+test('molde/CLAUDE.md y /inicio paso 6: lo que sale de una charla con el dueño es más que chico, y más que chico siempre invoca /arquitecto, también de noche (D4.2 · pedidos 8 y 10)', () => {
+  const claude = fs.readFileSync(path.join(DIR_MOLDE, 'CLAUDE.md'), 'utf8').replace(/\r\n/g, '\n');
+  const paso6 = /^\d+\. \*\*El tamaño del pedido[^\n]*$/m.exec(TEXTOS.inicio);
+  assert.ok(paso6, 'el paso del tamaño existe');
+  for (const [donde, t] of [['molde/CLAUDE.md', claude], ['/inicio paso 6', paso6[0]]]) {
+    assert.match(t, /Lo que sale de una charla con el dueño \([^)]*\) es más que chico aunque termine en un documento/, `${donde}: la charla con el dueño`);
+    assert.match(t, /Más que chico (\*\*)?siempre invoca `\/arquitecto`(\*\*)?, también (si es para la noche|de noche) o sin el dueño/, `${donde}: siempre invoca, también de noche`);
+    assert.match(t, /si trabaja alguien solo y cómo, lo decide el Arquitecto/, `${donde}: quién trabaja lo decide el Arquitecto`);
+  }
+});
+
+test('inicio paso 8: más que chico invoca /arquitecto sin excepción, ni lo resuelve la sesión ni lo rebota (D4.2 · pedido 10)', () => {
+  const paso8 = /^\d+\. \*\*Seguir o preguntar\.\*\*[^\n]*$/m.exec(TEXTOS.inicio);
+  assert.ok(paso8, 'el paso 8 existe');
+  assert.match(paso8[0], /más que chico, invocás `\/arquitecto` sin excepción \(de noche, sin el dueño, "dejalo armado"\)/);
+  assert.match(paso8[0], /ni lo resolvés vos ni lo rebotás/);
+});
+
+test('el SKILL.md del Arquitecto mide el tamaño igual que la sesión: la charla con el dueño agranda (D4.2)', () => {
+  const sk = fs.readFileSync(path.join(DIR_KIT_SKILLS, 'arquitecto', 'SKILL.md'), 'utf8').replace(/\r\n/g, '\n');
+  assert.match(sk, /Lo que sale de una charla con el dueño \([^)]*\) es más que chico, aunque termine en un documento/);
+  assert.ok(Buffer.byteLength(sk) <= 6000, `${Buffer.byteLength(sk)} bytes: el SKILL.md del Arquitecto tiene que seguir en 6.000 o menos`);
+});
+
+test('modo-b B2: una pantalla lleva prototipo siempre, antes del spec, también en corto y con "dale con los defaults" (D4.2 · pedido 16)', () => {
+  const mb = fs.readFileSync(path.join(DIR_KIT_SKILLS, 'arquitecto', 'anexos', 'modo-b.md'), 'utf8').replace(/\r\n/g, '\n');
+  const h = mb.indexOf('## B2');
+  assert.ok(h >= 0, 'falta B2');
+  const resto = mb.slice(h + 3);
+  const b2 = resto.slice(0, resto.search(/^## /m));
+  assert.match(b2, /lleva prototipo siempre, antes del `SPEC\.md`\*\*: también en Modo B corto, con "dale con los defaults" \(saltea las preguntas, no el prototipo\) y aunque parezca chica/);
+  assert.match(b2, /Si nadie puede aprobarlo en el momento \(de noche, por ejemplo\), igual se arma y el OK del spec lo incluye/);
+  assert.match(mb, /todo a Supuestos, salvo el prototipo de pantalla \(B2\)/);
+});
+
 test('molde/CLAUDE.md, /inicio y /cierre: ni rastro de la regla vieja de tamaño (P1.7, criterio 3)', () => {
   // El patrón se arma en pedazos: entero, este archivo rompería el grep del criterio 3 sobre kit/.
   const vieja = new RegExp(['bolsill' + 'o', 'en una ' + 'tarde', 'o ries' + 'gosa', 'toca permisos\\/datos\\/' + 'plata'].join('|'), 'i');

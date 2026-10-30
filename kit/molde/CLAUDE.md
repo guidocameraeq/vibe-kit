@@ -24,6 +24,8 @@ La única copia del mapa: `docs/README.md` y el resto apuntan acá. En la raíz 
 
 Ante un pedido nuevo, **la primera línea de tu respuesta es el tamaño**, sin preguntar. Dos preguntas: ¿hace falta algo más que el pedido y el `git diff` para retomarlo? ¿lleva más de una sesión? Ninguna sí: *"chico, lo hago acá"*. Alguna sí: *"esto es más que chico: llamo al Arquitecto"*, e invocás `/arquitecto`. Tocar plata, permisos o datos reales no lo agranda: eso lo cuidan los frenos, no un spec.
 
+Lo que sale de una charla con el dueño (una guía, un procedimiento, algo que está en su cabeza) es más que chico aunque termine en un documento: retomarlo pide esa charla. Más que chico **siempre invoca `/arquitecto`**, también de noche o sin el dueño: si trabaja alguien solo y cómo, lo decide el Arquitecto.
+
 ## Evidencia con datos reales
 
 La evidencia con datos reales (capturas, exports, volcados) vive **fuera del repo, con registro** (ruta, tramo, quién la borra), y se borra al cerrar.
