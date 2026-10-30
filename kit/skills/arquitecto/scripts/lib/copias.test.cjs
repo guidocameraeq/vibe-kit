@@ -20,6 +20,26 @@ test('lib/ficha.cjs es idéntica byte a byte a la del molde', () => {
   assert.ok(fs.readFileSync(path.join(LIB, 'ficha.cjs')).equals(fs.readFileSync(par)), 'lib/ficha.cjs se desvió del molde — volvé a copiarla byte a byte');
 });
 
+// SPEC-paquete-5 "sello.cjs al molde" (D4-9, D5-7; criterio 8): la copia del molde (la usa `encargo.cjs presentar`) es idéntica
+// byte a byte. Se cambia acá, en el Arquitecto, y se copia: nunca al revés.
+const identicas = (a, b) => Buffer.isBuffer(a) && Buffer.isBuffer(b) && a.equals(b);
+
+test('molde/hooks/lib/sello.cjs es idéntica byte a byte a lib/sello.cjs, y se alcanza sola', () => {
+  const par = path.join(MOLDE_LIB, 'sello.cjs');
+  assert.ok(fs.existsSync(par), 'no encuentro kit/molde/hooks/lib/sello.cjs');
+  const nuestra = fs.readFileSync(path.join(LIB, 'sello.cjs'));
+  assert.ok(identicas(nuestra, fs.readFileSync(par)), 'kit/molde/hooks/lib/sello.cjs se desvió de la del Arquitecto — volvé a copiarla byte a byte desde lib/sello.cjs');
+  const deMolde = requiresDe(par);
+  assert.deepEqual(deMolde.filter((r) => !/^(node:)?[a-z_]+$/.test(r)), [], 'la copia del molde tiene que usar solo módulos de node');
+  // Un byte cambiado en cualquiera de las dos → distintas (lo que haría rojo la prueba de arriba).
+  for (const i of [0, Math.floor(nuestra.length / 2), nuestra.length - 1]) {
+    const otra = Buffer.from(nuestra);
+    otra[i] ^= 0x01;
+    assert.ok(!identicas(nuestra, otra), `el byte ${i}`);
+  }
+  assert.ok(!identicas(nuestra, nuestra.subarray(0, nuestra.length - 1)), 'un byte de menos');
+});
+
 test('lib/ se alcanza sola, y sello.cjs usa solo node estándar', () => {
   for (const f of fs.readdirSync(LIB).filter((x) => x.endsWith('.cjs') && !x.endsWith('.test.cjs'))) {
     for (const r of requiresDe(path.join(LIB, f))) {
