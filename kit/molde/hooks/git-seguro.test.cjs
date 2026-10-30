@@ -298,6 +298,55 @@ const FRENA = [
   ['variables-peligrosas', '$env:Path += ";C:\\x"; git status', true],
   ['variables-peligrosas', 'Set-Item Env:GIT_DIR x', true],
   ['variables-peligrosas', '[Environment]::SetEnvironmentVariable("GIT_DIR", "x", "User")', true],
+  // rf3-2, rf3-3: lo que lee gitleaks y lo que carga node en los hooks
+  ['variables-peligrosas', 'GITLEAKS_CONFIG=/x git commit -m x'],
+  ['variables-peligrosas', 'export GITLEAKS_CONFIG=/x'], // como las otras: la asignación sola
+  ['variables-peligrosas', '$env:GITLEAKS_ENABLE_RULE = "x"', true],
+  ['variables-peligrosas', 'NODE_OPTIONS=--require=/x/y.js git commit -m x'],
+  ['variables-peligrosas', 'NODE_PATH=/x git push'],
+  ['variables-peligrosas', '$env:NODE_OPTIONS = "--require x"; git commit -m x', true],
+  ['variables-peligrosas', '[Environment]::SetEnvironmentVariable("NODE_OPTIONS", "--require x"); git push', true],
+  // rf3-4: el alias en la llamada, o guardar uno que esquiva
+  ['alias', "git -c alias.pp='push --no-verify' pp origin main"],
+  ['alias', "git -c alias.cc='commit --no-verify' cc -m x"],
+  ['alias', 'git -c alias.st=status st'],
+  ['alias', 'git -c Alias.PP=push pp'],
+  ['alias', 'git --config-env=alias.pp=VAR pp'],
+  ['alias', 'git --config-env alias.pp=VAR pp'],
+  ['alias', "git config alias.x 'commit --no-verify'"],
+  ['alias', "git config --global alias.x 'commit -n'"],
+  ['alias', "git config --global alias.x 'commit -an'"],
+  ['alias', "git config alias.x 'push --no-verify'"],
+  ['alias', "git config alias.x '!sh -c \"git push\"'"],
+  ['alias', "git config alias.x '-c core.hooksPath=/dev/null commit'"],
+  ['alias', "git config set --global alias.x 'commit --no-verify'"],
+  ['alias', "git config --add alias.x '!x'"],
+  ['alias', "git config alias.x 'commit --no-verify'", true],
+  // rf3-11: git rm forzado sobre un árbol (CM-65)
+  ['rm-forzado', 'git rm -rf .'],
+  ['rm-forzado', 'git rm -r -f .'],
+  ['rm-forzado', 'git rm -r --force docs'],
+  ['rm-forzado', 'git rm -rf docs/'],
+  ['rm-forzado', "git rm -f '*.md'"],
+  ['rm-forzado', 'git rm -f -- :/'],
+  ['rm-forzado', 'git rm -rfq -- .'],
+  ['rm-forzado', 'git rm -f --pathspec-from-file=lista.txt'],
+  ['rm-forzado', 'git rm -rf .', true],
+  // rf3-13: la red de rescate
+  ['red-de-rescate', 'git gc --prune=now'],
+  ['red-de-rescate', 'git gc --prune=all'],
+  ['red-de-rescate', 'git gc --aggressive --prune=1.hour.ago'],
+  ['red-de-rescate', 'git reflog expire --expire=now --all'],
+  ['red-de-rescate', 'git reflog expire --expire-unreachable=now --all'],
+  ['red-de-rescate', 'git reflog expire --expire now --all'],
+  ['red-de-rescate', 'git reflog delete HEAD@{1}'],
+  ['red-de-rescate', 'git reflog drop main'],
+  ['red-de-rescate', 'git prune'],
+  ['red-de-rescate', 'git prune --expire=now'],
+  ['red-de-rescate', 'git -c gc.pruneExpire=now gc'],
+  ['red-de-rescate', 'git -c gc.reflogExpire=now gc'],
+  ['red-de-rescate', 'git config gc.reflogExpireUnreachable now'],
+  ['red-de-rescate', 'git gc --prune=now', true],
   ['variables-peligrosas', 'cmd /c "set GIT_DIR=x && git status"', true],
 ];
 const NO_FRENA = [
@@ -378,6 +427,41 @@ const NO_FRENA = [
   ['git config --local core.hooksPath .githooks'],
   ['git config core.hooksPath .githooks', true],
   ['git config core.longpaths true'],
+  // rf3-4, rf3-11, rf3-13, rf3-2/3: lo normal sigue pasando
+  ['git config alias.st status'],
+  ['git config --global alias.lg "log --oneline --graph"'],
+  ['git config alias.ci commit'],
+  ['git config --unset alias.x'],
+  ['git config --get alias.st'],
+  ['git config --get-regexp ^alias\\.'],
+  ['git -c core.longpaths=true status'],
+  ['git -c user.name=x -c user.email=y commit -m x'],
+  ['git rm --cached x'],
+  ['git rm -r --cached .'],
+  ['git rm -rf --cached docs'],
+  ['git rm archivo-limpio.txt'],
+  ['git rm -r docs'], // sin -f git se niega a borrar algo modificado
+  ['git rm -q -f docs/a.md otro.tsx'], // un archivo nombrado, como en restaurar-arbol
+  ['git rm -rfn .'],
+  ['git rm -rf --dry-run .'],
+  ['git gc'],
+  ['git gc --aggressive'],
+  ['git gc --prune'],
+  ['git gc --prune=2.weeks.ago'],
+  ['git gc --prune=never'],
+  ['git reflog'],
+  ['git reflog show main'],
+  ['git reflog expire --all'],
+  ['git reflog expire --expire=90.days.ago.weeks --all'],
+  ['git reflog expire --expire=3.months.ago --all'],
+  ['git prune -n'],
+  ['git prune --dry-run'],
+  ['git prune --expire=2.weeks.ago'],
+  ['NODE_OPTIONS=--max-old-space-size=4096 npm run build'],
+  ['export NODE_OPTIONS=--max-old-space-size=4096'],
+  ['$env:NODE_OPTIONS = "--max-old-space-size=4096"; npm run build', true],
+  ['NODE_ENV=test node x.js'],
+  ['git lfs pull'], // un git-<algo> externo, que no es alias
   ['git config pull.rebase true'], // humano: config-agente no aplica
   ['git config user.name "Prueba"'],
   ['git commit -m "fix: algo"'],
@@ -481,10 +565,73 @@ test('envueltos y escondidos: bash -c, cmd /c, powershell -Command, $( ), env, t
     ["& 'C:\\Program Files\\Git\\cmd\\git.exe' reset --hard", true],
     ['cmd /c "git stash"', true],
     ['if ($true) { git stash }', true],
+    // rf3-10: por ruta, con mayúsculas o con un escape de Bash
+    ['/mingw64/bin/git commit --no-verify -m x'],
+    ['"C:/Program Files/Git/cmd/git.exe" commit --no-verify -m x'],
+    ['C:/PROGRA~1/Git/cmd/GIT.EXE stash'],
+    ['g\\it stash'],
+    ['\\git stash'],
+    ['/mingw64/bin/g\\it commit --no-verify -m x'],
+    ['g\\it\\.exe reset --hard'],
+    ['GITLEAKS_CONFIG=x g\\it commit -m x'],
+    ['NODE_PATH=/x g\\it push'], // "hay un git en la llamada" también lo reconoce con el escape
+    ["& 'C:\\Program Files\\Git\\cmd\\GIT.exe' commit --no-verify -m x", true],
+    ['g`it stash', true],
   ]) {
     const r = decide(H, c, { ps });
     assert.equal(r.decision, 'deny', `${c}`);
   }
+});
+
+test('alias ya guardados (rf3-4): git <alias> se juzga por lo que corre de verdad; lo común pasa y no paga git', () => {
+  const d = repo();
+  g(d, 'switch', '-q', '-c', 'trabajo');
+  const alias = {
+    pp: 'push --no-verify',
+    cn: 'commit -n',
+    hp: '-c core.hooksPath=/dev/null commit',
+    pf: 'push --force origin main',
+    rh: 'reset --hard',
+    cadena: 'pp',
+    sh: '!git commit --no-verify',
+    shdir: '!GIT_DIR=/x git status',
+    shcd: '!cd . && git stash',
+    st: 'status -s',
+    lg: 'log --oneline',
+    shlog: '!git log --oneline | head -5',
+    raro: 'log; echo x',
+  };
+  for (const [k, v] of Object.entries(alias)) g(d, 'config', `alias.${k}`, v);
+  niega(d, 'git pp origin trabajo', 'no-verify');
+  niega(d, 'git cn -m x', 'no-verify');
+  niega(d, 'git hp -m x', 'hooks-path');
+  niega(d, 'git pf', 'push-force');
+  niega(d, 'git rh', 'reset-hard');
+  niega(d, 'git cadena', 'no-verify');
+  niega(d, 'git sh -m x', 'no-verify');
+  niega(d, 'git shdir', 'variables-peligrosas');
+  niega(d, 'git shcd', 'stash');
+  niega(d, 'git -C . pp', 'no-verify');
+  niega(d, 'git --no-pager rh', 'reset-hard');
+  niega(d, 'git -c core.hooksPath=/dev/null shlog', 'hooks-path'); // las opciones de afuera valen con un alias de shell
+  niega(d, 'git --exec-path=/x st', 'variables-peligrosas'); // y con uno común
+  g(d, 'config', 'alias.ps', 'push');
+  niega(d, 'git ps --force origin main', 'push-force'); // lo que sigue al alias se suma
+  pasa(d, 'git ps --dry-run origin trabajo');
+  niega(d, 'git raro', 'alias'); // git lo parte de otro modo: no se adivina
+  niega(d, 'git pp', 'no-verify', { ps: true });
+  pasa(d, 'git st');
+  pasa(d, 'git lg -5');
+  pasa(d, 'git shlog');
+  pasa(d, 'git noexiste');
+  pasa(d, 'git lfs pull');
+  // un alias no tapa a un subcomando de git (git lo ignora): ni se lee
+  g(d, 'config', 'alias.status', 'push --no-verify');
+  pasa(d, 'git status');
+  // lo común no corre git: con un git roto, git status pasa igual; un subcomando desconocido frena (no se sabe qué es)
+  const roto = { correr: () => ({ ok: false, codigo: null, stdout: '', error: 'sin-git' }), texto: () => null };
+  assert.equal(gs.decidir(entrada(d, 'git status'), { git: roto, anotar: () => '' }).decision, 'nada');
+  assert.deepEqual(gs.decidir(entrada(d, 'git pp'), { git: roto, anotar: () => '' }).casos, ['alias']);
 });
 
 // ---------------------------------------------------------------- los casos de Hermes (CM-65), portados
