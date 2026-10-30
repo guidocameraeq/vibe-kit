@@ -9,7 +9,7 @@ de escritura.
   al Arquitecto sin sello" (P5.1); más, del tracker, **"Paquete 4 · de D2.2"** (la línea del tamaño primero; 10 de 10), **"Paquete 4 · de
   D3.3"** (`cerrar` no se traba con `frenos.log`) y el NO VERIFICADO **"Orden 4 · `.kit-rol`"**. Diseño: H §4-§14, §17, §17bis, §19bis ·
   E §2-§3, §9 · B §5-§6 · F §9, §13.
-- Sello del Arquitecto: `arquitecto: 2026-10-30 · kit 2.4.3 · chequeos: tamaño — (paquete del método) · entorno — (sin ficha del kit) · tope ⚠️ (49,4 KB y 19 criterios; no partir: D4.1) · hash 5341840ebcd0`
+- Sello del Arquitecto: `arquitecto: 2026-10-30 · kit 2.4.3 · chequeos: tamaño — (paquete del método) · entorno — (sin ficha del kit) · tope ⚠️ (49,0 KB y 19 criterios; no partir: D4.1) · hash 5341840ebcd0`
 - Red team: **obligatorio** (RF-16: P6.2 toca credenciales; el sello es un permiso), Opus con `redteam-spec`, **una ronda** (ADR-029).
   Revisor frío Opus al cerrar, una vuelta, hasta 10 hallazgos con su escenario del día normal.
 

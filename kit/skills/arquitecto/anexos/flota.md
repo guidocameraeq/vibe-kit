@@ -1,6 +1,6 @@
 # La PC y la flota — las entradas que derivan
 
-Estas dos entradas **derivan, no ejecutan** (E §3): el Arquitecto reconoce el pedido, dice su línea y lo pasa a quien lo hace. No instala, no actualiza y no toca ningún repo ni `~/.claude/`. `<arq>` = `node ~/.claude/skills/arquitecto/scripts/arquitecto.cjs` (en PowerShell, `$HOME` en vez de `~`).
+Estas dos entradas **derivan, no ejecutan** (E §3): el Arquitecto reconoce el pedido, dice su línea y lo pasa a quien lo hace. No instala, no actualiza y no toca ningún repo ni `~/.claude/`. `<arq>` = `node "$HOME/.claude/skills/arquitecto/scripts/arquitecto.cjs"` (anda igual en Bash y en PowerShell).
 
 ## La PC
 
