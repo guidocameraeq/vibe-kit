@@ -300,6 +300,15 @@ test('inicio: el paso `ready --pendientes`, después de aprobados nuevos y antes
   assert.match(paso[0], /Si el script falla, una línea que lo dice y seguí/);
 });
 
+test('inicio: `cambió después del sello` no invoca a nadie: una línea y sigue (r1-11)', () => {
+  const paso = /^\d+\. \*\*Módulos sin sello\.\*\*[^\n]*$/m.exec(TEXTOS.inicio);
+  assert.ok(paso, 'el paso existe');
+  assert.match(paso[0], /Si lista `<x> · sin sello`: sin pedido/);
+  assert.match(paso[0], /Si lista `<x> · cambió después del sello`, \*\*no invoques a nadie\*\*: una línea \*"el spec de <x> cambió después del sello; si fue a propósito, corré `sello` de nuevo"\* y seguí/);
+  const rama = paso[0].slice(paso[0].indexOf('Si lista `<x> · cambió')).split('Si el script falla')[0];
+  assert.doesNotMatch(rama, /invocá `\/arquitecto`/, 'esa rama no invoca al Arquitecto');
+});
+
 test('inicio: el comando del Arquitecto existe, resuelto contra kit/skills/ del repo (no contra el ~/.claude/ real)', () => {
   const cs = comandosDeSkill(TEXTOS.inicio);
   assert.equal(cs.length, 1);
