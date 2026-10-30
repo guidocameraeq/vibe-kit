@@ -616,7 +616,8 @@ molde_paso() {
     git_pruebas -C "$d" update-index --chmod=+x .githooks/pre-commit .githooks/pre-merge-commit .githooks/pre-push
   fi
   # criterio 20: con --molde, la exención (a) deja pasar el commit del molde (0); sin --molde no hay exención (1, candado:barreras)
-  sal=$(cd "$d" && sin_config node .claude/scripts/estructura.cjs barreras --molde "$nuevo" --sin-log 2>&1) || rc=$?
+  local extra=(); [ "$paso" = 3 ] && extra=(--molde-viejo "$viejo")   # el 2b corre el estructura.cjs de D2.2, que no conoce la bandera
+  sal=$(cd "$d" && sin_config node .claude/scripts/estructura.cjs barreras --molde "$nuevo" "${extra[@]}" --sin-log 2>&1) || rc=$?
   if [ "$rc" -ne 0 ]; then
     echo "rehacer.sh: $x: estructura.cjs barreras --molde dio $rc en el paso $paso (esperaba 0):" >&2; printf '%s
 ' "$sal" >&2; exit 1
