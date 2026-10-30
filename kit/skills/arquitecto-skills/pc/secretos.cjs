@@ -535,6 +535,18 @@ function analizarComando(texto, ps, ctx, candidatos) {
       }
     }
 
+    // frenos del proyecto (rf3-14): borrar, mover o pisar la carpeta que CONTIENE un freno (`rm -rf .claude`, `mv ../../.. x`,
+    // `cp -r x .claude`, `Remove-Item *`) es lo mismo que nombrarlo.
+    if (ctx.ses.agente) {
+      for (const tok of objetivosDestructivos(prog, argv, resolver, ps, ctx)) {
+        const fr = contieneFreno(tok, ctx, ps);
+        if (fr) {
+          add('frenos-del-proyecto', 'deny', fr, MSG_FRENO_PROYECTO);
+          break;
+        }
+      }
+    }
+
     for (const t of tokensDeRuta(c, resolver)) {
       // frenos del proyecto: solo en sesión de agente; leer pasa, escribir por redirección nunca.
       if (ctx.ses.agente) {
@@ -884,6 +896,156 @@ function raicesProtegidas(ctx) {
   }
   ctx.raices = lista;
   return lista;
+}
+
+// ---- rf3-14: la carpeta que contiene un freno
+// Los frenos como rutas absolutas → [{ segs, carpeta, detalle }] (de las tres raíces y del git común). Una vez por llamada.
+const FRENOS_RAIZ = [['.claude/hooks', true], ['.claude/settings.json', false], ['.claude/settings.local.json', false], ['.githooks', true], ['.kit-rol', false], ['.git', true]];
+const FRENOS_COMUN = [['config', false], ['hooks', true], ['refs', true], ['packed-refs', false], ['fetch_head', false], ['logs', true], ['worktrees', true]];
+function frenosAbsolutos(ctx) {
+  if (ctx.frenosAbs) return ctx.frenosAbs;
+  const out = [];
+  const sumar = (base, rel, carpeta, detalle) => {
+    const abs = norm(path.resolve(base, rel)).replace(/\/+$/, '');
+    out.push({ segs: abs.split('/'), carpeta, detalle });
+  };
+  for (const r of raicesProtegidas(ctx)) for (const [rel, carpeta] of FRENOS_RAIZ) sumar(r.dir, rel, carpeta, r.prefijo + rel);
+  if (ctx.ses.comun) for (const [rel, carpeta] of FRENOS_COMUN) sumar(ctx.ses.comun, rel, carpeta, `<git-común>/${rel}`);
+  ctx.frenosAbs = out;
+  return out;
+}
+
+// Un segmento con comodín (* ? [..]) → RegExp. En Bash `*`/`?` no agarran un nombre con punto adelante (sin dotglob); en
+// PowerShell, sí.
+function segmentoGlob(seg, ps) {
+  let r = '';
+  for (let i = 0; i < seg.length; i++) {
+    const ch = seg[i];
+    if (ch === '*') r += '[^/]*';
+    else if (ch === '?') r += '[^/]';
+    else if (ch === '[') {
+      const fin = seg.indexOf(']', i + 2);
+      if (fin < 0) r += '\\[';
+      else {
+        r += `[${seg.slice(i + 1, fin).replace(/^!/, '^').replace(/\\/g, '\\\\')}]`;
+        i = fin;
+      }
+    } else r += ch.replace(/[.+^${}()|\\]/g, '\\$&');
+  }
+  const re = new RegExp(`^${r}$`);
+  const conPunto = seg.startsWith('.');
+  return (nombre) => re.test(nombre) && (ps || conPunto || !nombre.startsWith('.'));
+}
+const tieneComodin = (s) => /[*?[]/.test(s);
+
+// ¿La ruta `tok` es (o con comodín puede ser) una carpeta que contiene un freno, o el freno mismo? → el detalle del freno o null.
+// Debajo de un freno-carpeta con comodín (`.claude/hooks/*`) también cuenta; el nombre literal de adentro ya lo mira rutaFrenoProyecto.
+function contieneFreno(tok, ctx, ps) {
+  if (typeof tok !== 'string' || tok === '' || !ctx.ses.raiz) return null;
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(tok) || /[\n|]/.test(tok)) return null;
+  const abs = absoluta(tok, ctx.cwd).replace(/\/+$/, '');
+  const segs = abs.split('/');
+  const conComodin = tieneComodin(tok);
+  const igual = segs.map((s) => (conComodin && tieneComodin(s) ? segmentoGlob(s, ps) : (n) => n === s));
+  for (const f of frenosAbsolutos(ctx)) {
+    if (segs.length > f.segs.length && !(conComodin && f.carpeta)) continue;
+    const n = Math.min(segs.length, f.segs.length);
+    let ok = true;
+    for (let i = 0; i < n && ok; i++) ok = igual[i](f.segs[i]);
+    if (ok) return f.detalle;
+  }
+  return null;
+}
+
+// Lo que un comando borra, mueve, pisa o le cambia permisos → [ruta] (resueltas). Lo que no está acá (leer, listar, buscar,
+// git add/status…) no cuenta. `cd x && rm -rf hooks` (la carpeta relativa a un cd) no se sigue.
+const BORRA_O_MUEVE = new Set([
+  'rm', 'rmdir', 'unlink', 'shred', 'mv', 'chmod', 'chown', 'chgrp', 'chattr', 'attrib', 'icacls', 'takeown',
+  'remove-item', 'ri', 'del', 'erase', 'rd', 'move-item', 'mi', 'move', 'rename-item', 'rni', 'ren', 'rename', 'set-acl',
+]);
+const PISA_DESTINO = new Set(['cp', 'copy', 'copy-item', 'cpi', 'rsync', 'ln', 'install', 'xcopy', 'robocopy', 'new-item', 'ni']);
+function objetivosDestructivos(prog, argv, resolver, ps, ctx) {
+  const args = argv.slice(1);
+  const ops = []; // operandos: lo que no es opción (en PowerShell, sin los valores de -Filter/-Include/-Exclude/-NewName)
+  const conValor = {};
+  let finOpc = false;
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (!finOpc && a === '--') {
+      finOpc = true;
+      continue;
+    }
+    if (!finOpc && /^-/.test(a)) {
+      const m = /^(-{1,2}[A-Za-z][\w-]*)(?:[=:](.*))?$/.exec(a);
+      const nombre = m ? m[1].toLowerCase() : a.toLowerCase();
+      if (m && m[2] !== undefined) conValor[nombre] = m[2];
+      else if (ps && /^-(filter|include|exclude|newname|destination|destinationpath|path|value|target|itemtype|name)$/i.test(nombre) && i + 1 < args.length) {
+        conValor[nombre] = args[++i];
+        if (/^-(path|literalpath)$/i.test(nombre)) ops.push(conValor[nombre]);
+      } else if (!ps && /^(-t|--target-directory|-C|--directory|-d|-S|--suffix)$/.test(m ? m[1] : a) && i + 1 < args.length) {
+        conValor[m ? m[1] : a] = args[++i];
+      }
+      continue;
+    }
+    ops.push(a);
+  }
+  const r = (x) => (x === undefined ? [] : [resolver(x)]);
+  if (prog === 'git') {
+    const { sub, resto } = subGit(argv);
+    if (sub === 'rm' || sub === 'mv') return resto.filter((a) => !/^-/.test(a)).map(resolver);
+    if (sub === 'clean' && resto.some((a) => /^-[a-zA-Z]*[xX]/.test(a))) {
+      const ps2 = resto.filter((a) => !/^-/.test(a)).map(resolver);
+      return ps2.length ? ps2 : [ctx.cwd];
+    }
+    return [];
+  }
+  if (BORRA_O_MUEVE.has(prog)) return ops.map(resolver);
+  if (PISA_DESTINO.has(prog)) {
+    if (prog === 'new-item' || prog === 'ni') return /^(symboliclink|junction|hardlink)$/i.test(conValor['-itemtype'] || '') ? ops.map(resolver) : [];
+    // rsync, robocopy y xcopy sincronizan (pueden borrar o pisar lo que haya): cuenta el destino entero.
+    if (prog === 'robocopy' || prog === 'xcopy') return r(ops[1]);
+    if (prog === 'rsync') return ops.length >= 2 ? r(ops[ops.length - 1]) : [];
+    // cp, ln, install, Copy-Item: lo que se crea o pisa es <destino>/<nombre del origen> (`cp x .` en la raíz no toca un freno;
+    // `cp -r otro/.claude .` sí). Que el destino SEA un freno ya lo mira rutaFrenoProyecto, token por token.
+    let dest;
+    let origenes;
+    const t = conValor['-t'] !== undefined ? conValor['-t'] : conValor['--target-directory'] !== undefined ? conValor['--target-directory'] : conValor['-destination'];
+    if (t !== undefined) {
+      dest = t;
+      origenes = ops;
+    } else if (ps && (prog === 'copy-item' || prog === 'cpi' || prog === 'copy' || prog === 'cp')) {
+      dest = ops[1];
+      origenes = ops.slice(0, 1);
+    } else {
+      if (ops.length === 1 && prog === 'ln') ops.push('.'); // `ln -s <origen>`: el enlace va a la carpeta actual
+      if (ops.length < 2) return [];
+      dest = ops[ops.length - 1];
+      origenes = ops.slice(0, -1);
+    }
+    if (dest === undefined) return [];
+    const d = resolver(dest);
+    return origenes.map((o) => `${String(d).replace(/[\\/]+$/, '')}/${path.basename(String(resolver(o)).replace(/[\\/]+$/, '')) || '.'}`);
+  }
+  if (prog === 'tar' && (args.some((a) => /^(-[a-zA-Z]*x|--extract|--get)/.test(a)) || /^[a-zA-Z]*x[a-zA-Z]*$/.test(args[0] || ''))) {
+    return r(conValor['-C'] !== undefined ? conValor['-C'] : conValor['--directory']);
+  }
+  if (prog === 'unzip') return r(conValor['-d']);
+  if (prog === 'expand-archive') return r(conValor['-destinationpath'] !== undefined ? conValor['-destinationpath'] : ops[1]);
+  if (prog === 'find') {
+    const i = args.findIndex((a, k) => a === '-delete' || (/^-(exec|execdir|ok|okdir)$/.test(a) && BORRA_O_MUEVE.has(comando.programa(args[k + 1] || ''))));
+    if (i < 0) return [];
+    const inicio = [];
+    for (const a of args) {
+      if (/^[-(!]/.test(a)) break;
+      inicio.push(resolver(a));
+    }
+    return inicio.length ? inicio : [ctx.cwd];
+  }
+  if (prog === '7z' && args[0] === 'x') {
+    const o = args.find((a) => /^-o./.test(a));
+    return o ? [resolver(o.slice(2))] : [];
+  }
+  return [];
 }
 
 // ¿la ruta es un freno de la PC? → 'kit' (siempre) · 'settings' (agente o sin ventana: deny; si no, ask) · null.
