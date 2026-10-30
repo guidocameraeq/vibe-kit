@@ -15,6 +15,9 @@ const zona = require('../hooks/lib/zona-propia.cjs');
 
 const DIR_SKILLS = process.env.KIT_SKILLS_DIR ? path.resolve(process.env.KIT_SKILLS_DIR) : __dirname;
 const DIR_SCRIPTS = path.join(__dirname, '..', 'scripts');
+const DIR_MOLDE = path.join(__dirname, '..');
+// kit/skills del repo: contra donde se resuelve ~/.claude/skills/ (nunca el ~/.claude/ real).
+const DIR_KIT_SKILLS = path.join(__dirname, '..', '..', 'skills');
 
 const NOMBRES = ['inicio', 'cierre'];
 const leer = (n) => fs.readFileSync(path.join(DIR_SKILLS, n, 'SKILL.md'), 'utf8').replace(/\r\n/g, '\n');
@@ -72,6 +75,36 @@ function comandos(texto) {
     out.push({ script: m[1], sub: m[2] || null, flags: [...(m[3] || '').matchAll(/--[a-z][\w-]*/g)].map((f) => f[0]), linea: m[0] });
   }
   return out;
+}
+
+// Cada `node ~/.claude/skills/<skill>/<ruta>.cjs <sub> [--flags]` del texto (los scripts de las skills globales, como el del Arquitecto).
+function comandosDeSkill(texto) {
+  const out = [];
+  const re = /node ~\/\.claude\/skills\/([a-z][\w-]*)\/([\w\/.-]+\.cjs)(?: ([a-z][\w-]*))?([^`\n]*)/g;
+  for (const m of texto.matchAll(re)) {
+    out.push({ skill: m[1], ruta: m[2], sub: m[3] || null, flags: [...(m[4] || '').matchAll(/--[a-z][\w-]*/g)].map((f) => f[0]), linea: m[0] });
+  }
+  return out;
+}
+
+// ~/.claude/skills/<skill>/<ruta> se resuelve contra kit/skills/<skill>/<ruta> del repo, no contra el ~/.claude/ real.
+const rutaEnKit = (c) => path.join(DIR_KIT_SKILLS, c.skill, c.ruta);
+
+// Los comandos de skill que no existen en el kit: archivo ausente, subcomando o flag que su USO (salida sin argumentos) no nombra.
+function comandosDeSkillRotos(texto) {
+  const rotos = [];
+  for (const c of comandosDeSkill(texto)) {
+    const ruta = rutaEnKit(c);
+    if (!fs.existsSync(ruta)) {
+      rotos.push(`${c.linea}: no existe kit/skills/${c.skill}/${c.ruta}`);
+      continue;
+    }
+    const r = spawnSync(process.execPath, [ruta], { encoding: 'utf8', cwd: path.dirname(ruta), timeout: 20000 });
+    const uso = `${r.stdout || ''}\n${r.stderr || ''}`;
+    if (!c.sub || !palabra(uso, c.sub)) rotos.push(`${c.linea}: el USO de ${c.ruta} no nombra el subcomando "${c.sub}"`);
+    for (const f of c.flags) if (!uso.includes(f)) rotos.push(`${c.linea}: el USO de ${c.ruta} no nombra ${f}`);
+  }
+  return rotos;
 }
 
 // El USO de un script que existe: lo que imprime sin argumentos (los cuatro lo hacen, salida 2).
@@ -237,10 +270,65 @@ test('inicio: no espera un OK antes de un pedido chico (SPEC-0 criterio 2)', () 
   assert.match(t, /Si no vino, preguntá cuál es la misión y no toques nada hasta tenerla/);
 });
 
-test('inicio: lo que se completa más adelante, dicho sin inventarlo', () => {
-  assert.match(TEXTOS.inicio, /mesa/);
-  assert.match(TEXTOS.inicio, /sello del Arquitecto/);
-  assert.match(TEXTOS.inicio, /no los improvises/);
+test('inicio: lo que se completa más adelante (la mesa), dicho sin inventarlo; el sello ya no está en esa lista', () => {
+  const t = TEXTOS.inicio;
+  assert.match(t, /todavía no mira la mesa de proyectos: llega con un kit posterior/);
+  assert.match(t, /no la improvises/);
+  assert.doesNotMatch(t, /todavía no mira[^\n]*sello/);
+});
+
+test('inicio: con el pedido en el mensaje, la línea del tamaño va primera, antes de las tres de confirmación (P1.7, D4-10)', () => {
+  const t = TEXTOS.inicio;
+  const paso = /^\d+\. \*\*El tamaño del pedido[^\n]*$/m.exec(t);
+  assert.ok(paso, 'el paso del tamaño existe');
+  assert.match(paso[0], /\*\*Con el pedido en el mensaje, esa línea va primera en la respuesta, antes de las tres de confirmación\*\*/);
+  assert.ok(paso[0].includes('los pasos 1 a 4 son lecturas'), 'las lecturas de los pasos previos no cuentan como texto');
+});
+
+test('inicio: el paso `ready --pendientes`, después de aprobados nuevos y antes de confirmar, con sus ramas (P5.1, D4-11)', () => {
+  const t = TEXTOS.inicio;
+  const cmd = t.indexOf('node ~/.claude/skills/arquitecto/scripts/arquitecto.cjs ready --pendientes');
+  const aprobados = t.indexOf('node .claude/scripts/cambios.cjs listar --aprobados-nuevos');
+  const confirmar = t.indexOf('Confirmar en tres líneas');
+  assert.ok(cmd >= 0 && aprobados >= 0 && confirmar >= 0);
+  assert.ok(aprobados < cmd && cmd < confirmar, 'orden: aprobados nuevos, ready --pendientes, confirmar');
+  const paso = /^\d+\. \*\*Módulos sin sello\.\*\*[^\n]*$/m.exec(t);
+  assert.ok(paso, 'el paso existe');
+  assert.match(paso[0], /Si no imprime nada, no digas nada/);
+  assert.match(paso[0], /sin pedido en el mensaje, decí \*"el módulo <x> nació sin sello: llamo al Arquitecto \(Modo B corto\)"\* e invocá `\/arquitecto`/);
+  assert.match(paso[0], /con pedido, escribí esa línea después de la del tamaño[^.]*y seguí con el pedido/);
+  assert.match(paso[0], /Si el script falla, una línea que lo dice y seguí/);
+});
+
+test('inicio: el comando del Arquitecto existe, resuelto contra kit/skills/ del repo (no contra el ~/.claude/ real)', () => {
+  const cs = comandosDeSkill(TEXTOS.inicio);
+  assert.equal(cs.length, 1);
+  assert.equal(cs[0].skill, 'arquitecto');
+  assert.deepEqual(comandosDeSkillRotos(TEXTOS.inicio), []);
+});
+
+// ---------------------------------------------------------------- el CLAUDE.md del molde
+
+test('molde/CLAUDE.md: la sección "El tamaño del pedido" (P1.7), corta y sin agrandar por plata, permisos o datos', () => {
+  const claude = fs.readFileSync(path.join(DIR_MOLDE, 'CLAUDE.md'), 'utf8').replace(/\r\n/g, '\n');
+  const h = claude.indexOf('## El tamaño del pedido');
+  assert.ok(h >= 0, 'falta la sección');
+  const resto = claude.slice(h + 3);
+  const fin = resto.search(/^## /m);
+  const seccion = fin < 0 ? resto : resto.slice(0, fin);
+  assert.match(seccion, /la primera línea de tu respuesta es el tamaño\*\*, sin preguntar/);
+  assert.match(seccion, /\*"chico, lo hago acá"\*/);
+  assert.match(seccion, /\*"esto es más que chico: llamo al Arquitecto"\*, e invocás `\/arquitecto`/);
+  assert.match(seccion, /Tocar plata, permisos o datos reales no lo agranda/);
+  assert.ok(Buffer.byteLength(seccion) <= 900, `${Buffer.byteLength(seccion)} bytes: la sección tiene que ser corta`);
+  assert.ok(Buffer.byteLength(claude) <= 3500, `${Buffer.byteLength(claude)} bytes: el CLAUDE.md del molde tiene que seguir chico`);
+});
+
+test('molde/CLAUDE.md, /inicio y /cierre: ni rastro de la regla vieja de tamaño (P1.7, criterio 3)', () => {
+  // El patrón se arma en pedazos: entero, este archivo rompería el grep del criterio 3 sobre kit/.
+  const vieja = new RegExp(['bolsill' + 'o', 'en una ' + 'tarde', 'o ries' + 'gosa', 'toca permisos\\/datos\\/' + 'plata'].join('|'), 'i');
+  const claude = fs.readFileSync(path.join(DIR_MOLDE, 'CLAUDE.md'), 'utf8');
+  for (const t of [claude, TEXTOS.inicio, TEXTOS.cierre]) assert.doesNotMatch(t, vieja);
 });
 
 // ---------------------------------------------------------------- /cierre
@@ -369,6 +457,15 @@ test('los chequeos: comandosRotos detecta script, subcomando y flag que no exist
   assert.equal(comandosRotos('`node .claude/scripts/cambios.cjs listar --inventada`').length, 1);
   assert.equal(comandosRotos('`node .claude/scripts/estructura.cjs borrar`').length, 1);
   assert.equal(comandosRotos('`node .claude/scripts/agents.cjs`').length, 1);
+});
+
+test('los chequeos: comandosDeSkill extrae el comando y lo resuelve contra kit/skills/ del repo', () => {
+  const [c] = comandosDeSkill('`node ~/.claude/skills/arquitecto/scripts/arquitecto.cjs ready --pendientes`');
+  assert.deepEqual({ skill: c.skill, ruta: c.ruta, sub: c.sub, flags: c.flags }, { skill: 'arquitecto', ruta: 'scripts/arquitecto.cjs', sub: 'ready', flags: ['--pendientes'] });
+  assert.equal(path.relative(DIR_KIT_SKILLS, rutaEnKit(c)).replace(/\\/g, '/'), 'arquitecto/scripts/arquitecto.cjs');
+  assert.ok(!rutaEnKit(c).includes('.claude'), 'no apunta al ~/.claude/ real');
+  assert.equal(comandosDeSkill('`node .claude/scripts/todo.cjs cierre`').length, 0, 'los scripts del proyecto los cubre comandos()');
+  assert.equal(comandosDeSkillRotos('`node ~/.claude/skills/inventada/scripts/x.cjs ready`').length, 1);
 });
 
 test('los chequeos: marcasFueraDeLugar detecta una marca repetida, rota o dentro de un bloque de código', () => {

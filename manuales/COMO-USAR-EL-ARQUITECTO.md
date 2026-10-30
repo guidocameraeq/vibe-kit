@@ -25,14 +25,15 @@ features chicas ni para el trabajo del día a día.
 | Momento | ¿Arquitecto? | Qué hacés |
 |---|---|---|
 | **Proyecto nuevo de cero** | ✅ SÍ — Modo A | `/arquitecto` en cualquier chat (caso A, abajo) |
-| **Feature grande o riesgosa en una app que ya anda** | ✅ SÍ — Modo B | `/arquitecto <la feature>` en un chat abierto EN la carpeta del proyecto (caso B, abajo) |
+| **Feature más que chica en una app que ya anda** | ✅ SÍ — Modo B | `/arquitecto <la feature>` en un chat abierto EN la carpeta del proyecto (caso B, abajo) |
 | **Trabajo del día a día** (fix, ajuste, feature chica) | ❌ NO | El ciclo de siempre: `inicio` → pedís → verificás → `cierre` |
 
 Y hay un cuarto momento que no es de construir nada: **no sabés cómo pedirle algo a
 Claude** → también es `/arquitecto` (Modo C, el consultorio — caso C, abajo).
 
-Regla de bolsillo: si la feature se hace en una tarde y no toca permisos/datos/plata, **no
-hace falta spec** — pedila directo. Si "hacerla de a poquito puede salir mal", va con spec.
+Prueba de tamaño, dos preguntas: ¿hace falta algo más que el pedido y el `git diff` para
+retomarlo? ¿lleva más de una sesión? Si ninguna es sí, **no hace falta spec** — pedila
+directo. Si alguna es sí, va con spec. Tocar plata, permisos o datos no la agranda.
 
 ---
 

@@ -71,12 +71,12 @@ Chat nuevo **en la carpeta del proyecto** → decís **`inicio`** → te confirm
 3 líneas → le das la misión → trabajás → **`cierre`** → chat a la basura.
 Cambió la misión → cambiá el chat. Compactar es emergencia (*"cierre parcial"*), no rutina.
 
-### 🏗️ "Quiero una feature grande o riesgosa en una app existente"
+### 🏗️ "Quiero una feature más que chica en una app existente"
 Chat nuevo **en la carpeta de esa app** → **`/arquitecto`** → detecta que hay código (Modo B),
 lo explora primero, charlan anclados a lo real, y deja el **spec delta** (con su "qué NO se
 toca") listo para que una sesión fresca lo construya.
 Para features chicas: ni Arquitecto ni spec — pedila directo en el chat del proyecto.
-Regla de bolsillo: si sale en una tarde y no toca permisos/datos/plata → directo; si no → spec.
+Prueba de tamaño, dos preguntas: ¿hace falta algo más que el pedido y el `git diff` para retomarlo? ¿lleva más de una sesión? Ninguna sí → directo; alguna sí → spec. Tocar plata, permisos o datos no la agranda.
 
 ### 📋 "Necesito documentar un repo para la auditoría FyD"
 Chat nuevo **en la carpeta de esa app** → **`/docs-fyd`**. Deriva del código los 10 documentos que
