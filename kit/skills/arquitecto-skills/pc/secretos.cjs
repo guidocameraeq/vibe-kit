@@ -137,12 +137,16 @@ const FABRICA_VARS = [
   /TOKEN/, /SECRET/, /PASSWORD/, /PASS/, /PWD/, /API_KEY/, /PRIVATE_KEY/, /SERVICE_ROLE/,
   /_KEY$/, /CREDENTIAL/, /DATABASE_URL/, /DB_URL/, /_DSN/, /CONNECTION_STRING/,
 ];
+// Los de la shell que caen en /PWD/ y no son secreto (rf3-12): la carpeta actual y la anterior (Bash y PowerShell). Solo
+// exactos: DB_PWD, MYSQL_PWD siguen frenando. La ficha (secretos:) los puede volver a sumar.
+const SHELL_NO_SECRETO = new Set(['PWD', 'OLDPWD']);
 // publicas: gana (la ficha dice que no es secreto); secretos: suma; si no, la lista de fábrica.
 function varSensible(nombre, extra, publicas) {
   const n = String(nombre || '').toUpperCase();
   if (n === '') return false;
   if (publicas && publicas.has(n)) return false;
   if (extra && extra.has(n)) return true;
+  if (SHELL_NO_SECRETO.has(n)) return false;
   return FABRICA_VARS.some((re) => re.test(n));
 }
 
@@ -828,18 +832,58 @@ function rutaFrenoProyecto(tok, ctx) {
       return COMUN_FRENO(rel) ? { detalle: `<git-común>/${rel}`, lock: false } : null;
     }
   }
-  const rel = debajo(raiz);
-  if (rel === null) return null;
-  if (
-    /^\.claude\/hooks(\/|$)/.test(rel) ||
-    /^\.claude\/settings(\.local)?\.json$/.test(rel) ||
-    /^\.githooks(\/|$)/.test(rel) ||
-    rel === '.kit-rol' ||
-    rel === '.git' // el .git de la raíz del worktree (r2-2 b); lo de adentro del común va arriba
-  ) {
-    return { detalle: rel, lock: false };
+  // rf3-5: las raíces protegidas son la propia y TODAS las del git común (el principal y los otros worktrees): un obrero que
+  // escribe `../../../.claude/hooks/…` le apaga los frenos a la pestaña de Guido y el pre-commit al merge del director.
+  for (const r of raicesProtegidas(ctx)) {
+    const rel = debajo(r.dir);
+    if (rel === null || !RAIZ_FRENO(rel)) continue;
+    return { detalle: r.prefijo + rel, lock: false };
   }
   return null;
+}
+const RAIZ_FRENO = (rel) =>
+  /^\.claude\/hooks(\/|$)/.test(rel) ||
+  /^\.claude\/settings(\.local)?\.json$/.test(rel) ||
+  /^\.githooks(\/|$)/.test(rel) ||
+  rel === '.kit-rol' ||
+  rel === '.git'; // el .git de la raíz del worktree (r2-2 b); lo de adentro del común va arriba
+
+// Las raíces cuyos frenos se cuidan → [{ dir, prefijo }]: la propia (prefijo ''), el principal (`dirname(común)` cuando el común se
+// llama `.git`) y los otros worktrees (`<común>/worktrees/*/gitdir` → `<wt>/.git`). Solo fs; una vez por llamada (en ctx).
+function raicesProtegidas(ctx) {
+  if (ctx.raices) return ctx.raices;
+  const { raiz, comun } = ctx.ses;
+  const lista = [{ dir: raiz, prefijo: '' }];
+  const ya = new Set([norm(path.resolve(raiz))]);
+  const sumar = (dir, prefijo) => {
+    const n = norm(path.resolve(dir));
+    if (ya.has(n)) return;
+    ya.add(n);
+    lista.push({ dir, prefijo });
+  };
+  if (comun) {
+    if (path.basename(comun).toLowerCase() === '.git') sumar(path.dirname(comun), '<principal>/');
+    let nombres = [];
+    try {
+      nombres = fs.readdirSync(path.join(comun, 'worktrees'));
+    } catch (e) {
+      nombres = [];
+    }
+    for (const n of nombres) {
+      const base = path.join(comun, 'worktrees', n);
+      let t = null;
+      try {
+        t = fs.readFileSync(path.join(base, 'gitdir'), 'utf8').replace(/^﻿/, '').trim();
+      } catch (e) {
+        t = null;
+      }
+      if (!t) continue;
+      const g = path.resolve(base, t);
+      if (path.basename(g).toLowerCase() === '.git') sumar(path.dirname(g), `<worktree ${n}>/`);
+    }
+  }
+  ctx.raices = lista;
+  return lista;
 }
 
 // ¿la ruta es un freno de la PC? → 'kit' (siempre) · 'settings' (agente o sin ventana: deny; si no, ask) · null.

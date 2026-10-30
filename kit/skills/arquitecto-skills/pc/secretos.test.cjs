@@ -311,6 +311,15 @@ test('imprime-variable: cada nombre de fábrica cuenta; uno común no', () => {
   for (const n of ['HOME', 'PATH', 'USER', 'NODE_ENV', 'KEYBOARD', 'PORT']) assert.equal(S.varSensible(n), false, n);
 });
 
+test('rf3-12: PWD y OLDPWD (la carpeta de la shell) no son secreto; DB_PWD, MYSQL_PWD y PWD_DB sí; la ficha los puede sumar', () => {
+  siNo(['echo $DB_PWD', 'echo $MYSQL_PWD', 'echo $PWD_DB', 'echo ${DB_PWD}'], ['echo $PWD', 'echo $OLDPWD', 'echo "$PWD/x"', 'printenv PWD', 'cd "$OLDPWD" && echo $PWD'], (c) => bash(c), 'imprime-variable');
+  siNo(['$env:DB_PWD', 'Write-Host $env:MYSQL_PWD'], ['$PWD', 'Write-Host $PWD', '"$PWD\\x"'], (c) => ps(c), 'imprime-variable');
+  assert.equal(S.varSensible('PWD'), false);
+  assert.equal(S.varSensible('pwd'), false);
+  assert.equal(S.varSensible('OLDPWD'), false);
+  assert.equal(S.varSensible('PWD', new Set(['PWD'])), true, 'secretos: de la ficha gana');
+});
+
 // ================================================================ credencial-guardada
 test('credencial-guardada: las cuatro formas frenan; el uso común de gh y git no', () => {
   siNo(['gh auth token', 'gh auth token --hostname github.com', 'gh auth status -t', 'gh auth status --show-token', 'git credential fill', 'printf "host=github.com\\n" | git credential fill', 'git credential-manager get', 'git -c x=y credential fill'],
@@ -385,6 +394,47 @@ test('frenos-del-proyecto: el git-dir común (config, hooks, refs, packed-refs, 
   assert.equal(d(W(path.join(comun, 'worktrees', 'wt', 'HEAD'), 'x', 'default', wt)).decision, 'deny');
   assert.equal(d(bash(`rm -f "${path.join(comun, 'worktrees', 'wt', 'index.lock').replace(/\\/g, '/')}"`, 'default', wt)).decision, 'nada');
   assert.equal(d(W(path.join(wt, '.claude/hooks/a.cjs'), 'x', 'default', wt)).decision, 'deny');
+});
+
+test('rf3-5: un obrero en su worktree no escribe los frenos del principal ni de los otros worktrees; lo suyo y lo común pasan', () => {
+  const P = repo(); // el principal: humano (sin .kit-rol)
+  g(['commit', '-q', '--allow-empty', '-m', 'x'], P);
+  const wt = path.join(P, '.claude', 'worktrees', 'x--01');
+  g(['worktree', 'add', '-q', '-b', 'modulo/x--01', wt], P);
+  const otro = path.join(tmp(), 'y--02'); // otro worktree, fuera del principal
+  g(['worktree', 'add', '-q', '-b', 'modulo/y--02', otro], P);
+  const caminos = ['.claude/hooks/git-seguro.cjs', '.claude/settings.json', '.claude/settings.local.json', '.githooks/kit-githook.cjs', '.kit-rol'];
+  for (const c of caminos) {
+    const res = d(W(path.join(P, c), 'x', 'default', wt));
+    assert.equal(res.decision, 'deny', `principal: ${c}`);
+    assert.equal(res.id, 'secretos:frenos-del-proyecto');
+    assert.equal(res.detalle, `<principal>/${c}`);
+    const ro = d(W(path.join(otro, c), 'x', 'default', wt));
+    assert.equal(ro.decision, 'deny', `otro worktree: ${c}`);
+    assert.equal(ro.detalle, `<worktree y--02>/${c}`);
+    assert.equal(d(W(path.join(wt, c), 'x', 'default', wt)).detalle, c, `el propio sigue: ${c}`);
+  }
+  assert.equal(d(W(path.join(otro, '.git'), 'gitdir: /otro', 'default', wt)).decision, 'deny', 'el .git del otro worktree');
+  // por Bash: escribir frena, leer pasa
+  siNo(
+    ['rm ../../../.claude/hooks/git-seguro.cjs', "sed -i 's/a/b/' ../../../.claude/settings.json", 'echo humano > ../../../.kit-rol', 'cp x ../../../.githooks/kit-githook.cjs', `rm "${otro.replace(/\\/g, '/')}/.claude/settings.json"`],
+    ['cat ../../../.claude/hooks/git-seguro.cjs', 'ls ../../../.githooks', 'git diff ../../../.claude/settings.json', 'echo x > ../../../src/a.js', 'rm ../../../suma.js'],
+    (c) => bash(c, 'default', wt),
+    'frenos-del-proyecto',
+  );
+  // lo normal: el obrero escribe código en su worktree y en el principal fuera de los frenos
+  for (const f of [path.join(wt, 'src/a.js'), path.join(P, 'suma.js'), path.join(P, '.claude/kit.md'), path.join(otro, 'src/b.js')]) {
+    assert.equal(d(W(f, 'x', 'default', wt)).decision, 'nada', f);
+  }
+  // el humano en el principal (y el director en su worktree) editan sus hooks como hoy
+  for (const c of caminos) assert.equal(d(W(path.join(P, c), 'x', 'default', P)).decision, 'nada', `humano: ${c}`);
+  const dir = path.join(tmp(), 'dir');
+  g(['worktree', 'add', '-q', '-b', 'd3.3/x', dir], P);
+  fs.writeFileSync(path.join(dir, '.kit-rol'), 'director');
+  assert.equal(d(W(path.join(P, '.claude/hooks/git-seguro.cjs'), 'x', 'default', dir)).decision, 'nada', 'director');
+  // un gitdir roto en el común no rompe nada
+  fs.mkdirSync(path.join(P, '.git', 'worktrees', 'roto'), { recursive: true });
+  assert.equal(d(W(path.join(P, '.claude/settings.json'), 'x', 'default', wt)).decision, 'deny');
 });
 
 // ================================================================ frenos de la PC
