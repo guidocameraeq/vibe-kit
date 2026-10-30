@@ -519,9 +519,15 @@ function analizarComando(texto, ps, ctx, candidatos) {
     }
   }
 
-  for (const c of comandos) {
+  // rf2-8: las rutas relativas de cada comando se juzgan desde la carpeta a la que llevan los cd de antes (`cd .claude && echo
+  // '{}' > settings.json`). Solo hace falta en sesión de agente (los frenos del proyecto); los de la PC y cambios/ usan las mismas.
+  if (ctx.ses.agente && ctx.ses.raiz) frenosAbsolutos(ctx); // los cachés quedan en ctx, y las copias de abajo los heredan
+  const bases = basesPorComando(comandos, texto, ps, ctx, resolver);
+
+  comandos.forEach((c, k) => {
     const prog = comando.programa(c);
     const argv = (c.argv || []).map(String);
+    const desde = bases[k].map((b) => (b === ctx.cwd ? ctx : Object.assign(Object.create(ctx), { cwd: b })));
 
     if (esImprimeTodas(prog, argv)) add('imprime-todas', 'deny', prog, QUE['imprime-todas']() + MSG_CLAVE);
     if (esCredencialGuardada(prog, argv)) add('credencial-guardada', 'deny', prog, QUE['credencial-guardada']() + MSG_CLAVE);
@@ -538,8 +544,8 @@ function analizarComando(texto, ps, ctx, candidatos) {
     // frenos del proyecto (rf3-14): borrar, mover o pisar la carpeta que CONTIENE un freno (`rm -rf .claude`, `mv ../../.. x`,
     // `cp -r x .claude`, `Remove-Item *`) es lo mismo que nombrarlo.
     if (ctx.ses.agente) {
-      for (const tok of objetivosDestructivos(prog, argv, resolver, ps, ctx)) {
-        const fr = contieneFreno(tok, ctx, ps);
+      for (const cx of desde) {
+        const fr = objetivosDestructivos(prog, argv, resolver, ps, cx).map((tok) => contieneFreno(tok, cx, ps)).find(Boolean);
         if (fr) {
           add('frenos-del-proyecto', 'deny', fr, MSG_FRENO_PROYECTO);
           break;
@@ -548,20 +554,21 @@ function analizarComando(texto, ps, ctx, candidatos) {
     }
 
     for (const t of tokensDeRuta(c, resolver)) {
-      // frenos del proyecto: solo en sesión de agente; leer pasa, escribir por redirección nunca.
-      if (ctx.ses.agente) {
-        const fr = rutaFrenoProyecto(t.tok, ctx);
-        if (fr && (t.escribe || !esLectorDeRuta(prog, argv, t.tok))) {
-          add('frenos-del-proyecto', 'deny', fr.detalle, fr.lock ? MSG_LOCK : MSG_FRENO_PROYECTO);
+      const escribe = t.escribe || !esLectorDeRuta(prog, argv, t.tok);
+      for (const cx of desde) {
+        // frenos del proyecto: solo en sesión de agente; leer pasa, escribir por redirección nunca.
+        if (ctx.ses.agente) {
+          const fr = rutaFrenoProyecto(t.tok, cx);
+          if (fr && escribe) add('frenos-del-proyecto', 'deny', fr.detalle, fr.lock ? MSG_LOCK : MSG_FRENO_PROYECTO);
         }
+        // frenos de la PC
+        const fp = rutaFrenoPC(t.tok, cx);
+        if (fp && escribe) frenoPC(fp, ctx, add);
       }
-      // frenos de la PC
-      const fp = rutaFrenoPC(t.tok, ctx);
-      if (fp && (t.escribe || !esLectorDeRuta(prog, argv, t.tok))) frenoPC(fp, ctx, add);
       // cambios-sin-ventana
       if (ctx.duro && /(^|\/)\.claude\/cambios(\/|$)/.test(norm(expandir(t.tok)))) add('cambios-sin-ventana', 'deny', '.claude/cambios', MSG_CAMBIOS);
     }
-  }
+  });
 
   // PowerShell (2): una sentencia que es solo la variable, un string que la interpola o GetEnvironmentVariable('X').
   if (ps) for (const n of sentenciasQueImprimen(texto)) add('imprime-variable', 'deny', n, QUE['imprime-variable'](n) + MSG_CLAVE, { varNombre: n });
@@ -906,8 +913,9 @@ function frenosAbsolutos(ctx) {
   if (ctx.frenosAbs) return ctx.frenosAbs;
   const out = [];
   const sumar = (base, rel, carpeta, detalle) => {
-    const abs = norm(path.resolve(base, rel)).replace(/\/+$/, '');
-    out.push({ segs: abs.split('/'), carpeta, detalle });
+    const real = path.resolve(base, rel);
+    const abs = norm(real).replace(/\/+$/, '');
+    out.push({ segs: abs.split('/'), carpeta, detalle, real });
   };
   for (const r of raicesProtegidas(ctx)) for (const [rel, carpeta] of FRENOS_RAIZ) sumar(r.dir, rel, carpeta, r.prefijo + rel);
   if (ctx.ses.comun) for (const [rel, carpeta] of FRENOS_COMUN) sumar(ctx.ses.comun, rel, carpeta, `<git-común>/${rel}`);
@@ -957,8 +965,200 @@ function contieneFreno(tok, ctx, ps) {
   return null;
 }
 
+// ---- rf2-8: la carpeta de cada comando (los cd literales en secuencia, como git-seguro con salir-del-worktree)
+const CD = new Set(['cd', 'chdir', 'pushd', 'set-location', 'sl', 'push-location']);
+const POPD = new Set(['popd', 'pop-location']);
+// El destino de un cd/pushd/Set-Location (lo mismo que git-seguro): sin argumento, la casa.
+function destinoCd(argv) {
+  const args = argv.slice(1);
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (/^-(path|literalpath|lp|pspath)$/i.test(a)) return args[i + 1];
+    if (/^-(stackname|passthru)$/i.test(a)) {
+      if (/^-stackname$/i.test(a)) i++;
+      continue;
+    }
+    if (a === '-P' || a === '-L' || a === '-e' || a === '-@' || a === '--') continue;
+    return a;
+  }
+  return '~';
+}
+// base (null = no se sabe) + destino → la carpeta, o null si no se puede saber (una variable sin resolver, `$(…)`, un comodín,
+// `cd -`, o relativa a una carpeta que no se sabe).
+function resolverCd(base, destino) {
+  if (typeof destino !== 'string' || destino === '' || destino === '-' || /[$`%*?]/.test(destino)) return null;
+  const e = expandir(destino);
+  if (base === null && !path.isAbsolute(e)) return null;
+  return path.resolve(base === null ? '' : base, e);
+}
+// Por comando, las carpetas desde donde se juzgan sus rutas relativas → [[carpeta]] (una lista por comando, en el orden de
+// partir). comando.partir aplana: no dice qué cd quedó adentro de un `( … )`, un `$( … )`, un caño o un `bash -c` (y ahí el cd
+// NO sigue afuera). Si el texto trae alguno de esos, se juzga TAMBIÉN desde el cwd. Un cd que no se puede resolver: desde la raíz
+// del proyecto y desde el cwd (lo más estricto: los nombres de freno relativos cuentan como si estuvieran en la raíz).
+function basesPorComando(comandos, texto, ps, ctx, resolver) {
+  const incierto = /[(`]/.test(texto) || /(^|[^|])\|(?!\|)/.test(texto) || /(^|\s)(-c|\/c|-command|-encodedcommand)(\s|$)/i.test(texto);
+  const out = [];
+  let dir = ctx.cwd;
+  let sabido = true;
+  const pila = [];
+  for (const c of comandos) {
+    const lista = sabido ? [dir] : [ctx.ses.raiz || ctx.cwd];
+    if (incierto || !sabido) lista.push(ctx.cwd);
+    const ya = new Set();
+    out.push(lista.filter((b) => !ya.has(norm(b)) && ya.add(norm(b))));
+    const prog = comando.programa(c);
+    if (CD.has(prog)) {
+      const d = resolverCd(sabido ? dir : null, resolver(destinoCd((c.argv || []).map(String))));
+      if (prog === 'pushd' || prog === 'push-location') pila.push({ dir, sabido });
+      sabido = d !== null;
+      if (sabido) dir = d;
+    } else if (POPD.has(prog)) {
+      const p = pila.pop();
+      if (p) ({ dir, sabido } = p);
+      else sabido = false;
+    }
+  }
+  return out;
+}
+
+// ---- rf2-7: find con filtro de nombre. La expresión → un predicado que SOBRE-aproxima (nombre, ruta como la imprime find) →
+// ¿puede elegirla? `!`/-not, y todo lo que no es un filtro de nombre, dicen "sí". `libre`: ningún filtro de nombre la acota.
+const FIND_UN_ARG = new Set([
+  '-type', '-xtype', '-mtime', '-atime', '-ctime', '-mmin', '-amin', '-cmin', '-size', '-newer', '-anewer', '-cnewer', '-user',
+  '-group', '-uid', '-gid', '-perm', '-maxdepth', '-mindepth', '-printf', '-fprint', '-fprint0', '-fls', '-regextype', '-samefile',
+  '-inum', '-links', '-fstype', '-context', '-used', '-files0-from', '-lname', '-ilname',
+]);
+const FIND_NOMBRE = { '-name': 'n', '-iname': 'n', '-path': 'p', '-ipath': 'p', '-wholename': 'p', '-iwholename': 'p', '-regex': 'r', '-iregex': 'r' };
+const SI = Object.assign(() => true, { libre: true });
+function globDeRuta(p) {
+  let r = '';
+  for (let i = 0; i < p.length; i++) {
+    const ch = p[i];
+    if (ch === '*') r += '.*';
+    else if (ch === '?') r += '.';
+    else if (ch === '[' && p.indexOf(']', i + 2) > 0) {
+      const fin = p.indexOf(']', i + 2);
+      r += `[${p.slice(i + 1, fin).replace(/^!/, '^').replace(/\\/g, '\\\\')}]`;
+      i = fin;
+    } else r += ch.replace(/[.+^${}()|\\]/g, '\\$&');
+  }
+  return new RegExp(`^${r}$`);
+}
+function predicadoFind(t) {
+  let i = 0;
+  const y = (a, b) => Object.assign((n, r) => a(n, r) && b(n, r), { libre: a.libre && b.libre });
+  const o = (a, b) => Object.assign((n, r) => a(n, r) || b(n, r), { libre: a.libre || b.libre });
+  const primario = () => {
+    const a = t[i];
+    if (a === '(') {
+      i++;
+      const e = ou();
+      if (t[i] === ')') i++;
+      return e;
+    }
+    if (a === '!' || a === '-not') {
+      i++;
+      primario();
+      return SI;
+    }
+    const tipo = FIND_NOMBRE[a];
+    if (tipo && i + 1 < t.length) {
+      const pat = String(t[i + 1]).toLowerCase();
+      i += 2;
+      if (tipo === 'n') {
+        const f = segmentoGlob(pat, true);
+        return (n) => f(n);
+      }
+      if (tipo === 'p') {
+        const re = globDeRuta(pat);
+        return (n, r) => re.test(r);
+      }
+      let re;
+      try {
+        re = new RegExp(`^(?:${pat})$`, 'i');
+      } catch (e) {
+        return SI;
+      }
+      return (n, r) => re.test(r);
+    }
+    if (/^-(exec|execdir|ok|okdir)$/.test(a)) {
+      for (i++; i < t.length && t[i] !== ';' && t[i] !== '+'; i++);
+      i++;
+      return SI;
+    }
+    if (a === '-fprintf') i += 3;
+    else if (FIND_UN_ARG.has(a) || /^-newer[a-z]{2}$/.test(a)) i += 2;
+    else i++;
+    return SI;
+  };
+  const yy = () => {
+    let e = primario();
+    while (i < t.length && !['-o', '-or', ',', ')'].includes(t[i])) {
+      if (t[i] === '-a' || t[i] === '-and') i++;
+      if (i >= t.length) break;
+      e = y(e, primario());
+    }
+    return e;
+  };
+  const ou = () => {
+    let e = yy();
+    while (i < t.length && ['-o', '-or', ','].includes(t[i])) {
+      i++;
+      e = o(e, yy());
+    }
+    return e;
+  };
+  const e = ou();
+  return i < t.length ? SI : e; // sobra algo (un `)` suelto): no se entiende, cuenta todo
+}
+// ¿Algún freno debajo de `inicio` lo puede elegir el predicado? Se prueban la cadena
+// de carpetas desde el inicio hasta el freno (borrarlas se lleva el freno) y, en los frenos-carpeta, lo de adentro por fs (sin
+// seguir enlaces; el git común no se recorre entero: sus frenos van aparte). Más de TOPE_FIND entradas: cuenta (lo estricto).
+const TOPE_FIND = 5000;
+function findTocaFreno(inicioTok, ctx, pred) {
+  const real = path.resolve(ctx.cwd, expandir(inicioTok));
+  const st = norm(real).replace(/\/+$/, '');
+  const stSegs = st.split('/');
+  const pref = String(inicioTok).replace(/\\/g, '/').toLowerCase().replace(/(.)\/+$/, '$1');
+  const comun = ctx.ses.comun ? norm(path.resolve(ctx.ses.comun)) : null;
+  const como = (abs) => (abs === st ? pref : `${pref === '/' ? '' : pref}/${abs.slice(st.length + 1)}`);
+  const prueba = (abs) => pred(abs.slice(abs.lastIndexOf('/') + 1), como(abs));
+  let tope = TOPE_FIND;
+  const recorrer = (raizReal) => {
+    const pila = [raizReal];
+    while (pila.length) {
+      const r = pila.pop();
+      const abs = norm(r).replace(/\/+$/, '');
+      if (--tope < 0 || prueba(abs)) return true;
+      if (abs === comun) continue;
+      let hijos = [];
+      try {
+        if (fs.lstatSync(r).isDirectory()) hijos = fs.readdirSync(r);
+      } catch (e) {
+        hijos = [];
+      }
+      for (const h of hijos) pila.push(path.join(r, h));
+    }
+    return false;
+  };
+  for (const f of frenosAbsolutos(ctx)) {
+    // Un inicio que ES un freno o está adentro de uno ya lo frena rutaFrenoProyecto (es una ruta de freno en un comando que escribe).
+    const prefijo = (a, b) => a.length < b.length && a.every((s, k) => s === b[k]);
+    if (prefijo(stSegs, f.segs)) {
+      for (let k = stSegs.length + 1; k <= f.segs.length; k++) if (prueba(f.segs.slice(0, k).join('/'))) return true;
+      if (f.carpeta && f.real && recorrer(f.real)) return true;
+    }
+  }
+  return false;
+}
+// ¿la ruta es la raíz de uno de los proyectos cuidados (la propia, el principal, otro worktree)?
+function esRaizProtegida(tok, ctx) {
+  const abs = absoluta(tok, ctx.cwd).replace(/\/+$/, '');
+  return raicesProtegidas(ctx).some((r) => norm(path.resolve(r.dir)) === abs);
+}
+
 // Lo que un comando borra, mueve, pisa o le cambia permisos → [ruta] (resueltas). Lo que no está acá (leer, listar, buscar,
-// git add/status…) no cuenta. `cd x && rm -rf hooks` (la carpeta relativa a un cd) no se sigue.
+// git add/status…) no cuenta. Las rutas relativas se juzgan desde ctx.cwd (la carpeta de los cd de antes; rf2-8).
 const BORRA_O_MUEVE = new Set([
   'rm', 'rmdir', 'unlink', 'shred', 'mv', 'chmod', 'chown', 'chgrp', 'chattr', 'attrib', 'icacls', 'takeown',
   'remove-item', 'ri', 'del', 'erase', 'rd', 'move-item', 'mi', 'move', 'rename-item', 'rni', 'ren', 'rename', 'set-acl',
@@ -1023,27 +1223,51 @@ function objetivosDestructivos(prog, argv, resolver, ps, ctx) {
       origenes = ops.slice(0, -1);
     }
     if (dest === undefined) return [];
-    const d = resolver(dest);
-    return origenes.map((o) => `${String(d).replace(/[\\/]+$/, '')}/${path.basename(String(resolver(o)).replace(/[\\/]+$/, '')) || '.'}`);
+    const d = String(resolver(dest)).replace(/[\\/]+$/, '');
+    const out = [];
+    for (const o of origenes) {
+      const ro = String(resolver(o));
+      // rf2-7: `cp -r <dir>/. <destino>` copia lo de ADENTRO de <dir>: cuentan sus nombres (por fs). Si no se lee, el destino entero.
+      if (/(^|[\\/])\.[\\/]*$/.test(ro)) {
+        let nombres = null;
+        try {
+          nombres = fs.readdirSync(path.resolve(ctx.cwd, expandir(ro)));
+        } catch (e) {
+          nombres = null;
+        }
+        if (nombres === null) out.push(d);
+        else for (const n of nombres) out.push(`${d}/${n}`);
+      } else out.push(`${d}/${path.basename(ro.replace(/[\\/]+$/, '')) || '.'}`);
+    }
+    return out;
   }
+  // rf2-7: extraer en la raíz del proyecto (`tar -xzf a.tgz -C .`, `unzip -o x.zip -d .`) es lo mismo que extraer sin -C: pasa.
+  // Lo que traiga el archivo adentro no se lee sin procesos (Lo que esto no cierra). Extraer ADENTRO de la carpeta de un freno
+  // (`-C .claude`) o más arriba de la raíz sigue contando.
+  const extraer = (x) => r(x).filter((t) => !esRaizProtegida(t, ctx));
   if (prog === 'tar' && (args.some((a) => /^(-[a-zA-Z]*x|--extract|--get)/.test(a)) || /^[a-zA-Z]*x[a-zA-Z]*$/.test(args[0] || ''))) {
-    return r(conValor['-C'] !== undefined ? conValor['-C'] : conValor['--directory']);
+    return extraer(conValor['-C'] !== undefined ? conValor['-C'] : conValor['--directory']);
   }
-  if (prog === 'unzip') return r(conValor['-d']);
-  if (prog === 'expand-archive') return r(conValor['-destinationpath'] !== undefined ? conValor['-destinationpath'] : ops[1]);
+  if (prog === 'unzip') return extraer(conValor['-d']);
+  if (prog === 'expand-archive') return extraer(conValor['-destinationpath'] !== undefined ? conValor['-destinationpath'] : ops[1]);
   if (prog === 'find') {
     const i = args.findIndex((a, k) => a === '-delete' || (/^-(exec|execdir|ok|okdir)$/.test(a) && BORRA_O_MUEVE.has(comando.programa(args[k + 1] || ''))));
     if (i < 0) return [];
     const inicio = [];
-    for (const a of args) {
-      if (/^[-(!]/.test(a)) break;
-      inicio.push(resolver(a));
+    let k = 0;
+    for (; k < args.length; k++) {
+      if (/^[-(!]/.test(args[k])) break;
+      inicio.push(resolver(args[k]));
     }
-    return inicio.length ? inicio : [ctx.cwd];
+    if (!inicio.length) inicio.push('.');
+    // rf2-7: con un filtro de nombre (`-name "*.log"`), cuenta solo si puede elegir un freno (o la carpeta que lo contiene).
+    // Un inicio con comodín no se recorre: se juzga como antes, entero.
+    const pred = predicadoFind(args.slice(k));
+    return inicio.filter((t) => pred.libre || tieneComodin(t) || findTocaFreno(t, ctx, pred));
   }
   if (prog === '7z' && args[0] === 'x') {
     const o = args.find((a) => /^-o./.test(a));
-    return o ? [resolver(o.slice(2))] : [];
+    return o ? extraer(o.slice(2)) : [];
   }
   return [];
 }
