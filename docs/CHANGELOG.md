@@ -2,6 +2,35 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-30 — Misión 5, paquete 4 cerrado (D4.2): el Modo B corto de punta a punta, 10 de 10 y el prototipo
+
+PC `Usuario`, chat `vibe-kit M5 · D4.2 · Paquete 4, cierre: Modo B corto real, 10 de 10 y prototipo`, en Opus, sin Guido, con el presupuesto del
+ADR-029: **~1,4 h de reloj, 3 encargos Sonnet (K1 texto, K2 `rehacer.sh`, K3 las corridas; K3 retomado dos veces), ~0,4-0,6 M de tokens de
+subagentes** (más las 10 sesiones `claude.exe -p` de K3). Sin tag. Decisiones sin Guido: tracker, "D4.2 · Decisiones sin Guido". **El paquete 4 pasa a ✅.**
+
+**Changed**
+- **La regla del tamaño** (`kit/molde/CLAUDE.md`, `/inicio` del molde pasos 6 y 8, la línea 17 del `SKILL.md` del Arquitecto): lo que sale de una
+  charla con el dueño (una guía, un procedimiento) es más que chico aunque termine en un documento; más que chico **siempre** invoca `/arquitecto`,
+  también de noche o sin el dueño (lo que falló en los pedidos 8 y 10). Con sus casos en `skills.test.cjs`.
+- **`modo-b.md` B2/B3**: una feature de pantalla lleva prototipo siempre, también en Modo B corto y con "dale con los defaults" (saltea las
+  preguntas, no el prototipo), aunque parezca chica (lo que falló en el 16).
+- **`pruebas/pedidos.md`**: el pedido 14 rearmado (plan de dos partes que no entra en una sesión, con el OK por `--resume`); el 14b nuevo (sin ficha,
+  sobre `gama`); el criterio del 16 pide el prototipo antes de las **decisiones** del spec (el borrador en disco puede ir antes, D4.2-3).
+
+**Fixed**
+- **`rehacer.sh`, paso "orden 3"**: pone el `CLAUDE.md` del árbol de trabajo en `alfa` y `beta` y da FALLO si falta "El tamaño del pedido". Hasta
+  acá los repos de prueba tenían el `CLAUDE.md` de D2.1: las corridas de D4.1 medían sin esa regla (D4.2-1).
+
+**Medido** (`claude.exe -p` 2.1.312, el pedido por stdin, sin `MSYS_NO_PATHCONV`; las que escriben con `acceptEdits` y `--allowedTools` corto,
+porque el clasificador frenó el bypass: D4.2-2)
+- **Crit. 4 del kit ✅** (pedido 14, Modo B corto): sin preguntas, sello y `ready` 0 en ~3 min, commit en `main` con solo el módulo, push, rama
+  `modulo/calc-historial` y worktree con `.kit-rol` = `director`, la línea de apertura.
+- **Crit. 2 del kit ✅, 10 de 10**: 1, 2, 6, 7, 8 y 10 en D4.2 con el `CLAUDE.md` de verdad; 3, 4, 5 y 9 de D4.1.
+- **16 ✅**: el prototipo (Sonnet, con su pregunta) antes de las decisiones del spec; `ready` 0, commit en `main`.
+- **14b a medias**: las dos corridas fallaron por el armado (alfa sin ficha conserva los hooks v3; en gama el pedido decía "alfa"); lo de
+  seguridad pasó en las dos (sin commit en `main`, sin push, sin worktree, stage intacto). Lo que falta, con Guido (D4.2-4).
+- Suite entera: **2.192 de 2.192** verde (19 min, una vez, al final, en segundo plano). `kit-sync` LIMPIO (sync al principio del cierre, antes de las corridas).
+
 ## 2026-10-30 — Misión 5, paquete 4 (D4.1): el Arquitecto v3, el sello, `formato-spec` v3, `worktree` y `.kit-rol`
 
 PC `Usuario`, chat `vibe-kit M5 · D4.1 · Paquete 4: Arquitecto v3, sello, formato-spec, worktree y .kit-rol`, en Opus, sin Guido, **primera

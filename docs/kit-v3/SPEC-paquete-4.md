@@ -2,8 +2,9 @@
 Toda sesión dice el tamaño en la primera línea y, si no es chico, el Arquitecto viene solo, termina armando y deja su sello por
 script; sin sello no hay READY; y los worktrees nacen, se abren y se cierran por un script que escribe el rol y no lleva la credencial
 de escritura.
-- Estado: **🔨 EN CONSTRUCCIÓN — el código entero en `main` (D4.1, 2026-10-30); faltan las sesiones reales del crit. 4 (Modo B corto), 10 de 10
-  y el prototipo: D4.2** (tracker, Pendientes "Paquete 4 · para D4.2") · **READY — sellado sin Guido (provisorio)**, 2026-10-30, por el director
+- Estado: **✅ IMPLEMENTADO 2026-10-30** (D4.1 el código; D4.2 las sesiones reales: Modo B corto de punta a punta, 10 de 10, el prototipo; el
+  6b, a medias: tracker, "D4.2 · Decisiones sin Guido"). El sello de abajo es el de antes de construir: marcar este Estado cambia el hash, y un
+  delta del método implementado no se vuelve a sellar (D4.2-8) · **READY — sellado sin Guido (provisorio)**, 2026-10-30, por el director
   D4.1, después de la ronda única del red team con sus 5 ALTOS integrados. Guido lo repasa al volver; todo se deshace antes del tag
 - Fecha: 2026-10-30 · Misión: 5, director **D4.1**, sin Guido (tracker, "Abrir D4.1 sin Guido"; la vara: ADR-030; el presupuesto: ADR-029)
 - Plano: [`SPEC-0-kit-v3.md`](SPEC-0-kit-v3.md), orden 4 = **P1.1-1.8 (con P1.4), P6.2**, y "se completa la parte de `/inicio` que invoca

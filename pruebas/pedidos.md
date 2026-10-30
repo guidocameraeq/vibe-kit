@@ -133,8 +133,8 @@ Estas corridas prueban al Arquitecto v3, no solo el tamaño. Mismo formato; el "
   - La rama `modulo/<x>` y `.claude/worktrees/modulo--<x>` creadas por `worktree.cjs crear`, con `.kit-rol` = `director` adentro.
   - La línea de apertura al final.
 
-### 14b · Modo B corto sin ficha (`alfa`)
-Repo: un clon de `alfa` (recién armado por `rehacer.sh`) al que se le saca la ficha, así:
+### 14b · Modo B corto sin ficha (`gama`)
+Repo: un clon de `gama` (molde v2 puro, como un proyecto de hoy; recién armado por `rehacer.sh`) al que se le saca la ficha. **No sirve `alfa`**: sin ficha pero con los hooks v3 no es un proyecto v2, y el hook de escritura frena `docs/SPEC-<x>.md` (D4.2: así falló la primera corrida). Así:
 
 ```
 git rm -q .claude/kit.md && git commit -q -m "prueba: sin ficha"
@@ -144,7 +144,7 @@ echo "x" > pendiente.txt && git add pendiente.txt      # algo en stage, sin comm
 
 > El pedido 14, tal cual.
 
-- Primer bloque de texto: "más que chico: llamo al Arquitecto"; el transcript invoca `arquitecto` (Modo B corto).
+- Primer bloque de texto: la línea del tamaño (la de la sesión o, si el molde v2 no la trae, la del Arquitecto); el transcript invoca `arquitecto` (Modo B corto).
 - Sin ficha siempre es **módulo solo**: la primera línea de "Ejecución" dice `módulo solo` aunque el plan traiga dos partes.
 - Termina con `docs/SPEC-<x>.md` READY (`arquitecto.cjs ready` sale 0); no existe `docs/modulos/`.
 - **Sin commit en `main`, sin push y sin worktree** (ni `modulo/<x>` ni `.claude/worktrees/`); la rama sigue siendo `feature`.
@@ -161,7 +161,7 @@ echo "x" > pendiente.txt && git add pendiente.txt      # algo en stage, sin comm
 > El pedido 4, y al primer pedido de datos del Arquitecto: "dale con los defaults".
 
 - Primer bloque de texto: "más que chico: llamo al Arquitecto".
-- Existe `docs/modulos/<x>/prototipo/` (HTML hecho por un Sonnet, con una pregunta escrita) y en el transcript se crea **antes** que el `SPEC.md`: el prototipo va aunque la pantalla parezca chica y con "dale con los defaults" (que saltea las preguntas, no el prototipo).
+- Existe `docs/modulos/<x>/prototipo/` (HTML hecho por un Sonnet, con una pregunta escrita) y en el transcript se crea **antes** que las decisiones del `SPEC.md` (AGREGA, MODIFICA, criterios): el borrador en disco con el pedido textual y el contexto del código puede existir antes, con lo demás en `(pendiente)` (regla de oro del Arquitecto; D4.2). El prototipo va aunque la pantalla parezca chica y con "dale con los defaults" (que saltea las preguntas, no el prototipo).
 
 ### 17 · Modo A desde una carpeta vacía
 Repo: una carpeta nueva y vacía dentro de `../vibe-kit-pruebas/` (la crea quien corre; `rehacer.sh` no la toca).

@@ -77,7 +77,7 @@ sesión sigue con lo que no depende de eso. Lo que sí se decide y es grande se 
 | 1 | La ficha del kit, el parser, `kit/VERSION`, los repos de prueba | 1 | ✅ 2026-10-28 ([`SPEC-paquete-1.md`](SPEC-paquete-1.md)) |
 | 2 | Documentos con tope, hook en node, candado, `cambios`, `/inicio` y `/cierre` v3, **la zona propia (P3.2)**, `pruebas/pedidos.md` | 2 | ✅ 2026-10-29 (D2.1 y D2.2; lo que espera a Guido, en Pendientes) ([`SPEC-paquete-2.md`](SPEC-paquete-2.md)) |
 | 3 | Seguridad: corrector de secretos, barreras, hooks por PC, `doctor` mínimo | 3 | ✅ 2026-10-30 (D3.1, D3.2, D3.3; **te espera**: instalar los hooks por PC en las dos PCs, la pestaña real, borrar 4 transcripts de prueba: Pendientes) ([`SPEC-paquete-3.md`](SPEC-paquete-3.md)) |
-| 4 | El Arquitecto v3, el script `worktree`, el sello, `formato-spec.md` | 2 | 🔨 D4.1: todo el código en `main`; D4.2 cierra las sesiones reales ([`SPEC-paquete-4.md`](SPEC-paquete-4.md)) |
+| 4 | El Arquitecto v3, el script `worktree`, el sello, `formato-spec.md` | 2 | ✅ 2026-10-30 (D4.1 y D4.2; **te espera**: el Arquitecto en un proyecto v2 de verdad, la pestaña en un worktree: Pendientes) ([`SPEC-paquete-4.md`](SPEC-paquete-4.md)) |
 | 5 | Director/obrero, `/estado`, resumen del día, la mesa, subagentes | 2 | ⬜ |
 | 6 | Equipador v3, actualizador, adoptador, `doctor` completo | 1 | ⬜ |
 | 7 | El ciclo de `cambios` (flota, migración de Hermes) y la portada | 1 | ⬜ |
@@ -104,7 +104,7 @@ cuántos lanzó y en qué modelo (por ejemplo `4 Sonnet · 2 Opus`): es la medid
 | D3.2 | Paquete 3, segunda vuelta: terminar G3, G4, G5 y G6 desde sus ramas WIP (medición, mutación, pruebas), mergearlos y borrar las ramas | 2026-10-29 (sin Guido, PC `Usuario`) | `vibe-kit M5 · D3.2 · Paquete 3, segunda vuelta: terminar G3-G6 desde sus ramas WIP` | 4 Opus (G3, G4, G5, G6; nunca más de dos a la vez; G3 y G6 retomados tras un corte de cuota) | `10cd6e8` · `6714f43` · `4b28b45` · `7fcc734` y el cierre | ✅ **G3-G6 en `main`, las cuatro ramas `wip/*` borradas de `origin`.** Pruebas corridas por el director: G3 41 (40 + 1 skip hasta que G7 registre el hook), G6 134, G4 306 (con `ficha.test`), G5 29. **Mutación**: G3 136/137 · G6 49/50 · G4 62/64 · G5 178/181 (todos los vivos equivalentes, explicados). **Medición, corpus `Usuario` (16.470 llamadas únicas)**: `git-seguro` 90 frenos, 0 falsos positivos; `sensible` 0 `ask`/`deny` con humano de día con modo (1 `deny` correcto en bypass); `secretos` 38 frenos + 1.003 prompts con 0 frenos, 0 falsos positivos (empezó en 308: corregido). Suite: cifra en el CHANGELOG. **Decisiones sin Guido**: abajo |
 | D3.3 | Paquete 3, cierre: G7, G10, G11, G12, G13, revisor frío, `/cierre` completo | 2026-10-29/30 (sin Guido, PC `Usuario`; ~10 h de reloj, 18 h de agentes, 21 M de tokens nuevos) | `vibe-kit M5 · D3.3 · Paquete 3, cierre: githooks, instalador, doctor, sesión real, revisor frío` | 3 Sonnet (G11, G12, G13) · 14 Opus (G7, G10, G5b, G6b, revisor frío ×2 vueltas, RF-A, RF-B, RF-C, RF-D, RF-A2, RF-B2, RF-C2, RF-D2; dos se colgaron y se retomaron) | `797eddc`…`387f481` y el cierre | ✅ **G7** githooks con candado doble y gitleaks, todos los hooks registrados en forma exec; **G10** instalador por PC (`--plan`, `--quitar` byte a byte, `--sacar-viejo`); **G11** `doctor` (14 chequeos); **G12** `rehacer.sh` con el paso "orden 3"; **G13** sesión real con `claude.exe` (niega-aprobar en bypass, `salir-del-worktree` y `frenos-del-proyecto` vivos); G5b y G6b de yapa. Pendientes a-g de D3.2 y a-d de D2.2 cerrados salvo (e), que es de `clientes`. Revisor frío: dos vueltas, todo lo del día normal arreglado; el resto a "no cierra". Suite y mutaciones: cifras en el CHANGELOG. Huella del `~/.claude/` real igual a la de la apertura. **Decisiones sin Guido**: arriba |
 | D4.1 | Paquete 4: spec delta + red team, Arquitecto v3, sello, `formato-spec.md`, `worktree` y `.kit-rol` | 2026-10-30 (sin Guido, PC `Usuario`; **~3,2 h de reloj, ~2,9 h de agentes, ~2,0 M de tokens de subagentes**) | `vibe-kit M5 · D4.1 · Paquete 4: Arquitecto v3, sello, formato-spec, worktree y .kit-rol` | 3 Sonnet (J4, J5a, J5b) · 7 Opus (redactor del delta, red team ×1, J1, J2, J3, revisor frío ×1, RF-fix) = **10** (ADR-029: ~8) | `42344e4`…el cierre | 🔨 **El código del paquete entero en `main`**: `arquitecto.cjs` (`sello` con hash, `ready`, `--pendientes`, `tope`, `entorno`, `registro`), `worktree.cjs` (`crear`, `abrir`, `sync-env`, `cerrar`, `.kit-rol`, filtro de credenciales que falla cerrado), el Arquitecto v3 (5,6 KB, cinco entradas, la línea primero, `modo-a`/`modo-b`/`flota`, `formato-spec` v3), la regla del tamaño en el molde. Delta **sellado sin Guido y por script**; red team 1 ronda (5 ALTOS integrados); revisor frío 1 vuelta (9 hallazgos, todos arreglados en un encargo). Pruebas por encargo 35 · 19 · 39 → 99 tras RF-fix, verdes corridas por el director; **mutación J1 72/75 · J2 32/33** (vivos equivalentes). Sesiones reales: obrero en su worktree desde PowerShell ✅ (crit. 17 tildado, `.kit-rol` mitad PowerShell); **diez pedidos 8 de 10** (eran 6; fallan 8 y 10); **el Modo B corto no se midió** (el pedido 14 estaba mal armado: con el plan adentro es chico por la regla). Suite y huella: en el CHANGELOG. **Sigue en D4.2** (abajo) |
-| D4.2 | Paquete 4, cierre: el Modo B corto de punta a punta (crit. 4), 10 de 10, el prototipo, el ✅ del paquete | | | | | |
+| D4.2 | Paquete 4, cierre: el Modo B corto de punta a punta (crit. 4), 10 de 10, el prototipo, el ✅ del paquete | 2026-10-30 (sin Guido, PC `Usuario`; **~1,4 h de reloj, ~0,4-0,6 M de tokens de subagentes** más 10 sesiones `claude.exe -p`) | `vibe-kit M5 · D4.2 · Paquete 4, cierre: Modo B corto real, 10 de 10 y prototipo` | 3 Sonnet (K1 texto, K2 `rehacer.sh`, K3 corridas, retomado dos veces) = **3** (ADR-029: ~3) | `31b7dac`…el cierre | ✅ **Paquete 4 cerrado.** K1: la regla del tamaño (charla con el dueño, siempre invoca de noche), el prototipo siempre en `modo-b.md`, el pedido 14 rearmado y el 14b; `skills.test` + `arquitecto.test` 80/80 corridas por el director. K2: `rehacer.sh` pone el `CLAUDE.md` del molde (las corridas de D4.1 medían sin él; el no, probado). K3: **crit. 4 del kit ✅** (14: sin preguntas, `ready` 0 en ~3 min, commit en `main`, rama y worktree con `.kit-rol` = `director`), **crit. 2 ✅ 10 de 10** (1, 2, 6, 7, 8, 10 hoy), **16 ✅** (criterio reescrito, D4.2-3); **14b a medias** por el armado (D4.2-4). Bypass frenado por el clasificador → `acceptEdits` + `--allowedTools` (D4.2-2). Suite entera **2.192 de 2.192** verde (19 min, una vez, al final). **Decisiones sin Guido**: arriba |
 | D5.1 | Paquete 5, primera mitad: spec delta + red team, el canon director/obrero y sus correctores | | | | | |
 | D5.2 | Paquete 5, segunda mitad: `/estado`, resumen del día, subagentes, `CLAUDE.md` por criterios, la mesa | | | | | |
 | D6.1 | Paquete 6: Equipador v3, actualizador, adoptador, `doctor` completo, "toda la flota" en los repos de prueba | | | | | |
@@ -331,6 +331,44 @@ sin poder decidirse con la vara: **no hay preguntas nuevas arriba de Pendientes*
   → 1. J3 · los `Estado:` de la ficha del módulo son los de B §13 (`EN OBRA`, `PAUSADO`, `COMPLETO <fecha>`, `ABANDONADO <fecha>`); el OK del Modo B
   es una AskUserQuestion sobre el spec sellado (Plan Mode no deja escribir); el SPEC-0 del Modo A, 5-8 criterios.
 
+### D4.2 · Decisiones sin Guido
+
+D4.2 corrió sin Guido, con su autorización previa (su prompt, abajo) y con la vara del ADR-030. **Las ⚠️ arriba.** Ninguna quedó sin poder
+decidirse con la vara: **no hay preguntas nuevas arriba de Pendientes**.
+
+- ⚠️ **D4.2-1 · Las corridas de D4.1 medían sin la regla del `CLAUDE.md` del molde**: `rehacer.sh` ponía el `CLAUDE.md` congelado de D2.1 y el paso
+  "orden 3" solo traía hooks, scripts y skills, así que la sección "El tamaño del pedido" (J4 de D4.1) nunca llegó a `alfa` ni a `beta`. Lo arregló
+  un encargo (K2): el paso 3 pone el `CLAUDE.md` del árbol de trabajo, y la verificación final da FALLO si falta la sección (probado el no).
+  `[mejor código · consistencia]` *Costo*: un encargo más (3 en vez de 2). *Consecuencia*: los 8 de 10 de D4.1 valen para `/inicio`, no para el `CLAUDE.md`;
+  por eso volví a correr los cuatro chicos (abajo).
+- ⚠️ **D4.2-2 · `bypassPermissions` en `claude.exe -p` lo frena el clasificador del modo `auto`** ("Create Unsafe Agents"; en D4.1 había pasado).
+  No lo esquivé: las corridas que escriben (14, 14b, 16) fueron con `--permission-mode acceptEdits` y un `--allowedTools` corto (Read, Write, Edit,
+  Glob, Grep, Skill, Agent, TodoWrite y `Bash` de `node`, `git`, `ls`, `cat`, `mkdir`, `wc`, `head`, `grep`, `find`). Al clasificador eso le
+  alcanzó, y ninguna negativa cambió un resultado: las sesiones repitieron por separado los `Bash` compuestos que les negaron. `[workflow · mejor código]`
+  *Para el paquete 5*: los obreros nocturnos se pensaron en bypass; si el clasificador frena el lanzamiento, el canon tiene que lanzar con permisos
+  acotados (Pendientes, "Paquete 5 · de D4.2").
+- ⚠️ **D4.2-3 · El criterio del prototipo (16) reescrito**: decía "el `prototipo/` se crea antes que el `SPEC.md`", y el Arquitecto escribe primero el
+  borrador en disco (regla de oro), con el pedido textual y el contexto del código y todo lo demás en `(pendiente)`. Las decisiones se escribieron
+  **después** del prototipo, que es lo que pide H §13 ("el spec se escribe desde lo aprobado"). Ahora `pedidos.md` pide eso: el prototipo antes de las
+  decisiones del spec. **Alternativa**: demorar el borrador en disco hasta el prototipo, a costa de perder el borrador si la sesión se corta. `[consistencia · mejor código]`
+- ⚠️ **D4.2-4 · El 14b (Modo B corto sin ficha) no cerró en una sesión real, y no lo repetí una tercera vez** (D4-18: "se repite esa sola, una vez"). Las dos
+  corridas fallaron por cómo estaba armada la prueba, no por el kit. (a) En `alfa` sin ficha siguen los hooks v3, así que el de escritura frenó
+  `docs/SPEC-<x>.md` y la sesión lo mudó a `docs/modulos/`; un alfa sin ficha no es un proyecto v2. (b) En `gama` (v2 de verdad) el pedido decía
+  "alfa", la sesión preguntó y, sin la regla del tamaño (molde v2), construyó directo sin subir al Arquitecto. **Lo que sí pasó en las dos**: sin commit
+  en `main`, sin push, sin worktree y lo que estaba en stage intacto (crit. 6b, la mitad de seguridad). Lo que falta (el spec en `docs/SPEC-<x>.md` READY y la
+  apertura sin ficha) lo prueban `arquitecto.test.cjs` y tu uso del Arquitecto en un proyecto v2 de verdad (Pendientes, "Paquete 4 · te espera a
+  vos", 1). No traba el ✅: el crit. 4 del kit es el 14. `[workflow · acordarse de menos]`
+- **D4.2-5 · La línea del tamaño del Arquitecto (`SKILL.md`, línea 17) suma la frase de la charla con el dueño**, fuera de los cuatro archivos del prompt,
+  para que la sesión y el Arquitecto midan igual (5.676 bytes, tope 6.000). `[consistencia]`
+- **D4.2-6 · Sin `MSYS_NO_PATHCONV` en ningún lado**: el pedido entra a `claude.exe -p` por stdin desde un archivo, así nada se convierte y la sesión no
+  hereda la variable. Ningún transcript dio `C:\c\…`. `[acordarse de menos · workflow]`
+- **D4.2-7 · Volví a correr los cuatro chicos (1, 2, 6, 7)** en plan, una vez cada uno, aunque el prompt pedía solo 8, 10 y 16: el párrafo nuevo del
+  `CLAUDE.md` es justo lo que podría agrandar un chico, y el crit. 2 del kit no se tilda sin verlo. Cuatro corridas cortas. `[mejor código]`
+- **D4.2-8 · El delta queda `✅ IMPLEMENTADO` sin volver a sellarlo**: el sello cuidaba que el spec no cambiara antes de construir. Al marcar el Estado,
+  el hash deja de coincidir; para un spec del método ya implementado, eso no frena nada (`ready` no aplica a los deltas del método). `[acordarse de menos]`
+- **De las corridas**: las de `plan` escriben su plan en `~/.claude/plans/` (mecanismo de Claude Code, no del kit). El `claude.exe -p` avisa "workspace not
+  trusted" e ignora el `permissions.allow` del repo (ya anotado para los paquetes 6/7); no cambió nada acá.
+
 ## Abrir D3.1 sin Guido (el prompt)
 
 Guido abre un chat nuevo en vibe-kit, en Opus, pega esto y se va. Es el de D2.2 con lo que cambia para el paquete 3:
@@ -479,6 +517,39 @@ Opus, chat nuevo en vibe-kit.
 >    SPEC-0 que falten, el delta en `✅ IMPLEMENTADO`, la fila D4.2 con horas, encargos y tokens, el prompt de D5.1 armado como este, y
 >    /cierre completo con el "Próximo paso" y su título. En el resumen final, primero "Decisiones sin Guido" y después lo que me espera a mí.
 
+## Abrir D5.1 sin Guido (el prompt)
+
+*(Armado en el cierre de D4.2, 2026-10-30.)* En la PC `Usuario`, en Opus, chat nuevo en vibe-kit.
+
+> inicio — misión 5, D5.1: el paquete 5, primera mitad, sin mí, con el presupuesto del ADR-029.
+>
+> Me voy y te dejo trabajando solo. Te autorizo por adelantado a lo mismo que a D4.1 (su prompt, en el tracker, "Abrir D4.1 sin Guido"):
+> después del /inicio no esperás mi OK, decidís con la vara (ADR-030) y anotás en "Decisiones sin Guido" de una sección D5.1 nueva (las ⚠️
+> arriba), no tocás el `~/.claude/` real salvo el `kit-sync` del `/cierre`, y lo que necesita una persona va a Pendientes. Lo que cambia:
+>
+> 1. **Alcance: la primera mitad del paquete 5** (SPEC-0, orden 5; es el más grande y se construye en módulos: núcleo · director · obrero/tramo ·
+>    estado · mesa). Primero **el spec delta del paquete entero** (`docs/kit-v3/SPEC-paquete-5.md`, como el del 4), con **una ronda de red team**
+>    (toca permisos: el canon de los obreros), lo **sellás vos con el script `sello`** ("sellado sin Guido", sin ALTOS abiertos) y lo repaso al
+>    volver. En el delta, **partí el paquete en dos directores** y escribí qué hace cada uno; D5.1 construye **el núcleo y el canon director/obrero**
+>    (con el corrector "spec sin sello" y la regla de mensajes entrantes) y deja `/estado`, el resumen del día, la mesa, los subagentes y el
+>    `CLAUDE.md` por criterios para D5.2. Entran también de Pendientes "Paquete 5 · de D4.1" (`integrar` con el gate, `lib/sello.cjs` al molde, la
+>    parada de `/obrero`), "Paquete 5 · de D4.2" (cómo se lanza un obrero si el clasificador frena el bypass) y "Paquete 5 · del ADR-029" (el canon
+>    de pruebas de las apps).
+> 2. **Decidís con la vara** ("Cómo decide una sesión sin Guido" del tracker, ADR-030). Si con la vara no alcanza, no la decidas: pregunta arriba
+>    de Pendientes con las opciones y la recomendada, y seguís con lo demás.
+> 3. **El presupuesto manda (ADR-029)**: **~4 h de reloj y ~8 encargos**. Si llegás y no terminaste, cerrás limpio: lo hecho en `main`, lo que
+>    falta en Pendientes con su porqué. No estires.
+> 4. **Contra accidentes, no contra trampas.** El revisor frío: una vuelta, hasta 10 hallazgos con su escenario del día normal, los arreglos en un
+>    encargo; sin segunda vuelta. **Pruebas proporcionales**: casos de sí y de no; mutación solo en las piezas nuevas que deciden un freno o un
+>    permiso (tope 20 min); la suite entera una vez, al final, en segundo plano. De a dos Opus como máximo; cada encargo en su worktree en
+>    `scratchpad/<x>/wt`.
+> 5. **Las sesiones reales** (`claude.exe -p`): el pedido por stdin, sin `MSYS_NO_PATHCONV`; las que escriben, con `acceptEdits` y un
+>    `--allowedTools` corto (el bypass lo frena el clasificador: "D4.2 · Decisiones sin Guido"); los repos de prueba recién armados por `rehacer.sh`,
+>    y si la corrida necesita el kit instalado, después del `kit-sync` del `/cierre`.
+> 6. Leés cada diff y corrés las pruebas de cada encargo. Aceptado → merge a `main`, gitleaks, commit y push.
+> 7. Al terminar: la fila D5.1 con **horas, encargos y tokens**, el prompt de D5.2 armado como este, y /cierre completo con el "Próximo paso" y su
+>    título. En el resumen final, primero "Decisiones sin Guido" y después lo que me espera a mí.
+
 ## Paralelizar: decidido que no (DP, 2026-10-29)
 
 **La misión 5 sigue en secuencia: un director por vez, en el orden de la tabla de arriba.** Guido: "Prefiero hacerlo bien y que tarde
@@ -529,40 +600,22 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
 - **Paquete 4 · te espera a vos, Guido** (D4.1 no lo podía hacer sin una persona; **no traba a D5.1**):
   1. **El Arquitecto v3 ya está en esta PC** (`Usuario`, por `kit-sync`); en `clientes` llega con tu próximo `/inicio` de vibe-kit allá
      (`kit-sync sync`). Usalo como siempre en un proyecto v2: tiene que abrir con la línea del tamaño y, sin ficha, dejar `docs/SPEC-<x>.md`
-     sellado **sin commitear nada** (D4-1, r1-3). Si algo molesta, decilo: se deshace con un revert y `kit-sync`.
+     sellado **sin commitear nada** (D4-1, r1-3). Si algo molesta, decilo: se deshace con un revert y `kit-sync`. **Es también lo que falta
+     del crit. 6b** (D4.2-4): fijate que el spec quede en `docs/SPEC-<x>.md` READY, como `módulo solo`, y que la línea final sea la de sin ficha
+     (`inicio — ejecutá el spec docs/SPEC-<x>.md (está READY)`). En un proyecto v2 llamalo vos (`/arquitecto …`): el molde v2 no trae la regla del tamaño.
   2. **Una pestaña real de VS Code en un worktree** (fila 9 del delta): en `../vibe-kit-pruebas/alfa`, corré
      `node .claude/scripts/worktree.cjs crear prueba` (antes un commit con `docs/modulos/prueba/README.md`), abrí lo que imprime (`code "<ruta>"`),
      la pestaña de Claude ahí, y fijate que el arranque diga el rol (`director`) y que `cambios aprobar` se niegue. Es la mitad VS Code del
      NO VERIFICADO de `.kit-rol`.
-  3. Repasar las ⚠️ de D4.1 (arriba) y el delta sellado sin vos.
+  3. Repasar las ⚠️ de D4.1 y D4.2 (arriba) y el delta sellado sin vos.
+- **Paquete 5 · de D4.2**: `claude.exe -p --permission-mode bypassPermissions` **lo frena el clasificador del modo `auto`** cuando lo lanza una
+  sesión ("Create Unsafe Agents", 2026-10-30; en D4.1 había pasado). Con `acceptEdits` y un `--allowedTools` corto, pasa y alcanza
+  (D4.2-2). El canon director/obrero y los obreros nocturnos tienen que lanzarse así, o decir por qué necesitan bypass y cómo se autoriza.
 - **Paquete 5 · de D4.1**: `integrar` (D4-2) con el gate, que commitea `frenos.log` antes del merge (D4-3); copiar `lib/sello.cjs` al molde con
   su prueba anti-desvío (D4-9) para el corrector "spec sin sello" y `/obrero`; la otra mitad del criterio 3 (la parada de `/obrero`).
 - **Paquete 6 · de D4.1**: `cargar-secreto` corrido adentro de un worktree calcula otro `<proyecto>` y guarda en otro almacén (red team r1-4,
   "fuera de este paquete"); el Modo A con el molde v3 y `docs/modulos/v1/` (D4-6); "adoptá X" y "poné al día X" de verdad (hoy `flota.md` da una
   línea). Y un clon no trae `core.hooksPath`: el actualizador lo pone (J5a lo tuvo que poner a mano en sus clones).
-- **Paquete 4 · para D4.2** (lo que D4.1 no cerró, con su porqué; el detalle de cada corrida, en el informe de J5b del scratchpad de D4.1,
-  que no se guarda):
-  1. **El Modo B corto de punta a punta (crit. 4 del kit, crit. 6 del delta, P1.2)**: el pedido 14 de `pruebas/pedidos.md` traía un plan
-     de cinco renglones que una sesión hace en una tarde, así que **por la regla es chico** y así lo midieron la sesión y el Arquitecto (la
-     sesión lo escribió entero, sin spec). Hay que **rearmar el pedido 14** para que sea más que chico con director de verdad (dos tareas a la
-     vez que no entran en una sesión, o noche sin Guido) y correrlo con el OK por `--resume`: commit en `main`, `ready` en 0, `modulo/<x>`, el
-     worktree con `.kit-rol` = `director`, la línea de apertura, ≤ 15 min. Lo mismo para 6b (sin ficha, un pedido "módulo solo" que no sea chico):
-     lo que sí quedó probado es que sin ficha no tocó `main`, el remoto, los worktrees ni lo que había en stage.
-  2. **Diez pedidos: 8 de 10** (eran 6). Fallan el **8** (la guía que sale de lo que cuenta el dueño: la midió chica, "es un documento") y el
-     **10** (dijo la línea pero no invocó al Arquitecto: "esta noche no puedo dejarlo corriendo solo"). Afinar la regla del molde (`CLAUDE.md` y
-     `/inicio`): lo que sale de una charla con el dueño es más que chico; más que chico **siempre** invoca, también de noche. Una corrida de cada uno.
-  3. **El prototipo (P1.6)**: el pedido 16 (pantalla) no lo hizo ("la pantalla es tan chica que se revisa ya hecha"). `modo-b.md` tiene que decir
-     que una feature de pantalla lleva prototipo siempre. Una corrida.
-  4. Lo que sí pasó: 11 (la PC → el Equipador, directo), 12 (consultorio), 13 (la flota), 15 (Modo B largo: `NORTE.md` antes del investigador
-     Sonnet y "Qué robar y qué no"), 17 (Modo A: monta en la carpeta vacía, la línea del registro antes de la primera pregunta).
-  5. **Para las corridas**: `MSYS_NO_PATHCONV=1` va **solo en el lanzador**, no en el entorno de la sesión: si la sesión lo hereda, todo `node
-     ~/…` o `node "$HOME/…"` desde Git Bash da "Cannot find module 'C:\c\Users\…'" (medido por el director; sin esa variable anda).
-  Con eso, el paquete 4 pasa a ✅ y D4.2 hace el `/cierre` con el prompt de D5.1.
-- **Paquete 4 · de D2.2 (cerrado en parte por D4.1: 8 de 10; lo que falta, arriba)**: los diez pedidos de P5.1 dieron 6 de 10 (`claude.exe -p` 2.1.309, `--permission-mode plan`, dos corridas por
-  pedido, mismo veredicto). Los 4 chicos y los 2 con director, bien; **los 4 "módulo solo" invocan `/arquitecto` (la conducta correcta) pero
-  sin escribir antes la línea del tamaño**, aunque la skill lo pide "antes de cualquier herramienta"; y los chicos la dicen al final, no al
-  principio. *Arreglo propuesto para el orden 4*: que el Arquitecto v3 abra diciendo "esto es más que chico: …" como primera línea (es el
-  que siempre llega). Evidencia: `pedidos/v2/` del scratchpad de D2.2 (no se guarda). El criterio 2 del kit queda sin tildar.
 - **Paquete 6 · de D2.2 (F4)**: la exención (a) de `barreras` da rojo con una regla de `settings` que el molde nuevo retira, porque sin el
   molde viejo no la distingue de una propia. **Resuelto en `barreras` en D3.3 (G6b, `--molde-viejo`)**: falta que el actualizador se
   lo pase. Los `.githooks/**` y gitleaks ya están en el molde (G7).
@@ -632,11 +685,17 @@ Están en la sección "Criterios de aceptación" del spec. Se tilda cada uno con
 El tag `v3.0` no sale con uno sin tildar, salvo que Guido lo pase a fase 2 por escrito.
 
 - [ ] 1 · Regresión: todo lo de `v2.4.2` sigue andando
-- [ ] 2 · El tamaño del pedido dicho en una línea — *D4.1: 8 de 10 (`claude.exe -p` 2.1.312, plan, una corrida cada uno; fallan 8 y 10: Pendientes, "para D4.2")*
+- [x] 2 · El tamaño del pedido dicho en una línea — **2026-10-30, D4.2: 10 de 10** (`claude.exe -p` 2.1.312, plan, una corrida cada uno, clones de
+  `alfa`/`beta` con el `CLAUDE.md` del molde de verdad, D4.2-1): 1, 2, 6, 7 → "chico, lo hago acá" sin invocar nada; 8 y 10 → "esto es más que chico:
+  llamo al Arquitecto" como primer bloque de texto e invocan `arquitecto`. 3, 4, 5 y 9 pasaron en D4.1 (solo con `/inicio`; el párrafo nuevo solo suma
+  razones de "más que chico"). *Antes, D4.1: 8 de 10 (fallaban 8 y 10)*
 - [ ] 3 · Sin sello, `ready` se niega — *D4.1: la mitad de `ready` (`arquitecto.cjs ready` niega sin sello, con sello inválido o con el spec
   cambiado; 35+ pruebas, mutación 72/75 con los vivos equivalentes); falta la parada de `/obrero` (orden 5)*
-- [ ] 4 · El Arquitecto deja el commit del módulo en `main` — *D4.1: el camino existe (`modo-b.md` B5, `worktree.cjs crear`, probados por
-  partes); la sesión real no llegó a armar (el pedido 14 era chico): D4.2*
+- [x] 4 · El Arquitecto deja el commit del módulo en `main` — **2026-10-30, D4.2 (pedido 14 rearmado, `claude.exe -p` 2.1.312, `acceptEdits` con
+  `--allowedTools` corto, el OK por `--resume` "aprobado")**: primer bloque "esto es más que chico: llamo al Arquitecto", invoca `arquitecto`, **sin
+  preguntas**; `sello` y `ready` 0 en **~3 min de reloj** (126 s + 50 s); un commit en `main` con solo `docs/modulos/calc-historial/` (README con
+  `director: sí` y `rama: modulo/calc-historial`), pusheado al remoto; `worktree.cjs crear` dejó la rama y `.claude/worktrees/modulo--calc-historial`
+  con `.kit-rol` = `director`; la línea de apertura al final (seguida de las de `/smoke` y `cierre`). Verificado por el director en el clon
 - [ ] 5 · El hook inyecta ≤ 9.700, con huella, edad y CORTADO
 - [ ] 6 · `/cierre` encuentra lo suelto, lo roto y lo pasado de tope — *D2.2: el candado lo encuentra, frena y anota (pruebas de
   `estructura.cjs` y `todo` 0 en `alfa`/`beta`); falta ver una sesión real que corra el `/cierre` del molde y no commitee encima*
@@ -698,6 +757,11 @@ Del spec, sección "Lo que hacés vos de nuevo". Acá solo cuándo toca, para qu
 | 2026-10-28 | **Un director Opus por paquete con subagentes** en vez de una sesión por paso: de ~18-21 sesiones a 13 directores; los encargos mecánicos vuelven a Sonnet | ADR-028: propuesta de Guido (un orquestador para todo el spec), acotada a uno por paquete |
 
 ## Lecciones (insumo de la misión 6)
+
+- 2026-10-30 · **D4.2: antes de medir una regla, mirar que la regla esté en el repo de prueba.** Las corridas de D4.1 midieron el tamaño
+  sin la sección del `CLAUDE.md` del molde, porque `rehacer.sh` no la llevaba, y dieron 8 de 10 igual. El "grep de la regla en el clon antes
+  de lanzar" lo atrapó. Y **dos de cinco corridas fallaron por el armado de la prueba, no por el kit** (14b dos veces, 16 con un criterio que
+  chocaba con otra regla de la misma skill): una prueba de sesión real se diseña contra el repo donde va a correr, no en abstracto.
 
 - 2026-10-30 · **D4.1: el ADR-029 rindió.** Un paquete entero (delta, red team, 5 encargos de construcción, revisor, arreglos, 3 de sesiones
   reales) en ~3,2 h de reloj y **~2,0 M de tokens de subagentes**, contra 18 h y 21 M de D3.3. Lo que lo hizo: una ronda de red team y una
