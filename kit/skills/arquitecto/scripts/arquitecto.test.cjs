@@ -609,7 +609,7 @@ test('sello entorno: gate:entorno-prueba quitado y vigente → — (quitado: <po
   fs.writeFileSync(path.join(d, '.claude', 'kit.md'), ficha({ test: 'node rojo.js' }));
   const r3 = correr(['ready', 's.md'], d);
   assert.equal(r3.codigo, 1);
-  assert.match(r3.out, /gate:entorno-prueba no está vigente/);
+  assert.match(r3.out, /gate:entorno-prueba no estaba vigente/);
   // --no-aplica entorno con ficha → 1.
   const c = repo(ficha());
   escribir(c, 's.md', spec());
@@ -625,11 +625,32 @@ test('sello: una ficha rota → 1 sin escribir nada', () => {
   assert.equal(leer(p), spec());
 });
 
+test('rf-3: el quitado se mira el día del sello — vigente ese día y vencido después → sigue valiendo; un sello con fecha posterior al hasta → inválido', () => {
+  const d = repo(ficha({ test: 'node rojo.js', extra: quitado('2026-10-30') }));
+  escribir(d, 's.md', spec());
+  assert.equal(correr(['sello', 's.md'], d, { ahora: new Date(2026, 9, 30, 12) }).codigo, 0);
+  const despues = { ahora: new Date(2026, 10, 5, 12) };
+  assert.equal(S.revisarSello(fs.readFileSync(path.join(d, 's.md')), { hayFicha: true, gateQuitado: (c) => !!A.gateQuitado({ frenos: { quitados: [{ id: 'gate:entorno-prueba', hasta: '2026-10-30' }] } }, c.fecha) }).estado, 'ok');
+  // Módulo con ese spec: --pendientes no lo lista una semana después.
+  escribir(d, 'docs/modulos/m/README.md', '# m\n- Estado: EN OBRA\n- director: no\n');
+  fs.copyFileSync(path.join(d, 's.md'), path.join(d, 'docs', 'modulos', 'm', 'SPEC.md'));
+  assert.equal(correr(['ready', '--pendientes'], d, despues).out, '');
+  assert.equal(correr(['ready', 's.md'], d, despues).codigo, 0, 'vencido después del sello: ready igual anda');
+  // No: el sello dice una fecha posterior al hasta (el hash no mira la línea) → sello inválido.
+  const t = repo(ficha({ test: 'node rojo.js', extra: quitado('2026-10-30') }));
+  escribir(t, 's.md', spec());
+  assert.equal(correr(['sello', 's.md'], t, { ahora: new Date(2026, 9, 30, 12) }).codigo, 0);
+  ponerSello(path.join(t, 's.md'), lineaSello(path.join(t, 's.md')).replace('arquitecto: 2026-10-30', 'arquitecto: 2026-10-31'));
+  const r = correr(['ready', 's.md'], t, despues);
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, /no estaba vigente el 2026-10-31/);
+});
+
 // ---------------------------------------------------------------- sello: tope (H §12)
 
 test('tope: pasado sin --no-partir → 1 con los números y las secciones; con él → ⚠️ y ready 0', () => {
   const d = repo(ficha());
-  const grande = spec({ ejecucion: 'módulo solo', relleno: 11 * 1024 });
+  const grande = spec({ h1: '# x', ejecucion: 'módulo solo', relleno: 11 * 1024 });
   const p = escribir(d, 's.md', grande);
   const r = correr(['sello', 's.md'], d);
   assert.equal(r.codigo, 1);
@@ -647,7 +668,7 @@ test('tope: pasado sin --no-partir → 1 con los números y las secciones; con �
 });
 
 test('tope: los límites por tamaño y el conteo de criterios', () => {
-  const m = (o, tam) => S.medirTope(Buffer.from(spec(o)), tam);
+  const m = (o, tam) => S.medirTope(Buffer.from(spec({ h1: '# x', ...o })), tam);
   assert.equal(m({ criterios: 8 }, 'solo').pasado, false);
   assert.equal(m({ criterios: 9 }, 'solo').pasado, true, 'módulo solo: más de 8 criterios');
   assert.equal(m({ criterios: 30 }, 'director').pasado, false, 'con director: sin tope de criterios');
@@ -656,8 +677,8 @@ test('tope: los límites por tamaño y el conteo de criterios', () => {
   assert.equal(m({ relleno: 31 * 1024 }, 'director').pasado, true);
   assert.equal(m({ relleno: 25 * 1024 }, null).pasado, false, 'sin tamaño: 30 KB');
   assert.equal(m({ relleno: 31 * 1024 }, null).pasado, true);
-  // El borde: 10 KB justos no pasan; un byte más, sí.
-  const base = Buffer.byteLength(spec({ relleno: 1 }));
+  // El borde: 10 KB justos (del texto normalizado) no pasan; un byte más, sí.
+  const base = Buffer.byteLength(S.textoNormalizado(spec({ h1: '# x', relleno: 1 })));
   assert.equal(m({ relleno: 1 + 10240 - base }, 'solo').pasado, false);
   assert.equal(m({ relleno: 2 + 10240 - base }, 'solo').pasado, true);
   // Criterios: renglones "- " o "N. " de primer nivel, hasta el ## siguiente; no los anidados ni "6b." ni los de otra sección.
@@ -669,12 +690,36 @@ test('tope: los límites por tamaño y el conteo de criterios', () => {
   assert.equal(S.kbTexto(1024), '1,0');
 });
 
+test('rf-7: un SPEC-0 va con el tope de 30 KB aunque diga módulo solo; un módulo solo, con el de 10 KB', () => {
+  const s0 = (o) => S.medirTope(Buffer.from(spec({ ejecucion: 'módulo solo', ...o })), 'solo');
+  assert.equal(s0({ relleno: 15 * 1024 }).pasado, false, 'SPEC-0 de 15 KB: adentro');
+  assert.equal(s0({ relleno: 15 * 1024 }).tope.nombre, 'SPEC-0');
+  assert.equal(s0({ criterios: 12 }).pasado, false, 'SPEC-0: sin tope de criterios');
+  assert.equal(s0({ relleno: 31 * 1024 }).pasado, true);
+  assert.equal(s0({ h1: '# SPEC: x', relleno: 15 * 1024 }).pasado, true, 'un delta módulo solo de 15 KB: pasado');
+});
+
+test('rf-7: los KB se miden sobre el texto normalizado — CRLF, BOM y la línea del sello no suman', () => {
+  const lineas = Array(1900).fill('abcd');
+  const crlf = Buffer.from(`﻿${spec({ h1: '# x', eol: '\r\n', cuerpoExtra: lineas })}`);
+  assert.ok(crlf.length > 10240, 'los bytes crudos pasan los 10 KB');
+  const m = S.medirTope(crlf, 'solo');
+  assert.equal(m.pasado, false, 'normalizado, no');
+  assert.equal(m.bytes, Buffer.byteLength(S.textoNormalizado(crlf)));
+  assert.equal(S.medirTope(Buffer.from(spec({ h1: '# x', cuerpoExtra: lineas.concat(Array(300).fill('abcd')) })), 'solo').pasado, true, 'con más texto, sí');
+  const sinSello = Buffer.from(spec({ h1: '# x' }));
+  const conSello = Buffer.from(spec({ h1: '# x', sello: valido() }));
+  assert.equal(S.medirTope(conSello, 'solo').bytes, S.medirTope(sinSello, 'solo').bytes);
+});
+
 test('tope <spec> dentro del límite: ✅ y sale 0', () => {
   const d = repo();
-  escribir(d, 's.md', spec());
+  escribir(d, 's.md', spec({ h1: '# x' }));
   const r = correr(['tope', 's.md'], d);
   assert.equal(r.codigo, 0);
   assert.match(r.out, /^tope ✅: \d+,\d KB y 3 criterios \(tope módulo solo: 10 KB y 8 criterios\)\n$/);
+  escribir(d, 'spec0.md', spec());
+  assert.match(correr(['tope', 'spec0.md'], d).out, /^tope ✅: \d+,\d KB y 3 criterios \(tope SPEC-0: 30 KB\)\n$/);
 });
 
 // ---------------------------------------------------------------- entorno (solo)
@@ -714,17 +759,24 @@ test('ready --pendientes: sin sello y cambiado dan su línea; sellado, COMPLETO 
   modulo('d-completo', 'COMPLETO 2026-10-30', delta);
   modulo('e-abandonado', '**ABANDONADO** (2026-10-29)', delta);
   modulo('f-sin-spec', 'EN OBRA', null);
-  // Un sello con "—" en un repo con ficha: no vale → sin sello. (Uno tipeado con buena gramática y hash malo da "cambió".)
+  // Un sello con "—" en un repo con ficha: no vale → sello inválido, con qué (rf-3). (Uno tipeado con buena gramática y hash malo da "cambió".)
   modulo('g-invalido', 'EN OBRA', delta.replace('- Fecha: 2026-10-30', `- Fecha: 2026-10-30\n${valido({ tamano: '— (x)' })}`));
   modulo('h-tipeado', 'EN OBRA', delta.replace('- Fecha: 2026-10-30', `- Fecha: 2026-10-30\n${valido()}`));
+  // Un SPEC.md sin sello que no está en BORRADOR (READY tipeado a mano): sin sello, no borrador a medias (rf-4).
+  modulo('i-ready-a-mano', 'EN OBRA', spec({ h1: '# SPEC: x', estado: 'READY', pedido: true, noSeToca: true }));
   const r = correr(['ready', '--pendientes'], d);
   assert.equal(r.codigo, 0);
-  assert.equal(r.out, 'a-sin · sin sello\nc-cambio · cambió después del sello\nf-sin-spec · sin sello\ng-invalido · sin sello\nh-tipeado · cambió después del sello\n');
+  assert.equal(
+    r.out,
+    'a-sin · borrador a medias\nc-cambio · cambió después del sello\nf-sin-spec · sin sello\n' +
+      'g-invalido · sello inválido: tamaño "— (razón)" vale solo sin ficha del kit, y este repo tiene .claude/kit.md\n' +
+      'h-tipeado · cambió después del sello\ni-ready-a-mano · sin sello\n',
+  );
   // Desde una subcarpeta del repo, lo mismo.
   assert.equal(correr(['ready', '--pendientes'], path.join(d, 'docs')).out, r.out);
   // Un "Estado: COMPLETO" que no está al principio no lo saca.
   modulo('d-completo', 'EN OBRA (antes COMPLETO)', delta);
-  assert.match(correr(['ready', '--pendientes'], d).out, /d-completo · sin sello/);
+  assert.match(correr(['ready', '--pendientes'], d).out, /d-completo · borrador a medias/);
 });
 
 // ---------------------------------------------------------------- registro (criterio 8)

@@ -77,10 +77,11 @@ function comandos(texto) {
   return out;
 }
 
-// Cada `node ~/.claude/skills/<skill>/<ruta>.cjs <sub> [--flags]` del texto (los scripts de las skills globales, como el del Arquitecto).
+// Cada `node "$HOME/.claude/skills/<skill>/<ruta>.cjs" <sub> [--flags]` del texto (los scripts de las skills globales, como el del
+// Arquitecto). También lee la forma vieja `node ~/.claude/…`, para que la prueba de abajo la encuentre y la rechace (rf-2).
 function comandosDeSkill(texto) {
   const out = [];
-  const re = /node ~\/\.claude\/skills\/([a-z][\w-]*)\/([\w\/.-]+\.cjs)(?: ([a-z][\w-]*))?([^`\n]*)/g;
+  const re = /node (?:~\/|"\$HOME\/)\.claude\/skills\/([a-z][\w-]*)\/([\w\/.-]+\.cjs)"?(?: ([a-z][\w-]*))?([^`\n]*)/g;
   for (const m of texto.matchAll(re)) {
     out.push({ skill: m[1], ruta: m[2], sub: m[3] || null, flags: [...(m[4] || '').matchAll(/--[a-z][\w-]*/g)].map((f) => f[0]), linea: m[0] });
   }
@@ -287,7 +288,7 @@ test('inicio: con el pedido en el mensaje, la línea del tamaño va primera, ant
 
 test('inicio: el paso `ready --pendientes`, después de aprobados nuevos y antes de confirmar, con sus ramas (P5.1, D4-11)', () => {
   const t = TEXTOS.inicio;
-  const cmd = t.indexOf('node ~/.claude/skills/arquitecto/scripts/arquitecto.cjs ready --pendientes');
+  const cmd = t.indexOf('node "$HOME/.claude/skills/arquitecto/scripts/arquitecto.cjs" ready --pendientes');
   const aprobados = t.indexOf('node .claude/scripts/cambios.cjs listar --aprobados-nuevos');
   const confirmar = t.indexOf('Confirmar en tres líneas');
   assert.ok(cmd >= 0 && aprobados >= 0 && confirmar >= 0);
@@ -309,11 +310,25 @@ test('inicio: `cambió después del sello` no invoca a nadie: una línea y sigue
   assert.doesNotMatch(rama, /invocá `\/arquitecto`/, 'esa rama no invoca al Arquitecto');
 });
 
-test('inicio: el comando del Arquitecto existe, resuelto contra kit/skills/ del repo (no contra el ~/.claude/ real)', () => {
+test('inicio: `borrador a medias` ofrece el retome (pregunta, no Modo B corto); `sello inválido` no invoca a nadie (rf-3, rf-4)', () => {
+  const paso = /^\d+\. \*\*Módulos sin sello\.\*\*[^\n]*$/m.exec(TEXTOS.inicio)[0];
+  const borrador = paso.slice(paso.indexOf('Si lista `<x> · borrador a medias`')).split('Si lista `<x> · cambió')[0];
+  assert.ok(borrador.length > 40, 'la rama existe');
+  assert.match(borrador, /\*"¿lo retomamos\?"\*/);
+  assert.match(borrador, /invocá `\/arquitecto` para retomarlo \(su retome, no el Modo B corto\)/);
+  assert.doesNotMatch(borrador, /llamo al Arquitecto \(Modo B corto\)/);
+  const invalido = paso.slice(paso.indexOf('`<x> · sello inválido: <qué>`')).split('Si el script falla')[0];
+  assert.match(invalido, /una línea \*"el sello de <x> no vale \(<qué>\): corré `sello` de nuevo"\* y seguí/);
+  assert.doesNotMatch(invalido, /invocá/);
+});
+
+test('inicio: el comando del Arquitecto existe, resuelto contra kit/skills/ del repo (no contra el ~/.claude/ real), y con "$HOME", no ~ (rf-2)', () => {
   const cs = comandosDeSkill(TEXTOS.inicio);
   assert.equal(cs.length, 1);
   assert.equal(cs[0].skill, 'arquitecto');
   assert.deepEqual(comandosDeSkillRotos(TEXTOS.inicio), []);
+  assert.ok(cs[0].linea.startsWith('node "$HOME/.claude/'), 'PowerShell 5.1 no expande ~ en los argumentos de node');
+  assert.doesNotMatch(TEXTOS.inicio, /node ~\//);
 });
 
 // ---------------------------------------------------------------- el CLAUDE.md del molde
@@ -469,7 +484,7 @@ test('los chequeos: comandosRotos detecta script, subcomando y flag que no exist
 });
 
 test('los chequeos: comandosDeSkill extrae el comando y lo resuelve contra kit/skills/ del repo', () => {
-  const [c] = comandosDeSkill('`node ~/.claude/skills/arquitecto/scripts/arquitecto.cjs ready --pendientes`');
+  const [c] = comandosDeSkill('`node "$HOME/.claude/skills/arquitecto/scripts/arquitecto.cjs" ready --pendientes`');
   assert.deepEqual({ skill: c.skill, ruta: c.ruta, sub: c.sub, flags: c.flags }, { skill: 'arquitecto', ruta: 'scripts/arquitecto.cjs', sub: 'ready', flags: ['--pendientes'] });
   assert.equal(path.relative(DIR_KIT_SKILLS, rutaEnKit(c)).replace(/\\/g, '/'), 'arquitecto/scripts/arquitecto.cjs');
   assert.ok(!rutaEnKit(c).includes('.claude'), 'no apunta al ~/.claude/ real');

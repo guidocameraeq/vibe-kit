@@ -122,10 +122,11 @@ function leerFicha(raiz) {
   }
 }
 
-// gate:entorno-prueba en frenos.quitados, vigente (siempre, o una fecha que no pasó; el día de hasta incluido). → el quitado o null.
-function gateQuitado(datos, ahora) {
+// gate:entorno-prueba en frenos.quitados, vigente el día `dia` (un Date o 'AAAA-MM-DD': hoy al sellar, la fecha del sello al
+// revisarlo, rf-3): siempre, o una fecha que no pasó; el día de hasta incluido. → el quitado o null.
+function gateQuitado(datos, dia) {
   const q = datos && datos.frenos && Array.isArray(datos.frenos.quitados) ? datos.frenos.quitados : [];
-  const h = hoy(ahora);
+  const h = typeof dia === 'string' ? dia : hoy(dia);
   return q.find((x) => x && x.id === GATE && (x.hasta === 'siempre' || (RE_DIA.test(x.hasta) && x.hasta >= h))) || null;
 }
 
@@ -318,23 +319,24 @@ function sello(a, { cwd, ahora, env }) {
   return { codigo: 0, lineas: [`sellado: ${renglon}`, `ahora: el OK de Guido y después ready ${a.pos[0]}`] };
 }
 
-// ¿El sello del spec vale? Con la ficha leída solo si hace falta (entorno "— (quitado: …)").
-function revisar(buf, raiz, ahora) {
+// ¿El sello del spec vale? Con la ficha leída solo si hace falta (entorno "— (quitado: …)"), y el quitado se mira el día del sello:
+// uno vigente ese día sigue valiendo aunque después venza (rf-3).
+function revisar(buf, raiz) {
   const hayFicha = hayFichaEn(raiz);
-  const gate = () => {
+  const gate = (campos) => {
     const f = leerFicha(raiz);
-    return !f.error && !!gateQuitado(f.datos, ahora);
+    return !f.error && !!gateQuitado(f.datos, campos.fecha);
   };
   return S.revisarSello(buf, { hayFicha, gateQuitado: gate });
 }
 
-function ready(a, { cwd, ahora }) {
-  if (a.pendientes) return pendientes({ cwd, ahora });
+function ready(a, { cwd }) {
+  if (a.pendientes) return pendientes({ cwd });
   const specAbs = path.resolve(cwd, a.pos[0]);
   const s = leerSpec(specAbs);
   if (s.error) return { codigo: 1, lineas: [`ready: ${s.error}`] };
   const raiz = raizDe(path.dirname(specAbs));
-  const r = revisar(s.buf, raiz, ahora);
+  const r = revisar(s.buf, raiz);
   if (r.estado === 'sin') return { codigo: 1, lineas: ['spec sin sello: corré el Arquitecto (Modo B)'] };
   if (r.estado === 'invalido') return { codigo: 1, lineas: [`sello inválido: ${r.error} — corré sello de nuevo`] };
   if (r.estado === 'cambio') return { codigo: 1, lineas: ['el spec cambió después del sello: corré sello de nuevo'] };
@@ -358,8 +360,10 @@ function ready(a, { cwd, ahora }) {
   return { codigo: 0, lineas: [`READY: ${a.pos[0]}`] };
 }
 
-// Una línea por módulo abierto cuyo SPEC.md no pasaría `ready` por el sello (r1-11). Sale 0 siempre.
-function pendientes({ cwd, ahora }) {
+// Una línea por módulo abierto cuyo SPEC.md no pasaría `ready` por el sello (r1-11). Sale 0 siempre. Sin sello y en BORRADOR:
+// `borrador a medias` (un Modo B que quedó por la mitad: se retoma, rf-4); sin SPEC.md, o uno sin sello que no está en BORRADOR:
+// `sin sello`; un sello que no vale: `sello inválido: <qué>` (rf-3); el hash distinto: `cambió después del sello`.
+function pendientes({ cwd }) {
   const raiz = raizDe(cwd) || path.resolve(cwd);
   const base = path.join(raiz, 'docs', 'modulos');
   let dirs = [];
@@ -382,11 +386,19 @@ function pendientes({ cwd, ahora }) {
       lineas.push(`${x} · sin sello`);
       continue;
     }
-    const r = revisar(s.buf, raiz, ahora);
+    const r = revisar(s.buf, raiz);
     if (r.estado === 'cambio') lineas.push(`${x} · cambió después del sello`);
-    else if (r.estado !== 'ok') lineas.push(`${x} · sin sello`);
+    else if (r.estado === 'invalido') lineas.push(`${x} · sello inválido: ${r.error}`);
+    else if (r.estado === 'sin') lineas.push(`${x} · ${enBorrador(s.buf) ? 'borrador a medias' : 'sin sello'}`);
   }
   return { codigo: 0, lineas };
+}
+
+// ¿La primera `- Estado:` de la cabecera dice BORRADOR?
+function enBorrador(buf) {
+  const lineas = S.renglones(buf);
+  const i = S.ubicar(lineas).estado;
+  return i >= 0 && S.valorEstado(lineas[i]).startsWith('BORRADOR');
 }
 
 function tope(a, { cwd }) {

@@ -102,13 +102,17 @@ function proyecto(o = {}) {
   }
   return { nombre, base, remoto, P, wt: (c) => path.join(P, '.claude', 'worktrees', c) };
 }
-// En proceso (rápido).
-function cli(cwd, args) {
+// En proceso (rápido). `claude` no está en el PATH salvo que la prueba diga otra cosa (rf-1: así está en la PC de Guido).
+function cli(cwd, args, extra = {}) {
   let out = '';
   let err = '';
-  const codigo = W.main(args, { cwd, salida: (s) => (out += s), error: (s) => (err += s), heredar: false });
+  const codigo = W.main(args, { cwd, salida: (s) => (out += s), error: (s) => (err += s), heredar: false, claudeEnPath: false, ...extra });
   return { codigo, out, err };
 }
+const re = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+// La apertura sin `claude` en el PATH: las dos líneas de VS Code, al final de la salida.
+const apertura = (wt, modelo, sesion) =>
+  `abrilo en VS Code: code "${barras(wt)}"\nen esa ventana, abrí la pestaña de Claude y elegí ${modelo} (nombre sugerido para la sesión: ${sesion})\n`;
 const existeRama = (P, r) => gOk(P, 'rev-parse', '--verify', '-q', `refs/heads/${r}`);
 const barras = (p) => path.resolve(p).split(path.sep).join('/');
 const sinValores = (r, ...valores) => {
@@ -211,23 +215,24 @@ test('H §19bis: crear x y x--01 — nombres, base del encargo en la punta del m
   const s = JSON.parse(leer(wx, '.claude/settings.local.json'));
   assert.deepEqual(s.permissions.deny, W.reglasDeny(p.P));
   if (WIN) assert.match(s.permissions.deny[0], /^Read\(\/\/[a-z]\/.+\/alfa\/\.env\)$/);
-  const lineas = r.out.trim().split('\n');
-  assert.equal(lineas[lineas.length - 1], `cd "${barras(wx)}"; claude --name director-x --model opus`);
+  assert.ok(r.out.endsWith(apertura(wx, 'Opus', 'director-x')), r.out);
+  assert.doesNotMatch(r.out, /claude --name/, 'sin claude en el PATH, ni la línea de terminal');
   if (WIN) assert.equal(g(p.P, 'config', 'core.longpaths'), 'true');
   assert.equal(g(wx, 'status', '--porcelain', '--untracked-files=all'), '', 'el worktree nace limpio (todo lo agregado está ignorado)');
   // El encargo nace de la punta de modulo/x, no de main.
   const punta = commit(wx, { 'modulo.txt': 'm\n' }, 'trabajo del módulo');
-  const r1 = cli(p.P, ['crear', 'x--01']);
+  // rf-1, sí: con `claude` en el PATH, VS Code primero y la línea de terminal al final.
+  const r1 = cli(p.P, ['crear', 'x--01'], { claudeEnPath: true });
   assert.equal(r1.codigo, 0, r1.out);
   const w1 = p.wt('modulo--x--01');
   assert.equal(g(w1, 'rev-parse', 'HEAD'), punta);
   assert.deepEqual(fs.readFileSync(path.join(w1, '.kit-rol')), Buffer.from('obrero\n'));
-  assert.match(r1.out, new RegExp(`cd "${barras(w1).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"; claude --name obrero-x--01 --model sonnet\\n$`));
+  assert.match(r1.out, new RegExp(`${re(apertura(w1, 'Sonnet', 'obrero-x--01'))}o en una terminal: cd "${re(barras(w1))}"; claude --name obrero-x--01 --model sonnet\\n$`));
   // --noche y --model.
   const r2 = cli(p.P, ['crear', 'x--02', '--noche', '--model', 'haiku']);
   assert.equal(r2.codigo, 0, r2.out);
   assert.deepEqual(fs.readFileSync(path.join(p.wt('modulo--x--02'), '.kit-rol')), Buffer.from('nocturno\n'));
-  assert.match(r2.out, /claude --name obrero-x--02 --model haiku\n$/);
+  assert.ok(r2.out.endsWith(apertura(p.wt('modulo--x--02'), 'Haiku', 'obrero-x--02')), r2.out);
 });
 
 test('crear se niega (1, sin crear nada) si .claude/worktrees/, .kit-rol o settings.local.json no están ignorados, o .kit-rol está commiteado', () => {
@@ -329,8 +334,16 @@ test('credenciales: un .env* trackeado con un valor para un nombre del almacén 
   assert.match(r.out, /\.env trackeado con un nombre del almacén: config\/\.env\.produccion \(SECRET_KEY\)/);
   sinValores(r);
   assert.ok(!existeRama(p.P, 'modulo/x'));
+  assert.match(r.out, /config\/\.env\.produccion \(SECRET_KEY\) — sacalo del repo \(git rm --cached\) o vacía ese valor/, 'rf-9, no: no es plantilla');
   const q = proyecto({ archivos: { '.env.example': 'SECRET_KEY=\nPORT=3000\n' } });
   assert.equal(cli(q.P, ['crear', 'x']).codigo, 0);
+  // rf-9, sí: una plantilla con el valor puesto → que lo deje vacío, no que la saque del repo.
+  const t = proyecto({ archivos: { '.env.example': `SECRET_KEY=${VALOR}\nPORT=3000\n` } });
+  const rt = cli(t.P, ['crear', 'x']);
+  assert.equal(rt.codigo, 1);
+  assert.match(rt.out, /\.env\.example \(SECRET_KEY\) — es una plantilla: dejá SECRET_KEY= vacío en la plantilla/);
+  assert.doesNotMatch(rt.out, /git rm --cached/);
+  sinValores(rt);
 });
 
 test('credenciales: .worktreeinclude manda; settings.local.json copiado se MEZCLA con el deny sin pisar lo que tenía', () => {
@@ -356,7 +369,7 @@ test('comando-setup que falla → 1, lo dice, no borra nada y da la línea igual
   const r = cli(p.P, ['crear', 'x']);
   assert.equal(r.codigo, 1);
   assert.match(r.out, /comando-setup falló \(salida 3\)/);
-  assert.match(r.out, /claude --name director-x --model opus\n$/);
+  assert.ok(r.out.endsWith(apertura(p.wt('modulo--x'), 'Opus', 'director-x')), r.out);
   assert.ok(existeRama(p.P, 'modulo/x') && fs.existsSync(path.join(p.wt('modulo--x'), '.kit-rol')));
 });
 
@@ -376,8 +389,10 @@ test('abrir: solo en origin → la crea; local atrás → la adelanta; divergida
   sinValores(r);
   assert.deepEqual(fs.readFileSync(path.join(wx, '.kit-rol')), Buffer.from('director\n'));
   assert.equal(leer(wx, '.env'), 'PORT=3000\nDB_URL=postgres://local\n');
-  assert.match(r.out, /claude --name director-x --model opus\n$/);
-  assert.match(cli(p.P, ['abrir', 'x']).out, /ya está abierto en esta PC/);
+  assert.ok(r.out.endsWith(apertura(wx, 'Opus', 'director-x')), r.out);
+  const ya = cli(p.P, ['abrir', 'x']);
+  assert.match(ya.out, /ya está abierto en esta PC:\n/);
+  assert.ok(ya.out.endsWith(apertura(wx, 'Opus', 'director-x')), 'y repite cómo abrirlo');
   // El compañero empuja; acá la local queda atrás.
   const otra = path.join(p.base, 'otra');
   g(p.base, 'clone', '-q', '-b', 'modulo/x', p.remoto, otra);
@@ -530,6 +545,73 @@ test('cerrar x: mergeado solo en origin/main → 0; sin mergear → 1; frenos.lo
   assert.match(r.out, /hice prune/);
   assert.ok(!existeRama(p.P, 'modulo/y'));
   assert.ok(!g(p.P, 'worktree', 'list').includes('modulo--y'));
+});
+
+test('rf-5: cerrar hace fetch — mergeado en "GitHub" sin traerlo → 0; con squash → 1 con el consejo; fetch que falla → sigue', () => {
+  const p = proyecto({ archivos: { 'docs/modulos/z/README.md': '# z\nEstado: en curso\n' } });
+  const otra = path.join(p.base, 'github');
+  g(p.base, 'clone', '-q', p.remoto, otra);
+  const enGithub = (x, squash) => {
+    assert.equal(cli(p.P, ['crear', x]).codigo, 0);
+    commit(p.wt(`modulo--${x}`), { [`${x}.txt`]: '1\n' });
+    g(p.wt(`modulo--${x}`), 'push', '-q', 'origin', `modulo/${x}`);
+    g(otra, 'fetch', '-q', 'origin');
+    if (squash) {
+      g(otra, 'merge', '-q', '--squash', `origin/modulo/${x}`);
+      g(otra, 'commit', '-q', '-m', `squash ${x}`);
+    } else {
+      g(otra, 'merge', '-q', '--no-ff', '-m', `merge ${x}`, `origin/modulo/${x}`);
+    }
+    g(otra, 'push', '-q', 'origin', 'main');
+  };
+  enGithub('x', false);
+  assert.ok(!gOk(p.P, 'merge-base', '--is-ancestor', 'modulo/x', 'refs/remotes/origin/main'), 'acá todavía no se ve');
+  let r = cli(p.P, ['cerrar', 'x']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.ok(!existeRama(p.P, 'modulo/x') && !fs.existsSync(p.wt('modulo--x')));
+  enGithub('y', true);
+  r = cli(p.P, ['cerrar', 'y']);
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, /no está mergeada en main .*¿Lo mergeaste en GitHub\? hacé `git pull`; con squash, borrá la rama a mano \(`git branch -D modulo\/y`\)/);
+  assert.ok(existeRama(p.P, 'modulo/y'), 'nada borrado');
+  // Sin poder llegar a origin: lo dice y sigue con lo de esta PC (modulo/z sin commits propios: ya está en main).
+  assert.equal(cli(p.P, ['crear', 'z']).codigo, 0);
+  g(p.P, 'remote', 'set-url', 'origin', path.join(p.base, 'no-existe.git'));
+  r = cli(p.P, ['cerrar', 'z']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(r.out, /^no pude hacer fetch de origin .*: sigo con lo que hay en esta PC$/m);
+});
+
+test('rf-6: carpeta sin registro (remove borró el registro y no la carpeta) — con solo lo ignorado se borra y sigue; con algo más, a mano', () => {
+  const p = proyecto({ archivos: { 'docs/modulos/v/README.md': '# v\nEstado: en curso\n' } });
+  // Deja la carpeta como la deja un remove a medias: sin su registro en .git/worktrees y sin lo trackeado.
+  const aMedias = (x, queda = []) => {
+    assert.equal(cli(p.P, ['crear', x]).codigo, 0);
+    const w = p.wt(`modulo--${x}`);
+    fs.rmSync(path.join(p.P, '.git', 'worktrees', `modulo--${x}`), { recursive: true, force: true });
+    const ignorados = ['.env', '.kit-rol', '.git', '.claude'];
+    for (const e of fs.readdirSync(w)) if (!ignorados.includes(e) && !queda.includes(e)) fs.rmSync(path.join(w, e), { recursive: true, force: true });
+    for (const e of fs.readdirSync(path.join(w, '.claude'))) if (e !== 'settings.local.json') fs.rmSync(path.join(w, '.claude', e), { recursive: true, force: true });
+    assert.ok(!g(p.P, 'worktree', 'list').includes(`modulo--${x}`), 'ya no está registrado');
+    return w;
+  };
+  const wx = aMedias('x');
+  let r = cli(p.P, ['cerrar', 'x']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(r.out, /ya no era un worktree y tenía solo lo ignorado: la borré/);
+  assert.ok(!fs.existsSync(wx) && !existeRama(p.P, 'modulo/x'));
+  // Vacía del todo: igual.
+  const wv = aMedias('v');
+  fs.rmSync(wv, { recursive: true, force: true });
+  fs.mkdirSync(wv);
+  assert.equal(cli(p.P, ['cerrar', 'v']).codigo, 0);
+  assert.ok(!fs.existsSync(wv) && !existeRama(p.P, 'modulo/v'));
+  // No: queda un archivo que el principal no ignora (a.txt) → como antes, a mano, y nada borrado.
+  const wy = aMedias('y', ['a.txt']);
+  r = cli(p.P, ['cerrar', 'y']);
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, /existe pero no es el worktree de modulo\/y: revisala a mano/);
+  assert.ok(fs.existsSync(path.join(wy, 'a.txt')) && fs.existsSync(path.join(wy, '.env')) && existeRama(p.P, 'modulo/y'));
 });
 
 // ---------------------------------------------------------------- .kit-rol (crit. 14)

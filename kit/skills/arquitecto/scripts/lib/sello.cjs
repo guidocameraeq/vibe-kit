@@ -29,11 +29,13 @@ const T_PEDIDO = 'Pedido original, textual';
 const T_NO_SE_TOCA = 'NO SE TOCA';
 const T_CRITERIOS = 'Criterios de aceptación';
 
-// Los topes de H §12 (NO VERIFICADO: se calibran en el piloto). KB = 1.024 bytes.
+// Los topes de H §12 (NO VERIFICADO: se calibran en el piloto). KB = 1.024 bytes del texto normalizado (el mismo de `hash`).
+// Un SPEC-0 (H1 `# SPEC-0:`) va con el de 30 KB aunque su Ejecución diga módulo solo (rf-7).
 const TOPES = {
   solo: { kb: 10, criterios: 8, nombre: 'módulo solo' },
   director: { kb: 30, criterios: null, nombre: 'módulo con director' },
   ninguno: { kb: 30, criterios: null, nombre: 'sin tamaño' },
+  spec0: { kb: 30, criterios: null, nombre: 'SPEC-0' },
 };
 
 // ---------------------------------------------------------------- el texto
@@ -63,14 +65,18 @@ function ubicar(lineas) {
   return r;
 }
 
-// Los 12 hexa del sha256 del spec normalizado (D4-8, r1-7): sin BOM, CRLF → LF, sin espacios finales por renglón y sin saltos de
-// línea al final; afuera SOLO la primera `- Estado:` y la línea del sello, las dos dentro de las primeras 20 líneas.
-function hash(contenido) {
+// El spec normalizado (D4-8, r1-7): sin BOM, CRLF → LF, sin espacios finales por renglón y sin saltos de línea al final; afuera
+// SOLO la primera `- Estado:` y la línea del sello, las dos dentro de las primeras 20 líneas. Lo usan `hash` y el tope (rf-7).
+function textoNormalizado(contenido) {
   const lineas = renglones(contenido);
   const u = ubicar(lineas);
   const quedan = lineas.filter((_, i) => i !== u.sello && i !== u.estado);
-  const texto = quedan.join('\n').replace(/\n+$/, '');
-  return crypto.createHash('sha256').update(Buffer.from(texto, 'utf8')).digest('hex').slice(0, 12);
+  return quedan.join('\n').replace(/\n+$/, '');
+}
+
+// Los 12 hexa del sha256 del spec normalizado.
+function hash(contenido) {
+  return crypto.createHash('sha256').update(Buffer.from(textoNormalizado(contenido), 'utf8')).digest('hex').slice(0, 12);
 }
 
 // ---------------------------------------------------------------- la línea
@@ -149,14 +155,16 @@ function parsear(linea) {
 }
 
 // Lo que vale según haya ficha (D4-8): `—` solo sin ficha; con ficha, entorno `— (quitado: …)` solo con gate:entorno-prueba
-// quitado y vigente. → null si vale, o el <qué> de "sello inválido: <qué>".
+// quitado y vigente EL DÍA DEL SELLO (rf-3). `gateQuitado`: un booleano, o una función (campos) → booleano que se llama solo si
+// hace falta. → null si vale, o el <qué> de "sello inválido: <qué>".
 function validar(campos, { hayFicha, gateQuitado }) {
   if (!hayFicha) return null;
   if (campos.tamano.tipo !== 'ok') return 'tamaño "— (razón)" vale solo sin ficha del kit, y este repo tiene .claude/kit.md';
   if (campos.tope.tipo === 'no') return 'tope "— (razón)" vale solo sin ficha del kit, y este repo tiene .claude/kit.md';
   if (campos.entorno.tipo === 'no') {
     if (!campos.entorno.razon.startsWith('quitado: ')) return 'entorno "— (razón)" vale solo sin ficha del kit; con ficha, solo "— (quitado: <por>)"';
-    if (!gateQuitado) return 'entorno dice quitado, pero gate:entorno-prueba no está vigente en frenos.quitados de la ficha';
+    const vigente = typeof gateQuitado === 'function' ? gateQuitado(campos) : gateQuitado;
+    if (!vigente) return `entorno dice quitado, pero gate:entorno-prueba no estaba vigente el ${campos.fecha} en frenos.quitados de la ficha`;
   }
   return null;
 }
@@ -230,9 +238,12 @@ function ejecucion(lineas) {
 const kbTexto = (bytes) => (bytes / KB).toFixed(1).replace('.', ',');
 
 // medirTope(contenido, tamano) → { bytes, kb, criterios, tope, pasado, secciones: [{ titulo, bytes, kb }] (de mayor a menor) }.
+// Los bytes son los del texto normalizado (CRLF, BOM y la línea del sello no suman); un SPEC-0 usa TOPES.spec0 (rf-7).
 function medirTope(contenido, tamano) {
-  const bytes = Buffer.isBuffer(contenido) ? contenido.length : Buffer.byteLength(String(contenido), 'utf8');
+  const bytes = Buffer.byteLength(textoNormalizado(contenido), 'utf8');
   const lineas = renglones(contenido);
+  const h1 = titulos(lineas).find((t) => t.nivel === 1);
+  const spec0 = !!h1 && h1.texto.startsWith('# SPEC-0:');
   const crit = cuerpo(lineas, T_CRITERIOS);
   let criterios = 0;
   if (crit) {
@@ -242,7 +253,7 @@ function medirTope(contenido, tamano) {
       else if (!enCodigo && /^(- |\d+\. )/.test(l)) criterios++;
     }
   }
-  const tope = TOPES[tamano] || TOPES.ninguno;
+  const tope = spec0 ? TOPES.spec0 : TOPES[tamano] || TOPES.ninguno;
   const pasado = bytes > tope.kb * KB || (tope.criterios !== null && criterios > tope.criterios);
   const ts = titulos(lineas);
   const secciones = [];
@@ -352,7 +363,7 @@ function revisarSello(buf, { hayFicha, gateQuitado }) {
   if (u.sellos > 1) return { estado: 'invalido', error: 'hay más de una línea de sello en la cabecera' };
   const p = parsear(lineas[u.sello]);
   if (!p.ok) return { estado: 'invalido', error: p.error };
-  const e = validar(p.campos, { hayFicha, gateQuitado: typeof gateQuitado === 'function' ? gateQuitado() : gateQuitado });
+  const e = validar(p.campos, { hayFicha, gateQuitado });
   if (e) return { estado: 'invalido', error: e, campos: p.campos };
   if (hash(buf) !== p.campos.hash) return { estado: 'cambio', campos: p.campos };
   return { estado: 'ok', campos: p.campos };
@@ -360,6 +371,6 @@ function revisarSello(buf, { hayFicha, gateQuitado }) {
 
 module.exports = {
   VENTANA, OK, NO, AVISO, TOPES, T_EJECUCION, T_ENTORNO, T_PEDIDO, T_NO_SE_TOCA, T_CRITERIOS,
-  renglones, ubicar, hash, textoLibreValido, cOk, cNo, cAviso, armar, parsear, validar, esTitulo, titulos, cuerpo, esDelta,
+  renglones, ubicar, textoNormalizado, hash, textoLibreValido, cOk, cNo, cAviso, armar, parsear, validar, esTitulo, titulos, cuerpo, esDelta,
   faltantes, ejecucion, kbTexto, medirTope, lineasTope, valorEstado, pasarAReady, ponerLinea, revisarSello,
 };
