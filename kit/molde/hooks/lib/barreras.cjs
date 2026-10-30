@@ -84,7 +84,7 @@ function lista(raiz, args) {
   return r;
 }
 
-// Las rutas que cambian del commit <padre> al índice (sin HEAD no se llama: revisarBarreras no juzga ese índice).
+// Las rutas que cambian del commit <padre> al índice (sin HEAD, <padre> es el antes de la rama huérfana: antesVirtual).
 function rutasIndice(raiz, padre) {
   return partirZ(lista(raiz, ['diff', '--cached', '--no-renames', '--name-only', '-z', padre]).stdout).sort();
 }
@@ -107,6 +107,44 @@ function mergeHeads(raiz) {
   return out;
 }
 
+// ---------------------------------------------------------------- lo que no tiene padre (rf2-5)
+
+// El antes de lo que no tiene padre: el índice y lo pendiente sin HEAD, o un commit raíz. "Sin ningún commit" es sin HEAD Y sin
+// ninguna rama (refs/heads, refs/remotes): ahí no hay antes (null) y no se juzga (G6, r4-5). Con ramas (un checkout --orphan o un
+// worktree add --orphan en un repo con historia), se juzga como un commit cualquiera cuyo padre es la ref vigente; sin vigente, la
+// rama de commit más reciente (rf2-5: si no, la huérfana sube sin juzgar y un merge del lado del servidor no lo caza nadie).
+// Un commit raíz que es de la historia de la vigente (el primer commit del repo) no tiene antes: null; sin vigente, solo tiene
+// antes si alguna rama no lo contiene (el primer push de un proyecto nuevo queda verde).
+function antesVirtual(raiz, cual, memo = {}) {
+  if (!memo.virtuales) memo.virtuales = new Map();
+  if (memo.virtuales.has(cual)) return memo.virtuales.get(cual);
+  let v = null;
+  const raizSha = esPendiente(cual) ? null : cual;
+  if (raizSha ? padres(raiz, raizSha).length === 0 : !shaDe(raiz, 'HEAD')) {
+    const rv = contexto.refVigente(raiz);
+    const vig = rv ? shaDe(raiz, rv.ref) : null;
+    if (vig) v = raizSha && esAncestro(raiz, raizSha, vig) ? null : vig;
+    else {
+      const args = ['for-each-ref', '--count=1', '--sort=-committerdate', '--format=%(objectname)'];
+      if (raizSha) args.push(`--no-contains=${raizSha}`);
+      const t = lista(raiz, [...args, 'refs/heads', 'refs/remotes']).stdout.trim();
+      v = t ? shaDe(raiz, t) : null;
+    }
+  }
+  memo.virtuales.set(cual, v);
+  return v;
+}
+// Las rutas de lo pendiente contra <antes> sin HEAD (C.rutasPendientes compara con HEAD): el disco y el índice contra <antes>,
+// lo no seguido y lo ignorado de barrera.
+function rutasPendientesContra(raiz, antes) {
+  const rutas = new Set();
+  for (const args of [['diff', '--no-renames', '--name-only', '-z', antes], ['diff', '--cached', '--no-renames', '--name-only', '-z', antes], ['ls-files', '--others', '--exclude-standard', '-z']]) {
+    partirZ(lista(raiz, args).stdout).forEach((x) => rutas.add(x));
+  }
+  C.ignoradosDeBarrera(raiz).forEach((x) => rutas.add(x));
+  return [...rutas].sort();
+}
+
 // ---------------------------------------------------------------- el rango
 
 // rango(raiz) → { commits: [sha] (del más viejo al más nuevo), desde, como }. Lo pendiente va siempre aparte.
@@ -116,7 +154,7 @@ function mergeHeads(raiz) {
 //    commit que toca el handoff y vacía los deny se lava solo), salvo que la base sea el primer commit del repo o el que creó la
 //    ficha (la adopción): ahí, <base>..HEAD (r4-5: si no, el repo recién montado nace trabado);
 //  · sin base (o sin rama por defecto): solo lo pendiente (r4-5: si no, el commit que creó el settings da rojo siempre). Sin commits,
-//    ni eso: revisarBarreras no juzga lo pendiente sin HEAD (fuera del paquete b, D3.3).
+//    ni eso: lo pendiente sin HEAD se juzga contra la vigente si hay ramas (rf2-5) y, sin ninguna, no se juzga (D3.3).
 function rango(raiz) {
   const head = shaDe(raiz, 'HEAD');
   if (!head) return { commits: [], desde: null, como: 'sin commits: solo lo pendiente' };
@@ -205,7 +243,7 @@ function fichaEnAlgunLado(raiz, opciones = {}) {
 // que hace cambios.toca por dentro (rutasPendientes, rutasContra), con categoriaDe de cambios.cjs; acá, archivo por archivo.
 // Un merge (rf-3, rf-13, rf-18): las rutas que cambian contra cualquier padre, con `padres` y `bases` (las de git merge-base
 // --all entre cada par de padres); tocaArchivo lo juzga contra cada padre y descuenta solo lo que trajo otro padre que lo cambió.
-function archivosDe(raiz, cual) {
+function archivosDe(raiz, cual, memo = {}) {
   let rutas;
   let padre;
   let ps = [];
@@ -213,20 +251,22 @@ function archivosDe(raiz, cual) {
   let despuesDe;
   // Las rutas que cambian contra un padre p (en un merge, contra cada uno).
   let rutasContraPadre = null;
+  // rf2-5: sin padre, el antes de la rama huérfana (null si no hay: todo es nuevo, como antes).
+  const virtual = antesVirtual(raiz, cual, memo);
   if (cual === PENDIENTE) {
-    padre = shaDe(raiz, 'HEAD');
-    rutas = C.rutasPendientes(raiz, padre);
+    padre = shaDe(raiz, 'HEAD') || virtual;
+    rutas = virtual ? rutasPendientesContra(raiz, virtual) : C.rutasPendientes(raiz, padre);
     despuesDe = (rel) => [blob(raiz, '', rel), leerDisco(path.join(raiz, ...rel.split('/')))];
   } else if (cual === INDICE) {
     // Solo el índice (rf-10): ni el disco, ni lo no seguido, ni lo ignorado (no van en el commit; los mira barreras a secas).
-    padre = shaDe(raiz, 'HEAD');
+    padre = shaDe(raiz, 'HEAD') || virtual;
     ps = [padre, ...mergeHeads(raiz)];
     rutasContraPadre = (p) => rutasIndice(raiz, p);
     rutas = rutasIndice(raiz, padre);
     despuesDe = (rel) => [blob(raiz, '', rel)];
   } else {
     ps = padres(raiz, cual);
-    padre = ps.length ? ps[0] : null;
+    padre = ps.length ? ps[0] : virtual;
     rutasContraPadre = (p) => C.rutasContra(raiz, cual, p);
     rutas = C.rutasContra(raiz, cual, padre);
     despuesDe = (rel) => [blob(raiz, cual, rel)];
@@ -243,6 +283,9 @@ function archivosDe(raiz, cual) {
     .sort()
     .map((rel) => ({ rel, cat: C.categoriaDe(rel) }))
     .filter((f) => f.cat)
+    // Lo que la huérfana no tiene no lo borra (un merge de historias sin relación no lo saca; una gh-pages sin .claude/ no
+    // afloja nada): contra el antes virtual se juzga solo lo que trae.
+    .filter((f) => !virtual || despuesDe(f.rel).some((x) => x !== null))
     .map((f) => {
       const e = { ...f, padre, antes: padre ? blob(raiz, padre, f.rel) : null, despues: despuesDe(f.rel) };
       if (ps.length > 1) {
@@ -332,14 +375,15 @@ function tocaArchivo(raiz, f) {
 // Los commits que tocaron la ficha en la historia de la rama por defecto (la vigente y la local) y de HEAD. Una vez por corrida.
 function tocaronLaFicha(raiz, memo) {
   if (!memo.tocaron) {
-    const refs = ['HEAD'];
+    // Sin HEAD (una rama huérfana), la historia de las otras ramas igual cuenta (rf2-5).
+    const refs = shaDe(raiz, 'HEAD') ? ['HEAD'] : [];
     const rv = contexto.refVigente(raiz);
     if (rv) refs.push(rv.ref);
     const rl = C.ramaLocal(raiz);
     if (rl && !refs.includes(rl.ref)) refs.push(rl.ref);
     // Con --rango, también la historia de lo que se sube (puede ser otra rama que HEAD).
     for (const x of memo.refsExtra || []) if (!refs.includes(x)) refs.push(x);
-    const t = shaDe(raiz, 'HEAD') ? lista(raiz, ['log', '--full-history', '--format=%H', ...refs, '--', contexto.RUTA_FICHA]).stdout : '';
+    const t = refs.length ? lista(raiz, ['log', '--full-history', '--format=%H', ...refs, '--', contexto.RUTA_FICHA]).stdout : '';
     memo.tocaron = [...new Set(t.split('\n').map((s) => s.trim()).filter(Boolean))];
   }
   return memo.tocaron;
@@ -347,6 +391,9 @@ function tocaronLaFicha(raiz, memo) {
 
 // ¿La ficha existió antes de <cual>? Algún commit que la tocó y no es <cual> ni posterior a él (r4-2: (b) solo la primera vez).
 function fichaExistioAntes(raiz, cual, memo) {
+  // rf2-5: lo que no tiene padre, con la historia de su antes virtual (sin vigente puede ser una rama que tocaronLaFicha no mira).
+  const v = antesVirtual(raiz, cual, memo);
+  if (v && lista(raiz, ['rev-list', '-n', '1', v, '--', contexto.RUTA_FICHA]).stdout.trim()) return true;
   const t = tocaronLaFicha(raiz, memo);
   if (esPendiente(cual)) return t.length > 0;
   return t.some((y) => y !== cual && !esAncestro(raiz, cual, y));
@@ -539,12 +586,18 @@ function primero(raiz, desde, hasta, toca, memo) {
 }
 
 // ¿El cambio cubre a <cual>? Un aprobado, el primer commit después del sello que toca su `toca` (lo pendiente: si todavía ninguno
-// lo tocó); un aplicado, solo el commit de su sha, y solo si ese es el primero (r5-1).
+// lo tocó); un aplicado, solo el commit de su sha, y solo si ese es el primero (r5-1). Lo que no tiene padre (rf2-5) se cubre como
+// lo pendiente contra su antes virtual: el sello en su historia y ningún commit después del sello que toque su `toca`.
 function cubre(raiz, c, cual, memo) {
+  const virtual = antesVirtual(raiz, cual, memo);
   if (esPendiente(cual)) {
     if (c.estado !== 'aprobado') return false;
-    const head = shaDe(raiz, 'HEAD');
+    const head = shaDe(raiz, 'HEAD') || virtual;
     return !!head && esAncestro(raiz, c.sello, head) && primero(raiz, c.sello, head, c.toca, memo) === null;
+  }
+  if (virtual) {
+    if (c.estado === 'aplicado' && c.sha !== cual) return false;
+    return esAncestro(raiz, c.sello, virtual) && primero(raiz, c.sello, virtual, c.toca, memo) === null;
   }
   if (cual === c.sello || !esAncestro(raiz, c.sello, cual)) return false;
   if (c.estado === 'aplicado' && c.sha !== cual) return false;
@@ -600,7 +653,7 @@ function lo(raiz, cual, opciones, memo) {
   const ids = new Set();
   const imposibles = [];
   let primerArchivo = null;
-  const archivos = archivosDe(raiz, cual);
+  const archivos = archivosDe(raiz, cual, memo);
   if (!archivos.length) return { cats, ids, imposibles, primerArchivo };
   // Fuera del alcance: un commit de antes de adoptar el kit (la ficha nunca existió antes y él no la toca) no tenía candado.
   if (!archivos.some((f) => f.cat === 'ficha') && !fichaExistioAntes(raiz, cual, memo)) return { cats, ids, imposibles, primerArchivo };
@@ -659,8 +712,9 @@ function settingsLocal(raiz) {
 // molde del que viene el proyecto (solo con molde; si no, tira): deja ir lo que el nuevo retira. Tira si git no puede.
 // Sin indice ni rango: el rango de la sesión, lo pendiente y lo de esta PC (marcas y settings.local). indice: true → lo de esta PC y
 // SOLO el índice (rf-10). rango: { desde, hasta } (resolverRango) → SOLO esos commits, lo que sube el push (rf-7); desde null = una
-// ref nueva (lo que ningún remoto tiene), y el primer commit del repo no se juzga. Sin HEAD, ni el índice ni lo pendiente: a secas
-// sale un renglón con soloLista (no frena) que lo dice.
+// ref nueva (lo que ningún remoto tiene). Lo que no tiene padre (el índice o lo pendiente sin HEAD, un commit raíz) se juzga contra
+// su antes virtual (antesVirtual, rf2-5); sin antes (el repo sin ninguna rama, o el primer commit de la historia vigente) no se
+// juzga, y a secas sale un renglón con soloLista (no frena) que lo dice.
 function revisarBarreras(raiz, opciones = {}) {
   if (opciones.indice && opciones.rango) throw new Error('indice y rango no van juntos');
   if (opciones.moldeViejo && !opciones.molde) throw new Error('el molde viejo va solo con el molde');
@@ -670,18 +724,20 @@ function revisarBarreras(raiz, opciones = {}) {
   if (opciones.rango) {
     fallas = [];
     memo.refsExtra = [opciones.rango.hasta];
-    // Un commit sin padre (el primero del repo, o el de una rama huérfana) no afloja nada: no había un antes (r4-5, como rango()).
-    // La rama huérfana se juzga igual al mergearla, contra cada padre.
-    cuales = commitsDelRango(raiz, opciones.rango).filter((c) => padres(raiz, c).length > 0);
+    // Un commit sin padre sin antes virtual (el primero del repo) no afloja nada (r4-5, como rango()); el de una rama huérfana en un
+    // repo con historia, sí: se juzga contra la vigente (rf2-5).
+    cuales = commitsDelRango(raiz, opciones.rango).filter((c) => padres(raiz, c).length > 0 || antesVirtual(raiz, c, memo) !== null);
   } else {
     fallas = [...marcasOcultas(raiz), ...settingsLocal(raiz)];
     // El índice del primer commit del repo no se juzga, como el primer commit en el rango: no había un antes y ningún aprobado puede
     // existir todavía (el sello es un commit); si no, el repo recién montado nace trabado (r4-5).
     // Lo mismo a secas (fuera del paquete b, D3.3): sin ningún commit, lo pendiente no se juzga y se dice en una línea que no frena
     // (soloLista); si no, el /cierre de un proyecto de Modo A que corre estructura.cjs todo antes de su primer commit queda trabado.
+    // rf2-5: "sin ningún commit" es sin HEAD y sin ninguna rama; una rama huérfana en un repo con historia se juzga contra la vigente.
     const head = shaDe(raiz, 'HEAD');
-    if (opciones.indice) cuales = head ? [INDICE] : [];
+    if (opciones.indice) cuales = head || antesVirtual(raiz, INDICE, memo) ? [INDICE] : [];
     else if (head) cuales = [...rango(raiz).commits, PENDIENTE];
+    else if (antesVirtual(raiz, PENDIENTE, memo)) cuales = [PENDIENTE];
     else {
       cuales = [];
       fallas.push({ id: ID, commit: PENDIENTE, detalle: contexto.RUTA_FICHA, soloLista: true, que: 'sin ningún commit todavía: lo pendiente no se juzga (no hay un antes ni un aprobado posible)', hacer: 'se juzga desde el primer commit' });
@@ -690,7 +746,8 @@ function revisarBarreras(raiz, opciones = {}) {
   for (const cual of cuales) {
     const n = lo(raiz, cual, opciones, memo);
     if (!n.cats.size && !n.ids.size && !n.imposibles.length) continue;
-    const quien = cual === PENDIENTE ? 'lo que está por commitearse' : cual === INDICE ? 'lo que lleva este commit (el índice)' : `el commit ${corto(cual)}`;
+    const v = antesVirtual(raiz, cual, memo);
+    const quien = (cual === PENDIENTE ? 'lo que está por commitearse' : cual === INDICE ? 'lo que lleva este commit (el índice)' : `el commit ${corto(cual)}`) + (v ? ` (rama huérfana: contra ${corto(v)})` : '');
     const detalle = n.primerArchivo || contexto.RUTA_FICHA;
     if (n.imposibles.length) {
       fallas.push({ id: ID, commit: cual, detalle, que: `${quien}: ${n.imposibles[0]}`, hacer: 'arreglá la ficha (corré doctor): ningún aprobado cubre lo que no se puede leer' });
@@ -749,6 +806,7 @@ module.exports = {
   settingsLocal,
   fichaEnAlgunLado,
   archivosDe,
+  antesVirtual,
   tocaArchivo,
   ultimaFichaQueSeLee,
   rutaEnMolde,

@@ -1435,10 +1435,10 @@ test('rango con ref nueva sin ningún remoto (el primer push del repo): todo men
   verde(d, { rango: r() }); // el recién montado no nace trabado (r4-5)
   const malo = quitarStash(d);
   assert.deepEqual(rojo(d, /git stash/, { rango: r() }).map((x) => x.commit), [malo]);
-  // una rama huérfana con un freno quitado sube (no hay antes), pero al mergearla se juzga contra main
+  // una rama huérfana con un freno quitado: ya al subirla se juzga contra main (rf2-5; antes subía sin juzgar), y al mergearla también
   g(d, 'checkout', '-q', '--orphan', 'huerfana');
   const h = commit(d, { '.claude/kit.md': FICHA({ quitados: [OTRO] }) });
-  verde(d, { rango: B.resolverRango(d, { desde: CEROS, hasta: h }) });
+  assert.deepEqual(rojo(d, /git clean/, { rango: B.resolverRango(d, { desde: CEROS, hasta: h }) }).map((x) => x.commit), [h]);
   g(d, 'checkout', '-q', 'main');
   g(d, 'merge', '-q', '--no-ff', '--no-commit', '--allow-unrelated-histories', '-X', 'theirs', 'huerfana');
   rojo(d, /git clean/, IDX);
@@ -1482,4 +1482,134 @@ test('antes del primer commit: ni el índice ni lo pendiente se juzgan (no hay a
   rojo(d, /hooks:\.claude\/hooks\/x\.cjs/, IDX); // desde el segundo, sí
   const f3 = rojo(d, /hooks:\.claude\/hooks\/x\.cjs/); // y a secas también
   assert.ok(f3.every((y) => !y.soloLista));
+});
+
+// ---------------------------------------------------------------- rf2-5: la rama huérfana en un repo con historia
+
+const SET_DENY = '{"permissions": {"deny": ["Bash(git stash:*)"]}}\n';
+const SET_VACIO = '{"permissions": {"deny": []}}\n';
+// checkout --orphan + vaciar el índice y el disco (lo que hace una gh-pages).
+function huerfanaVacia(d, rama) {
+  g(d, 'checkout', '-q', '--orphan', rama);
+  g(d, 'rm', '-rq', '--cached', '.');
+  for (const e of fs.readdirSync(d)) if (e !== '.git') fs.rmSync(path.join(d, e), { recursive: true, force: true });
+}
+
+test('rf2-5: checkout --orphan en un repo con historia NO es "sin ningún commit": a secas, el índice y el push se juzgan contra la vigente', () => {
+  const d = repo({ archivos: { '.claude/settings.json': SET_DENY } });
+  g(d, 'checkout', '-q', '--orphan', 'h');
+  verde(d); // el índice de la huérfana es el árbol de main: no cambia nada
+  verde(d, IDX);
+  assert.equal(B.antesVirtual(d, B.PENDIENTE), g(d, 'rev-parse', 'origin/main'));
+  escribir(d, '.claude/settings.json', SET_VACIO);
+  const f = rojo(d, /deny:Bash\(git stash:\*\)/);
+  assert.ok(f.every((x) => !x.soloLista) && f.some((x) => /rama huérfana: contra/.test(x.que)), JSON.stringify(f));
+  verde(d, IDX); // en el disco solo, el commit no lo lleva
+  g(d, 'add', '.claude/settings.json');
+  rojo(d, /lo que lleva este commit \(el índice\).*deny:Bash\(git stash:\*\)/, IDX);
+  const h = commit(d, {});
+  assert.deepEqual(rojo(d, /deny:Bash/, { rango: B.resolverRango(d, { desde: CEROS, hasta: h }) }).map((x) => x.commit), [h]);
+  assert.ok(rojo(d, /deny:Bash/).some((x) => x.commit === h)); // a secas, en el rango (origin/main..HEAD)
+  // lo mismo en un worktree con --orphan (las ramas son del repo, no del worktree)
+  const w = path.join(TMP, `w${n++}`);
+  g(d, 'worktree', 'add', '-q', '--orphan', '-b', 'w', w);
+  poner(w, { '.claude/settings.json': SET_VACIO });
+  rojo(w, /deny:Bash/, IDX);
+  rojo(w, /deny:Bash/);
+});
+
+test('rf2-5: la huérfana que no trae barreras (una gh-pages) queda verde: lo que no tiene no lo borra', () => {
+  const d = repo({ archivos: { '.claude/settings.json': SET_DENY, '.claude/hooks/x.cjs': 'x\n' } });
+  huerfanaVacia(d, 'gh-pages');
+  verde(d);
+  // lo nuevo sin seguir (y lo ignorado de barrera) cuenta igual que con HEAD
+  escribir(d, '.claude/hooks/nuevo.cjs', 'n\n');
+  rojo(d, /hooks:\.claude\/hooks\/nuevo\.cjs/);
+  fs.rmSync(path.join(d, '.claude'), { recursive: true, force: true });
+  escribir(d, '.gitignore', '/.claude/hooks/ig.cjs\n');
+  escribir(d, '.claude/hooks/ig.cjs', 'i\n');
+  rojo(d, /hooks:\.claude\/hooks\/ig\.cjs/);
+  fs.rmSync(path.join(d, '.claude'), { recursive: true, force: true });
+  fs.rmSync(path.join(d, '.gitignore'));
+  poner(d, { 'index.html': '<p>hola</p>\n' });
+  verde(d, IDX);
+  const h = commit(d, {});
+  verde(d, { rango: B.resolverRango(d, { desde: CEROS, hasta: h }) });
+  verde(d);
+  // pero si trae una barrera distinta de la de main, sí
+  poner(d, { '.claude/hooks/x.cjs': 'y\n' });
+  rojo(d, /hooks:\.claude\/hooks\/x\.cjs/, IDX);
+});
+
+test('rf2-5: el aprobado sellado en la vigente cubre a la huérfana como a un commit cuyo padre es la vigente', () => {
+  const d = repo({ remoto: false });
+  const { sello } = aprobado(d);
+  g(d, 'checkout', '-q', '--orphan', 'h');
+  poner(d, { '.claude/kit.md': FICHA({ quitados: [STASH] }) });
+  verde(d, IDX);
+  const h = commit(d, {});
+  verde(d, { rango: B.resolverRango(d, { desde: CEROS, hasta: h }) });
+  // sin el aprobado (otra huérfana que quita otro freno): rojo
+  g(d, 'checkout', '-q', '--orphan', 'h2', 'main');
+  poner(d, { '.claude/kit.md': FICHA({ quitados: [OTRO] }) });
+  rojo(d, /git clean/, IDX);
+  assert.ok(sello);
+  // el aprobado cuyo sello quedó fuera de la historia de la vigente (main volvió atrás; el sello vive en otra) no la cubre
+  const e = repo({ remoto: false });
+  const base = g(e, 'rev-parse', 'HEAD');
+  aprobado(e);
+  g(e, 'branch', 'otra');
+  g(e, 'reset', '-q', '--hard', base);
+  g(e, 'checkout', '-q', '--orphan', 'h');
+  g(e, 'checkout', 'otra', '--', '.claude/cambios');
+  poner(e, { '.claude/kit.md': FICHA({ quitados: [STASH] }) });
+  rojo(e, /git stash/, IDX);
+  // el aprobado que ya usó un commit de main (el primero tras el sello que toca frenos) no la cubre
+  const u = repo({ remoto: false });
+  aprobado(u);
+  commit(u, { '.claude/kit.md': FICHA({ quitados: [OTRO] }) });
+  g(u, 'checkout', '-q', '--orphan', 'h');
+  poner(u, { '.claude/kit.md': FICHA({ quitados: [OTRO, STASH] }) });
+  rojo(u, /git stash/, IDX);
+});
+
+test('rf2-5: la huérfana en un repo que nunca adoptó el kit (sin ficha en la historia) queda fuera del alcance, como sus commits', () => {
+  const d = repo({ ficha: false, archivos: { '.claude/settings.json': SET_DENY } });
+  g(d, 'checkout', '-q', '--orphan', 'h');
+  poner(d, { '.claude/settings.json': SET_VACIO });
+  verde(d, IDX);
+  verde(d);
+});
+
+test('rf2-5: sin rama vigente (la única rama es "trabajo"), la huérfana se juzga contra la rama más reciente; la raíz de esa rama no', () => {
+  const d = path.join(TMP, `r${n++}`);
+  fs.mkdirSync(d, { recursive: true });
+  g(d, 'init', '-q', '-b', 'trabajo');
+  const raiz = commit(d, { 'a.txt': 'a\n', '.claude/kit.md': FICHA(), '.claude/settings.json': SET_DENY }, 'base');
+  assert.equal(B.antesVirtual(d, raiz), null);
+  verde(d, { rango: B.resolverRango(d, { desde: CEROS, hasta: raiz }) });
+  g(d, 'checkout', '-q', '--orphan', 'h');
+  assert.equal(B.antesVirtual(d, B.INDICE), raiz);
+  poner(d, { '.claude/settings.json': SET_VACIO });
+  const h = commit(d, {});
+  assert.equal(B.antesVirtual(d, h), raiz);
+  rojo(d, /deny:Bash/, { rango: B.resolverRango(d, { desde: CEROS, hasta: h }) });
+});
+
+test('rf2-5: el proyecto nuevo sigue verde — git init, molde, primer commit, primer push a un remoto vacío', () => {
+  const d = path.join(TMP, `r${n++}`);
+  fs.mkdirSync(d, { recursive: true });
+  g(d, 'init', '-q', '-b', 'main');
+  const bare = `${d}.git`;
+  g(TMP, 'init', '-q', '--bare', bare);
+  g(d, 'remote', 'add', 'origin', bare);
+  poner(d, { '.claude/kit.md': FICHA({ quitados: [STASH] }), '.claude/settings.json': SET_VACIO, '.claude/hooks/x.cjs': 'x\n' });
+  assert.equal(B.antesVirtual(d, B.INDICE), null);
+  verde(d, IDX);
+  assert.ok(revisar(d).every((x) => x.soloLista));
+  const raiz = commit(d, {});
+  verde(d, { rango: B.resolverRango(d, { desde: CEROS, hasta: raiz }) });
+  verde(d);
+  g(d, 'push', '-q', '-u', 'origin', 'main');
+  verde(d);
 });

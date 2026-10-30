@@ -12,6 +12,11 @@
 //     que empiezan con `-`) no fijan la posición (rf3-9): las palabras de la entrada que NO son banderas, en orden, tienen que ser el
 //     principio de las del comando que no son banderas, y cada bandera de la entrada tiene que estar tal cual en algún lugar del
 //     comando (`git push --tags` pregunta en `git push origin --tags`; `--follow-tags` no es `--tags`: si duele, va como otra entrada).
+//     Por lo mismo, una entrada que es solo programa + banderas no fija subcomando (rf2-9): `vercel --prod` pregunta también en
+//     `vercel logs --prod` y `vercel env pull --prod` (y en `vercel deploy --prod`, que es lo que se quería). Se deja así: atarla a
+//     "sin subcomando" callaría `vercel deploy --prod`; si pregunta de más, la entrada va con su subcomando (`vercel deploy --prod`).
+//     Un lanzador de paquetes (`npx`, `pnpm dlx`, `bunx`) NO es intérprete: `npx vercel --prod` no matchea `vercel --prod`;
+//     si se usa así, va como otra entrada (`npx vercel --prod`).
 //     Un intérprete (`node`, `bash`, `python`, `pwsh`…) también se mira sin él: `node scripts/x.cjs` y `./scripts/x.cjs` son lo mismo.
 //     Lo que no cierra: una opción con valor antes del subcomando corre las palabras (`git -C x push --tags` no matchea).
 //   - NO matchean nada: las `"tabla:<nombre>"` (son para la guardia de `db migrar`, F §13), una entrada que no es UN comando simple
