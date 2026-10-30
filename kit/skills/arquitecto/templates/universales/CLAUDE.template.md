@@ -35,7 +35,7 @@ Los rituales viven en `.claude/skills/`: **`/inicio` · `/cierre`{{OTRAS_SKILLS}
 4. **Post-compactación asumo que NO leí ningún archivo**: Read antes de cualquier Edit.
 5. Ante errores: diagnosticar root cause, no aplicar parches encima.
 6. **Toda spec se escribe en un formato del anexo** `~/.claude/skills/arquitecto/anexos/formato-spec.md`, venga de donde venga (incluso si la produce otra skill, ej. brainstorming): **SPEC-0** si es un proyecto/módulo nuevo, **SPEC delta** (con su NO SE TOCA) si toca algo que ya anda. Formatos únicos para que `/inicio` y `/cierre` siempre sepan qué archivar.
-7. **Si la charla diseñó una feature no-trivial y todavía no hay spec escrito, OFREZCO cristalizarla en spec antes de empezar a construir** — el usuario no tiene que acordarse de pedirlo. (No-trivial = no sale en una tarde, o toca permisos/datos/plata.)
+7. **Si la charla diseñó una feature no-trivial y todavía no hay spec escrito, OFREZCO cristalizarla en spec antes de empezar a construir** — el usuario no tiene que acordarse de pedirlo. (No-trivial = más que chico: hace falta algo más que el pedido y el `git diff` para retomarlo, o lleva más de una sesión. Tocar plata, permisos o datos no lo agranda: eso lo cuidan los frenos.)
 
 ## Reglas operativas del stack
 
