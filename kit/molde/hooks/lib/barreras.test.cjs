@@ -833,7 +833,14 @@ test('rf-2: pull --rebase reescribe el commit del aplicado → verificar da el a
   const f = C.verificar(d).find((y) => y.id === id);
   assert.ok(f && /ya no está en la historia de HEAD/.test(f.que), JSON.stringify(C.verificar(d)));
   assert.equal(f.hacer, `${C.COMANDO} anotar-sha ${id} ${nuevo}`);
-  rojo(d, /sin un aprobado/); // el commit reescrito no lo cubre el sha viejo
+  // rf3-8: sigue rojo (el sha viejo no cubre el commit reescrito), pero el "qué hacer" es el anotar-sha con el sha nuevo listo
+  const f8 = rojo(d, /apunta al sha de antes de un rebase/);
+  assert.equal(f8.length, 1, JSON.stringify(f8));
+  assert.equal(f8[0].commit, nuevo);
+  assert.match(f8[0].que, new RegExp(`${id}: ${x.slice(0, 12)}`));
+  assert.equal(f8[0].hacer, `se rebaseó: ${C.COMANDO} anotar-sha ${id} ${nuevo}, y commit por rutas (git commit -m "cambios: aplicado ${id}" -- ${rel(id)})`);
+  const enPush = revisar(d, { rango: B.resolverRango(d, { desde: 'origin/main', hasta: 'HEAD' }) });
+  assert.deepEqual(enPush.map((y) => y.hacer), [f8[0].hacer], 'el pre-push dice lo mismo');
   const r = cli(d, 'anotar-sha', id, nuevo);
   assert.equal(r.codigo, 0, r.out);
   commit(d, { [rel(id)]: leerArchivo(d, rel(id)) }, 'reapunta');
@@ -842,6 +849,33 @@ test('rf-2: pull --rebase reescribe el commit del aplicado → verificar da el a
   // reapuntar un aplicado cuyo sha sigue en la historia: no (sería r5-1)
   const otro = commit(d, { 'z.txt': 'z\n' });
   assert.match(cli(d, 'anotar-sha', id, otro).out, /sigue en la historia: se reapunta solo si un rebase lo reescribió/);
+});
+
+test('rf3-8: sin el mismo patch (el commit reescrito cambió), o con el sha viejo en la historia, el mensaje de siempre', () => {
+  const d = repo();
+  const pc2 = otraPC(d);
+  commit(pc2, { 'c.txt': 'c\n' }, 'la otra PC avanza origin');
+  g(pc2, 'push', '-q', 'origin', 'HEAD');
+  const { id, x } = aplicado(d);
+  g(d, 'pull', '-q', '--rebase', 'origin', 'main');
+  const anotado = leerArchivo(d, rel(id));
+  assert.match(anotado, new RegExp(`^sha: ${x}`, 'm'));
+  // el commit del cambio rehecho con otra cosa más: otro patch-id
+  g(d, 'reset', '-q', '--hard', 'HEAD~2');
+  const distinto = commit(d, { '.claude/kit.md': FICHA({ quitados: [STASH] }), 'z.txt': 'z\n' }, 'quita el stash y algo más');
+  commit(d, { [rel(id)]: anotado }, 'anota');
+  const f = rojo(d, /sin un aprobado/);
+  assert.ok(f.every((y) => !/rebase/.test(y.que + y.hacer)), JSON.stringify(f));
+  assert.ok(f.some((y) => y.commit === distinto));
+  // el sha viejo sigue en la historia (no hubo rebase): un commit posterior con el mismo patch no recibe la pista
+  const e = repo();
+  const a = aplicado(e);
+  g(e, 'revert', '--no-edit', 'HEAD~1');
+  g(e, 'cherry-pick', a.x);
+  const igualPatch = g(e, 'rev-parse', 'HEAD');
+  assert.notEqual(igualPatch, a.x);
+  const f2 = rojo(e, /sin un aprobado/);
+  assert.ok(f2.every((y) => !/rebase/.test(y.que + y.hacer)), JSON.stringify(f2));
 });
 
 test('rf-2: reapuntar exige lo mismo que un aprobado (el primer commit tras el sello que toca lo de "toca") y un commit de la historia de HEAD', () => {
@@ -1379,14 +1413,25 @@ test('D-3 en los githooks: sacar un nombre de secretos: en el índice → rojo c
   verde(d, RG(d, base, aprieta));
 });
 
-test('indice antes del primer commit: no se juzga (no hay antes ni aprobado posible; r4-5); a secas, lo pendiente sí', () => {
+test('antes del primer commit: ni el índice ni lo pendiente se juzgan (no hay antes ni aprobado posible; r4-5); a secas lo dice sin frenar', () => {
   const d = path.join(TMP, `r${n++}`);
   fs.mkdirSync(d, { recursive: true });
   g(d, 'init', '-q', '-b', 'main');
   poner(d, { '.claude/kit.md': FICHA({ quitados: [STASH] }), '.claude/hooks/x.cjs': 'x\n' });
+  escribir(d, '.claude/settings.json', '{"permissions": {"deny": []}}\n'); // también lo del disco sin git add
   verde(d, IDX);
-  rojo(d);
+  const f = revisar(d);
+  assert.equal(f.length, 1, JSON.stringify(f));
+  assert.equal(f[0].soloLista, true);
+  assert.match(f[0].que, /sin ningún commit todavía: lo pendiente no se juzga/);
+  // lo de esta PC se mira igual: un settings.local ignorado con hooks frena sin commits
+  escribir(d, '.gitignore', '/.claude/settings.local.json\n');
+  escribir(d, '.claude/settings.local.json', '{"hooks": {}}\n');
+  assert.ok(revisar(d).some((y) => !y.soloLista && /settings\.local\.json trae la clave hooks/.test(y.que)));
+  fs.rmSync(path.join(d, '.claude', 'settings.local.json'));
   g(d, 'commit', '-q', '-m', 'base');
   poner(d, { '.claude/hooks/x.cjs': 'y\n' });
   rojo(d, /hooks:\.claude\/hooks\/x\.cjs/, IDX); // desde el segundo, sí
+  const f3 = rojo(d, /hooks:\.claude\/hooks\/x\.cjs/); // y a secas también
+  assert.ok(f3.every((y) => !y.soloLista));
 });
