@@ -64,12 +64,7 @@
             ],
             "timeout": 20,
             "onFailure": "block"
-          }
-        ]
-      },
-      {
-        "matcher": "Bash|PowerShell",
-        "hooks": [
+          },
           {
             "type": "command",
             "command": "node",
@@ -78,12 +73,7 @@
             ],
             "timeout": 20,
             "onFailure": "block"
-          }
-        ]
-      },
-      {
-        "matcher": "Bash|PowerShell",
-        "hooks": [
+          },
           {
             "type": "command",
             "command": "node",

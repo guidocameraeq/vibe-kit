@@ -32,12 +32,14 @@ test('todo hook en forma exec (D-7): command "node", la ruta en args con ${CLAUD
 
 test('P4.7: niega-aprobar, git-seguro y sensible en PreToolUse sobre Bash|PowerShell con timeout 20 y onFailure "block", uno por grupo', () => {
   const pre = S.hooks.PreToolUse;
-  for (const nombre of ['niega-aprobar.cjs', 'git-seguro.cjs', 'sensible.cjs']) {
-    const grupos = pre.filter((g) => g.hooks.some((h) => (h.args || []).some((a) => a.endsWith(`/${nombre}`))));
-    assert.equal(grupos.length, 1, nombre);
-    assert.equal(grupos[0].matcher, 'Bash|PowerShell');
-    assert.deepEqual(grupos[0].hooks, [{ type: 'command', command: 'node', args: [`\${CLAUDE_PROJECT_DIR}/.claude/hooks/${nombre}`], timeout: 20, onFailure: 'block' }]);
-  }
+  // Un solo grupo Bash|PowerShell con los tres (corren en paralelo): la mezcla de zona-propia junta en el primer grupo los hooks
+  // nuevos de un mismo matcher, así que con grupos separados el molde mezclado consigo mismo no daba el mismo texto.
+  const grupos = pre.filter((g) => g.matcher === 'Bash|PowerShell');
+  assert.equal(grupos.length, 1);
+  assert.deepEqual(
+    grupos[0].hooks,
+    ['niega-aprobar.cjs', 'git-seguro.cjs', 'sensible.cjs'].map((nombre) => ({ type: 'command', command: 'node', args: [`\${CLAUDE_PROJECT_DIR}/.claude/hooks/${nombre}`], timeout: 20, onFailure: 'block' }))
+  );
   // los que no niegan por P4.7 no frenan si fallan: el arranque nunca traba; escritura-docs, como estaba
   assert.deepEqual(S.hooks.SessionStart, [{ matcher: '', hooks: [{ type: 'command', command: 'node', args: ['${CLAUDE_PROJECT_DIR}/.claude/hooks/session-start.cjs'], timeout: 20 }] }]);
   assert.deepEqual(pre[0], { matcher: 'Write', hooks: [{ type: 'command', command: 'node', args: ['${CLAUDE_PROJECT_DIR}/.claude/hooks/escritura-docs.cjs'], timeout: 20 }] });
