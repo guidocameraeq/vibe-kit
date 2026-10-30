@@ -26,6 +26,9 @@ const FALSAS = {
   'clave-privada': '-----BE' + 'GIN RSA PRIVATE KEY-----',
   slack: 'xo' + 'xb-' + 'EXAMPLE-0000',
   stripe: 's' + 'k' + '_live_' + 'EXAMPLE0000',
+  'sk-viejo': 's' + 'k-' + 'EXAMPLE0000'.repeat(3),
+  'conexion-con-clave': 'postgres' + 'ql://postgres.example:' + 'Clave0000EXAMPLE' + '@db.example.invalid:5432/postgres',
+  telegram: '900000001' + ':AA' + 'EXAMPLE0000'.repeat(3),
 };
 // Parecidas que NO son clave (cuerpo corto o prefijo de prueba).
 const PARECIDAS = ['gh' + 'p_' + 'corto', 'sk' + '-proj-' + 'corto', 's' + 'k' + '_test_' + 'EXAMPLE', 'AK' + 'IA' + 'corta', 'xo' + 'xz-EXAMPLE', 'sk' + '-proj-PONE-ACA-TU-CLAVE-DE-OPENAI', 'sk' + '-ant-' + '0'.repeat(24)];
@@ -105,6 +108,8 @@ test('claves: cada patrón frena con su id en Bash, PowerShell y las cuatro escr
     }
   }
   for (const p of PARECIDAS) assert.equal(d(bash(`echo ${p}`)).decision, 'nada', `parecida: ${p}`);
+  // cada clave calza con SU patrón y con ninguno más (sk-proj/sk-ant son sk-api, no sk-viejo)
+  for (const [id, clave] of Object.entries(FALSAS)) assert.deepEqual(S.clavesEn([clave]), [id], id);
   // sacar una clave (old_string) no es escribirla
   assert.equal(d(tool('Edit', { file_path: 'a.txt', old_string: FALSAS.aws, new_string: 'x' })).decision, 'nada');
   // el detalle de una escritura es el archivo, nunca el valor
@@ -125,6 +130,62 @@ test('jwt: service_role frena, anon pasa — en un comando, en PRUEBA.md (datos-
   assert.equal(d(bash(`echo ${JWT_ANON} ${JWT_SVC}`)).decision, 'deny');
   assert.equal(S.jwtEsAnon(JWT_ANON), true);
   assert.equal(S.jwtEsAnon(JWT_SVC), false);
+});
+
+test('los tres del anti-secretos viejo de la PC: sk-viejo, conexion-con-clave, telegram — sí y no', () => {
+  const sk = (cuerpo) => 's' + 'k-' + cuerpo;
+  siNo(
+    [`export OPENAI_API_KEY=${sk('EXAMPLE0000'.repeat(4))}`, `curl -H "Authorization: Bearer ${sk('svcacct-' + 'EXAMPLE0000'.repeat(3))}" x`, `x='${sk('0000example'.repeat(3))}'`],
+    [`echo ${sk('learn-is-a-library-with-a-long-kebab-name-1')}`, `cat ta${sk('EXAMPLE0000'.repeat(4))}`, `echo ${sk('PONE-ACA-TU-CLAVE-DE-OPENAI-AHORA-MISMO')}`, `echo ${sk('A'.repeat(40))}`, `echo ${sk('0'.repeat(40))}`, `echo ${sk('EXAMPLE0000')}`, `echo ${sk('v2-release-notes-for-the-api-and-sdk')}`],
+    (c) => bash(c),
+    'sk-viejo',
+  );
+  const con = (esq, u, p, h) => `${esq}://${u}:${p}@${h}`;
+  const CLAVE = 'Clave0000' + 'EXAMPLE';
+  siNo(
+    [
+      `psql "${con('postgres' + 'ql', 'postgres.abc', CLAVE, 'aws-0.pooler.example.invalid:6543/postgres')}"`,
+      `DATABASE_URL=${con('postgres', 'app', CLAVE, 'db.example.invalid/x')} npm start`,
+      `mysql2 ${con('mysql', 'root', CLAVE, 'db.example.invalid:3306/x')}`,
+      `mongosh "${con('mongodb' + '+srv', 'app', CLAVE, 'cluster0.example.invalid/x')}"`,
+      `redis-cli -u ${con('redis', '', CLAVE, 'cache.example.invalid:6379')}`,
+      `redis-cli -u ${con('rediss', 'default', CLAVE, 'cache.example.invalid:6380')}`,
+      `X=${con('POSTGRES', 'u', CLAVE, 'db.example.invalid')}`,
+    ],
+    [
+      `echo ${con('postgres', 'usuario', 'clave', 'host/db')}`,
+      `echo ${con('postgres' + 'ql', 'user', 'password', 'localhost/db')}`,
+      `echo ${con('postgres' + 'ql', 'user', 'password', 'db.example.invalid/db')}`,
+      `psql "${con('postgres', 'user', '${DB_PASS}', 'db.example.invalid/x')}"`,
+      `psql ${con('postgres', 'user', '$DB_PASS', 'db.example.invalid/x')}`,
+      `psql ${con('postgres', 'user', '%DB_PASS%', 'db.example.invalid/x')}`,
+      `psql "${con('postgres', 'user', '${SUPABASE_DB}', 'db.example.invalid/x')}"`,
+      `psql "${con('postgres', 'user', '<la-tuya>', 'db.example.invalid/x')}"`,
+      `echo "${con('postgres', 'user', '<pass>', 'db.example.invalid/x')}"`,
+      `echo "${con('postgres', 'postgres', '[YOUR-PASSWORD]', 'db.example.invalid/x')}"`,
+      `echo ${con('mysql', 'root', '****', 'db.example.invalid/x')}`,
+      `echo ${con('postgres', 'u', 'YOUR_PASSWORD', 'db.example.invalid/x')}`,
+      `echo ${con('postgres' + 'ql', 'postgres', 'postgres', 'localhost:5432/x')}`,
+      `echo ${con('postgres' + 'ql', 'postgres', CLAVE, '127.0.0.1:54322/x')}`,
+      `echo ${con('mongodb', 'u', CLAVE, 'host.docker.internal:27017')}`,
+      `echo ${con('https', 'u', CLAVE, 'example.invalid/x')}`,
+      `echo ${con('postgres', 'u', 'p', 'h')}`.replace('://u:p@', '://u@'),
+      'echo postgres://host:5432/db?x=a@b',
+    ],
+    (c) => bash(c),
+    'conexion-con-clave',
+  );
+  const tg = (id, cuerpo) => `${id}:AA${cuerpo}`;
+  siNo(
+    [`curl https://api.telegram.org/bot${tg('900000001', 'EXAMPLE0000'.repeat(3))}/getMe`, `TELEGRAM=${tg('9000000001', 'EXAMPLE0000'.repeat(3))}`, `x ${tg('90000001', 'EXAMPLE0000'.repeat(3))}`],
+    [`x ${tg('9000001', 'EXAMPLE0000'.repeat(3))}`, `x ${tg('900000001', 'EXAMPLE')}`, `x ${tg('900000001', 'EXAMPLE0000'.repeat(3)).replace(':AA', ':BB')}`, `x 9${tg('9000000001', 'EXAMPLE0000'.repeat(3))}`,
+      `x ${tg('123456789', 'EXAMPLE0000'.repeat(3))}`, `x ${tg('1234567890', 'EXAMPLE0000'.repeat(3))}`, `x ${tg('12345678', 'EXAMPLE0000'.repeat(3))}`, `x ${tg('987654321', 'EXAMPLE0000'.repeat(3))}`, `x ${tg('000000000', 'EXAMPLE0000'.repeat(3))}`],
+    (c) => bash(c),
+    'telegram',
+  );
+  // también en el prompt de Guido
+  assert.equal(d({ hook_event_name: 'UserPromptSubmit', prompt: `la base: ${FALSAS['conexion-con-clave']}` }).id, 'secretos:conexion-con-clave');
+  assert.equal(d({ hook_event_name: 'UserPromptSubmit', prompt: `ejemplo: ${con('postgres', 'usuario', 'clave', 'host/db')}` }).decision, 'nada');
 });
 
 // ================================================================ archivo-deny
@@ -219,6 +280,27 @@ test('imprime-variable (3): printenv X, gci env:X (y con comodín), node -e/-p y
   siNo(['printenv GH_TOKEN', 'node -e "console.log(process.env.DB_URL)"', 'node -p process.env.GH_TOKEN', `node -e "process.stdout.write(String(process.env.DB_URL))"`, `python -c "print('x', os.environ.get('GH_TOKEN'))"`, `node -e "console.log(process.env['API_KEY'])"`, `python -c "import os; print(os.environ['DB_URL'])"`, `python3 -c "import os;print(os.getenv('GH_TOKEN'))"`],
     ['printenv HOME', 'node -e "fetch(u,{headers:{a:process.env.GH_TOKEN}})"', 'node app.js', `python -c "import os; requests.get(u, headers={'a': os.environ['GH_TOKEN']})"`, `py -c "import os; os.environ['SUPABASE_SERVICE_KEY']=e['k']; print('listo')"`, 'node -e "console.log(1); fetch(u,{headers:{a:process.env.GH_TOKEN}})"'], (c) => bash(c), 'imprime-variable');
   siNo(['gci env:GH_TOKEN', 'Get-Item env:DB_URL', 'Get-ChildItem Env:\\API_KEY', 'gci env:*URL*', 'ls env:GH*'], ['gci env:PATH', 'Get-Item env:USERNAME'], (c) => ps(c), 'imprime-variable');
+});
+
+test('imprime-variable (5): un heredoc SIN comillar la marca que cat/tee sacan a la pantalla; comillado, a archivo, capturado o a otro programa, no', () => {
+  siNo(
+    ['cat <<EOF\n$GH_TOKEN\nEOF', 'cat <<-EOF\n\tla url: ${DB_URL}\n\tEOF', 'cat << EOF\nx\n$API_KEY\nEOF', 'echo hola && cat <<EOF\n$API_KEY\nEOF\necho fin', 'cat <<EOF | head -3\n$GH_TOKEN\nEOF',
+      'tee notas.txt <<EOF\n$GH_TOKEN\nEOF', 'cat <<EOF 2>/dev/null\n$GH_TOKEN\nEOF', 'cat <<A <<B\nx\nA\n$GH_TOKEN\nB', 'cat <<EOF\r\n$GH_TOKEN\r\nEOF\r', '(cat <<EOF\n$GH_TOKEN\nEOF\n)', 'cat <<EOF >&2\n$GH_TOKEN\nEOF'],
+    ["cat <<'EOF'\n$GH_TOKEN\nEOF", 'cat <<"EOF"\n$GH_TOKEN\nEOF', 'cat <<\\EOF\n$GH_TOKEN\nEOF', "cat <<-'EOF'\n\t$GH_TOKEN\n\tEOF", 'cat <<EOF > a.txt\n$GH_TOKEN\nEOF', 'cat > a.txt <<EOF\n$GH_TOKEN\nEOF',
+      'cat <<EOF >> a.txt\n$GH_TOKEN\nEOF', 'tee a.txt >/dev/null <<EOF\n$GH_TOKEN\nEOF', 'cat <<EOF | kubectl apply -f -\n$GH_TOKEN\nEOF', 'x=$(cat <<EOF\n$GH_TOKEN\nEOF\n)', 'git commit -m "$(cat <<EOF\n$GH_TOKEN\nEOF\n)"',
+      'ssh srv <<EOF\n$GH_TOKEN\nEOF', 'psql <<EOF\n$DB_URL\nEOF', 'cat <<EOF\n$HOME y $PATH\nEOF', 'cat <<EOF\n\\$GH_TOKEN\nEOF', 'echo "cat <<EOF" $HOME', 'cat <<EOF\nEOF\necho listo\n$GH_TOKEN', 'cat "<<EOF"\n$GH_TOKEN', 'x=`cat <<EOF\n$GH_TOKEN\nEOF\n`',
+      'cat <<A\nx\nA\ncat "<<EOF"\n$GH_TOKEN', 'cat <<-EOF\n\thola\n\tEOF\nnode a.js "$GH_TOKEN"', 'cat <<EOF\r\nhola\r\nEOF\r\nnode a.js "$GH_TOKEN"\r', "cat <<'FIN'\ncat <<EOF\n$GH_TOKEN\nEOF\nFIN\ncat <<EOF\nhola\nEOF"],
+    (c) => bash(c),
+    'imprime-variable',
+  );
+  assert.equal(d(bash('cat <<EOF\nla clave: $GH_TOKEN\nEOF')).detalle, 'GH_TOKEN');
+  // la ficha manda igual: publicas: lo exime, secretos: suma
+  const r = repo();
+  conFicha(r, [...FICHA_BASE, 'publicas: [GH_TOKEN]', 'secretos: [MI_COSA]']);
+  assert.equal(d(bash('cat <<EOF\n$GH_TOKEN\nEOF', 'default', r)).decision, 'nada');
+  assert.equal(d(bash('cat <<EOF\n$MI_COSA\nEOF', 'default', r)).decision, 'deny');
+  // en PowerShell no hay heredoc: no se mira
+  assert.equal(d(ps('cat <<EOF\n$x\nEOF')).decision, 'nada');
 });
 
 test('imprime-variable: cada nombre de fábrica cuenta; uno común no', () => {
@@ -493,7 +575,8 @@ test('criterio 13: corre desde <tmp>/home/.claude/hooks/kit con HOME/USERPROFILE
 
 // ================================================================ r1-4: sin claves literales en kit/
 test('r1-4: grep de los patrones del corrector sobre kit/ entero → 0', () => {
-  const patrones = [...S.bancoPatrones().map((p) => ({ id: p.id, re: p.re })), { id: 'jwt', re: S.RE_JWT }];
+  // con la validación de cada uno (lo que el corrector frena): un `usuario:clave@` de ejemplo en un manual no es una clave
+  const patrones = [...S.bancoPatrones().map((p) => ({ id: p.id, re: p.re, valida: p.valida })), { id: 'jwt', re: S.RE_JWT }];
   const malos = [];
   let archivos = 0;
   (function recorrer(dir) {
@@ -509,9 +592,9 @@ test('r1-4: grep de los patrones del corrector sobre kit/ entero → 0', () => {
           continue;
         }
         archivos++;
-        for (const { id, re } of patrones) {
-          const m = txt.match(new RegExp(re.source, 'g')) || [];
-          if (m.some((x) => !(id === 'jwt' && S.jwtEsAnon(x)))) malos.push(`${path.relative(KIT, p)} :: ${id}`);
+        for (const { id, re, valida } of patrones) {
+          const m = txt.match(new RegExp(re.source, `${re.flags}g`)) || [];
+          if (m.some((x) => !(id === 'jwt' && S.jwtEsAnon(x)) && (!valida || valida(x)))) malos.push(`${path.relative(KIT, p)} :: ${id}`);
         }
       }
     }

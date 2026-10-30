@@ -494,6 +494,66 @@ test('caché: se rehace cuando cambia la ref vigente (push, fetch, packed-refs, 
   }
 });
 
+test('caché (g): la huella sigue include.path e includeIf.*.path de la config del repo y de la global (relativos, ~/, anidados)', () => {
+  const d = conRemoto({ '.claude/kit.md': ficha({ sensible: { release: '[npm run release]' } }) });
+  const origen = () => se.decidir(entrada(d, 'git status')).origen;
+  const inc = path.join(TMP, `inc${n++}`);
+  fs.mkdirSync(inc, { recursive: true });
+  const a = path.join(inc, 'a.gitconfig');
+  const b = path.join(inc, 'b.gitconfig');
+  fs.writeFileSync(a, '[include]\n\tpath = b.gitconfig ; relativa a la carpeta de a\n');
+  fs.writeFileSync(b, '');
+  // include.path en la config del repo (con comillas), con un include anidado relativo
+  g(d, 'config', 'include.path', a);
+  assert.equal(origen(), 'git');
+  assert.equal(origen(), 'cache');
+  fs.writeFileSync(b, '[init]\n\tdefaultBranch = otra\n');
+  assert.equal(origen(), 'git', 'cambió un archivo incluido por uno incluido');
+  assert.equal(origen(), 'cache');
+  fs.writeFileSync(a, '[include]\n\tpath = b.gitconfig\n[core]\n\tx = 1\n');
+  assert.equal(origen(), 'git', 'cambió el incluido directo');
+  assert.equal(origen(), 'cache');
+  // includeIf en la global, con ~/ (HOME falso)
+  const casa = path.join(TMP, `casa${n++}`);
+  fs.mkdirSync(casa, { recursive: true });
+  const c = path.join(casa, 'trabajo.gitconfig');
+  fs.writeFileSync(c, '');
+  const antes = { HOME: process.env.HOME, USERPROFILE: process.env.USERPROFILE, GLOBAL: fs.readFileSync(GLOBAL, 'utf8') };
+  process.env.HOME = casa;
+  process.env.USERPROFILE = casa;
+  try {
+    fs.writeFileSync(GLOBAL, `[includeIf "gitdir:${d.replace(/\\/g, '/')}/"]\n\tpath = "~/trabajo.gitconfig"\n`);
+    assert.equal(origen(), 'git');
+    assert.equal(origen(), 'cache');
+    fs.writeFileSync(c, '[init]\n\tdefaultBranch = otra2\n');
+    assert.equal(origen(), 'git', 'cambió el includeIf de la global');
+    assert.equal(origen(), 'cache');
+    // un archivo NO incluido que cambia no rehace nada
+    fs.writeFileSync(path.join(casa, 'otro.gitconfig'), '[init]\n\tdefaultBranch = x\n');
+    assert.equal(origen(), 'cache');
+  } finally {
+    fs.writeFileSync(GLOBAL, antes.GLOBAL);
+    process.env.HOME = antes.HOME;
+    process.env.USERPROFILE = antes.USERPROFILE;
+  }
+});
+
+test('caché (g): rutasIncluidas e incluidas — secciones, comillas, comentarios, ciclos', () => {
+  assert.deepEqual(
+    se.rutasIncluidas('[core]\n\tpath = no\n[include]\n\tpath = a\n\tPATH = "b c" # x\n[IncludeIf "gitdir:~/x/"]\n\tpath = ~/d\n[includeIf.onbranch:main]\npath=e\n[user]\n\tpath = no2\n[include] path = f\n'),
+    ['a', 'b c', '~/d', 'e', 'f'],
+  );
+  assert.deepEqual(se.rutasIncluidas('[includex]\n\tpath = no\n[include]\n\tnopath = no\n'), []);
+  assert.deepEqual(se.rutasIncluidas('[include]\n\tpath = "a\\"b"\n\tpath = c\\\\d\n'), ['a"b', 'c\\d']);
+  const dir = path.join(TMP, `ciclo${n++}`);
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'x'), '[include]\npath = y\n');
+  fs.writeFileSync(path.join(dir, 'y'), '[include]\npath = x\npath = falta\n');
+  const r = se.incluidas(path.join(dir, 'raiz'), '[include]\npath = x\n');
+  assert.deepEqual(r.map(([p, t]) => [path.basename(p), t === null]), [['x', false], ['y', false], ['falta', true]]);
+  assert.deepEqual(se.incluidas(path.join(dir, 'raiz'), null), []);
+});
+
 test('caché: uno roto, de otra forma o con otra clave se ignora y se rehace; uno falso con la clave correcta… es el riesgo escrito', () => {
   const d = conRemoto({ '.claude/kit.md': ficha({ sensible: { release: '[npm run release]' } }) });
   se.decidir(entrada(d, 'git status'));

@@ -35,7 +35,8 @@
 //   - Ficha ROTA: `sensible:` sale de la última ficha que se lee en la ref (hasta 20 commits atrás que la tocaron, como rf-14), sin
 //     NINGÚN quitado (fábrica), y el motivo suma «ficha rota: <archivo>:<línea> — corré doctor».
 //   - CACHÉ (r1-10): `<git-dir común>/kit-sensible.json`, con clave = huella sacada por fs SIN LANZAR PROCESOS: el contenido de la
-//     config del repo, la global y la del sistema (rutas de siempre), las variables GIT_* del entorno, el `refs/remotes/origin/HEAD`
+//     config del repo, la global y la del sistema (rutas de siempre) con lo que incluyen (`include.path`, `includeIf.*.path`,
+//     recursivo), las variables GIT_* del entorno, el `refs/remotes/origin/HEAD`
 //     simbólico y el sha (archivo suelto o `packed-refs`) de
 //     `refs/remotes/origin/<n>` y `refs/heads/<n>` para cada rama candidata (las de `contexto.candidatas`, guardadas en el caché).
 //     Todo lo que puede cambiar cuál es la ref vigente o a qué commit apunta cambia la huella. Solo si cambió se lanza git. Sin
@@ -47,8 +48,9 @@
 // de `decidir`, así una que falta es "freno roto" y no un hook que no arranca.
 // LO QUE NO CIERRA: es un patrón (F §21): un alias, una variable o un script intermedio lo esquivan; y el caché es un archivo del
 // git-dir común que un agente podría reescribir a propósito (lo cuida el corrector, `frenos-del-proyecto`, si lo suma a su lista).
-// La huella no sigue los `include.path` de las configs ni una config del sistema en una ruta rara: si ahí cambia init.defaultBranch,
-// el caché sigue con la rama de antes hasta que se mueva una ref (una ficha vieja, no un freno apagado: la ficha la elige git).
+// La huella sigue los `include.path`/`includeIf.*.path` (por fs, recursivo), pero no una config del sistema en una ruta rara ni
+// un `include` armado por `GIT_CONFIG_PARAMETERS` hacia un archivo que después cambia: si ahí cambia init.defaultBranch, el caché
+// sigue con la rama de antes hasta que se mueva una ref (una ficha vieja, no un freno apagado: la ficha la elige git).
 // Es .cjs a propósito: corre igual en proyectos con "type": "module".
 
 const fs = require('fs');
@@ -231,6 +233,54 @@ const entornoGit = () =>
     .map((k) => `${k}=${process.env[k]}`)
     .join('\0');
 
+// Los `path` de las secciones [include] e [includeIf "…"] de un texto de config (sin mayúsculas en sección y clave; con o sin
+// comillas; sin el comentario `#`/`;` de la cola). Todas las includeIf, se cumpla o no su condición: de más solo rehace el caché.
+function rutasIncluidas(texto) {
+  const out = [];
+  let dentro = false;
+  for (let l of String(texto).split(/\r?\n/)) {
+    l = l.trim();
+    const sec = /^\[([^\]]*)\](.*)$/.exec(l);
+    if (sec) {
+      dentro = /^\s*include(?:if(?:\s+".*"|\..*))?\s*$/i.test(sec[1]); // [include] · [includeIf "…"] · [includeIf.…] (forma vieja)
+      l = sec[2].trim(); // `[include] path = x` en el mismo renglón también vale
+    }
+    if (!dentro) continue;
+    const m = /^path\s*=\s*(.*)$/i.exec(l);
+    if (!m) continue;
+    let v = m[1].trim();
+    if (v.startsWith('"')) {
+      let f = 1;
+      while (f < v.length && v[f] !== '"') f += v[f] === '\\' ? 2 : 1; // la comilla que cierra, salteando las escapadas
+      v = v.slice(1, f);
+    } else v = v.replace(/\s[#;].*$/, '').trim();
+    v = v.replace(/\\(["\\])/g, '$1');
+    if (v !== '') out.push(v);
+  }
+  return out;
+}
+// incluidas(archivo, texto) → [[ruta, texto|null]] de lo que incluye, recursivo (hasta 10 niveles, como git), cada archivo una
+// vez. Relativa: a la carpeta de la config que la nombra; `~/`: el HOME. Solo fs: ningún proceso.
+function incluidas(archivo, texto, prof = 0, vistos = new Set()) {
+  const res = [];
+  if (texto === null || prof >= 10) return res;
+  const home = process.env.HOME || process.env.USERPROFILE || '';
+  for (const r of rutasIncluidas(texto)) {
+    let p = r;
+    if (/^~[\\/]/.test(p)) {
+      if (!home) continue;
+      p = path.join(home, p.slice(2));
+    }
+    p = path.resolve(path.dirname(archivo), p);
+    if (vistos.has(p)) continue;
+    vistos.add(p);
+    const t = leer(p);
+    res.push([p, t]);
+    res.push(...incluidas(p, t, prof + 1, vistos));
+  }
+  return res;
+}
+
 // huella(g, candidatas) → texto, o null si por fs no se puede.
 function huella(g, candidatas) {
   if (!g || !Array.isArray(candidatas) || !candidatas.length) return null;
@@ -250,6 +300,8 @@ function huella(g, candidatas) {
   for (const [nombre, c] of configs) {
     const t = leer(c);
     partes.push(`${nombre}=${t === null ? '-' : t}`);
+    // Lo que esa config incluye (`include.path`, `includeIf.*.path`), por contenido y recursivo, como lo lee git.
+    for (const [ruta, ti] of incluidas(c, t)) partes.push(`${nombre}<${ruta}=${ti === null ? '-' : ti}`);
   }
   partes.push(`entorno=${entornoGit()}`);
   partes.push(`origin/HEAD=${(leer(path.join(g.comun, 'refs', 'remotes', 'origin', 'HEAD')) || '-').trim()}`);
@@ -507,6 +559,8 @@ if (require.main === module) {
     matchea,
     gitPorFs,
     huella,
+    rutasIncluidas,
+    incluidas,
     listasVigentes,
     salida,
     decidir,

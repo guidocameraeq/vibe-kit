@@ -4,7 +4,8 @@
 // y forma exec los pone el instalador de la PC (G10), no este archivo.
 //
 //   - PreToolUse sobre Bash|PowerShell|Write|Edit|MultiEdit|NotebookEdit: mira tool_input.command, content, new_string,
-//     edits[].new_string y new_source. Ids secretos:<qué>, uno por fila de la tabla de P4.3.
+//     edits[].new_string y new_source. Ids secretos:<qué>, uno por fila de la tabla de P4.3, más los tres que frenaba el
+//     anti-secretos viejo de la PC (sk-viejo, conexion-con-clave, telegram; G5b) y, en imprime-variable, el heredoc sin comillar.
 //   - UserPromptSubmit (D-5): mira el prompt; si trae una clave con forma real, decision "block" con suppressOriginalPrompt
 //     (doc de hooks, leída por D3.1 el 2026-10-29: decision y reason al tope, suppressOriginalPrompt dentro de
 //     hookSpecificOutput). FALLA ABIERTO: ante cualquier error interno sale 0 sin bloquear (el registro va sin onFailure).
@@ -73,7 +74,30 @@ function bancoPatrones() {
     { id: 'clave-privada', re: new RegExp('-----BE' + 'GIN[A-Z0-9 ]*PRIVATE KEY-----') },
     { id: 'slack', re: new RegExp('xo' + 'x[baprs]-') },
     { id: 'stripe', re: new RegExp('(?:sk|rk)' + '_live_') },
+    // Los tres que frenaba el anti-secretos viejo de la PC (`~/.claude/hooks/anti-secretos.js`) y `--sacar-viejo` se llevaba.
+    // La clave vieja de OpenAI (y las `sk-svcacct-`/`sk-admin-`, y las de otros proveedores con la misma forma): un tramo seguido de
+    // 20+ letras y dígitos, con los dos. Un nombre en kebab-case (`sk-learn-…`, `task-…`) no tiene ese tramo; proj/ant son sk-api.
+    { id: 'sk-viejo', re: new RegExp('(?<![A-Za-z0-9_-])s' + 'k-(?!proj-|ant-)[A-Za-z0-9_-]{28,}'), valida: (m) => m.slice(3).split(/[-_]/).some((t) => t.length >= 20 && /[0-9]/.test(t) && /[A-Za-z]/.test(t)) },
+    // Una cadena de conexión con la clave adentro (esquema://usuario:clave@host): postgres, mysql/mariadb, mongodb(+srv), redis(s).
+    // No frena un placeholder (`usuario:clave@`, `user:password@`, `${VAR}`, `$X`, `%X%`, `<pass>`, `[…]`, `***`) ni un host local
+    // (localhost, 127.0.0.1, ::1, host.docker.internal: la base de la máquina, con la clave de desarrollo, no es un secreto).
+    { id: 'conexion-con-clave', re: new RegExp('(?:postgres(?:ql)?|mysql|mariadb|mongodb(?:\\+srv)?|rediss?)' + ':\\/\\/[^\\s:/@\'"`]*:[^\\s/@\'"`]+@[^\\s/\'"`?#]*', 'i'), valida: conexionReal },
+    // El token de bot de Telegram (<id>:AA<35>), también pegado a `api.telegram.org/bot`. Un id de ejemplo (123456789…, 987654321…,
+    // un dígito repetido) es de un test o un manual, no de un bot (medido: un fixture de pruebas con los dos primeros).
+    { id: 'telegram', re: new RegExp('(?<![0-9])[0-9]{8,10}' + ':AA[A-Za-z0-9_-]{30,}'), valida: (m) => { const id = m.split(':')[0]; return !'1234567890'.startsWith(id) && !'9876543210'.startsWith(id) && !/^(\d)\1+$/.test(id); } },
   ];
+}
+// Lo de conexion-con-clave: ¿la clave es de verdad y el host no es la máquina?
+const CLAVE_DE_EJEMPLO = /^(?:your|tu|mi|my|the|la|el|db|database|user|usuario|super|admin|root|app)*(?:password|passwd|pass|pwd|secret|clave|contrasena|contraseña|changeme|placeholder|example|ejemplo|redacted|token)s?$/;
+function conexionReal(m) {
+  const x = /:\/\/([^:]*):([^@]*)@(.*)$/.exec(m);
+  if (!x) return false;
+  const clave = x[2];
+  const host = x[3].replace(/:\d*$/, '').toLowerCase();
+  if (/^[$%<[{(]/.test(clave) || /^(?:\*+|x+|\.+)$/i.test(clave)) return false;
+  if (CLAVE_DE_EJEMPLO.test(clave.toLowerCase().replace(/[^a-zñ]/g, ''))) return false;
+  if (/^(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|::1|host\.docker\.internal)$/.test(host)) return false;
+  return true;
 }
 const PATRONES = bancoPatrones();
 const RE_JWT = new RegExp('ey' + 'J[A-Za-z0-9_-]+\\.ey' + 'J[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]*');
@@ -93,7 +117,7 @@ function clavesEn(textos) {
   const ids = [];
   if (t === '') return ids;
   for (const p of PATRONES) {
-    const ms = p.valida ? t.match(new RegExp(p.re.source, 'g')) || [] : null;
+    const ms = p.valida ? t.match(new RegExp(p.re.source, `${p.re.flags}g`)) || [] : null;
     if (ms ? ms.some(p.valida) : p.re.test(t)) ids.push(p.id);
   }
   const re = new RegExp(RE_JWT.source, 'g');
@@ -525,6 +549,72 @@ function analizarComando(texto, ps, ctx, candidatos) {
 
   // PowerShell (2): una sentencia que es solo la variable, un string que la interpola o GetEnvironmentVariable('X').
   if (ps) for (const n of sentenciasQueImprimen(texto)) add('imprime-variable', 'deny', n, QUE['imprime-variable'](n) + MSG_CLAVE, { varNombre: n });
+  // Bash (5): el cuerpo de un heredoc sin comillar la marca que un impresor saca a la pantalla.
+  else for (const n of heredocsQueImprimen(texto, comandos)) add('imprime-variable', 'deny', n, QUE['imprime-variable'](n) + MSG_CLAVE, { varNombre: n });
+}
+
+// (5) Un heredoc con la marca SIN comillar (`<<EOF`, `<<-EOF`) expande `$X` en el cuerpo; si lo recibe `cat` o `tee` y su salida
+// va a la pantalla (sin `>` a un archivo, sin caño, o con caño a un filtro de texto que imprime), el valor sale. Con la marca
+// comillada (`<<'EOF'`, `<<"EOF"`, `<<\EOF`) no se expande; adentro de `$( … )` o de comillas invertidas, el texto va a parar a
+// un argumento, no a la pantalla; con caño a otro programa (`| kubectl apply -f -`, `| ssh h`) es "usar sin ver".
+// comando.cjs no expone el cuerpo ni si la marca iba comillada (y no se toca): se relee del texto, y solo cuentan las marcas que
+// partir() reconoció como heredoc (un `<<` adentro de comillas no es uno). Un `\$X` del cuerpo no se expande.
+const LEEN_E_IMPRIMEN = new Set(['cat', 'tee']);
+const DESPUES_DEL_CANO = new Set(['head', 'tail', 'grep', 'egrep', 'wc', 'sort', 'uniq', 'cut', 'tr', 'cat', 'less', 'more', 'tee', 'column', 'nl', 'fold']);
+function heredocsQueImprimen(texto, comandos) {
+  const nombres = new Set();
+  const s = String(texto);
+  if (!/<</.test(s)) return nombres;
+  const marcas = new Set();
+  for (const c of comandos) for (const r of c.redirecciones || []) if (r.op === '<<' || r.op === '<<-') marcas.add(r.destino);
+  if (!marcas.size) return nombres;
+  const lineas = s.split('\n');
+  for (let i = 0; i < lineas.length; i++) {
+    const cab = lineas[i];
+    const re = /(?<!<)<<(-?)[ \t]*(\\?)(['"]?)([A-Za-z_][A-Za-z0-9_]*)\3/g;
+    const hs = [];
+    let m;
+    while ((m = re.exec(cab))) if (marcas.has(m[4])) hs.push({ m, guion: m[1] === '-', expande: !m[2] && !m[3], delim: m[4] });
+    let j = i + 1;
+    for (const h of hs) {
+      const cuerpo = [];
+      for (; j < lineas.length; j++) {
+        const l = lineas[j].replace(/\r$/, '');
+        if ((h.guion ? l.replace(/^\t+/, '') : l) === h.delim) {
+          j++;
+          break;
+        }
+        cuerpo.push(l);
+      }
+      if (h.expande && heredocImprime(cab, h.m)) for (const n of varsEn(cuerpo.join('\n').replace(/\\\$/g, ''))) nombres.add(n);
+    }
+    if (hs.length) i = j - 1;
+  }
+  return nombres;
+}
+// ¿lo que recibe el heredoc que arranca en m (sobre el renglón cab) sale a la pantalla?
+function heredocImprime(cab, m) {
+  const antes = cab.slice(0, m.index);
+  // adentro de una sustitución que no se cerró antes de la marca: va a un argumento
+  for (const ab of ['$(', '<(', '>(']) {
+    const k = antes.lastIndexOf(ab);
+    if (k >= 0 && !antes.slice(k).includes(')')) return false;
+  }
+  if ((antes.match(/`/g) || []).length % 2 === 1) return false;
+  // el comando que recibe el heredoc: desde el último separador hasta el próximo
+  const ini = Math.max(...['|', ';', '&', '(', '{', '`', '\n'].map((x) => antes.lastIndexOf(x))) + 1;
+  const despues = cab.slice(m.index + m[0].length);
+  const fin = despues.search(/\|\||&&|[|;)]|&(?![>\d])/);
+  const propio = `${antes.slice(ini)} ${fin < 0 ? despues : despues.slice(0, fin)}`.replace(/(?<!<)<<-?\s*\S+/g, ' ');
+  const c = (comando.partir(propio).comandos || [])[0];
+  if (!c || !LEEN_E_IMPRIMEN.has(comando.programa(c))) return false;
+  if ((c.redirecciones || []).some((r) => ESCRIBE.has(r.op) && !/^2>/.test(r.op))) return false;
+  // con caño: imprime solo si lo que sigue es un filtro de texto o un impresor
+  if (fin >= 0 && despues[fin] === '|' && despues[fin + 1] !== '|') {
+    const sig = (comando.partir(despues.slice(fin + 1)).comandos || [])[0];
+    return !!sig && DESPUES_DEL_CANO.has(comando.programa(sig)) && !(sig.redirecciones || []).some((r) => ESCRIBE.has(r.op) && !/^2>/.test(r.op));
+  }
+  return true;
 }
 
 // Corta el texto en sus pipelines: los tramos de nivel cero separados por ; && || & y saltos de renglón (no por |), respetando
