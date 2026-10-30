@@ -327,6 +327,87 @@ test('el anti-secretos viejo: lo deja y avisa; --sacar-viejo saca solo su regist
   assert.doesNotMatch(correr(h).out, /anti-secretos viejo/);
 });
 
+test('rf3-7: instalar → --sacar-viejo → --quitar repone el viejo (la PC nunca queda sin anti-secretos); byte a byte como antes', () => {
+  // un HOME armado como el de la PC de Guido: el viejo en hooks/ registrado en un PreToolUse propio, más un PreToolUse ajeno
+  const h = home();
+  const viejo = path.join(h, '.claude', 'hooks', 'anti-secretos.js');
+  fs.mkdirSync(path.dirname(viejo), { recursive: true });
+  fs.writeFileSync(viejo, VIEJO_TXT);
+  const vb = viejo.replace(/\\/g, '/');
+  const original = `${JSON.stringify(
+    {
+      permissions: { allow: ['Workflow'], defaultMode: 'auto' },
+      model: 'opus',
+      hooks: {
+        PreToolUse: [
+          { matcher: 'Bash|PowerShell', hooks: [{ type: 'command', command: `node "${vb}"` }] },
+          { matcher: 'Write', hooks: [{ type: 'command', command: 'node "~/ajeno.js"' }] },
+        ],
+      },
+      effortLevel: 'xhigh',
+    },
+    null,
+    2,
+  )}\n`;
+  ponerSettings(h, original);
+  assert.equal(correr(h).codigo, 0);
+  assert.equal(correr(h, '--sacar-viejo').codigo, 0);
+  assert.doesNotMatch(fs.readFileSync(settingsDe(h), 'utf8'), /anti-secretos\.js/, 'sacar-viejo lo sacó');
+  let r = correr(h, '--plan', '--quitar');
+  assert.match(r.out, /haría: repongo el registro del anti-secretos viejo/, r.out);
+  r = correr(h, '--quitar');
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(r.out, /· repongo el registro del anti-secretos viejo .*anti-secretos\.js/);
+  assert.equal(fs.readFileSync(settingsDe(h), 'utf8'), original, 'vuelve byte a byte, con el viejo');
+  assert.ok(!fs.existsSync(kitDe(h)));
+  assert.match(correr(h, '--quitar').out, /sin cambios\./);
+
+  // con algo ajeno cambiado después: igual repone el viejo en su lugar (primer grupo) y deja lo ajeno nuevo
+  const h2 = home();
+  const v2 = path.join(h2, '.claude', 'hooks', 'anti-secretos.js');
+  fs.mkdirSync(path.dirname(v2), { recursive: true });
+  fs.writeFileSync(v2, VIEJO_TXT);
+  const hv = { type: 'command', command: `node "${v2.replace(/\\/g, '/')}"` };
+  const vecino = { type: 'command', command: 'echo vecino' };
+  ponerSettings(h2, JSON.stringify({ hooks: { PreToolUse: [{ matcher: 'Bash', hooks: [hv, vecino] }, { matcher: 'Write', hooks: [{ type: 'command', command: 'echo w' }] }] } }, null, 2));
+  assert.equal(correr(h2).codigo, 0);
+  assert.equal(correr(h2, '--sacar-viejo').codigo, 0);
+  const x = JSON.parse(fs.readFileSync(settingsDe(h2), 'utf8'));
+  x.model = 'despues';
+  fs.writeFileSync(settingsDe(h2), JSON.stringify(x, null, 2));
+  assert.equal(correr(h2, '--quitar').codigo, 0);
+  assert.deepEqual(JSON.parse(fs.readFileSync(settingsDe(h2), 'utf8')), {
+    hooks: { PreToolUse: [{ matcher: 'Bash', hooks: [hv, vecino] }, { matcher: 'Write', hooks: [{ type: 'command', command: 'echo w' }] }] },
+    model: 'despues',
+  });
+
+  // el archivo del viejo ya no está: no se registra un hook a un archivo que no existe
+  const h3 = home();
+  const v3 = path.join(h3, '.claude', 'hooks', 'anti-secretos.js');
+  fs.mkdirSync(path.dirname(v3), { recursive: true });
+  fs.writeFileSync(v3, VIEJO_TXT);
+  ponerSettings(h3, JSON.stringify({ hooks: { PreToolUse: [{ matcher: 'Bash', hooks: [{ type: 'command', command: `node "${v3.replace(/\\/g, '/')}"` }] }] }, model: 'm' }, null, 2));
+  assert.equal(correr(h3).codigo, 0);
+  assert.equal(correr(h3, '--sacar-viejo').codigo, 0);
+  fs.rmSync(v3);
+  r = correr(h3, '--quitar');
+  assert.equal(r.codigo, 0, r.out);
+  assert.doesNotMatch(r.out, /repongo/);
+  assert.doesNotMatch(fs.readFileSync(settingsDe(h3), 'utf8'), /anti-secretos/);
+
+  // sin --sacar-viejo: el viejo sigue registrado y --quitar no lo duplica
+  const h4 = home();
+  const v4 = path.join(h4, '.claude', 'hooks', 'anti-secretos.js');
+  fs.mkdirSync(path.dirname(v4), { recursive: true });
+  fs.writeFileSync(v4, VIEJO_TXT);
+  const o4 = JSON.stringify({ hooks: { PreToolUse: [{ matcher: 'Bash', hooks: [{ type: 'command', command: `node "${v4.replace(/\\/g, '/')}"` }] }] } }, null, 2);
+  ponerSettings(h4, o4);
+  assert.equal(correr(h4).codigo, 0);
+  r = correr(h4, '--quitar');
+  assert.doesNotMatch(r.out, /repongo/);
+  assert.equal(fs.readFileSync(settingsDe(h4), 'utf8'), o4);
+});
+
 test('actualizar: un registro del kit con otra forma se reemplaza (uno solo, en su lugar), un archivo editado vuelve, uno que ya no viene se va', () => {
   const h = home();
   assert.equal(correr(h).codigo, 0);
