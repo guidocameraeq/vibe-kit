@@ -21,7 +21,8 @@ Guido pega el prompt **D3.3** de "Abrir D3.2 y D3.3 sin Guido" del tracker (`doc
 primero, después G11 y G12, G13 al final; el revisor frío (el día normal, no solo ataques) y lo de "Pendientes" del paquete 3; `/cierre`
 con el "Próximo paso" en D4.1.
 
-**Para Guido, cuando pueda (no traba a D3.3)**: repasar las ⚠️ de D2.2, D3.1 y D3.2 en el tracker; las pruebas en una pestaña real de D2.2.
+**Para Guido, cuando pueda (no traba a D3.3)**: repasar las ⚠️ de D2.2 y D3.1 en el tracker (las de D3.2 ya las aprobó); las pruebas en
+una pestaña real de D2.2 **las posterga a propósito**: D3.3 no lo espera. El prompt de D3.3 se reescribió al cierre de D3.2.
 **Pendiente de la notebook**: borrar el repo temporal `jrobilara/vibe-chats-paso` (ya está todo en el privado).
 
 ## Cosas que muerden y no están en ningún otro doc

@@ -177,6 +177,7 @@ arriba**, todas se deshacen antes del tag. El detalle, en [`SPEC-paquete-3.md`](
 ### D3.2 · Decisiones sin Guido
 
 D3.2 corrió sin Guido, con su autorización previa (su prompt, abajo): como D3.1, **las ⚠️ arriba** y todas se deshacen antes del tag.
+**✅ Aprobadas por Guido el 2026-10-29**, al leer el resumen del cierre ("me parecen ok").
 
 - ⚠️ **G5 · `archivo-deny` juzga el pipeline por tramos, no entero** (`;`, `&&`, `||`, renglón): la regla "todos los del pipeline en lo
   permitido" vale para los que listan (`ls .env | cat` frena, `gci .env | gc` frena); "usar sin ver" se juzga solo, y después de un `ls`
@@ -266,12 +267,33 @@ ramas `wip/*` borradas). Es el prompt de D3.1 con lo que cambia; las reglas de s
 
 **D3.3**:
 
+*(Reescrito en el cierre de D3.2, 2026-10-29, con lo que D3.2 dejó y aprendió.)*
+
 > inicio — misión 5, D3.3: cerrar el paquete 3, sin mí.
 >
-> Mismas autorizaciones que D3.2. Alcance: G7, G10, G11, G12 y G13 (en el orden de dependencias de "Los encargos" del delta: G7 y G10
-> primero, después G11 y G12, G13 al final), el revisor frío (que recorra el día normal, no solo los ataques: lección de D2.2) y lo que
-> encuentre, y lo de "Paquete 3 · de D2.2" de Pendientes. De a dos Opus como máximo; los Sonnet mecánicos no cuentan. Al terminar, la fila
-> del paquete 3 en ✅ con lo que espera a Guido (instalar los hooks por PC en las dos PCs) y /cierre completo, con el "Próximo paso" en D4.1.
+> Me voy y te dejo trabajando solo. Te autorizo por adelantado a lo mismo que a D3.1 y D3.2 (el prompt de D3.1, en el tracker, "Abrir D3.1
+> sin Guido"): después del /inicio no esperás mi OK, decidís con la recomendada, anotás en "Decisiones sin Guido" de una sección D3.3 nueva
+> (las ⚠️ arriba), no cortás por contexto, no tocás el `~/.claude/` real (los hooks por PC y el doctor, con un HOME falso), y lo que
+> necesita una persona va a Pendientes. Lo que cambia:
+>
+> 1. **Alcance**: G7, G10, G11, G12 y G13, en el orden de dependencias de "Los encargos" del delta (G7 y G10 primero, en paralelo: no
+>    comparten archivos; después G11 y G12; G13 al final); lo de Pendientes del paquete 3 ("de D2.2" y "de D3.2, para D3.3", de la a a la g:
+>    cada letra se cierra en el encargo que nombra o se anota por qué no); y el **revisor frío** en Opus sobre el diff entero del paquete
+>    (que recorra el día normal: dos PCs, `pull`, merge, worktrees, un proyecto nuevo; no solo los ataques) y lo que encuentre. Los dos de
+>    "de D3.2, fuera del paquete" los decide el revisor frío.
+> 2. **La PC ya está preparada** (kit-sync LIMPIO, repos de prueba, corpus en `C:\Users\Usuario\vibe-historial\`). Verificalo en el /inicio;
+>    no lo rehagas si está.
+> 3. **De a dos Opus como máximo**; los Sonnet mecánicos (G11, G12, G13) no cuentan. Cada encargo en su worktree en `scratchpad/<gN>/wt`, con
+>    su subcarpeta del scratchpad para temporales, y con el `cwd` siempre adentro de ella. **Mutación con tope** en G7 y G10: si pasa de
+>    ~1 h, que mute las reglas que frenan y anote el resto. Si la cuota corta a mitad, cuando renueve retomá cada encargo con un mensaje
+>    ("seguí desde donde quedaste"), no lo relances de cero.
+> 4. Leés cada diff, corrés vos las pruebas de cada encargo y la suite entera al final, en segundo plano. Aceptado → merge a `main`, gitleaks,
+>    commit y push.
+> 5. **Las pruebas que necesitan una persona las postergo** (la pestaña real de VS Code, la otra PC, instalar los hooks por PC en las dos
+>    PCs): no me esperes; van a Pendientes con qué tengo que mirar y qué tengo que correr.
+> 6. Al terminar, la fila del paquete 3 en ✅ con lo que me espera, **el prompt de D4.1 sin mí** armado en el tracker como este, y /cierre
+>    completo (kit-sync LIMPIO, docs, diario, el chat al privado, gitleaks, commit y push) con el "Próximo paso" en D4.1 y su título. En
+>    el resumen final, primero "Decisiones sin Guido" y después lo que me espera a mí.
 
 ## Paralelizar: decidido que no (DP, 2026-10-29)
 
