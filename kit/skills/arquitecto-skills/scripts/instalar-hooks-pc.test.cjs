@@ -185,6 +185,14 @@ test('JSON roto, claves duplicadas o una forma que no entiende → no toca nada 
       assert.deepEqual(foto(h), antes, `${texto}: tocó algo`);
     }
   }
+  // y dice por qué (el arreglo es a mano)
+  const motivo = (texto) => {
+    const h = home();
+    ponerSettings(h, texto);
+    return correr(h).out;
+  };
+  assert.match(motivo('{ "hooks": '), /el JSON no abre/);
+  assert.match(motivo('{"model":"a","model":"b"}'), /clave "model" repetida/);
 });
 
 test('--plan no escribe nada (instalar, actualizar, sacar-viejo, quitar) y dice qué haría', () => {
@@ -225,6 +233,14 @@ test('--quitar vuelve al original byte a byte (CRLF y sangría de 4), y borra ho
   assert.equal(fs.readFileSync(settingsDe(h), 'utf8'), original);
   assert.ok(!fs.existsSync(kitDe(h)));
   assert.match(correr(h, '--quitar').out, /sin cambios\./, 'quitar dos veces: la segunda no hace nada');
+  // un formato que JSON.stringify no reproduce (a mano, mezclado): vuelve igual
+  const h2 = home();
+  const raro = '{ "model": "opus",\n  "permissions": { "allow": ["Bash(ls)"] },\n\t"hooks": {"Stop": [ {"hooks": [{"type": "command", "command": "echo fin"}]} ]}\n}';
+  ponerSettings(h2, raro);
+  assert.equal(correr(h2).codigo, 0);
+  assert.notEqual(fs.readFileSync(settingsDe(h2), 'utf8'), raro);
+  assert.equal(correr(h2, '--quitar').codigo, 0);
+  assert.equal(fs.readFileSync(settingsDe(h2), 'utf8'), raro);
   // un deny ajeno que el usuario ya tenía con la misma forma no se lo lleva
   const h3 = home();
   const conDeny = JSON.stringify({ permissions: { deny: [I.denyAlmacen(h3)] } }, null, 2);
