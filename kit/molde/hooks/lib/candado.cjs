@@ -365,7 +365,7 @@ function datos(raiz) {
 
 // indice / rango (P4.6): solo el índice (pre-commit) o solo los commits de un rango ya resuelto (pre-push); sin ellos, como siempre.
 const barreras_ = (raiz, opciones = {}) =>
-  barreras.revisarBarreras(raiz, { molde: opciones.molde, indice: opciones.indice, rango: opciones.rango }).map((f) => ({ ...f, id: 'barreras' }));
+  barreras.revisarBarreras(raiz, { molde: opciones.molde, moldeViejo: opciones.moldeViejo, indice: opciones.indice, rango: opciones.rango }).map((f) => ({ ...f, id: 'barreras' }));
 
 const CHEQUEOS = {
   raiz: raiz_,
@@ -407,7 +407,7 @@ function prendido(datosFicha) {
 
 const linea = (f) => `candado:${f.id} · ${f.que} · ${f.hacer}`;
 
-// correr(raiz, {modo: 'todo' | 'parcial' | 'ids', ids, molde, indice, rango, log, ahora, home}) → { codigo, lineas, fallas, corrieron }.
+// correr(raiz, {modo: 'todo' | 'parcial' | 'ids', ids, molde, moldeViejo, indice, rango, log, ahora, home}) → { codigo, lineas, fallas, corrieron }.
 // codigo: 0 verde · 1 alguna falla (lecturas no cuenta). La ficha vigente rota no da 1 sola: se avisa y corre todo con los frenos de
 // fábrica (rf-9). indice (true) o rango ({desde, hasta}, de resolverRango) solo con ids = [barreras], y no los dos (P4.6).
 // Tira si algo interno falla o si lo llaman mal (el script lo vuelve "candado roto").
@@ -443,7 +443,7 @@ function correr(raiz, opciones = {}) {
   const quitados = rota ? new Set() : quitadosVigentes(datosFicha, ahora);
   const pedidos = modo === 'parcial' ? PARCIAL : modo === 'ids' ? IDS.filter((x) => (opciones.ids || []).includes(x)) : IDS;
   const corrieron = pedidos.filter((id) => id === 'barreras' || (encendido && !quitados.has(id)));
-  const op = { parcial: modo === 'parcial', molde: opciones.molde, indice: !!opciones.indice, rango: opciones.rango, fichaVigente: fv, ahora, home: opciones.home };
+  const op = { parcial: modo === 'parcial', molde: opciones.molde, moldeViejo: opciones.moldeViejo, indice: !!opciones.indice, rango: opciones.rango, fichaVigente: fv, ahora, home: opciones.home };
   const fallas = [];
   for (const id of corrieron) fallas.push(...CHEQUEOS[id](raiz, op));
 

@@ -1,6 +1,6 @@
 ---
 name: arquitecto-skills
-description: El Equipador — instala, actualiza y poda las skills globales de Claude Code según el menú curado (hermana del Arquitecto). Puede AUTO-ACTUALIZARSE: baja la última versión del Arquitecto/Equipador/docs-fyd/relevamiento del repo canónico y se actualiza a sí mismo. Usar cuando el usuario dice "preparame esta máquina", "instalame skills", "actualizá las skills", "actualizá el kit", "actualizate", "traé lo último del Arquitecto", "qué skills tengo instaladas", "agregá tal skill al menú", o al estrenar una PC nueva. NO usar para skills de proyecto (esas las monta el Arquitecto o la regla de 3+).
+description: El Equipador — instala, actualiza y poda las skills globales de Claude Code según el menú curado (hermana del Arquitecto). Puede AUTO-ACTUALIZARSE: baja la última versión del Arquitecto/Equipador/docs-fyd/relevamiento del repo canónico y se actualiza a sí mismo. Usar cuando el usuario dice "preparame esta máquina", "instalame skills", "actualizá las skills", "actualizá el kit", "actualizate", "traé lo último del Arquitecto", "instalar hooks por PC", "corré el doctor", "qué skills tengo instaladas", "agregá tal skill al menú", o al estrenar una PC nueva. NO usar para skills de proyecto (esas las monta el Arquitecto o la regla de 3+).
 ---
 
 # El Equipador (`/arquitecto-skills`)
@@ -88,6 +88,22 @@ instalan en `~/.claude/`.
 **Acotado**: este modo toca SOLO lo kit-owned, y solo desde el repo canónico. Las skills del **menú**
 (externas) se actualizan con el Modo ACTUALIZAR (clonan de SUS repos). Y **en el repo madre** (vibe-kit)
 NO se usa: allá el sync `kit/`→instalado lo hace `/cierre` (editás `kit/` y pusheás); acá bajás lo pusheado.
+
+## Modo HOOKS POR PC — "instalar hooks por PC" / "instalá el corrector" / "corré el doctor"
+
+El corrector de secretos de esta PC (hooks en `~/.claude/hooks/kit/`). Los scripts viajan con el kit, en
+`~/.claude/skills/arquitecto-skills/scripts/`. **Siempre sobre el `~/.claude/` real de esta PC; nunca con `--home` (eso es de las pruebas).**
+
+1. `node ~/.claude/skills/arquitecto-skills/scripts/instalar-hooks-pc.cjs --plan` — no escribe nada; mostrale a Guido lo que haría.
+2. **UNA pregunta**: "¿Lo aplico?" (es lo único que se pregunta). Si el `--plan` dice que el settings no se entiende (JSON roto,
+   claves repetidas), no preguntes: contale el motivo, se arregla a mano.
+3. Sí → el mismo comando **sin** `--plan`. Después `node …/scripts/doctor.cjs` (solo lee) y pegale las líneas: cada `✗` trae
+   cómo se arregla; los `⚠` no traban. Cerrá con **"reiniciá Claude Code"** (los hooks nuevos cargan al reiniciar).
+4. **Sacar el anti-secretos viejo**: cuando Guido confirme que el del kit anda → `… instalar-hooks-pc.cjs --sacar-viejo`
+   (saca solo su registro; el archivo queda). **Deshacer todo**: `… --quitar` (deja el `settings.json` como estaba).
+5. Un archivo de `hooks/kit/` editado a mano: el `doctor` lo reporta y el instalador lo pisa con el del kit — decile antes a
+   Guido si la edición debe llevarse al repo madre.
+Nunca edites `~/.claude/settings.json` a mano ni toques secretos: el instalador es el único que lo escribe.
 
 ## Modo AUDITAR — "qué skills tengo" / "podá"
 

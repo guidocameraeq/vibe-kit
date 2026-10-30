@@ -205,6 +205,44 @@ D3.2 corrió sin Guido, con su autorización previa (su prompt, abajo): como D3.
   fecha no apaga nada.
 - G5: el `frenos.log` de la PC se escribe solo si el hook corre instalado (con `INSTALADO`): las pruebas del WIP lo escribían adentro del repo.
 
+### D3.3 · Decisiones sin Guido
+
+D3.3 corrió sin Guido, con su autorización previa (su prompt, abajo): como D3.1 y D3.2, **las ⚠️ arriba**, todas se deshacen antes del tag.
+
+- ⚠️ **G5b (fuera de los encargos del delta) · `secretos` suma `sk-viejo`, `conexion-con-clave` y `telegram`.** En `Usuario` el anti-secretos
+  viejo no es `block_secrets.ps1` sino `~/.claude/hooks/anti-secretos.js`, y frenaba tres cosas que `secretos` no: si lo sacabas con
+  `--sacar-viejo`, se perdían. *Alternativa*: dejarlos afuera (no estaban en la tabla de 4.3). *Por qué*: el instalador te propone sacar el
+  viejo; sin esto, sacarlo aflojaba. Medidos: 0 frenos y 0 falsos positivos en el corpus (casi no hay casos: los cubren las pruebas).
+- ⚠️ **G5b · `conexion-con-clave` no frena con host local ni con placeholders** (`postgres:postgres@localhost`, `user:password@`, `${VAR}`): el
+  viejo sí. *Por qué*: es la base de tu propia máquina (Supabase local), no un secreto, y aparecía en el corpus. Suma `mysql`, `mariadb`,
+  `mongodb(+srv)` y `redis(s)` además de postgres. `sk-viejo` exige un tramo de 20+ con letras y dígitos (no frena `sk-learn-…`).
+- ⚠️ **G7 · el id de un hook en `zona-propia` suma los `args`.** En forma exec todos los hooks dicen `node`: con el id de antes, `mezclarSettings`
+  perdía `git-seguro` y `sensible`. Cambia los ids de hook que se escriben en `frenos.quitados` e `ids:` de `cambios` (un hook en texto, sin
+  `args`, mantiene el suyo). Nada llegó a la flota: es gratis ahora.
+- ⚠️ **G7 · `escritura-docs` también con `onFailure: "block"`** (P4.7 nombraba los cuatro que niegan Bash). *Por qué*: niega escrituras, y el
+  criterio 16 del kit dice "si un hook que niega falla, la acción se frena". Un bug suyo traba los `Write` hasta el `doctor`.
+- ⚠️ **G7 · `commit -a` / `commit <rutas>` con una barrera distinta entre el índice aparte y el de siempre → rojo** ("git add y volvé a
+  commitear"): el candado leía otro índice y una barrera se colaba con `-a`.
+- ⚠️ **G7 · el hook previo (husky, lefthook, `.git/hooks`) se encadena en los tres githooks**, no solo en el pre-commit.
+- ⚠️ **G10 · el `deny` del almacén va con ruta absoluta** (`Read(//c/Users/<vos>/.config/kit-secretos/**)`), no con `~`: con `--home`, `~`
+  apuntaría a otro lado. **`--quitar` vuelve byte a byte** con una copia del settings de antes en `hooks/kit/settings.antes.json`; si el settings
+  no existía, lo borra. **`--sacar-viejo` también instala** (nunca deja la PC sin corrector).
+- ⚠️ **G6b · `barreras --molde-viejo`** (adelantado del paquete 6, pendiente F4 de D2.2): con los dos moldes, una regla que el molde viejo traía y
+  el nuevo retira puede irse. Sin él, el paso "orden 3" de `rehacer.sh` (la migración a exec) daba rojo, y lo mismo le iba a pasar al
+  actualizador. *Alternativa de G12*: aceptar una regla retirada si el molde nuevo trae un hook del mismo script (dejaba pasar un hook propio renombrado).
+- G7 · un `aprobado` que vive solo en la rama que se pushea (no en `HEAD`) da un rojo de más: **aceptado**, con un mensaje "pusheá desde esa
+  rama" (pendiente b de D3.2). El remoto adelantado da rojo con "hacé `git fetch` y `git pull --rebase`".
+- G7 · el runner de los githooks no usa las librerías del kit (copia propia de `rol` y de la ref vigente, con una prueba que exige que den lo
+  mismo que `contexto.cjs`); con la ficha rota, los githooks corren con los frenos de fábrica (rf-9), no frenan solos.
+- G10 · la versión de `INSTALADO` sale de `~/.claude/VERSION` (la que copia `kit-sync`). Un archivo de `hooks/kit/` editado a mano, el
+  instalador lo pisa (el `doctor` lo reporta antes).
+- G11 · `doctor` fuera de un repo: `pre-commit` y `ficha` dan ⚠. `claude-code` mira `claude --version` y los nombres de carpeta de las
+  extensiones y de la app (la ruta de la app de escritorio, **NO VERIFICADO**). Ningún ✗ nuevo para `git-bash` ni `lefthook` (⚠).
+- G12 · el `2b` se congela en `D22=37906e8` (el último commit que tocó `kit/molde/` antes del paquete 3); el paso 3 reescribe el "Próximo
+  paso" del handoff de `alfa`/`beta` (`.githooks/` cuenta como código para `candado:estado-viejo`, y le va a pasar igual a un adoptador).
+- (e) de D3.2: los regex de los cinco de `block_secrets.ps1` siguen **NO VERIFICADOS** contra el archivo de `clientes` (no está en esta PC):
+  te queda a vos. Lo local (`anti-secretos.js` de `Usuario`), cruzado y cerrado en G5b. (g): cerrado (el caché sigue `include.path`).
+
 ## Abrir D3.1 sin Guido (el prompt)
 
 Guido abre un chat nuevo en vibe-kit, en Opus, pega esto y se va. Es el de D2.2 con lo que cambia para el paquete 3:

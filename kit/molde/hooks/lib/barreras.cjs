@@ -12,8 +12,9 @@
 // Cambio válido para un commit X: 3-barrera con el sello en orden (cambios.validar + cambios.validarSello, las reglas de verificar),
 // sello anterior a X, y X es el PRIMER commit después del sello que toca su `toca` (un aprobado = un commit); con `aplicado`, además,
 // su `sha` es X (r5-1: reapuntar el sha no tapa otro commit).
-// Exenciones, solo dos: (a) con --molde, el archivo sin su zona propia es igual al del molde (el settings, regla por regla); (b) el
-// commit que crea la ficha por primera vez, con frenos, sensible y autorizado iguales a la fábrica del nivel EN EL ÁRBOL DEL PADRE.
+// Exenciones, solo dos: (a) con --molde, el archivo sin su zona propia es igual al del molde (el settings, regla por regla); con
+// --molde-viejo, además, lo que el molde nuevo retira puede irse si el proyecto lo tenía igual al molde viejo; (b) el commit que
+// crea la ficha por primera vez, con frenos, sensible y autorizado iguales a la fábrica del nivel EN EL ÁRBOL DEL PADRE.
 // Node estándar, cero dependencias. Es .cjs a propósito: corre igual en proyectos con "type": "module".
 
 const fs = require('fs');
@@ -385,11 +386,26 @@ function contenidoZonas(b) {
   return z.ok ? z.zonas.map((x) => x.contenido) : null;
 }
 
+// ¿Dos textos son el mismo del molde? Igual sin la zona propia (hashPieza) y con lo de adentro de las zonas igual.
+function mismoTexto(a, b) {
+  if (zona.hashPieza(a) !== zona.hashPieza(b)) return false;
+  const za = contenidoZonas(a);
+  const zb = contenidoZonas(b);
+  return za !== null && zb !== null && canon(za) === canon(zb);
+}
+
 // Un texto (hook, script, githook, gitleaks): sin su zona propia igual al del molde, y la zona propia igual a la de antes
 // (si el archivo es nuevo, a la del molde). Un hermano .propio.sh es lo propio del hook: tocarlo nunca es el molde.
-function textoComoElMolde(f, d, m) {
+// Borrado (d null): sin molde viejo (v undefined), vale si el molde nuevo tampoco lo trae (como antes de --molde-viejo); con molde
+// viejo, además el viejo lo traía y el proyecto lo tenía igual a él (con su zona propia como la del viejo): el molde lo retira.
+// Un archivo propio (el viejo no lo traía) o cambiado respecto del viejo, borrado, ya no pasa por (a).
+function textoComoElMolde(f, d, m, v) {
   if (/\.propio\.sh$/i.test(f.rel)) return false;
-  if (d === null) return m === null; // un hook viejo borrado vale si el molde nuevo tampoco lo trae
+  if (d === null) {
+    if (m !== null) return false;
+    if (v === undefined) return true;
+    return v !== null && f.antes !== null && mismoTexto(f.antes, v);
+  }
   if (m === null) return false;
   if (zona.hashPieza(d) !== zona.hashPieza(m)) return false;
   const zd = contenidoZonas(d);
@@ -416,23 +432,31 @@ const leerJson = (b) => {
 
 // Un settings molde+propio (criterio 20): regla por regla, lo del molde está igual (salvo lo quitado, que queda como estaba o como
 // el molde), lo propio (lo que el molde nuevo no trae) quedó igual que antes, y cada otra clave es la de antes o la del molde.
-// Elegido lo que frena: una regla del molde viejo que el nuevo retira cuenta como "lo propio cambió" (sin el molde viejo no se
-// distingue de una regla del proyecto): ese commit no pasa por (a).
-function settingsComoElMolde(f, d, m, quitados) {
+// Una regla que el molde nuevo retira (la trae el viejo y el nuevo no) solo puede irse con el molde viejo (v, de --molde-viejo) y si
+// el proyecto la tenía IGUAL a la del viejo (lo que hace mezclarSettings: la retira solo así). Sin el molde viejo no se distingue
+// de una regla del proyecto: cuenta como "lo propio cambió" y ese commit no pasa por (a). La que el proyecto había cambiado respecto
+// del viejo, o la que el viejo no traía (propia), tiene que quedar igual que antes, con o sin molde viejo. v: undefined = sin
+// --molde-viejo; null = el molde viejo no trae settings (no retira nada); que no se lea = no hay exención.
+function settingsComoElMolde(f, d, m, quitados, v) {
   if (d === null) return m === null;
   if (m === null) return false;
   const D = leerJson(d);
   const M = leerJson(m);
   const A = f.antes === null ? { valor: {} } : leerJson(f.antes);
-  if (D.roto || M.roto || A.roto || !D.valor || !M.valor) return false;
+  const V = v === undefined ? { valor: null } : leerJson(v);
+  if (D.roto || M.roto || A.roto || V.roto || !D.valor || !M.valor) return false;
   const rd = reglasPorId(D.valor);
   const rm = reglasPorId(M.valor);
   const ra = reglasPorId(A.valor);
+  const rv = V.valor ? reglasPorId(V.valor) : new Map();
   for (const id of new Set([...rd.keys(), ...rm.keys(), ...ra.keys()])) {
     const vd = rd.get(id);
     if (rm.has(id)) {
       if (quitados.has(id) ? vd !== ra.get(id) && vd !== rm.get(id) : vd !== rm.get(id)) return false;
-    } else if (vd !== ra.get(id)) return false;
+    } else if (vd !== ra.get(id)) {
+      // Retirada por el molde: se fue entera, el viejo la traía y el proyecto la tenía como el viejo.
+      if (!(vd === undefined && rv.has(id) && ra.get(id) === rv.get(id))) return false;
+    }
   }
   // Las demás claves (y las de permissions que no son allow, ask ni deny): la de antes o la del molde.
   const claves = (o, sub) => (esMapa(o) ? Object.keys(o).filter((k) => (sub ? !['allow', 'ask', 'deny'].includes(k) : k !== 'hooks')) : []);
@@ -461,17 +485,19 @@ function quitadosDe(raiz, cual) {
 
 // (a): solo con --molde. La ficha no se compara contra el molde: lo que se le exige (frenos, sensible y autorizado iguales, y
 // nivel y las dos piezas sin aflojar) ya es lo que miden sus ids; si cambia algo de eso, cuenta y lo tiene que cubrir un cambio.
-function exencionA(raiz, f, cual, molde, memo) {
+// viejo (--molde-viejo, solo junto con molde): el molde del que viene el proyecto; deja ir lo que el nuevo retira (ver arriba).
+function exencionA(raiz, f, cual, molde, memo, viejo) {
   if (!molde || f.cat === 'ficha') return false;
   const enMolde = rutaEnMolde(f.rel);
   if (!enMolde) return false;
   const m = leerDisco(path.join(molde, ...enMolde.split('/')));
+  const v = viejo ? leerDisco(path.join(viejo, ...enMolde.split('/'))) : undefined;
   if (f.cat === 'settings') {
     if (!memo.quitados) memo.quitados = new Map();
     if (!memo.quitados.has(cual)) memo.quitados.set(cual, quitadosDe(raiz, cual));
-    return nuevas(f).every((d) => settingsComoElMolde(f, d, m, memo.quitados.get(cual)));
+    return nuevas(f).every((d) => settingsComoElMolde(f, d, m, memo.quitados.get(cual), v));
   }
-  return nuevas(f).every((d) => textoComoElMolde(f, d, m));
+  return nuevas(f).every((d) => textoComoElMolde(f, d, m, v));
 }
 
 // ---------------------------------------------------------------- los cambios válidos y a qué commit cubren
@@ -544,7 +570,7 @@ function lo(raiz, cual, opciones, memo) {
   for (const f of archivos) {
     const t = tocaArchivo(raiz, f);
     if (!t.cats.size && !t.ids.size && !t.imposible) continue;
-    if (!t.imposible && (exencionB(raiz, f, cual, memo) || exencionA(raiz, f, cual, opciones.molde, memo))) continue;
+    if (!t.imposible && (exencionB(raiz, f, cual, memo) || exencionA(raiz, f, cual, opciones.molde, memo, opciones.moldeViejo))) continue;
     if (t.imposible) imposibles.push(t.imposible);
     t.cats.forEach((x) => cats.add(x));
     t.ids.forEach((x) => ids.add(x));
@@ -591,13 +617,15 @@ function settingsLocal(raiz) {
   return sale(`${RUTA_SETTINGS_LOCAL} trae la clave ${malas.join(' y ')}`, 'sacá esa clave: apaga o cambia los frenos en esta PC sin pasar por un aprobado');
 }
 
-// revisarBarreras(raiz, {molde, indice, rango}) → [{ id: 'candado:barreras', que, hacer, detalle, commit }]. Vacía = en orden.
-// molde: carpeta ABSOLUTA del molde de afuera (exención a); sin ella, no hay exención (a). Tira si git no puede.
+// revisarBarreras(raiz, {molde, moldeViejo, indice, rango}) → [{ id: 'candado:barreras', que, hacer, detalle, commit }]. Vacía = en
+// orden. molde: carpeta ABSOLUTA del molde de afuera (exención a); sin ella, no hay exención (a). moldeViejo: carpeta ABSOLUTA del
+// molde del que viene el proyecto (solo con molde; si no, tira): deja ir lo que el nuevo retira. Tira si git no puede.
 // Sin indice ni rango: el rango de la sesión, lo pendiente y lo de esta PC (marcas y settings.local). indice: true → lo de esta PC y
 // SOLO el índice (rf-10). rango: { desde, hasta } (resolverRango) → SOLO esos commits, lo que sube el push (rf-7); desde null = una
 // ref nueva (lo que ningún remoto tiene), y el primer commit del repo no se juzga.
 function revisarBarreras(raiz, opciones = {}) {
   if (opciones.indice && opciones.rango) throw new Error('indice y rango no van juntos');
+  if (opciones.moldeViejo && !opciones.molde) throw new Error('el molde viejo va solo con el molde');
   const memo = {};
   let fallas;
   let cuales;
