@@ -451,10 +451,10 @@ test('rf3-14: borrar, mover o pisar la carpeta que CONTIENE un freno frena (prop
       // la propia
       'rm -rf .claude', 'rm -r .claude/', 'mv .claude x', 'rm -rf .', 'rm -rf .*', 'rm -rf .claude/*', 'rm -rf .c*', 'rm -rf .claude/hooks/*',
       'rmdir .claude/hooks/..', 'chmod -R 000 .claude', 'chown -R x .', 'git rm -r .claude', 'git rm -r --cached .', 'git mv .githooks x',
-      'git clean -fdx', 'git clean -fdX -- .claude', 'find .claude -delete', 'find . -name x -exec rm -rf {} +', 'tar -xf a.tar -C .claude', 'tar xzf a.tgz --directory=.',
-      'unzip -o a.zip -d .', 'cp -r /tmp/hooks .claude', 'cp -r /tmp/x/.claude .', 'cp -r /tmp/x/* .claude/', 'cp -t . /tmp/.githooks', 'rsync -a --delete src/ .',
+      'git clean -fdx', 'git clean -fdX -- .claude', 'find .claude -delete', 'find . -name .claude -exec rm -rf {} +', 'tar -xf a.tar -C .claude', 'tar xzf a.tgz --directory=.claude',
+      'unzip -o a.zip -d ..', 'cp -r /tmp/hooks .claude', 'cp -r /tmp/x/.claude .', 'cp -r /tmp/x/* .claude/', 'cp -t . /tmp/.githooks', 'rsync -a --delete src/ .',
       'ln -sfn /tmp/hooks .claude', 'ln -sf /tmp/.kit-rol', 'F=.claude; rm -rf "$F"',
-      'rm -rf .gi?', 'rm -f .gith*/pre-commit', 'rm -rf .githooks/*', 'rm -rf .claude/h*/git-seguro.cjs', 'find -name x -delete',
+      'rm -rf .gi?', 'rm -f .gith*/pre-commit', 'rm -rf .githooks/*', 'rm -rf .claude/h*/git-seguro.cjs', 'find -name .kit-rol -delete',
       // el principal y lo de arriba
       'rm -rf ../../../.claude', 'rm -rf ../../..', 'rm -rf ../..', 'mv ../../../.githooks /tmp', 'rm -rf ../../../.git', 'rm -rf ../../../.git/hooks', 'rm -rf ../../../.git/refs/heads',
       // otro worktree
@@ -466,6 +466,8 @@ test('rf3-14: borrar, mover o pisar la carpeta que CONTIENE un freno frena (prop
       'cp .claude/kit.md /tmp/x', 'cp ../x.js .', 'cp -r /tmp/h .claude', 'ln -s ../x .', 'git clean -fd', 'git add .', 'git add -A .claude',
       'git rm src/a.js', 'git status .claude', 'git diff ../../..', 'cd ../../.. && git log', 'tar -xf a.tar', 'tar -cf /tmp/a.tar .claude', 'unzip -l a.zip',
       'rm -rf ../../../src', 'rm -rf ../../../.claude/worktrees/x--01/dist', `rm -rf "${ob}/dist"`, 'rm -rf .claude/s*/viejo',
+      // rf2-7: extraer en la raíz o un find con un nombre que no es de freno
+      'find . -name x -exec rm -rf {} +', 'find -name x -delete', 'tar xzf a.tgz --directory=.', 'unzip -o a.zip -d .', 'tar -xf a.tar -C ../../..',
     ],
     (c) => bash(c, 'default', wt),
     'frenos-del-proyecto',
@@ -473,8 +475,8 @@ test('rf3-14: borrar, mover o pisar la carpeta que CONTIENE un freno frena (prop
   siNo(
     ['Remove-Item -Recurse -Force .claude', 'Remove-Item * -Recurse', 'ri -r .githooks', 'Move-Item .claude x', 'Rename-Item -Path .githooks -NewName y',
       'Copy-Item -Recurse x/.githooks -Destination .', 'Remove-Item -LiteralPath ..\\..\\..\\.claude -Recurse', 'del /s /q .claude', 'rd /s /q .',
-      'Expand-Archive a.zip -DestinationPath .', 'New-Item -ItemType Junction -Path .claude -Target C:\\x', 'robocopy C:\\x . /MIR'],
-    ['Get-ChildItem .claude -Recurse', 'Remove-Item dist -Recurse', 'Remove-Item *.log', 'Copy-Item a.txt .', 'Copy-Item -Recurse x -Destination .claude', 'New-Item -ItemType Directory -Path src', 'New-Item -ItemType Directory -Path .claude', 'Rename-Item a.js b.js'],
+      'Expand-Archive a.zip -DestinationPath .claude', 'New-Item -ItemType Junction -Path .claude -Target C:\\x', 'robocopy C:\\x . /MIR'],
+    ['Get-ChildItem .claude -Recurse', 'Remove-Item dist -Recurse', 'Remove-Item *.log', 'Copy-Item a.txt .', 'Copy-Item -Recurse x -Destination .claude', 'New-Item -ItemType Directory -Path src', 'New-Item -ItemType Directory -Path .claude', 'Rename-Item a.js b.js', 'Expand-Archive a.zip -DestinationPath .'],
     (c) => ps(c, 'default', wt),
     'frenos-del-proyecto',
   );
@@ -493,6 +495,102 @@ test('rf3-14: borrar, mover o pisar la carpeta que CONTIENE un freno frena (prop
   assert.match(rs.detalle, /^<git-común>\//);
   // humano y director: nada de esto
   for (const c of ['rm -rf .claude', 'git clean -fdx', 'rm -rf .claude/worktrees']) assert.equal(d(bash(c, 'default', P)).decision, 'nada', `humano: ${c}`);
+});
+
+// Un principal con frenos de verdad (hooks con archivos) y un obrero en .claude/worktrees/x--01 (el molde de alfa).
+function conObrero() {
+  const P = repo();
+  for (const [f, t] of [['.claude/hooks/git-seguro.cjs', 'x'], ['.claude/hooks/check-code.js', 'x'], ['.claude/settings.json', '{}'], ['.githooks/pre-commit', 'x'], ['.claude/kit.md', 'x'], ['src/a.js', 'x']]) {
+    fs.mkdirSync(path.dirname(path.join(P, f)), { recursive: true });
+    fs.writeFileSync(path.join(P, f), t);
+  }
+  g(['add', '-A'], P);
+  g(['commit', '-q', '--no-verify', '-m', 'molde'], P);
+  const wt = path.join(P, '.claude', 'worktrees', 'x--01');
+  g(['worktree', 'add', '-q', '-b', 'modulo/x--01', wt], P);
+  fs.writeFileSync(path.join(wt, '.kit-rol'), 'obrero');
+  return { P, wt };
+}
+
+test('rf2-7: las limpiezas normales del obrero desde su raíz pasan; un find que puede elegir un freno, cp de una carpeta que trae .claude y extraer adentro de un freno, no', () => {
+  const { wt } = conObrero();
+  const w = path.dirname(wt);
+  fs.mkdirSync(path.join(w, 'plantilla', '.claude'), { recursive: true });
+  fs.mkdirSync(path.join(w, 'plantilla2', 'src'), { recursive: true });
+  fs.writeFileSync(path.join(w, 'plantilla2', 'README.md'), 'x');
+  siNo(
+    [
+      'find . -name "*.cjs" -delete', 'find . -name "*.js" -delete', 'find . -iname SETTINGS.JSON -delete', 'find . -name hooks -exec rm -rf {} +',
+      'find . -name ".c*" -exec rm -rf {} +', 'find . -path "*/hooks/*" -delete', 'find . -ipath "./.GITHOOKS" -exec rm -r {} +', 'find . -path "./.git*" -exec rm -rf {} +', 'find . -regex ".*\\.cjs" -delete',
+      'find . -name "*.log" -o -delete', 'find . ! -name "*.log" -delete', 'find . -not -name "*.log" -delete', 'find . \\( -name "*.tmp" -o -type f \\) -delete',
+      'find . -name "*.tmp" , -delete', 'find .claude -name "*.cjs" -delete', 'find .claude/hooks -name "*.js" -delete', 'find ../../.. -name pre-commit -delete',
+      'find . -name .git -exec rm -rf {} +', 'find . -name .kit-rol -delete', 'find -L . -name "*.cjs" -delete', 'find . -type f -name "check-*" -exec rm {} \\;',
+      'find . -name x \\) -delete', 'find . -mtime +7 -delete', 'find .c* -name "*.log" -delete', 'find . -name "*rol" -delete', 'find . -regex "[" -delete',
+      'cp -r ../plantilla/. .', 'cp -a ../plantilla/./ .', 'cp -r ../no-existe/. .', 'cp -r ../plantilla/. ../../..',
+      'tar -xf a.tar -C .claude', 'unzip a.zip -d ..', 'unzip a.zip -d .githooks', '7z x a.7z -o.claude',
+    ],
+    [
+      'find . -name "*.log" -delete', 'find . -type d -name node_modules -prune -exec rm -rf {} +', 'find . -name "*.tmp" -delete', 'find src -name "*.cjs" -delete',
+      'find . -name "*.orig" -exec rm {} \\;', 'find . \\( -name "*.tmp" -o -name "*.bak" \\) -delete', 'find . -type f -iname "*.LOG" -mtime +7 -delete',
+      'find . -path "./dist/*" -delete', 'find . -regex ".*\\.tmp" -delete', 'find . -name x -exec rm -rf {} +', 'find . -name "*.cjs" -print', 'find . -name "*.tmp" -exec rm -f -o {} +', 'find . -name "*.tmp" -o -name "*.bak" -delete',
+      'tar -xzf a.tgz -C .', 'unzip -o x.zip -d .', 'tar xzf a.tgz --directory=.', '7z x a.7z -o.', 'tar -xf a.tar -C src',
+      'cp -r ../plantilla2/. .', 'cp -r ../plantilla2/. .claude', 'cp -r ../plantilla2/. src', 'cp -r ../plantilla2 .', 'rm -rf node_modules dist', 'npm ci',
+    ],
+    (c) => bash(c, 'default', wt),
+    'frenos-del-proyecto',
+  );
+  siNo(['Expand-Archive a.zip -DestinationPath .claude'], ['Expand-Archive a.zip -DestinationPath .', 'Expand-Archive a.zip .'], (c) => ps(c, 'default', wt), 'frenos-del-proyecto');
+  // el detalle nombra el freno que contiene
+  assert.equal(d(bash('find . -name "*.cjs" -delete', 'default', wt)).detalle, '.claude/hooks');
+  assert.equal(d(bash('cp -r ../plantilla/. .', 'default', wt)).detalle, '.claude/hooks');
+  // el humano en el principal, como hoy
+  const { P } = conObrero();
+  assert.equal(d(bash('find . -name "*.cjs" -delete', 'default', P)).decision, 'nada');
+});
+
+test('rf2-8: las rutas relativas se juzgan desde la carpeta de los cd de antes (Bash y PowerShell); un cd que no se resuelve, desde la raíz', () => {
+  const { wt } = conObrero();
+  siNo(
+    [
+      "cd .claude && echo '{}' > settings.json", 'cd .claude && rm -rf hooks', 'cd .githooks; rm pre-commit', 'pushd .claude && sed -i s/a/b/ settings.json && popd',
+      'cd src && cd ../.claude && tee settings.json < x', 'cd .claude && cat x >> settings.json', 'chdir .claude && rm settings.json', 'cd -P .claude && rm settings.json',
+      'cd "$D" && echo x > .kit-rol', 'cd $(git rev-parse --show-toplevel) && rm -rf .githooks', 'cd - && rm -rf .githooks', 'cd "$D" && cd src && echo x > .kit-rol',
+      '(cd src) ; echo humano > .kit-rol', '(cd src); rm -rf .claude', 'cd src | true; echo humano > .kit-rol', "bash -c 'cd src'; echo humano > .kit-rol", 'pushd src; popd; rm -rf .githooks',
+      'cd ../../.. && rm -rf .githooks', 'cd ../../.. && echo {} > .claude/settings.json', 'cd src && cd .. && echo x > .kit-rol', 'D=.claude; cd $D && rm settings.json',
+      'cd .claude && find . -name "*.cjs" -delete', 'cd .claude && tar -xf a.tar -C hooks', 'cd .claude && rm -rf .',
+    ],
+    [
+      'cd src && echo x > settings.json', 'cd src && rm -rf hooks', 'cd dist && rm -rf .', 'cd .claude && ls', 'cd .claude && cat settings.json',
+      'cd node_modules && rm -rf .cache', 'pushd src && echo x > .kit-rol && popd', 'cd src || exit 1; echo x > config', 'cd src && find . -name "*.cjs" -delete',
+      'cd src && tar -xzf a.tgz -C .', 'cd ../../.. && rm -rf src', 'cd ../../.. && git log', 'cd .claude && rm kit.md', 'cd .claude && echo x > notas.md',
+    ],
+    (c) => bash(c, 'default', wt),
+    'frenos-del-proyecto',
+  );
+  siNo(
+    ["Set-Location .claude; Set-Content settings.json '{}'", 'sl .claude; Remove-Item hooks -Recurse', 'cd .claude; Out-File -FilePath settings.json', 'Push-Location .githooks; Remove-Item pre-commit; Pop-Location', 'Set-Location -Path .claude; echo x > settings.json'],
+    ["Set-Location src; Set-Content settings.json '{}'", 'Set-Location src; Remove-Item hooks -Recurse', 'Push-Location .claude; Get-Content settings.json; Pop-Location'],
+    (c) => ps(c, 'default', wt),
+    'frenos-del-proyecto',
+  );
+  assert.equal(d(bash("cd .claude && echo '{}' > settings.json", 'default', wt)).detalle, '.claude/settings.json');
+  assert.equal(d(bash('cd ../../.. && rm -rf .githooks', 'default', wt)).detalle, '<principal>/.githooks');
+  // desde una subcarpeta: el cd que no se resuelve cuenta desde la raíz; uno que sí, desde donde lleva
+  const src = path.join(wt, 'src');
+  assert.equal(d(bash('echo x > .kit-rol', 'default', src)).decision, 'nada');
+  assert.equal(d(bash('cd "$D" && echo x > .kit-rol', 'default', src)).decision, 'deny', 'cd sin resolver: desde la raíz');
+  assert.equal(d(bash('cd .. && echo x > .kit-rol', 'default', src)).decision, 'deny');
+  assert.equal(d(bash('popd; echo x > .kit-rol', 'default', src)).decision, 'deny', 'popd sin pushd: no se sabe');
+  assert.equal(d(bash('pushd ../.claude && popd && echo x > .kit-rol', 'default', src)).decision, 'nada', 'popd vuelve a src');
+  assert.equal(d(bash(`cd "${wt.replace(/\\/g, '/')}" && rm -rf .githooks`, 'default', src)).decision, 'deny', 'cd absoluto');
+  // los frenos de la PC también siguen el cd (con o sin sesión de agente)
+  assert.equal(d(bash('cd ~ && rm .claude/hooks/kit/secretos.cjs')).id, 'secretos:frenos-de-la-pc');
+  assert.equal(d(bash('cd ~/.claude && echo {} > settings.json')).decision, 'ask');
+  assert.equal(d(bash('cd ~/.claude && echo {} > settings.json', 'default', wt)).decision, 'deny');
+  assert.equal(d(bash('cd ~/.claude && cat settings.json')).decision, 'nada');
+  // el humano, como hoy
+  const { P } = conObrero();
+  assert.equal(d(bash("cd .claude && echo '{}' > settings.json", 'default', P)).decision, 'nada');
 });
 
 // ================================================================ frenos de la PC
