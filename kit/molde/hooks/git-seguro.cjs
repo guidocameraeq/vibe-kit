@@ -19,7 +19,10 @@
 //   - Un renglón en .claude/frenos.log por caso negado (detalle = el caso; un ask: "preguntó: <caso>"). NUNCA el comando.
 //   - Texto que comando.cjs marca incompleto: se juzga lo que salió.
 //   - Las filas "en sesión de agente" usan lib/agente.cjs. Las demás, todo rol y todo modo (también bypassPermissions).
-// NO ES UNA FRONTERA (Lo que esto no cierra): alias, variables, base64 o un script lo esquivan; la red es el candado.
+// ALIAS (rf3-4): `-c alias.*`/`--config-env=alias.*` frenan; guardar uno de shell o con --no-verify/commit -n frena en todo rol;
+// un `git <x>` con x que no es subcomando de git se busca en la config (un `git config --get`) y se juzga lo que corre.
+// NO ES UNA FRONTERA (Lo que esto no cierra): variables, base64, un script, `xargs git`, `find -exec git`, `submodule foreach`
+// o `Start-Process git` lo esquivan; la red es el candado.
 // Es .cjs a propósito: corre igual en proyectos con "type": "module". NO corre ningún .propio.sh.
 
 const fs = require('fs');
@@ -73,6 +76,12 @@ const MENSAJES = {
     'plomería de git (objetos, índice o remotos a mano) desde una sesión de agente. Usá los comandos comunes: add, commit, merge; el remoto lo arma el director.',
   'no-verify':
     '`--no-verify` (o `commit -n`) esquiva el pre-commit. Si el pre-commit frena, se arregla lo que dice; una falsa alarma del escáner va a `.gitleaksignore` (pide aprobado). `push -n` es `--dry-run` y pasa.',
+  alias:
+    'un alias de git esconde el comando de verdad (`-c alias.x=…` o `--config-env=alias.…` en la llamada; o guardar uno de shell `!…`, con `--no-verify`, con `commit -n` o con `-c` de hooks). Escribí el comando entero: `git push`, `git commit -m …`. Un alias común (`git config alias.st status`) pasa.',
+  'rm-forzado':
+    '`git rm -f` sobre `.`, una carpeta o un patrón borra cambios sin commitear de todo ese árbol. Commiteá antes lo que sea tuyo y nombrá los archivos (`git rm <archivo>`); para dejar de seguir algo sin borrarlo, `git rm --cached`.',
+  'red-de-rescate':
+    'vencer ya los objetos sueltos o el reflog (`gc --prune=now`, `prune`, `reflog expire --expire=now`, `reflog delete`, `gc.*Expire` cortos) borra la red que rescata un commit o un stash perdido. `git gc` a secas pasa (respeta las dos semanas y los 90 días).',
   'worktree-remove-force':
     '`git worktree remove -f` borra un worktree con trabajo sin commitear. Commiteá o mirá su `git status`; después `git worktree remove` sin `-f`.',
   'matar-por-nombre':
@@ -96,10 +105,13 @@ function salida(decision, motivo) {
 const esOpcion = (a) => typeof a === 'string' && a.length > 1 && a.startsWith('-');
 const sinRefsHeads = (r) => r.replace(/^refs\/heads\//, '');
 
-// Las variables que desvían git (D-13, r1-1, r2-6). PATH aparte: solo cuenta si hay un git en la llamada.
+// Las variables que desvían git (D-13, r1-1, r2-6) o lo que corre en sus hooks (rf3-2: GITLEAKS_*; rf3-3: NODE_OPTIONS,
+// NODE_PATH). Las de SOLO_CON_GIT cuentan solo si hay un git en la llamada (`NODE_OPTIONS=… npm run build` es de todos los días).
+const SOLO_CON_GIT = new Set(['PATH', 'NODE_OPTIONS', 'NODE_PATH']);
 function esPeligrosa(nombre) {
   const n = String(nombre).toUpperCase();
-  if (n.startsWith('GIT_CONFIG') || n.startsWith('GIT_TRACE')) return true;
+  if (n.startsWith('GIT_CONFIG') || n.startsWith('GIT_TRACE') || n.startsWith('GITLEAKS_')) return true;
+  if (SOLO_CON_GIT.has(n)) return true;
   return [
     'GIT_DIR',
     'GIT_WORK_TREE',
@@ -112,6 +124,14 @@ function esPeligrosa(nombre) {
     'GIT_CURL_VERBOSE',
     'PATH',
   ].includes(n);
+}
+// ¿Este comando simple es git? Por el nombre del programa sin carpeta ni `.exe` y sin mayúsculas (comando.programa), y también
+// sin los escapes de Bash que comando.cjs deja en la palabra (`g\it` es `git` para Bash; rf3-10).
+function esGit(x) {
+  const comando = require('./lib/comando.cjs');
+  if (comando.programa(x) === 'git') return true;
+  const a0 = x && Array.isArray(x.argv) && typeof x.argv[0] === 'string' ? x.argv[0] : '';
+  return a0.includes('\\') && comando.programa(a0.replace(/\\(.)/gs, '$1')) === 'git';
 }
 const reEscapar = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -146,7 +166,7 @@ const GLOBALES_CON_VALOR = new Set(['-C', '-c', '--git-dir', '--work-tree', '--n
 
 // partirGit(argv) → { dirs, configs: [clave en minúscula], gitDir, workTree, execPath, namespace, sub, rest }
 function partirGit(argv) {
-  const g = { dirs: [], configs: [], gitDir: null, workTree: null, execPath: null, namespace: null, sub: null, rest: [] };
+  const g = { dirs: [], configs: [], gitDir: null, workTree: null, execPath: null, namespace: null, sub: null, previo: argv.slice(0, 1), rest: [] };
   let i = 1;
   const clave = (kv) => String(kv == null ? '' : kv).split('=')[0].trim().toLowerCase();
   while (i < argv.length) {
@@ -172,6 +192,7 @@ function partirGit(argv) {
       continue;
     }
     g.sub = a.toLowerCase();
+    g.previo = argv.slice(0, i); // git y sus opciones globales: lo que se conserva al expandir un alias
     g.rest = argv.slice(i + 1);
     break;
   }
@@ -234,7 +255,14 @@ function analizarConfig(rest) {
     if (CONFIG_LEE.has(base)) lee = true;
     else if (CONFIG_ESCRIBE.has(base)) escribe = true;
     else if (esOpcion(a)) continue;
-    else pos.push(a);
+    else {
+      pos.push(a);
+      // la sintaxis vieja deja de leer opciones en la primera palabra (`git config alias.x '-c … commit'` guarda ese valor)
+      if (pos.length === 1 && !(Object.prototype.hasOwnProperty.call(CONFIG_SUBS, a.toLowerCase()) && !lee && !escribe)) {
+        pos.push(...rest.slice(i + 1));
+        break;
+      }
+    }
   }
   if (pos.length && Object.prototype.hasOwnProperty.call(CONFIG_SUBS, pos[0].toLowerCase()) && !lee && !escribe) {
     const s = pos.shift().toLowerCase();
@@ -254,6 +282,133 @@ const LIBRES_EN_AGENTE = (k) => typeof k === 'string' && (k === 'core.longpaths'
 function esReponerHooksPath(rest) {
   const r = rest.filter((a) => a !== '--local');
   return r.length === 2 && r[0].toLowerCase() === 'core.hookspath' && r[1] === '.githooks';
+}
+
+// ---------------------------------------------------------------- alias, --no-verify y la red de rescate (rf3-4, rf3-13)
+
+const esAliasKey = (k) => typeof k === 'string' && k.startsWith('alias.');
+// gc.pruneExpire, gc.reflogExpire, gc.reflogExpireUnreachable, gc.<patrón>.reflogExpire…: acortarlos apaga la red de rescate.
+const esExpireKey = (k) => typeof k === 'string' && /^gc\..*expire/.test(k);
+
+// `--no-verify` en cualquier subcomando; `commit -n` (también `-an`). push -n es --dry-run.
+function noVerify(g) {
+  const { sub, rest } = g;
+  if (rest.some((a) => /^--no-veri(f|fy)?$/.test(a))) return true;
+  if (sub !== 'commit') return false;
+  // -n suelto o en un grupo (-an); el valor de -m/-F/-C/-c/-t (y sus largos) no es una opción
+  for (let i = 0; i < rest.length; i++) {
+    const a = rest[i];
+    if (a === '--') break;
+    if (/^(-[mFCct]|--(message|file|reuse-message|reedit-message|template|author|date|fixup|squash|trailer|cleanup))$/.test(a)) {
+      i++;
+      continue;
+    }
+    if (letraCorta(a, 'n', 'mFCctSu') === 'n') return true;
+  }
+  return false;
+}
+
+// El valor que se le da a un alias (`git config alias.x <valor>`): de shell (`!`), o con --no-verify / commit -n / opciones
+// globales que tocan hooks o alias adentro → el motivo; si no, null. Lo demás lo mira el uso (resolverAlias).
+function aliasPeligroso(valor) {
+  if (typeof valor !== 'string') return null;
+  const v = valor.trim();
+  if (v.startsWith('!')) return 'un alias de shell (`!`)';
+  const { comandos } = require('./lib/comando.cjs').partir(v, { ps: false });
+  const argv = comandos.length ? comandos[0].argv : [];
+  if (!argv.length) return null;
+  const g = partirGit(['git', ...argv]);
+  if (noVerify(g)) return 'un alias con --no-verify o commit -n';
+  if (g.execPath !== null || g.configs.some((k) => k === 'core.hookspath' || esIncludeKey(k) || esAliasKey(k) || esExpireKey(k))) return 'un alias con -c de hooks, include o alias';
+  return null;
+}
+
+// El valor de una opción larga: null si no está; true si está sola; el texto si va con `=` (o, con `separado`, en la que sigue).
+function valorDe(rest, op, separado = true) {
+  let v = null;
+  for (let i = 0; i < rest.length; i++) {
+    const a = rest[i];
+    if (a === '--') break;
+    if (a.startsWith(`${op}=`)) v = a.slice(op.length + 1);
+    else if (a === op) v = separado && i + 1 < rest.length && !esOpcion(rest[i + 1]) ? rest[++i] : true;
+  }
+  return v;
+}
+// ¿Esa fecha de vencimiento se lleva lo de las últimas semanas? (now, all, horas, días, una fecha…) Las de semanas, meses, años o
+// never no.
+const expiraCorto = (v) => !/^(never|false)$|weeks?|months?|years?/i.test(String(v).trim());
+
+// `git rm -f`/`--force` (sin --cached ni -n) sobre `.`, una carpeta, un comodín o un pathspec mágico: borra cambios sin commitear
+// de un árbol entero (CM-65, rf3-11). Un archivo nombrado pasa, como en restaurar-arbol.
+function rmForzado(rest, base) {
+  let forzado = false;
+  const paths = [];
+  for (let i = 0; i < rest.length; i++) {
+    const a = rest[i];
+    if (a === '--') {
+      paths.push(...rest.slice(i + 1));
+      break;
+    }
+    if (a === '--cached' || a === '--dry-run') return false;
+    if (a === '--force') forzado = true;
+    else if (a === '--pathspec-from-file' || a.startsWith('--pathspec-from-file=')) {
+      paths.push('*');
+      if (a === '--pathspec-from-file') i++;
+    } else if (esOpcion(a) && !a.startsWith('--')) {
+      if (a.includes('n')) return false;
+      if (a.includes('f')) forzado = true;
+    } else if (!esOpcion(a)) paths.push(a);
+  }
+  return forzado && paths.some((p) => esAmplio(p, base));
+}
+
+// Los subcomandos de git (`git --list-cmds=main`, 2.54): un alias no los puede tapar (git lo ignora). Cualquier otro puede ser un
+// alias ya guardado en la config (.git/config, el global): se lee y se juzga lo que corre de verdad (rf3-4).
+const SUBCOMANDOS = new Set(
+  ('add am annotate apply archive backfill bisect blame branch bugreport bundle cat-file check-attr check-ignore check-mailmap ' +
+    'check-ref-format checkout checkout--worker checkout-index cherry cherry-pick citool clean clone column commit commit-graph ' +
+    'commit-tree config count-objects credential credential-cache credential-cache--daemon credential-store credential-wincred ' +
+    'daemon describe diagnose diff diff-files diff-index diff-pairs diff-tree difftool difftool--helper fast-export fast-import ' +
+    'fetch fetch-pack filter-branch fmt-merge-msg for-each-ref for-each-repo format-patch fsck fsck-objects fsmonitor--daemon gc ' +
+    'get-tar-commit-id grep gui gui--askpass gui--askyesno gui.tcl hash-object help history hook http-backend http-fetch ' +
+    'http-push imap-send index-pack init init-db interpret-trailers last-modified log ls-files ls-remote ls-tree mailinfo ' +
+    'mailsplit maintenance merge merge-base merge-file merge-index merge-octopus merge-one-file merge-ours merge-recursive ' +
+    'merge-recursive-ours merge-recursive-theirs merge-resolve merge-subtree merge-tree mergetool mktag mktree multi-pack-index ' +
+    'mv name-rev notes pack-objects pack-redundant pack-refs patch-id pickaxe prune prune-packed pull push quiltimport ' +
+    'range-diff read-tree rebase receive-pack reflog refs remote remote-ext remote-fd remote-ftp remote-ftps remote-http ' +
+    'remote-https repack replace replay repo request-pull rerere reset restore rev-list rev-parse revert rm send-email send-pack ' +
+    'sh-i18n--envsubst shortlog show show-branch show-index show-ref sparse-checkout stage stash status stripspace submodule ' +
+    'submodule--helper subtree survey switch symbolic-ref tag unpack-file unpack-objects update update-index update-ref ' +
+    'update-server-info upload-archive upload-archive--writer upload-pack var verify-commit verify-pack verify-tag version ' +
+    'web--browse whatchanged worktree write-tree').split(' '),
+);
+const MAX_ALIAS = 8;
+
+// resolverAlias(g, dir, ctx, hallar) → { g } con el subcomando ya expandido (alias de alias incluidos), o { shell: texto } para
+// un alias `!…` (lo juzga quien llama, como un comando más), o { g } igual si no es alias. Solo corre git si el subcomando no es
+// de git: lo normal no paga nada.
+function resolverAlias(g, dir, ctx, hallar) {
+  let actual = g;
+  for (let n = 0; n < MAX_ALIAS && actual.sub && !SUBCOMANDOS.has(actual.sub); n++) {
+    if (!/^[a-z0-9][a-z0-9-]*$/.test(actual.sub)) return { g: actual }; // no puede ser un alias
+    const raiz = ctx.raizDe(dir) || ctx.cwd;
+    const r = ctx.git().correr(['config', '--get', `alias.${actual.sub}`], { cwd: raiz });
+    if (r.error) {
+      hallar('alias', 'deny', `no se pudo leer si ${actual.sub} es un alias`);
+      return { g: actual };
+    }
+    if (!r.ok) return { g: actual }; // no es un alias: un git-<algo> externo o un error de tipeo
+    const valor = r.stdout.replace(/\r?\n$/, '').trim();
+    const comillas = (a) => `'${String(a).replace(/'/g, "'\\''")}'`;
+    if (valor.startsWith('!')) return { shell: [valor.slice(1), ...actual.rest.map(comillas)].join(' ') };
+    const { comandos } = require('./lib/comando.cjs').partir(valor, { ps: false });
+    if (comandos.length !== 1 || !comandos[0].argv.length) {
+      hallar('alias', 'deny', `no se pudo leer el alias ${actual.sub}`);
+      return { g: actual };
+    }
+    actual = partirGit([...actual.previo, ...comandos[0].argv, ...actual.rest]);
+  }
+  return { g: actual };
 }
 
 // ---------------------------------------------------------------- restaurar el árbol (port de Hermes, CM-65)
@@ -421,11 +576,13 @@ function casosGit(g, dir, ctx, hallar) {
   for (const k of g.configs) {
     if (k === 'core.hookspath') hallar('hooks-path', 'deny');
     if (esIncludeKey(k)) hallar('config-include', 'deny');
+    if (esAliasKey(k)) hallar('alias', 'deny', `-c/--config-env ${k}`);
+    if (esExpireKey(k)) hallar('red-de-rescate', 'deny', k);
   }
 
   if (!sub) return;
 
-  if (rest.some((a) => /^--no-veri(f|fy)?$/.test(a))) hallar('no-verify', 'deny');
+  if (noVerify(g)) hallar('no-verify', 'deny');
 
   switch (sub) {
     case 'stash': {
@@ -473,18 +630,33 @@ function casosGit(g, dir, ctx, hallar) {
       if (restaurarArbol(sub, rest, base)) hallar('restaurar-arbol', 'deny');
       return;
     }
-    case 'commit': {
-      // -n suelto o en un grupo (-an); el valor de -m/-F/-C/-c/-t (y sus largos) no es una opción
-      for (let i = 0; i < rest.length; i++) {
-        const a = rest[i];
-        if (a === '--') break;
-        if (/^(-[mFCct]|--(message|file|reuse-message|reedit-message|template|author|date|fixup|squash|trailer|cleanup))$/.test(a)) {
-          i++;
-          continue;
-        }
-        if (letraCorta(a, 'n', 'mFCctSu') === 'n') hallar('no-verify', 'deny');
-      }
+    case 'commit':
       hooksPathAusente(dir, ctx, hallar);
+      return;
+    case 'rm':
+      if (rmForzado(rest, base)) hallar('rm-forzado', 'deny');
+      return;
+    case 'gc': {
+      const v = valorDe(rest, '--prune');
+      if (v !== null && v !== true && expiraCorto(v)) hallar('red-de-rescate', 'deny', `gc --prune=${v}`);
+      return;
+    }
+    case 'prune':
+      if (!rest.some((a) => a === '-n' || a === '--dry-run' || letraCorta(a, 'n') === 'n')) {
+        const v = valorDe(rest, '--expire');
+        if (v === null || v === true || expiraCorto(v)) hallar('red-de-rescate', 'deny', 'git prune');
+      }
+      return;
+    case 'reflog': {
+      const pos = rest.filter((a) => !esOpcion(a));
+      const s = (pos[0] || '').toLowerCase();
+      if (s === 'delete' || s === 'drop') hallar('red-de-rescate', 'deny', `reflog ${s}`);
+      else if (s === 'expire') {
+        for (const op of ['--expire', '--expire-unreachable']) {
+          const v = valorDe(rest, op);
+          if (v !== null && v !== true && expiraCorto(v)) hallar('red-de-rescate', 'deny', `reflog expire ${op}=${v}`);
+        }
+      }
       return;
     }
     case 'merge':
@@ -541,6 +713,11 @@ function casosGit(g, dir, ctx, hallar) {
       if (c.clave === 'core.hookspath') hallar('hooks-path', 'deny');
       if (esIncludeKey(c.clave) || c.valores.some(esIncludeKey)) hallar('config-include', 'deny');
       if (c.clave === 'init.defaultbranch') hallar('config-default-branch', 'deny');
+      if (esExpireKey(c.clave)) hallar('red-de-rescate', 'deny', c.clave);
+      if (esAliasKey(c.clave)) {
+        const motivo = aliasPeligroso(c.valores[0]);
+        if (motivo) hallar('alias', 'deny', motivo);
+      }
       if (!LIBRES_EN_AGENTE(c.clave)) enAgente(ctx, () => hallar('config-agente', 'deny'));
       return;
     }
@@ -813,7 +990,7 @@ function decidir(entrada, opciones = {}) {
   const c = () => (ctx = ctx || nuevoContexto(e, opciones));
 
   // ---- variables peligrosas (r1-1, r2-8): la asignación misma, en cualquier punto de la llamada
-  const hayGit = comandos.some((x) => comando.programa(x) === 'git');
+  const hayGit = comandos.some(esGit);
   for (const x of comandos) {
     for (const a of x.asignaciones || []) {
       if (!esPeligrosa(a.nombre)) continue;
@@ -822,74 +999,97 @@ function decidir(entrada, opciones = {}) {
         const esEntorno = new RegExp(`env:[\\\\/]?${n}\\b`, 'i').test(texto) || new RegExp(`\\bsetx?\\s+"?${n}[\\s=]`, 'i').test(texto);
         if (!esEntorno) continue; // `$path = …` es una variable de PowerShell, no del entorno
       }
-      if (a.nombre.toUpperCase() === 'PATH' && !hayGit) continue;
+      if (SOLO_CON_GIT.has(a.nombre.toUpperCase()) && !hayGit) continue;
       hallar('variables-peligrosas', 'deny', `la variable ${a.nombre.toUpperCase()}`);
     }
   }
   const setEnv = /SetEnvironmentVariable\s*\(\s*['"]([A-Za-z_][A-Za-z0-9_]*)['"]/gi;
   for (let m = setEnv.exec(texto); m; m = setEnv.exec(texto)) {
-    if (esPeligrosa(m[1]) && (m[1].toUpperCase() !== 'PATH' || hayGit)) hallar('variables-peligrosas', 'deny', `la variable ${m[1].toUpperCase()}`);
+    if (esPeligrosa(m[1]) && (!SOLO_CON_GIT.has(m[1].toUpperCase()) || hayGit)) hallar('variables-peligrosas', 'deny', `la variable ${m[1].toUpperCase()}`);
   }
 
-  // ---- comando por comando, con el directorio efectivo (los cd en secuencia)
-  let dir = null; // null hasta que haga falta: se arranca en el cwd
-  let dirSabido = true;
-  const pila = [];
-  const dirActual = () => (dirSabido ? (dir === null ? c().cwd : dir) : null);
+  // ---- comando por comando, con el directorio efectivo (los cd en secuencia). `inicio`: null = el cwd. `prof` > 0: el texto de
+  // un alias de shell (`!…`), que git corre desde la raíz del repo.
+  const revisar = (lista, inicio, prof) => {
+    let dir = inicio; // null hasta que haga falta: se arranca en el cwd
+    let dirSabido = true;
+    const pila = [];
+    const dirActual = () => (dirSabido ? (dir === null ? c().cwd : dir) : null);
 
-  for (const x of comandos) {
-    const prog = comando.programa(x);
-    if (!prog) continue;
-
-    if (CD.has(prog)) {
-      const antes = dirActual();
-      const d = resolverRuta(antes, destinoCd(x.argv));
-      if (prog === 'pushd' || prog === 'push-location') pila.push({ dir, dirSabido });
-      dir = d;
-      dirSabido = d !== null;
-      if (d !== null) salirDelWorktree(c(), d, null, hallar);
-      continue;
-    }
-    if (POPD.has(prog)) {
-      const p = pila.pop();
-      if (p) ({ dir, dirSabido } = p);
-      else dirSabido = false;
-      continue;
-    }
-
-    if (matarPorNombre(x.argv, prog, ps, comandos)) hallar('matar-por-nombre', 'deny');
-    if (prog !== 'git') continue;
-
-    const g = partirGit(x.argv);
-    // el directorio de ESTE git: el efectivo, más sus -C encadenados
-    let d = dirActual();
-    for (const extra of g.dirs) d = resolverRuta(d, extra);
-    if (g.dirs.length) {
-      if (d !== null) salirDelWorktree(c(), d, null, hallar);
-    }
-    for (const op of [g.gitDir, g.workTree]) {
-      if (op === null || !enSesion(c())) continue;
-      const s = c().sesion();
-      const a = c().agente();
-      const r = resolverRuta(d === null ? c().cwd : d, op);
-      const propio = r !== null && (a.dentroDe(r, s.raiz) || (s.gitDir && a.dentroDe(r, s.gitDir)));
-      if (propio) continue;
-      if (r !== null && s.principal && a.dentroDe(r, s.principal)) hallar('salir-del-worktree', 'deny', 'una ruta del principal, fuera de tu worktree');
-      else if (g.sub && ['commit', 'push', 'merge'].includes(g.sub)) hallar('salir-del-worktree', 'deny', '--git-dir/--work-tree a otro repo');
-    }
-    casosGit(g, d, c(), hallar);
-    // repo efectivo de commit/push/merge, y el `.git` del worktree (en sesión de agente)
-    if (g.sub && enSesion(c())) {
-      const s = c().sesion();
-      if (['commit', 'push', 'merge'].includes(g.sub) && g.gitDir === null && g.workTree === null) {
-        const efectivo = d === null ? null : c().agente().raizDe(d);
-        if (efectivo === null || !c().agente().mismaRuta(efectivo, s.raiz)) {
-          hallar('salir-del-worktree', 'deny', d === null ? 'no se sabe a qué carpeta va el cd: usá la ruta literal' : `${g.sub} en otro repo`);
+    if (prof > 0) {
+      const hayGitAca = lista.some(esGit);
+      for (const x of lista) {
+        for (const a of x.asignaciones || []) {
+          if (esPeligrosa(a.nombre) && (!SOLO_CON_GIT.has(a.nombre.toUpperCase()) || hayGitAca)) hallar('variables-peligrosas', 'deny', `la variable ${a.nombre.toUpperCase()} (en un alias)`);
         }
       }
-      if (s.enlace === 'roto' && !esLectura(g.sub, g.rest)) hallar('salir-del-worktree', 'deny', 'el .git de este checkout no apunta al principal esperado');
     }
-  }
+
+    for (const x of lista) {
+      const prog = comando.programa(x);
+      if (!prog && !esGit(x)) continue;
+
+      if (CD.has(prog)) {
+        const antes = dirActual();
+        const d = resolverRuta(antes, destinoCd(x.argv));
+        if (prog === 'pushd' || prog === 'push-location') pila.push({ dir, dirSabido });
+        dir = d;
+        dirSabido = d !== null;
+        if (d !== null) salirDelWorktree(c(), d, null, hallar);
+        continue;
+      }
+      if (POPD.has(prog)) {
+        const p = pila.pop();
+        if (p) ({ dir, dirSabido } = p);
+        else dirSabido = false;
+        continue;
+      }
+
+      if (matarPorNombre(x.argv, prog, ps && prof === 0, lista)) hallar('matar-por-nombre', 'deny');
+      if (!esGit(x)) continue;
+
+      let g = partirGit(x.argv);
+      // el directorio de ESTE git: el efectivo, más sus -C encadenados
+      let d = dirActual();
+      for (const extra of g.dirs) d = resolverRuta(d, extra);
+      if (g.dirs.length) {
+        if (d !== null) salirDelWorktree(c(), d, null, hallar);
+      }
+      for (const op of [g.gitDir, g.workTree]) {
+        if (op === null || !enSesion(c())) continue;
+        const s = c().sesion();
+        const a = c().agente();
+        const r = resolverRuta(d === null ? c().cwd : d, op);
+        const propio = r !== null && (a.dentroDe(r, s.raiz) || (s.gitDir && a.dentroDe(r, s.gitDir)));
+        if (propio) continue;
+        if (r !== null && s.principal && a.dentroDe(r, s.principal)) hallar('salir-del-worktree', 'deny', 'una ruta del principal, fuera de tu worktree');
+        else if (g.sub && ['commit', 'push', 'merge'].includes(g.sub)) hallar('salir-del-worktree', 'deny', '--git-dir/--work-tree a otro repo');
+      }
+      if (g.sub && !SUBCOMANDOS.has(g.sub)) {
+        const al = resolverAlias(g, d, c(), hallar);
+        if (al.shell !== undefined) {
+          casosGit({ ...g, sub: null }, d, c(), hallar); // las opciones globales de afuera (-c, --exec-path) valen igual
+          if (prof >= 3) hallar('alias', 'deny', 'alias de shell anidados');
+          else revisar(require('./lib/comando.cjs').partir(al.shell, { ps: false }).comandos, c().raizDe(d) || d, prof + 1);
+          continue;
+        }
+        g = al.g;
+      }
+      casosGit(g, d, c(), hallar);
+      // repo efectivo de commit/push/merge, y el `.git` del worktree (en sesión de agente)
+      if (g.sub && enSesion(c())) {
+        const s = c().sesion();
+        if (['commit', 'push', 'merge'].includes(g.sub) && g.gitDir === null && g.workTree === null) {
+          const efectivo = d === null ? null : c().agente().raizDe(d);
+          if (efectivo === null || !c().agente().mismaRuta(efectivo, s.raiz)) {
+            hallar('salir-del-worktree', 'deny', d === null ? 'no se sabe a qué carpeta va el cd: usá la ruta literal' : `${g.sub} en otro repo`);
+          }
+        }
+        if (s.enlace === 'roto' && !esLectura(g.sub, g.rest)) hallar('salir-del-worktree', 'deny', 'el .git de este checkout no apunta al principal esperado');
+      }
+    }
+  };
+  revisar(comandos, null, 0);
 
   if (!hallazgos.length) return { decision: 'nada' };
   return resolver(e, c(), hallazgos, opciones);
