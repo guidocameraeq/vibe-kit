@@ -479,6 +479,154 @@ test('exención (a), decisión que frena: una regla del molde viejo que el nuevo
   rojo(d, /deny:Bash\(git stash:\*\)/, { molde: MOLDE });
 });
 
+// ---------------------------------------------------------------- exención (a) con el molde viejo (--molde-viejo; G6b)
+
+const MOLDE_ACTUAL = () => JSON.parse(fs.readFileSync(path.join(MOLDE, 'settings.json'), 'utf8'));
+// Un repo con <proyecto> como settings y un commit que lo deja en <despues>; el molde viejo es <viejo> (un settings o un mapa de
+// archivos). → { d, viejo: la carpeta del molde viejo }.
+function conViejo(proyecto, despues, viejo) {
+  const d = repo({ archivos: { '.claude/settings.json': zona.textoSettings(proyecto) } });
+  commit(d, { '.claude/settings.json': zona.textoSettings(despues) });
+  return { d, viejo: moldeDe(viejo && viejo.permissions ? { 'settings.json': zona.textoSettings(viejo) } : viejo || {}) };
+}
+const mezcla = (viejo, proyecto) => {
+  const m = zona.mezclarSettings({ viejo: zona.textoSettings(viejo), nuevo: zona.textoSettings(MOLDE_ACTUAL()), proyecto: zona.textoSettings(proyecto), quitados: [] });
+  assert.equal(m.ok, true, m.problema);
+  return m.settings;
+};
+
+test('--molde-viejo (1): la regla del molde viejo que el nuevo retira, igual en el proyecto, puede irse → verde; sin el viejo, rojo', () => {
+  const viejo = settingsViejo();
+  viejo.permissions.deny.push('Bash(git stash:*)');
+  const proyecto = JSON.parse(JSON.stringify(viejo));
+  proyecto.permissions.allow.push(PROPIA);
+  const m = mezcla(viejo, proyecto);
+  assert.ok(!m.permissions.deny.includes('Bash(git stash:*)') && m.permissions.allow.includes(PROPIA), 'la mezcla retira la del viejo y respeta la propia');
+  const { d, viejo: mv } = conViejo(proyecto, m, viejo);
+  verde(d, { molde: MOLDE, moldeViejo: mv });
+  rojo(d, /deny:Bash\(git stash:\*\)/, { molde: MOLDE });
+  rojo(d, /settings/);
+  // el molde viejo sin settings no retira nada; uno que no se lee, ni eso: sin exención
+  rojo(d, /deny:Bash\(git stash:\*\)/, { molde: MOLDE, moldeViejo: moldeDe({ 'hooks/x.cjs': 'x\n' }) });
+  rojo(d, /settings/, { molde: MOLDE, moldeViejo: moldeDe({ 'settings.json': '{"permissions": ' }) });
+  // con el molde viejo que no se lee, tampoco pasa el commit del actualizador que no retira nada
+  const sin = mezcla(settingsViejo(), settingsViejo());
+  const e = conViejo(settingsViejo(), sin, settingsViejo());
+  verde(e.d, { molde: MOLDE, moldeViejo: e.viejo });
+  verde(e.d, { molde: MOLDE });
+  rojo(e.d, /settings/, { molde: MOLDE, moldeViejo: moldeDe({ 'settings.json': '[]' }) });
+});
+
+test('--molde-viejo (2): la regla del molde viejo que el proyecto había cambiado y el nuevo retira → rojo si se va o cambia, con y sin el viejo', () => {
+  const hook = (timeout) => ({ matcher: 'Edit', hooks: [{ type: 'command', command: 'node', args: ['${CLAUDE_PROJECT_DIR}/.claude/hooks/viejo.cjs'], timeout }] });
+  const viejo = settingsViejo();
+  viejo.hooks.PreToolUse.push(hook(20));
+  const proyecto = JSON.parse(JSON.stringify(viejo));
+  proyecto.hooks.PreToolUse[proyecto.hooks.PreToolUse.length - 1] = hook(30); // el proyecto le cambió el timeout
+  const m = mezcla(viejo, proyecto);
+  assert.ok(m.hooks.PreToolUse.some((g) => g.matcher === 'Edit'), 'la mezcla respeta la que el proyecto cambió');
+  // quedarse con la suya es lo propio igual que antes → verde
+  const a = conViejo(proyecto, m, viejo);
+  verde(a.d, { molde: MOLDE, moldeViejo: a.viejo });
+  // sacarla → rojo, con y sin el molde viejo
+  const sacada = JSON.parse(JSON.stringify(m));
+  sacada.hooks.PreToolUse = sacada.hooks.PreToolUse.filter((g) => g.matcher !== 'Edit');
+  const b = conViejo(proyecto, sacada, viejo);
+  rojo(b.d, /hook:PreToolUse/, { molde: MOLDE, moldeViejo: b.viejo });
+  rojo(b.d, /hook:PreToolUse/, { molde: MOLDE });
+  // la que estaba igual al viejo y el commit la CAMBIA (en vez de sacarla) → rojo: retirar es irse entera
+  const c0 = mezcla(viejo, viejo);
+  const cambiada = JSON.parse(JSON.stringify(c0));
+  cambiada.hooks.PreToolUse.push(hook(45));
+  const c = conViejo(viejo, cambiada, viejo);
+  rojo(c.d, /hook:PreToolUse/, { molde: MOLDE, moldeViejo: c.viejo });
+  verde(conViejo(viejo, c0, viejo).d, { molde: MOLDE, moldeViejo: c.viejo });
+});
+
+test('--molde-viejo (3): una regla propia (el molde viejo no la traía) sacada → rojo, con y sin el viejo', () => {
+  const viejo = settingsViejo();
+  const proyecto = JSON.parse(JSON.stringify(viejo));
+  proyecto.permissions.allow.push(PROPIA);
+  const m = mezcla(viejo, proyecto);
+  m.permissions.allow = m.permissions.allow.filter((x) => x !== PROPIA);
+  const { d, viejo: mv } = conViejo(proyecto, m, viejo);
+  rojo(d, /allow:Bash\(npm test:\*\)/, { molde: MOLDE, moldeViejo: mv });
+  rojo(d, /allow:Bash\(npm test:\*\)/, { molde: MOLDE });
+  // y el molde viejo va solo con el molde: sin él, la librería tira (el script lo da como mal llamado)
+  assert.throws(() => B.revisarBarreras(d, { moldeViejo: mv }), /molde viejo/);
+});
+
+// El settings del molde tal como quedó al cerrar D2.2 (git show 37906e8:kit/molde/settings.json): los tres hooks en texto.
+const SETTINGS_2B = {
+  permissions: {
+    allow: ['Bash(node .claude/scripts/cambios.cjs:*)'],
+    ask: ['Bash(node .claude/scripts/cambios.cjs aprobar:*)', 'PowerShell(node .claude/scripts/cambios.cjs aprobar:*)'],
+    deny: ['Write(./.claude/cambios/**)', 'Edit(./.claude/cambios/**)'],
+  },
+  hooks: {
+    SessionStart: [{ matcher: '', hooks: [{ type: 'command', command: 'node "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.cjs"', timeout: 20 }] }],
+    PreToolUse: [
+      { matcher: 'Write', hooks: [{ type: 'command', command: 'node "$CLAUDE_PROJECT_DIR/.claude/hooks/escritura-docs.cjs"', timeout: 20 }] },
+      { matcher: 'Bash|PowerShell', hooks: [{ type: 'command', command: 'node "$CLAUDE_PROJECT_DIR/.claude/hooks/niega-aprobar.cjs"', timeout: 20, onFailure: 'block' }] },
+    ],
+  },
+};
+
+test('--molde-viejo (4), el caso real: el settings del 2b mezclado (con lo propio) pasa al molde de hoy (los hooks a exec) → verde', () => {
+  const proyecto = JSON.parse(JSON.stringify(SETTINGS_2B));
+  proyecto.permissions.allow.push(PROPIA);
+  proyecto.hooks.PreToolUse.push({ matcher: 'Edit', hooks: [{ type: 'command', command: 'node .claude/hooks/check-code.js', timeout: 30 }] }); // un hook propio (v2)
+  const m = mezcla(SETTINGS_2B, proyecto);
+  const cmds = m.hooks.PreToolUse.flatMap((g) => g.hooks).concat(m.hooks.SessionStart.flatMap((g) => g.hooks)).map((h) => h.command);
+  assert.ok(!cmds.some((c) => c.includes('$CLAUDE_PROJECT_DIR')), 'la mezcla retira los tres registros en texto');
+  assert.ok(cmds.includes('node .claude/hooks/check-code.js'), 'y respeta el propio');
+  const { d, viejo } = conViejo(proyecto, m, SETTINGS_2B);
+  verde(d, { molde: MOLDE, moldeViejo: viejo });
+  rojo(d, /toca settings \(/, { molde: MOLDE }); // lo que mordió a rehacer.sh (G12): sin el molde viejo, los retirados frenan
+  rojo(d, /settings/);
+  // con el commit en el índice (el pre-commit) y en lo pendiente, igual
+  const p = repo({ archivos: { '.claude/settings.json': zona.textoSettings(proyecto) } });
+  poner(p, { '.claude/settings.json': zona.textoSettings(m) });
+  verde(p, { indice: true, molde: MOLDE, moldeViejo: viejo });
+  verde(p, { molde: MOLDE, moldeViejo: viejo });
+  rojo(p, /settings/, { indice: true, molde: MOLDE });
+  // si el mismo commit además saca el hook propio, ya no es el actualizador
+  const m2 = JSON.parse(JSON.stringify(m));
+  m2.hooks.PreToolUse = m2.hooks.PreToolUse.filter((g) => g.matcher !== 'Edit');
+  const e = conViejo(proyecto, m2, SETTINGS_2B);
+  rojo(e.d, /toca settings \(/, { molde: MOLDE, moldeViejo: e.viejo }); // el mismo commit sin sacarlo es verde (arriba)
+});
+
+test('--molde-viejo (6): un archivo que el molde nuevo retira, borrado, vale solo si el proyecto lo tenía como el viejo', () => {
+  const nuevo = moldeDe({ 'hooks/x.cjs': 'nuevo\n' });
+  const viejo = moldeDe({ 'hooks/retirado.cjs': 'v\n', 'hooks/t.md': 'a\n<!-- kit:propio -->\n<!-- /kit:propio -->\nb\n', 'hooks/x.cjs': 'nuevo\n' });
+  const borrar = (archivos, rel) => {
+    const d = repo({ archivos });
+    commit(d, { [rel]: null });
+    return d;
+  };
+  // igual al del viejo → verde (con el viejo y, como siempre, sin él)
+  const a = borrar({ '.claude/hooks/retirado.cjs': 'v\n' }, '.claude/hooks/retirado.cjs');
+  verde(a, { molde: nuevo, moldeViejo: viejo });
+  verde(a, { molde: nuevo });
+  rojo(a, /hooks/);
+  // cambiado respecto del viejo → rojo con el viejo (sin él no se distingue: pasa, como antes)
+  const b = borrar({ '.claude/hooks/retirado.cjs': 'v cambiado\n' }, '.claude/hooks/retirado.cjs');
+  rojo(b, /hooks:\.claude\/hooks\/retirado\.cjs/, { molde: nuevo, moldeViejo: viejo });
+  verde(b, { molde: nuevo });
+  // propio (el viejo no lo traía) → rojo con el viejo
+  const c = borrar({ '.claude/hooks/mio.cjs': 'mío\n' }, '.claude/hooks/mio.cjs');
+  rojo(c, /hooks:\.claude\/hooks\/mio\.cjs/, { molde: nuevo, moldeViejo: viejo });
+  // con zona propia: vacía como la del viejo → verde; con lo del proyecto adentro → rojo (se perdería lo propio)
+  const t = borrar({ '.claude/hooks/t.md': 'a\n<!-- kit:propio -->\n<!-- /kit:propio -->\nb\n' }, '.claude/hooks/t.md');
+  verde(t, { molde: nuevo, moldeViejo: viejo });
+  const u = borrar({ '.claude/hooks/t.md': 'a\n<!-- kit:propio -->\nmío\n<!-- /kit:propio -->\nb\n' }, '.claude/hooks/t.md');
+  rojo(u, /hooks/, { molde: nuevo, moldeViejo: viejo });
+  // el molde nuevo todavía lo trae → rojo, aunque esté igual al viejo
+  const x = borrar({ '.claude/hooks/x.cjs': 'nuevo\n' }, '.claude/hooks/x.cjs');
+  rojo(x, /hooks/, { molde: nuevo, moldeViejo: viejo });
+});
+
 // ---------------------------------------------------------------- exención (b)
 
 const FABRICA = {
