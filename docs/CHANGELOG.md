@@ -5,7 +5,7 @@
 ## 2026-10-30 — Misión 5, paquete 4 cerrado (D4.2): el Modo B corto de punta a punta, 10 de 10 y el prototipo
 
 PC `Usuario`, chat `vibe-kit M5 · D4.2 · Paquete 4, cierre: Modo B corto real, 10 de 10 y prototipo`, en Opus, sin Guido, con el presupuesto del
-ADR-029: **~1,4 h de reloj, 3 encargos Sonnet (K1 texto, K2 `rehacer.sh`, K3 las corridas; K3 retomado dos veces), ~0,4-0,6 M de tokens de
+ADR-029: **~1,15 h de reloj (1 h 09 min), 3 encargos Sonnet (K1 texto, K2 `rehacer.sh`, K3 las corridas; K3 retomado dos veces), ~0,4-0,6 M de tokens de
 subagentes** (más las 10 sesiones `claude.exe -p` de K3). Sin tag. Decisiones sin Guido: tracker, "D4.2 · Decisiones sin Guido". **El paquete 4 pasa a ✅.**
 
 **Changed**

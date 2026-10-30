@@ -3,7 +3,7 @@
 > **Save game** del proyecto madre. `/cierre` lo sobreescribe entero; el hook SessionStart lo inyecta en cada chat
 > nuevo de esta carpeta. **Tope 5.500 bytes**; el hook corta y avisa "CORTADO" si se pasa, y termina con la huella.
 
-**Última sesión cerrada:** 2026-10-30, **D4.2** de la misión 5 en la PC `Usuario` (Opus, sin Guido, ~1,4 h, 3 encargos Sonnet). **El paquete 4
+**Última sesión cerrada:** 2026-10-30, **D4.2** de la misión 5 en la PC `Usuario` (Opus, sin Guido, ~1,15 h, 3 encargos Sonnet). **El paquete 4
 quedó ✅.** `kit-sync` LIMPIO.
 
 ## Dónde estamos
