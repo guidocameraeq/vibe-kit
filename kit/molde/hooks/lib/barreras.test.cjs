@@ -878,6 +878,54 @@ test('rf3-8: sin el mismo patch (el commit reescrito cambió), o con el sha viej
   assert.ok(f2.every((y) => !/rebase/.test(y.que + y.hacer)), JSON.stringify(f2));
 });
 
+test('rf3-8: la pista solo si anotar-sha la aceptaría (sha viejo fuera de la historia, el nuevo en HEAD y primero tras el sello)', () => {
+  const sinPista = (f) => assert.ok(f.every((y) => !/rebase/.test(y.que + y.hacer)), JSON.stringify(f));
+  // (1) el sha anotado sigue en la historia: X quita el stash, Z lo vuelve a poner, Y lo quita igual (mismo patch que X) y el
+  // aplicado apunta a Y. X no recibe la pista.
+  const d = repo();
+  const { id } = aprobado(d);
+  const x = quitarStash(d);
+  commit(d, { '.claude/kit.md': FICHA() }, 'vuelve el freno');
+  const y = quitarStash(d);
+  escribir(d, rel(id), C.ponerCampos(leerArchivo(d, rel(id)), { estado: 'aplicado', sha: y }));
+  commit(d, { [rel(id)]: leerArchivo(d, rel(id)) }, 'anota a mano');
+  const f1 = rojo(d);
+  assert.ok(f1.some((z) => z.commit === x));
+  sinPista(f1);
+  // (2) el sha viejo fuera de la historia y el mismo patch, pero el commit reescrito ya no es el primero tras el sello que toca lo
+  // de "toca" (antes entró otro, un hook): anotar-sha no lo aceptaría, así que no hay pista.
+  const e = repo();
+  const id2 = proponer(e, { toca: 'frenos,hooks' });
+  const sello = aprobar(e, id2);
+  const x2 = quitarStash(e);
+  assert.equal(cli(e, 'anotar-sha', id2, x2).codigo, 0);
+  const anotado = leerArchivo(e, rel(id2));
+  g(e, 'reset', '-q', '--hard', sello);
+  commit(e, { '.claude/hooks/x.cjs': 'x\n' }, 'un hook antes');
+  g(e, 'cherry-pick', x2);
+  const x3 = g(e, 'rev-parse', 'HEAD');
+  commit(e, { [rel(id2)]: anotado }, 'anota');
+  const f2 = rojo(e);
+  assert.ok(f2.some((z) => z.commit === x3), JSON.stringify(f2));
+  sinPista(f2);
+  // (3) el commit reescrito no está en HEAD (se pushea otra rama): anotar-sha no lo aceptaría desde acá
+  const h = repo();
+  const pc2 = otraPC(h);
+  commit(pc2, { 'c.txt': 'c\n' }, 'la otra PC avanza origin');
+  g(pc2, 'push', '-q', 'origin', 'HEAD');
+  const { id: id3 } = aplicado(h);
+  g(h, 'pull', '-q', '--rebase', 'origin', 'main');
+  const f3a = revisar(h, { rango: B.resolverRango(h, { desde: 'origin/main', hasta: 'main' }) });
+  assert.ok(f3a.length && /rebase/.test(f3a[0].hacer), 'desde main, con pista');
+  // HEAD en el sello reescrito (sin el commit del cambio), con el aplicado en el disco: el cambio vale, pero el commit no es de HEAD
+  const aplicadoTexto = leerArchivo(h, rel(id3));
+  g(h, 'checkout', '-q', '-b', 'otra', 'main~2');
+  escribir(h, rel(id3), aplicadoTexto);
+  const f3 = revisar(h, { rango: B.resolverRango(h, { desde: 'origin/main', hasta: 'main' }) });
+  assert.ok(f3.length, 'sigue rojo');
+  sinPista(f3);
+});
+
 test('rf-2: reapuntar exige lo mismo que un aprobado (el primer commit tras el sello que toca lo de "toca") y un commit de la historia de HEAD', () => {
   const d = repo();
   const { id, x } = aplicado(d);
