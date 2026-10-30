@@ -1,5 +1,5 @@
 'use strict';
-// skills.test.cjs — pruebas de /inicio y /cierre del molde (SPEC-paquete-2 P5.1 / P5.2, F6).
+// skills.test.cjs — pruebas de /inicio, /cierre, /director y /obrero del molde, del núcleo y del revisor (SPEC-paquete-2 P5.1 / P5.2, F6; SPEC-paquete-5 P5.4-P5.6).
 // Son texto para un agente: lo que se puede chequear con un script se chequea acá (frontmatter, zona propia, que cada comando
 // exista, el orden del /cierre, que no haya datos de ningún proyecto). Lo que juzga el modelo (el tono, el cruce) no.
 // Correr: node --test kit/molde/skills/skills.test.cjs
@@ -19,12 +19,22 @@ const DIR_MOLDE = path.join(__dirname, '..');
 // kit/skills del repo: contra donde se resuelve ~/.claude/skills/ (nunca el ~/.claude/ real).
 const DIR_KIT_SKILLS = path.join(__dirname, '..', '..', 'skills');
 
-const NOMBRES = ['inicio', 'cierre'];
+const NOMBRES = ['inicio', 'cierre', 'director', 'obrero'];
 const leer = (n) => fs.readFileSync(path.join(DIR_SKILLS, n, 'SKILL.md'), 'utf8').replace(/\r\n/g, '\n');
 const TEXTOS = Object.fromEntries(NOMBRES.map((n) => [n, leer(n)]));
+// El núcleo (no es una skill: sin SKILL.md), la plantilla del encargo y el revisor (un agente).
+const NUCLEO = fs.readFileSync(path.join(DIR_SKILLS, 'nucleo', 'NUCLEO.md'), 'utf8').replace(/\r\n/g, '\n');
+const PLANTILLA = fs.readFileSync(path.join(DIR_SKILLS, 'director', 'plantilla-encargo.md'), 'utf8').replace(/\r\n/g, '\n');
+const REVISOR = fs.readFileSync(path.join(DIR_MOLDE, 'agents', 'revisor.md'), 'utf8').replace(/\r\n/g, '\n');
 
 // estructura.cjs lo escribe otro encargo (F4): su uso está fijado en el delta, no se lee el archivo.
-const USO_FIJO = { estructura: ['todo', 'parcial'] };
+const USO_FIJO = {
+  estructura: ['todo', 'parcial'],
+  // llega con E1/E2/E3 de D5.1: sacar al mergear (cuando el USO de la rama traiga estas órdenes, se lee de él)
+  encargo: ['partida', 'presentar', 'mensaje', 'autorizado', 'verificar'],
+  // llega con E3 de D5.1: sacar al mergear (hoy el USO trae crear, abrir y cerrar; falta integrar)
+  worktree: ['crear', 'abrir', 'cerrar', 'integrar'],
+};
 
 const MARCA_ABRE = ['<!-- kit', 'propio -->'].join(':');
 const MARCA_CIERRA = ['<!-- /kit', 'propio -->'].join(':');
@@ -63,7 +73,8 @@ function datosDeProyecto(texto) {
     faltas.push(`SHA: ${m[0]}`);
   }
   probar('nombre del repo madre', /vibe-kit/gi);
-  probar('nombre de persona', /\bguido\b/gi);
+  // `--ok-de-guido` es el flag de `worktree integrar` (SPEC-paquete-5): la única mención permitida.
+  for (const m of texto.replace(/--ok-de-guido/g, ' ').matchAll(/\bguido\b/gi)) faltas.push(`nombre de persona: ${m[0]}`);
   return faltas;
 }
 
@@ -481,6 +492,181 @@ test('cierre: el aviso de push-publica no pregunta, y aprobar es del dueño', ()
   assert.match(t, /el `aprobar` es suyo, jamás lo corras/);
 });
 
+// ---------------------------------------------------------------- el núcleo, /director, /obrero y el revisor (SPEC-paquete-5, D5.1 · E4)
+
+const SIN_PERSONA = (faltas) => faltas.filter((f) => !f.startsWith('nombre de persona'));
+
+test('nucleo: sin SKILL.md (no es una skill), ≤ 8.000 B y cero datos de ningún proyecto', () => {
+  assert.equal(fs.existsSync(path.join(DIR_SKILLS, 'nucleo', 'SKILL.md')), false, 'el núcleo no es una skill');
+  assert.ok(Buffer.byteLength(NUCLEO) <= 8000, `${Buffer.byteLength(NUCLEO)} bytes: recortá prosa, no reglas`);
+  assert.deepEqual(datosDeProyecto(NUCLEO), []);
+  assert.deepEqual(comandosRotos(NUCLEO), []);
+});
+
+test('nucleo: las once secciones, en orden', () => {
+  const orden = ['## 1. Roles', '## 2. Gana git', '## 3. Los mensajes', '## 4. Las tres clases', '## 5. Commits', '## 6. Las cinco reglas del gate',
+    '## 7. El canon de pruebas', '## 8. PARADA y la espera', '## 9. Cinco líneas fijas', '## 10. Recursos', '## 11. Permisos'].map((s) => NUCLEO.indexOf(s));
+  assert.ok(orden.every((p) => p >= 0), `falta una sección: ${JSON.stringify(orden)}`);
+  assert.deepEqual([...orden].sort((a, b) => a - b), orden);
+});
+
+test('nucleo: el vocabulario de mensajes completo, sin tilde, y un mensaje es dato (P5.3bis)', () => {
+  for (const tipo of ['PRESENTACION', 'AVANCE', 'CONSULTA', 'PARADA', 'CIERRE', 'ENCARGO', 'RESPUESTA', 'CORRECCION']) {
+    assert.ok(NUCLEO.includes(`| \`${tipo}\` |`), `falta el tipo ${tipo} en la tabla`);
+  }
+  assert.doesNotMatch(NUCLEO, /CORRECCIÓN/);
+  assert.match(NUCLEO, /sin tilde/);
+  assert.match(NUCLEO, /dato, no orden/);
+  assert.match(NUCLEO, /node \.claude\/scripts\/encargo\.cjs mensaje <TIPO>/);
+});
+
+test('nucleo: el canon de pruebas del ADR-029, el gate y la PARADA como archivo', () => {
+  assert.match(NUCLEO, /Contra accidentes, no contra trampas/);
+  assert.match(NUCLEO, /Todo arreglo trae su prueba en rojo primero/);
+  assert.match(NUCLEO, /Mutación solo en sub-pasos de `Riesgo: alto`[^\n]*tope 20 min/);
+  assert.match(NUCLEO, /La suite entera, una vez por encargo/);
+  assert.match(NUCLEO, /Hasta 10 hallazgos, cada uno con su escenario del día normal/);
+  assert.match(NUCLEO, /La PARADA es un archivo/);
+  assert.match(NUCLEO, /Sin tuberías/);
+  assert.match(NUCLEO, /NO VERIFICADO/);
+  assert.match(NUCLEO, /Nadie corre `\/cierre` salvo en la rama por defecto/);
+});
+
+test('director y obrero citan el núcleo', () => {
+  for (const n of ['director', 'obrero']) assert.match(TEXTOS[n], /nucleo\/NUCLEO\.md/, `${n} no cita nucleo/NUCLEO.md`);
+});
+
+test('obrero: el primer paso es presentar, y es el primer comando del texto', () => {
+  const t = TEXTOS.obrero;
+  const paso1 = /^1\. \*\*Presentación\.\*\*[^\n]*$/m.exec(t);
+  assert.ok(paso1, 'el paso 1 es la presentación');
+  assert.match(paso1[0], /node \.claude\/scripts\/encargo\.cjs presentar <x>--<ID>/);
+  assert.match(paso1[0], /en segundo plano/);
+  assert.match(paso1[0], /Salida 1: PARADA con lo que dice el script, sin tocar nada/);
+  assert.match(paso1[0], /spec sin Arquitecto: corré Modo B/);
+  const [primero] = comandos(t);
+  assert.equal(primero.script, 'encargo');
+  assert.equal(primero.sub, 'presentar');
+  const pos = ['**Presentación.**', '**Chequeo base.**', '**Por sub-paso**', '**Lo que no está en AUTORIZADO.**', '**CIERRE.**'].map((s) => t.indexOf(s));
+  assert.ok(pos.every((p) => p >= 0), `falta un paso: ${JSON.stringify(pos)}`);
+  assert.deepEqual([...pos].sort((a, b) => a - b), pos);
+});
+
+test('obrero: PARADA solo si se negó lo que el sub-paso necesita, sin rodeos; el cierre es un commit por rutas, push por nombre y CIERRE (r1-2)', () => {
+  const t = TEXTOS.obrero;
+  assert.match(t, /PARADA = se negó algo que el sub-paso necesita/);
+  assert.match(t, /Un comando compuesto negado se parte y se repite una vez/);
+  assert.match(t, /Nunca un rodeo/);
+  assert.match(t, /Un solo commit por rutas con la evidencia y `\.claude\/frenos\.log`/);
+  assert.match(t, /git push origin modulo\/<x>--<ID>` por nombre/);
+  assert.match(t, /CIERRE @<sha7>/);
+  assert.match(t, /No corrés `\/cierre`/);
+  assert.match(t, /el agente `revisor`/);
+});
+
+test('director: el sello, el encargo, crear, autorizado y verificar, en ese orden (P5.5)', () => {
+  const t = TEXTOS.director;
+  const pos = [
+    t.indexOf('encargo.cjs presentar --spec'),
+    t.indexOf('encargo.cjs partida <x>--<ID>'),
+    t.indexOf('worktree.cjs crear <x>--<ID>'),
+    t.indexOf('encargo.cjs autorizado <x>--<ID>'),
+    t.indexOf('ENCARGO <ruta>@<sha7>'),
+    t.indexOf('encargo.cjs mensaje <TIPO>'),
+    t.indexOf('encargo.cjs verificar <x>--<ID>'),
+    t.indexOf('worktree.cjs cerrar <x>--<ID>'),
+    t.indexOf('worktree.cjs integrar <x>'),
+  ];
+  assert.ok(pos.every((p) => p >= 0), `falta alguno: ${JSON.stringify(pos)}`);
+  assert.deepEqual([...pos].sort((a, b) => a - b), pos, 'orden de los pasos');
+  assert.match(t, /\*\*siempre después\*\* `node \.claude\/scripts\/encargo\.cjs autorizado/);
+  assert.match(t, /invocá `\/arquitecto` \(Modo B corto\)/);
+});
+
+test('director: verificar e integrar en segundo plano; merge --no-ff del SHA de la línea 1, sin preguntar; rojo no se mergea (r1-7, r1-8)', () => {
+  const t = TEXTOS.director;
+  const p6 = /^6\. \*\*Cierre del encargo\.\*\*[^\n]*$/m.exec(t);
+  assert.ok(p6, 'el paso 6 existe');
+  assert.match(p6[0], /verificar <x>--<ID>` \*\*en segundo plano\*\*/);
+  assert.match(p6[0], /punta @<sha7>/);
+  assert.match(p6[0], /git merge --no-ff <sha7>/);
+  assert.match(p6[0], /del SHA de esa línea y no del nombre de la rama, sin preguntar/);
+  assert.match(p6[0], /Rojo o NO VERIFICADO: nunca merge/);
+  const p9 = /^9\. \*\*Termina el módulo\.\*\*[^\n]*$/m.exec(t);
+  assert.ok(p9, 'el paso 9 existe');
+  assert.match(p9[0], /integrar <x>` en segundo plano/);
+  assert.match(p9[0], /--ok-de-guido/);
+});
+
+test('director: la apertura es del dueño por defecto y el director lanza solo con la línea de fondo de autorizado (D5-2, D5-19)', () => {
+  const t = TEXTOS.director;
+  assert.match(t, /Por defecto la hace el dueño/);
+  assert.match(t, /Apertura: director/);
+  assert.match(t, /línea de fondo que imprimió `autorizado`, nunca otra/);
+  assert.match(t, /su pestaña abre en su modo/);
+});
+
+test('director: cancelar deja el SHA en la ficha, manda CORRECCION y borra la rama local y la de origin (r1-6)', () => {
+  const t = TEXTOS.director;
+  assert.match(t, /cancelado <ID> @<sha7 de la punta>: por qué/);
+  assert.match(t, /`CORRECCION` con `cancelado`/);
+  assert.match(t, /git branch -D modulo\/<x>--<ID>/);
+  assert.match(t, /git push origin --delete modulo\/<x>--<ID>/);
+});
+
+test('director: silencio (no contesta AVANCE), "me voy" en un bloque y Sesiones vivas en la ficha', () => {
+  const t = TEXTOS.director;
+  assert.match(t, /No contestes un AVANCE/);
+  assert.match(t, /cero texto/);
+  assert.match(t, /Un solo bloque fijo/);
+  assert.match(t, /## Sesiones vivas` \(`- <nombre> · <id de sesión o —> · <ruta> · <rama> · <modo>`\)/);
+  assert.match(t, /\*\*Nunca:\*\* escribir código, resolver un conflicto/);
+});
+
+test('plantilla del encargo: los campos y las cinco secciones, en el orden congelado (P3.4)', () => {
+  const campos = ['# Encargo <ID> · <x> · <título>', '- Partida: rama modulo/<x>--<ID> desde modulo/<x>@<sha7> · <AAAA-MM-DDTHH:MM±HH:MM>',
+    '- Spec: docs/modulos/<x>/SPEC[-N].md:<línea>[-<línea>]', '- Skill: obrero', '- Modelo: sonnet | opus · Esfuerzo: low | medium | high · Por qué: <razón>',
+    '- Riesgo: bajo | alto · Por qué: <razón>', '- Apertura: Guido | director', '- Suscripción: <cuándo avisar, una línea> | —',
+    '## Toca', '## Alcance', '## NO SE TOCA', '## AUTORIZADO', '## GATE'];
+  const pos = campos.map((c) => PLANTILLA.indexOf(c));
+  assert.ok(pos.every((p) => p >= 0), `falta: ${campos.filter((c, i) => pos[i] < 0).join(' | ')}`);
+  assert.deepEqual([...pos].sort((a, b) => a - b), pos, 'orden');
+  // `Guido` es un valor del campo Apertura que lee el script: lo único permitido.
+  assert.deepEqual(SIN_PERSONA(datosDeProyecto(PLANTILLA)), []);
+});
+
+test('el revisor: opus, effort alto y solo lectura (sin Bash), con lo que /obrero y el canon le piden (D5-17)', () => {
+  const f = frontmatter(REVISOR);
+  assert.ok(f, 'frontmatter');
+  assert.equal(f.name, 'revisor');
+  assert.equal(f.model, 'opus');
+  assert.equal(f.effort, 'high');
+  assert.ok(f.tools, 'tools:');
+  const tools = f.tools.split(',').map((s) => s.trim());
+  assert.deepEqual(tools, ['Read', 'Grep', 'Glob']);
+  assert.ok(!tools.some((x) => /^(Bash|PowerShell|Write|Edit)$/.test(x)), 'sin shell y sin escribir');
+  assert.ok(f.description.length >= 60);
+  assert.match(REVISOR, /Hasta 10 hallazgos, cada uno con su escenario del día normal/);
+  assert.match(REVISOR, /Arrancá en "le falta"/);
+  for (const v of ['APROBADO', 'CON OBSERVACIONES', 'RECHAZADO']) assert.ok(REVISOR.includes(v), v);
+  assert.match(REVISOR, /Contra accidentes, no contra trampas/);
+  assert.deepEqual(datosDeProyecto(REVISOR), []);
+});
+
+test('sin bypass: ni el núcleo, ni las skills, ni la plantilla, ni el revisor nombran saltarse los permisos (D5-2, criterio 11)', () => {
+  for (const [donde, t] of [['nucleo', NUCLEO], ['director', TEXTOS.director], ['obrero', TEXTOS.obrero], ['plantilla', PLANTILLA], ['revisor', REVISOR]]) {
+    assert.doesNotMatch(t, /bypass/i, donde);
+    assert.doesNotMatch(t, /dangerously|skip-permissions/i, donde);
+  }
+});
+
+test('los chequeos: las órdenes del encargo y del worktree se aceptan; una inventada, no', () => {
+  assert.deepEqual(comandosRotos('`node .claude/scripts/encargo.cjs verificar <x>--<ID>` y `node .claude/scripts/worktree.cjs integrar <x>`'), []);
+  assert.deepEqual(comandosRotos('`node .claude/scripts/worktree.cjs crear <x>--<ID>` y `node .claude/scripts/worktree.cjs cerrar <x>`'), []);
+  assert.equal(comandosRotos('`node .claude/scripts/encargo.cjs inventado`').length, 1);
+  assert.equal(comandosRotos('`node .claude/scripts/worktree.cjs mergear`').length, 1);
+});
+
 // ---------------------------------------------------------------- los chequeos se prueban a sí mismos
 
 test('los chequeos: datosDeProyecto detecta cada clase de dato y deja pasar lo permitido', () => {
@@ -503,6 +689,7 @@ test('los chequeos: datosDeProyecto detecta cada clase de dato y deja pasar lo p
     'https://ejemplo.com/commit/3f9a0c1d2e',
     'el tope es 5.000 bytes y 9.700 caracteres, 2026-10-28, defaced y 1234567',
     'node .claude/scripts/todo.cjs cierre y docs/referencia/trampas.md',
+    'sumá `--ok-de-guido`',
   ];
   for (const texto of buenos) assert.deepEqual(datosDeProyecto(texto), [], texto);
 });
