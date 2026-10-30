@@ -238,6 +238,19 @@ const FRENA = [
   ['hooks-path', 'git --config-env=core.hooksPath=VACIO commit -m x'],
   ['hooks-path', 'git --config-env core.hooksPath=VACIO commit -m x'],
   ['hooks-path', 'git config core.hooksPath x', true],
+  // rf2-1: core.attributesFile (y --attr-source) cambian qué ve el escáner como texto
+  ['hooks-path', 'git -c core.attributesFile=/x/attrs commit -m x'],
+  ['hooks-path', 'git -c core.attributesfile=/x/attrs status'],
+  ['hooks-path', 'git --config-env=core.attributesFile=VAR commit -m x'],
+  ['hooks-path', 'git config core.attributesFile /x/attrs'],
+  ['hooks-path', 'git config --global core.attributesFile ~/.attrs'],
+  ['hooks-path', 'git config --unset core.attributesFile'],
+  ['hooks-path', 'git config set core.attributesFile /x'],
+  ['hooks-path', 'git --attr-source=HEAD~3 commit -m x'],
+  ['hooks-path', 'git --attr-source HEAD~3 commit -m x'],
+  ['hooks-path', 'git config core.attributesFile x', true],
+  ['alias', "git config alias.x '--attr-source=HEAD~1 commit'"],
+  ['alias', "git config alias.x '-c core.attributesFile=/x commit'"],
   ['config-include', 'git config include.path ../otro.cfg'],
   ['config-include', 'git config --add includeIf.gitdir:x/.path y'],
   ['config-include', 'git config --global include.path x'],
@@ -306,6 +319,26 @@ const FRENA = [
   ['variables-peligrosas', 'NODE_PATH=/x git push'],
   ['variables-peligrosas', '$env:NODE_OPTIONS = "--require x"; git commit -m x', true],
   ['variables-peligrosas', '[Environment]::SetEnvironmentVariable("NODE_OPTIONS", "--require x"); git push', true],
+  // rf2-10: alcanzan al git si van en el mismo comando, exportadas antes o a un shell que lo corre
+  ['variables-peligrosas', 'export NODE_OPTIONS=--require=/x.js ; git commit -m x'],
+  ['variables-peligrosas', 'NODE_OPTIONS=--require=/x.js; git commit -m x'],
+  ['variables-peligrosas', 'NODE_OPTIONS=--require=/x.js bash -c "git commit -m x"'],
+  ['variables-peligrosas', 'NODE_OPTIONS=--require=/x.js time git commit -m x'],
+  ['variables-peligrosas', 'npm run build && NODE_OPTIONS=--require=/x.js git push'],
+  ['variables-peligrosas', '$env:NODE_OPTIONS = "--require x"; npm run build; git push', true],
+  ['variables-peligrosas', 'Set-Item Env:NODE_OPTIONS "--require x"; git push', true],
+  // rf2-2: otra config global (otro HOME) trae otros alias y otro core.hooksPath
+  ['variables-peligrosas', 'HOME=/otra git zz'],
+  ['variables-peligrosas', 'XDG_CONFIG_HOME=/otra git commit -m x'],
+  ['variables-peligrosas', 'USERPROFILE=C:/otra git commit -m x'],
+  ['variables-peligrosas', 'HOMEDRIVE=D: git commit -m x'],
+  ['variables-peligrosas', 'HOMEPATH=\\otra git commit -m x'],
+  ['variables-peligrosas', 'env HOME=/otra git zz'],
+  ['variables-peligrosas', 'export HOME=/otra && git zz'],
+  ['variables-peligrosas', '$env:HOME = "C:/otra"; git zz', true],
+  ['variables-peligrosas', '$env:XDG_CONFIG_HOME = "C:/otra"; git zz', true],
+  ['variables-peligrosas', 'GIT_ATTR_SOURCE=HEAD~3 git commit -m x'],
+  ['variables-peligrosas', 'export GIT_ATTR_SOURCE=HEAD~3'],
   // rf3-4: el alias en la llamada, o guardar uno que esquiva
   ['alias', "git -c alias.pp='push --no-verify' pp origin main"],
   ['alias', "git -c alias.cc='commit --no-verify' cc -m x"],
@@ -322,6 +355,12 @@ const FRENA = [
   ['alias', "git config set --global alias.x 'commit --no-verify'"],
   ['alias', "git config --add alias.x '!x'"],
   ['alias', "git config alias.x 'commit --no-verify'", true],
+  // rf2-2: la forma `alias.<x>.command` (git 2.54), al guardarla o en la llamada
+  ['alias', "git config alias.yy.command 'commit --no-verify'"],
+  ['alias', "git config --global alias.Y_y.z.command '!git push'"],
+  ['alias', "git config set alias.yy.command 'commit -n'"],
+  ['alias', 'git -c alias.yy.command=status yy'],
+  ['alias', 'git --config-env=alias.yy.command=VAR yy'],
   // rf3-11: git rm forzado sobre un árbol (CM-65)
   ['rm-forzado', 'git rm -rf .'],
   ['rm-forzado', 'git rm -r -f .'],
@@ -461,6 +500,20 @@ const NO_FRENA = [
   ['export NODE_OPTIONS=--max-old-space-size=4096'],
   ['$env:NODE_OPTIONS = "--max-old-space-size=4096"; npm run build', true],
   ['NODE_ENV=test node x.js'],
+  // rf2-10: la variable de delante de otro programa es de ese programa, aunque después venga un git
+  ['NODE_OPTIONS=--max-old-space-size=8192 npm run build && git push'],
+  ['NODE_OPTIONS=--max-old-space-size=8192 npx vite build; git status'],
+  ['PATH=/x:$PATH npm test && git status'],
+  ['HOME=/tmp/casa npm test && git status'],
+  ['XDG_CONFIG_HOME=/tmp/x node script.js && git diff'],
+  ['export HOME=/tmp/casa'], // sin git: como PATH
+  ['$env:USERPROFILE = "C:/x"; npm test', true],
+  ['git config --get core.attributesFile'],
+  ['git config core.attributesFile'],
+  ['git checkout --orphan nueva'], // humano: rama-huerfana es de la sesión de agente
+  ['git switch --orphan nueva'],
+  ['git worktree add --orphan -b nueva ../x'],
+  ['git check-attr -a -- a.txt'],
   ['git lfs pull'], // un git-<algo> externo, que no es alias
   ['git config pull.rebase true'], // humano: config-agente no aplica
   ['git config user.name "Prueba"'],
@@ -508,7 +561,7 @@ test('la tabla de P4.4: cada caso frena (Bash y PowerShell), todo rol y todo mod
   }
   // cada fila de la tabla que es de sintaxis tiene al menos un caso acá (las de contexto van aparte, abajo)
   for (const caso of Object.keys(gs.MENSAJES)) {
-    if (['historia-defecto', 'historia-defecto-sin-remoto', 'push-borrar', 'hooks-path-ausente', 'config-agente', 'plomeria', 'salir-del-worktree'].includes(caso)) continue;
+    if (['historia-defecto', 'historia-defecto-sin-remoto', 'push-borrar', 'hooks-path-ausente', 'config-agente', 'plomeria', 'rama-huerfana', 'salir-del-worktree'].includes(caso)) continue;
     assert.ok(vistos.has(caso), `falta un caso que frene para ${caso}`);
   }
 });
@@ -632,6 +685,70 @@ test('alias ya guardados (rf3-4): git <alias> se juzga por lo que corre de verda
   const roto = { correr: () => ({ ok: false, codigo: null, stdout: '', error: 'sin-git' }), texto: () => null };
   assert.equal(gs.decidir(entrada(d, 'git status'), { git: roto, anotar: () => '' }).decision, 'nada');
   assert.deepEqual(gs.decidir(entrada(d, 'git pp'), { git: roto, anotar: () => '' }).casos, ['alias']);
+});
+
+test('alias ya guardados en la forma de git 2.54 (rf2-2): `[alias "x"] command = …`, nombres con _ . y mayúsculas, la caja como git', () => {
+  const d = repo();
+  g(d, 'switch', '-q', '-c', 'trabajo');
+  fs.appendFileSync(
+    path.join(d, '.git', 'config'),
+    [
+      '[alias "yy"]', '\tcommand = commit --no-verify',
+      '[alias "Y_y.z"]', '\tcommand = push --force origin main',
+      '[alias "Mix"]', '\tcommand = reset --hard', '\totra = status',
+      '[alias "sx"]', '\tcommand = !git stash',
+      '[alias]', '\tMAY = clean -fd', '\tstatus = commit --no-verify', '\tlg = log --oneline',
+      '[alias "lg"]', '\tcommand = commit -n', // el último gana: este
+      '[alias "p"]', '\tq = push --no-verify', // alias.p.q: no es un alias para git
+      '[alias "shnode"]', '\tcommand = !NODE_OPTIONS=--max-old-space-size=4096 npm run build && git status',
+      '[alias "shnodegit"]', '\tcommand = !NODE_OPTIONS=--require=/x.js git commit -m x',
+      '',
+    ].join('\n'),
+  );
+  niega(d, 'git yy -m x', 'no-verify');
+  niega(d, 'git Y_y.z', 'push-force');
+  niega(d, 'git Mix', 'reset-hard');
+  niega(d, 'git sx', 'stash');
+  niega(d, 'git may', 'clean-f'); // alias.<x>: sin importar la caja
+  niega(d, 'git MAY', 'clean-f');
+  niega(d, 'git STATUS -m x', 'no-verify'); // `STATUS` no es el subcomando status: es el alias
+  niega(d, 'git lg', 'no-verify');
+  niega(d, 'git yy -m x', 'no-verify', { ps: true });
+  niega(d, 'git shnodegit', 'variables-peligrosas'); // rf2-10 adentro de un alias de shell también
+  pasa(d, 'git shnode');
+  pasa(d, 'git status');
+  pasa(d, 'git mix'); // alias.<x>.command distingue la caja: `mix` no existe
+  pasa(d, 'git YY');
+  pasa(d, 'git p.q');
+  pasa(d, 'git Mix.otra');
+  pasa(d, 'git noexiste_con.punto');
+  // una sola lectura de la config por git, aunque sea un alias de alias de alias
+  g(d, 'config', 'alias.cad', 'cad2');
+  g(d, 'config', 'alias.cad2', 'Mix');
+  let llamadas = 0;
+  const git = require(path.join(DIR, 'lib', 'git.cjs'));
+  const espia = { ...git, correr: (a, o) => (llamadas++, git.correr(a, o)) };
+  const r = gs.decidir(entrada(d, 'git cad'), { git: espia, anotar: () => '' });
+  assert.deepEqual(r.casos, ['reset-hard']);
+  assert.equal(llamadas, 1);
+});
+
+test('rama-huerfana (rf2-5): checkout/switch/worktree add --orphan frenan en sesión de agente; director y humano pasan', () => {
+  const d = repo();
+  const w = worktree(d, 'modulo/h--1', 'obrero');
+  const wd = worktree(d, 'modulo/h', 'director');
+  for (const c of ['git checkout --orphan nueva', 'git checkout --orphan=nueva', 'git checkout --orph nueva', 'git switch --orphan nueva', 'git switch --or nueva', 'git worktree add --orphan -b nueva ../x', 'git worktree add --orphan ../x']) {
+    niega(w, c, 'rama-huerfana');
+    pasa(wd, c);
+    pasa(d, c);
+  }
+  niega(w, 'git checkout --orphan nueva', 'rama-huerfana', { ps: true });
+  pasa(w, 'git switch -c nueva');
+  pasa(w, 'git checkout -b nueva');
+  pasa(w, 'git checkout --ours a.txt');
+  pasa(w, 'git restore --overlay a.txt');
+  pasa(w, 'git worktree list');
+  assert.match(niega(w, 'git switch --orphan x', 'rama-huerfana').salida.hookSpecificOutput.permissionDecisionReason, /git switch -c/);
 });
 
 // ---------------------------------------------------------------- los casos de Hermes (CM-65), portados

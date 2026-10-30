@@ -19,8 +19,9 @@
 //   - Un renglón en .claude/frenos.log por caso negado (detalle = el caso; un ask: "preguntó: <caso>"). NUNCA el comando.
 //   - Texto que comando.cjs marca incompleto: se juzga lo que salió.
 //   - Las filas "en sesión de agente" usan lib/agente.cjs. Las demás, todo rol y todo modo (también bypassPermissions).
-// ALIAS (rf3-4): `-c alias.*`/`--config-env=alias.*` frenan; guardar uno de shell o con --no-verify/commit -n frena en todo rol;
-// un `git <x>` con x que no es subcomando de git se busca en la config (un `git config --get`) y se juzga lo que corre.
+// ALIAS (rf3-4, rf2-2): `-c alias.*`/`--config-env=alias.*` frenan; guardar uno de shell o con --no-verify/commit -n frena en
+// todo rol (las dos formas: `alias.<x>` y `alias.<x>.command`); un `git <x>` con x que no es subcomando de git (con su caja: `git
+// STATUS` es un alias) se busca en la config (un `git config --get-regexp`) y se juzga lo que corre.
 // NO ES UNA FRONTERA (Lo que esto no cierra): variables, base64, un script, `xargs git`, `find -exec git`, `submodule foreach`
 // o `Start-Process git` lo esquivan; la red es el candado.
 // Es .cjs a propósito: corre igual en proyectos con "type": "module". NO corre ningún .propio.sh.
@@ -63,11 +64,11 @@ const MENSAJES = {
   'remote-remove': '`git remote remove` borra el remoto (y con él la ficha vigente). Lo hace Guido a mano.',
   'config-default-branch': '`init.defaultBranch` decide cuál es la rama por defecto para los frenos. Lo cambia Guido a mano.',
   'hooks-path':
-    '`core.hooksPath` apaga o desvía el pre-commit (por `config`, `-c` o `--config-env`). Lo único que pasa es reponerlo: `git config core.hooksPath .githooks`.',
+    '`core.hooksPath` apaga o desvía el pre-commit, y `core.attributesFile` (o `--attr-source`) cambia qué archivos ve como texto (por `config`, `-c` o `--config-env`). Lo único que pasa es reponer el primero: `git config core.hooksPath .githooks`; los atributos van en el `.gitattributes` del repo, a la vista.',
   'hooks-path-ausente':
     'este repo tiene `.githooks/` pero `core.hooksPath` no apunta ahí: el pre-commit no correría: reponelo: `git config core.hooksPath .githooks`, y repetí.',
   'variables-peligrosas':
-    'esa variable cambia qué repo, qué config o qué programa usa git (esquiva los frenos y el pre-commit). Corré git sin ella. `GIT_EDITOR`, `GIT_PAGER`, `GIT_SEQUENCE_EDITOR`, `GIT_AUTHOR_*`, `GIT_COMMITTER_*` y `GIT_TERMINAL_PROMPT` pasan.',
+    'esa variable cambia qué repo, qué config (también `HOME`/`XDG_CONFIG_HOME`: otra config global) o qué programa usa git (esquiva los frenos y el pre-commit). Corré git sin ella. `GIT_EDITOR`, `GIT_PAGER`, `GIT_SEQUENCE_EDITOR`, `GIT_AUTHOR_*`, `GIT_COMMITTER_*` y `GIT_TERMINAL_PROMPT` pasan.',
   'config-include':
     '`include.*`/`includeIf.*` mete config de otro archivo (puede apagar los hooks). No se escribe desde una sesión; si hace falta, Guido a mano.',
   'config-agente':
@@ -82,6 +83,8 @@ const MENSAJES = {
     '`git rm -f` sobre `.`, una carpeta o un patrón borra cambios sin commitear de todo ese árbol. Commiteá antes lo que sea tuyo y nombrá los archivos (`git rm <archivo>`); para dejar de seguir algo sin borrarlo, `git rm --cached`.',
   'red-de-rescate':
     'vencer ya los objetos sueltos o el reflog (`gc --prune=now`, `prune`, `reflog expire --expire=now`, `reflog delete`, `gc.*Expire` cortos) borra la red que rescata un commit o un stash perdido. `git gc` a secas pasa (respeta las dos semanas y los 90 días).',
+  'rama-huerfana':
+    'una rama sin padre (`checkout --orphan`, `switch --orphan`, `worktree add --orphan`) se sube sin que el candado juzgue su raíz. Desde una sesión de agente se trabaja sobre la rama que te dieron; para una nueva, `git switch -c <nombre>`. Si hace falta una huérfana, la crea Guido o el director.',
   'worktree-remove-force':
     '`git worktree remove -f` borra un worktree con trabajo sin commitear. Commiteá o mirá su `git status`; después `git worktree remove` sin `-f`.',
   'matar-por-nombre':
@@ -106,8 +109,9 @@ const esOpcion = (a) => typeof a === 'string' && a.length > 1 && a.startsWith('-
 const sinRefsHeads = (r) => r.replace(/^refs\/heads\//, '');
 
 // Las variables que desvían git (D-13, r1-1, r2-6) o lo que corre en sus hooks (rf3-2: GITLEAKS_*; rf3-3: NODE_OPTIONS,
-// NODE_PATH). Las de SOLO_CON_GIT cuentan solo si hay un git en la llamada (`NODE_OPTIONS=… npm run build` es de todos los días).
-const SOLO_CON_GIT = new Set(['PATH', 'NODE_OPTIONS', 'NODE_PATH']);
+// NODE_PATH; rf2-2: HOME y compañía, que mudan la config global). Las de SOLO_CON_GIT cuentan solo si alcanzan a un git (ver
+// alcanzaAGit): `NODE_OPTIONS=… npm run build && git push` es de todos los días (rf2-10).
+const SOLO_CON_GIT = new Set(['PATH', 'NODE_OPTIONS', 'NODE_PATH', 'HOME', 'XDG_CONFIG_HOME', 'USERPROFILE', 'HOMEDRIVE', 'HOMEPATH']);
 function esPeligrosa(nombre) {
   const n = String(nombre).toUpperCase();
   if (n.startsWith('GIT_CONFIG') || n.startsWith('GIT_TRACE') || n.startsWith('GITLEAKS_')) return true;
@@ -122,6 +126,7 @@ function esPeligrosa(nombre) {
     'GIT_NAMESPACE',
     'GIT_EXEC_PATH',
     'GIT_CURL_VERBOSE',
+    'GIT_ATTR_SOURCE',
     'PATH',
   ].includes(n);
 }
@@ -133,7 +138,19 @@ function esGit(x) {
   const a0 = x && Array.isArray(x.argv) && typeof x.argv[0] === 'string' ? x.argv[0] : '';
   return a0.includes('\\') && comando.programa(a0.replace(/\\(.)/gs, '$1')) === 'git';
 }
-const reEscapar = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+// ¿La asignación de una variable de SOLO_CON_GIT en el comando x alcanza a un git? Sí si es la del mismo git (`NODE_OPTIONS=… git
+// commit`); si es suelta o exportada (`export X=…`, `$env:X = …`, `set`, `Set-Item Env:`) o va a un shell que corre otro texto
+// (`X=… bash -c "git …"`), cuando hay un git en la llamada. La de delante de otro programa (`X=… npm run build`) es de ese programa.
+const ALCANZAN = new Set([
+  'export', 'declare', 'typeset', 'readonly', 'local', 'set', 'setx', 'set-item', 'si', 'new-item', 'ni', 'set-variable', 'sv',
+  'new-variable', 'nv', 'bash', 'sh', 'zsh', 'dash', 'ksh', 'ash', 'cmd', 'powershell', 'pwsh', 'eval', 'source', '.',
+]);
+function alcanzaAGit(lista, x) {
+  if (esGit(x)) return true;
+  if (x.argv.length && !ALCANZAN.has(require('./lib/comando.cjs').programa(x))) return false;
+  return lista.some(esGit);
+}
+const reEscapar =(s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // Una ruta de cd / -C: null si no se puede saber (variables, sustituciones, comodines).
 function resolverRuta(base, destino) {
@@ -164,9 +181,10 @@ const esCarpeta = (p) => {
 
 const GLOBALES_CON_VALOR = new Set(['-C', '-c', '--git-dir', '--work-tree', '--namespace', '--super-prefix', '--config-env', '--attr-source', '--list-cmds']);
 
-// partirGit(argv) → { dirs, configs: [clave en minúscula], gitDir, workTree, execPath, namespace, sub, rest }
+// partirGit(argv) → { dirs, configs: [clave en minúscula], gitDir, workTree, execPath, namespace, attrSource, sub (en minúscula),
+// subCrudo (como se tipeó), rest }
 function partirGit(argv) {
-  const g = { dirs: [], configs: [], gitDir: null, workTree: null, execPath: null, namespace: null, sub: null, previo: argv.slice(0, 1), rest: [] };
+  const g = { dirs: [], configs: [], gitDir: null, workTree: null, execPath: null, namespace: null, attrSource: null, sub: null, subCrudo: null, previo: argv.slice(0, 1), rest: [] };
   let i = 1;
   const clave = (kv) => String(kv == null ? '' : kv).split('=')[0].trim().toLowerCase();
   while (i < argv.length) {
@@ -192,6 +210,7 @@ function partirGit(argv) {
       continue;
     }
     g.sub = a.toLowerCase();
+    g.subCrudo = a; // git distingue la caja: `git STATUS` no es status, es el alias `status` (rf2-2)
     g.previo = argv.slice(0, i); // git y sus opciones globales: lo que se conserva al expandir un alias
     g.rest = argv.slice(i + 1);
     break;
@@ -204,6 +223,7 @@ function aplicarGlobal(g, op, valor, clave) {
   else if (op === '--git-dir') g.gitDir = valor == null ? '' : valor;
   else if (op === '--work-tree') g.workTree = valor == null ? '' : valor;
   else if (op === '--namespace') g.namespace = valor == null ? '' : valor;
+  else if (op === '--attr-source') g.attrSource = valor == null ? '' : valor;
 }
 
 // Los subcomandos que no escriben nada (para el `.git` roto de un worktree de agente). Lo demás, escribe.
@@ -287,6 +307,8 @@ function esReponerHooksPath(rest) {
 // ---------------------------------------------------------------- alias, --no-verify y la red de rescate (rf3-4, rf3-13)
 
 const esAliasKey = (k) => typeof k === 'string' && k.startsWith('alias.');
+// core.hooksPath apaga el pre-commit; core.attributesFile puede marcar como binario lo que el escáner mira (rf2-1).
+const esDesvioHooks = (k) => k === 'core.hookspath' || k === 'core.attributesfile';
 // gc.pruneExpire, gc.reflogExpire, gc.reflogExpireUnreachable, gc.<patrón>.reflogExpire…: acortarlos apaga la red de rescate.
 const esExpireKey = (k) => typeof k === 'string' && /^gc\..*expire/.test(k);
 
@@ -319,7 +341,7 @@ function aliasPeligroso(valor) {
   if (!argv.length) return null;
   const g = partirGit(['git', ...argv]);
   if (noVerify(g)) return 'un alias con --no-verify o commit -n';
-  if (g.execPath !== null || g.configs.some((k) => k === 'core.hookspath' || esIncludeKey(k) || esAliasKey(k) || esExpireKey(k))) return 'un alias con -c de hooks, include o alias';
+  if (g.execPath !== null || g.attrSource !== null || g.configs.some((k) => esDesvioHooks(k) || esIncludeKey(k) || esAliasKey(k) || esExpireKey(k))) return 'un alias con -c de hooks, include o alias';
   return null;
 }
 
@@ -386,24 +408,46 @@ const MAX_ALIAS = 8;
 
 // resolverAlias(g, dir, ctx, hallar) → { g } con el subcomando ya expandido (alias de alias incluidos), o { shell: texto } para
 // un alias `!…` (lo juzga quien llama, como un comando más), o { g } igual si no es alias. Solo corre git si el subcomando no es
-// de git: lo normal no paga nada.
+// de git: lo normal no paga nada. Lee TODOS los alias de una vez (`git config -z --get-regexp ^alias\.`, una llamada) y busca como
+// git 2.54 (rf2-2): `alias.<x>` sin importar la caja y `alias.<x>.command` (`[alias "x"] command = …`) con la caja exacta; gana el
+// último que aparece. Cualquier nombre (`_`, `.`, mayúsculas): si no está, no es un alias.
+function leerAlias(raiz, ctx) {
+  const r = ctx.git().correr(['config', '-z', '--get-regexp', '^alias\\.'], { cwd: raiz });
+  if (r.error) return null;
+  if (!r.ok) return []; // 1: ningún alias; otro código: git mismo falla con esa config
+  return r.stdout
+    .split('\0')
+    .filter((e) => e !== '')
+    .map((e) => {
+      const k = e.indexOf('\n');
+      return k === -1 ? { clave: e, valor: '' } : { clave: e.slice(0, k), valor: e.slice(k + 1) };
+    });
+}
+function buscarAlias(lista, nombre) {
+  let hallado = null;
+  for (const { clave, valor } of lista) {
+    const corta = !nombre.includes('.') && clave.toLowerCase() === `alias.${nombre.toLowerCase()}`;
+    if (corta || clave === `alias.${nombre}.command`) hallado = valor;
+  }
+  return hallado;
+}
 function resolverAlias(g, dir, ctx, hallar) {
   let actual = g;
-  for (let n = 0; n < MAX_ALIAS && actual.sub && !SUBCOMANDOS.has(actual.sub); n++) {
-    if (!/^[a-z0-9][a-z0-9-]*$/.test(actual.sub)) return { g: actual }; // no puede ser un alias
-    const raiz = ctx.raizDe(dir) || ctx.cwd;
-    const r = ctx.git().correr(['config', '--get', `alias.${actual.sub}`], { cwd: raiz });
-    if (r.error) {
-      hallar('alias', 'deny', `no se pudo leer si ${actual.sub} es un alias`);
+  let lista = null;
+  for (let n = 0; n < MAX_ALIAS && actual.sub && !SUBCOMANDOS.has(actual.subCrudo); n++) {
+    if (lista === null) lista = leerAlias(ctx.raizDe(dir) || ctx.cwd, ctx);
+    if (lista === null) {
+      hallar('alias', 'deny', `no se pudo leer si ${actual.subCrudo} es un alias`);
       return { g: actual };
     }
-    if (!r.ok) return { g: actual }; // no es un alias: un git-<algo> externo o un error de tipeo
-    const valor = r.stdout.replace(/\r?\n$/, '').trim();
+    const hallado = buscarAlias(lista, actual.subCrudo);
+    if (hallado === null) return { g: actual }; // no es un alias: un git-<algo> externo o un error de tipeo
+    const valor = hallado.trim();
     const comillas = (a) => `'${String(a).replace(/'/g, "'\\''")}'`;
     if (valor.startsWith('!')) return { shell: [valor.slice(1), ...actual.rest.map(comillas)].join(' ') };
     const { comandos } = require('./lib/comando.cjs').partir(valor, { ps: false });
     if (comandos.length !== 1 || !comandos[0].argv.length) {
-      hallar('alias', 'deny', `no se pudo leer el alias ${actual.sub}`);
+      hallar('alias', 'deny', `no se pudo leer el alias ${actual.subCrudo}`);
       return { g: actual };
     }
     actual = partirGit([...actual.previo, ...comandos[0].argv, ...actual.rest]);
@@ -573,8 +617,9 @@ function casosGit(g, dir, ctx, hallar) {
 
   // variables equivalentes por opción (--exec-path=, --namespace): mismas que GIT_EXEC_PATH / GIT_NAMESPACE.
   if (g.execPath !== null || g.namespace !== null) hallar('variables-peligrosas', 'deny', g.execPath !== null ? 'opción --exec-path' : 'opción --namespace');
+  if (g.attrSource !== null) hallar('hooks-path', 'deny', 'opción --attr-source');
   for (const k of g.configs) {
-    if (k === 'core.hookspath') hallar('hooks-path', 'deny');
+    if (esDesvioHooks(k)) hallar('hooks-path', 'deny', k);
     if (esIncludeKey(k)) hallar('config-include', 'deny');
     if (esAliasKey(k)) hallar('alias', 'deny', `-c/--config-env ${k}`);
     if (esExpireKey(k)) hallar('red-de-rescate', 'deny', k);
@@ -627,6 +672,7 @@ function casosGit(g, dir, ctx, hallar) {
     case 'restore': {
       if (sub === 'checkout' && rest.some((a) => a === '-B' || letraCorta(a, 'B', 'bcC') === 'B')) hallar('branch-f', 'deny');
       if (sub === 'switch' && rest.some((a) => a === '--force-create' || letraCorta(a, 'C', 'c') === 'C')) hallar('branch-f', 'deny');
+      if (sub !== 'restore' && rest.some(esOrphan)) enAgente(ctx, () => hallar('rama-huerfana', 'deny', `${sub} --orphan`));
       if (restaurarArbol(sub, rest, base)) hallar('restaurar-arbol', 'deny');
       return;
     }
@@ -710,7 +756,7 @@ function casosGit(g, dir, ctx, hallar) {
       const c = analizarConfig(rest);
       if (!c.escribe) return;
       if (esReponerHooksPath(rest)) return; // por encima de config-agente (r2-3)
-      if (c.clave === 'core.hookspath') hallar('hooks-path', 'deny');
+      if (esDesvioHooks(c.clave)) hallar('hooks-path', 'deny', c.clave);
       if (esIncludeKey(c.clave) || c.valores.some(esIncludeKey)) hallar('config-include', 'deny');
       if (c.clave === 'init.defaultbranch') hallar('config-default-branch', 'deny');
       if (esExpireKey(c.clave)) hallar('red-de-rescate', 'deny', c.clave);
@@ -737,12 +783,16 @@ function casosGit(g, dir, ctx, hallar) {
       return;
     case 'worktree': {
       const pos = rest.filter((a) => !esOpcion(a));
+      if (pos[0] === 'add' && rest.some(esOrphan)) enAgente(ctx, () => hallar('rama-huerfana', 'deny', 'worktree add --orphan'));
       if (pos[0] === 'remove' && rest.some((a) => a === '--force' || (esOpcion(a) && !a.startsWith('--') && a.includes('f')))) hallar('worktree-remove-force', 'deny');
       return;
     }
     default:
   }
 }
+
+// `--orphan` y sus abreviaturas únicas (git acepta `--or`, `--orph`…), con o sin `=` (rf2-5).
+const esOrphan = (a) => /^--or(p(h(a(n)?)?)?)?(=|$)/.test(a);
 
 function enAgente(ctx, f) {
   if (ctx.sesion().agente) f();
@@ -999,7 +1049,7 @@ function decidir(entrada, opciones = {}) {
         const esEntorno = new RegExp(`env:[\\\\/]?${n}\\b`, 'i').test(texto) || new RegExp(`\\bsetx?\\s+"?${n}[\\s=]`, 'i').test(texto);
         if (!esEntorno) continue; // `$path = …` es una variable de PowerShell, no del entorno
       }
-      if (SOLO_CON_GIT.has(a.nombre.toUpperCase()) && !hayGit) continue;
+      if (SOLO_CON_GIT.has(a.nombre.toUpperCase()) && !alcanzaAGit(comandos, x)) continue;
       hallar('variables-peligrosas', 'deny', `la variable ${a.nombre.toUpperCase()}`);
     }
   }
@@ -1017,10 +1067,9 @@ function decidir(entrada, opciones = {}) {
     const dirActual = () => (dirSabido ? (dir === null ? c().cwd : dir) : null);
 
     if (prof > 0) {
-      const hayGitAca = lista.some(esGit);
       for (const x of lista) {
         for (const a of x.asignaciones || []) {
-          if (esPeligrosa(a.nombre) && (!SOLO_CON_GIT.has(a.nombre.toUpperCase()) || hayGitAca)) hallar('variables-peligrosas', 'deny', `la variable ${a.nombre.toUpperCase()} (en un alias)`);
+          if (esPeligrosa(a.nombre) && (!SOLO_CON_GIT.has(a.nombre.toUpperCase()) || alcanzaAGit(lista, x))) hallar('variables-peligrosas', 'deny', `la variable ${a.nombre.toUpperCase()} (en un alias)`);
         }
       }
     }
@@ -1065,7 +1114,7 @@ function decidir(entrada, opciones = {}) {
         if (r !== null && s.principal && a.dentroDe(r, s.principal)) hallar('salir-del-worktree', 'deny', 'una ruta del principal, fuera de tu worktree');
         else if (g.sub && ['commit', 'push', 'merge'].includes(g.sub)) hallar('salir-del-worktree', 'deny', '--git-dir/--work-tree a otro repo');
       }
-      if (g.sub && !SUBCOMANDOS.has(g.sub)) {
+      if (g.sub && !SUBCOMANDOS.has(g.subCrudo)) {
         const al = resolverAlias(g, d, c(), hallar);
         if (al.shell !== undefined) {
           casosGit({ ...g, sub: null }, d, c(), hallar); // las opciones globales de afuera (-c, --exec-path) valen igual
