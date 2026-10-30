@@ -8,8 +8,12 @@
 //     (también lo de adentro de `bash -c`, `$( )`, `powershell -Command`…) EMPIEZA con las palabras de la entrada, palabra entera
 //     (`npm run release-notes` no es `npm run release`). La primera palabra se compara como programa: sin ruta, sin .exe/.cmd y sin
 //     mayúsculas (`/usr/bin/npm`, `NPM.CMD`); si las dos traen ruta, alcanza con que una termine en la otra (`scripts/x.cjs` y
-//     `D:/repo/scripts/x.cjs`). Las demás, tal cual en Bash y sin mayúsculas en PowerShell. Un intérprete (`node`, `bash`, `python`,
-//     `pwsh`…) también se mira sin él: `node scripts/x.cjs` y `./scripts/x.cjs` son lo mismo.
+//     `D:/repo/scripts/x.cjs`). Las demás, tal cual en Bash y sin mayúsculas en PowerShell. Las banderas (palabras de 2+ caracteres
+//     que empiezan con `-`) no fijan la posición (rf3-9): las palabras de la entrada que NO son banderas, en orden, tienen que ser el
+//     principio de las del comando que no son banderas, y cada bandera de la entrada tiene que estar tal cual en algún lugar del
+//     comando (`git push --tags` pregunta en `git push origin --tags`; `--follow-tags` no es `--tags`: si duele, va como otra entrada).
+//     Un intérprete (`node`, `bash`, `python`, `pwsh`…) también se mira sin él: `node scripts/x.cjs` y `./scripts/x.cjs` son lo mismo.
+//     Lo que no cierra: una opción con valor antes del subcomando corre las palabras (`git -C x push --tags` no matchea).
 //   - NO matchean nada: las `"tabla:<nombre>"` (son para la guardia de `db migrar`, F §13), una entrada que no es UN comando simple
 //     (vacía, con `&&`, `|`, `;`, o que no se puede partir) y la PROSA. Regla de prosa: una entrada es prosa si su primera palabra
 //     tiene un carácter que no va en un nombre de programa (tilde, ñ, signos: fuera de [A-Za-z0-9._+/\\:~@-]) o si tiene dos palabras
@@ -125,12 +129,18 @@ function formas(argv, comando) {
   }
   return f;
 }
+// rf3-9: las banderas no fijan la posición. Las palabras de la entrada que no son banderas, en orden, son el principio de las del
+// comando que no son banderas; y cada bandera de la entrada está, tal cual, en algún lugar del comando (`git push --tags` pregunta
+// en `git push origin --tags`; `--follow-tags` no es `--tags`). Si el comando empieza literalmente con la entrada, también matchea.
+const esOpcion = (w) => w.length > 1 && w.startsWith('-');
 function empiezaCon(cmd, ent, ps) {
-  if (cmd.length < ent.length || !mismoPrograma(cmd[0], ent[0])) return false;
-  for (let i = 1; i < ent.length; i++) {
-    if (ps ? cmd[i].toLowerCase() !== ent[i].toLowerCase() : cmd[i] !== ent[i]) return false;
-  }
-  return true;
+  if (!cmd.length || !ent.length || !mismoPrograma(cmd[0], ent[0])) return false;
+  const eq = ps ? (a, b) => a.toLowerCase() === b.toLowerCase() : (a, b) => a === b;
+  const pc = cmd.slice(1).filter((w) => !esOpcion(w));
+  const pe = ent.slice(1).filter((w) => !esOpcion(w));
+  if (pc.length < pe.length) return false;
+  for (let i = 0; i < pe.length; i++) if (!eq(pc[i], pe[i])) return false;
+  return ent.slice(1).filter(esOpcion).every((f) => cmd.slice(1).some((w) => eq(w, f)));
 }
 function matchea(argvComando, argvEntrada, ps, comando) {
   const fc = formas(argvComando, comando);
