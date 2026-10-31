@@ -105,7 +105,7 @@ function proyecto(o = {}) {
   fs.mkdirSync(P, { recursive: true });
   g(base, 'init', '-q', '--bare', '-b', 'main', remoto);
   g(P, 'init', '-q', '-b', 'main');
-  commit(P, { '.gitignore': '/.claude/worktrees/\n/.kit-rol\n', '.claude/kit.md': ficha(o.ficha), 'base.js': BASE_JS }, 'base');
+  commit(P, { '.gitignore': '/.claude/worktrees/\n/.kit-rol\n/.claude/settings.local.json\n', '.claude/kit.md': ficha(o.ficha), 'base.js': BASE_JS, ...(o.archivos || {}) }, 'base');
   g(P, 'remote', 'add', 'origin', remoto);
   g(P, 'push', '-q', 'origin', 'main');
   g(P, 'branch', 'modulo/x');
@@ -164,7 +164,7 @@ test('sin argumentos: el USO de las cinco órdenes, exacto, y salida 2', () => {
   assert.equal(r.stdout, '');
 });
 
-test('mal llamado → 2 con el uso; autorizado y verificar → 2 "llega en E2"; fuera de un repo → 1', () => {
+test('mal llamado → 2 con el uso; fuera de un repo → 1', () => {
   for (const args of [
     ['nada'], ['partida'], ['partida', 'x'], ['partida', 'x--1'], ['partida', 'X--01'], ['partida', 'x--01', 'y--02'], ['partida', 'x--01', '--spec'],
     ['presentar'], ['presentar', 'x--01', '--otra'], ['presentar', '--spec', 'x--01'], ['presentar', '--spec', '--sin-base'],
@@ -178,9 +178,7 @@ test('mal llamado → 2 con el uso; autorizado y verificar → 2 "llega en E2"; 
     assert.equal(r.out, '');
   }
   for (const args of [['autorizado', 'x--01'], ['verificar', 'x--01'], ['verificar', 'x--01', '--plazo', '30']]) {
-    const r = cli(TMP, args);
-    assert.equal(r.codigo, 2);
-    assert.match(r.err, new RegExp(`^encargo ${args[0]}: llega en E2`));
+    assert.deepEqual(cli(TMP, args), { codigo: 1, out: 'encargo: no estás dentro de un repo git\n', err: '' }, JSON.stringify(args));
   }
   assert.deepEqual(cli(TMP, ['partida', 'x--01']), { codigo: 1, out: 'encargo: no estás dentro de un repo git\n', err: '' });
   assert.equal(cli(TMP, ['mensaje', 'AVANCE']).codigo, 1);
@@ -387,4 +385,401 @@ test('mensaje (crit. 3): la ruta en origin, más nuevo que el local → vale; di
   const r = cli(p.obr, ['mensaje', 'CORRECCION', `${nueva}@${sha.slice(0, 7)}`]);
   assert.equal(r.codigo, 1);
   assert.match(r.out, /^modulo\/x divergió de origin/);
+});
+
+// ---------------------------------------------------------------- autorizado y verificar (criterios 4 y 5): ayudantes
+
+const W = require('./worktree.cjs');
+const E = require('../hooks/lib/encargo.cjs');
+const X = require('../hooks/lib/contexto.cjs');
+const CF = require('../hooks/lib/cambios.cjs');
+const cambiosScript = require('./cambios.cjs');
+
+// gate.js: el comando de ## GATE (rojo con GATE_MODO=rojo); cuelga.js: un test colgado que anota su pid.
+const GATE_JS = "process.exit(process.env.GATE_MODO === 'rojo' ? 5 : 0);\n";
+const CUELGA_JS = "require('fs').writeFileSync(process.env.KIT_PRUEBA_PID, String(process.pid));\nsetTimeout(() => {}, 30000);\n";
+const FRENOS = '2026-10-29T10:00-03:00 · uno\n2026-10-29T11:00-03:00 · dos\n';
+const CUERPO = '## Caso de origen\nel obrero quiere borrar datos (2026-10)\n\n## Regla\nquitar la pregunta\n\n## Dónde vive\n.claude/kit.md\n\n## Medición\n| antes | después |\n';
+const CON_QUITADO = ficha().replace('  quitados: []', '  quitados:\n    - {id: pregunta:borrar-datos-reales, por: "lo pidió el obrero", hasta: siempre}');
+
+// La partida un minuto adelante: lo que se commitea en main al armar el proyecto no cuenta como "después de la partida".
+const partidaAhora = () => `- Partida: rama modulo/x--01 desde modulo/x@abc1234 · ${C.isoConZona(new Date(Date.now() + 60000))}`;
+
+// El proyecto de verificar: AUTORIZADO con dos reglas, GATE con node gate.js, frenos.log commiteado en main y el settings.local.json
+// del worktree del obrero con el deny que suma worktree (como lo deja `worktree crear`).
+function proyectoV(o = {}) {
+  const p = proyecto({
+    archivos: { 'gate.js': GATE_JS, 'cuelga.js': CUELGA_JS, '.claude/frenos.log': FRENOS },
+    ficha: o.ficha,
+    rolObrero: o.rolObrero,
+    encargo: encargo({ '- Partida:': partidaAhora(), '- Bash(npm run build)': ['- Bash(npm run build)', '- Edit(src/x/**)'], '- `npm run lint`': '- `node gate.js`' }),
+  });
+  p.principal = path.dirname(X.datosGit(p.obr).gitComun);
+  p.deny = W.reglasDeny(p.principal);
+  p.settings = path.join(p.obr, '.claude', 'settings.local.json');
+  escribir(p.obr, '.claude/settings.local.json', `${JSON.stringify({ permissions: { deny: p.deny } }, null, 2)}\n`);
+  return p;
+}
+const leerSettings = (p) => JSON.parse(fs.readFileSync(p.settings, 'utf8'));
+const escribirSettings = (p, s) => fs.writeFileSync(p.settings, `${JSON.stringify(s, null, 2)}\n`);
+const textoEncargo = (p) => fs.readFileSync(path.join(p.dir, ...RUTA.split('/')), 'utf8');
+const aut = (p, extra = {}) => cli(p.obr, ['autorizado', 'x--01'], { claudeEnPath: true, ...extra });
+// El sub-paso hecho: su commit en el worktree del obrero, autorizado y la rama pusheada.
+function listo(p, archivos = { 'src/x/a.js': 'a\n' }) {
+  const sha = commit(p.obr, archivos, 'sub-paso');
+  const r = aut(p);
+  assert.equal(r.codigo, 0, r.out);
+  g(p.obr, 'push', '-q', 'origin', 'modulo/x--01');
+  return sha;
+}
+function ver(cwd, extra = {}, args = []) {
+  const r = cli(cwd, ['verificar', 'x--01', ...args], extra);
+  const lineas = r.out.split('\n').filter(Boolean);
+  return { ...r, lineas, linea: (i) => lineas[i - 1] };
+}
+const IDS = ['remoto', 'limpio', 'pruebas', 'alcance', 'main', 'barreras'];
+// Las seis marcas en orden, y que sean seis, con sus ids, en orden (criterio 5: siempre seis líneas).
+function marcas(r) {
+  assert.equal(r.lineas.length, 6, r.out);
+  r.lineas.forEach((l, i) => assert.ok(l.startsWith(`${i + 1}. ${IDS[i]} · `), l));
+  return r.lineas.map((l) => /^\d\. \S+ · (✅|❌|⚠️) · /.exec(l)[1]).join('');
+}
+// La marca de la línea i (1 a 6): ⚠️ son dos caracteres, así que no se indexa el texto de marcas().
+const marca = (r, i) => /^\d\. \S+ · (✅|❌|⚠️) · /.exec(r.lineas[i - 1])[1];
+function conEntorno(vars, fn) {
+  const antes = {};
+  for (const [k, v] of Object.entries(vars)) {
+    antes[k] = process.env[k];
+    process.env[k] = v;
+  }
+  try {
+    return fn();
+  } finally {
+    for (const k of Object.keys(vars)) {
+      if (antes[k] === undefined) delete process.env[k];
+      else process.env[k] = antes[k];
+    }
+  }
+}
+
+// ---------------------------------------------------------------- autorizado (criterio 4)
+
+test('autorizado (crit. 4): allow = la base (con sus formas PowerShell) + las dos del encargo; el deny y las otras claves intactos; ninguna clave del kit', () => {
+  const p = proyectoV();
+  escribirSettings(p, { permissions: { deny: p.deny, ask: ['Bash(git push --force:*)'], allow: ['Bash(curl:*)'] }, env: { A: '1' } });
+  const r = aut(p);
+  assert.equal(r.codigo, 0, r.out);
+  const base = E.base('node base.js');
+  for (const regla of ['PowerShell(git status:*)', 'PowerShell(git commit:*)', 'PowerShell(node .claude/scripts/encargo.cjs:*)', 'PowerShell(node base.js)', 'PowerShell(node base.js *)', 'Bash(node base.js *)', 'Agent', 'Skill']) {
+    assert.ok(base.includes(regla), regla);
+  }
+  const s = leerSettings(p);
+  assert.deepEqual(s, { permissions: { deny: p.deny, ask: ['Bash(git push --force:*)'], allow: [...base, 'Bash(npm run build)', 'Edit(src/x/**)'] }, env: { A: '1' } });
+  const sha7 = g(p.P, 'rev-parse', '--short=7', 'modulo/x');
+  assert.match(r.out, new RegExp(`^autorizado: ${base.length + 2} reglas en \\.claude/settings\\.local\\.json de \\.claude/worktrees/modulo--x--01 \\(la base, ${base.length}, \\+ 2 de ${RUTA}@${sha7}\\)\n`));
+  assert.match(r.out, /\nsaqué 1 que no venían de la base ni del encargo \(lo sumado con "no preguntar más" se pierde cada vez que corre autorizado\): Bash\(curl:\*\)\n/);
+  assert.doesNotMatch(r.out, /ojo:/);
+});
+
+test('autorizado (crit. 4, r1-5): de nuevo tras una CORRECCION que saca una regla → la regla ya no está (sin estado); sin sacar nada, lo avisa igual', () => {
+  const p = proyectoV();
+  assert.equal(aut(p).codigo, 0);
+  commit(p.dir, { [RUTA]: textoEncargo(p).replace('- Edit(src/x/**)\n', '') }, 'CORRECCION: sin Edit');
+  const r = aut(p);
+  assert.equal(r.codigo, 0, r.out);
+  assert.deepEqual(leerSettings(p).permissions.allow, [...E.base('node base.js'), 'Bash(npm run build)']);
+  assert.match(r.out, /\nsaqué 1 .*: Edit\(src\/x\/\*\*\)\n/);
+  const otra = aut(p);
+  assert.match(otra.out, /\nlo que se sume con "no preguntar más" se pierde la próxima vez que corra autorizado \(allow se reescribe entero\)\n/);
+  // Sin vars.comando-test, la base va sin el test, y lo dice; sin deny, lo dice.
+  const q = proyectoV({ ficha: { test: '' } });
+  fs.rmSync(q.settings);
+  const sin = aut(q);
+  assert.equal(sin.codigo, 0, sin.out);
+  assert.deepEqual(leerSettings(q), { permissions: { allow: [...E.base(''), 'Bash(npm run build)', 'Edit(src/x/**)'] } });
+  assert.match(sin.out, /\nla ficha vigente no tiene vars\.comando-test: la base va sin las reglas del test\n/);
+  assert.match(sin.out, /\nojo: \.claude\/settings\.local\.json no tiene el deny de worktree: corré worktree abrir/);
+});
+
+test('autorizado (crit. 4): cada negativa → 1 sin tocar el archivo; una - Partida: repetida → 1 (el error sale en el director); settings roto o sin worktree → 1', () => {
+  const p = proyectoV();
+  const antes = fs.readFileSync(p.settings);
+  const bueno = textoEncargo(p);
+  for (const mala of ['Bash(*)', 'Bash(node:*)', 'Edit(//c/Users/x/**)', 'Edit(~/.claude/**)', 'Edit(../x)', 'Edit(**)', 'Task(x)']) {
+    commit(p.dir, { [RUTA]: bueno.replace('- Edit(src/x/**)\n', `- Edit(src/x/**)\n- ${mala}\n`) }, `mala ${mala}`);
+    const r = aut(p);
+    assert.equal(r.codigo, 1, mala);
+    assert.ok(r.out.startsWith(`autorizado: no — ## AUTORIZADO de ${RUTA} tiene una regla que no vale; no escribí nada:\n  ${mala}: `), r.out);
+    assert.deepEqual(fs.readFileSync(p.settings), antes, mala);
+  }
+  commit(p.dir, { [RUTA]: bueno.replace(/^(- Partida: .*)$/m, '$1\n$1') }, 'partida doble');
+  let r = aut(p);
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, new RegExp(`^autorizado: no — el encargo ${RUTA} no sigue la plantilla: - Partida: está dos veces: que el director lo corrija y lo commitee\n$`));
+  assert.deepEqual(fs.readFileSync(p.settings), antes);
+  commit(p.dir, { [RUTA]: bueno }, 'bueno');
+  fs.writeFileSync(p.settings, '{ "permissions": { "allow": "Read" } }\n');
+  r = aut(p);
+  assert.equal(r.codigo, 1);
+  assert.equal(r.out, 'autorizado: no — permissions.allow de .claude/settings.local.json no es una lista: arreglalo y corré autorizado de nuevo (no escribí nada)\n');
+  fs.writeFileSync(p.settings, '{ roto');
+  assert.match(aut(p).out, /no es un JSON válido/);
+  assert.equal(fs.readFileSync(p.settings, 'utf8'), '{ roto');
+  assert.match(cli(p.dir, ['autorizado', 'x--02']).out, /^autorizado: no — no hay encargo 02 commiteado en modulo\/x/);
+  g(p.P, 'worktree', 'remove', '--force', p.obr);
+  r = cli(p.dir, ['autorizado', 'x--01'], { claudeEnPath: true });
+  assert.deepEqual(r, { codigo: 1, out: 'autorizado: no — el worktree de modulo/x--01 no está en esta PC: worktree crear x--01 (o abrir) y después autorizado\n', err: '' });
+});
+
+test('autorizado (crit. 4, D5-2, D5-19): la de fondo con acceptEdits, la base y las reglas, una por argumento, y nunca el bypass; la de Guido no fuerza el modo; sin claude → la apertura es de Guido', () => {
+  const p = proyectoV();
+  const r = aut(p);
+  const lineas = r.out.trim().split('\n');
+  const reglas = [...E.base('node base.js'), 'Bash(npm run build)', 'Edit(src/x/**)'];
+  const fondo = lineas[lineas.length - 1];
+  assert.match(fondo, /^apertura de fondo: cd "[^"]+\/modulo--x--01"; claude -p "\/obrero x--01" --model sonnet --permission-mode acceptEdits --allowedTools "Read" /);
+  assert.ok(fondo.endsWith(`--allowedTools ${reglas.map((x) => `"${x}"`).join(' ')}`), fondo);
+  const guido = lineas[lineas.length - 2];
+  assert.match(guido, /^apertura de Guido: code "[^"]+\/modulo--x--01" → en esa ventana, la pestaña de Claude con Sonnet, en tu modo \(nombre sugerido: obrero-x--01\)$/);
+  assert.doesNotMatch(r.out, /bypass|dangerously|--permission-mode (?!acceptEdits)/i);
+  const sin = aut(p, { claudeEnPath: false });
+  assert.equal(sin.out.trim().split('\n').pop(), 'apertura de fondo: sin `claude` en el PATH: la apertura es de Guido');
+  // El modelo sale del encargo.
+  commit(p.dir, { [RUTA]: textoEncargo(p).replace('- Modelo: sonnet', '- Modelo: opus') }, 'opus');
+  assert.match(aut(p).out, /con Opus, en tu modo[\s\S]*--model opus --permission-mode acceptEdits/);
+  // Las comillas: dobles si se puede; simples si la regla trae comillas dobles o $; con una simple adentro, ninguna sirve.
+  assert.equal(C.citar('Read'), '"Read"');
+  assert.equal(C.citar('Bash(node --test "kit/**/*.test.cjs")'), `'Bash(node --test "kit/**/*.test.cjs")'`);
+  assert.equal(C.citar("Bash(echo 'a' \"b\")"), null);
+  const q = proyectoV({ ficha: { test: "node t.js '$x'" } });
+  assert.match(aut(q).out, /\napertura de fondo: la regla Bash\(node t\.js '\$x'\) no se puede citar igual en PowerShell y en Bash: la apertura es de Guido\n$/);
+  const h = proyectoV({ ficha: { test: 'echo $HOME' } });
+  assert.match(aut(h).out, / 'Bash\(echo \$HOME\)' 'Bash\(echo \$HOME \*\)' "PowerShell\(git status:\*\)"/);
+  // Criterio 11: el script no nombra el modo que saltea los permisos.
+  assert.doesNotMatch(fs.readFileSync(SCRIPT, 'utf8'), /bypassPermissions/);
+});
+
+// ---------------------------------------------------------------- verificar (criterio 5)
+
+test('verificar (crit. 5): todo en orden → seis ✅ y salida 0, la línea 1 con la punta; desde el director, el principal o el obrero; por el script de verdad, igual', () => {
+  const p = proyectoV();
+  const sha = listo(p);
+  for (const cwd of [p.dir, p.P, p.obr]) {
+    const r = ver(cwd);
+    assert.equal(r.codigo, 0, r.out);
+    assert.equal(marcas(r), '✅✅✅✅✅✅', r.out);
+    assert.equal(r.linea(1), `1. remoto · ✅ · punta @${sha.slice(0, 7)} = origin/modulo/x--01`);
+    assert.equal(r.linea(2), '2. limpio · ✅ · el worktree está limpio');
+    assert.equal(r.linea(3), '3. pruebas · ✅ · en verde: node base.js · node gate.js');
+    assert.equal(r.linea(4), '4. alcance · ✅ · 1 archivo(s), todos en ## Toca, la evidencia o .claude/frenos.log');
+    assert.match(r.linea(5), /^5\. main · ✅ · 0 commit\(s\) en main después de la partida \(.+\) · principal: ## main$/);
+    assert.equal(r.linea(6), '6. barreras · ✅ · candado verde · .claude/frenos.log sin bajas · allow ⊆ base + AUTORIZADO · deny de worktree completo');
+  }
+  const s = spawnSync(process.execPath, [SCRIPT, 'verificar', 'x--01', '--plazo', '5'], { cwd: p.dir, encoding: 'utf8', env: process.env });
+  assert.equal(s.status, 0, s.stdout + s.stderr);
+  assert.equal(s.stdout.trim().split('\n').length, 6);
+  assert.equal(C.PLAZO_VERIFICAR_MIN, 30);
+});
+
+test('verificar línea 1 (remoto): sin pushear → ❌; adelante → ❌; origin que avanzó desde otra PC → ❌ atrás (el fetch lo trae); sin remoto → ✅', () => {
+  const p = proyectoV();
+  const a = commit(p.obr, { 'src/x/a.js': 'a\n' }, 'sub-paso');
+  aut(p);
+  let r = ver(p.dir);
+  assert.equal(r.codigo, 1);
+  assert.equal(marca(r, 1), '❌');
+  assert.equal(r.linea(1), `1. remoto · ❌ · punta @${a.slice(0, 7)} · origin no tiene modulo/x--01: pusheá la rama`);
+  g(p.obr, 'push', '-q', 'origin', 'modulo/x--01');
+  const b = commit(p.obr, { 'src/x/b.js': 'b\n' }, 'otro');
+  r = ver(p.dir);
+  assert.equal(r.linea(1), `1. remoto · ❌ · punta @${b.slice(0, 7)} · adelante de origin/modulo/x--01 @${a.slice(0, 7)}: pusheá la rama`);
+  g(p.obr, 'push', '-q', 'origin', 'modulo/x--01');
+  const otra = path.join(p.base, `otra${k++}`);
+  g(p.base, 'clone', '-q', '-b', 'modulo/x--01', p.remoto, otra);
+  const c = commit(otra, { 'src/x/c.js': 'c\n' }, 'desde otra PC');
+  g(otra, 'push', '-q', 'origin', 'modulo/x--01');
+  r = ver(p.dir);
+  assert.equal(r.linea(1), `1. remoto · ❌ · punta @${b.slice(0, 7)} · atrás de origin/modulo/x--01 @${c.slice(0, 7)}: pusheá la rama`);
+  g(p.P, 'remote', 'remove', 'origin');
+  r = ver(p.dir);
+  assert.equal(r.linea(1), `1. remoto · ✅ · punta @${b.slice(0, 7)} · sin remoto`);
+  marcas(r);
+});
+
+test('verificar línea 2 (limpio): solo renglones agregados a frenos.log sin commitear → ⚠️ y salida 0; frenos.log cambiado en el medio → ❌; otro archivo → ❌', () => {
+  const p = proyectoV();
+  listo(p);
+  fs.appendFileSync(path.join(p.obr, '.claude', 'frenos.log'), '2026-10-31T10:00-03:00 · tres\n');
+  let r = ver(p.dir);
+  assert.equal(r.codigo, 0, r.out);
+  assert.equal(marcas(r), '✅⚠️✅✅✅✅');
+  assert.equal(r.linea(2), '2. limpio · ⚠️ · .claude/frenos.log con 1 renglón(es) agregado(s) sin commitear (los muda worktree cerrar)');
+  escribir(p.obr, '.claude/frenos.log', FRENOS.replace('uno', 'UNO'));
+  r = ver(p.dir);
+  assert.equal(r.codigo, 1);
+  assert.equal(r.linea(2), '2. limpio · ❌ · .claude/frenos.log cambió en el medio o se borró (no solo renglones al final): revisalo');
+  escribir(p.obr, '.claude/frenos.log', FRENOS);
+  escribir(p.obr, 'src/x/sin-commit.js', 'x\n');
+  r = ver(p.dir);
+  assert.equal(r.codigo, 1);
+  assert.equal(marca(r, 2), '❌');
+  assert.equal(r.linea(2), '2. limpio · ❌ · sin commitear: src/x/sin-commit.js');
+});
+
+test('verificar línea 3 (pruebas): comando-test rojo → ❌; un GATE rojo → ❌ con cuál; un GATE con tubería → NO VERIFICADO; colgado → NO VERIFICADO, 1 y el árbol muerto', () => {
+  const p = proyectoV();
+  listo(p);
+  let r = conBase('rojo', () => ver(p.dir));
+  assert.equal(r.codigo, 1);
+  assert.equal(marcas(r), '✅✅❌✅✅✅');
+  assert.equal(r.linea(3), '3. pruebas · ❌ · commit con la suite en rojo: node base.js (salida 3)');
+  r = conEntorno({ GATE_MODO: 'rojo' }, () => ver(p.dir));
+  assert.equal(r.codigo, 1);
+  assert.equal(r.linea(3), '3. pruebas · ❌ · commit con la suite en rojo: node gate.js (salida 5)');
+  commit(p.dir, { [RUTA]: textoEncargo(p).replace('- `node gate.js`', '- `node gate.js | tail -1`') }, 'gate con tubería');
+  r = ver(p.dir);
+  assert.equal(r.codigo, 1);
+  assert.equal(r.linea(3), '3. pruebas · ❌ · NO VERIFICADO — node gate.js | tail -1 tiene una tubería: el gate mira el código de salida (sacala)');
+  assert.ok(!C.conTuberia('node -e "a|b"') && C.conTuberia('npm test || true'));
+  // Colgado: el vigía lo mata con todo lo que lanzó.
+  const q = proyectoV({ ficha: { test: 'node cuelga.js' } });
+  listo(q);
+  const archivoPid = path.join(TMP, `cuelga-${k++}.pid`);
+  r = conEntorno({ KIT_PRUEBA_PID: archivoPid }, () => ver(q.dir, { plazoMs: 1500 }));
+  assert.equal(r.codigo, 1);
+  assert.equal(marcas(r), '✅✅❌✅✅✅');
+  assert.equal(r.linea(3), '3. pruebas · ❌ · NO VERIFICADO — node cuelga.js no terminó en 2 s (lo maté con todo lo que lanzó)');
+  assert.throws(() => process.kill(Number(fs.readFileSync(archivoPid, 'utf8')), 0), 'el test colgado quedó vivo');
+  // Sin comando-test en la ficha vigente: NO VERIFICADO.
+  const s = proyectoV({ ficha: { test: '' } });
+  listo(s);
+  assert.equal(ver(s.dir).linea(3), '3. pruebas · ❌ · NO VERIFICADO — la ficha vigente no tiene vars.comando-test');
+});
+
+test('verificar línea 4 (alcance): la evidencia y frenos.log no cuentan; fuera de ## Toca → ⚠️ con la lista y salida 0', () => {
+  const p = proyectoV();
+  listo(p, { 'src/x/a.js': 'a\n', 'docs/modulos/x/bitacora/2026-10-31-evidencia-01.md': 'probé\n', '.claude/frenos.log': `${FRENOS}2026-10-31T10:00-03:00 · tres\n` });
+  let r = ver(p.dir);
+  assert.equal(r.codigo, 0, r.out);
+  assert.equal(r.linea(4), '4. alcance · ✅ · 3 archivo(s), todos en ## Toca, la evidencia o .claude/frenos.log');
+  commit(p.obr, { 'otro/fuera.js': 'x\n', 'docs/modulos/x/bitacora/2026-10-31-evidencia-02.md': 'de otro\n' }, 'de más');
+  g(p.obr, 'push', '-q', 'origin', 'modulo/x--01');
+  r = ver(p.dir);
+  assert.equal(r.codigo, 0, r.out);
+  assert.equal(marcas(r), '✅✅✅⚠️✅✅');
+  assert.equal(r.linea(4), '4. alcance · ⚠️ · 2 fuera de ## Toca (el director decide): docs/modulos/x/bitacora/2026-10-31-evidencia-02.md, otro/fuera.js');
+  for (const [ruta, patron, si] of [
+    ['src/x/a/b.js', 'src/x/**', true], ['src/xy/a.js', 'src/x/**', false], ['src/a.js', 'src/*.js', true], ['src/b/a.js', 'src/*.js', false],
+    ['src/pagos/a.js', 'src/pagos/', true], ['src/pagos/a.js', 'src/pagos', true], ['README.md', './README.md', true], ['README.md.bak', 'README.md', false],
+    ['a/b/c.ts', '**/*.ts', true], ['c.ts', '**/*.ts', true], ['a.js', 'a?js', true], ['a/js', 'a?js', false],
+  ]) assert.equal(C.enToca(ruta, patron), si, `${ruta} ~ ${patron}`);
+});
+
+test('verificar línea 5 (main): un commit en main después de la partida → ⚠️ de día (salida 0), ❌ con el worktree nocturno; el principal sucio → ⚠️', () => {
+  const p = proyectoV();
+  listo(p);
+  const futuro = new Date(Date.now() + 10 * 60000).toISOString();
+  conEntorno({ GIT_COMMITTER_DATE: futuro, GIT_AUTHOR_DATE: futuro }, () => commit(p.P, { 'guido.txt': 'de Guido\n' }, 'Guido en main'));
+  let r = ver(p.dir);
+  assert.equal(r.codigo, 0, r.out);
+  assert.equal(marcas(r), '✅✅✅✅⚠️✅');
+  assert.match(r.linea(5), /^5\. main · ⚠️ · 1 commit\(s\) en main después de la partida \(.+\) · principal: ## main$/);
+  fs.writeFileSync(path.join(p.obr, '.kit-rol'), 'nocturno\n');
+  r = ver(p.dir);
+  assert.equal(r.codigo, 1);
+  assert.equal(marcas(r), '✅✅✅✅❌✅');
+  assert.match(r.linea(5), /^5\. main · ❌ · 1 commit\(s\) en main después de la partida \(.+\): commit en main de noche: PARADA · principal: /);
+  // Sin commits nuevos, de noche, ✅; el principal sucio (de día o de noche) → ⚠️.
+  g(p.P, 'reset', '-q', '--hard', 'HEAD~1');
+  assert.equal(marcas(ver(p.dir)), '✅✅✅✅✅✅');
+  fs.writeFileSync(path.join(p.obr, '.kit-rol'), 'obrero\n');
+  escribir(p.P, 'suelto.txt', 'x\n');
+  r = ver(p.dir);
+  assert.equal(r.codigo, 0);
+  assert.match(r.linea(5), /^5\. main · ⚠️ · 0 commit\(s\) .* · principal: ## main · 1 sin commitear$/);
+});
+
+test('verificar línea 6 (barreras): pregunta:borrar-datos-reales sumado a frenos.quitados → ❌ (candado rojo)', () => {
+  const p = proyectoV();
+  listo(p, { '.claude/kit.md': CON_QUITADO });
+  const r = ver(p.dir);
+  assert.equal(r.codigo, 1);
+  assert.equal(marcas(r), '✅✅✅⚠️✅❌');
+  assert.match(r.linea(6), /^6\. barreras · ❌ · candado rojo: candado:barreras · el commit \w+ toca frenos \(pregunta:borrar-datos-reales\) sin un aprobado/);
+});
+
+test('verificar línea 6 (barreras): un cambio con estado: aprobado a mano no cubre el commit que quita el freno → ❌', () => {
+  const p = proyectoV();
+  let out = '';
+  const c = cambiosScript.main(['nuevo', '--slug', 'datos', '--clase', '3-barrera', '--toca', 'frenos', '--id', 'pregunta:borrar-datos-reales', '--origen', 'lo pidió el obrero'], {
+    cwd: p.obr, salida: (s) => (out += s), error: (s) => (out += s), entradaEstandar: () => CUERPO,
+  });
+  assert.equal(c, 0, out);
+  const rel = `.claude/cambios/${/propuesto (\S+)/.exec(out)[1]}.md`;
+  commit(p.obr, { [rel]: CF.ponerCampos(fs.readFileSync(path.join(p.obr, ...rel.split('/')), 'utf8'), { estado: 'aprobado' }) }, 'aprobado a mano');
+  listo(p, { '.claude/kit.md': CON_QUITADO });
+  const r = ver(p.dir);
+  assert.equal(r.codigo, 1);
+  assert.equal(marca(r, 6), '❌');
+  assert.match(r.linea(6), /^6\. barreras · ❌ · candado rojo: candado:barreras · .*sin un aprobado/);
+});
+
+test('verificar línea 6 (barreras): la rama que borra un renglón de frenos.log → ❌; un allow de más → ⚠️ y salida 0; el deny sacado → ❌', () => {
+  const p = proyectoV();
+  listo(p, { 'src/x/a.js': 'a\n', '.claude/frenos.log': FRENOS.replace('2026-10-29T10:00-03:00 · uno\n', '') });
+  let r = ver(p.dir);
+  assert.equal(r.codigo, 1);
+  assert.equal(marcas(r), '✅✅✅✅✅❌');
+  assert.equal(r.linea(6), '6. barreras · ❌ · la rama borra 1 renglón(es) de .claude/frenos.log');
+  const q = proyectoV();
+  listo(q);
+  const s = leerSettings(q);
+  s.permissions.allow.push('Bash(curl:*)');
+  escribirSettings(q, s);
+  r = ver(q.dir);
+  assert.equal(r.codigo, 0, r.out);
+  assert.equal(marcas(r), '✅✅✅✅✅⚠️');
+  assert.equal(r.linea(6), '6. barreras · ⚠️ · candado verde · .claude/frenos.log sin bajas · allow de más (ni en la base ni en ## AUTORIZADO): Bash(curl:*)');
+  s.permissions.deny = s.permissions.deny.slice(1);
+  escribirSettings(q, s);
+  r = ver(q.dir);
+  assert.equal(r.codigo, 1);
+  assert.equal(r.linea(6), `6. barreras · ❌ · falta el deny de worktree (1): ${q.deny[0]} · allow de más (ni en la base ni en ## AUTORIZADO): Bash(curl:*)`);
+  fs.rmSync(q.settings);
+  r = ver(q.dir);
+  assert.equal(r.codigo, 1);
+  assert.match(r.linea(6), /^6\. barreras · ❌ · falta el deny de worktree \(6\): /);
+});
+
+test('verificar: siempre seis líneas — sin la rama, sin el worktree en esta PC, una línea que se rompe: ❌ NO VERIFICADO con el porqué; error propio → encargo roto + NO VERIFICADO', () => {
+  const p = proyectoV();
+  listo(p);
+  let r = cli(p.dir, ['verificar', 'x--02']);
+  const lineas = r.out.trim().split('\n');
+  assert.equal(r.codigo, 1);
+  assert.equal(lineas.length, 6, r.out);
+  assert.equal(lineas[0], '1. remoto · ❌ · NO VERIFICADO — no existe modulo/x--02 en esta PC');
+  for (const l of lineas) assert.match(l, /^\d\. \S+ · ❌ · NO VERIFICADO — /);
+  // Algo propio que se rompe adentro de una línea: esa línea dice "encargo roto", las otras corren.
+  let out = '';
+  const opciones = { cwd: p.dir, salida: (s) => (out += s), error: (s) => (out += s) };
+  Object.defineProperty(opciones, 'plazoMs', { get() { throw new Error('roto a propósito'); } });
+  assert.equal(C.main(['verificar', 'x--01'], opciones), 1);
+  r = { out, lineas: out.split('\n').filter(Boolean) };
+  assert.equal(marcas(r), '✅✅❌✅✅✅');
+  assert.equal(r.lineas[2], '3. pruebas · ❌ · NO VERIFICADO — encargo roto: corré doctor');
+  // Un settings que no se lee: la línea 6 lo dice (sin el deny a la vista, ❌).
+  fs.rmSync(p.settings);
+  fs.mkdirSync(p.settings);
+  assert.equal(ver(p.dir).linea(6), '6. barreras · ❌ · .claude/settings.local.json del worktree no es un JSON válido: no se ve el deny de worktree');
+  fs.rmSync(p.settings, { recursive: true });
+  // El worktree en otra PC: lo que no lo necesita corre igual.
+  g(p.P, 'worktree', 'remove', '--force', p.obr);
+  r = ver(p.dir);
+  assert.equal(r.codigo, 1);
+  assert.equal(marcas(r), '✅❌❌✅❌❌');
+  assert.equal(r.linea(2), '2. limpio · ❌ · NO VERIFICADO — el worktree del encargo no está en esta PC: corré verificar en la PC del worktree');
+  // Un error propio fuera de las líneas: "encargo roto" y NO VERIFICADO (en verificar; en partida, solo roto).
+  assert.deepEqual(cli(42, ['verificar', 'x--01']), { codigo: 1, out: 'encargo roto: corré doctor\nNO VERIFICADO\n', err: '' });
+  assert.deepEqual(cli(42, ['partida', 'x--01']), { codigo: 1, out: 'encargo roto: corré doctor\n', err: '' });
 });
