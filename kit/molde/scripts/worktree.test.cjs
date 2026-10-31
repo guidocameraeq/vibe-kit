@@ -817,18 +817,31 @@ test('integrar con el gate en rojo → 1 y nada sube: comando-test rojo, sin com
   const casos = [
     [{ test: 'node rojo.cjs', archivos: { 'rojo.cjs': 'process.exit(4)\n' } }, {}, /comando-test en rojo \(salida 4\): node rojo\.cjs/],
     [{ test: null }, {}, /NO VERIFICADO: la ficha no tiene vars\.comando-test/],
-    [{ test: 'node colgado.cjs', archivos: { 'colgado.cjs': 'setTimeout(() => {}, 20000);\n' } }, { plazoTest: 1500 }, /NO VERIFICADO: comando-test no terminó en \d+ min/],
+    [
+      { test: 'node colgado.cjs', archivos: { 'colgado.cjs': "require('fs').writeFileSync(process.env.KIT_PRUEBA_PID, String(process.pid));\nsetTimeout(() => {}, 20000);\n" } },
+      { plazoTest: 1500 },
+      /NO VERIFICADO: comando-test no terminó en \d+ min/,
+    ],
   ];
-  for (const [o, extra, esperado] of casos) {
-    const q = proyectoI(o);
-    moduloX(q);
-    base = enOrigin(q);
-    r = cli(q.P, ['integrar', 'x'], extra);
-    assert.equal(r.codigo, 1, r.out);
-    assert.match(r.out, esperado);
-    assert.equal(enOrigin(q), base);
-    sinTemporal(q);
+  const archivoPid = path.join(TMP, 'colgado.pid');
+  process.env.KIT_PRUEBA_PID = archivoPid;
+  try {
+    for (const [o, extra, esperado] of casos) {
+      const q = proyectoI(o);
+      moduloX(q);
+      base = enOrigin(q);
+      r = cli(q.P, ['integrar', 'x'], extra);
+      assert.equal(r.codigo, 1, r.out);
+      assert.match(r.out, esperado);
+      assert.equal(enOrigin(q), base);
+      sinTemporal(q);
+    }
+  } finally {
+    delete process.env.KIT_PRUEBA_PID;
   }
+  // El vigía mató el árbol: el node colgado (nieto, debajo de la shell) ya no vive.
+  const pid = Number(fs.readFileSync(archivoPid, 'utf8'));
+  assert.throws(() => process.kill(pid, 0), 'el test colgado quedó vivo');
 });
 
 test('integrar con la ficha que endurece merge-a-main → 1 sin --ok-de-guido, 0 con él (y queda en el commit de merge); libre → sigue', () => {

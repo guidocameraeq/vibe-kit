@@ -814,7 +814,8 @@ const ES_RECHAZO = /\[rejected\]|non-fast-forward|fetch first|\[remote rejected\
 
 // comando-test corre adentro de un vigía (otro node): pasado el plazo mata el ÁRBOL entero, no solo la shell. Si no, en Windows un
 // test colgado (un vitest en modo watch) queda vivo adentro del temporal, lo deja tomado y el próximo integrar dice "ya existe".
-// Pasado el plazo sale con 124.
+// Pasado el plazo sale con 124. En Windows, que el vigía sea un node ya alcanza (libuv mete a sus hijos en un job que muere con él);
+// el taskkill es por las dudas de ese detalle, y en el resto el grupo de procesos es lo que mata el árbol.
 const VIGIA = [
   "const { spawn, spawnSync } = require('child_process');",
   "const win = process.platform === 'win32';",
