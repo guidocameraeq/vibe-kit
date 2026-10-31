@@ -5,6 +5,7 @@
 //   node .claude/scripts/worktree.cjs abrir  <x>[--<ID>] [--noche] [--model <m>]
 //   node .claude/scripts/worktree.cjs sync-env
 //   node .claude/scripts/worktree.cjs cerrar <x>[--<ID>]
+//   node .claude/scripts/worktree.cjs integrar <x> [--ok-de-guido]
 // Rama modulo/<x> → carpeta .claude/worktrees/modulo--<x> (director); modulo/<x>--<ID> → .claude/worktrees/modulo--<x>--<ID> (obrero).
 // Las carpetas van SIEMPRE bajo el checkout principal (el padre del git-common-dir), también corrido desde el worktree del director.
 // `crear`/`abrir` escriben .kit-rol (ASCII, sin BOM, LF: los mismos bytes desde PowerShell o Bash), copian lo que lista
@@ -16,6 +17,11 @@
 // `cerrar`: fetch de origin (rf-5), todos los chequeos primero (desde adentro, sin mergear en su madre local u origin, sucio;
 // frenos.log mudado al <git-common-dir>/kit-frenos.log), después `git worktree remove` sin --force, y solo si anduvo,
 // `git branch -D`. Una carpeta sin registro con solo lo ignorado se borra y sigue (rf-6).
+// `integrar` (SPEC-paquete-5; D4-2, D4-3, D5-3, D5-11, D5-14, r1-1): el módulo terminado a la rama por defecto de origin. Todos los
+// chequeos primero (origin, encargo abierto, la ficha vigente, el temporal, el worktree del director); después el commit de su
+// frenos.log y modulo/<x> igual a la de origin; un temporal desprendido en origin/<defecto>, equipado como `equipar`, con el merge
+// --no-ff, el gate (barreras del rango, el candado, comando-test) y el push sin --force. Nada sube si algo falla; el temporal se
+// borra siempre. Sin /cierre: los docs, en el próximo /cierre de main (D5-3).
 // Salidas: 0 anduvo · 1 negado o con fallas (una línea por qué) · 2 mal llamado. Un error propio: "worktree roto: corré doctor", 1.
 // Node estándar, cero dependencias. Es .cjs a propósito: corre igual en proyectos con "type": "module".
 
@@ -30,6 +36,7 @@ const USO = [
   '  abrir  <x>[--<ID>] [--noche] [--model <m>]   la rama ya existe (acá o en origin) y la carpeta no está en esta PC',
   '  sync-env                                      saca de los .env de los worktrees vivos lo que está en el almacén',
   '  cerrar <x>[--<ID>]                            borra carpeta y rama, solo si está mergeada y limpia',
+  '  integrar <x> [--ok-de-guido]                  merge --no-ff de modulo/<x> en la rama por defecto de origin, con el gate',
 ].join('\n');
 
 const ROTO = 'worktree roto: corré doctor';
@@ -65,9 +72,9 @@ function nombreDe(token) {
 function leerArgumentos(argv) {
   const [comando, ...resto] = argv;
   if (!comando) malLlamado('Falta el comando.');
-  if (!['crear', 'abrir', 'sync-env', 'cerrar'].includes(comando)) malLlamado(`Comando desconocido: ${comando}`);
+  if (!['crear', 'abrir', 'sync-env', 'cerrar', 'integrar'].includes(comando)) malLlamado(`Comando desconocido: ${comando}`);
   const conOpciones = comando === 'crear' || comando === 'abrir';
-  const a = { comando, nombre: null, noche: false, modelo: null };
+  const a = { comando, nombre: null, noche: false, modelo: null, okDeGuido: false };
   const pos = [];
   for (let i = 0; i < resto.length; i++) {
     const v = resto[i];
@@ -79,6 +86,9 @@ function leerArgumentos(argv) {
       if (a.modelo !== null) malLlamado('--model va una sola vez.');
       a.modelo = resto[++i];
       if (!RE_MODELO.test(a.modelo)) malLlamado(`Modelo inválido: "${a.modelo}".`);
+    } else if (comando === 'integrar' && v === '--ok-de-guido') {
+      if (a.okDeGuido) malLlamado('--ok-de-guido va una sola vez.');
+      a.okDeGuido = true;
     } else if (v.startsWith('--')) {
       malLlamado(`Argumento desconocido: ${v}`);
     } else {
@@ -88,6 +98,7 @@ function leerArgumentos(argv) {
   const cuantos = comando === 'sync-env' ? 0 : 1;
   if (pos.length !== cuantos) malLlamado(`${comando} lleva ${cuantos} argumento(s) además de las banderas.`);
   if (cuantos) a.nombre = nombreDe(pos[0]);
+  if (comando === 'integrar' && a.nombre.id !== null) malLlamado('integrar va con el módulo (<x>), no con un encargo: el encargo se mergea en modulo/<x>.');
   return a;
 }
 
@@ -99,6 +110,7 @@ function libs() {
     contexto: require('../hooks/lib/contexto.cjs'),
     ficha: require('../hooks/lib/ficha.cjs'),
     frenosLog: require('../hooks/lib/frenos-log.cjs'),
+    fabrica: require('../hooks/lib/fabrica.cjs'),
   };
 }
 
@@ -460,13 +472,11 @@ function chequeosDeCredenciales(L, principal, base, cmd) {
   return { codigo: 0, copia: c };
 }
 
-// Lo que sigue a `git worktree add`, igual en crear y abrir: .kit-rol, copia, deny, comando-setup, la línea.
-function equipar(L, wt, principal, n, a, copia, opciones) {
-  const lineas = [];
-  let codigo = 0;
-  const rol = rolDe(n, a.noche);
-  fs.writeFileSync(path.join(wt, '.kit-rol'), Buffer.from(`${rol}\n`, 'ascii'));
-  lineas.push(...copia.lineas);
+const escribirRol = (wt, rol) => fs.writeFileSync(path.join(wt, '.kit-rol'), Buffer.from(`${rol}\n`, 'ascii'));
+
+// La copia ya filtrada (de chequeosDeCredenciales) al worktree, sin pisar lo que vino con el checkout. → las líneas.
+function copiarArchivos(wt, copia) {
+  const lineas = [...copia.lineas];
   for (const { rel, buf } of copia.archivos) {
     const destino = path.join(wt, ...rel.split('/'));
     if (fs.existsSync(destino)) {
@@ -477,6 +487,16 @@ function equipar(L, wt, principal, n, a, copia, opciones) {
     fs.writeFileSync(destino, buf);
   }
   if (copia.archivos.length) lineas.push(`copié ${copia.archivos.length} archivo(s) del principal`);
+  return lineas;
+}
+
+// Lo que sigue a `git worktree add`, igual en crear y abrir: .kit-rol, copia, deny, comando-setup, la línea.
+function equipar(L, wt, principal, n, a, copia, opciones) {
+  const lineas = [];
+  let codigo = 0;
+  const rol = rolDe(n, a.noche);
+  escribirRol(wt, rol);
+  lineas.push(...copiarArchivos(wt, copia));
   if (!sumarDeny(wt, principal)) {
     lineas.push('no pude sumar el deny al .env del principal: .claude/settings.local.json del worktree no es un JSON de objeto — arreglalo y corré abrir de nuevo');
     codigo = 1;
@@ -496,14 +516,16 @@ function correrSetup(L, wt, opciones) {
   try {
     datos = L.ficha.leerArchivo(archivo).datos;
   } catch (e) {
-    return { linea: `la ficha está rota (${e.message || e}): no corrí comando-setup; no borré nada`, falla: true };
+    const motivo = `la ficha está rota (${e.message || e})`;
+    return { linea: `${motivo}: no corrí comando-setup; no borré nada`, falla: true, motivo };
   }
   const cmd = datos && datos.vars ? datos.vars['comando-setup'] : undefined;
   if (typeof cmd !== 'string' || cmd.trim() === '') return { linea: 'la ficha no tiene vars.comando-setup: no corrí nada' };
   const r = spawnSync(cmd, { cwd: wt, shell: true, stdio: opciones.heredar === false ? 'pipe' : 'inherit', windowsHide: true });
   if (r.error || r.status !== 0) {
     const como = r.error ? r.error.code || r.error.message : `salida ${r.status}`;
-    return { linea: `comando-setup falló (${como}): corrélo a mano adentro del worktree; no borré nada`, falla: true };
+    const motivo = `comando-setup falló (${como})`;
+    return { linea: `${motivo}: corrélo a mano adentro del worktree; no borré nada`, falla: true, motivo };
   }
   return { linea: `comando-setup anduvo: ${cmd}` };
 }
@@ -630,28 +652,34 @@ function syncEnv(L, u) {
 
 // ---------------------------------------------------------------- cerrar (R-22, D4-3, r1-1, r1-2, r1-9)
 
-// La mudanza de frenos.log (r1-1): base = HEAD del worktree; los dos lados normalizados a LF (con core.autocrlf=true el
-// archivo sale con CRLF y los hooks agregan LF). → 'nada' | 'mudado' | 'cambiado'.
-function mudarFrenos(L, wt, gitComun, nombre) {
-  const archivo = path.join(wt, ...LOG.split('/'));
+// frenos.log del disco contra el de HEAD del worktree, los dos lados normalizados a LF (con core.autocrlf=true el archivo sale con
+// CRLF y los hooks agregan LF) → { estado: 'nada' (no está en el disco) | 'igual' | 'agregado' (la base más renglones al final, o
+// no está en HEAD: lo creó un hook) | 'cambiado', extra, enHead }. Lo usan la mudanza de cerrar y el commit de integrar (D5-11).
+function frenosContraHead(L, wt) {
   let disco;
   try {
-    disco = fs.readFileSync(archivo);
+    disco = fs.readFileSync(path.join(wt, ...LOG.split('/')));
   } catch (e) {
-    return 'nada'; // no está en el disco: si estaba en HEAD, el status lo cuenta como sucio
+    return { estado: 'nada', extra: '', enHead: null };
   }
   const aLF = (b) => b.toString('utf8').replace(/\r\n/g, '\n');
   const base = G(L, ['show', `HEAD:${LOG}`], wt);
   const D = aLF(disco);
-  let extra;
-  if (!base.ok) {
-    extra = D; // lo creó un hook: se muda entero y se borra
-  } else {
-    const B = aLF(base.salida);
-    if (D === B) extra = '';
-    else if (D.startsWith(B)) extra = D.slice(B.length).replace(/^\n/, '');
-    else return 'cambiado';
-  }
+  if (!base.ok) return { estado: 'agregado', extra: D, enHead: false };
+  const B = aLF(base.salida);
+  if (D === B) return { estado: 'igual', extra: '', enHead: true };
+  if (D.startsWith(B)) return { estado: 'agregado', extra: D.slice(B.length).replace(/^\n/, ''), enHead: true };
+  return { estado: 'cambiado', extra: '', enHead: true };
+}
+
+// La mudanza de frenos.log (r1-1): lo agregado sobre HEAD va al <git-common-dir>/kit-frenos.log y el archivo vuelve a HEAD (o se
+// borra, si no estaba). → 'nada' | 'mudado' | 'cambiado'. quien: el subcomando que muda (la cabecera del renglón).
+function mudarFrenos(L, wt, gitComun, nombre, quien = 'cerrar') {
+  const archivo = path.join(wt, ...LOG.split('/'));
+  const f = frenosContraHead(L, wt);
+  if (f.estado === 'nada') return 'nada'; // no está en el disco: si estaba en HEAD, el status lo cuenta como sucio
+  if (f.estado === 'cambiado') return 'cambiado';
+  const extra = f.extra;
   if (extra.trim() !== '') {
     const comun = path.join(gitComun, LOG_COMUN);
     let previo = '';
@@ -661,10 +689,10 @@ function mudarFrenos(L, wt, gitComun, nombre) {
     } catch (e) {
       /* todavía no existe */
     }
-    const cabeza = `# worktree cerrar ${nombre} · ${L.frenosLog.fechaConZona(new Date())}\n`;
+    const cabeza = `# worktree ${quien} ${nombre} · ${L.frenosLog.fechaConZona(new Date())}\n`;
     fs.appendFileSync(comun, `${previo}${cabeza}${extra.endsWith('\n') ? extra : `${extra}\n`}`);
   }
-  if (!base.ok) fs.rmSync(archivo);
+  if (!f.enHead) fs.rmSync(archivo);
   else G(L, ['checkout', '--', LOG], wt);
   return 'mudado';
 }
@@ -778,6 +806,227 @@ function cerrar(L, u, n) {
   return { codigo: 0, lineas };
 }
 
+// ---------------------------------------------------------------- integrar (SPEC-paquete-5; D4-2, D4-3, D5-3, D5-11, D5-14, r1-1)
+
+const PLAZO_TEST = 30 * 60 * 1000; // comando-test del gate: 30 min
+const SIN_OK = ['con-gate-verde', 'libre']; // autorizado.merge-a-main que no pide el OK de Guido
+const ES_RECHAZO = /\[rejected\]|non-fast-forward|fetch first|\[remote rejected\]/;
+
+// comando-test corre adentro de un vigía (otro node): pasado el plazo mata el ÁRBOL entero, no solo la shell. Si no, en Windows un
+// test colgado (un vitest en modo watch) queda vivo adentro del temporal, lo deja tomado y el próximo integrar dice "ya existe".
+// Pasado el plazo sale con 124. En Windows, que el vigía sea un node ya alcanza (libuv mete a sus hijos en un job que muere con él);
+// el taskkill es por las dudas de ese detalle, y en el resto el grupo de procesos es lo que mata el árbol.
+const VIGIA = [
+  "const { spawn, spawnSync } = require('child_process');",
+  "const win = process.platform === 'win32';",
+  "const h = spawn(process.argv[1], { shell: true, stdio: 'inherit', windowsHide: true, detached: !win });",
+  'const t = setTimeout(() => {',
+  "  if (win) spawnSync('taskkill', ['/pid', String(h.pid), '/T', '/F'], { stdio: 'ignore', windowsHide: true });",
+  "  else { try { process.kill(-h.pid, 'SIGKILL'); } catch (e) { h.kill('SIGKILL'); } }",
+  '  process.exit(124);',
+  '}, Number(process.argv[2]));',
+  "h.on('error', () => { clearTimeout(t); process.exit(127); });",
+  "h.on('exit', (c) => { clearTimeout(t); process.exit(c === null ? 1 : c); });",
+].join('\n');
+
+const sinPrefijo = (ref) => ref.replace(/^refs\/heads\//, '').replace(/^refs\/remotes\//, '');
+
+// Lo que la ficha vigente dice de merge-a-main (por nivel, de fábrica, si falta) → { valor } o { error }.
+function mergeAMain(L, P) {
+  const fv = L.contexto.fichaVigente(P);
+  if (fv.estado === 'rota') return { error: `la ficha vigente está rota (${fv.donde}): corré doctor` };
+  if (fv.estado !== 'ok') return { error: 'sin ficha vigente en origin: integrar es de los proyectos con ficha' };
+  const aut = fv.datos.autorizado;
+  if (aut && typeof aut['merge-a-main'] === 'string') return { valor: aut['merge-a-main'] };
+  return { valor: L.fabrica.fabrica(fv.datos.nivel).autorizado['merge-a-main'] };
+}
+
+// El gate en el temporal (D4-3, D5-3): barreras del rango que sube, el candado sin estado-viejo ni lecturas, y vars.comando-test.
+// estructura.cjs es el de al lado de este script (el que corre). → { verde, lineas }.
+function gate(L, tmp, base, punta, opciones) {
+  const E = require('./estructura.cjs');
+  const lineas = [];
+  let verde = true;
+  for (const args of [['barreras', '--rango', `${base}..${punta}`], ['raiz', 'rutas', 'topes', 'estados', 'datos', 'mesa']]) {
+    let out = '';
+    const c = E.main(args, { cwd: tmp, salida: (s) => (out += s), error: (s) => (out += s) });
+    lineas.push(...out.split('\n').map((s) => s.replace(/\r$/, '')).filter(Boolean));
+    if (c !== 0) verde = false;
+  }
+  if (!verde) return { verde, lineas: [...lineas, 'no corrí comando-test: el gate ya está rojo'] };
+  let cmd;
+  try {
+    const d = L.ficha.leerArchivo(path.join(tmp, '.claude', 'kit.md')).datos;
+    cmd = d && d.vars ? d.vars['comando-test'] : undefined;
+  } catch (e) {
+    return { verde: false, lineas: [...lineas, `NO VERIFICADO: la ficha del merge no se lee (${e.message || e}): no corrí comando-test`] };
+  }
+  if (typeof cmd !== 'string' || cmd.trim() === '') return { verde: false, lineas: [...lineas, 'NO VERIFICADO: la ficha no tiene vars.comando-test — sumalo'] };
+  const plazo = opciones.plazoTest || PLAZO_TEST;
+  const t0 = Date.now();
+  const r = spawnSync(process.execPath, ['-e', VIGIA, cmd, String(plazo)], {
+    cwd: tmp,
+    stdio: opciones.heredar === false ? 'pipe' : 'inherit',
+    windowsHide: true,
+    timeout: plazo + 60000,
+  });
+  if ((r.error && r.error.code === 'ETIMEDOUT') || (r.status === 124 && Date.now() - t0 >= plazo)) {
+    return { verde: false, lineas: [...lineas, `NO VERIFICADO: comando-test no terminó en ${Math.round(plazo / 60000)} min (${cmd})`] };
+  }
+  if (r.error || r.status !== 0) {
+    const como = r.error ? r.error.code || r.error.message : r.signal ? `señal ${r.signal}` : `salida ${r.status}`;
+    return { verde: false, lineas: [...lineas, `comando-test en rojo (${como}): ${cmd}`] };
+  }
+  return { verde: true, lineas: [...lineas, `comando-test en verde: ${cmd}`] };
+}
+
+// Borra el temporal SIN --force: primero muda al común lo que el gate anotó en su frenos.log. → null si anduvo, o la línea.
+function borrarTemporal(L, P, gitComun, tmp, nombre) {
+  if (!fs.existsSync(tmp)) {
+    G(L, ['worktree', 'prune'], P);
+    return null;
+  }
+  mudarFrenos(L, tmp, gitComun, nombre, 'integrar');
+  const rm = G(L, ['worktree', 'remove', tmp], P, { tiempo: 120000 });
+  if (rm.ok) return null;
+  return `no pude borrar el temporal ${CARPETAS}/${nombre} (${primeraLinea(rm.stderr) || rm.error}): cerrá lo que lo tenga abierto y corré git worktree remove "${barras(tmp)}"`;
+}
+
+// Lo que pasa adentro del temporal ya creado: .kit-rol, merge, credenciales, copia, deny, setup, gate y push.
+function enElTemporal(L, P, tmp, n, def, base, punta, okLinea, opciones) {
+  const lineas = [];
+  const no = (m) => ({ codigo: 1, lineas: [...lineas, `worktree integrar: no — ${m}`] });
+  escribirRol(tmp, 'director');
+  const msj = ['-m', `integrar: módulo ${n.x}`, ...(okLinea ? ['-m', okLinea] : [])];
+  const m = G(L, ['merge', '--no-ff', '-q', ...msj, punta], tmp, { tiempo: 120000 });
+  if (!m.ok) {
+    const conflicto = (G(L, ['diff', '--name-only', '--diff-filter=U'], tmp).stdout || '').split('\n').map((s) => s.trim()).filter(Boolean);
+    G(L, ['merge', '--abort'], tmp);
+    if (conflicto.length) return no(`conflicto en ${conflicto.join(', ')}: es un encargo a un obrero (nada subió)`);
+    return no(`git merge falló (${primeraLinea(m.stderr) || m.error}): nada subió`);
+  }
+  const merge = sha(L, tmp, 'HEAD');
+  // r1-1: el temporal se equipa como `equipar`, con la copia filtrada sobre lo que va a quedar en main.
+  const ch = chequeosDeCredenciales(L, P, merge, 'integrar');
+  if (ch.codigo) return { codigo: 1, lineas: [...lineas, ...ch.lineas] };
+  lineas.push(...copiarArchivos(tmp, ch.copia));
+  if (!sumarDeny(tmp, P)) return no('no pude sumar el deny al settings.local.json del temporal: nada subió');
+  const s = correrSetup(L, tmp, opciones);
+  if (s.falla) return no(`NO VERIFICADO — ${s.motivo} en el temporal: nada subió`);
+  lineas.push(s.linea);
+  const gt = gate(L, tmp, base, merge, opciones);
+  lineas.push(...gt.lineas);
+  if (!gt.verde) return no('el gate está en rojo: nada subió');
+  const push = G(L, ['push', '-q', 'origin', `HEAD:refs/heads/${def}`], tmp, { tiempo: 120000 });
+  if (!push.ok) {
+    if (ES_RECHAZO.test(push.stderr)) return no('origin avanzó: corré integrar de nuevo');
+    return no(`git push falló (${primeraLinea(push.stderr) || push.error}): nada subió`);
+  }
+  lineas.push(`worktree integrar: módulo ${n.x} en origin/${def} — merge ${merge}`);
+  lineas.push(`los docs del proyecto, en el próximo /cierre de ${def}`);
+  return { codigo: 0, lineas };
+}
+
+function integrar(L, u, n, a, opciones) {
+  const lineas = [];
+  const no = (m) => ({ codigo: 1, lineas: [...lineas, `worktree integrar: no — ${m}`] });
+  const P = u.principal;
+  // 1. origin al día.
+  const remotos = (G(L, ['remote'], P).stdout || '').split('\n').map((s) => s.trim());
+  if (!remotos.includes('origin')) return no('integrar necesita origin; sin remoto, mergealo desde el checkout principal');
+  const f = G(L, ['fetch', '-q', 'origin'], P);
+  if (!f.ok) return no(`no pude hacer fetch de origin (${primeraLinea(f.stderr) || f.error}): sin origin al día no integro`);
+  const rv = L.contexto.refVigente(P);
+  if (!rv || rv.origen === 'local') return no('origin no tiene la rama por defecto (main o master)');
+  const def = rv.nombre;
+  const faltan = noIgnorados(L, P);
+  if (faltan.length) return no(lineaIgnorados(faltan));
+  const madres = [`refs/heads/${n.rama}`, `refs/remotes/origin/${n.rama}`].filter((r) => existeRef(L, P, r));
+  if (!madres.length) return no(`no existe ${n.rama} ni acá ni en origin`);
+  // 2. Encargo abierto: una modulo/<x>--* (local u origin) que no está en modulo/<x> (local u origin).
+  const fe = G(L, ['for-each-ref', '--format=%(refname)', `refs/heads/${n.rama}--*`, `refs/remotes/origin/${n.rama}--*`], P);
+  if (!fe.ok) return no('no pude listar los encargos');
+  const abiertos = new Set();
+  for (const ref of fe.stdout.split('\n').map((s) => s.trim()).filter(Boolean)) {
+    if (!madres.some((m) => G(L, ['merge-base', '--is-ancestor', ref, m], P).ok)) abiertos.add(sinPrefijo(ref).replace(/^origin\//, ''));
+  }
+  if (abiertos.size) return no(`hay un encargo abierto (${[...abiertos].join(', ')}) que no está en ${n.rama}: cerralo o cancelalo`);
+  // 4. La ficha vigente (D5-14).
+  const mm = mergeAMain(L, P);
+  if (mm.error) return no(mm.error);
+  const pideOk = !SIN_OK.includes(mm.valor);
+  if (pideOk && !a.okDeGuido) return no(`la ficha pide el OK de Guido para mergear a main (merge-a-main: ${mm.valor}): preguntale (clase 3) y corré con --ok-de-guido`);
+  const okLinea = pideOk ? `con --ok-de-guido (la ficha pide merge-a-main: ${mm.valor})` : null;
+  // 5 (el chequeo). El temporal no puede existir.
+  G(L, ['worktree', 'prune'], P);
+  const nombreTmp = `integrar--${n.x}`;
+  const tmp = path.join(P, ...CARPETAS.split('/'), nombreTmp);
+  if (fs.existsSync(tmp) || worktrees(L, P).some((w) => mismaRuta(w.ruta, tmp))) {
+    return no(`el temporal ${CARPETAS}/${nombreTmp} ya existe (¿otro integrar a medias?): borralo con git worktree remove "${barras(tmp)}" y corré integrar de nuevo`);
+  }
+  // 3. El worktree del director (el que tiene modulo/<x>), si está en esta PC: limpio salvo frenos.log con renglones agregados.
+  const dir = worktrees(L, P).find((w) => w.rama === `refs/heads/${n.rama}` && fs.existsSync(w.ruta));
+  let frenos = null;
+  if (dir) {
+    const st = porcelana(L, dir.ruta);
+    if (st === null) return no('no pude leer el estado del worktree del director');
+    const otros = st.filter((l) => l.slice(3).replace(/^"|"$/g, '') !== LOG);
+    if (otros.length) return no(`el worktree del director tiene cambios sin commitear: ${otros.slice(0, 5).join(' | ')}${otros.length > 5 ? ' …' : ''} — commitealos`);
+    frenos = frenosContraHead(L, dir.ruta);
+    if (frenos.estado === 'cambiado' || (frenos.estado === 'nada' && st.length)) return no(`${LOG} del director cambió en el medio (no solo renglones al final): revisalo y commitealo a mano`);
+  }
+  let local = sha(L, P, `refs/heads/${n.rama}`);
+  const remota = sha(L, P, `refs/remotes/origin/${n.rama}`);
+  const ancestro = (x, y) => G(L, ['merge-base', '--is-ancestor', x, y], P).ok;
+  if (local && remota && local !== remota && !ancestro(local, remota) && !ancestro(remota, local)) {
+    return no(`${n.rama} divergió de origin/${n.rama}: integralas a mano (git pull en el worktree del director) y corré integrar de nuevo`);
+  }
+  // Pasaron los chequeos. D5-11: el commit de frenos.log, por ruta, en el worktree del director (su escritor).
+  if (frenos && frenos.estado === 'agregado' && frenos.extra.trim() !== '') {
+    const add = G(L, ['add', '--', LOG], dir.ruta);
+    const c = add.ok ? G(L, ['commit', '-q', '-m', `frenos.log del módulo ${n.x}`, '--', LOG], dir.ruta, { tiempo: 120000 }) : add;
+    if (!c.ok) return no(`no pude commitear ${LOG} en el worktree del director (${primeraLinea(c.stderr) || c.error})`);
+    lineas.push(`commiteé ${LOG} del módulo ${n.x} en el worktree del director`);
+    local = sha(L, P, `refs/heads/${n.rama}`);
+  }
+  // modulo/<x> igual en las dos puntas: local adelante → push por nombre; atrás → se adelanta; divergida → 1 (la regla de abrir).
+  let punta = local || remota;
+  if (local && local !== remota) {
+    if (!remota || ancestro(remota, local)) {
+      const p = G(L, ['push', '-q', 'origin', `refs/heads/${n.rama}:refs/heads/${n.rama}`], P, { tiempo: 120000 });
+      if (!p.ok) return no(`no pude subir ${n.rama} a origin (${primeraLinea(p.stderr) || p.error}): nada se mergeó`);
+      lineas.push(`subí ${n.rama} a origin`);
+    } else if (ancestro(local, remota)) {
+      const b = dir ? G(L, ['merge', '--ff-only', '-q', remota], dir.ruta, { tiempo: 120000 }) : G(L, ['update-ref', `refs/heads/${n.rama}`, remota, local], P);
+      if (!b.ok) return no(`no pude adelantar ${n.rama} hasta origin (${primeraLinea(b.stderr) || b.error})`);
+      lineas.push(`adelanté ${n.rama} hasta origin/${n.rama}`);
+      punta = remota;
+    } else {
+      return no(`${n.rama} divergió de origin/${n.rama}: integralas a mano (git pull en el worktree del director) y corré integrar de nuevo`);
+    }
+  }
+  const base = sha(L, P, `refs/remotes/origin/${def}`);
+  if (ancestro(punta, base)) return { codigo: 0, lineas: [...lineas, `worktree integrar: ${n.rama} ya está en origin/${def} — nada que integrar`] };
+  // 5. El temporal, desprendido en origin/<defecto>; desde acá se borra siempre.
+  if (WIN) G(L, ['config', 'core.longpaths', 'true'], P);
+  const add = G(L, ['worktree', 'add', '--detach', tmp, base], P, { tiempo: 120000 });
+  if (!add.ok) {
+    const b = borrarTemporal(L, P, u.gitComun, tmp, nombreTmp);
+    return no(`git worktree add falló (${primeraLinea(add.stderr) || add.error})${b ? `; ${b}` : ''}`);
+  }
+  let r;
+  try {
+    r = enElTemporal(L, P, tmp, n, def, base, punta, okLinea, opciones);
+  } catch (e) {
+    borrarTemporal(L, P, u.gitComun, tmp, nombreTmp);
+    throw e;
+  }
+  const b = borrarTemporal(L, P, u.gitComun, tmp, nombreTmp);
+  const todas = [...lineas, ...r.lineas];
+  if (b) return { codigo: 1, lineas: [...todas, b] };
+  return { codigo: r.codigo, lineas: todas };
+}
+
 // ---------------------------------------------------------------- principal
 
 function main(argv, opciones = {}) {
@@ -796,6 +1045,8 @@ function main(argv, opciones = {}) {
       r = abrir(L, u, a.nombre, a, opciones);
     } else if (a.comando === 'sync-env') {
       r = syncEnv(L, u);
+    } else if (a.comando === 'integrar') {
+      r = integrar(L, u, a.nombre, a, opciones);
     } else {
       r = cerrar(L, u, a.nombre);
     }
