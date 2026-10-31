@@ -30,8 +30,6 @@ const REVISOR = fs.readFileSync(path.join(DIR_MOLDE, 'agents', 'revisor.md'), 'u
 // estructura.cjs lo escribe otro encargo (F4): su uso está fijado en el delta, no se lee el archivo.
 const USO_FIJO = {
   estructura: ['todo', 'parcial'],
-  // llega con E1/E2/E3 de D5.1: sacar al mergear (cuando el USO de la rama traiga estas órdenes, se lee de él)
-  encargo: ['partida', 'presentar', 'mensaje', 'autorizado', 'verificar'],
 };
 
 const MARCA_ABRE = ['<!-- kit', 'propio -->'].join(':');

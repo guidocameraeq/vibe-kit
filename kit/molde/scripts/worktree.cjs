@@ -433,14 +433,8 @@ function sumarDeny(wt, principal) {
 
 const rolDe = (n, noche) => (noche ? 'nocturno' : n.id === null ? 'director' : 'obrero');
 
-// ¿`claude` está en el PATH? (rf-1: en la PC de Guido solo está el de la extensión de VS Code). Las pruebas lo inyectan con
-// opciones.claudeEnPath; si no, `where`/`which` con su tiempo, sin colgarse. Se pregunta una vez por corrida.
-function claudeEnPath(opciones) {
-  if (typeof opciones.claudeEnPath === 'boolean') return opciones.claudeEnPath;
-  const r = spawnSync(WIN ? 'where' : 'which', ['claude'], { stdio: 'ignore', timeout: 5000, windowsHide: true });
-  opciones.claudeEnPath = !r.error && r.status === 0;
-  return opciones.claudeEnPath;
-}
+// ¿`claude` está en el PATH? Vive en hooks/lib/proceso.cjs (lo comparte con encargo.cjs autorizado; E2 lo mudó sin cambiarlo).
+const { claudeEnPath, VIGIA } = require('../hooks/lib/proceso.cjs');
 
 // La apertura (rf-1): primero la vía de VS Code; la de terminal, solo si `claude` está en el PATH.
 function lineasApertura(wt, n, modelo, opciones) {
@@ -812,22 +806,7 @@ const PLAZO_TEST = 30 * 60 * 1000; // comando-test del gate: 30 min
 const SIN_OK = ['con-gate-verde', 'libre']; // autorizado.merge-a-main que no pide el OK de Guido
 const ES_RECHAZO = /\[rejected\]|non-fast-forward|fetch first|\[remote rejected\]/;
 
-// comando-test corre adentro de un vigía (otro node): pasado el plazo mata el ÁRBOL entero, no solo la shell. Si no, en Windows un
-// test colgado (un vitest en modo watch) queda vivo adentro del temporal, lo deja tomado y el próximo integrar dice "ya existe".
-// Pasado el plazo sale con 124. En Windows, que el vigía sea un node ya alcanza (libuv mete a sus hijos en un job que muere con él);
-// el taskkill es por las dudas de ese detalle, y en el resto el grupo de procesos es lo que mata el árbol.
-const VIGIA = [
-  "const { spawn, spawnSync } = require('child_process');",
-  "const win = process.platform === 'win32';",
-  "const h = spawn(process.argv[1], { shell: true, stdio: 'inherit', windowsHide: true, detached: !win });",
-  'const t = setTimeout(() => {',
-  "  if (win) spawnSync('taskkill', ['/pid', String(h.pid), '/T', '/F'], { stdio: 'ignore', windowsHide: true });",
-  "  else { try { process.kill(-h.pid, 'SIGKILL'); } catch (e) { h.kill('SIGKILL'); } }",
-  '  process.exit(124);',
-  '}, Number(process.argv[2]));',
-  "h.on('error', () => { clearTimeout(t); process.exit(127); });",
-  "h.on('exit', (c) => { clearTimeout(t); process.exit(c === null ? 1 : c); });",
-].join('\n');
+// comando-test corre adentro del vigía (VIGIA, de hooks/lib/proceso.cjs: pasado el plazo mata el ÁRBOL entero y sale con 124).
 
 const sinPrefijo = (ref) => ref.replace(/^refs\/heads\//, '').replace(/^refs\/remotes\//, '');
 
