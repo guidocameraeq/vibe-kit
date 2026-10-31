@@ -492,6 +492,14 @@ test('rutaEnModulo: archivo en modulo/x sí; que no está, carpeta, ruta que sal
   assert.match(E.rutaEnModulo(r.P, 'x', 'docs/modulos/x/nada.md', null).por, /^docs\/modulos\/x\/nada\.md no está en modulo\/x$/);
   assert.equal(E.rutaEnModulo(r.P, 'x', 'docs/modulos/x', null).ok, false, 'una carpeta no es un archivo');
   for (const malo of ['../x.md', '/etc/passwd', 'C:/x.md', 'docs/../a.txt', '']) assert.equal(E.rutaEnModulo(r.P, 'x', malo, null).ok, false, malo);
+  // git resuelve `<sha>:../x` relativo al cwd: llamada desde una subcarpeta, `../a.txt` sería a.txt de la raíz (que está en
+  // modulo/x). La guarda de `..` es la que lo frena (mutante #44 de E1).
+  const sub = path.join(r.P, 'sub');
+  fs.mkdirSync(sub);
+  assert.equal(E.rutaEnModulo(sub, 'x', 'a.txt', null).ok, true);
+  const desdeSub = E.rutaEnModulo(sub, 'x', '../a.txt', null);
+  assert.equal(desdeSub.ok, false);
+  assert.match(desdeSub.por, /^\.\.\/a\.txt no es una ruta del repo$/);
   assert.match(E.rutaEnModulo(r.P, 'x', RUTA, 'abcdef1').por, /no es un commit de este repo/);
   // Un commit en otra rama (el obrero) con la misma ruta: no es de modulo/x.
   g(r.P, 'switch', '-q', '-c', 'modulo/x--01', 'modulo/x');

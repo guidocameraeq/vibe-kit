@@ -40,7 +40,7 @@ const VOCABULARIO = [
 ];
 
 // sinTilde("CORRECCIÓN") → "CORRECCION": saca solo el acento agudo (la Ñ queda; D5-6: la tilde es un alias).
-const sinTilde = (t) => String(t).normalize('NFD').replace(/́/g, '').normalize('NFC');
+const sinTilde = (t) => String(t).normalize('NFD').replace(/\u0301/g, '').normalize('NFC');
 
 // tipoDe(palabra) → la fila del vocabulario, o null (en minúsculas no vale: el tipo va en mayúsculas).
 function tipoDe(palabra) {
