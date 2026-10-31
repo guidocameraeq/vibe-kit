@@ -20,7 +20,6 @@
 
 const fs = require('fs');
 const path = require('path');
-const { spawnSync } = require('child_process');
 
 const USO = [
   'Uso: node .claude/scripts/encargo.cjs <comando> …   (desde el repo)',
@@ -92,7 +91,7 @@ function leerArgumentos(argv, E) {
     }
   }
   if (a.spec) {
-    if (a.sinBase || pos.length) malLlamado('presentar --spec va solo: lee el SPEC.md de la rama del director.');
+    if (a.sinBase || pos.length) malLlamado('presentar --spec va solo: lee el SPEC[-N].md más nuevo de la rama del director.');
     return a;
   }
   if (pos.length !== 1) malLlamado(`${comando} lleva un <x>--<ID>.`);
@@ -125,15 +124,26 @@ function datosFicha(L, raiz) {
   return f.estado === 'ok' ? f.datos : null;
 }
 
-// La base (P5.6 paso 2): vars.comando-test en el worktree, sin mostrar su salida. No cambia la salida de presentar.
-function lineaBase(datos, raiz, opciones) {
+// La base (P5.6 paso 2): vars.comando-test en el worktree, sin mostrar su salida. No cambia la salida de presentar. Corre adentro
+// del vigía (rf-8): pasado el plazo muere con todo lo que lanzó, y no queda un node con el puerto tomado en el worktree del obrero.
+function lineaBase(L, datos, raiz, opciones) {
   const ct = datos && datos.vars ? datos.vars['comando-test'] : undefined;
   if (typeof ct !== 'string' || ct.trim() === '') return 'base: NO VERIFICADO (la ficha vigente no tiene vars.comando-test)';
   const ms = plazoBase(opciones);
-  const r = spawnSync(ct, { cwd: raiz, shell: true, stdio: 'ignore', timeout: ms, windowsHide: true });
-  if ((r.error && r.error.code === 'ETIMEDOUT') || r.signal) return `base: NO VERIFICADO (${ct} pasó los ${Math.round(ms / 1000)} s)`;
-  if (r.error) return `base: NO VERIFICADO (${ct} no corrió: ${r.error.code || r.error.message})`;
-  return r.status === 0 ? `base: verde (${ct})` : `base: ROJA (ya estaba roto: ${ct} salió ${r.status})`;
+  const r = L.proceso.correrConPlazo(ct, { cwd: raiz, plazoMs: ms });
+  if (r.estado === 'colgado') return `base: NO VERIFICADO (${ct} pasó los ${Math.round(ms / 1000)} s; lo maté con todo lo que lanzó)`;
+  if (r.estado === 'no-corrio') return `base: NO VERIFICADO (${ct} no corrió: ${r.como})`;
+  return r.estado === 'verde' ? `base: verde (${ct})` : `base: ROJA (ya estaba roto: ${ct} ${r.como.replace(/^salida /, 'salió ')})`;
+}
+
+// rf-3: el encargo, la ficha o una CORRECCION pueden venir de la otra PC. Antes de leer modulo/<x>, `fetch --prune` de origin; sin
+// remoto, nada; si falla, se sigue con lo que hay en esta PC y se dice en una línea (→ esa línea, o null).
+function traerOrigin(L, raiz) {
+  const remotos = (G(L, raiz, ['remote']).stdout || '').split('\n').map((s) => s.trim());
+  if (!remotos.includes('origin')) return null;
+  const f = G(L, raiz, ['fetch', '-q', '--prune', 'origin']);
+  if (f.ok) return null;
+  return `sin fetch de origin (${(f.stderr || '').trim().split('\n')[0] || f.error}): sigo con lo que hay en esta PC`;
 }
 
 // El sello de un spec leído de git: { ok } o { ok: false, por }.
@@ -155,25 +165,32 @@ function partida(L, g, n, opciones) {
 
 // ---------------------------------------------------------------- presentar
 
+// rf-4: juzga el SPEC[-N].md de N más alto del módulo (el SPEC.md es N=1): el que va a citar el encargo.
 function presentarSpec(L, g, rama) {
-  const no = (m) => ({ codigo: 1, lineas: [`presentar --spec: no — ${m}`] });
+  const avisos = [];
+  const no = (m) => ({ codigo: 1, lineas: [...avisos, `presentar --spec: no — ${m}`] });
   const p = L.contexto.pestana(rama);
   if (p.tipo !== 'director') return no(`esta pestaña está en ${rama || '(sin rama)'}: --spec corre desde el worktree del director (modulo/<x>)`);
+  const f = traerOrigin(L, g.raiz);
+  if (f) avisos.push(f);
   const ref = L.E.refMasNueva(g.raiz, `modulo/${p.modulo}`);
   if (!ref.ok) return no(ref.por);
-  const ruta = `docs/modulos/${p.modulo}/SPEC.md`;
+  const ruta = L.E.specVigente(g.raiz, ref.sha, p.modulo);
   const s = chequearSpec(L, g.raiz, ref, ruta);
-  if (!s.ok) return no(s.por);
-  return { codigo: 0, lineas: [`presentar --spec: ${ruta} en ${ref.nombre} @${ref.sha.slice(0, 7)} · sellado y READY: se puede repartir`] };
+  if (!s.ok) return no(`${ruta}: ${s.por}`);
+  return { codigo: 0, lineas: [...avisos, `presentar --spec: ${ruta} en ${ref.nombre} @${ref.sha.slice(0, 7)} · sellado y READY: se puede repartir`] };
 }
 
 function presentar(L, g, a, opciones) {
   const rama = L.contexto.rama(g.raiz);
   if (a.spec) return presentarSpec(L, g, rama);
   const n = a.nombre;
-  const no = (m) => ({ codigo: 1, lineas: [`presentar: no — ${m}`] });
+  const avisos = [];
+  const no = (m) => ({ codigo: 1, lineas: [...avisos, `presentar: no — ${m}`] });
   // 1. La rama del cwd.
   if (rama !== n.rama) return no(`esta pestaña está en ${rama || '(sin rama)'}, el encargo es de ${n.rama}: abrí la del worktree`);
+  const f = traerOrigin(L, g.raiz);
+  if (f) avisos.push(f);
   // 2. El encargo, commiteado y según la plantilla.
   const u = L.E.ubicarEncargo(g.raiz, n);
   if (!u.ok) return no(u.por);
@@ -186,23 +203,30 @@ function presentar(L, g, a, opciones) {
   const head = L.E.shaDe(g.raiz, 'HEAD');
   const c = e.campos;
   const lineas = [
+    ...avisos,
     `${n.rama} · @${head ? head.slice(0, 7) : '???????'} · encargo ${u.ruta} · ${c.modelo.modelo} ${c.modelo.esfuerzo} · riesgo ${c.riesgo.riesgo} · apertura ${c.apertura}`,
   ];
-  if (!a.sinBase) lineas.push(lineaBase(datosFicha(L, g.raiz), g.raiz, opciones));
+  if (!a.sinBase) lineas.push(lineaBase(L, datosFicha(L, g.raiz), g.raiz, opciones));
   return { codigo: 0, lineas };
 }
 
 // ---------------------------------------------------------------- mensaje
 
+// rf-3: el fetch, solo si el mensaje trae una ruta que git tiene que respaldar (la CORRECCION de la otra PC llega por origin).
 function mensaje(L, g, a) {
   const rama = L.contexto.rama(g.raiz);
+  const avisos = [];
   const r = L.E.juzgarMensaje({
     texto: a.texto,
     rol: L.contexto.rol(g.raiz),
     pestana: L.contexto.pestana(rama),
-    rutaEnModulo: (x, ruta, sha) => L.E.rutaEnModulo(g.raiz, x, ruta, sha),
+    rutaEnModulo: (x, ruta, sha) => {
+      const f = traerOrigin(L, g.raiz);
+      if (f) avisos.push(f);
+      return L.E.rutaEnModulo(g.raiz, x, ruta, sha);
+    },
   });
-  return { codigo: r.codigo, lineas: [r.linea] };
+  return { codigo: r.codigo, lineas: [...avisos, r.linea] };
 }
 
 // ---------------------------------------------------------------- lo común de autorizado y verificar
@@ -216,7 +240,7 @@ function mensaje(L, g, a) {
 //   `"Bash(git log *)" "Bash(git diff *)" "Read"`.
 // Por eso la base de hooks/lib/encargo.cjs se queda como está, en `:*` (equivalente; el diálogo "no preguntar más" escribe la forma
 // con espacio y las dos conviven), y la línea de fondo pasa cada regla como un argumento propio, AL FINAL: la opción toma todos los
-// argumentos que siguen, así que el pedido (-p "/obrero …") va antes.
+// argumentos que siguen. El pedido no va como argumento sino por stdin (`cat file | claude -p "query"`, la misma doc; D-a de D5.1).
 const LOG = '.claude/frenos.log';
 const SETTINGS = '.claude/settings.local.json';
 const CARPETAS = '.claude/worktrees';
@@ -299,14 +323,17 @@ function citar(regla) {
 }
 
 // La línea de fondo (D5-2): acceptEdits y --allowedTools con la base + el encargo; nunca el modo que saltea los permisos. No depende
-// del archivo. El pedido va por argumento (-p "/obrero <x>--<ID>"): anda igual en PowerShell y en Bash, sin tuberías ni la
-// codificación de stdin (D4.2-2 lanzó así). `claude` se busca como en worktree.cjs (hooks/lib/proceso.cjs; r1-9).
+// del archivo. La corre el director desde su Bash, que en Windows es Git Bash: MSYS convierte un argumento que empieza con `/` en una
+// ruta (`-p "/obrero x--01"` llegaba como `C:/Program Files/Git/obrero x--01`; D2.2). Por eso el pedido va por stdin con `printf`, un
+// builtin (no se convierte), y ningún argumento suelto empieza con `/`. Nunca MSYS_NO_PATHCONV: la sesión lo heredaría. `claude` es
+// el del PATH o el de la extensión de VS Code (hooks/lib/proceso.cjs comandoClaude; D-b); sin ninguno, la apertura es de Guido.
 function lineaDeFondo(L, wt, n, modelo, reglas, opciones) {
-  if (!L.proceso.claudeEnPath(opciones)) return 'apertura de fondo: sin `claude` en el PATH: la apertura es de Guido';
+  const claude = L.proceso.comandoClaude(opciones);
+  if (!claude) return 'apertura de fondo: sin `claude` (ni en el PATH ni el de la extensión de VS Code): la apertura es de Guido';
   const citadas = reglas.map(citar);
   const k = citadas.indexOf(null);
   if (k >= 0) return `apertura de fondo: la regla ${reglas[k]} no se puede citar igual en PowerShell y en Bash: la apertura es de Guido`;
-  return `apertura de fondo: cd "${barras(wt)}"; claude -p "/obrero ${n.x}--${n.id}" --model ${modelo} --permission-mode acceptEdits --allowedTools ${citadas.join(' ')}`;
+  return `apertura de fondo: cd "${barras(wt)}" && printf '%s\\n' '/obrero ${n.x}--${n.id}' | ${claude} -p --model ${modelo} --permission-mode acceptEdits --allowedTools ${citadas.join(' ')}`;
 }
 
 function autorizado(L, g, n, opciones) {
@@ -422,17 +449,28 @@ function lineaRemoto(L, c) {
   return [OK, `punta @${p7} = origin/${c.n.rama}${nota}`];
 }
 
-// 2. limpio: frenos.log con solo renglones agregados es ⚠️ (los muda cerrar, D4-3); cualquier otra cosa sin commitear, ❌.
+// 2. limpio: frenos.log con solo renglones agregados es ⚠️ (los muda cerrar, D4-3). rf-10: ❌ solo lo trackeado modificado y lo sin
+// trackear que cae en ## Toca (es del encargo y no se commiteó); lo sin trackear de afuera (un coverage/ que deja la suite) es ⚠️:
+// el merge va por SHA y no llega a modulo/<x>. Sin el encargo leído, todo lo sin trackear es ❌ (no se sabe qué es de ## Toca).
 function lineaLimpio(L, c) {
   const r = G(L, c.wt, ['status', '--porcelain', '--untracked-files=all']);
   if (!r.ok) return [MAL, `${NV} — no pude leer el estado del worktree`];
   const st = r.stdout.split('\n').map((s) => s.replace(/\r$/, '')).filter(Boolean);
-  const otros = st.filter((l) => l.slice(3).replace(/^"|"$/g, '') !== LOG);
-  if (otros.length) return [MAL, `sin commitear: ${otros.slice(0, 5).map((l) => l.slice(3)).join(', ')}${otros.length > 5 ? ' …' : ''}`];
-  if (!st.length) return [OK, 'el worktree está limpio'];
-  const f = frenosContraHead(L, c.wt);
-  if (f.estado === 'agregado') return [OJO, `${LOG} con ${f.renglones} renglón(es) agregado(s) sin commitear (los muda worktree cerrar)`];
-  return [MAL, `${LOG} cambió en el medio o se borró (no solo renglones al final): revisalo`];
+  const ruta = (l) => l.slice(3).replace(/^"|"$/g, '');
+  const otros = st.filter((l) => ruta(l) !== LOG);
+  const toca = c.e ? c.e.secciones.toca.rutas : null;
+  const afuera = otros.filter((l) => l.startsWith('?? ') && toca && !toca.some((p) => enToca(ruta(l), p)));
+  const mal = otros.filter((l) => !afuera.includes(l));
+  const lista = (ls) => `${ls.slice(0, 5).map(ruta).join(', ')}${ls.length > 5 ? ' …' : ''}`;
+  if (mal.length) return [MAL, `sin commitear: ${lista(mal)}`];
+  const ojo = [];
+  if (st.length !== otros.length) {
+    const f = frenosContraHead(L, c.wt);
+    if (f.estado !== 'agregado') return [MAL, `${LOG} cambió en el medio o se borró (no solo renglones al final): revisalo`];
+    ojo.push(`${LOG} con ${f.renglones} renglón(es) agregado(s) sin commitear (los muda worktree cerrar)`);
+  }
+  if (afuera.length) ojo.push(`sin trackear fuera de ## Toca: ${lista(afuera)} (el merge va por SHA: no llegan a modulo/${c.n.x}; si es de la suite, sumalo al .gitignore)`);
+  return ojo.length ? [OJO, ojo.join(' · ')] : [OK, 'el worktree está limpio'];
 }
 
 // 3. pruebas: comando-test y los de ## GATE, en el worktree, de a uno, sin tuberías, adentro del vigía (un colgado muere con todo

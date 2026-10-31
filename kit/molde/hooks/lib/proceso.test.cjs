@@ -21,6 +21,32 @@ test('claudeEnPath: lo inyectado manda; sin inyectar, pregunta una vez y lo deja
   assert.equal(o.claudeEnPath, v);
 });
 
+test('D-b: sin `claude` en el PATH, el binario de la extensión de VS Code de versión más alta, entre comillas y en forma /c/… en Windows; sin ninguno, null', () => {
+  const ext = path.join(TMP, 'extensiones');
+  const bin = process.platform === 'win32' ? 'claude.exe' : 'claude';
+  const poner = (carpeta) => {
+    const d = path.join(ext, carpeta, 'resources', 'native-binary');
+    fs.mkdirSync(d, { recursive: true });
+    fs.writeFileSync(path.join(d, bin), '');
+    return path.join(d, bin);
+  };
+  // No: la carpeta vacía (o sin la extensión) → null, y con claudeEnPath inyectado no se mira el disco de esta PC.
+  fs.mkdirSync(ext, { recursive: true });
+  fs.mkdirSync(path.join(ext, 'anthropic.claude-code-9.9.9-win32-x64'), { recursive: true }); // sin el binario: no cuenta
+  assert.equal(P.comandoClaude({ claudeEnPath: false, dirExtensiones: ext }), null);
+  assert.equal(P.comandoClaude({ claudeEnPath: false }), null);
+  // Sí: dos versiones → la más alta por número (2.1.312 > 2.1.98), entre comillas y en la forma de Git Bash.
+  poner('anthropic.claude-code-2.1.98-win32-x64');
+  const alta = poner('anthropic.claude-code-2.1.312-win32-x64');
+  poner('otra.extension-9.0.0');
+  assert.equal(P.claudeDeVSCode(ext), alta);
+  assert.equal(P.comandoClaude({ claudeEnPath: false, dirExtensiones: ext }), `"${P.rutaGitBash(alta)}"`);
+  // En el PATH, manda el del PATH.
+  assert.equal(P.comandoClaude({ claudeEnPath: true, dirExtensiones: ext }), 'claude');
+  assert.equal(P.rutaGitBash('C:\\Users\\Ana\\.vscode\\claude.exe', true), '/c/Users/Ana/.vscode/claude.exe');
+  assert.equal(P.rutaGitBash('/home/ana/claude', false), '/home/ana/claude');
+});
+
 test('correrConPlazo: verde, rojo con su salida, "no corrió" (127) y colgado → muerto con su árbol', () => {
   const nodo = `"${process.execPath}"`;
   assert.deepEqual(P.correrConPlazo(`${nodo} -e "process.exit(0)"`, { cwd: TMP, plazoMs: 20000 }), { estado: 'verde', como: 'salida 0' });

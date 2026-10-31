@@ -270,7 +270,7 @@ test('presentar (crit. 2): rama distinta → 1; la base ROJA o colgada no cambia
   assert.match(roja.out, /\nbase: ROJA \(ya estaba roto: node base\.js salió 3\)\n$/);
   const colgada = conBase('cuelga', () => cli(p.obr, ['presentar', 'x--01'], { plazoBaseMs: 1500 }));
   assert.equal(colgada.codigo, 0);
-  assert.match(colgada.out, /\nbase: NO VERIFICADO \(node base\.js pasó los 2 s\)\n$/);
+  assert.match(colgada.out, /\nbase: NO VERIFICADO \(node base\.js pasó los 2 s; lo maté con todo lo que lanzó\)\n$/);
   const sin = conBase('rojo', () => cli(p.obr, ['presentar', 'x--01', '--sin-base']));
   assert.equal(sin.codigo, 0);
   assert.doesNotMatch(sin.out, /base:/);
@@ -320,7 +320,7 @@ test('presentar --spec: desde el worktree del director, solo el sello; desde otr
   const p = proyecto({ spec: spec({ sellar: false }) });
   let r = cli(p.dir, ['presentar', '--spec']);
   assert.equal(r.codigo, 1);
-  assert.equal(r.out, 'presentar --spec: no — spec sin Arquitecto: corré Modo B\n');
+  assert.equal(r.out, 'presentar --spec: no — docs/modulos/x/SPEC.md: spec sin Arquitecto: corré Modo B\n');
   const sha = commit(p.dir, { 'docs/modulos/x/SPEC.md': spec() }, 'sellado');
   r = cli(p.dir, ['presentar', '--spec']);
   assert.equal(r.codigo, 0, r.out);
@@ -330,6 +330,67 @@ test('presentar --spec: desde el worktree del director, solo el sello; desde otr
     assert.equal(r.codigo, 1);
     assert.equal(r.out, `presentar --spec: no — esta pestaña está en ${rama}: --spec corre desde el worktree del director (modulo/<x>)\n`);
   }
+});
+
+test('rf-4: presentar --spec juzga el SPEC[-N].md de N más alto — SPEC-2 sin sello → 1 aunque el SPEC.md esté bien; SPEC.md COMPLETO y SPEC-2 sellado → 0', () => {
+  const p = proyecto();
+  // No: el SPEC-2.md recién escrito, sin sello, frena aunque el SPEC.md esté sellado y READY.
+  commit(p.dir, { 'docs/modulos/x/SPEC-2.md': spec({ sellar: false }) }, 'spec 2 en borrador');
+  let r = cli(p.dir, ['presentar', '--spec']);
+  assert.equal(r.codigo, 1);
+  assert.equal(r.out, 'presentar --spec: no — docs/modulos/x/SPEC-2.md: spec sin Arquitecto: corré Modo B\n');
+  // Sí: el SPEC.md ya COMPLETO (sin READY) y el SPEC-2.md sellado y READY → se reparte con el SPEC-2.
+  const sha = commit(p.dir, { 'docs/modulos/x/SPEC.md': spec({ estado: 'COMPLETO 2026-10-31' }), 'docs/modulos/x/SPEC-2.md': spec() }, 'spec 2 sellado');
+  r = cli(p.dir, ['presentar', '--spec']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.equal(r.out, `presentar --spec: docs/modulos/x/SPEC-2.md en modulo/x @${sha.slice(0, 7)} · sellado y READY: se puede repartir\n`);
+  // N por número, no por texto: SPEC-10 gana a SPEC-2.
+  commit(p.dir, { 'docs/modulos/x/SPEC-10.md': spec({ estado: 'BORRADOR' }) }, 'spec 10');
+  assert.match(cli(p.dir, ['presentar', '--spec']).out, /^presentar --spec: no — docs\/modulos\/x\/SPEC-10\.md: spec sin READY/);
+});
+
+test('rf-3: presentar y mensaje hacen fetch --prune — el encargo y la CORRECCION de la otra PC valen sin un fetch a mano; fetch que falla → siguen y lo dicen', () => {
+  const p = proyecto({ encargo: null });
+  // Desde la otra PC, sin fetch acá: el encargo y una CORRECCION llegan por origin.
+  const otra = path.join(p.base, `otra${k++}`);
+  g(p.base, 'clone', '-q', '-b', 'modulo/x', p.remoto, otra);
+  commit(otra, { [RUTA]: encargo() }, 'encargo desde la otra PC');
+  const nueva = 'docs/modulos/x/bitacora/2026-10-31-correccion-01.md';
+  const sha = commit(otra, { [nueva]: 'otra cosa\n' }, 'corrección desde la otra PC');
+  g(otra, 'push', '-q', 'origin', 'modulo/x');
+  const r = cli(p.obr, ['presentar', 'x--01', '--sin-base']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(r.out, new RegExp(`^modulo/x--01 · @\\w{7} · encargo ${RUTA} `));
+  assert.deepEqual(cli(p.obr, ['mensaje', 'CORRECCION', `${nueva}@${sha.slice(0, 7)}`]), { codigo: 0, out: `vale: leé ${nueva}@${sha.slice(0, 7)}\n`, err: '' });
+  // No: con origin caído, siguen con lo que hay y lo dicen en una línea (lo que no está, sigue sin estar).
+  g(p.P, 'remote', 'set-url', 'origin', path.join(p.base, 'no-existe.git'));
+  const m = cli(p.obr, ['mensaje', 'CORRECCION', `${nueva}@${sha.slice(0, 7)}`]);
+  assert.equal(m.codigo, 0, m.out);
+  assert.match(m.out, /^sin fetch de origin \(.+\): sigo con lo que hay en esta PC\nvale: leé /);
+  const pr = cli(p.obr, ['presentar', 'x--01', '--sin-base']);
+  assert.equal(pr.codigo, 0, pr.out);
+  assert.match(pr.out, /^sin fetch de origin .*\nmodulo\/x--01 · /);
+  assert.equal(cli(p.obr, ['mensaje', 'CORRECCION', 'docs/modulos/x/bitacora/no-esta.md']).codigo, 1);
+  assert.equal(cli(p.obr, ['mensaje', 'RESPUESTA', 'el', 'tema']).out, 'vale: dato\n', 'sin ruta, sin fetch');
+});
+
+test('rf-8: la base de presentar corre en el vigía — colgada, muere con todo lo que lanzó; verde, igual que antes', () => {
+  const p = proyecto({ ficha: { test: 'node cuelga.js' }, archivos: { 'cuelga.js': "require('fs').writeFileSync(process.env.KIT_PRUEBA_PID, String(process.pid));\nsetTimeout(() => {}, 30000);\n" } });
+  const pid = path.join(p.base, 'pid');
+  const antes = process.env.KIT_PRUEBA_PID;
+  process.env.KIT_PRUEBA_PID = pid;
+  let r;
+  try {
+    r = cli(p.obr, ['presentar', 'x--01'], { plazoBaseMs: 3000 });
+  } finally {
+    if (antes === undefined) delete process.env.KIT_PRUEBA_PID;
+    else process.env.KIT_PRUEBA_PID = antes;
+  }
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(r.out, /\nbase: NO VERIFICADO \(node cuelga\.js pasó los 3 s; lo maté con todo lo que lanzó\)\n$/);
+  assert.throws(() => process.kill(Number(fs.readFileSync(pid, 'utf8')), 0), 'el node de la base quedó vivo');
+  const v = proyecto();
+  assert.match(cli(v.obr, ['presentar', 'x--01']).out, /\nbase: verde \(node base\.js\)\n$/);
 });
 
 // ---------------------------------------------------------------- mensaje (criterio 3)
@@ -537,13 +598,24 @@ test('autorizado (crit. 4, D5-2, D5-19): la de fondo con acceptEdits, la base y 
   const lineas = r.out.trim().split('\n');
   const reglas = [...E.base('node base.js'), 'Bash(npm run build)', 'Edit(src/x/**)'];
   const fondo = lineas[lineas.length - 1];
-  assert.match(fondo, /^apertura de fondo: cd "[^"]+\/modulo--x--01"; claude -p "\/obrero x--01" --model sonnet --permission-mode acceptEdits --allowedTools "Read" /);
+  assert.match(fondo, /^apertura de fondo: cd "[^"]+\/modulo--x--01" && printf '%s\\n' '\/obrero x--01' \| claude -p --model sonnet --permission-mode acceptEdits --allowedTools "Read" /);
+  // D-a: en Git Bash, MSYS convierte un argumento que empieza con `/`: ninguno de claude empieza así (el pedido va por stdin).
+  const args = fondo.slice(fondo.indexOf(' | ') + 3).match(/"[^"]*"|'[^']*'|\S+/g).slice(1).map((x) => x.replace(/^["']|["']$/g, ''));
+  assert.ok(args.length > 10 && !args.some((x) => x.startsWith('/')), args.join(' '));
+  assert.doesNotMatch(fondo, /MSYS_NO_PATHCONV/);
   assert.ok(fondo.endsWith(`--allowedTools ${reglas.map((x) => `"${x}"`).join(' ')}`), fondo);
   const guido = lineas[lineas.length - 2];
   assert.match(guido, /^apertura de Guido: code "[^"]+\/modulo--x--01" → en esa ventana, la pestaña de Claude con Sonnet, en tu modo \(nombre sugerido: obrero-x--01\)$/);
   assert.doesNotMatch(r.out, /bypass|dangerously|--permission-mode (?!acceptEdits)/i);
   const sin = aut(p, { claudeEnPath: false });
-  assert.equal(sin.out.trim().split('\n').pop(), 'apertura de fondo: sin `claude` en el PATH: la apertura es de Guido');
+  assert.equal(sin.out.trim().split('\n').pop(), 'apertura de fondo: sin `claude` (ni en el PATH ni el de la extensión de VS Code): la apertura es de Guido');
+  // D-b: sin `claude` en el PATH pero con la extensión de VS Code → su binario, entre comillas, en lugar de `claude`.
+  const ext = path.join(p.base, 'extensiones');
+  const bin = path.join(ext, 'anthropic.claude-code-2.1.312-win32-x64', 'resources', 'native-binary', process.platform === 'win32' ? 'claude.exe' : 'claude');
+  escribir(path.dirname(bin), path.basename(bin), '');
+  const vs = aut(p, { claudeEnPath: false, dirExtensiones: ext }).out.trim().split('\n').pop();
+  const P = require('../hooks/lib/proceso.cjs');
+  assert.ok(vs.includes(`| "${P.rutaGitBash(bin)}" -p --model sonnet --permission-mode acceptEdits --allowedTools "Read" `), vs);
   // El modelo sale del encargo.
   commit(p.dir, { [RUTA]: textoEncargo(p).replace('- Modelo: sonnet', '- Modelo: opus') }, 'opus');
   assert.match(aut(p).out, /con Opus, en tu modo[\s\S]*--model opus --permission-mode acceptEdits/);
@@ -624,6 +696,22 @@ test('verificar línea 2 (limpio): solo renglones agregados a frenos.log sin com
   assert.equal(r.codigo, 1);
   assert.equal(marca(r, 2), '❌');
   assert.equal(r.linea(2), '2. limpio · ❌ · sin commitear: src/x/sin-commit.js');
+});
+
+test('rf-10: verificar línea 2 — lo sin trackear fuera de ## Toca (el coverage/ de la suite) → ⚠️ con la lista y salida 0; un trackeado modificado fuera de ## Toca → ❌', () => {
+  const p = proyectoV();
+  listo(p);
+  escribir(p.obr, 'coverage/lcov.info', 'TN:\n');
+  fs.appendFileSync(path.join(p.obr, '.claude', 'frenos.log'), '2026-10-31T10:00-03:00 · tres\n');
+  let r = ver(p.dir);
+  assert.equal(r.codigo, 0, r.out);
+  assert.equal(marca(r, 2), '⚠️');
+  assert.equal(r.linea(2), '2. limpio · ⚠️ · .claude/frenos.log con 1 renglón(es) agregado(s) sin commitear (los muda worktree cerrar) · sin trackear fuera de ## Toca: coverage/lcov.info (el merge va por SHA: no llegan a modulo/x; si es de la suite, sumalo al .gitignore)');
+  // No: un archivo trackeado modificado, aunque esté fuera de ## Toca, es ❌ (es trabajo sin commitear).
+  escribir(p.obr, 'base.js', '// tocado\n');
+  r = ver(p.dir);
+  assert.equal(r.codigo, 1);
+  assert.equal(r.linea(2), '2. limpio · ❌ · sin commitear: base.js');
 });
 
 test('verificar línea 3 (pruebas): comando-test rojo → ❌; un GATE rojo → ❌ con cuál; un GATE con tubería → NO VERIFICADO; colgado → NO VERIFICADO, 1 y el árbol muerto', () => {

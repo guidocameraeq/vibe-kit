@@ -1,10 +1,14 @@
 'use strict';
-// proceso.cjs — lo que comparten worktree.cjs y encargo.cjs para correr cosas de afuera (SPEC-paquete-5; r1-7, r1-9): si `claude`
-// está en el PATH (la línea de terminal de worktree y la de fondo de `encargo autorizado`) y el vigía que corre un comando con
+// proceso.cjs — lo que comparten worktree.cjs y encargo.cjs para correr cosas de afuera (SPEC-paquete-5; r1-7, r1-9): cómo se
+// llama a `claude` (el del PATH o, si no, el de la extensión de VS Code; la línea de terminal de worktree y la de fondo de
+// `encargo autorizado`) y el vigía que corre un comando con
 // plazo y, pasado el plazo, mata el ÁRBOL entero (lo hizo E3 para `integrar`; se mudó acá en E2 para no duplicarlo, sin cambiar
 // lo que hace). Vive en hooks/lib/ porque lo usa el gate del encargo (`verificar`), que decide un merge. Node estándar, cero
 // dependencias. Es .cjs a propósito: corre igual con "type": "module".
 
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const { spawnSync } = require('child_process');
 
 const WIN = process.platform === 'win32';
@@ -16,6 +20,64 @@ function claudeEnPath(opciones) {
   const r = spawnSync(WIN ? 'where' : 'which', ['claude'], { stdio: 'ignore', timeout: 5000, windowsHide: true });
   opciones.claudeEnPath = !r.error && r.status === 0;
   return opciones.claudeEnPath;
+}
+
+// C:\Users\x → /c/Users/x (la forma de Git Bash, la shell del director en Windows); en el resto, la ruta tal cual.
+function rutaGitBash(p, win = WIN) {
+  if (!win) return p;
+  const s = String(p).split('\\').join('/');
+  const m = /^([A-Za-z]):(\/.*)?$/.exec(s);
+  return m ? `/${m[1].toLowerCase()}${m[2] || '/'}` : s;
+}
+
+// 2.1.312 contra 2.1.98, número por número.
+function compararVersion(a, b) {
+  const x = a.split('.').map(Number);
+  const y = b.split('.').map(Number);
+  for (let i = 0; i < Math.max(x.length, y.length); i++) {
+    const d = (x[i] || 0) - (y[i] || 0);
+    if (d) return d;
+  }
+  return 0;
+}
+
+// El binario de la extensión de VS Code (D-b de D5.1: en la PC de Guido `claude` no está en el PATH):
+// <dir>/anthropic.claude-code-<versión>[-<plataforma>]/resources/native-binary/claude(.exe), el de versión más alta que exista.
+// → la ruta absoluta, o null.
+function claudeDeVSCode(dir = path.join(os.homedir(), '.vscode', 'extensions'), win = WIN) {
+  let nombres;
+  try {
+    nombres = fs.readdirSync(dir);
+  } catch (e) {
+    return null;
+  }
+  const binario = win ? 'claude.exe' : 'claude';
+  const hallados = [];
+  for (const n of nombres) {
+    const m = /^anthropic\.claude-code-(\d+(?:\.\d+)*)(?:-.+)?$/.exec(n);
+    if (!m) continue;
+    const ruta = path.join(dir, n, 'resources', 'native-binary', binario);
+    if (fs.existsSync(ruta)) hallados.push({ version: m[1], ruta });
+  }
+  hallados.sort((a, b) => compararVersion(b.version, a.version));
+  return hallados.length ? hallados[0].ruta : null;
+}
+
+// comandoClaude(opciones) → cómo se llama a claude en una línea: 'claude' si está en el PATH; si no, el binario de la extensión de
+// VS Code entre comillas ("/c/…/claude.exe" en Windows, para Git Bash); si no hay ninguno, null ("la apertura es de Guido").
+// Las pruebas inyectan opciones.claudeEnPath (y, para buscar la extensión, opciones.dirExtensiones): con claudeEnPath inyectado y
+// sin dirExtensiones, no se mira el disco de la PC. Se pregunta una vez por corrida (queda en opciones.comandoClaude).
+function comandoClaude(opciones) {
+  if (opciones.comandoClaude !== undefined) return opciones.comandoClaude;
+  const inyectado = typeof opciones.claudeEnPath === 'boolean';
+  let c = null;
+  if (claudeEnPath(opciones)) c = 'claude';
+  else if (typeof opciones.dirExtensiones === 'string' || !inyectado) {
+    const bin = typeof opciones.dirExtensiones === 'string' ? claudeDeVSCode(opciones.dirExtensiones) : claudeDeVSCode();
+    if (bin) c = `"${rutaGitBash(bin)}"`;
+  }
+  opciones.comandoClaude = c;
+  return c;
 }
 
 // El vigía (otro node): corre argv[1] en una shell y, pasado el plazo (argv[2], ms), mata el ÁRBOL entero, no solo la shell. Si
@@ -47,4 +109,4 @@ function correrConPlazo(cmd, { cwd, plazoMs, stdio = 'ignore' }) {
   return { estado: 'verde', como: 'salida 0' };
 }
 
-module.exports = { claudeEnPath, VIGIA, correrConPlazo };
+module.exports = { claudeEnPath, rutaGitBash, claudeDeVSCode, comandoClaude, VIGIA, correrConPlazo };

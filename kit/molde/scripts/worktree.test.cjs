@@ -126,6 +126,7 @@ test('mal llamado → 2 con el uso: comando, nombre (mayúsculas, ID de un dígi
   for (const args of [
     [], ['nada'], ['crear'], ['crear', 'X'], ['crear', 'x--1'], ['crear', 'x--01--02'], ['crear', 'a'.repeat(21)], ['crear', 'x-'],
     ['crear', 'x', '--model'], ['crear', 'x', '--model', 'op;us'], ['crear', 'x', '--otra'], ['sync-env', 'x'], ['cerrar', 'x', '--noche'], ['cerrar'],
+    ['cerrar', 'x', '--cancelado'], ['crear', 'x--01', '--cancelado'], ['cerrar', 'x--01', '--cancelado', '--cancelado'],
   ]) {
     const r = cli(p.P, args);
     assert.equal(r.codigo, 2, JSON.stringify(args));
@@ -520,7 +521,10 @@ test('cerrar x--01 desde el principal en main, con core.autocrlf=true: sin merge
   assert.ok(comun.includes(`${r1}\n${r2}\n`), 'los renglones, en el mismo formato');
   assert.ok(!comun.includes(RENGLON), 'la base no se muda');
   assert.ok(existeRama(p.P, 'modulo/x') && fs.existsSync(wx), 'el director sigue');
-  assert.ok(!/['"]--force['"]/.test(fs.readFileSync(SCRIPT, 'utf8')), 'remove nunca con --force');
+  // El cerrar de siempre nunca borra con --force (solo el temporal de integrar y el --cancelado, que son de otro trámite).
+  const fuente = fs.readFileSync(SCRIPT, 'utf8');
+  const cuerpo = fuente.slice(fuente.indexOf('function cerrar('), fuente.indexOf('// ---------------------------------------------------------------- integrar'));
+  assert.ok(cuerpo.length > 500 && !/['"]--force['"]/.test(cuerpo), 'remove de cerrar nunca con --force');
 });
 
 test('cerrar x: mergeado solo en origin/main → 0; sin mergear → 1; frenos.log creado por un hook → mudado entero; carpeta borrada a mano → prune', () => {
@@ -933,7 +937,7 @@ test('integrar se niega antes de tocar nada: lo ignorado, director sucio, frenos
   fs.mkdirSync(p.wt('integrar--x'), { recursive: true });
   r = cli(p.P, ['integrar', 'x']);
   assert.equal(r.codigo, 1);
-  assert.match(r.out, /el temporal \.claude\/worktrees\/integrar--x ya existe .*git worktree remove "/);
+  assert.match(r.out, /el temporal \.claude\/worktrees\/integrar--x ya existe .*git worktree remove --force "/);
   assert.ok(fs.existsSync(p.wt('integrar--x')), 'no borra lo que no creó');
   nada();
   fs.rmSync(p.wt('integrar--x'), { recursive: true });
@@ -948,4 +952,120 @@ test('integrar se niega antes de tocar nada: lo ignorado, director sucio, frenos
   assert.match(r.out, /modulo\/x divergió de origin\/modulo\/x/);
   assert.equal(enOrigin(p), base);
   sinTemporal(p);
+});
+
+// ---------------------------------------------------------------- arreglos del revisor frío de D5.1 (RF-fix)
+
+test('rf-1: cerrar x--02 --cancelado — sin el renglón (o sin el SHA de la punta) en la ficha → 1 y nada borrado; con él → worktree sucio, rama y la de origin borrados; integrar ya no lo ve abierto', () => {
+  const p = proyectoI();
+  const wx = moduloX(p);
+  // D-b: sin `claude` en el PATH, la línea de terminal sale con el binario de la extensión de VS Code (Git Bash).
+  const ext = path.join(p.base, 'extensiones');
+  const bin = path.join(ext, 'anthropic.claude-code-2.1.312-win32-x64', 'resources', 'native-binary', WIN ? 'claude.exe' : 'claude');
+  escribir(path.dirname(bin), path.basename(bin), '');
+  const w2 = p.wt('modulo--x--02');
+  const c = cli(p.P, ['crear', 'x--02'], { claudeEnPath: false, dirExtensiones: ext });
+  assert.equal(c.codigo, 0, c.out);
+  const P = require('../hooks/lib/proceso.cjs');
+  assert.ok(c.out.endsWith(`o en una terminal de Git Bash: cd "${barras(w2)}" && "${P.rutaGitBash(bin)}" --name obrero-x--02 --model sonnet\n`), c.out);
+  assert.ok(cli(p.P, ['crear', 'y'], { claudeEnPath: false }).out.endsWith(apertura(p.wt('modulo--y'), 'Opus', 'director-y')), 'sin ninguno, solo VS Code');
+  const punta = commit(w2, { 'e.txt': 'a medias\n' }, 'trabajo a medias');
+  g(w2, 'push', '-q', 'origin', 'modulo/x--02');
+  fs.writeFileSync(path.join(w2, 'sucio.txt'), 'sin commitear\n');
+  const intacto = () => {
+    assert.ok(fs.existsSync(w2) && existeRama(p.P, 'modulo/x--02'), 'nada borrado');
+    assert.ok(gOk(p.remoto, 'rev-parse', '--verify', '-q', 'refs/heads/modulo/x--02'), 'origin intacto');
+  };
+  // No: sin el renglón; con el renglón en el disco sin commitear; commiteado sin el SHA de la punta.
+  let r = cli(wx, ['cerrar', 'x--02', '--cancelado']);
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, /anotá el cancelado en la ficha y commitealo primero: .*docs\/modulos\/x\/README\.md de modulo\/x \(la punta: @\w{7}\) — nada borrado/);
+  intacto();
+  escribir(wx, 'docs/modulos/x/README.md', `# x\nEstado: en curso\n- cancelado 02 @${punta.slice(0, 7)}: ya no va\n`);
+  assert.equal(cli(wx, ['cerrar', 'x--02', '--cancelado']).codigo, 1, 'en el disco, sin commit, no cuenta');
+  commit(wx, { 'docs/modulos/x/README.md': '# x\nEstado: en curso\n- cancelado 02: ya no va\n' }, 'ficha: cancelado sin sha');
+  r = cli(wx, ['cerrar', 'x--02', '--cancelado']);
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, new RegExp(`no tiene el SHA de la punta \\(la punta: @${punta.slice(0, 7)}\\)`));
+  intacto();
+  // Sí: el renglón con la punta, commiteado; desde el worktree del director.
+  commit(wx, { 'docs/modulos/x/README.md': `# x\nEstado: en curso\n- cancelado 02 @${punta.slice(0, 7)}: ya no va\n` }, 'ficha: cancelado 02');
+  r = cli(wx, ['cerrar', 'x--02', '--cancelado']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.ok(!fs.existsSync(w2) && !existeRama(p.P, 'modulo/x--02'), 'worktree y rama borrados');
+  assert.ok(!gOk(p.remoto, 'rev-parse', '--verify', '-q', 'refs/heads/modulo/x--02'), 'y la de origin');
+  assert.match(r.out, new RegExp(`worktree cerrar: modulo/x--02 cancelada \\(el trabajo se recupera por @${punta.slice(0, 7)}, anotado en docs/modulos/x/README\\.md\\)\\n$`));
+  assert.equal(g(p.P, 'cat-file', '-t', punta), 'commit', 'el trabajo sigue en el repo, por su SHA');
+  // De nuevo: no queda nada que borrar, 0. Y integrar ya no lo ve abierto.
+  assert.match(cli(wx, ['cerrar', 'x--02', '--cancelado']).out, /ya no estaba ni acá ni en origin/);
+  r = cli(p.P, ['integrar', 'x']);
+  assert.equal(r.codigo, 0, r.out);
+  sinTemporal(p);
+});
+
+test('rf-1: --cancelado sin remoto lo dice y sigue; el renglón de otro ID no cuenta', () => {
+  const p = proyectoI();
+  const wx = moduloX(p);
+  g(p.P, 'remote', 'remove', 'origin');
+  assert.equal(cli(p.P, ['crear', 'x--03']).codigo, 0);
+  const punta = g(p.P, 'rev-parse', 'modulo/x--03');
+  commit(wx, { 'docs/modulos/x/README.md': `# x\n- cancelado 30 @${punta.slice(0, 7)}: otro\n` }, 'otro id');
+  assert.equal(cli(p.P, ['cerrar', 'x--03', '--cancelado']).codigo, 1);
+  commit(wx, { 'docs/modulos/x/README.md': `# x\n- cancelado 03 @${punta.slice(0, 7)}: ya no va\n` }, 'cancelado 03');
+  const r = cli(p.P, ['cerrar', 'x--03', '--cancelado']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(r.out, /sin remoto: no hay rama en origin que borrar/);
+  assert.ok(!existeRama(p.P, 'modulo/x--03') && !fs.existsSync(p.wt('modulo--x--03')));
+});
+
+test('rf-2: integrar con el temporal ensuciado por el test (coverage/ sin ignorar) → 0, en origin/main y temporal borrado; con el gate en rojo → 1, igual borrado', () => {
+  const ensucia = "require('fs').mkdirSync('coverage', { recursive: true }); require('fs').writeFileSync('coverage/lcov.info', 'TN:\\n');\n";
+  const p = proyectoI({ archivos: { 'test.cjs': ensucia + PRUEBA } });
+  moduloX(p);
+  const base = enOrigin(p);
+  let r = cli(p.P, ['integrar', 'x']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.notEqual(enOrigin(p), base, 'subió');
+  assert.doesNotMatch(r.out, /no pude borrar el temporal/);
+  sinTemporal(p);
+  // De nuevo: nada que integrar, y el temporal no "ya existe".
+  r = cli(p.P, ['integrar', 'x']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(r.out, /nada que integrar/);
+  // No: el mismo test sucio y en rojo → 1, nada sube y el temporal se borra igual.
+  const q = proyectoI({ archivos: { 'test.cjs': `${ensucia}process.exit(1);\n` } });
+  moduloX(q);
+  const bq = enOrigin(q);
+  r = cli(q.P, ['integrar', 'x']);
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, /el gate está en rojo: nada subió/);
+  assert.equal(enOrigin(q), bq);
+  sinTemporal(q);
+});
+
+test('rf-6: integrar y cerrar hacen fetch --prune — el encargo borrado de origin desde la otra PC ya no queda "abierto"; mientras origin lo tiene, sí', () => {
+  const p = proyectoI();
+  moduloX(p);
+  const otra = path.join(p.base, 'otra');
+  g(p.base, 'clone', '-q', p.remoto, otra);
+  g(otra, 'checkout', '-q', '-b', 'modulo/x--04', 'origin/main');
+  commit(otra, { 'e4.txt': '1\n' });
+  g(otra, 'push', '-q', 'origin', 'modulo/x--04');
+  g(p.P, 'fetch', '-q', 'origin');
+  // No: origin lo tiene → abierto.
+  let r = cli(p.P, ['integrar', 'x']);
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, /hay un encargo abierto \(modulo\/x--04\)/);
+  // La otra PC lo cancela; acá queda la ref de seguimiento vieja hasta el fetch --prune de integrar.
+  g(otra, 'push', '-q', 'origin', '--delete', 'modulo/x--04');
+  assert.ok(gOk(p.P, 'rev-parse', '--verify', '-q', 'refs/remotes/origin/modulo/x--04'), 'la ref vieja sigue');
+  r = cli(p.P, ['integrar', 'x']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.ok(!gOk(p.P, 'rev-parse', '--verify', '-q', 'refs/remotes/origin/modulo/x--04'), 'podada');
+  // cerrar también poda (aunque después diga que no).
+  g(otra, 'push', '-q', 'origin', 'HEAD:refs/heads/modulo/x--05');
+  g(p.P, 'fetch', '-q', 'origin');
+  g(otra, 'push', '-q', 'origin', '--delete', 'modulo/x--05');
+  assert.equal(cli(p.P, ['cerrar', 'x--09']).codigo, 1);
+  assert.ok(!gOk(p.P, 'rev-parse', '--verify', '-q', 'refs/remotes/origin/modulo/x--05'), 'cerrar podó');
 });

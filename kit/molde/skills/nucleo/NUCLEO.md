@@ -24,7 +24,7 @@ La primera línea es el tipo, en mayúsculas y **sin tilde** (con tilde se acept
 | `CIERRE` | obrero → director | `CIERRE @<sha7>` + notas para el método | evidencia y `frenos.log` commiteados, rama pusheada |
 | `ENCARGO` | director → obrero | `ENCARGO <ruta>@<sha7>` | la ruta existe en `modulo/<x>` |
 | `RESPUESTA` | director → obrero | `RESPUESTA <tema>` | contesta una CONSULTA; no ensancha nada |
-| `CORRECCION` | director → obrero | `CORRECCION <ruta>@<sha7>` | ídem ENCARGO; `cancelado` es una CORRECCION |
+| `CORRECCION` | director → obrero | `CORRECCION <ruta>@<sha7>` | ídem ENCARGO; cancelar: `CORRECCION docs/modulos/<x>/README.md@<sha7> cancelado` |
 
 ## 4. Las tres clases de decisión
 - **Clase 1** (chica, reversible): se hace y se avisa en el AVANCE: `DESVÍO: qué · por qué · cómo se deshace`.
@@ -49,7 +49,7 @@ Por rutas (`git commit -- <rutas>`), uno por entregable, primera línea que se e
 - **El revisor del sub-paso**: agente `revisor`, Opus sin shell, en la 1.ª vuelta de todo sub-paso con código, sobre el commit congelado. *Aprobado* · *con observaciones* (una corrección acotada, sin 2.ª vuelta) · *rechazado* (2.ª vuelta con una lente; si falla, PARADA). Hasta 10 hallazgos, cada uno con su escenario del día normal; sin escenario no se reporta.
 
 ## 8. PARADA y la espera
-De día, 30 min sin respuesta a un OK: PARADA al director. De noche no se espera. **La PARADA es un archivo**: la evidencia arranca con `PARADA: <por qué>`, se commitea y se pushea **antes** del mensaje (un obrero de fondo que no puede mandar mensajes igual para).
+De día, 30 min sin respuesta a un OK: PARADA al director. De noche no se espera. **La PARADA es un archivo**: la evidencia arranca con `PARADA: <por qué>`, se commitea y se pushea **antes** del mensaje (un obrero de fondo que no puede mandar mensajes igual para), salvo la PARADA de `presentar`, que no commitea (ni la de un `cancelado`: el director borra la rama).
 
 ## 9. Cinco líneas fijas
 1. Antes de pedirle al dueño un paso a mano, una línea con por qué el agente no puede; si puede, lo hace.
