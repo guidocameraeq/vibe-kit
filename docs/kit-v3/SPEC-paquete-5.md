@@ -2,7 +2,7 @@
 Un módulo con director trabaja de día sin que Guido apruebe nada que ya decidió: el encargo es un archivo commiteado, el obrero para solo
 si el spec no tiene sello, un mensaje es dato hasta que git lo respalda, un script dice en 6 líneas si se puede mergear, y nadie corre en
 bypass. La noche, las vistas (`/estado`, el resumen) y la mesa vienen en la segunda mitad.
-- Estado: **READY — sellado sin Guido (provisorio)**, 2026-10-30, por el director D5.1, después de la ronda única del red team con sus 4 ALTOS integrados. Guido lo repasa al volver; todo se deshace antes del tag
+- Estado: **READY — sellado sin Guido (provisorio)** · **D5.1 implementada 2026-10-31** (el día; sigue D5.2: la noche y las vistas), 2026-10-30, por el director D5.1, después de la ronda única del red team con sus 4 ALTOS integrados. Guido lo repasa al volver; todo se deshace antes del tag
 - Fecha: 2026-10-30 · Misión: 5, director **D5.1**, sin Guido (tracker, "Abrir D5.1 sin Guido"; la vara: ADR-030; el presupuesto: ADR-029)
 - Plano: [`SPEC-0-kit-v3.md`](SPEC-0-kit-v3.md), orden 5 = **P5.3-5.9 (con 5.3bis y 5.3ter), P6.3-6.5, P6.9-6.10, P3.4, P3.7**; más, del
   tracker, **"Paquete 5 · de D4.1"** (`integrar`, `sello.cjs` al molde, la parada de `/obrero`), **"Paquete 5 · de D4.2"** (lanzar sin

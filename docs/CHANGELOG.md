@@ -2,6 +2,41 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-10-31 — Misión 5, paquete 5, primera mitad (D5.1): el canon director/obrero, `encargo.cjs` e `integrar`
+
+PC `Usuario`, chat `vibe-kit M5 · D5.1 · Paquete 5, primera mitad: delta, red team y el canon director/obrero`, en Opus, sin Guido, con el
+presupuesto del ADR-029, **en dos tramos** (2026-10-30 15:08-16:15, pausa pedida por Guido por el corte de internet; 2026-10-31 13:25-15:45):
+**~3,5 h de reloj, 8 encargos (7 Opus: redactor del delta, red team, E1, E2, E3, revisor frío, RF-fix · 1 Sonnet: E4), ~2,0 M de tokens de
+subagentes**, más dos sesiones `claude.exe -p`. Sin tag. Decisiones sin Guido: tracker, "D5.1 · Decisiones sin Guido". **El paquete 5 va por la
+mitad**; sigue D5.2.
+
+**Added**
+- **`docs/kit-v3/SPEC-paquete-5.md`**: el delta del paquete 5 entero, partido en D5.1 "el día" y D5.2 "la noche y las vistas"; red team de una ronda
+  (4 ALTOS integrados) y **sellado sin Guido por el script** (`hash 7c949bb227f1`).
+- **El canon en el molde**: `skills/nucleo/NUCLEO.md` (roles, gana git, el vocabulario de mensajes sin tilde, las tres clases, las cinco reglas del gate,
+  el canon de pruebas de las apps del ADR-029, PARADA como archivo, permisos sin bypass), `/director`, `/obrero`, `director/plantilla-encargo.md` y
+  `agents/revisor.md` (Opus sin shell, hasta 10 hallazgos con escenario).
+- **`scripts/encargo.cjs`** (lógica en `hooks/lib/encargo.cjs`, barrera): `partida`; `presentar`, **el corrector "spec sin sello"** (la parada de `/obrero`);
+  `mensaje` (un mensaje es dato hasta que git lo respalda); `autorizado` (base + `## AUTORIZADO` en el `allow` del worktree, sin claves propias, y la
+  **línea de fondo** con `acceptEdits` y `--allowedTools`, el pedido por stdin y el `claude.exe` de la extensión); `verificar` (seis líneas: remoto ·
+  limpio · pruebas · alcance · main · barreras).
+- **`worktree.cjs integrar <x>`**: chequeos primero, `frenos.log` del director commiteado, temporal equipado, merge `--no-ff`, el gate y el push sin
+  `--force`; y **`cerrar <x>--<ID> --cancelado`**.
+- `hooks/lib/proceso.cjs` (el vigía que mata el árbol de un test colgado y la búsqueda de `claude`) y `hooks/lib/sello.cjs` (copia byte a byte del
+  Arquitecto, con su prueba en `copias.test.cjs`). "Sesiones vivas" en la ficha del módulo (`formato-spec.md`).
+
+**Changed**
+- `pruebas/rehacer.sh` (paso "orden 3") copia también `agents/`; `skills.test.cjs` cubre `director` y `obrero`.
+
+**Medido**
+- **Pruebas por encargo, corridas por el director**: 163 de 163 en lo del paquete tras RF-fix. **Mutación** (tope 20 min, en copias): E1 64/67, E3 30/32,
+  E2 29/30; los vivos, equivalentes y explicados.
+- **Sesiones reales** (`claude.exe` 2.1.312, lanzadas desde esta sesión con la línea de `autorizado`, en un clon de `alfa`): **crit. 3 del kit ✅** (el obrero
+  para sin commit ante un spec sin sello, 51 s); **la ficha canónica de día de punta a punta** (sub-paso con prueba en rojo, revisor aprobado, evidencia,
+  CIERRE en 3 min; `verificar` 6/6; merge del SHA; `integrar` a `origin/main`; `cerrar`). El clasificador del modo `auto` **no frenó** el lanzamiento.
+- **Hallazgo**: Claude Code ignora las `deny` con `Write(...)` (solo mira `Edit(...)`): las del molde no frenan; hoy las cubren los hooks. Primero de D5.2.
+- Suite entera: **2.290 de 2.291** (25 min, una vez, al final); la que falló (`kit-githook.test.cjs`, "el temporal se borró") cuenta los `kit-githook-*` del temporal del sistema y a la vez commiteaban los clones de las sesiones reales: sola da 41/41. `kit-sync` LIMPIO; la huella del `~/.claude/` real, igual a la de la apertura.
+
 ## 2026-10-30 — Misión 5, paquete 4 cerrado (D4.2): el Modo B corto de punta a punta, 10 de 10 y el prototipo
 
 PC `Usuario`, chat `vibe-kit M5 · D4.2 · Paquete 4, cierre: Modo B corto real, 10 de 10 y prototipo`, en Opus, sin Guido, con el presupuesto del

@@ -78,7 +78,7 @@ sesión sigue con lo que no depende de eso. Lo que sí se decide y es grande se 
 | 2 | Documentos con tope, hook en node, candado, `cambios`, `/inicio` y `/cierre` v3, **la zona propia (P3.2)**, `pruebas/pedidos.md` | 2 | ✅ 2026-10-29 (D2.1 y D2.2; lo que espera a Guido, en Pendientes) ([`SPEC-paquete-2.md`](SPEC-paquete-2.md)) |
 | 3 | Seguridad: corrector de secretos, barreras, hooks por PC, `doctor` mínimo | 3 | ✅ 2026-10-30 (D3.1, D3.2, D3.3; **te espera**: instalar los hooks por PC en las dos PCs, la pestaña real, borrar 4 transcripts de prueba: Pendientes) ([`SPEC-paquete-3.md`](SPEC-paquete-3.md)) |
 | 4 | El Arquitecto v3, el script `worktree`, el sello, `formato-spec.md` | 2 | ✅ 2026-10-30 (D4.1 y D4.2; **te espera**: el Arquitecto en un proyecto v2 de verdad, la pestaña en un worktree: Pendientes) ([`SPEC-paquete-4.md`](SPEC-paquete-4.md)) |
-| 5 | Director/obrero, `/estado`, resumen del día, la mesa, subagentes | 2 | ⬜ |
+| 5 | Director/obrero, `/estado`, resumen del día, la mesa, subagentes | 2 | 🔨 D5.1 ✅ 2026-10-31 (el día: el canon, `encargo.cjs`, `integrar`); sigue **D5.2** (la noche y las vistas) ([`SPEC-paquete-5.md`](SPEC-paquete-5.md)) |
 | 6 | Equipador v3, actualizador, adoptador, `doctor` completo | 1 | ⬜ |
 | 7 | El ciclo de `cambios` (flota, migración de Hermes) y la portada | 1 | ⬜ |
 | 8 | El observatorio mide la línea base; playbook, guía y manuales al día | 1 | ⬜ |
@@ -105,7 +105,7 @@ cuántos lanzó y en qué modelo (por ejemplo `4 Sonnet · 2 Opus`): es la medid
 | D3.3 | Paquete 3, cierre: G7, G10, G11, G12, G13, revisor frío, `/cierre` completo | 2026-10-29/30 (sin Guido, PC `Usuario`; ~10 h de reloj, 18 h de agentes, 21 M de tokens nuevos) | `vibe-kit M5 · D3.3 · Paquete 3, cierre: githooks, instalador, doctor, sesión real, revisor frío` | 3 Sonnet (G11, G12, G13) · 14 Opus (G7, G10, G5b, G6b, revisor frío ×2 vueltas, RF-A, RF-B, RF-C, RF-D, RF-A2, RF-B2, RF-C2, RF-D2; dos se colgaron y se retomaron) | `797eddc`…`387f481` y el cierre | ✅ **G7** githooks con candado doble y gitleaks, todos los hooks registrados en forma exec; **G10** instalador por PC (`--plan`, `--quitar` byte a byte, `--sacar-viejo`); **G11** `doctor` (14 chequeos); **G12** `rehacer.sh` con el paso "orden 3"; **G13** sesión real con `claude.exe` (niega-aprobar en bypass, `salir-del-worktree` y `frenos-del-proyecto` vivos); G5b y G6b de yapa. Pendientes a-g de D3.2 y a-d de D2.2 cerrados salvo (e), que es de `clientes`. Revisor frío: dos vueltas, todo lo del día normal arreglado; el resto a "no cierra". Suite y mutaciones: cifras en el CHANGELOG. Huella del `~/.claude/` real igual a la de la apertura. **Decisiones sin Guido**: arriba |
 | D4.1 | Paquete 4: spec delta + red team, Arquitecto v3, sello, `formato-spec.md`, `worktree` y `.kit-rol` | 2026-10-30 (sin Guido, PC `Usuario`; **~3,2 h de reloj, ~2,9 h de agentes, ~2,0 M de tokens de subagentes**) | `vibe-kit M5 · D4.1 · Paquete 4: Arquitecto v3, sello, formato-spec, worktree y .kit-rol` | 3 Sonnet (J4, J5a, J5b) · 7 Opus (redactor del delta, red team ×1, J1, J2, J3, revisor frío ×1, RF-fix) = **10** (ADR-029: ~8) | `42344e4`…el cierre | 🔨 **El código del paquete entero en `main`**: `arquitecto.cjs` (`sello` con hash, `ready`, `--pendientes`, `tope`, `entorno`, `registro`), `worktree.cjs` (`crear`, `abrir`, `sync-env`, `cerrar`, `.kit-rol`, filtro de credenciales que falla cerrado), el Arquitecto v3 (5,6 KB, cinco entradas, la línea primero, `modo-a`/`modo-b`/`flota`, `formato-spec` v3), la regla del tamaño en el molde. Delta **sellado sin Guido y por script**; red team 1 ronda (5 ALTOS integrados); revisor frío 1 vuelta (9 hallazgos, todos arreglados en un encargo). Pruebas por encargo 35 · 19 · 39 → 99 tras RF-fix, verdes corridas por el director; **mutación J1 72/75 · J2 32/33** (vivos equivalentes). Sesiones reales: obrero en su worktree desde PowerShell ✅ (crit. 17 tildado, `.kit-rol` mitad PowerShell); **diez pedidos 8 de 10** (eran 6; fallan 8 y 10); **el Modo B corto no se midió** (el pedido 14 estaba mal armado: con el plan adentro es chico por la regla). Suite y huella: en el CHANGELOG. **Sigue en D4.2** (abajo) |
 | D4.2 | Paquete 4, cierre: el Modo B corto de punta a punta (crit. 4), 10 de 10, el prototipo, el ✅ del paquete | 2026-10-30 (sin Guido, PC `Usuario`; **~1,15 h de reloj (1 h 09 min), ~0,4-0,6 M de tokens de subagentes** más 10 sesiones `claude.exe -p`) | `vibe-kit M5 · D4.2 · Paquete 4, cierre: Modo B corto real, 10 de 10 y prototipo` | 3 Sonnet (K1 texto, K2 `rehacer.sh`, K3 corridas, retomado dos veces) = **3** (ADR-029: ~3) | `31b7dac`…el cierre | ✅ **Paquete 4 cerrado.** K1: la regla del tamaño (charla con el dueño, siempre invoca de noche), el prototipo siempre en `modo-b.md`, el pedido 14 rearmado y el 14b; `skills.test` + `arquitecto.test` 80/80 corridas por el director. K2: `rehacer.sh` pone el `CLAUDE.md` del molde (las corridas de D4.1 medían sin él; el no, probado). K3: **crit. 4 del kit ✅** (14: sin preguntas, `ready` 0 en ~3 min, commit en `main`, rama y worktree con `.kit-rol` = `director`), **crit. 2 ✅ 10 de 10** (1, 2, 6, 7, 8, 10 hoy), **16 ✅** (criterio reescrito, D4.2-3); **14b a medias** por el armado (D4.2-4). Bypass frenado por el clasificador → `acceptEdits` + `--allowedTools` (D4.2-2). Suite entera **2.192 de 2.192** verde (19 min, una vez, al final). **Decisiones sin Guido**: arriba |
-| D5.1 | Paquete 5, primera mitad: spec delta + red team, el canon director/obrero y sus correctores | 2026-10-30 (sin Guido, PC `Usuario`; **en pausa** a las 16:20 por el corte de internet de Guido) | `vibe-kit M5 · D5.1 · Paquete 5, primera mitad: delta, red team y el canon director/obrero` | 1 Sonnet (E4) · 4 Opus (redactor del delta, red team, E1, E3) hasta la pausa | `5a3a1c9` (delta sellado) · `40d3450` (E4) | 🔨 **En pausa, se retoma en esta misma sesión.** En `main`: el delta sellado sin Guido (red team 1 ronda, 4 ALTOS integrados) y **E4** (núcleo, `/director`, `/obrero`, plantilla del encargo, revisor; `skills.test` 72/72). **E1** (`encargo.cjs`: `presentar`, `mensaje`, `sello.cjs` al molde) y **E3** (`worktree integrar`) commiteados WIP en `d5.1/e1` y `d5.1/e3` (worktrees del scratchpad). Falta: terminar y mergear E1 y E3, E2 (`autorizado`, `verificar`), las filas 1-2 reales, revisor frío y arreglos, suite, `/cierre` |
+| D5.1 | Paquete 5, primera mitad: spec delta + red team, el canon director/obrero y sus correctores | 2026-10-30/31 (sin Guido, PC `Usuario`; **dos tramos** por una pausa pedida; **~3,5 h de reloj, ~2,0 M de tokens de subagentes** más 2 sesiones `claude.exe -p`) | `vibe-kit M5 · D5.1 · Paquete 5, primera mitad: delta, red team y el canon director/obrero` | 1 Sonnet (E4) · 7 Opus (redactor del delta, red team ×1, E1, E2, E3, revisor frío ×1, RF-fix) = **8** (ADR-029: ~8) | `5a3a1c9`…el cierre | ✅ **El día del canon en `main`**: el núcleo, `/director`, `/obrero`, la plantilla del encargo, el revisor; `encargo.cjs` (`presentar` con el corrector "spec sin sello", `mensaje`, `autorizado` sin bypass, `verificar` de seis líneas); `worktree integrar` y `cerrar --cancelado`. Delta **sellado sin Guido por script** (red team 1 ronda, 4 ALTOS integrados). Pruebas del paquete **163/163** corridas por el director; **mutación E1 64/67 · E3 30/32 · E2 29/30** (vivos equivalentes). Revisor frío 1 vuelta, 10 hallazgos (3 ALTOS del día normal: cancelar, dos PCs, temporal sucio), todos en un encargo. **Sesiones reales**: crit. 3 del kit ✅ (el obrero para sin commit); la ficha canónica de día de punta a punta (crit. 10 del delta); el clasificador dejó lanzar. **Hallazgo**: las `deny` con `Write(...)` no frenan (primero de D5.2). Suite: **2.290 de 2.291** (25 min, una vez, al final); la que falló (`kit-githook.test.cjs`, "el temporal se borró") cuenta los `kit-githook-*` del temporal del sistema y a la vez commiteaban los clones de las sesiones reales: sola da 41/41. Huella del `~/.claude/` real igual a la de la apertura. **Decisiones sin Guido**: arriba |
 | D5.2 | Paquete 5, segunda mitad: `/estado`, resumen del día, subagentes, `CLAUDE.md` por criterios, la mesa | | | | | |
 | D6.1 | Paquete 6: Equipador v3, actualizador, adoptador, `doctor` completo, "toda la flota" en los repos de prueba | | | | | |
 | D7.1 | Paquete 7: el ciclo de `cambios` y la portada | | | | | |
@@ -369,6 +369,46 @@ decidirse con la vara: **no hay preguntas nuevas arriba de Pendientes**.
 - **De las corridas**: las de `plan` escriben su plan en `~/.claude/plans/` (mecanismo de Claude Code, no del kit). El `claude.exe -p` avisa "workspace not
   trusted" e ignora el `permissions.allow` del repo (ya anotado para los paquetes 6/7); no cambió nada acá.
 
+### D5.1 · Decisiones sin Guido
+
+D5.1 corrió sin Guido, con su autorización previa (su prompt, abajo) y con la vara del ADR-030, **en dos tramos** (2026-10-30 de 15:08 a 16:15, pausa
+pedida por Guido por el corte de internet, y 2026-10-31 desde las 13:25). **Las ⚠️ arriba**, todas se deshacen antes del tag. El detalle, en
+[`SPEC-paquete-5.md`](SPEC-paquete-5.md) ("Riesgos y decisiones"). Ninguna quedó sin poder decidirse con la vara: **no hay preguntas nuevas arriba de Pendientes**.
+
+- ⚠️ **Sellé yo el delta del paquete 5** (provisorio, por el script, `hash 7c949bb227f1`), después de la ronda única del red team con sus 4 ALTOS
+  integrados. *Alternativa*: esperarte. Repasalo al volver; lo que más pesa son las tres de abajo.
+- ⚠️ **D5-2 · Ningún obrero corre en bypass.** El director lo lanza solo si se lo pedís o el encargo dice `Apertura: director`, con la **línea de fondo
+  que imprime `encargo.cjs autorizado`**: `acceptEdits` + `--allowedTools` con la base (lectura, git, `encargo.cjs`, el test) y el `## AUTORIZADO` del
+  encargo. **Medido**: el clasificador del modo `auto` dejó lanzar las dos corridas, y el obrero hizo su sub-paso sin un permiso negado. Si un encargo de verdad
+  necesita bypass, lo tipeás vos en tu terminal. `[workflow · mejor código]` *Contradice* F §14.4 y D §7.4 ("de noche, bypass con el hook debajo").
+- ⚠️ **D5-19 · Tu pestaña de obrero abre en tu modo** (casi siempre `auto`), la línea no lo fuerza: lo de AUTORIZADO y la base no preguntan; lo demás lo
+  decide el clasificador, y las 5 de A te las sigue preguntando `sensible`. *Alternativa*: forzar `default` (pop-up para todo lo demás). `[workflow · acordarse de menos]`
+- ⚠️ **D5-3 · `integrar` no corre `/cierre`**: chequeos, merge `--no-ff` en un temporal sobre `origin/main`, el gate y el push; handoff, TODO y CHANGELOG
+  los pone al día el próximo `/cierre` de `main`. *Contradice* H §10.2 y D §8.4. `[workflow · acordarse de menos · mejor código]`
+- ⚠️ **D5-1 · El paquete 5 partido en dos**: D5.1 "el día" (núcleo, `/director`, `/obrero`, `encargo.cjs`, `integrar`, el revisor) y D5.2 "la noche y las
+  vistas" (`/estado`, resumen del día, `/tramo`, los demás subagentes, `/smoke`/`/release`, la mesa, `.kit-noche`, `contexto`, `tiempos`, P6.10, `CLAUDE.md`).
+  `/tramo` pasó a D5.2 con los subagentes que coordina. `[mejor código · consistencia]`
+- ⚠️ **D5-5 · En las apps, la mutación solo en sub-pasos de `Riesgo: alto`**, tope 20 min (el ADR-029 llevado a las apps; contradice D §6 y §15.4).
+- ⚠️ **RF-fix · `worktree cerrar <x>--<ID> --cancelado`** (rf-1, fuera de la CLI del delta): cancelar un encargo exige el renglón `cancelado <ID> @<sha7>`
+  commiteado en la ficha y entonces borra el worktree con `--force`, la rama y la de `origin`. Sin él, un encargo cancelado trababa `integrar` para siempre.
+  `[workflow]`
+- D5-4 un `allow` de más en el worktree es ⚠️, no ❌ (lo produce "no preguntar más") · D5-6 el vocabulario sin tilde, la tilde alias · D5-7/D5-8 un solo
+  `encargo.cjs` con la lógica en `hooks/lib/` (barrera), `sello.cjs` copiado byte a byte · D5-12 un commit en `main` de noche traba, de día avisa · D5-13
+  lo de afuera de `## Toca` es ⚠️ · D5-14 `integrar` pide `--ok-de-guido` si la ficha endureció `merge-a-main` · D5-17 `revisor.md` adelantado.
+- **Del red team** (4 ALTOS): `integrar` equipa su temporal como `equipar` (si no, `npm test` sin `node_modules`); la base de `--allowedTools` con lo de
+  lectura de D4.2; **ninguna clave propia en `settings.local.json`** (`verificar` calcula lo autorizado sin estado); base + AUTORIZADO también en la
+  pestaña y en forma `PowerShell(...)`.
+- **Del revisor frío** (10 hallazgos, una vuelta, todos arreglados en un encargo): `integrar` borra su temporal con `--force` y sale 0 si ya subió;
+  `/director` pushea `modulo/<x>` y `presentar`/`mensaje`/`verificar` hacen `fetch --prune` (dos PCs); `presentar --spec` mira el `SPEC-N.md` más nuevo;
+  `cerrar <x>` del módulo, desde el principal; `verificar` línea 2 no traba por lo que deja la suite sin ignorar (⚠️); `mensaje` tolera markdown.
+- **Del director** (dos, al leer el diff de E2): **la línea de fondo manda el pedido por stdin con `printf`** (desde Git Bash, `-p "/obrero …"` llega
+  convertido en ruta, la lección de D2.2; nunca `MSYS_NO_PATHCONV`), y **`claude` se busca también en la extensión de VS Code** (en esta PC no está en el
+  PATH). Y uno de la fila 2: `/director` paso 9 pone **la ficha y su spec** en `COMPLETO` (el candado de `integrar` frenó con solo la ficha).
+- **De los encargos**: E1 · el validador de AUTORIZADO rechaza además `python -c *`, `cmd /c *`, `C:/…`, `**/*` y `WebFetch` sin `domain:`. E2 · las formas
+  de las reglas son las de la doc (`Bash(x:*)` = `Bash(x *)`; una regla por argumento en `--allowedTools`), citadas en el código; `verificar` imprime las seis
+  líneas aunque falte algo (la que no se puede mirar, NO VERIFICADO). E3 · el setup del temporal corre después del merge; un módulo ya integrado sale 0 "nada
+  que integrar"; el test corre adentro de un vigía que mata el árbol (`hooks/lib/proceso.cjs`, compartido).
+
 ## Abrir D3.1 sin Guido (el prompt)
 
 Guido abre un chat nuevo en vibe-kit, en Opus, pega esto y se va. Es el de D2.2 con lo que cambia para el paquete 3:
@@ -550,6 +590,35 @@ Opus, chat nuevo en vibe-kit.
 > 7. Al terminar: la fila D5.1 con **horas, encargos y tokens**, el prompt de D5.2 armado como este, y /cierre completo con el "Próximo paso" y su
 >    título. En el resumen final, primero "Decisiones sin Guido" y después lo que me espera a mí.
 
+## Abrir D5.2 sin Guido (el prompt)
+
+*(Armado en el cierre de D5.1, 2026-10-31.)* En la PC `Usuario`, en Opus, chat nuevo en vibe-kit.
+
+> inicio — misión 5, D5.2: el paquete 5, segunda mitad, sin mí, con el presupuesto del ADR-029.
+>
+> Me voy y te dejo trabajando solo. Te autorizo por adelantado a lo mismo que a D5.1 (su prompt, en el tracker, "Abrir D5.1 sin Guido"):
+> después del /inicio no esperás mi OK, decidís con la vara (ADR-030) y anotás en "Decisiones sin Guido" de una sección D5.2 nueva (las ⚠️
+> arriba), no tocás el `~/.claude/` real salvo el `kit-sync` del `/cierre`, y lo que necesita una persona va a Pendientes. Lo que cambia:
+>
+> 1. **Alcance: la segunda mitad del paquete 5**, con el delta que ya está sellado (`docs/kit-v3/SPEC-paquete-5.md`: "Los dos directores", D5.2, y
+>    "Los encargos de D5.2", provisorios: los ajustás vos). **Sin delta nuevo ni red team** (el delta es del paquete entero); si un encargo toca algo que
+>    el delta no fijó y es permiso o freno, lo decidís con la vara y lo anotás ⚠️. Primero lo de "Paquete 5 · para D5.2" de Pendientes, **arriba de
+>    todo las `deny` con `Write(...)`** (Claude Code avisa que no las mira).
+> 2. **El presupuesto manda (ADR-029)**: **~4 h de reloj y ~8 encargos**. Si no entra, **la mesa (K3) y el corrector de afirmaciones (K5) pasan a un
+>    D5.3** (el delta ya lo prevé; K5 necesita el historial de Hermes, que está en `clientes`). Cerrás limpio: lo hecho en `main`, lo que falta en
+>    Pendientes con su porqué. No estires.
+> 3. **Contra accidentes, no contra trampas.** El revisor frío: una vuelta, hasta 10 hallazgos con su escenario del día normal, los arreglos en un
+>    encargo; sin segunda vuelta. Pruebas proporcionales: casos de sí y de no; mutación solo en las piezas nuevas que deciden un freno o un permiso
+>    (`.kit-noche`, `candado:mesa`, el corrector de afirmaciones; tope 20 min); la suite entera una vez, al final, en segundo plano. De a dos Opus como
+>    máximo; cada encargo en su worktree en `scratchpad/<x>/wt`.
+> 4. **Las sesiones reales** (`claude.exe -p`): el obrero se lanza con la línea de fondo que imprime `encargo.cjs autorizado` (el pedido por stdin con
+>    `printf`, el `claude.exe` de la extensión); el armado del módulo de prueba, como en D5.1 (`scratchpad/filas/armar.sh` de esa sesión: rearmalo, el
+>    scratchpad no viaja). Los repos de prueba recién armados por `rehacer.sh`.
+> 5. Leés cada diff y corrés las pruebas de cada encargo. Aceptado → merge a `main`, gitleaks, commit y push.
+> 6. Al terminar: el paquete 5 en ✅ si cerró, los `✅ <fecha>` del SPEC-0, el delta en `✅ IMPLEMENTADO`, la fila D5.2 con **horas, encargos y tokens**,
+>    el prompt de la sesión siguiente armado como este, y /cierre completo con el "Próximo paso" y su título. En el resumen final, primero "Decisiones
+>    sin Guido" y después lo que me espera a mí.
+
 ## Paralelizar: decidido que no (DP, 2026-10-29)
 
 **La misión 5 sigue en secuencia: un director por vez, en el orden de la tabla de arriba.** Guido: "Prefiero hacerlo bien y que tarde
@@ -595,8 +664,6 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
      frenó que una sesión los borrara: es tuyo.
   6. La ruta de la app de escritorio en el `doctor` (NO VERIFICADO): con la app abierta, `doctor` tiene que decir `claude-code ✓`.
   7. Repasar las ⚠️ de D2.2, D3.1 y D3.3 (arriba).
-- **Paquete 5 · del ADR-029**: el canon de pruebas de las apps (revisor, mutación, gate) se escribe con el mismo criterio: contra
-  accidentes, pruebas proporcionales al riesgo, una vuelta de revisor con escenario.
 - **Paquete 4 · te espera a vos, Guido** (D4.1 no lo podía hacer sin una persona; **no traba a D5.1**):
   1. **El Arquitecto v3 ya está en esta PC** (`Usuario`, por `kit-sync`); en `clientes` llega con tu próximo `/inicio` de vibe-kit allá
      (`kit-sync sync`). Usalo como siempre en un proyecto v2: tiene que abrir con la línea del tamaño y, sin ficha, dejar `docs/SPEC-<x>.md`
@@ -608,11 +675,27 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
      la pestaña de Claude ahí, y fijate que el arranque diga el rol (`director`) y que `cambios aprobar` se niegue. Es la mitad VS Code del
      NO VERIFICADO de `.kit-rol`.
   3. Repasar las ⚠️ de D4.1 y D4.2 (arriba) y el delta sellado sin vos.
-- **Paquete 5 · de D4.2**: `claude.exe -p --permission-mode bypassPermissions` **lo frena el clasificador del modo `auto`** cuando lo lanza una
-  sesión ("Create Unsafe Agents", 2026-10-30; en D4.1 había pasado). Con `acceptEdits` y un `--allowedTools` corto, pasa y alcanza
-  (D4.2-2). El canon director/obrero y los obreros nocturnos tienen que lanzarse así, o decir por qué necesitan bypass y cómo se autoriza.
-- **Paquete 5 · de D4.1**: `integrar` (D4-2) con el gate, que commitea `frenos.log` antes del merge (D4-3); copiar `lib/sello.cjs` al molde con
-  su prueba anti-desvío (D4-9) para el corrector "spec sin sello" y `/obrero`; la otra mitad del criterio 3 (la parada de `/obrero`).
+- **Paquete 5 · para D5.2** (de D5.1):
+  1. ⚠️ **Las `deny` con `Write(...)` no frenan nada**: en las dos corridas de D5.1, `claude.exe` 2.1.312 avisó "`Write(./.claude/cambios/**)` is not
+     matched by file permission checks — only Edit(path) rules are. Use Edit(…) instead (Edit rules cover all file-editing tools)". Le pasa a
+     `Write(./.claude/cambios/**)` y `Write(./.claude/revisiones/**)` del `settings.json` del molde y al `deny` del `.env` que suma `worktree.cjs` (`reglasDeny`).
+     Hoy los cubren los hooks (`secretos`, `escritura`), así que no hay un agujero abierto, pero la segunda capa no existe. **Arreglo**: `Edit(...)` en
+     vez de `Write(...)` en el molde y en `reglasDeny`, con los ids de `barreras` y los hashes de `settings` que cambian (y `rehacer.sh`). Toca una barrera:
+     Opus, con su caso de prueba.
+  2. `worktree cerrar <x>--<ID>` (el común, no `--cancelado`) sigue negando con un archivo sin trackear que dejó la suite (por ejemplo `coverage/`), que
+     `verificar` ya marca ⚠️ (rf-10): el director lo tiene que borrar o ignorar a mano. Que la negativa diga qué hacer, o que `cerrar` ignore lo sin
+     trackear fuera de `## Toca`.
+  3. **Menor**: la prueba "el candado de la ref se saca a un temporal FUERA del repo" de `kit/molde/githooks/kit-githook.test.cjs` cuenta todos los
+     `kit-githook-*` de `os.tmpdir()`: con otro git commiteando en la PC (las sesiones reales de D5.1) da rojo de más. Que cuente solo los suyos (un
+     `TMPDIR` propio para la prueba). Sin la carga, 41/41.
+  4. El `/tramo`, `.kit-noche`, `contexto`, el despertador y el checklist nocturno, `/estado`, el resumen del día, `tiempos`, la mesa, P6.10 y `CLAUDE.md`
+     por criterios: los encargos K1-K6 del delta.
+- **Paquete 5 · te espera a vos, Guido** (D5.1 no lo podía hacer sin una persona; **no traba a D5.2**):
+  1. **Fila 3 del delta, en una pestaña real de VS Code**: armá un módulo con director en `../vibe-kit-pruebas/alfa` (o pedíselo a una sesión),
+     corré `node .claude/scripts/encargo.cjs autorizado <x>--01` y abrí la pestaña del obrero con la línea `code "…"` que imprime: **cero pop-ups
+     para git, `encargo.cjs` y el test**, y la ventana sí para una de las 5 de A. Es la mitad VS Code de D5-19.
+  2. Repasar las ⚠️ de D5.1 (arriba) y el delta sellado sin vos: lo que más pesa es D5-2 (nadie en bypass), D5-19 (tu pestaña en tu modo) y
+     D5-3 (`integrar` sin `/cierre`).
 - **Paquete 6 · de D4.1**: `cargar-secreto` corrido adentro de un worktree calcula otro `<proyecto>` y guarda en otro almacén (red team r1-4,
   "fuera de este paquete"); el Modo A con el molde v3 y `docs/modulos/v1/` (D4-6); "adoptá X" y "poné al día X" de verdad (hoy `flota.md` da una
   línea). Y un clon no trae `core.hooksPath`: el actualizador lo pone (J5a lo tuvo que poner a mano en sus clones).
@@ -689,8 +772,10 @@ El tag `v3.0` no sale con uno sin tildar, salvo que Guido lo pase a fase 2 por e
   `alfa`/`beta` con el `CLAUDE.md` del molde de verdad, D4.2-1): 1, 2, 6, 7 → "chico, lo hago acá" sin invocar nada; 8 y 10 → "esto es más que chico:
   llamo al Arquitecto" como primer bloque de texto e invocan `arquitecto`. 3, 4, 5 y 9 pasaron en D4.1 (solo con `/inicio`; el párrafo nuevo solo suma
   razones de "más que chico"). *Antes, D4.1: 8 de 10 (fallaban 8 y 10)*
-- [ ] 3 · Sin sello, `ready` se niega — *D4.1: la mitad de `ready` (`arquitecto.cjs ready` niega sin sello, con sello inválido o con el spec
-  cambiado; 35+ pruebas, mutación 72/75 con los vivos equivalentes); falta la parada de `/obrero` (orden 5)*
+- [x] 3 · Sin sello, `ready` se niega — **2026-10-31, D5.1: la parada de `/obrero`** (`claude.exe -p` 2.1.312, lanzado por el director con la línea de
+  fondo de `encargo.cjs autorizado`, `acceptEdits`, en un clon de `alfa`, encargo apuntado a un spec sin sello): "presentar: no — spec sin Arquitecto:
+  corré Modo B", PARADA **sin commit, sin push y con el árbol limpio**, en 51 s; `presentar` con 1 en casos sí/no (sin sello, cambiado, sin READY) y
+  mutación 20/22 en ese chequeo. *Antes, D4.1: la mitad de `ready` (niega sin sello, con sello inválido o con el spec cambiado; mutación 72/75)*
 - [x] 4 · El Arquitecto deja el commit del módulo en `main` — **2026-10-30, D4.2 (pedido 14 rearmado, `claude.exe -p` 2.1.312, `acceptEdits` con
   `--allowedTools` corto, el OK por `--resume` "aprobado")**: primer bloque "esto es más que chico: llamo al Arquitecto", invoca `arquitecto`, **sin
   preguntas**; `sello` y `ready` 0 en **~3 min de reloj** (126 s + 50 s); un commit en `main` con solo `docs/modulos/calc-historial/` (README con
@@ -757,6 +842,15 @@ Del spec, sección "Lo que hacés vos de nuevo". Acá solo cuándo toca, para qu
 | 2026-10-28 | **Un director Opus por paquete con subagentes** en vez de una sesión por paso: de ~18-21 sesiones a 13 directores; los encargos mecánicos vuelven a Sonnet | ADR-028: propuesta de Guido (un orquestador para todo el spec), acotada a uno por paquete |
 
 ## Lecciones (insumo de la misión 6)
+
+- 2026-10-31 · **D5.1: la sesión real encontró lo que ninguna prueba podía ver.** Las dos corridas del obrero mostraron que Claude Code **ignora las
+  `deny` con `Write(...)`** (las del molde desde el paquete 2), y la fila 2 mostró que `/director` no ponía el spec en `COMPLETO` antes de `integrar`. Ninguna
+  de las dos la vio el red team ni el revisor frío (leen texto y código, no lo que dice la plataforma al arrancar). Las corridas reales valen por los
+  avisos de la plataforma tanto como por el resultado: **leer el log entero, no solo el final**.
+- 2026-10-31 · **D5.1: una pausa planeada no costó nada.** Guido avisó 30 min antes; los dos Opus commitearon WIP en 6 min y al volver se retomaron con
+  un mensaje, sin relanzar. Lo que lo hizo barato: cada encargo en su worktree y su rama, y la fila del tracker en 🔨 con lo que faltaba.
+- 2026-10-31 · **D5.1: pasarle al revisor frío el encargo que faltaba, en la misma vuelta**, rindió: revisó E1, E3 y E4 mientras E2 se construía,
+  tres de sus notas entraron a E2 antes de que terminara, y los arreglos fueron un solo encargo.
 
 - 2026-10-30 · **D4.2: antes de medir una regla, mirar que la regla esté en el repo de prueba.** Las corridas de D4.1 midieron el tamaño
   sin la sección del `CLAUDE.md` del molde, porque `rehacer.sh` no la llevaba, y dieron 8 de 10 igual. El "grep de la regla en el clon antes
