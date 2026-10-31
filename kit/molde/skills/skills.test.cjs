@@ -32,8 +32,6 @@ const USO_FIJO = {
   estructura: ['todo', 'parcial'],
   // llega con E1/E2/E3 de D5.1: sacar al mergear (cuando el USO de la rama traiga estas órdenes, se lee de él)
   encargo: ['partida', 'presentar', 'mensaje', 'autorizado', 'verificar'],
-  // llega con E3 de D5.1: sacar al mergear (hoy el USO trae crear, abrir y cerrar; falta integrar)
-  worktree: ['crear', 'abrir', 'cerrar', 'integrar'],
 };
 
 const MARCA_ABRE = ['<!-- kit', 'propio -->'].join(':');
