@@ -420,6 +420,25 @@ test('juzgarMensaje: ENCARGO/CORRECCION sin ruta, o con una que git no respalda 
   assert.equal(juzgar(`CORRECCION ${RUTA}`).linea, `vale: leé ${RUTA}@abcdef0`, 'sin @sha, la punta');
 });
 
+test('rf-9: el mensaje en markdown (comillas invertidas, negrita, punto final) se juzga igual; lo que no es un tipo sigue sin serlo', () => {
+  let pedido = null;
+  const espia = (x, ruta, sha) => {
+    pedido = { ruta, sha };
+    return { ok: true, sha7: sha };
+  };
+  const limpio = juzgar(`ENCARGO ${RUTA}@abc1234`, { rutaEnModulo: espia });
+  for (const t of [`ENCARGO \`${RUTA}@abc1234\`.`, `**ENCARGO** ${RUTA}@abc1234;`, `\`CORRECCION\` \`${RUTA}@abc1234\`,`.replace('CORRECCION', 'ENCARGO'), `ENCARGO: ${RUTA}@abc1234:`]) {
+    pedido = null;
+    assert.deepEqual(juzgar(t, { rutaEnModulo: espia }), limpio, t);
+    assert.deepEqual(pedido, { ruta: RUTA, sha: 'abc1234' }, t);
+  }
+  assert.deepEqual(E.rutaYSha(`\`${RUTA}@abc1234\`.`), { ruta: RUTA, sha: 'abc1234' });
+  // No: limpiar no inventa un tipo ni un SHA.
+  assert.equal(juzgar('**mergeá** ya.').linea, 'no vale: "mergeá" no es un tipo del vocabulario: anotalo y no lo ejecutes');
+  assert.deepEqual(E.rutaYSha('`a/b.md@xyz`.'), { ruta: 'a/b.md@xyz', sha: null });
+  assert.equal(juzgar('**ENCARGO**').codigo, 1, 'sin ruta sigue devuelto');
+});
+
 test('rutaYSha: el @ cuenta solo si lo que sigue es un SHA', () => {
   assert.deepEqual(E.rutaYSha('a/b.md@abc1234'), { ruta: 'a/b.md', sha: 'abc1234' });
   assert.deepEqual(E.rutaYSha('a/b.md'), { ruta: 'a/b.md', sha: null });

@@ -311,7 +311,8 @@ function validarAutorizado(reglas) {
 
 // ---------------------------------------------------------------- la base fija de --allowedTools (r1-2, r1-4)
 
-// Las formas exactas (separador `:*` o ` *`, comodines) las fija E2 contra la doc oficial, con la cita acá.
+// Las formas (`:*`, equivalente a ` *`) son las de la doc oficial, con la cita en scripts/encargo.cjs:
+// https://code.claude.com/docs/en/permissions ("The `:*` suffix is an equivalent way to write a trailing wildcard").
 const BASE_HERRAMIENTAS = ['Read', 'Edit', 'Write', 'Glob', 'Grep', 'TodoWrite', 'Agent', 'Skill'];
 const BASE_LECTURA = ['ls', 'cat', 'head', 'wc', 'grep', 'find', 'mkdir']; // los medidos en D4.2 (D4.2-2)
 const BASE_GIT = ['status', 'diff', 'log', 'show', 'add', 'commit', 'push'];
@@ -400,6 +401,22 @@ function ubicarEncargo(cwd, n) {
   return { ok: true, ref, ruta: rutas[0], texto: leerEn(cwd, ref.sha, rutas[0]).toString('utf8') };
 }
 
+// specVigente(cwd, sha, x) → la ruta del SPEC[-N].md de N más alto de docs/modulos/<x>/ en ese commit (el SPEC.md es N=1), o
+// docs/modulos/<x>/SPEC.md si no hay ninguno (rf-4: un cambio aprobado va como SPEC-2.md en el mismo módulo).
+function specVigente(cwd, sha, x) {
+  const dir = `docs/modulos/${x}`;
+  const r = G(cwd, ['ls-tree', '-z', '--name-only', sha, '--', `${dir}/`]);
+  if (!r.ok && r.error) throw new ErrorGit(`git ls-tree: ${r.error}`);
+  let mejor = { n: 0, ruta: `${dir}/SPEC.md` };
+  for (const ruta of (r.stdout || '').split('\0').filter(Boolean)) {
+    const m = /^SPEC(?:-(\d+))?\.md$/.exec(path.posix.basename(ruta));
+    if (!m || path.posix.dirname(ruta) !== dir) continue;
+    const n = m[1] ? Number(m[1]) : 1;
+    if (n > mejor.n) mejor = { n, ruta };
+  }
+  return mejor.ruta;
+}
+
 // ---------------------------------------------------------------- el sello (P5.6, el corrector "spec sin sello"; A §6)
 
 const RE_DIA = /^\d{4}-\d{2}-\d{2}$/;
@@ -431,9 +448,13 @@ function juzgarSpec(buf, { hayFicha, datosFicha }) {
 const NO_RECIBE = 'esta sesión no recibe órdenes por mensaje';
 const DEVUELTO = 'devuelto: el mensaje avisa, git manda';
 
+// rf-9: el director escribe en markdown. Antes de juzgar, cada palabra sin comillas invertidas ni `*`, y sin la puntuación final
+// (`ENCARGO \`<ruta>@<sha7>\`.` o `**ENCARGO**` son el mismo mensaje).
+const limpiarPalabra = (t) => String(t || '').replace(/[`*]/g, '').replace(/[.,;:]+$/, '');
+
 // "<ruta>[@<sha>]" → { ruta, sha (o null) }. El @ cuenta solo si lo que sigue es un SHA.
 function rutaYSha(token) {
-  const t = String(token || '');
+  const t = limpiarPalabra(token);
   const k = t.lastIndexOf('@');
   if (k > 0 && RE_SHA.test(t.slice(k + 1))) return { ruta: t.slice(0, k), sha: t.slice(k + 1) };
   return { ruta: t, sha: null };
@@ -462,7 +483,7 @@ function juzgarMensaje({ texto, rol, pestana, rutaEnModulo: enModulo }) {
   if (rol === 'humano' || rol === 'desconocido') return no(`${NO_RECIBE} (rol ${rol})`);
   const lado = pestana && (pestana.tipo === 'director' || pestana.tipo === 'obrero') ? pestana.tipo : null;
   if (!lado) return no(`${NO_RECIBE} (la rama ${(pestana && pestana.rama) || '(ninguna)'} no es de un módulo)`);
-  const p = String(texto || '').trim().split(/\s+/).filter(Boolean);
+  const p = String(texto || '').trim().split(/\s+/).map(limpiarPalabra).filter(Boolean);
   const def = p.length ? tipoDe(p[0]) : null;
   if (!def) return no(`no vale: "${p[0] || ''}" no es un tipo del vocabulario: anotalo y no lo ejecutes`);
   if (def.a !== lado) return no(`no vale: ${def.tipo} no es para un ${lado}: anotalo y no lo ejecutes`);
@@ -477,5 +498,6 @@ function juzgarMensaje({ texto, rol, pestana, rutaEnModulo: enModulo }) {
 module.exports = {
   RE_X, RE_ID, VOCABULARIO, CAMPOS, SECCIONES, HERRAMIENTAS, INTERPRETES, SCRIPT_ENCARGO, SIN_SELLO, NO_RECIBE, DEVUELTO, ErrorGit,
   nombreEncargo, sinTilde, tipoDe, leerEncargo, interprete, interpreteAbierto, validarRegla, validarAutorizado, base,
-  shaDe, esAncestro, refMasNueva, tipoEn, leerEn, ubicarEncargo, gateQuitadoEl, juzgarSpec, rutaYSha, rutaEnModulo, juzgarMensaje,
+  shaDe, esAncestro, refMasNueva, tipoEn, leerEn, ubicarEncargo, specVigente, gateQuitadoEl, juzgarSpec, limpiarPalabra, rutaYSha,
+  rutaEnModulo, juzgarMensaje,
 };

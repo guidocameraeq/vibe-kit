@@ -570,7 +570,7 @@ test('director: el sello, el encargo, crear, autorizado y verificar, en ese orde
     t.indexOf('ENCARGO <ruta>@<sha7>'),
     t.indexOf('encargo.cjs mensaje <TIPO>'),
     t.indexOf('encargo.cjs verificar <x>--<ID>'),
-    t.indexOf('worktree.cjs cerrar <x>--<ID>'),
+    t.indexOf('worktree.cjs cerrar <x>--<ID>`'), // el del paso 6 (el de cancelar, en el 3, lleva --cancelado)
     t.indexOf('worktree.cjs integrar <x>'),
   ];
   assert.ok(pos.every((p) => p >= 0), `falta alguno: ${JSON.stringify(pos)}`);
@@ -602,12 +602,34 @@ test('director: la apertura es del dueño por defecto y el director lanza solo c
   assert.match(t, /su pestaña abre en su modo/);
 });
 
-test('director: cancelar deja el SHA en la ficha, manda CORRECCION y borra la rama local y la de origin (r1-6)', () => {
+test('director: cancelar deja el SHA en la ficha, manda la CORRECCION con su forma y borra todo con cerrar --cancelado, no a mano (r1-6, rf-1)', () => {
   const t = TEXTOS.director;
   assert.match(t, /cancelado <ID> @<sha7 de la punta>: por qué/);
-  assert.match(t, /`CORRECCION` con `cancelado`/);
-  assert.match(t, /git branch -D modulo\/<x>--<ID>/);
-  assert.match(t, /git push origin --delete modulo\/<x>--<ID>/);
+  assert.match(t, /`CORRECCION docs\/modulos\/<x>\/README\.md@<sha7> cancelado`/);
+  assert.match(t, /`node \.claude\/scripts\/worktree\.cjs cerrar <x>--<ID> --cancelado`/);
+  assert.doesNotMatch(t, /`git branch -D/, 'nunca branch -D a mano');
+  assert.doesNotMatch(t, /git push origin --delete/, 'lo hace el script');
+});
+
+test('rf-3 y rf-5: el director pushea modulo/<x> después de cada commit del encargo o de la ficha; cerrar <x> es del dueño, desde el principal', () => {
+  const t = TEXTOS.director;
+  for (const n of [3, 7, 9]) {
+    const paso = new RegExp(`^${n}\\. \\*\\*[^\\n]*$`, 'm').exec(t);
+    assert.ok(paso, `el paso ${n}`);
+    assert.match(paso[0], /git push origin modulo\/<x>`/, `paso ${n} sin push`);
+  }
+  assert.match(/^ {3}- \*\*Cancelar:\*\*[^\n]*$/m.exec(t)[0], /git push origin modulo\/<x>`/);
+  const p9 = /^9\. [^\n]*$/m.exec(t)[0];
+  assert.match(p9, /dale al dueño la línea `node \.claude\/scripts\/worktree\.cjs cerrar <x>` para el checkout principal, después de cerrar esta sesión/);
+  assert.doesNotMatch(p9, /Sale 0: `node/, 'el director no corre cerrar desde su worktree');
+});
+
+test('rf-1 y rf-7: el obrero para sin push ni commit ante un cancelado; la PARADA de presentar no commitea (obrero y núcleo)', () => {
+  assert.match(TEXTOS.obrero, /Una CORRECCION `cancelado` → PARADA sin push y sin commit/);
+  for (const [donde, t] of [['obrero', TEXTOS.obrero], ['nucleo', NUCLEO]]) {
+    assert.match(t, /salvo la PARADA de `presentar`, que no commitea/, donde);
+  }
+  assert.match(NUCLEO, /`CORRECCION docs\/modulos\/<x>\/README\.md@<sha7> cancelado`/);
 });
 
 test('director: silencio (no contesta AVANCE), "me voy" en un bloque y Sesiones vivas en la ficha', () => {

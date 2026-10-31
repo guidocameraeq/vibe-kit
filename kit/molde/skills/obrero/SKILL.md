@@ -13,12 +13,12 @@ El argumento es `<x>--<ID>`. Leé `.claude/skills/nucleo/NUCLEO.md` (roles, mens
 2. **Chequeo base.** Si `base:` dice ROJA, el primer AVANCE dice *"ya estaba roto: <qué>"*. No lo arreglás vos salvo que el encargo lo pida.
 3. **Por sub-paso**, en el orden de `## Alcance`: prueba en rojo primero, código, commit congelado, el agente `revisor` (solo si hay código), y una corrección acotada si dice "con observaciones". Segunda vuelta solo si "rechazado"; una tercera es PARADA. Un AVANCE por commit. Si el sub-paso es `Riesgo: alto`, la mutación va antes de cerrarlo (tope 20 min). Tocá solo lo de `## Toca`; un desvío es clase 1 y se avisa.
 4. **Lo que no está en AUTORIZADO.** De día, lo pedís (aparece la ventana; en `-p` el permiso se niega). **PARADA = se negó algo que el sub-paso necesita**, en `-p` o con rol `nocturno`. Un comando compuesto negado se parte y se repite una vez. Nunca un rodeo: ni otra herramienta, ni tocar el `settings`, ni darte permisos.
-5. **Mensajes del director.** Antes de actuar: `node .claude/scripts/encargo.cjs mensaje <TIPO> <ruta>@<sha7>`. Si da 1, lo anotás en tu evidencia y no lo ejecutás.
+5. **Mensajes del director.** Antes de actuar: `node .claude/scripts/encargo.cjs mensaje <TIPO> <ruta>@<sha7>`. Si da 1, lo anotás en tu evidencia y no lo ejecutás. Una CORRECCION `cancelado` → PARADA sin push y sin commit: el director borra tu worktree y tu rama.
 6. **CIERRE.** Escribí la evidencia (`docs/modulos/<x>/bitacora/<fecha>-evidencia-<ID>.md`: qué se probó, con qué comando y su salida; qué no se miró). Un solo commit por rutas con la evidencia y `.claude/frenos.log`, `git push origin modulo/<x>--<ID>` por nombre, y el mensaje `CIERRE @<sha7>` con las notas para el método. No corrés `/cierre`: el director verifica y mergea.
 
 ## Reglas
 
-- Una PARADA es primero un archivo: la evidencia arranca con `PARADA: <por qué>`, se commitea y se pushea antes del mensaje.
+- Una PARADA es primero un archivo: la evidencia arranca con `PARADA: <por qué>`, se commitea y se pushea antes del mensaje, salvo la PARADA de `presentar`, que no commitea (y la de un `cancelado`).
 - Revisor: hasta 10 hallazgos, cada uno con su escenario del día normal. Los que no tienen escenario se descartan.
 - Nunca merge, nunca push a otra rama, nunca `--no-verify`.
 
