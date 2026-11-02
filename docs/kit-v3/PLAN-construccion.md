@@ -420,6 +420,27 @@ D5.2 corrió sin Guido, con su autorización previa (su prompt, abajo) y la vara
   de la prueba del githook): son chicos y tocan los mismos alrededores; un encargo en vez de tres. `[workflow]`
 - **`contexto` es un script nuevo** (`scripts/contexto.cjs`), distinto de `hooks/lib/contexto.cjs` (el rol): la salida tiene un contrato fijo de
   una línea que leen `/estado` y `/director`, fijado por el director antes de repartir para que K1 y K2 corran en paralelo. `[consistencia]`
+- ⚠️ **W0 · las `Write(...)` se sacan, no se duplican en `Edit`**: los `Edit(...)` hermanos ya estaban en el molde, así que el freno no cambia;
+  la segunda capa de `.env` del worktree queda `Read` + `Edit`. Un proyecto con el molde viejo conserva sus `Write` hasta el actualizador (paquete 6),
+  que las retira con `--molde-viejo` (probado en `barreras`, caso 7). `[consistencia · acordarse de menos]`
+- **W0 · `cerrar` con lo sin trackear no borra**: lista hasta 5 rutas y da `clean -nd` para mirar y `clean -fd` para que lo borre una persona o el
+  director. `[workflow]`
+- ⚠️ **K1 · `.kit-noche` del director alcanza al obrero**: un obrero (`modulo/<x>--<ID>`) es de noche si el worktree de `modulo/<x>` tiene la marca
+  (una llamada a `git worktree list` solo cuando hace falta). Con un rol de día, la marca pasa a `nocturno` en `sensible`, `db-guardia`, el githook
+  y `verificar` línea 5. Si git falla, no inventa noche (decide como antes). Mutación 22/22. `[mejor código · acordarse de menos]`
+- **K1 · `noche.cjs volvi` borra la marca de todos los worktrees del repo** (Guido vuelve desde el principal); **el despertador** guarda su foto en la
+  carpeta común de git y despierta por commit de un obrero, PARADA (la evidencia que empieza con `PARADA:`), commit en `main` (CM-79) o "sin red".
+  La PARADA de `presentar` no deja rastro en git: el despertador no la ve (NO VERIFICADO cómo despierta, piloto). `[workflow]`
+- **K2 · las cifras de `/estado`**: avance = tareas `- [x]` / tareas de la ficha (sin tareas, `—`); "podés cerrar" = sesiones vivas cuya rama ya está
+  mergeada en el módulo; "desde" = el commit que agregó el renglón. La marca "el resumen ya se mostró" vive en la carpeta común de git (no ensucia el
+  árbol; la primera versión la dejaba en `.claude/`). `[consistencia · mejor código]`
+- **K4 · un agente `implementador` de más** (Sonnet, el único que escribe; no commitea): `/tramo` lo necesita (D §6). `effort:` verificado en la doc
+  oficial de subagentes; `redteam-spec` con `model: opus` y `effort: high`. La plantilla del encargo y la presentación del obrero **ya traían**
+  modelo y esfuerzo: no se tocaron, se fijaron con una prueba. `[consistencia]`
+- **Sesión real 1** (`claude.exe` 2.1.314, `-p`, `acceptEdits`, un clon de `alfa` recién armado, con `Write` en `--allowedTools`): **ya no sale el aviso**
+  de "`Write(...)` is not matched", y el `Write` a `.claude/cambios/` lo niega la `deny` de `Edit` ("File is in a directory that is denied by your
+  permission settings"), aun con el `allow` del proyecto ignorado por la confianza. `/estado` corrió de verdad: vista corta sin preguntar, `contexto`
+  medido sobre su propio transcript (51k de 1000k).
 
 ## Abrir D3.1 sin Guido (el prompt)
 
