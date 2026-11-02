@@ -2,6 +2,32 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-11-02 — Misión 5, paquete 5, cierre (D5.3): el corrector de afirmaciones, medido contra Hermes
+
+PC `Draco-PC`, chat `vibe-kit M5 · D5.3 · Paquete 5, cierre: el corrector de afirmaciones medido contra Hermes`, en Opus, sin Guido, con el
+presupuesto del ADR-029: **~1,2 h de reloj (12:30-13:45), 3 encargos Opus (K5, revisor frío, RF-fix), ~0,50 M de tokens de subagentes**. Sin
+tag. **El paquete 5 queda ✅.** Decisiones sin Guido: tracker, "D5.3 · Decisiones sin Guido".
+
+**Added**
+- **El corrector de afirmaciones en prosa** (P6.10, A §5): `kit/molde/hooks/lib/afirmaciones.cjs` (qué es prosa por lenguaje: comentarios,
+  docstrings, textos de error, viñetas de CHANGELOG; tres reglas: absoluto, evidencia, cobertura; el escape cuando la línea o las 3 de al lado
+  citan su evidencia) y `kit/molde/scripts/afirmaciones.cjs <sha-base>` sobre las líneas agregadas del diff. **Avisa, no frena**; `--frenar`
+  latente (sale 1 y anota `frenos.log`).
+- **Medido contra el git de Hermes** (clon de `hermes-desktop`; las líneas quitadas en unos 30 commits de solo prosa como falsas, las agregadas y la
+  prosa viva en HEAD como buenas): caza 27 de 504 corregidas (5 de 9 sobre-afirmaciones de una muestra a mano), marca 34 de 1.386 vivas buenas
+  (2,5%) y 17 de 1.552 aprobadas (1,1%). Lo que Hermes más corrigió es prosa **obsoleta**, que un chequeo de líneas agregadas no ve.
+
+**Changed**
+- `paquete.cjs` suma la sección `## Afirmaciones` (hasta 30 avisos); el obrero (paso 3) y `/tramo` (paso 5) miran cada aviso y corrigen solo lo
+  que promete de más en lo propio; `revisor.md` los toma como avisos.
+
+**Fixed**
+- Los 8 hallazgos del revisor frío en un encargo (1 ALTO: una ruta con espacios o `diff.noprefix` daba "limpio"; `-M -w`; el aviso que no se
+  vuelve freno; la evidencia en el renglón siguiente; `%`; "siempre que"; el escape de PowerShell) y el tono del aviso (pregunta, no ordena).
+
+Pruebas: las del corrector, el paquete y las skills **148/148** y **mutación 49/49**, corridas por el director; suite entera **2.454 de 2.454**
+(16 min, una vez, al final). `kit-sync` LIMPIO.
+
 ## 2026-11-02 — Misión 5, paquete 5, segunda mitad (D5.2): la noche, las vistas, `/tramo`, los subagentes y la mesa
 
 PC `Draco-PC`, chat `vibe-kit M5 · D5.2 · Paquete 5, segunda mitad: la noche, /estado, el resumen y la mesa`, en Opus, sin Guido, con el

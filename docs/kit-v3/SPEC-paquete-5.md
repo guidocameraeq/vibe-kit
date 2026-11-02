@@ -2,7 +2,7 @@
 Un módulo con director trabaja de día sin que Guido apruebe nada que ya decidió: el encargo es un archivo commiteado, el obrero para solo
 si el spec no tiene sello, un mensaje es dato hasta que git lo respalda, un script dice en 6 líneas si se puede mergear, y nadie corre en
 bypass. La noche, las vistas (`/estado`, el resumen) y la mesa vienen en la segunda mitad.
-- Estado: **READY — sellado sin Guido (provisorio)** · **D5.1 implementada 2026-10-31** (el día) · **D5.2 implementada 2026-11-02** (la noche, las vistas, `/tramo`, los subagentes y la mesa) · **✅ IMPLEMENTADO 2026-11-02 salvo el corrector de afirmaciones** (P6.10, segunda mitad: pasa a **D5.3**, en la PC `clientes`, porque se mide contra el historial de Hermes), 2026-10-30, por el director D5.1, después de la ronda única del red team con sus 4 ALTOS integrados. Guido lo repasa al volver; todo se deshace antes del tag
+- Estado: **READY — sellado sin Guido (provisorio)** · **D5.1 implementada 2026-10-31** (el día) · **D5.2 implementada 2026-11-02** (la noche, las vistas, `/tramo`, los subagentes y la mesa) · **D5.3 implementada 2026-11-02** (el corrector de afirmaciones, medido contra Hermes: avisa, no frena) · **✅ IMPLEMENTADO 2026-11-02**, 2026-10-30, por el director D5.1, después de la ronda única del red team con sus 4 ALTOS integrados. Guido lo repasa al volver; todo se deshace antes del tag
 - Fecha: 2026-10-30 · Misión: 5, director **D5.1**, sin Guido (tracker, "Abrir D5.1 sin Guido"; la vara: ADR-030; el presupuesto: ADR-029)
 - Plano: [`SPEC-0-kit-v3.md`](SPEC-0-kit-v3.md), orden 5 = **P5.3-5.9 (con 5.3bis y 5.3ter), P6.3-6.5, P6.9-6.10, P3.4, P3.7**; más, del
   tracker, **"Paquete 5 · de D4.1"** (`integrar`, `sello.cjs` al molde, la parada de `/obrero`), **"Paquete 5 · de D4.2"** (lanzar sin
@@ -475,6 +475,16 @@ Ninguna: todo se pudo decidir con la vara. Las que más pesan, para tu repaso: *
 - *Descartados*: que `worktree crear <x>--<ID>` llame solo a `autorizado` (E2 y E3 compartirían archivo) · que `integrar` haga nacer un
   módulo desde otra rama (D §15.0; sin cicatriz: sigue D4-2).
 
+**De D5.3** (el corrector de afirmaciones, sin Guido, con la vara; el detalle en el tracker, "D5.3 · Decisiones sin Guido"):
+
+- ⚠️ **D5.3-1 · El corrector avisa, no frena.** Medido contra el git de Hermes (commits de solo prosa: las líneas quitadas, falsas; las
+  agregadas y la prosa viva en HEAD, buenas): marca ~2,5% de la prosa viva buena. A §5 paso 2: con falsos positivos no se instala como
+  freno. `--frenar` queda latente (sale 1 y anota `frenos.log`). `[mejor código · workflow]`
+- ⚠️ **D5.3-2 · Engancha en el paquete del revisor y en el paso 3 del obrero / 5 de `/tramo`**, no en los githooks ni en `verificar` (contrato
+  de seis líneas). El obrero mira cada aviso y corrige solo lo que promete de más en lo propio; el revisor los toma como avisos. `[workflow ·
+  consistencia]`
+- D5.3-3 · Lo que el corrector no ve: la prosa **obsoleta** (era cierta y cambió el código), que es la mayoría de lo que Hermes corrigió. `[mejor código]`
+
 ### Lo que esto no cierra
 
 - **Un obrero que se da permisos** en su `settings.local.json`, o que **commitea en `modulo/<x>`** para que un `CORRECCION` falso pase
@@ -482,6 +492,8 @@ Ninguna: todo se pudo decidir con la vara. Las que más pesan, para tu repaso: *
 - **Un obrero que no corre `presentar`** (saltea el paso de la skill): el corrector es el primer paso, no un githook (D5-9).
 - **Un director que corre `integrar --ok-de-guido` sin preguntar**: queda en el commit de merge.
 - Una regla estrecha en la forma y amplia en el fondo (`Bash(npm run:*)`): el validador mira la forma; las 5 de A las niega el hook igual.
+- **Tapar un aviso de afirmaciones** con cualquier fecha, un hex de 7+ caracteres o una cifra, o escribir el absoluto en un `.md` común o en un
+  lenguaje que el corrector no lee (D5.3, revisor frío): trampas; el revisor lee la prosa igual.
 
 ## Lo que se prueba más adelante
 
