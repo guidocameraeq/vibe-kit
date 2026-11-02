@@ -8,7 +8,7 @@ día la flota" la corre un script de node que no pisa lo propio, chequea todo an
   10 y 20; los ⚠️ "mezcla a `main` sin preguntar", "corren en bypass", "lo privado va aparte" y `crossSessionInbound`; NO VERIFICADO "bloque
   `autoMode`" y "adaptador local del registro". Del tracker, **"Paquete 6 · de D4.1"**, **"de D2.2 (F4)"**, **"6/7 · de D2.2"** y lo que sirva
   de **"de D5.2 y D5.3"**. Diseño: E §4-§10 · F §14 · G §10, §15 · A §3-§4, §9.
-- Sello del Arquitecto: `arquitecto: 2026-11-02 · kit 2.4.3 · chequeos: tamaño — (paquete del método) · entorno — (sin ficha del kit) · tope ⚠️ (42,2 KB y 21 criterios; no partir: D6.1: partido en dos directores adentro) · hash 6dd4e867641c`
+- Sello del Arquitecto: `arquitecto: 2026-11-02 · kit 2.4.3 · chequeos: tamaño — (paquete del método) · entorno — (sin ficha del kit) · tope ⚠️ (43,7 KB y 21 criterios; no partir: D6.1: partido en dos directores adentro) · hash 1c72bb80b23b`
 - Red team: **obligatorio** (RF-16: el actualizador escribe `settings` y hooks de diez repos; "preparame esta PC" escribe el `settings.json`
   de la PC), Opus con `redteam-spec`, **una ronda** (ADR-029). Revisor frío Opus al cerrar cada director, una vuelta, hasta 10 hallazgos con
   su escenario del día normal.
@@ -281,7 +281,9 @@ los githooks, D6-6). `pruebas/rehacer.sh` (en D6.1). `tips/`, `_fuente/`.
 17. **Los githooks en el clon** (D6-6): con `core.hooksPath` puesto, el commit y el push del actualizador pasan sus githooks **con el molde**;
     el mismo commit sin `KIT_MOLDE` → rojo; `KIT_MOLDE` con un `.kit-rol` que no es `actualizador` → se ignora. Mutación sobre esa regla.
 18. **La fusión `adaptada`**: con "por qué" en la ficha → el molde nuevo con la adaptación encima, y pasa `chequear`; sin "por qué" (ni en la
-    ficha ni en el `git log`) → "no fusiona y avisa"; una fusión que pierde un caso → no llega a `main`. Si va por `claude -p` (D6-1): la línea
+    ficha ni en el `git log`) → **no fusiona, y la pieza va a "te espera" del proyecto con el diff listo** (D6-19: molde viejo → molde nuevo, y
+    lo que el repo tiene distinto); la próxima sesión en ese proyecto lo ofrece en una pregunta y, con la respuesta, el porqué queda en la
+    ficha y la fusión siguiente va sola; una fusión que pierde un caso → no llega a `main` (y también va a "te espera"). Si va por `claude -p` (D6-1): la línea
     lleva `acceptEdits` y `--allowedTools`, nunca `bypassPermissions`, y **un `git reset --hard` del agente queda frenado en el clon** (fila 3).
 19. **Crit. 10 y 20 del kit, el adoptador**: sobre un clon `v2.4.2` sin ficha, `adoptar --mirar` no cambia nada e imprime la
     propuesta; `--aplicar` → ficha por defecto del nivel, `/inicio`, `/cierre`, hook con tope, barreras base y documentos del método, `piezas.candado: no` (salvo `barreras`, que corre), y
@@ -320,11 +322,12 @@ Sin delta ni red team nuevos: ~5 de construcción + revisor frío + arreglos.
 |---|---|---|---|
 | F1 | Opus | `actualizar.cjs flota`: registro, clon con `.kit-rol`, tag, saltear (`modulo/*` vivas, `director: sí` en obra, `kit/v*` ya está), rama, `aplicar`, `chequear`, mezcla, push, protegido, `ROTA`, sin red, tabla (D6-11) | sí (saltear y mezclar) |
 | F2 | Opus | Los githooks en el clon (D6-6, `kit-githook.cjs`) | sí |
-| F3 | Opus | La fusión `adaptada` (D6-1): `claude -p` o "no fusiona y avisa" | no |
+| F3 | Opus | La fusión `adaptada` (D6-1, D6-19): con porqué, `claude -p` fusiona sola; sin porqué o si falla, "te espera" con el diff y la pregunta del Arquitecto en la sesión del proyecto | sí (cuándo fusiona y cuándo va a "te espera") |
 | F4 | Opus | El adoptador (P7.2): `adoptar --mirar` / `--aplicar <propuesta>`; la pantalla, en `flota.md` | sí (lo que trae y el candado apagado) |
 | F5 | Sonnet | `cargar-secreto` en worktree; `flota.md` y el `SKILL.md` (derivar); la nota de 3.0.0 | no |
 
-**El corte de D6.2**: F3 queda en "no fusiona y avisa" (ya lo hace `aplicar`) si no entra; F4, a un D6.3.
+**El corte de D6.2**: **F3 no se corta** (Guido, 2026-11-02: "es importante que el actualizador funcione bien"; las skills adaptadas van a
+ser muchas y no pueden quedar sin actualizarse): si el presupuesto no alcanza, lo que pasa a un D6.3 es F4 (el adoptador), no la fusión.
 
 ## Lo prueba una sesión real
 
@@ -359,6 +362,15 @@ Sin delta ni red team nuevos: ~5 de construcción + revisor frío + arreglos.
 Ninguna. Las que más pesan, para tu repaso: **D6-1** (el actualizador es un script) y **D6-6** (`KIT_MOLDE` en los githooks del clon).
 
 ## Riesgos y decisiones ⚠️
+
+**Decidido por Guido** (2026-11-02, después de D6.1):
+
+- **D6-19 · Una pieza adaptada nunca queda sin actualizarse (la opción C).** Con el porqué (en la ficha o en el `git log`), la fusión es
+  automática y se informa en la tabla. Sin porqué, o si la fusión no pasa `chequear`, **la pieza va a "te espera" del proyecto** con el diff
+  listo (qué cambió el molde y qué tiene distinto el repo). La próxima sesión en ese proyecto (`/inicio`, o el Arquitecto con "poné al día
+  X") lo ofrece **en una sola pregunta**: "actualicé X; acá la tenías distinta así; ¿la mejoramos con esto?". Con la respuesta, fusiona, el
+  porqué queda escrito en la ficha y la próxima actualización de esa pieza va sola. Descartadas: **A** (solo automático: sin porqué, la pieza
+  quedaba vieja para siempre) y **B** (preguntar siempre: una pregunta por pieza adaptada en cada repo). **F3 no se corta** en D6.2.
 
 **Decisiones del redactor** (sin Guido, con la vara del ADR-030; las ⚠️ arriba; todas se deshacen antes del tag):
 

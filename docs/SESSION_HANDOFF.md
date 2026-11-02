@@ -19,7 +19,8 @@ completo y el núcleo del actualizador (`aplicar` y `chequear`) en `main`. **El 
 **D6.2**, en Opus, sin Guido, en cualquier PC con el kit (`Draco-PC` lista): **`vibe-kit M5 · D6.2 · Paquete 6, cierre: la flota de punta
 a punta y el adoptador`**. Guido pega el prompt de "Abrir D6.2 sin Guido (el prompt)" del tracker (`docs/kit-v3/PLAN-construccion.md`) y se
 va. Sin delta nuevo ni red team. **Primero** "Paquete 6 · para D6.2" de Pendientes: la línea 7 de `chequear` (2 casos de `candado.test.cjs`
-dan rojo fuera del repo, y la tanda de hooks tarda 12-18 min) haría "rota" toda actualización sana desde v2.
+dan rojo fuera del repo, y la tanda de hooks tarda 12-18 min) haría "rota" toda actualización sana desde v2. **Y la fusión de piezas
+adaptadas no se corta** (D6-19, opción C, decidida por Guido): con porqué, sola; sin porqué, a "te espera" con el diff y una pregunta.
 
 **Para Guido, cuando pueda (no traba nada)**, con el detalle en Pendientes del tracker ("Paquete 6 · te espera a vos", y los del 3 al 5):
 - repasar las ⚠️ de D6.1 (sobre todo D6-1, nadie en bypass) y las de D5.1-D5.3;

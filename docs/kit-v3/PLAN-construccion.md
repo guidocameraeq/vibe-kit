@@ -806,9 +806,10 @@ revisiones que Hermes guarda en su repo.
 > 1. **Alcance: la mitad D6.2 del delta ya sellado** (`docs/kit-v3/SPEC-paquete-6.md`: "Los dos directores", criterios 15 a 21 y "Los encargos de
 >    D6.2", provisorios: los ajustás vos). **Sin delta nuevo ni red team** (el delta es del paquete entero); si un encargo toca un permiso o un freno
 >    que el delta no fijó, lo decidís con la vara y lo anotás ⚠️. **Primero lo de "Paquete 6 · para D6.2" de Pendientes** (arriba: la línea 7 de
->    `chequear` y los 2 casos de `candado.test.cjs` que dan rojo fuera del repo, que harían "rota" toda actualización sana).
-> 2. **El presupuesto manda (ADR-029)**: **~4 h de reloj y ~8 encargos**. El corte ya está escrito en el delta: la fusión `adaptada` queda en "no
->    fusiona y avisa" si no entra, y el adoptador pasa a un D6.3. Cerrás limpio: lo hecho en `main`, lo que falta en Pendientes con su porqué.
+>    `chequear` y los 2 casos de `candado.test.cjs` que dan rojo fuera del repo, que harían "rota" toda actualización sana). Y la **fusión de
+>    piezas adaptadas como la decidí yo (D6-19, opción C)**: con porqué, sola; sin porqué, a "te espera" con el diff y una pregunta mía en ese proyecto.
+> 2. **El presupuesto manda (ADR-029)**: **~4 h de reloj y ~8 encargos**. **La fusión `adaptada` no se corta** (D6-19, la
+>    opción C que elegí yo: está en el delta); si no entra todo, lo que pasa a un D6.3 es el adoptador. Cerrás limpio: lo hecho en `main`, lo que falta en Pendientes con su porqué.
 > 3. **Contra accidentes, no contra trampas.** Revisor frío: una vuelta, hasta 10 hallazgos con su escenario del día normal, los arreglos en un
 >    encargo. Mutación solo en lo que decide un freno o un permiso (saltear y mezclar, la regla de `KIT_MOLDE`, lo que trae el adoptador; tope 20
 >    min); la suite entera una vez, al final, en segundo plano. De a dos Opus como máximo; cada encargo en su worktree en `scratchpad/<x>/wt`.
@@ -887,7 +888,13 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
      para git, `encargo.cjs` y el test**, y la ventana sí para una de las 5 de A. Es la mitad VS Code de D5-19.
   2. Repasar las ⚠️ de D5.1 (arriba) y el delta sellado sin vos: lo que más pesa es D5-2 (nadie en bypass), D5-19 (tu pestaña en tu modo) y
      D5-3 (`integrar` sin `/cierre`).
-- **Paquete 6 · para D6.2** (de D6.1; **lo primero, los dos de arriba**):
+- **Paquete 6 · para D6.2** (de D6.1; **lo primero, los dos de arriba**; y **la fusión, que no se corta**):
+  0. **La fusión de piezas adaptadas, opción C (D6-19, decidida por Guido el 2026-11-02 al leer D6.1: "es importante que el actualizador
+     funcione bien")**: con el porqué (ficha o `git log`), fusiona sola y lo dice en la tabla; sin porqué o si no pasa `chequear`, la pieza va a
+     "te espera" del proyecto con el diff (molde viejo → nuevo y lo que el repo tiene distinto), y la próxima sesión en ese proyecto (`/inicio`
+     o "poné al día X") lo ofrece en una pregunta: "actualicé X; acá la tenías distinta así; ¿la mejoramos con esto?". Con la respuesta, fusiona y
+     el porqué queda en la ficha. Hoy `aplicar` deja la pieza en la versión vieja y solo la marca: **sin esto, las skills adaptadas no se
+     actualizan nunca**. Encargo F3 del delta (con mutación); **no se corta por presupuesto**.
   1. **La línea 7 de `chequear` (`casos`) haría "rota" toda actualización sana desde v2**: en la copia que arma (el molde nuevo con los hooks
      del proyecto encima, fuera del repo) **2 casos de `hooks/lib/candado.test.cjs` ("estado-viejo: sin base, verde…" y "…un módulo con
      rama…") dan rojo**; en `kit/molde/` dan verde. Lo vio el director corriendo la tanda entera en una copia materializada (1.906 de 1.908, 18
@@ -1053,6 +1060,7 @@ Del spec, sección "Lo que hacés vos de nuevo". Acá solo cuándo toca, para qu
 | 2026-10-30 | **El revisor frío del paquete: una vuelta, con tope** (primer paso, a mitad de D3.3; lo amplió el ADR-029 el mismo día): se arregla en el paquete solo lo que rompe el día normal o deja pasar una clave sin que nadie lo intente; los ataques rebuscados van a "Lo que esto no cierra" y a Pendientes. D3.3 termina las rondas que ya corrían (RF-C2, RF-D2) y no hace una tercera vuelta | Guido, al ver D3.3 en ~9 h: "hay que corregir ese revisor frío, no hay que hacer tantas vueltas". D2.2 hizo tres vueltas; D3.3, dos vueltas y seis rondas de arreglos, cada una más cara (mutación + 16.470 llamadas del corpus) y rindiendo menos |
 | 2026-10-28 | **Un director Opus por paquete con subagentes** en vez de una sesión por paso: de ~18-21 sesiones a 13 directores; los encargos mecánicos vuelven a Sonnet | ADR-028: propuesta de Guido (un orquestador para todo el spec), acotada a uno por paquete |
 | 2026-11-02 | **El paquete 5 pasa de 2 a 3 directores: D5.3** lleva solo el corrector de afirmaciones (K5, P6.10 segunda mitad), (primero pensado en `clientes`; corregido el mismo día: corre en cualquier PC, el historial que mide es el git de Hermes, que se clona de GitHub) | Su "hecho cuando" es medirlo contra el historial de Hermes antes de instalarlo; D5.2 hizo todo lo demás en ~2 h y no lo intentó sin poder medirlo (el corte que el delta ya preveía, D5-1). No traba a D6.1 |
+| 2026-11-02 | **La fusión de piezas adaptadas no se corta en D6.2 y suma "te espera" con una pregunta (D6-19, opción C)** | Guido, al leer D6.1: "muchas skills van a terminar siendo adaptadas y no quiero que por eso después no se actualicen". El corte del delta dejaba la fusión en "no fusiona y avisa", que es justo eso. Descartadas: solo automático (sin porqué queda vieja) y preguntar siempre (demasiados clics) |
 | 2026-11-02 | **El paquete 6 pasa a dos directores** (D6.1 la PC y el núcleo del actualizador; D6.2 la flota de punta a punta y el adoptador) | No entraba en ~4 h y ~8 encargos (ADR-029): delta, red team, revisor frío y arreglos ya son 4. El "el chequeo antes que la mezcla" del SPEC-0 marca el corte. Decidido sin Guido en el delta (D6.1) |
 
 ## Lecciones (insumo de la misión 6)
