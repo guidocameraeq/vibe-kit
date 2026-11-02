@@ -11,7 +11,9 @@
 //   2. el kit: las 4 skills, agents/redteam-spec.md y VERSION a <home>/.claude/, como `kit-sync sync` (conserva la carpeta de
 //      proyectos). Un archivo EDITADO A MANO (distinto de toda versión de ese archivo en la historia del kit, en LF y sin la línea de
 //      la carpeta; r1-7) no se pisa: va al plan; --pisar-editados lo pisa; --flota lo saltea con ⚠ y no pregunta (D6-10).
-//      --kit tiene que estar parado en un tag anotado v* (si no → 1).
+//      --kit tiene que estar parado en un tag anotado v* (si no → 1), con historia (un clon --depth 1 → 1: RF-1), y este script
+//      tiene que ser el de ese clon (el instalado con --kit <clon nuevo> → 1: RF-3). Lo que el kit ya no trae, dentro de sus
+//      carpetas: intacto (igual a una versión de la historia) se borra; si no, se deja con ⚠ (RF-8).
 //   3. los hooks por PC: el plan de instalar-hooks-pc.cjs (su lógica, exportada; no se duplica).
 //   4. el settings.json de la PC, regla por regla: crossSessionInbound y el bloque autoMode. Los planes de 3 y 4 van JUNTOS en UNA
 //      escritura atómica (temporal + renombre con 3 reintentos ante EPERM/EBUSY + relectura; r1-12).
@@ -159,9 +161,12 @@ function chequearProgramas(env, cwd, nodeVersion = process.versions.node) {
   let cuenta = null;
   if (h.ruta && h.linea.startsWith('✓')) {
     const a = correr(h.ruta, ['auth', 'status'], { env, cwd });
-    const m = a.salida ? /account (\S+)|Logged in to \S+ as (\S+)/.exec(a.salida) : null;
-    cuenta = m ? (m[1] || m[2]).replace(/[^A-Za-z0-9_.-]/g, '') : null;
-    lineas.push(cuenta ? h.linea.replace(/^✓ gh · (.*)$/, `✓ gh · $1, cuenta ${cuenta}`) : lin('⚠', 'gh', 'está, pero sin cuenta logueada', 'gh auth login'));
+    // RF-7: ✓ solo si gh auth status sale 0 (con otro código la cuenta que nombre no sirve: token vencido o sin red)
+    const m = a.codigo === 0 && a.salida ? /account (\S+)|Logged in to \S+ as (\S+)/.exec(a.salida) : null;
+    cuenta = m ? (m[1] || m[2]).replace(/[^A-Za-z0-9_.-]/g, '') || null : null;
+    if (cuenta) lineas.push(h.linea.replace(/^✓ gh · (.*)$/, `✓ gh · $1, cuenta ${cuenta}`));
+    else if (a.codigo === 0) lineas.push(lin('⚠', 'gh', 'está, pero sin cuenta logueada', 'gh auth login'));
+    else lineas.push(lin('⚠', 'gh', `gh no está logueado o no hay red (gh auth status ${a.plazo ? 'no respondió' : `salió ${a.codigo === undefined ? 'con error' : a.codigo}`})`, 'gh auth login'));
   } else lineas.push(h.linea);
   lineas.push(versionDe('gitleaks', ['version'], MIN_GITLEAKS).linea);
   lineas.push(versionDe('claude', ['--version'], MIN_CLAUDE).linea.replace(/^(.) claude · /, '$1 claude-code · '));
@@ -287,8 +292,40 @@ function diffCorto(kitBuf, casaBuf) {
 function planKit(raizKit, home, carpeta, rutaGit, o) {
   const copiar = [];
   const editados = [];
+  const borrar = [];
+  const ajenos = [];
   let iguales = 0;
-  for (const rel of archivosKit(raizKit)) {
+  const delKit = archivosKit(raizKit);
+  // RF-8: lo que el kit ya no trae, dentro de sus carpetas en <home>/.claude/ (las 4 skills y el agente). Igual a alguna versión
+  // de la historia del kit (intacto) → se borra; si no → se deja con ⚠ (no es del kit o lo editaste). kit-pc.md vive fuera.
+  const enKit = new Set(delKit);
+  const candidatos = [];
+  for (const f of FUENTES) {
+    if (f === 'VERSION') continue;
+    const abs = path.join(home, '.claude', ...f.split('/'));
+    let st;
+    try {
+      st = fs.statSync(abs);
+    } catch (e) {
+      continue;
+    }
+    if (st.isFile()) candidatos.push(f);
+    else
+      (function rec(dir, rel) {
+        for (const e of fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))) {
+          const r = `${rel}/${e.name}`;
+          if (e.isDirectory()) rec(path.join(dir, e.name), r);
+          else if (e.isFile()) candidatos.push(r);
+        }
+      })(abs, f);
+  }
+  for (const rel of candidatos) {
+    if (enKit.has(rel) || rel === SKILL_ARQ) continue;
+    const destino = path.join(home, '.claude', ...rel.split('/'));
+    if (historia(rutaGit, raizKit, rel).includes(normalizar(fs.readFileSync(destino)))) borrar.push({ rel, destino });
+    else ajenos.push(rel);
+  }
+  for (const rel of delKit) {
     let buf = fs.readFileSync(path.join(raizKit, 'kit', ...rel.split('/')));
     if (rel === SKILL_ARQ) buf = conCarpeta(buf, carpeta);
     const destino = path.join(home, '.claude', ...rel.split('/'));
@@ -310,7 +347,7 @@ function planKit(raizKit, home, carpeta, rutaGit, o) {
     editados.push(e);
     if (o.pisarEditados) copiar.push({ ...e, como: 'piso (editado a mano, con --pisar-editados)' });
   }
-  return { copiar, editados, iguales };
+  return { copiar, editados, iguales, borrar, ajenos };
 }
 
 // ---------------------------------------------------------------- kit-pc.md (pasos 5 y 6; D6-3)
@@ -395,7 +432,8 @@ function generarAutoMode(carpeta) {
 
 // La mezcla por regla. `actual` = autoMode.environment de hoy (undefined si no existe); `delKit` = las que escribió el kit (kit-pc.md);
 // `generadas` = las de hoy. El kit es dueño SOLO de las suyas: saca las que ya no se generan, deja en su lugar las que siguen, suma
-// las nuevas al final. Las demás no se tocan; una del kit que Guido editó ya no está igual → es de él. "$defaults" nunca es del kit ni
+// las nuevas al final; una generada que ya estaba idéntica en la lista se reclama como del kit (RF-2). Las demás no se tocan; una del
+// kit que Guido editó ya no está igual → es de él. "$defaults" nunca es del kit ni
 // se saca (r1-1). Si la lista no existe y hay algo que poner, se crea con "$defaults" primero.
 // → { lista (undefined = no hay lista), delKit, sinDefaults }
 function mezclarAutoMode(actual, delKit, generadas) {
@@ -416,10 +454,15 @@ function mezclarAutoMode(actual, delKit, generadas) {
     }
   }
   for (const e of gen) {
-    if (lista.includes(e)) continue;
+    if (lista.includes(e)) {
+      // RF-2: una que el kit genera y ya está idéntica en la lista se reclama como del kit (si no, nunca saldría al borrar el proyecto)
+      if (!nuevoDelKit.includes(e)) nuevoDelKit.push(e);
+      continue;
+    }
     lista.push(e);
     nuevoDelKit.push(e);
   }
+  nuevoDelKit.sort((a, b) => lista.indexOf(a) - lista.indexOf(b)); // en el orden de la lista: la 2.ª corrida escribe lo mismo
   return { lista, delKit: nuevoDelKit, sinDefaults: !lista.includes(DEFAULTS) };
 }
 
@@ -433,7 +476,19 @@ function mezclarCrossSession(actual) {
 }
 
 // ---------------------------------------------------------------- principal
-function principal(argv, { env = process.env, cwd = process.cwd(), renombrar = fs.renameSync, nodeVersion } = {}) {
+// La ruta real, con barras y (en Windows) en minúsculas: para comparar carpetas.
+function rutaReal(p) {
+  let r;
+  try {
+    r = fs.realpathSync.native(p);
+  } catch (e) {
+    r = path.resolve(p);
+  }
+  r = barras(r).replace(/\/+$/, '');
+  return WIN ? r.toLowerCase() : r;
+}
+
+function principal(argv, { env = process.env, cwd = process.cwd(), renombrar = fs.renameSync, nodeVersion, script = __filename } = {}) {
   const salida = [];
   const log = (t) => salida.push(t);
   const fin = (codigo) => ({ codigo, texto: salida.join('\n') });
@@ -461,6 +516,25 @@ function principal(argv, { env = process.env, cwd = process.cwd(), renombrar = f
     log(lin('✗', 'kit', `${barras(raizKit)} no es la raíz de un kit (no hay kit/VERSION)`, 'pasá con --kit la raíz de un clon del kit'));
     log('no toqué nada.');
     return fin(1);
+  }
+  // RF-3: este script (y el instalar-hooks-pc que importa de su carpeta) tiene que ser el del clon; si es el instalado en
+  // ~/.claude/ con --kit <clon nuevo>, mezclaría la lógica vieja con el kit nuevo.
+  const scriptDir = rutaReal(path.dirname(script));
+  const kitReal = rutaReal(raizKit);
+  if (scriptDir !== kitReal && !scriptDir.startsWith(`${kitReal}/`)) {
+    const propio = barras(path.join(raizKit, 'kit', 'skills', 'arquitecto-skills', 'scripts', 'preparar-pc.cjs'));
+    log(lin('✗', 'kit', `este preparar-pc (${barras(script)}) no es el del kit que pasaste`, `corré el preparar-pc del clon: node ${propio} --kit ${barras(raizKit)}`));
+    log('no toqué nada.');
+    return fin(1);
+  }
+  // RF-1: en un clon sin historia (--depth 1) toda versión vieja instalada parecería "editada a mano".
+  if (prog.rutaGit) {
+    const sh = gitKit(prog.rutaGit, raizKit, ['rev-parse', '--is-shallow-repository']);
+    if (sh && sh.toString('utf8').trim() === 'true') {
+      log(lin('✗', 'kit', `${barras(raizKit)} es un clon sin historia (shallow): no puedo saber qué es del kit y qué editaste`, `git -C ${barras(raizKit)} fetch --unshallow --tags, y volvé a correr`));
+      log('no toqué nada.');
+      return fin(1);
+    }
   }
   let tag = null;
   if (!o.kitSinTag) {
@@ -543,11 +617,12 @@ function principal(argv, { env = process.env, cwd = process.cwd(), renombrar = f
 
   // 6. kit-pc.md nuevo
   const privada = prev.privada;
-  const nuevoKitPc = textoKitPc({ entorno: entornoPc(env), gh: prog.gh, proyectos: carpeta, privada, autoMode: am.delKit });
+  const nuevoKitPc = textoKitPc({ entorno: entornoPc(env), gh: prog.gh || prev.gh || null, proyectos: carpeta, privada, autoMode: am.delKit });
   const kitPcCambia = kp.texto !== nuevoKitPc;
 
   // ---- el plan, entero
   for (const c of pk.copiar) acciones.push(`${c.como} ~/.claude/${c.rel}`);
+  for (const b of pk.borrar) acciones.push(`borro ~/.claude/${b.rel}: el kit ya no lo trae (está intacto)`);
   const saltear = o.pisarEditados ? [] : pk.editados;
   for (const e of saltear) acciones.push(`${o.flota ? 'salteo' : 'NO piso'} ~/.claude/${e.rel}: editado a mano (no es ninguna versión del kit)`);
   const accionesHooks = ph.acciones.filter((a) => !a.endsWith(barras(r.settings)));
@@ -557,7 +632,8 @@ function principal(argv, { env = process.env, cwd = process.cwd(), renombrar = f
 
   // ---- la tabla (antes de escribir: lo que pasa con cada paso)
   const nKit = pk.copiar.length;
-  tabla.push(lin('✓', 'kit', `kit ${version}${tag ? ` (tag ${tag})` : ' (sin tag: prueba)'} · ${nKit ? `${nKit} archivo${nKit > 1 ? 's' : ''} para copiar` : 'sin cambios'} · ${pk.iguales} iguales`));
+  tabla.push(lin('✓', 'kit', `kit ${version}${tag ? ` (tag ${tag})` : ' (sin tag: prueba)'} · ${nKit ? `${nKit} archivo${nKit > 1 ? 's' : ''} para copiar` : 'sin cambios'}${pk.borrar.length ? ` · ${pk.borrar.length} para borrar (el kit ya no los trae)` : ''} · ${pk.iguales} iguales`));
+  if (pk.ajenos.length) tabla.push(lin('⚠', 'sobrantes', `lo dejo: no es del kit o lo editaste: ${pk.ajenos.join(', ')}`, 'si es tuyo a propósito, dejalo; si no, borralo a mano'));
   if (saltear.length) {
     const nombres = saltear.map((e) => e.rel).join(', ');
     tabla.push(
@@ -589,6 +665,7 @@ function principal(argv, { env = process.env, cwd = process.cwd(), renombrar = f
   if (!o.plan && acciones.length) {
     try {
       for (const c of pk.copiar) escribirAtomico(c.destino, c.buf, renombrar);
+      for (const b of pk.borrar) fs.rmSync(b.destino, { force: true });
       I.aplicarInstalar(r, s, { ...ph, settingsCambia: false });
       if (settingsCambia) escribirAtomico(r.settings, textoSettings, renombrar);
       if (kitPcCambia) escribirAtomico(rutaKitPc(home), nuevoKitPc, renombrar);
