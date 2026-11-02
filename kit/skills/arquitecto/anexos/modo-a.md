@@ -57,6 +57,7 @@ En orden, mostrando qué hacés:
    - `.claude/skills/inicio/` y `.claude/skills/cierre/` (instanciadas)
    - `.claude/hooks/` + `.claude/settings.json` (SessionStart, y check-code con los lenguajes del stack; en `liviano`, sin check-code)
    - `/smoke` y `/deploy` NO se montan (regla de 3+): los contratos quedan en los templates para cuando el ritual exista.
+   - **Portada** (cuando el proyecto ya trae `.claude/scripts/portada.cjs`, el molde v3), dentro del mismo OK y sin preguntar nada: con `docs/NORTE.md` escrito, `node .claude/scripts/portada.cjs armar` (con `--banner` si es de la empresa y `estandar`) y `piezas.portada: sí` en la ficha. El README lo arma el script, no vos.
    - **Cero `{{` en lo instanciado**: reemplazá TODOS los `{{...}}` de settings.json, CLAUDE.md, inicio y cierre; si un slot no aplica (ej. no hay comando de salud), borrá la línea entera.
    - En `check-code.js` activá solo los lenguajes del stack; con TypeScript, `tsc --noEmit` chequea el proyecto entero en cada edición: solo si el proyecto es chico.
 5. **Siembra de `docs-fyd/` (CON PREGUNTA; solo `estandar`)**: antes del commit, una AskUserQuestion: *"¿este proyecto lleva los dos sistemas —el de trabajo del método + el de documentación de auditoría `docs-fyd`— o solo el mío (solo el del método)?"*. **"Los dos"** es (Recomendado) si el proyecto es para un cliente o va a producción (el caso FyD).

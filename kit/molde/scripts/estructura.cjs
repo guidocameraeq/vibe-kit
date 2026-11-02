@@ -2,8 +2,8 @@
 // estructura.cjs — el candado de estructura (B §14; SPEC-0 6.1; SPEC-paquete-2 P6.1 y F4). Uso, desde el repo:
 //   node .claude/scripts/estructura.cjs [todo | parcial | <id>…] [--molde <dir> [--molde-viejo <dir>]] [--sin-log]
 //   node .claude/scripts/estructura.cjs barreras (--indice | --rango <a>..<b>) [--molde <dir> [--molde-viejo <dir>]] [--sin-log]
-// Los nueve ids: raiz · rutas · topes · mesa · estados · lecturas · estado-viejo · barreras · datos (con o sin "candado:").
-// `todo` (o nada) = los nueve; `parcial` = topes (solo el handoff) y barreras. Entero si piezas.candado de la ficha vigente no es
+// Los diez ids: raiz · rutas · topes · mesa · estados · lecturas · estado-viejo · barreras · datos · portada (con o sin "candado:").
+// `todo` (o nada) = los nueve de siempre y, solo si la ficha tiene piezas.portada (y no es `no`), el décimo, portada; `parcial` = topes (solo el handoff) y barreras. Entero si piezas.candado de la ficha vigente no es
 // `no`; si no, solo barreras, que corre desde que hay ficha. Quitables con hasta: vigente en frenos.quitados, salvo barreras.
 // --molde: el molde de afuera para la exención (a) de barreras; lo pasa SOLO rehacer.sh (r3-1; y el actualizador del orden 6).
 // --molde-viejo (solo junto con --molde; sin él, mal llamado): el molde del que viene el proyecto. Con él, lo que el molde nuevo
@@ -28,7 +28,7 @@ const USO =
   'Uso: node .claude/scripts/estructura.cjs [todo | parcial | <id>…] [--molde <dir> [--molde-viejo <dir>]] [--sin-log]   (desde el repo)\n' +
   '     node .claude/scripts/estructura.cjs barreras (--indice | --rango <a>..<b>) [--molde <dir> [--molde-viejo <dir>]] [--sin-log]';
 const ROTO = 'candado roto: corré doctor';
-const IDS = ['raiz', 'rutas', 'topes', 'mesa', 'estados', 'lecturas', 'estado-viejo', 'barreras', 'datos'];
+const IDS = ['raiz', 'rutas', 'topes', 'mesa', 'estados', 'lecturas', 'estado-viejo', 'barreras', 'datos', 'portada'];
 
 class MalLlamado extends Error {}
 const malLlamado = (m) => {

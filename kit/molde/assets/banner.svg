@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 400" width="1280" height="400" role="img" aria-labelledby="t d">
+  <title id="t">{{PROYECTO}}</title>
+  <desc id="d">{{LINEA}}</desc>
+  <defs>
+    <pattern id="g1" width="16" height="16" patternUnits="userSpaceOnUse">
+      <path d="M16 0H0V16" fill="none" stroke="#ffffff" stroke-opacity=".05" stroke-width="1"/>
+    </pattern>
+    <pattern id="g2" width="80" height="80" patternUnits="userSpaceOnUse">
+      <rect width="80" height="80" fill="url(#g1)"/>
+      <path d="M80 0H0V80" fill="none" stroke="#ffffff" stroke-opacity=".11" stroke-width="1"/>
+    </pattern>
+    <radialGradient id="glow" cx="30%" cy="45%" r="75%">
+      <stop offset="0" stop-color="#1d5aa6"/>
+      <stop offset="1" stop-color="#0f3466"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1280" height="400" fill="url(#glow)"/>
+  <rect width="1280" height="400" fill="url(#g2)"/>
+  <rect x="16" y="16" width="1248" height="368" fill="none" stroke="#e8f1ff" stroke-opacity=".55" stroke-width="1"/>
+  <rect x="24" y="24" width="1232" height="352" fill="none" stroke="#e8f1ff" stroke-opacity=".9" stroke-width="2"/>
+
+  <g fill="#e8f1ff" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif">
+    <text x="64" y="92" font-family="'Cascadia Mono',Consolas,'SFMono-Regular',Menlo,monospace" font-size="14" letter-spacing="3" fill-opacity=".72">PLANO Nº 01</text>
+    <text x="60" y="206" font-size="{{TAMANO}}" font-weight="700" letter-spacing="-2">{{PROYECTO}}</text>
+    <text x="64" y="262" font-size="26" font-weight="600">{{LINEA}}</text>
+  </g>
+
+  <!-- rótulo del plano -->
+  <g stroke="#e8f1ff" stroke-width="1.2" fill="none">
+    <rect x="64" y="318" width="300" height="38"/>
+    <path d="M214 318V356"/>
+  </g>
+  <g fill="#e8f1ff" font-family="'Cascadia Mono',Consolas,Menlo,monospace">
+    <text x="72" y="331" font-size="8.5" fill-opacity=".6" letter-spacing="1.5">PROYECTO</text>
+    <text x="72" y="348" font-size="12" font-weight="700">{{PROYECTO}}</text>
+    <text x="222" y="331" font-size="8.5" fill-opacity=".6" letter-spacing="1.5">ESC.</text>
+    <text x="222" y="348" font-size="12" font-weight="700">1:1</text>
+  </g>
+
+  <!-- la planta: un ambiente por pieza -->
+  <g fill="#ffffff" fill-opacity=".04">
+    <rect x="860" y="84" width="170" height="110"/>
+    <rect x="1030" y="84" width="190" height="110"/>
+    <rect x="860" y="194" width="360" height="106"/>
+  </g>
+  <g stroke="#e8f1ff" stroke-width="4" stroke-linecap="square" fill="none">
+    <path d="M860 300V84H1220V300H940"/>
+    <path d="M1030 84V130M1030 160V194"/>
+    <path d="M860 194H980M1010 194H1220"/>
+  </g>
+  <g transform="translate(1180 128)" stroke="#e8f1ff" fill="none" stroke-width="1.2">
+    <circle r="20" stroke-opacity=".6"/>
+    <path d="M0 -26V26M-26 0H26" stroke-opacity=".35"/>
+    <path d="M0 -17L6 6L0 1L-6 6Z" fill="#e8f1ff" stroke="none"/>
+  </g>
+</svg>
