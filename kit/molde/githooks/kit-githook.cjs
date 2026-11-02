@@ -12,6 +12,9 @@
 // local), sacada con UN `git cat-file --batch` a un temporal fuera del repo y corrida con el cwd en el repo, y la del disco. Rojo si
 // cualquiera da rojo. La ref sin ficha (nunca tuvo kit): solo la del disco, y lo dice. La ref con ficha y sin candado, o el de la ref
 // que sale 2 por otra cosa que "no conoce --indice/--rango", rojo. Si no conoce la bandera (es del orden 2): sin ella, y lo dice.
+// El actualizador en su clon (D6-6, crit. 17 del delta 6): SOLO con .kit-rol = actualizador y KIT_MOLDE una carpeta que existe, los dos
+// candados van con --molde KIT_MOLDE (y --molde-viejo KIT_MOLDE_VIEJO, si es una carpeta); si no, se ignoran y lo dice (sin valores).
+// La ref con ficha y sin candado (un v2.4.2) corre ahí el candado del molde; el de la ref que no conoce una de esas, sin ella.
 // gitleaks: plazo de 60 s y un reintento (47 s en frío con Defender, r1-6, r2-10); dos veces colgado = "sin escáner (colgado)". Sin
 // escáner: humano, director y obrero pasan EN ROJO (con aviso y renglón); nocturno, actualizador y desconocido → 1. Uno de día con
 // la marca .kit-noche (la propia o la del director de un obrero) cuenta como nocturno (crit. 16 del delta 5).
@@ -529,13 +532,61 @@ function correrEstructura(script, args, o) {
   return { codigo: r.status, lineas, err: (r.stderr || '').trim() };
 }
 
-const noConoce = (err, bandera) => new RegExp(`Argumento desconocido: ${bandera}\\b`).test(err);
+// (?![\w-]): "--molde" no es "--molde-viejo".
+const noConoce = (err, bandera) => new RegExp(`Argumento desconocido: ${bandera}(?![\\w-])`).test(err);
+
+// D6-6: el molde del actualizador, del entorno. → { args, dir, linea } (args vacío = sin molde; linea null = nada que decir). Solo
+// con .kit-rol = actualizador (rolDe, el de la raíz) y KIT_MOLDE una carpeta que existe; KIT_MOLDE_VIEJO va solo con él, y si no es
+// una carpeta se deja afuera (sin él la exención es más angosta, nunca más ancha). Lo que se ignora se dice, sin los valores.
+function moldeDelActualizador(raiz, env) {
+  const hay = (v) => typeof v === 'string' && v !== '';
+  const esCarpeta = (p) => {
+    try {
+      return fs.statSync(path.resolve(raiz, p)).isDirectory();
+    } catch (e) {
+      return false;
+    }
+  };
+  const molde = env.KIT_MOLDE;
+  const viejo = env.KIT_MOLDE_VIEJO;
+  if (!hay(molde) && !hay(viejo)) return { args: [], dir: null, linea: null };
+  const rol = rolDe(raiz);
+  const ignorar = (por) => ({ args: [], dir: null, linea: `KIT_MOLDE se ignora (${por}): los candados corren sin el molde` });
+  if (rol !== 'actualizador') return ignorar(`.kit-rol es ${rol}, no actualizador`);
+  if (!hay(molde)) return ignorar('KIT_MOLDE_VIEJO sin KIT_MOLDE');
+  if (!esCarpeta(molde)) return ignorar('KIT_MOLDE no es una carpeta que exista');
+  const dir = path.resolve(raiz, molde);
+  const args = ['--molde', dir];
+  let linea = 'actualizador: los candados corren con el molde de KIT_MOLDE';
+  if (hay(viejo) && esCarpeta(viejo)) {
+    args.push('--molde-viejo', path.resolve(raiz, viejo));
+    linea += ' y el viejo de KIT_MOLDE_VIEJO';
+  } else if (hay(viejo)) linea += ' (KIT_MOLDE_VIEJO no es una carpeta que exista: va sin él)';
+  return { args, dir, linea };
+}
+
+// Corre un candado y, si sale 2 porque no conoce una de las banderas que se le pasan (la del hook: es del orden 2; las del molde: es
+// de antes), la saca (con su valor) y lo vuelve a correr, y lo dice. Sacar una nunca ensancha: sin --molde(-viejo) frena más.
+function correrSinLoQueNoConoce(script, bandera, args, quien, o) {
+  const a = args.slice();
+  let r = correrEstructura(script, a, o);
+  for (const f of [bandera, '--molde-viejo', '--molde']) {
+    if (r.codigo !== 2 || !a.includes(f) || !noConoce(r.err, f)) continue;
+    a.splice(a.indexOf(f), f === '--indice' ? 1 : 2);
+    if (f === '--molde' && a.includes('--molde-viejo')) a.splice(a.indexOf('--molde-viejo'), 2); // solo no va (mal llamado)
+    quien +=f === bandera ? ` (no conoce ${bandera}: es del orden 2; corrió sin él)` : ` (no conoce ${f}: corrió sin él)`;
+    r = correrEstructura(script, a, o);
+  }
+  return { r, quien };
+}
 
 // candado(bandera, valor, o) → { rojo, lineas }. bandera: '--indice' (valor null) o '--rango' (valor 'a..b').
+// o.molde (D6-6): el de moldeDelActualizador; sus banderas van a los dos candados.
 function candado(bandera, valor, o) {
   const lineas = [];
   let rojo = false;
-  const args = valor === null ? [bandera] : [bandera, valor];
+  const molde = o.molde || { args: [], dir: null };
+  const args = [...(valor === null ? [bandera] : [bandera, valor]), ...molde.args];
   const rv = refVigente(o);
   const fichaRef = !!rv && existeBlob(rv.ref, RUTA_FICHA, o);
   const disco = path.join(o.raiz, ...RUTA_ESTRUCTURA.split('/'));
@@ -545,18 +596,21 @@ function candado(bandera, valor, o) {
   if (!rv) lineas.push('candado de la rama por defecto: no hay rama por defecto todavía — corrió solo el del disco');
   else if (!fichaRef) lineas.push(`candado de ${rv.nombre}: no tiene ficha (nunca tuvo kit) — corrió solo el del disco`);
   else {
-    const script = extraerCandado(rv.ref, o);
+    let script = extraerCandado(rv.ref, o);
+    let quien = `candado de ${rv.nombre}`;
+    // D6-6: un proyecto de antes del candado (v2.4.2 con ficha) que pone al día el actualizador: en lugar del de la ref, el del molde
+    // (de afuera del clon: lo que se commitea no lo cambia).
+    const delMolde = molde.dir ? path.join(molde.dir, 'scripts', 'estructura.cjs') : null;
+    if (!script && delMolde && fs.existsSync(delMolde)) {
+      script = delMolde;
+      quien = `candado del molde (${rv.nombre} tiene ficha y no tiene ${RUTA_ESTRUCTURA}: es de antes del candado)`;
+    }
     if (!script) {
       rojo = true;
       lineas.push(`candado de ${rv.nombre}: tiene ficha y no tiene ${RUTA_ESTRUCTURA} — así no se juzga lo que sube · corré doctor`);
     } else {
-      let r = correrEstructura(script, args, o);
-      let quien = `candado de ${rv.nombre}`;
-      if (r.codigo === 2 && noConoce(r.err, bandera)) {
-        r = correrEstructura(script, [], o);
-        quien += ` (no conoce ${bandera}: es del orden 2; corrió sin él)`;
-      }
-      if (juzgar(quien, r, lineas)) rojo = true;
+      const c = correrSinLoQueNoConoce(script, bandera, args, quien, o);
+      if (juzgar(c.quien, c.r, lineas)) rojo = true;
     }
   }
 
@@ -665,6 +719,8 @@ function principal(argv, opciones = {}) {
     const stdin = cual === 'pre-push' ? (opciones.stdin !== undefined ? opciones.stdin : leerStdin()) : undefined;
     const rol = rolEfectivo(repo.raiz, o);
     const lineas = [];
+    o.molde = moldeDelActualizador(repo.raiz, env);
+    if (o.molde.linea) lineas.push(o.molde.linea);
     let rojo = false;
     const sinEscaner = (por) => {
       anotar(repo.raiz, rol, cual, 'githook:sin-escaner', por, o);
@@ -819,6 +875,7 @@ module.exports = {
   correrGitleaks,
   extraerCandado,
   candado,
+  moldeDelActualizador,
   indiceAparte,
   correrPrevio,
   refsQueSuben,

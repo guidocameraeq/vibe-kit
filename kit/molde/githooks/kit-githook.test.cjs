@@ -1217,3 +1217,242 @@ test('rf2-4: BASH_FUNC_env%% (o sed, command) con NODE_OPTIONS --require no apag
     assert.match(r.err, /kit pre-push: ROJO/);
   }
 });
+
+// ---------------------------------------------------------------- D6-6: el actualizador en su clon (crit. 17 del delta 6)
+
+// Los moldes de afuera, con la forma de kit/molde/ (los que arma lib/molde.cjs): el viejo = el molde tal cual (lo que tiene el repo);
+// el nuevo = el viejo con un hook cambiado y una regla deny retirada del settings.
+const HOOK_MOLDE_NUEVO = `${MOLDE_ARCHIVOS['.claude/hooks/sensible.cjs']}// lo que trae el molde nuevo\n`;
+const SETTINGS_SIN_REGLA = (() => {
+  const s = JSON.parse(MOLDE_ARCHIVOS['.claude/settings.json']);
+  const regla = 'Read(./**/.env.*)';
+  assert.ok(s.permissions.deny.includes(regla));
+  s.permissions.deny = s.permissions.deny.filter((x) => x !== regla);
+  return `${JSON.stringify(s, null, 2)}\n`;
+})();
+let moldesD66 = null;
+function moldes() {
+  if (moldesD66) return moldesD66;
+  const viejo = carpeta('molde-viejo');
+  const nuevo = carpeta('molde-nuevo');
+  for (const d of [viejo, nuevo]) fs.cpSync(MOLDE, d, { recursive: true, filter: (p) => !p.endsWith('.test.cjs') });
+  escribir(nuevo, 'hooks/sensible.cjs', HOOK_MOLDE_NUEVO);
+  escribir(nuevo, 'settings.json', SETTINGS_SIN_REGLA);
+  moldesD66 = { viejo, nuevo };
+  return moldesD66;
+}
+// Lo que commitea el actualizador: el molde nuevo, exacto.
+const TRAE_EL_MOLDE = () => ({ '.claude/hooks/sensible.cjs': HOOK_MOLDE_NUEVO, '.claude/settings.json': SETTINGS_SIN_REGLA });
+const conMolde = (extra = {}) => entorno('verde', { KIT_MOLDE: moldes().nuevo, KIT_MOLDE_VIEJO: moldes().viejo, ...extra });
+const ponerRol = (d, rol) => (rol === null ? fs.rmSync(path.join(d, '.kit-rol'), { force: true }) : fs.writeFileSync(path.join(d, '.kit-rol'), `${rol}\n`));
+const subir = (d, env) => g(d, ['push', '-q', 'origin', 'HEAD:refs/heads/kit/v9.9.9'], { env, puede: true });
+// La ref vigente pasa a ser el commit con `archivos` (y el repo vuelve a donde estaba).
+function refCon(d, archivos, msg) {
+  const s = commitArmado(d, archivos, msg);
+  g(d, ['reset', '-q', '--hard', 'HEAD~1']);
+  g(d, ['update-ref', 'refs/remotes/origin/main', s]);
+}
+
+test('D6-6: actualizador con KIT_MOLDE — el commit que trae exactamente el molde pasa el pre-commit y el pre-push (los dos candados, con el molde)', () => {
+  const d = repo();
+  ponerRol(d, 'actualizador');
+  const r = commitHook(d, TRAE_EL_MOLDE(), { env: conMolde() });
+  assert.equal(r.codigo, 0, r.err);
+  assert.match(r.err, /actualizador: los candados corren con el molde de KIT_MOLDE y el viejo de KIT_MOLDE_VIEJO/);
+  assert.match(r.err, /candado de origin\/main: candado: en verde \(barreras\)/);
+  assert.match(r.err, /candado del disco: candado: en verde \(barreras\)/);
+  assert.ok(!r.err.includes(moldes().nuevo) && !r.err.includes(moldes().viejo), 'sin los valores');
+  const p = subir(d, conMolde());
+  assert.equal(p.codigo, 0, p.err);
+  assert.match(p.err, /candado de origin\/main: candado: en verde \(barreras\) · el rango nuevo/);
+  assert.match(p.err, /candado del disco: candado: en verde \(barreras\) · el rango nuevo/);
+  assert.match(p.err, /kit pre-push: en verde/);
+});
+
+test('D6-6: el mismo commit sin KIT_MOLDE → rojo (pre-commit y pre-push); sin KIT_MOLDE_VIEJO, lo que el molde retira frena', () => {
+  const d = repo();
+  ponerRol(d, 'actualizador');
+  let r = commitHook(d, TRAE_EL_MOLDE(), { env: entorno('verde') });
+  assert.equal(r.codigo, 1);
+  assert.ok(!/KIT_MOLDE/.test(r.err), 'sin las variables no dice nada de ellas');
+  assert.match(r.err, /candado de origin\/main: candado:barreras/);
+  assert.match(r.err, /candado del disco: candado:barreras/);
+  // sin el viejo: la regla que el nuevo retira no se distingue de una propia (los dos candados la frenan)
+  r = commitHook(d, TRAE_EL_MOLDE(), { env: entorno('verde', { KIT_MOLDE: moldes().nuevo }) });
+  assert.equal(r.codigo, 1, r.err);
+  assert.match(r.err, /actualizador: los candados corren con el molde de KIT_MOLDE\n/);
+  assert.match(r.err, /candado de origin\/main: candado:barreras · [^\n]*settings/);
+  assert.match(r.err, /candado del disco: candado:barreras · [^\n]*settings/);
+  // un KIT_MOLDE_VIEJO que no es una carpeta: va sin él (y lo dice)
+  r = commitHook(d, TRAE_EL_MOLDE(), { env: entorno('verde', { KIT_MOLDE: moldes().nuevo, KIT_MOLDE_VIEJO: path.join(TMP, 'no-existe') }) });
+  assert.equal(r.codigo, 1, r.err);
+  assert.match(r.err, /KIT_MOLDE_VIEJO no es una carpeta que exista: va sin él/);
+  // el push del commit sin hooks, sin KIT_MOLDE: rojo; con KIT_MOLDE, el mismo push pasa
+  g(d, ['commit', '-q', '--no-verify', '-m', 'molde sin hooks']);
+  const p = subir(d, entorno('verde'));
+  assert.notEqual(p.codigo, 0);
+  assert.match(p.err, /candado de origin\/main: candado:barreras · el commit/);
+  assert.match(p.err, /candado del disco: candado:barreras · el commit/);
+  const q = subir(d, conMolde());
+  assert.equal(q.codigo, 0, q.err);
+});
+
+test('D6-6: KIT_MOLDE con un .kit-rol que no es actualizador (humano, director, obrero, nocturno, desconocido) → se ignora y lo dice (rojo)', () => {
+  const d = repo();
+  for (const rol of [null, 'director', 'obrero', 'nocturno', 'otra-cosa']) {
+    ponerRol(d, rol);
+    const r = commitHook(d, TRAE_EL_MOLDE(), { env: conMolde() });
+    assert.equal(r.codigo, 1, `${rol}: ${r.err}`);
+    const nombre = rol === null ? 'humano' : rol === 'otra-cosa' ? 'desconocido' : rol;
+    assert.match(r.err, new RegExp(`KIT_MOLDE se ignora \\(\\.kit-rol es ${nombre}, no actualizador\\): los candados corren sin el molde`));
+    assert.match(r.err, /candado de origin\/main: candado:barreras/);
+    assert.match(r.err, /candado del disco: candado:barreras/);
+    assert.ok(!r.err.includes(moldes().nuevo), 'sin los valores');
+  }
+  ponerRol(d, 'director');
+  g(d, ['commit', '-q', '--no-verify', '-m', 'molde sin hooks']);
+  const p = subir(d, conMolde());
+  assert.notEqual(p.codigo, 0);
+  assert.match(p.err, /KIT_MOLDE se ignora \(\.kit-rol es director/);
+  assert.match(p.err, /candado de origin\/main: candado:barreras · el commit/);
+  assert.match(p.err, /candado del disco: candado:barreras · el commit/);
+});
+
+test('D6-6: con KIT_MOLDE, un cambio que NO es igual al molde → rojo; KIT_MOLDE a una carpeta que no existe → se ignora (rojo)', () => {
+  const d = repo();
+  ponerRol(d, 'actualizador');
+  let r = commitHook(d, { '.claude/hooks/sensible.cjs': `${HOOK_MOLDE_NUEVO}// y algo más\n` }, { env: conMolde() });
+  assert.equal(r.codigo, 1, r.err);
+  assert.match(r.err, /candado de origin\/main: candado:barreras · [^\n]*hooks/);
+  assert.match(r.err, /candado del disco: candado:barreras · [^\n]*hooks/);
+  g(d, ['commit', '-q', '--no-verify', '-m', 'casi el molde']);
+  let p = subir(d, conMolde());
+  assert.notEqual(p.codigo, 0);
+  assert.match(p.err, /candado de origin\/main: candado:barreras · el commit/);
+  assert.match(p.err, /candado del disco: candado:barreras · el commit/);
+  g(d, ['reset', '-q', '--hard', 'HEAD~1']);
+  const sinCarpeta = entorno('verde', { KIT_MOLDE: path.join(TMP, 'no-existe'), KIT_MOLDE_VIEJO: moldes().viejo });
+  r = commitHook(d, TRAE_EL_MOLDE(), { env: sinCarpeta });
+  assert.equal(r.codigo, 1, r.err);
+  assert.match(r.err, /KIT_MOLDE se ignora \(KIT_MOLDE no es una carpeta que exista\)/);
+  assert.match(r.err, /candado de origin\/main: candado:barreras/);
+  assert.ok(!r.err.includes('no-existe'), 'sin los valores');
+  // un archivo en lugar de una carpeta, y KIT_MOLDE_VIEJO solo: también se ignoran
+  r = commitHook(d, TRAE_EL_MOLDE(), { env: entorno('verde', { KIT_MOLDE: path.join(d, 'a.txt') }) });
+  assert.equal(r.codigo, 1, r.err);
+  assert.match(r.err, /KIT_MOLDE se ignora \(KIT_MOLDE no es una carpeta que exista\)/);
+  r = commitHook(d, TRAE_EL_MOLDE(), { env: entorno('verde', { KIT_MOLDE_VIEJO: moldes().viejo }) });
+  assert.equal(r.codigo, 1, r.err);
+  assert.match(r.err, /KIT_MOLDE se ignora \(KIT_MOLDE_VIEJO sin KIT_MOLDE\)/);
+  g(d, ['commit', '-q', '--no-verify', '-m', 'molde sin hooks']);
+  p = subir(d, sinCarpeta);
+  assert.notEqual(p.codigo, 0);
+  assert.match(p.err, /KIT_MOLDE se ignora/);
+  assert.match(p.err, /candado de origin\/main: candado:barreras · el commit/);
+});
+
+test('D6-6: la ref con ficha y sin candado (un v2.4.2, como gama) — el actualizador corre el candado del molde en su lugar: el molde pasa, lo demás no', () => {
+  const d = repo();
+  refCon(d, { '.claude/scripts/estructura.cjs': null }, 'sin candado');
+  ponerRol(d, 'actualizador');
+  let r = commitHook(d, TRAE_EL_MOLDE(), { env: conMolde() });
+  assert.equal(r.codigo, 0, r.err);
+  assert.match(r.err, /candado del molde \(origin\/main tiene ficha y no tiene \.claude\/scripts\/estructura\.cjs: es de antes del candado\): candado: en verde \(barreras\)/);
+  const molde = head(d);
+  // un cambio que no es el molde: lo frena el del molde (y el del disco)
+  r = commitHook(d, { '.claude/hooks/git-seguro.cjs': 'module.exports = {};\n' }, { env: conMolde() });
+  assert.equal(r.codigo, 1, r.err);
+  assert.match(r.err, /candado del molde \([^)]*\): candado:barreras/);
+  assert.match(r.err, /candado del disco: candado:barreras/);
+  g(d, ['reset', '-q', '--hard', 'HEAD']);
+  // el candado del disco editado para dar verde: lo caza el del molde (de afuera del clon)
+  r = commitHook(d, { '.claude/hooks/lib/barreras.cjs': BARRERAS_TRAMPA }, { env: conMolde() });
+  assert.equal(r.codigo, 1, r.err);
+  assert.match(r.err, /candado del molde \([^)]*\): candado:barreras/);
+  assert.match(r.err, /candado del disco: candado: en verde/);
+  g(d, ['reset', '-q', '--hard', 'HEAD']);
+  // sin el rol, o sin KIT_MOLDE: como siempre, rojo "tiene ficha y no tiene"
+  for (const [rol, env] of [[null, conMolde()], ['actualizador', entorno('verde')]]) {
+    ponerRol(d, rol);
+    r = commitHook(d, { 'b.txt': `b ${rol}\n` }, { env });
+    assert.equal(r.codigo, 1, r.err);
+    assert.match(r.err, /candado de origin\/main: tiene ficha y no tiene \.claude\/scripts\/estructura\.cjs/);
+    g(d, ['reset', '-q', '--hard', 'HEAD']);
+  }
+  // el push del actualizador: también con el del molde; sin KIT_MOLDE, rojo
+  ponerRol(d, 'actualizador');
+  assert.equal(head(d), molde);
+  let p = subir(d, entorno('verde'));
+  assert.notEqual(p.codigo, 0);
+  assert.match(p.err, /candado de origin\/main: tiene ficha y no tiene/);
+  p = subir(d, conMolde());
+  assert.equal(p.codigo, 0, p.err);
+  assert.match(p.err, /candado del molde \([^)]*\): candado: en verde \(barreras\) · el rango nuevo/);
+});
+
+test('D6-6: la ref con ficha y sin candado, y un KIT_MOLDE sin el candado → rojo como siempre', () => {
+  const d = repo();
+  refCon(d, { '.claude/scripts/estructura.cjs': null }, 'sin candado');
+  ponerRol(d, 'actualizador');
+  const vacio = carpeta('molde-vacio');
+  const r = commitHook(d, { 'b.txt': 'b\n' }, { env: entorno('verde', { KIT_MOLDE: vacio }) });
+  assert.equal(r.codigo, 1, r.err);
+  assert.match(r.err, /candado de origin\/main: tiene ficha y no tiene \.claude\/scripts\/estructura\.cjs/);
+});
+
+test('D6-6: el candado de la ref que no conoce --molde-viejo, --molde o --indice: corre sin la que no conoce y lo dice; recibe las del molde', () => {
+  // Un candado viejo de mentira: anota lo que recibe y sale 2 con la primera bandera que "no conoce".
+  const anota = path.join(TMP, `args-${n++}.log`);
+  const viejo = (noConoce) =>
+    `const fs = require('fs');\nconst a = process.argv.slice(2);\nfs.appendFileSync(${JSON.stringify(anota)}, JSON.stringify(a) + '\\n');\n` +
+    `const x = a.find((y) => ${JSON.stringify(noConoce)}.includes(y));\nif (x) { process.stderr.write('Argumento desconocido: ' + x + '\\n'); process.exit(2); }\nconsole.log('candado: en verde (barreras)');\n`;
+  const barra = (s) => s.replace(/\\/g, '/');
+  const casos = [
+    [[], /candado de origin\/main: candado: en verde/, 1],
+    [['--molde-viejo'], /candado de origin\/main \(no conoce --molde-viejo: corrió sin él\): candado: en verde/, 2],
+    [['--indice', '--molde-viejo'], /candado de origin\/main \(no conoce --indice: es del orden 2; corrió sin él\) \(no conoce --molde-viejo: corrió sin él\): candado: en verde/, 3],
+    [['--molde', '--molde-viejo'], /candado de origin\/main \(no conoce --molde: corrió sin él\): candado: en verde/, 2],
+  ];
+  for (const [noConoce, esperado, corridas] of casos) {
+    fs.rmSync(anota, { force: true });
+    const d = repo();
+    refCon(d, { '.claude/scripts/estructura.cjs': viejo(noConoce) }, 'candado viejo');
+    ponerRol(d, 'actualizador');
+    const r = commitHook(d, TRAE_EL_MOLDE(), { env: conMolde() });
+    assert.equal(r.codigo, 0, `${noConoce}: ${r.err}`);
+    assert.match(r.err, esperado, String(noConoce));
+    const llamadas = fs.readFileSync(anota, 'utf8').trim().split('\n').map((l) => JSON.parse(l).map(barra));
+    assert.equal(llamadas.length, corridas, `${noConoce}: ${JSON.stringify(llamadas)}`);
+    assert.deepEqual(llamadas[0], ['barreras', '--indice', '--molde', barra(path.resolve(moldes().nuevo)), '--molde-viejo', barra(path.resolve(moldes().viejo))], 'la primera, con todo');
+    const ultima = llamadas[llamadas.length - 1];
+    for (const f of noConoce) assert.ok(!ultima.includes(f), `${noConoce}: la última sin ${f}`);
+    if (noConoce.includes('--molde')) assert.deepEqual(ultima, ['barreras', '--indice'], 'sin --molde, tampoco --molde-viejo');
+  }
+  // sin KIT_MOLDE, el de la ref recibe solo la del hook (un push normal no cambia)
+  fs.rmSync(anota, { force: true });
+  const e = repo();
+  refCon(e, { '.claude/scripts/estructura.cjs': viejo([]) }, 'candado viejo');
+  const r = commitHook(e, { 'b.txt': 'b\n' });
+  assert.equal(r.codigo, 0, r.err);
+  assert.deepEqual(JSON.parse(fs.readFileSync(anota, 'utf8').trim()), ['barreras', '--indice']);
+  // el push del actualizador: --rango con su valor y las del molde
+  fs.rmSync(anota, { force: true });
+  ponerRol(e, 'actualizador');
+  const p = subir(e, conMolde());
+  assert.equal(p.codigo, 0, p.err);
+  const a = JSON.parse(fs.readFileSync(anota, 'utf8').trim().split('\n')[0]).map(barra);
+  assert.equal(a[1], '--rango');
+  assert.match(a[2], /^0+\.\.[0-9a-f]{40}$/);
+  assert.deepEqual(a.slice(3), ['--molde', barra(path.resolve(moldes().nuevo)), '--molde-viejo', barra(path.resolve(moldes().viejo))]);
+});
+
+test('moldeDelActualizador: solo actualizador y una carpeta; sin las variables (o vacías), nada que decir', () => {
+  const d = repo();
+  assert.deepEqual(kg.moldeDelActualizador(d, {}), { args: [], dir: null, linea: null });
+  assert.equal(kg.moldeDelActualizador(d, { KIT_MOLDE: moldes().nuevo }).args.length, 0, 'humano');
+  ponerRol(d, 'actualizador');
+  const m = kg.moldeDelActualizador(d, { KIT_MOLDE: moldes().nuevo, KIT_MOLDE_VIEJO: moldes().viejo });
+  assert.deepEqual(m.args, ['--molde', path.resolve(moldes().nuevo), '--molde-viejo', path.resolve(moldes().viejo)]);
+  assert.equal(m.dir, path.resolve(moldes().nuevo));
+  assert.deepEqual(kg.moldeDelActualizador(d, { KIT_MOLDE: '', KIT_MOLDE_VIEJO: '' }), { args: [], dir: null, linea: null });
+});
