@@ -18,7 +18,6 @@ process.env.USERPROFILE = HOME_PROCESO;
 
 const P = require('./preparar-pc.cjs');
 const D = require('./doctor.cjs');
-const SCRIPT = path.join(__dirname, 'preparar-pc.cjs');
 const DOCTOR = path.join(__dirname, 'doctor.cjs');
 const KIT_ARBOL = path.resolve(__dirname, '..', '..', '..'); // kit/
 const WIN = process.platform === 'win32';
@@ -102,15 +101,17 @@ function proyectos(mapa) {
 function escenario(opts = {}) {
   return { home: nueva('home'), bin: binFalso(opts), kit: opts.kit || clonKit(), proy: opts.proy || proyectos({ alfa: [['base', 'dummy', 'postgres://localhost:5433/alfa'], ['prod', 'real']] }) };
 }
+// El preparar-pc del clon (RF-3: el que corre tiene que ser el del --kit).
+const scriptDe = (kit) => path.join(kit, 'kit', 'skills', 'arquitecto-skills', 'scripts', 'preparar-pc.cjs');
 // En proceso (rápido; deja inyectar el renombre). → { codigo, texto, lineas }
-function correr(e, extra = [], { renombrar, conProyectos = true } = {}) {
+function correr(e, extra = [], { renombrar, conProyectos = true, script } = {}) {
   const args = ['--kit', e.kit, '--home', e.home, ...(conProyectos ? ['--proyectos', e.proy] : []), ...extra];
-  const r = P.principal(args, { env: entorno(e.bin), cwd: CWD, ...(renombrar ? { renombrar } : {}) });
+  const r = P.principal(args, { env: entorno(e.bin), cwd: CWD, script: script || scriptDe(e.kit), ...(renombrar ? { renombrar } : {}) });
   return { ...r, lineas: r.texto.split('\n') };
 }
 // Como proceso aparte (como lo corre la skill).
 function correrProceso(e, extra = []) {
-  const r = spawnSync(process.execPath, [SCRIPT, '--kit', e.kit, '--home', e.home, '--proyectos', e.proy, ...extra], { encoding: 'utf8', env: entorno(e.bin), cwd: CWD, timeout: 240000 });
+  const r = spawnSync(process.execPath, [scriptDe(e.kit), '--kit', e.kit, '--home', e.home, '--proyectos', e.proy, ...extra], { encoding: 'utf8', env: entorno(e.bin), cwd: CWD, timeout: 240000 });
   return { codigo: r.status, texto: r.stdout + r.stderr };
 }
 const linea = (r, paso) => r.lineas.find((l) => new RegExp(`^[✓✗⚠] ${paso} · `).test(l));
@@ -291,17 +292,21 @@ test('crit 3: una entrada del kit editada por Guido queda como suya y la nueva s
   assert.deepEqual(P.leerKitPc(e.home).datos.autoMode, ['alfa: base (dummy): postgres://localhost:5433/alfa']);
 });
 
-test('crit 3: una entrada de Guido igual a la que generaría el kit sigue siendo de Guido (kit-pc.md no la anota y no sale)', () => {
+// RF-2 (decisión del director D6.1): una entrada idéntica a la que genera el kit se reclama como del kit; si no, nunca saldría.
+test('crit 3 (RF-2): kit-pc.md con auto-mode: [] y la entrada ya en el settings → la 1.ª corrida la reclama; proyecto borrado → sale', () => {
   const e = escenario();
   fs.mkdirSync(path.join(e.home, '.claude'), { recursive: true });
-  const suya = 'alfa: base (dummy): postgres://localhost:5433/alfa';
-  fs.writeFileSync(settingsDe(e), JSON.stringify({ autoMode: { environment: ['$defaults', suya] } }));
+  const ent = 'alfa: base (dummy): postgres://localhost:5433/alfa';
+  fs.writeFileSync(settingsDe(e), JSON.stringify({ autoMode: { environment: ['$defaults', 'Source control: mía', ent] } }));
+  fs.writeFileSync(P.rutaKitPc(e.home), '---\nauto-mode: []\n---\n');
   assert.equal(correr(e).codigo, 0);
-  assert.deepEqual(leerSettings(e).autoMode.environment, ['$defaults', suya]);
+  assert.deepEqual(leerSettings(e).autoMode.environment, ['$defaults', 'Source control: mía', ent], 'no se duplica');
+  assert.deepEqual(P.leerKitPc(e.home).datos.autoMode, [ent], 'sí: la reclama');
+  assert.match(correr(e).texto, /^sin cambios/m);
+  fs.rmSync(path.join(e.proy, 'alfa'), { recursive: true });
+  assert.equal(correr(e).codigo, 0);
+  assert.deepEqual(leerSettings(e).autoMode.environment, ['$defaults', 'Source control: mía'], 'el proyecto se fue: la entrada sale, la de Guido queda');
   assert.deepEqual(P.leerKitPc(e.home).datos.autoMode, []);
-  fs.writeFileSync(path.join(e.proy, 'alfa', '.claude', 'kit.md'), FICHA('alfa', [['prod', 'real']]));
-  assert.equal(correr(e).codigo, 0);
-  assert.deepEqual(leerSettings(e).autoMode.environment, ['$defaults', suya]);
 });
 
 test('crit 3: una lista environment sin "$defaults" de Guido no se completa: ⚠ y queda sin él', () => {
@@ -335,8 +340,11 @@ test('crit 3: mezclarAutoMode — los casos', () => {
   assert.deepEqual(M(['g1', '$defaults', 'a', 'g2', 'b'], ['a', 'b'], ['b', 'c']), { lista: ['g1', '$defaults', 'g2', 'b', 'c'], delKit: ['b', 'c'], sinDefaults: false });
   // "$defaults" nunca es del kit ni sale, aunque kit-pc.md lo liste
   assert.deepEqual(M(['$defaults', 'a'], ['$defaults', 'a'], []), { lista: ['$defaults'], delKit: [], sinDefaults: false });
-  // una igual a la generada pero que no era del kit: es de Guido, no se duplica ni se adopta
-  assert.deepEqual(M(['$defaults', 'a'], [], ['a']), { lista: ['$defaults', 'a'], delKit: [], sinDefaults: false });
+  // RF-2: una igual a la generada que no estaba anotada: no se duplica y se reclama como del kit (en el orden de la lista)
+  assert.deepEqual(M(['$defaults', 'a'], [], ['a']), { lista: ['$defaults', 'a'], delKit: ['a'], sinDefaults: false });
+  assert.deepEqual(M(['$defaults', 'b', 'g', 'a'], ['a'], ['a', 'b']), { lista: ['$defaults', 'b', 'g', 'a'], delKit: ['b', 'a'], sinDefaults: false });
+  // no: una que el kit ya no genera y no estaba anotada no se reclama ni sale
+  assert.deepEqual(M(['$defaults', 'z'], [], ['a']), { lista: ['$defaults', 'z', 'a'], delKit: ['a'], sinDefaults: false });
   // del kit repetida: queda una
   assert.deepEqual(M(['$defaults', 'a', 'a'], ['a'], ['a']), { lista: ['$defaults', 'a'], delKit: ['a'], sinDefaults: false });
   // lista existente sin "$defaults": no se agrega, se avisa
@@ -549,6 +557,114 @@ test('sin --proyectos ni carpeta conocida → ⚠ proyectos y sigue; después la
   assert.equal(P.leerKitPc(e.home).datos.proyectos, e.proy.replace(/\\/g, '/'));
   assert.equal(linea(r2, 'editados'), undefined, 'la línea de la carpeta no cuenta como edición');
   assert.match(correr(e, [], { conProyectos: false }).texto, /^sin cambios/m);
+});
+
+// ================================================================ revisor frío (RF-1, RF-3, RF-7, RF-8)
+test('RF-1: un clon --depth 1 → ✗ "clon sin historia" con la línea del fetch y 1, sin tocar nada; con la historia, anda', () => {
+  const e = escenario();
+  const d = nueva('raso');
+  fs.rmdirSync(d);
+  git(RAIZ_TMP, 'clone', '-q', '--depth', '1', '--branch', 'v9.0.0', `file://${WIN ? '/' : ''}${KIT_BASE.replace(/\\/g, '/')}`, d);
+  e.kit = d;
+  const r = correr(e);
+  assert.equal(r.codigo, 1, r.texto);
+  assert.match(r.texto, /^✗ kit · .*clon sin historia.* · git -C .* fetch --unshallow --tags/m);
+  assert.ok(!fs.existsSync(path.join(e.home, '.claude')), 'no tocó nada');
+  git(d, 'fetch', '-q', '--unshallow', '--tags');
+  const r2 = correr(e);
+  assert.equal(r2.codigo, 0, r2.texto);
+});
+
+test('RF-3: el preparar-pc que corre no es el del --kit (el instalado con --kit <clon nuevo>) → ✗ con la línea del del clon y 1', () => {
+  const e = escenario();
+  const otro = clonKit(); // otro kit: su script no está dentro de e.kit
+  const r = correr(e, [], { script: scriptDe(otro) });
+  assert.equal(r.codigo, 1, r.texto);
+  assert.match(r.texto, /^✗ kit · este preparar-pc .* no es el del kit que pasaste · corré el preparar-pc del clon: node .*\/kit\/skills\/arquitecto-skills\/scripts\/preparar-pc\.cjs --kit /m);
+  assert.ok(!fs.existsSync(path.join(e.home, '.claude')));
+  // el del clon, aunque la ruta venga con otras mayúsculas (Windows) → anda
+  const s = scriptDe(e.kit);
+  assert.equal(correr(e, [], { script: WIN ? s.toUpperCase() : s }).codigo, 0);
+});
+
+test('RF-7: gh auth status con salida ≠ 0 → ⚠ "no está logueado o no hay red" y la cuenta de kit-pc.md queda la anterior', () => {
+  const e = escenario();
+  assert.equal(correr(e).codigo, 0);
+  assert.equal(P.leerKitPc(e.home).datos.gh, 'guidito');
+  // gh que nombra una cuenta pero sale 1 (token vencido, sin red)
+  if (WIN) fs.writeFileSync(path.join(e.bin, 'gh.cmd'), '@echo off\r\nif "%1"=="auth" (echo Logged in to github.com account otro & exit /b 1) else (echo gh version 2.60.0)\r\n');
+  else fs.writeFileSync(path.join(e.bin, 'gh'), "#!/bin/sh\nif [ \"$1\" = auth ]; then echo 'Logged in to github.com account otro'; exit 1; else echo 'gh version 2.60.0'; fi\n", { mode: 0o755 });
+  const r = correr(e);
+  assert.equal(r.codigo, 0, r.texto);
+  assert.match(linea(r, 'gh'), /^⚠ gh · gh no está logueado o no hay red .*· gh auth login$/);
+  assert.equal(P.leerKitPc(e.home).datos.gh, 'guidito', 'no escribe "otro": queda la anterior');
+  // en un HOME nuevo, queda vacío
+  const e2 = { ...e, home: nueva('home') };
+  assert.equal(correr(e2).codigo, 0);
+  assert.equal(P.leerKitPc(e2.home).datos.gh, null);
+});
+
+test('RF-8: lo que el kit ya no trae — intacto se borra (el plan lo muestra sin borrar); editado o ajeno se deja con ⚠', () => {
+  const e = escenario();
+  git(e.kit, 'checkout', '-q', 'v9.0.0');
+  assert.equal(correr(e).codigo, 0);
+  // el kit sigue: v9.0.1 ya no trae dos archivos de docs-fyd
+  git(e.kit, 'checkout', '-q', '-');
+  const [a, b] = ['skills/docs-fyd/deteccion.md', 'skills/docs-fyd/plantillas/LEEME.md'];
+  git(e.kit, 'rm', '-q', `kit/${a}`, `kit/${b}`);
+  git(e.kit, 'commit', '-qm', '9.0.1');
+  git(e.kit, 'tag', '-a', 'v9.0.1', '-m', 'v9.0.1');
+  const casa = (rel) => path.join(e.home, '.claude', ...rel.split('/'));
+  fs.appendFileSync(casa(b), 'lo edité\n');
+  fs.writeFileSync(casa('skills/docs-fyd/mio.txt'), 'mío\n');
+  const arq = fs.readFileSync(casa('skills/arquitecto/SKILL.md'));
+  const plan = correr(e, ['--plan']);
+  assert.equal(plan.codigo, 0, plan.texto);
+  assert.match(plan.texto, /^· haría: borro ~\/\.claude\/skills\/docs-fyd\/deteccion\.md: el kit ya no lo trae/m);
+  assert.ok(fs.existsSync(casa(a)), '--plan no borra');
+  const r = correr(e);
+  assert.equal(r.codigo, 0, r.texto);
+  assert.ok(!fs.existsSync(casa(a)), 'sí: el intacto se borra');
+  assert.ok(fs.existsSync(casa(b)) && fs.existsSync(casa('skills/docs-fyd/mio.txt')), 'no: el editado y el ajeno quedan');
+  assert.match(linea(r, 'sobrantes'), /^⚠ sobrantes · lo dejo: no es del kit o lo editaste: skills\/docs-fyd\/mio\.txt, skills\/docs-fyd\/plantillas\/LEEME\.md/);
+  assert.ok(fs.readFileSync(casa('skills/arquitecto/SKILL.md')).equals(arq), 'la línea de la carpeta no se toca');
+  assert.ok(fs.existsSync(P.rutaKitPc(e.home)), 'kit-pc.md nunca');
+  assert.doesNotMatch(correr(e).texto, /borro/, 'la 2.ª corrida no tiene nada que borrar');
+});
+
+test('RF-12: con editados sin pisar (o --flota) VERSION no sube y la tabla lo dice; con --pisar-editados o sin editados, sube', () => {
+  const nuevaVersion = (e) => {
+    git(e.kit, 'checkout', '-q', '-');
+    fs.writeFileSync(path.join(e.kit, 'kit', 'VERSION'), '9.0.1\n');
+    git(e.kit, 'commit', '-qam', '9.0.1');
+    git(e.kit, 'tag', '-a', 'v9.0.1', '-m', 'v9.0.1');
+  };
+  const V = (e) => fs.readFileSync(path.join(e.home, '.claude', 'VERSION'), 'utf8');
+  const e = escenario();
+  git(e.kit, 'checkout', '-q', 'v9.0.0');
+  assert.equal(correr(e).codigo, 0);
+  const vieja = V(e);
+  nuevaVersion(e);
+  fs.appendFileSync(path.join(e.home, '.claude', ...ARCH), 'mío\n');
+  for (const extra of [[], ['--flota']]) {
+    const r = correr(e, extra);
+    assert.equal(r.codigo, 0, r.texto);
+    assert.equal(V(e), vieja, `no: VERSION queda la vieja (${extra.join(' ') || 'sin banderas'})`);
+    assert.match(linea(r, 'version'), /^⚠ version · VERSION no subió: quedaron 1 archivo editado sin pisar · /);
+    assert.doesNotMatch(r.texto, /actualizo ~\/\.claude\/VERSION/);
+  }
+  const p = correr(e, ['--pisar-editados']);
+  assert.equal(p.codigo, 0, p.texto);
+  assert.equal(V(e), '9.0.1\n', 'sí: con --pisar-editados sube');
+  assert.equal(linea(p, 'version'), undefined);
+  // sin editados, sube como siempre
+  const e2 = escenario();
+  git(e2.kit, 'checkout', '-q', 'v9.0.0');
+  assert.equal(correr(e2).codigo, 0);
+  nuevaVersion(e2);
+  const r2 = correr(e2);
+  assert.equal(V(e2), '9.0.1\n');
+  assert.equal(linea(r2, 'version'), undefined);
 });
 
 test.after(() => {

@@ -470,6 +470,83 @@ test('un error inyectado a mitad del plan → ningún archivo a medias (cada uno
   assert.equal(foto(d)['.claude/hooks/lib/util.cjs'], '// util v2\n');
 });
 
+test('RF-6: tras un corte a mitad, el mensaje dice cómo limpiar el clon; con eso (sin commitear) la otra corrida termina y .kit-rol queda', () => {
+  const d = armarProyecto();
+  let renombres = 0;
+  const io = {
+    ...fs,
+    renameSync: (a, b) => {
+      if (++renombres === 3) throw Object.assign(new Error('disco lleno'), { code: 'ENOSPC' });
+      return fs.renameSync(a, b);
+    },
+  };
+  const r = aplicar(d, { io });
+  assert.equal(r.codigo, 1);
+  const ultima = r.lineas[r.lineas.length - 1];
+  assert.match(ultima, /Es el clon del actualizador: `git checkout -- \. && git clean -fd` \(deja \.kit-rol, que está en \.git\/info\/exclude\) y corré de nuevo$/);
+  // no: así como quedó, se niega (sucia)
+  const sucia = aplicar(d);
+  assert.equal(sucia.codigo, 1);
+  assert.match(sucia.lineas[0], /no está limpia/);
+  // sí: el camino del mensaje, sin commitear
+  git(d, 'checkout', '--', '.');
+  git(d, 'clean', '-fd');
+  assert.equal(leer(d, '.kit-rol'), 'actualizador\n');
+  const r2 = aplicar(d);
+  assert.equal(r2.codigo, 0, r2.lineas.join('\n'));
+  assert.equal(leer(d, '.claude/hooks/lib/util.cjs'), '// util v2\n');
+});
+
+// RF-1: sin --molde-viejo el molde viejo sale del tag v<ficha>. Un kit con historia: v2.9.0 (el viejo) y encima 3.0.0 (el nuevo).
+function kitConHistoria() {
+  const k = nuevaCarpeta('kit-hist');
+  escribirArbol(path.join(k, 'kit', 'molde'), MOLDE_V);
+  fs.writeFileSync(path.join(k, 'kit', 'VERSION'), '2.9.0\n');
+  git(k, 'init', '-q', '-b', 'main');
+  git(k, 'config', 'core.autocrlf', 'false');
+  git(k, 'add', '-A');
+  git(k, 'commit', '-q', '-m', 'v2.9.0');
+  git(k, 'tag', '-a', 'v2.9.0', '-m', 'v2.9.0');
+  fs.rmSync(path.join(k, 'kit', 'molde'), { recursive: true });
+  escribirArbol(path.join(k, 'kit', 'molde'), MOLDE_N);
+  fs.writeFileSync(path.join(k, 'kit', 'VERSION'), '3.0.0\n');
+  git(k, 'add', '-A');
+  git(k, 'commit', '-q', '-m', '3.0.0');
+  return k;
+}
+const clonar = (origen, ...extra) => {
+  const d = path.join(T, `clon-${n++}`);
+  git(T, 'clone', '-q', ...extra, `file://${process.platform === 'win32' ? '/' : ''}${origen.replace(/\\/g, '/')}`, d);
+  return d;
+};
+
+test('RF-1: sin --molde-viejo, un --kit shallow o sin el tag de la ficha → 1 con la línea del fetch (no "actualizador roto"); completo, anda', async () => {
+  const origen = kitConHistoria();
+  const raso = clonar(origen, '--depth', '1');
+  const d = armarProyecto();
+  const antes = foto(d);
+  const r = A.aplicar(d, { kit: raso, fecha: '2026-11-02' });
+  assert.equal(r.codigo, 1);
+  assert.match(r.lineas[0], /^aplicar: el --kit es un clon sin historia \(shallow\) y no tiene el tag v2\.9\.0 .*`git -C .* fetch --unshallow --tags`/);
+  assert.doesNotMatch(r.lineas.join('\n'), /actualizador roto/);
+  assert.deepEqual(foto(d), antes);
+  // chequear, igual: NO VERIFICADO con la línea, no "actualizador roto"
+  const c = await A.chequear(d, { kit: raso, base: 'HEAD', fecha: '2026-11-02' });
+  assert.equal(c.codigo, 1);
+  assert.match(c.lineas[0], /^chequear: el --kit es un clon sin historia.*fetch --unshallow --tags/);
+  assert.equal(c.lineas[1], 'NO VERIFICADO');
+  // un clon completo sin tags → la línea de traer los tags
+  const sinTags = clonar(origen, '--no-tags');
+  const s = A.aplicar(d, { kit: sinTags, fecha: '2026-11-02' });
+  assert.equal(s.codigo, 1);
+  assert.match(s.lineas[0], /^aplicar: el --kit no tiene el tag v2\.9\.0 \(el de la ficha\): completalo con `git -C .* fetch --tags`/);
+  // sí: completo (con historia y tags) → aplica
+  git(raso, 'fetch', '-q', '--unshallow', '--tags');
+  const ok = A.aplicar(d, { kit: raso, fecha: '2026-11-02' });
+  assert.equal(ok.codigo, 0, ok.lineas.join('\n'));
+  assert.equal(leer(d, '.claude/hooks/session-start.cjs'), '// arranque v2\n');
+});
+
 test('el renombre reintenta ante EBUSY/EPERM (3 veces) y después se rinde', () => {
   const d = armarProyecto();
   let fallas = 0;

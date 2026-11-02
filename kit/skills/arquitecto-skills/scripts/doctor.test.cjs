@@ -287,6 +287,25 @@ test('git-bash: informativo, nunca ✗ (en Windows: ⚠ si no está; ✓ si est�
   }
 });
 
+test('RF-13: el bash de System32 (WSL) primero en el PATH se saltea: kit-sync corre con el de Git; si es el único, git-bash ⚠', { skip: !WIN }, () => {
+  const e = escenario();
+  comoVibeKit(e);
+  falsoBashSync(e, true); // el "de Git": dice LIMPIO
+  const s32 = path.join(nuevaCarpeta('falso-windows'), 'System32');
+  fs.mkdirSync(s32);
+  fs.writeFileSync(path.join(s32, 'bash.cmd'), '@echo off\r\necho SOY WSL\r\nexit /b 1\r\n');
+  const PATH = [s32, entorno(e).PATH].join(path.delimiter);
+  // sí: con el de WSL primero, kit-sync usa el otro y da LIMPIO
+  assert.match(linea(correr(e, { extraEnv: { PATH } }), 'kit-sync'), /^✓ kit-sync · kit ↔ ~\/\.claude: LIMPIO$/);
+  assert.equal(D.bashDeGit({ PATH, PATHEXT: '.CMD' }), path.join(e.bin, 'bash.cmd'));
+  // no: si el de WSL es el único bash, no cuenta
+  sacarFalso(e.bin, 'bash');
+  assert.equal(D.bashDeGit({ PATH, PATHEXT: '.CMD', ProgramFiles: path.join(RAIZ_TMP, 'sin-program-files') }), null);
+  const r = correr(e, { extraEnv: { PATH } });
+  assert.match(linea(r, 'git-bash'), /^⚠ git-bash · /);
+  assert.match(linea(r, 'kit-sync'), /^⚠ kit-sync · NO VERIFICADO: no encuentro bash/);
+});
+
 test('settings-pc: sin settings.json y con JSON roto → ✗ (y los chequeos que dependen de él no mienten)', () => {
   let e = escenario();
   fs.rmSync(settingsDe(e));
@@ -588,15 +607,18 @@ test('archivo-pc: sin kit-pc.md ⚠ "preparame"; carpeta distinta ⚠; las barra
 
 test('credencial: sin capa privada ✓ "no aplica"; con ella, cada variable existe (el valor no se imprime) o ⚠ con las que faltan', () => {
   const e = escenario();
+  // valores de prueba armados por partes: que no parezcan una clave (gitleaks generic-api-key)
+  const VALOR_PRUEBA = ['valor', 'de', 'prueba'].join('-');
+  const OTRO_VALOR_PRUEBA = ['otro', 'valor', 'cualquiera'].join('-');
   assert.match(linea(correr(e), 'credencial'), /^✓ credencial · no aplica/);
   const priv = nuevaCarpeta('priv');
   fs.writeFileSync(path.join(priv, 'instalar.cjs'), "console.log(process.argv.includes('--variables') ? 'HUB_TOKEN_PRUEBA\\nOTRA_VAR_PRUEBA' : 'x');\n");
   kitPc(e, { privada: priv });
-  const r = rojo(e, 'credencial', '⚠', /falta 1 variable de la capa privada · OTRA_VAR_PRUEBA · cargalas/, { extraEnv: { HUB_TOKEN_PRUEBA: 'VALOR-SECRETO-123' } });
-  assert.ok(!r.out.includes('VALOR-SECRETO-123'), 'no imprime el valor');
-  const ok = correr(e, { extraEnv: { HUB_TOKEN_PRUEBA: 'VALOR-SECRETO-123', OTRA_VAR_PRUEBA: 'otro-valor-456' } });
+  const r = rojo(e, 'credencial', '⚠', /falta 1 variable de la capa privada · OTRA_VAR_PRUEBA · cargalas/, { extraEnv: { HUB_TOKEN_PRUEBA: VALOR_PRUEBA } });
+  assert.ok(!r.out.includes(VALOR_PRUEBA), 'no imprime el valor');
+  const ok = correr(e, { extraEnv: { HUB_TOKEN_PRUEBA: VALOR_PRUEBA, OTRA_VAR_PRUEBA: OTRO_VALOR_PRUEBA } });
   assert.match(linea(ok, 'credencial'), /^✓ credencial · las 2 variables de la capa privada existen \(no se imprime su valor\)$/);
-  assert.ok(!ok.out.includes('VALOR-SECRETO-123') && !ok.out.includes('otro-valor-456'));
+  assert.ok(!ok.out.includes(VALOR_PRUEBA) && !ok.out.includes(OTRO_VALOR_PRUEBA));
   fs.rmSync(path.join(priv, 'instalar.cjs'));
   rojo(e, 'credencial', '⚠', /no trae instalar\.cjs/);
 });
@@ -628,6 +650,10 @@ test('mesa-gh: gh lee el repo de cada remoto de la mesa ✓; sin acceso ⚠ "ped
   rojo(e, 'mesa-gh', '⚠', /hub: falta el remoto "hub" \(git remote add hub <url>\) · pedile acceso a po-ejemplo/);
   fs.rmSync(path.join(e.repo, '.claude', 'kit.md'));
   assert.ok(linea(correr(e), 'mesa-gh').startsWith('✓'));
+  // RF-14: un remoto de la mesa que no es de GitHub → ⚠ "no lo pude mirar", nunca ✓
+  e = escenario();
+  assert.equal(git(e.repo, 'remote', 'set-url', 'hub', 'https://gitlab.com/o-prueba/hub.git').status, 0);
+  rojo(e, 'mesa-gh', '⚠', /^⚠ mesa-gh · hub: el remoto no es de GitHub, no lo pude mirar · /);
 });
 
 test('cross-session: accept ✓; falta o "hold" ⚠', () => {

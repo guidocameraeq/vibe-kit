@@ -251,12 +251,22 @@ function chLefthook(env, raiz) {
   return res('⚠', `lefthook ${donde}: escribe en .githooks/ y pisa el pre-commit del kit`, 'no corras "lefthook install" en repos con el kit (o desinstalalo: lefthook uninstall); si ya corrió, el chequeo pre-commit te lo dice');
 }
 
-function chGitBash(env) {
-  if (process.platform !== 'win32') return res('✓', 'git-bash: no aplica (no es Windows)');
+// RF-13: el bash de Git. Primero el de Git for Windows (Program Files, Programs); después el PATH, salteando el de System32 (y el
+// de WindowsApps): ese es el de WSL, que no ve el HOME de Windows ni corre kit-sync.sh como corresponde. Fuera de Windows, el PATH.
+function bashDeGit(env) {
+  if (process.platform !== 'win32') return buscarEnPath('bash', env);
   const dirs = [env.ProgramFiles, env['ProgramFiles(x86)'], env.LOCALAPPDATA && path.join(env.LOCALAPPDATA, 'Programs')].filter(Boolean).map((d) => path.join(d, 'Git'));
   const propio = dirs.map((d) => [path.join(d, 'bin', 'bash.exe'), path.join(d, 'usr', 'bin', 'bash.exe')]).flat().find(existe);
-  const enPath = buscarEnPath('bash', env);
-  if (propio || enPath) return res('✓', 'git-bash: está (lo usan solo los .githooks/; los hooks del kit no lo necesitan)');
+  if (propio) return propio;
+  const esWsl = (d) => /[\\/](system32|sysnative|windowsapps)[\\/]?$/i.test(d.replace(/^"|"$/g, ''));
+  const sinWsl = valorPath(env).split(path.delimiter).filter((d) => d && !esWsl(d)).join(path.delimiter);
+  const k = Object.keys(env).find((x) => x.toUpperCase() === 'PATH') || 'PATH';
+  return buscarEnPath('bash', { ...env, [k]: sinWsl });
+}
+
+function chGitBash(env) {
+  if (process.platform !== 'win32') return res('✓', 'git-bash: no aplica (no es Windows)');
+  if (bashDeGit(env)) return res('✓', 'git-bash: está (lo usan solo los .githooks/; los hooks del kit no lo necesitan)');
   return res('⚠', 'git-bash: no lo encontré · informativo: solo lo usan los .githooks/, y el sh de eso lo trae git', 'si los pre-commit fallan con "sh: not found", reinstalá Git for Windows');
 }
 
@@ -619,8 +629,10 @@ function chMesaGh(f, filas) {
   const aprueba = typeof f.datos.aprueba === 'string' && f.datos.aprueba.trim() ? f.datos.aprueba : 'quien aprueba';
   const sin = [];
   const noVer = [];
+  const ajenos = []; // RF-14: un remoto que no es de GitHub no se puede mirar por gh: no es ✓
   for (const { alias, o, gh } of filas) {
     if (o.nv) noVer.push(`${alias}: ${o.nv}`);
+    else if (o.noGithub) ajenos.push(`${alias}: el remoto no es de GitHub, no lo pude mirar`);
     else if (o.sinOrigin || o.sinRepo) sin.push(`${alias}: falta el remoto "${alias}" (git remote add ${alias} <url>)`);
     else if (o.repo) {
       const j = juzgarGh(gh);
@@ -631,6 +643,7 @@ function chMesaGh(f, filas) {
   }
   if (sin.length) return res('⚠', `la mesa no se lee por gh · ${lista(sin)}`, `pedile acceso a ${aprueba} (y "git remote add" lo que falte)`);
   if (noVer.length) return nv(lista(noVer), 'instalá gh, corré "gh auth login" y, con red, volvé a correr doctor');
+  if (ajenos.length) return res('⚠', lista(ajenos), 'miralo a mano (o pasá ese remoto a GitHub)');
   return res('✓', `gh lee los ${filas.length} repos de la mesa`);
 }
 
@@ -766,7 +779,7 @@ async function principal(argv, { env = process.env, cwd = process.cwd(), plazoMs
   const pGit = buscarEnPath('gitleaks', env);
   const pClaude = buscarEnPath('claude', env);
   const pGitBin = buscarEnPath('git', env);
-  const pBash = buscarEnPath('bash', env);
+  const pBash = bashDeGit(env);
   const pGh = buscarEnPath('gh', env);
   const f = leerFicha(raiz);
   const kp = P.leerKitPc(r.home);
@@ -856,4 +869,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { principal, IDS, buscarEnPath, version, comparar, chNode, ultimoTagAnotado, inventario, leerFrenos };
+module.exports = { principal, IDS, buscarEnPath, bashDeGit, version, comparar, chNode, ultimoTagAnotado, inventario, leerFrenos };

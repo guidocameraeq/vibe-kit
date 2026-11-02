@@ -16,10 +16,10 @@
 // (opcional, para las pruebas: la ruta del ejecutable, o null = "no hay"; sin la opción se busca en el PATH y en WinGet\Links).
 //
 // Lo que corre afuera, siempre con plazo y sin heredar NODE_*, GITLEAKS_*, KIT_* ni las GIT_* que mueven el repo: node, git,
-// gitleaks, el hook de arranque, estructura.cjs y comando-test. El plazo lo cuida un vigía (un node aparte) que mata el árbol entero
+// gitleaks, el hook de arranque, estructura.cjs, comando-setup (si la ficha lo trae) y comando-test. El plazo lo cuida un vigía (un node aparte) que mata el árbol entero
 // del colgado (taskkill /T en Windows; el grupo en el resto): un nieto que hereda la salida no deja colgado a este proceso.
-// Nunca escribe en <carpeta> salvo lo que hace el propio hook de arranque (la marca de sesión en .git/); core.hooksPath, que ese
-// hook pone si hay .githooks/, se deja como estaba. Los temporales van a os.tmpdir() y se borran al final.
+// Nunca escribe en <carpeta> salvo lo que hace el propio hook de arranque (la marca de sesión en .git/) y lo que deja comando-setup
+// (las dependencias); core.hooksPath, que ese hook pone si hay .githooks/, se deja como estaba. Los temporales van a os.tmpdir() y se borran al final.
 // Node estándar, cero dependencias.
 
 const fs = require('fs');
@@ -260,12 +260,13 @@ function arranque(ctx) {
 
 // ---------------------------------------------------------------- 3. settings
 
-// Parte un command de hook en palabras (comillas dobles o simples; sin expandir nada).
+// Parte un command de hook en palabras, como la shell: una palabra son partes pegadas (entre comillas dobles, simples o sin
+// comillas), así "$CLAUDE_PROJECT_DIR"/.claude/hooks/x.sh es UNA; después se sacan las comillas. Sin expandir nada.
 function palabras(s) {
   const out = [];
-  const re = /"([^"]*)"|'([^']*)'|(\S+)/g;
+  const re = /(?:"[^"]*"|'[^']*'|[^\s"']+)+/g;
   let m;
-  while ((m = re.exec(String(s)))) out.push(m[1] !== undefined ? m[1] : m[2] !== undefined ? m[2] : m[3]);
+  while ((m = re.exec(String(s)))) out.push(m[0].replace(/"([^"]*)"|'([^']*)'/g, (x, a, b) => (a !== undefined ? a : b)));
   return out;
 }
 const RE_PROYECTO = /\$\{CLAUDE_PROJECT_DIR\}|\$CLAUDE_PROJECT_DIR\b|%CLAUDE_PROJECT_DIR%/g;
@@ -499,6 +500,34 @@ function casoRojo(salida) {
   return null;
 }
 
+// Los rojos de una salida TAP de node --test con varios archivos, por archivo: Map(<ruta relativa a hooksT, con /> → el primer caso
+// rojo de ese archivo). El archivo sale de la `location:` del bloque YAML de cada "not ok"; un archivo que no carga cuenta igual.
+function rojosPorArchivo(salida, hooksT) {
+  const out = new Map();
+  const base = posix(path.resolve(hooksT)).toLowerCase();
+  const ls = String(salida).split(/\r?\n/);
+  for (let i = 0; i < ls.length; i++) {
+    const m = /^\s*not ok \d+ - (.+?)(?:\s+#\s.*)?$/.exec(ls[i]);
+    if (!m) continue;
+    let archivo = null;
+    for (let j = i + 1; j < ls.length && !/^\s*\.\.\.\s*$/.test(ls[j]) && !/^\s*(not )?ok \d+ /.test(ls[j]); j++) {
+      const l = /^\s*location: '(.*):\d+:\d+'\s*$/.exec(ls[j]);
+      if (l) {
+        archivo = l[1].replace(/\\\\/g, '\\').replace(/''/g, "'");
+        break;
+      }
+    }
+    if (!archivo && /\.test\.cjs$/.test(m[1].trim())) archivo = path.resolve(hooksT, '..', m[1].trim());
+    if (!archivo) continue;
+    const abs = posix(path.resolve(hooksT, '..', archivo));
+    if (!abs.toLowerCase().startsWith(`${base}/`)) continue;
+    const rel = abs.slice(base.length + 1);
+    const caso = /\.test\.cjs$/.test(m[1].trim()) ? `${m[1].trim()} no corre` : m[1].trim();
+    if (!out.has(rel) || /no corre$/.test(out.get(rel))) out.set(rel, caso);
+  }
+  return out;
+}
+
 function casos(ctx) {
   const tocados = cambiados(ctx, '.claude/hooks')
     .filter((c) => c.estado !== 'D' && c.ruta.startsWith(RUTA_HOOKS))
@@ -525,21 +554,33 @@ function casos(ctx) {
   }
   const sinPruebas = [];
   const rojos = [];
-  let corridas = 0;
-  const limite = Date.now() + ctx.plazoMs;
+  // RF-9: UN solo node --test con el conjunto (sin repetir) de las pruebas de todos los dueños — node las paraleliza; correr uno
+  // por dueño, en fila, repetía los archivos compartidos y se comía el plazo. Los rojos se atribuyen por archivo a quien lo trajo.
+  const pruebasDeDueno = new Map(); // dueño → [archivos de prueba]
+  const todas = new Set();
   for (const [dueno] of duenos) {
     const pruebas = dueno.endsWith('.cjs') ? pruebasDe(dueno, hooksT) : [];
     if (!pruebas.length) {
       sinPruebas.push(dueno);
       continue;
     }
-    const resto = limite - Date.now();
-    if (resto <= 0) nv(`las pruebas de los hooks no terminaron en ${minutos(ctx.plazoMs)}`);
-    const r = correr(process.execPath, ['--test', '--test-reporter=tap', ...pruebas.map((p) => `hooks/${p}`)], { cwd: T, plazo: resto, tmp: ctx.tmp });
-    if (r.colgado) nv(`las pruebas del hook ${dueno} no terminaron en ${minutos(ctx.plazoMs)}`);
-    if (r.error) nv(`las pruebas del hook ${dueno} no arrancaron (${r.error})`);
-    corridas += pruebas.length;
-    if (r.status !== 0) rojos.push(`el hook ${dueno} pierde un caso: ${corto(casoRojo(r.salida) || `node --test salió con ${r.status}`, 120)}`);
+    pruebasDeDueno.set(dueno, pruebas);
+    for (const p of pruebas) todas.add(p);
+  }
+  const corridas = todas.size;
+  if (corridas) {
+    const lista = [...todas].sort();
+    const r = correr(process.execPath, ['--test', '--test-reporter=tap', ...lista.map((p) => `hooks/${p}`)], { cwd: T, plazo: ctx.plazoMs, tmp: ctx.tmp });
+    if (r.colgado) nv(`las pruebas de los hooks (${corridas} archivo${corridas === 1 ? '' : 's'}) no terminaron en ${minutos(ctx.plazoMs)}`);
+    if (r.error) nv(`las pruebas de los hooks no arrancaron (${r.error})`);
+    if (r.status !== 0) {
+      const porArchivo = rojosPorArchivo(r.salida, hooksT);
+      for (const [dueno, pruebas] of pruebasDeDueno) {
+        const suyo = pruebas.find((p) => porArchivo.has(p));
+        if (suyo) rojos.push(`el hook ${dueno} pierde un caso: ${corto(porArchivo.get(suyo), 120)}`);
+        else if (!porArchivo.size) rojos.push(`el hook ${dueno} pierde un caso: ${corto(casoRojo(r.salida) || `node --test salió con ${r.status}`, 120)}`);
+      }
+    }
   }
   const problemas = [...rojos, ...sinPruebas.map((d) => `el hook ${d} cambió y el molde nuevo no trae pruebas para él`)];
   if (problemas.length) return mal(problemas.slice(0, 3).join('; ') + (problemas.length > 3 ? ` y ${problemas.length - 3} más` : ''));
@@ -559,6 +600,21 @@ function pruebas(ctx) {
     nv('la ficha no dice vars.comando-test');
   }
   if (RE_TUBERIA.test(cmd)) nv(`comando-test con tuberías o redirecciones no se corre: ${corto(cmd, 80)}`);
+  // comando-setup (opcional; p. ej. `npm ci`): en un clon fresco no hay dependencias, y sin él todo daría "ya estaba rojo antes".
+  // Mismo plazo y misma regla de "sin tuberías"; se corre antes de comando-test, en HEAD y en el clon de base.
+  const setup = typeof vars['comando-setup'] === 'string' ? vars['comando-setup'].trim() : '';
+  if (setup && RE_TUBERIA.test(setup)) nv(`comando-setup con tuberías o redirecciones no se corre: ${corto(setup, 80)}`);
+  // → null si anduvo (o no hay), o el motivo por el que no anduvo
+  const prepararEn = (cwd) => {
+    if (!setup) return null;
+    const s = correr(setup, [], { cwd, plazo: ctx.plazoMs, shell: true, tmp: ctx.tmp });
+    if (s.colgado) return `comando-setup colgado: no terminó en ${minutos(ctx.plazoMs)}`;
+    if (s.error) return `comando-setup no arrancó (${s.error})`;
+    if (s.status !== 0) return `comando-setup (${corto(setup, 60)}) salió con ${s.status}: ${corto(s.salida, 80) || 'sin salida'}`;
+    return null;
+  };
+  const fallaSetup = prepararEn(ctx.carpeta);
+  if (fallaSetup) nv(fallaSetup);
   const r = correr(cmd, [], { cwd: ctx.carpeta, plazo: ctx.plazoMs, shell: true, tmp: ctx.tmp });
   if (r.colgado) nv(`comando-test colgado: no terminó en ${minutos(ctx.plazoMs)}`);
   if (r.error) nv(`comando-test no arrancó (${r.error})`);
@@ -570,8 +626,10 @@ function pruebas(ctx) {
   const k = c.ok ? git(['-c', 'advice.detachedHead=false', 'checkout', '-q', '--detach', ctx.base], dir) : c;
   if (!k.ok) antes = ' (no pude ver si ya estaba rojo antes)';
   else {
-    const rb = correr(cmd, [], { cwd: dir, plazo: ctx.plazoMs, shell: true, tmp: ctx.tmp });
-    if (rb.colgado) antes = ' (en base se colgó: no se sabe si ya estaba rojo antes)';
+    const fallaBase = prepararEn(dir);
+    const rb = fallaBase ? null : correr(cmd, [], { cwd: dir, plazo: ctx.plazoMs, shell: true, tmp: ctx.tmp });
+    if (fallaBase) antes = ` (en base ${fallaBase}: no se sabe si ya estaba rojo antes)`;
+    else if (rb.colgado) antes = ' (en base se colgó: no se sabe si ya estaba rojo antes)';
     else if (!rb.error && rb.status !== 0) antes = ' — ya estaba rojo antes';
     else if (rb.status === 0) antes = ' — en base estaba verde: lo rompió la actualización';
   }
@@ -723,4 +781,4 @@ function chequear(carpeta, opciones = {}) {
   return { lineas, ok: res.every((r) => r.ok), noVerificado: noVerif.length > 0, noVerificados: noVerif };
 }
 
-module.exports = { chequear, IDS, PLAZO_DEFECTO, agregadas, rutasDeHook, cabeceraSkill, pruebasDe, casoRojo, correr };
+module.exports = { chequear, IDS, PLAZO_DEFECTO, agregadas, rutasDeHook, cabeceraSkill, pruebasDe, casoRojo, rojosPorArchivo, correr };

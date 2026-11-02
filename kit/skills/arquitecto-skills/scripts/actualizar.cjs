@@ -118,6 +118,19 @@ function versionDelKit(kit) {
   return v;
 }
 
+// RF-1: sin --molde-viejo, el molde viejo sale del tag v<ficha> del --kit. Si falta ese tag o el clon es sin historia (--depth 1),
+// es un clon incompleto, no un actualizador roto: se dice cómo completarlo. → null si está, o el mensaje.
+function faltaTagViejo(kit, version) {
+  const k = String(kit).replace(/\\/g, '/');
+  const sh = gitEn(kit, ['rev-parse', '--is-shallow-repository']);
+  const raso = sh.ok && sh.out.trim() === 'true';
+  const tag = gitEn(kit, ['rev-parse', '-q', '--verify', `refs/tags/v${version}^{commit}`]).ok;
+  if (tag && !raso) return null;
+  const que = raso ? `el --kit es un clon sin historia (shallow)${tag ? '' : ` y no tiene el tag v${version} (el de la ficha)`}` : `el --kit no tiene el tag v${version} (el de la ficha)`;
+  // --unshallow en un clon completo da error: ahí alcanza con traer los tags
+  return `${que}: completalo con \`git -C ${k} fetch ${raso ? '--unshallow ' : ''}--tags\` y corré de nuevo, o pasá --molde-viejo <carpeta>`;
+}
+
 // ---------------------------------------------------------------- la ficha: leer piezas y reescribir solo lo que cambia
 
 const esMapa = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -215,6 +228,8 @@ function planear(carpeta, opciones) {
     if (opciones.moldeViejo) viejo = M.materializarDir(opciones.moldeViejo, { vars, fecha }, path.join(tmp, 'viejo'));
     else if (vViejo === vNuevo) viejo = nuevo;
     else {
+      const falta = faltaTagViejo(opciones.kit, vViejo);
+      if (falta) throw new Negativa(falta);
       try {
         viejo = M.materializarViejo(opciones.kit, vViejo, { vars, fecha }, path.join(tmp, 'viejo'));
       } catch (e) {
@@ -532,7 +547,7 @@ function aplicar(carpeta, opciones) {
     try {
       ejecutar(path.resolve(carpeta), plan.ops, opciones.io);
     } catch (e) {
-      return { codigo: 1, lineas: [...lineas, `aplicar: no pude escribir ${e.ruta || '?'} (${e.code || e.message}) — cada archivo quedó entero, el viejo o el nuevo; la ficha no cambió: corré de nuevo`] };
+      return { codigo: 1, lineas: [...lineas, `aplicar: no pude escribir ${e.ruta || '?'} (${e.code || e.message}) — cada archivo quedó entero, el viejo o el nuevo; la ficha no cambió. Es el clon del actualizador: \`git checkout -- . && git clean -fd\` (deja .kit-rol, que está en .git/info/exclude) y corré de nuevo`] };
     }
     return { codigo: 0, lineas };
   } finally {
@@ -574,6 +589,10 @@ async function chequear(carpeta, opciones) {
       vNuevo = versionDelKit(opciones.kit);
     } catch (e) {
       return { codigo: 1, lineas: [`chequear: ${e.message}`, 'NO VERIFICADO'] };
+    }
+    if (!opciones.moldeViejo && vBase !== vNuevo) {
+      const falta = faltaTagViejo(opciones.kit, vBase);
+      if (falta) return { codigo: 1, lineas: [`chequear: ${falta}`, 'NO VERIFICADO'] };
     }
     const fecha = opciones.fecha || hoy();
     const nuevo = M.materializarNuevo(opciones.kit, { vars, fecha }, path.join(tmp, 'nuevo'));

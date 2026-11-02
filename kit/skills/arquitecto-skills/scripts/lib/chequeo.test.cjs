@@ -77,10 +77,11 @@ function settingsDe(molde, extra) {
   return `${JSON.stringify(s, null, 2)}\n`;
 }
 
-function fichaCon({ kit = '2.4.3', comando = 'node prueba.cjs' } = {}) {
+function fichaCon({ kit = '2.4.3', comando = 'node prueba.cjs', setup = null } = {}) {
   let f = leer(path.join(MOLDE, 'hooks', 'lib', 'fabrica', 'ficha.estandar.md')).replace(/\r\n/g, '\n');
   f = f.replace(/^kit: .*$/m, `kit: ${kit}`);
   if (comando !== null) f = f.replace(/^ {2}proyecto: proyecto$/m, `  proyecto: proyecto\n  comando-test: ${comando}`);
+  if (setup !== null) f = f.replace(/^ {2}proyecto: proyecto$/m, `  proyecto: proyecto\n  comando-setup: ${setup}`);
   return f;
 }
 
@@ -269,6 +270,54 @@ test('7 casos: un hook fusionado que pierde un caso → ❌ con el caso; uno cam
   rojo(rq, 'casos', /el hook lib\/sello\.cjs cambió y el molde nuevo no trae pruebas para él/);
 });
 
+test('7 casos (RF-9): dos dueños que comparten un archivo de pruebas → un solo node --test, el compartido corre una vez; el rojo nombra a su dueño', () => {
+  const cuenta = path.join(nuevaCarpeta('cuenta'), 'corridas.txt');
+  const m = nuevaCarpeta('molde-rf9');
+  fs.cpSync(moldeNuevo(), m, { recursive: true });
+  const L = (...r) => path.join(m, 'hooks', 'lib', ...r);
+  escribir(L('uno.cjs'), "module.exports = () => 1;\n");
+  escribir(L('dos.cjs'), "module.exports = () => 2;\n");
+  const cab = "'use strict';\nconst test = require('node:test');\nconst assert = require('node:assert/strict');\n";
+  escribir(L('comun.test.cjs'), `${cab}require('fs').appendFileSync(${JSON.stringify(cuenta)}, 'x\\n');\nconst uno = require('./uno.cjs');\nrequire('./dos.cjs');\ntest('uno da 1', () => assert.equal(uno(), 1));\n`);
+  escribir(L('dos.test.cjs'), `${cab}const dos = require('./dos.cjs');\ntest('dos da 2', () => assert.equal(dos(), 2));\n`);
+  const hl = (d, ...r) => path.join(d, '.claude', 'hooks', 'lib', ...r);
+  const p = armar({
+    antes: (d) => {
+      escribir(hl(d, 'uno.cjs'), 'module.exports = () => 0;\n');
+      escribir(hl(d, 'dos.cjs'), 'module.exports = () => 0;\n');
+    },
+    cambio: (d) => {
+      escribir(hl(d, 'uno.cjs'), 'module.exports = () => 1; // adaptada\n');
+      escribir(hl(d, 'dos.cjs'), 'module.exports = () => 3; // adaptada mal\n');
+    },
+  });
+  const r = correr(p, { moldeNuevo: m });
+  nueveBienFormadas(r);
+  rojo(r, 'casos', /el hook lib\/dos\.cjs pierde un caso: dos da 2/);
+  assert.doesNotMatch(linea(r, 'casos'), /lib\/uno\.cjs/, 'uno está verde: no se lo nombra');
+  assert.equal(leer(cuenta), 'x\n', 'el archivo compartido corrió UNA vez');
+  // y verde cuando los dos están bien
+  fs.rmSync(cuenta);
+  const q = armar({
+    antes: (d) => escribir(hl(d, 'uno.cjs'), 'module.exports = () => 0;\n'),
+    cambio: (d) => {
+      escribir(hl(d, 'uno.cjs'), 'module.exports = () => 1;\n');
+      escribir(hl(d, 'dos.cjs'), 'module.exports = () => 2;\n');
+    },
+  });
+  const rq = correr(q, { moldeNuevo: m });
+  verde(rq, 'casos');
+  assert.equal(leer(cuenta), 'x\n');
+});
+
+test('rojosPorArchivo: el rojo va al archivo de su location; un archivo que no carga cuenta; lo de afuera no', () => {
+  const h = path.join(RAIZ_TMP, 'hooks');
+  const loc = (rel) => `  location: '${path.join(h, ...rel.split('/')).replace(/\\/g, '\\\\')}:3:1'`;
+  const tap = ['TAP version 13', 'not ok 1 - el caso b', '  ---', loc('lib/a.test.cjs'), '  ...', 'ok 2 - bien', '  ---', loc('lib/b.test.cjs'), '  ...', 'not ok 3 - hooks/lib/c.test.cjs', '  ---', '  ...', 'not ok 4 - ajeno', '  ---', "  location: '/otro/lado/x.test.cjs:1:1'", '  ...'].join('\n');
+  assert.deepEqual([...Q.rojosPorArchivo(tap, h)], [['lib/a.test.cjs', 'el caso b'], ['lib/c.test.cjs', 'hooks/lib/c.test.cjs no corre']]);
+  assert.equal(Q.rojosPorArchivo('ok 1 - todo\n', h).size, 0);
+});
+
 test('8 pruebas: comando-test rojo (verde en base) → ❌ "lo rompió"; rojo ya en base → ❌ "ya estaba rojo antes" (r1-10)', () => {
   const p = armar({ cambio: (d) => escribir(path.join(d, 'prueba.cjs'), PRUEBA_ROJA) });
   const r = correr(p);
@@ -301,6 +350,47 @@ test('8 pruebas: comando-test con tubería → NO VERIFICADO; nivel liviano sin 
   });
   const rq = correr(q);
   verde(rq, 'pruebas');
+});
+
+// RF-5: en un clon fresco no hay dependencias; vars.comando-setup las pone antes de comando-test, en HEAD y en el clon de base.
+const PRUEBA_CON_DEP = "process.exit(require('fs').existsSync('dep.txt') ? 0 : 1);\n";
+const SETUP = "require('fs').writeFileSync('dep.txt', 'x');\n";
+test('8 pruebas (RF-5): con comando-setup corre antes, en HEAD y en base ("en base estaba verde", no "ya estaba rojo"); sin él, rojo', () => {
+  const conDep = (d) => {
+    escribir(path.join(d, 'prueba.cjs'), PRUEBA_CON_DEP);
+    escribir(path.join(d, 'setup.cjs'), SETUP);
+  };
+  const ficha = (setup) => (d) => escribir(path.join(d, '.claude', 'kit.md'), fichaCon({ kit: '3.0.0', setup }));
+  // sí: verde en HEAD gracias al setup
+  const p = armar({ antes: conDep, cambio: ficha('node setup.cjs') });
+  verde(correr(p), 'pruebas');
+  // sí: HEAD rojo de verdad; en base (clon fresco, sin dep.txt) el setup corre y estaba verde
+  const q = armar({
+    antes: conDep,
+    cambio: (d) => {
+      ficha('node setup.cjs')(d);
+      escribir(path.join(d, 'prueba.cjs'), PRUEBA_ROJA);
+    },
+  });
+  rojo(correr(q), 'pruebas', /en rojo \(salida 1\) — en base estaba verde: lo rompió/);
+  // no: sin comando-setup, el mismo proyecto da rojo (no hay dep.txt)
+  const s = armar({ antes: conDep, cambio: ficha(null) });
+  rojo(correr(s), 'pruebas', /node prueba\.cjs en rojo \(salida 1\) — ya estaba rojo antes/);
+});
+
+test('8 pruebas (RF-5): comando-setup que falla → NO VERIFICADO con su motivo (no rojo); con tubería → NO VERIFICADO', () => {
+  const p = armar({
+    cambio: (d) => {
+      escribir(path.join(d, 'falla.cjs'), "console.log('sin red');\nprocess.exit(3);\n");
+      escribir(path.join(d, '.claude', 'kit.md'), fichaCon({ kit: '3.0.0', setup: 'node falla.cjs' }));
+    },
+  });
+  const r = correr(p);
+  nueveBienFormadas(r);
+  rojo(r, 'pruebas', /NO VERIFICADO: comando-setup \(node falla\.cjs\) salió con 3: sin red/);
+  assert.deepEqual(r.noVerificados, ['pruebas']);
+  const q = armar({ cambio: (d) => escribir(path.join(d, '.claude', 'kit.md'), fichaCon({ kit: '3.0.0', setup: 'npm ci && npm run x' })) });
+  rojo(correr(q), 'pruebas', /NO VERIFICADO: comando-setup con tuberías/);
 });
 
 test('9 gitleaks: una clave falsa armada en el diff → ❌ con archivo:línea y la regla, nunca el valor', () => {
@@ -387,6 +477,11 @@ test('rutasDeHook: node + args, un command de texto, y el programa suelto no cue
   assert.deepEqual(Q.rutasDeHook({ command: 'bash "$CLAUDE_PROJECT_DIR/.claude/hooks/b.sh" --rapido' }), ['$CLAUDE_PROJECT_DIR/.claude/hooks/b.sh']);
   assert.deepEqual(Q.rutasDeHook({ command: 'node .claude/hooks/c.cjs' }), ['.claude/hooks/c.cjs']);
   assert.deepEqual(Q.rutasDeHook({ command: 'echo hola' }), []);
+  // RF-4: las partes pegadas son UNA palabra ("$CLAUDE_PROJECT_DIR"/… no se parte en dos), y después se sacan las comillas
+  assert.deepEqual(Q.rutasDeHook({ command: 'bash "$CLAUDE_PROJECT_DIR"/.claude/hooks/x.sh --rapido' }), ['$CLAUDE_PROJECT_DIR/.claude/hooks/x.sh']);
+  assert.deepEqual(Q.rutasDeHook({ command: `bash "\${CLAUDE_PROJECT_DIR}"'/.claude/hooks/y z.sh'` }), ['${CLAUDE_PROJECT_DIR}/.claude/hooks/y z.sh']);
+  assert.deepEqual(Q.rutasDeHook({ command: 'node', args: ['${CLAUDE_PROJECT_DIR}/.claude/hooks/z.cjs'] }), ['${CLAUDE_PROJECT_DIR}/.claude/hooks/z.cjs']);
+  assert.deepEqual(Q.rutasDeHook({ command: 'echo "hola mundo" otra' }), []);
 });
 
 test('cabeceraSkill: name y description, también en bloque >; sin cabecera → null', () => {
