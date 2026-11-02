@@ -288,11 +288,28 @@ test('inicio: no espera un OK antes de un pedido chico (SPEC-0 criterio 2)', () 
   assert.match(t, /Si no vino, preguntá cuál es la misión y no toques nada hasta tenerla/);
 });
 
-test('inicio: lo que se completa más adelante (la mesa), dicho sin inventarlo; el sello ya no está en esa lista', () => {
+test('inicio: la mesa (paso 4), solo con mesa: en la ficha, entre aprobados nuevos y módulos sin sello; ya no "llega con un kit posterior" (RF-fix 15)', () => {
   const t = TEXTOS.inicio;
-  assert.match(t, /todavía no mira la mesa de proyectos: llega con un kit posterior/);
-  assert.match(t, /no la improvises/);
+  const paso = /^(\d+)\. \*\*La mesa, solo si la ficha tiene `mesa:`\.\*\*[^\n]*$/m.exec(t);
+  assert.ok(paso, 'el paso de la mesa existe');
+  assert.equal(paso[1], '4');
+  assert.match(paso[0], /Corré `node \.claude\/scripts\/mesa\.cjs abiertos`/);
+  assert.match(paso[0], /Si dice `— \(nada abierto\)`, no digas nada; si lista, mostrá primero los `te toca` y los `trabado por mesa`/);
+  assert.match(paso[0], /Si falla, una línea y seguí/);
+  assert.ok(t.indexOf('--aprobados-nuevos') < paso.index && paso.index < t.indexOf('**Módulos sin sello.**'), 'entre el 3 y módulos sin sello');
+  assert.doesNotMatch(t, /todavía no mira la mesa/);
   assert.doesNotMatch(t, /todavía no mira[^\n]*sello/);
+});
+
+test('inicio y estado: con rol humano, noche.cjs volvi corre SIEMPRE, sin la condición de la marca en la raíz (RF-fix 1: la marca vive en el worktree del director)', () => {
+  for (const n of ['inicio', 'estado']) {
+    const l = TEXTOS[n].split('\n').find((s) => s.includes('noche.cjs volvi'));
+    assert.ok(l, `${n}: cita noche.cjs volvi`);
+    assert.match(l, /corré \*\*siempre\*\* `node \.claude\/scripts\/noche\.cjs volvi`/, n);
+    assert.match(l, /no hay `\.kit-rol`/, n);
+    assert.doesNotMatch(l, /existe `\.kit-noche`/, `${n}: sin la condición de la marca`);
+    assert.match(l, /Con otro rol, no lo corras/, n);
+  }
 });
 
 test('inicio: con el pedido en el mensaje, la línea del tamaño va primera, antes de las tres de confirmación (P1.7, D4-10)', () => {
@@ -300,7 +317,7 @@ test('inicio: con el pedido en el mensaje, la línea del tamaño va primera, ant
   const paso = /^\d+\. \*\*El tamaño del pedido[^\n]*$/m.exec(t);
   assert.ok(paso, 'el paso del tamaño existe');
   assert.match(paso[0], /\*\*Con el pedido en el mensaje, esa línea va primera en la respuesta, antes de las tres de confirmación\*\*/);
-  assert.ok(paso[0].includes('los pasos 1 a 4 son lecturas'), 'las lecturas de los pasos previos no cuentan como texto');
+  assert.ok(paso[0].includes('los pasos 1 a 5 son lecturas'), 'las lecturas de los pasos previos no cuentan como texto');
 });
 
 test('inicio: el paso `ready --pendientes`, después de aprobados nuevos y antes de confirmar, con sus ramas (P5.1, D4-11)', () => {
