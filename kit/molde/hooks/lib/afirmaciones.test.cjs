@@ -48,6 +48,48 @@ test('SQL (-- y RAISE EXCEPTION), PowerShell (# y <# #>), HTML (<!-- -->)', () =
   assert.deepEqual(piezas('i.html', '<p>no</p><!-- sí -->'), [[1, ['comentario:sí']]]);
 });
 
+test('RF-fix 8: el escape es de cada lenguaje — backtick en PowerShell (y su \'…\' crudo), ninguno en el `…` de Go', () => {
+  // con la barra como escape, el texto de PowerShell cerraría en `" y el comentario arrancaría en "# no"
+  assert.deepEqual(piezas('s.ps1', '$a = "x`"y # no"  # sí'), [[1, ['comentario:sí']]]);
+  assert.deepEqual(piezas('s.ps1', "$b = 'a`' # sí"), [[1, ['comentario:sí']]]);
+  assert.deepEqual(piezas('s.ps1', 'Write-Host `"a # sí'), [[1, ['comentario:sí']]], 'el backtick escapa también fuera de un texto');
+  // con la barra como escape, el `…` de Go seguiría abierto y se comería el comentario
+  assert.deepEqual(piezas('m.go', 'x := `C:\\` // sí'), [[1, ['comentario:sí']]]);
+  assert.deepEqual(piezas('m.js', 'x = `C:\\` // no`; // sí'), [[1, ['comentario:sí']]], 'en JS el backtick sí escapa');
+  assert.equal(A.lenguaje('m.go'), 'go');
+});
+
+test('RF-fix 5: la salida de escape se mira en el bloque — comentarios seguidos y el docstring entero; un bloque aparte no presta', () => {
+  const py = [
+    '# nunca devuelve None:',
+    '# lo fija test_f_no_devuelve_none',
+    'x = 1',
+    '',
+    '# siempre en UTC',
+    'def f():',
+    '    """Garantiza el orden.',
+    '',
+    '    medido el 2026-10-20"""',
+  ].join('\n');
+  assert.deepEqual(A.revisar('a.py', py).map((h) => [h.linea, h.frase]), [[5, 'siempre']]);
+  const js = '/* jamás toca la red\n * (red.test.js) */\n// nunca escribe en disco\n\n// sin verificar\n';
+  assert.deepEqual(A.revisar('a.js', js).map((h) => [h.linea, h.frase]), [[3, 'nunca']], 'el // de la línea 5 está separado por un renglón vacío');
+  assert.deepEqual(A.revisarTexto('nunca falla', 'comentario', 'nunca falla\n(a.test.js)'), [], 'revisarTexto con su bloque');
+  // la ventana: en un docstring largo (el de módulo de una prueba nombra su test_…), la evidencia lejana no presta
+  assert.equal(A.VENTANA_ESCAPE, 3);
+  const largo = ['"""Pruebas de test_modulo_x.', 'uno', 'dos', 'tres', 'nunca cae a la llave', 'cuatro', 'cinco', 'seis', 'siete', 'con 3 casos"""'].join('\n');
+  assert.deepEqual(A.revisar('t.py', largo).map((h) => [h.linea, h.frase]), [[5, 'nunca']], 'la evidencia a 4 y 5 renglones no cuenta');
+  const cerca = ['"""Pruebas.', 'uno', 'nunca cae a la llave', 'dos', 'lo fija test_llave"""'].join('\n');
+  assert.deepEqual(A.revisar('t.py', cerca), [], 'a 2 renglones sí cuenta');
+  const borde = ['"""Pruebas.', 'nunca cae a la llave', 'uno', 'dos', 'lo fija test_llave"""'].join('\n');
+  assert.deepEqual(A.revisar('t.py', borde), [], 'a 3 renglones justos, también');
+  // un /* */ o un docstring es su propio bloque: no hereda la evidencia del comentario de al lado
+  assert.deepEqual(A.revisar('a.js', '// lo fija red.test.js\n/* nunca toca la red */\n').map((h) => h.linea), [2]);
+  // en Markdown común (con { markdown: true }) el bloque es el párrafo: un renglón vacío lo corta
+  assert.deepEqual(A.revisar('N.md', 'nunca falla\n\nmedido el 2026-10-20\n', null, { markdown: true }).map((h) => h.linea), [1]);
+  assert.deepEqual(A.revisar('N.md', 'nunca falla\nmedido el 2026-10-20\n', null, { markdown: true }), []);
+});
+
 test('Markdown: las viñetas de CHANGELOG sí (fuera de los bloques de código); un README no, salvo con { markdown: true }', () => {
   const md = '# 1.0\n- la viñeta\n```\n- en código\n```\n1. numerada\n';
   assert.deepEqual(piezas('docs/CHANGELOG.md', md), [[2, ['viñeta:la viñeta']], [6, ['viñeta:numerada']]]);
@@ -97,6 +139,9 @@ const SI = [
   ['guarantees idempotency', 'absoluto'],
   ['proven correct by the reviewer', 'evidencia'],
   ['los cambios de todos los caminos quedan adentro', 'cobertura'],
+  ['dice que siempre devuelve la lista', 'absoluto'],
+  ['siempre, que es lo que pide el front', 'absoluto'],
+  ['se calcula siempre de nuevo', 'absoluto'],
 ];
 
 // ---------------------------------------------------------------- casos no: prosa buena (del corpus) y la salida de escape
@@ -132,6 +177,13 @@ const NO = [
   ['Toast con creadas/actualizadas/errores.', 'descriptiva (corpus)'],
   ['confirmar_importacion borradas', 'borde: confirmar'],
   ['precision (el test seguia pasando, pero ya no probaba que la aclaracion', 'pasado narrado (corpus)'],
+  ['medido: 42% más rápido', 'escape: cifra con % antes de un espacio (RF-fix 6)'],
+  ['medido: 3 segundos en loopback', 'escape: segundos (RF-fix 6)'],
+  ['verificado en 7,5% de las filas', 'escape: % antes de fin (RF-fix 6)'],
+  ['siempre que haya sesión, lee el token', 'condicional: siempre que (RF-fix 7)'],
+  ['corta con `RuntimeError`): el texto de siempre, salvo si ya se avisó', 'lo habitual: de siempre (corpus, RF-fix 7)'],
+  ['tal cual (el caller la muestra como siempre).', 'lo habitual: como siempre (corpus, RF-fix 7)'],
+  ['(lote A apagado o sin sesión de mail): `void`, igual que siempre. Con el', 'lo habitual: igual que siempre (corpus, RF-fix 7)'],
 ];
 
 test(`casos sí (${SI.length}): cada promesa de más da su regla, con la frase y un "hacé" no vacío`, () => {
@@ -146,11 +198,15 @@ test(`casos no (${NO.length}): prosa buena, obsoleta (fuera de alcance) o con su
   for (const [texto, por] of NO) assert.deepEqual(A.revisarTexto(texto, 'comentario'), [], `${por}: ${texto}`);
 });
 
-test('el mensaje: "<ruta>:<línea> · <regla> · eso no: … ; hacé: …", recortado', () => {
+test('el mensaje avisando pregunta ("¿promete de más? … — si sí: …; si vale, dejalo"); frenando ordena ("eso no: …; hacé: …"); recortado', () => {
   const [h] = A.revisar('a.py', `# nunca ${'x'.repeat(200)}\n`);
   const m = A.mensaje('a.py', h);
-  assert.match(m, /^a\.py:1 · absoluto · eso no: "nunca" en «nunca x+…»; hacé: decí la condición/);
+  assert.match(m, /^a\.py:1 · absoluto · ¿promete de más\? "nunca" en «nunca x+…» — si sí: decí la condición.*; si vale, dejalo$/);
+  assert.doesNotMatch(m, /eso no|hacé:/);
   assert.ok(m.length < 300);
+  const f = A.mensaje('a.py', h, { frenar: true });
+  assert.match(f, /^a\.py:1 · absoluto · eso no: "nunca" en «nunca x+…»; hacé: decí la condición/);
+  assert.doesNotMatch(f, /promete de más/);
 });
 
 test('cada regla tiene id, patrón y alternativa; ninguna regla se pisa con el escape en un caso sí', () => {
