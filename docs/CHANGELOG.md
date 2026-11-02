@@ -2,6 +2,40 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-11-02 — Misión 5, paquete 5, segunda mitad (D5.2): la noche, las vistas, `/tramo`, los subagentes y la mesa
+
+PC `Draco-PC`, chat `vibe-kit M5 · D5.2 · Paquete 5, segunda mitad: la noche, /estado, el resumen y la mesa`, en Opus, sin Guido, con el
+presupuesto del ADR-029: **~2,2 h de reloj (10:15-12:25), 8 encargos (5 Opus: W0, K1, K3, revisor frío, RF-fix · 3 Sonnet: K2, K4, K6), ~1,64 M
+de tokens de subagentes**, más tres sesiones `claude.exe -p`. Sin tag. Decisiones sin Guido: tracker, "D5.2 · Decisiones sin Guido". **Le falta
+D5.3** (el corrector de afirmaciones, en `clientes`).
+
+**Added**
+- **La noche**: `.kit-noche` vale como `nocturno` en `sensible`, `db-guardia`, el githook y `verificar` línea 5 (la del director alcanza a sus
+  obreros; mutación 22/22); `scripts/noche.cjs` (`me-voy` con el checklist, `volvi`, `despertador` con una foto por módulo).
+- **`scripts/contexto.cjs`**: el contexto usado y la ventana real del modelo, desde el transcript propio (medido sobre esta sesión).
+- **Las vistas**: `scripts/tiempos.cjs` (`tiempos`, `alarma`, `contador`), `scripts/estado.cjs` + la skill `/estado` (cada cifra comparada contra
+  un cálculo aparte, RT1-13), `scripts/resumen.cjs` (el resumen del día con los `aprobado` del día).
+- **`/tramo`** y los agentes `verificador`, `explorador`, `lector`, `capturas`, `investigador`, `implementador`, con `model:`, `effort:` (verificado
+  en la doc oficial) y `tools:`; `redteam-spec` con `model: opus`; `scripts/paquete.cjs` (el paquete del revisor, en `.claude/paquetes/`).
+- **La mesa**: `scripts/mesa.cjs` (`nuevo`, `abiertos`, `acordados`, `huella`), `candado:mesa` y los seis tipos de mesa en `mensaje` (G §19 entre
+  dos clones; mutación 37/37); su paso en `/inicio`.
+- `kit/molde/rituales/smoke.md` y `release.md`: los contratos de `/smoke` y `/release` (nacen `propia`, no el día cero).
+
+**Changed**
+- **Las `deny` del molde y de `worktree` sin `Write(...)`**: Claude Code solo mira `Edit(ruta)` para archivos; un `Write(ruta)` de AUTORIZADO va
+  como `Edit(ruta)`. Sesión real: sin el aviso y el `Write` a `.claude/cambios/` negado.
+- `kit/molde/CLAUDE.md` por los 11 criterios (3.044 → 2.666 B); `/director` (la mudanza medida, "me voy" por script, `tiempos` al cerrar),
+  `/inicio` y `/estado` (borran la marca al volver), `/cierre` (el resumen después de las 18 h); `formato-spec.md` con `tiempos.md`, `planes/`,
+  `mesa/` solo con director y `> Histórico`.
+- `worktree cerrar` con lo sin trackear dice qué hacer (no borra); `.kit-noche` protegida como `.kit-rol`; `rehacer.sh` suma el `.gitignore` del molde de hoy.
+
+**Fixed**
+- Los 10 hallazgos del revisor frío (2 ALTOS: la noche no terminaba nunca; `verificar` contaba de noche los commits de día) y 6 del director, en un encargo.
+- La prueba del githook con su temporal propio; `pc/lib/contexto.cjs` de nuevo idéntica a la del molde.
+
+Pruebas: suite entera **2.431 de 2.432** (15 min, una vez, al final; la que falló, la copia de `pc/lib`, arreglada: `pc/` 75/75). `rehacer.sh` LISTO,
+`estructura todo` 0 en `alfa` y `beta`. `kit-sync` LIMPIO.
+
 ## 2026-11-02 — La PC `Draco-PC`, preparada para D5.2
 
 Sin trabajo de misión. El `/inicio` encontró una PC sin el kit (`kit-sync` SUCIO por faltante, no por edición a mano), sin identidad de git y
