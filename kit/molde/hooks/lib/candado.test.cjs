@@ -183,8 +183,84 @@ test('topes sí: el handoff pasado de 5.000 bytes (todo y parcial); parcial mira
   assert.ok(ques(chequeo('topes', d, { parcial: true, fichaVigente: fv })).some((q) => /Producción/.test(q)));
 });
 
-test('mesa: verde hasta el orden 5', () => {
-  assert.deepEqual(chequeo('mesa', repo()), []);
+// candado:mesa (SPEC-0 5.9; G §5.5, §7.1): la regla vive en lib/mesa.cjs; acá, que el candado la corre sobre el repo.
+const MESA_DIR = 'docs/modulos/identidad/mesa/desktop';
+const MSG = (o = {}) =>
+  [`tipo: ${o.tipo || 'PEDIDO'}`, `de: ${o.de || 'mobile/director'}`, `para: ${o.para || 'desktop/director'}`, 'tema: endpoint X',
+    ...(o.extra || []), '', o.prosa || 'Necesitamos el endpoint X.', ''].join('\n');
+const RESP = (cita, resultado = 'aceptado') => MSG({ tipo: 'RESPUESTA', extra: [`responde-a: ${cita}`, `resultado: ${resultado}`] });
+const MOD = { 'docs/modulos/identidad/README.md': 'Estado: EN OBRA\n' };
+
+test('mesa no: mensajes bien hechos (los seis tipos, la tilde como alias), commiteados o nuevos; sin carpeta de mesa', () => {
+  assert.deepEqual(chequeo('mesa', repo(MOD)), []);
+  const arch = { ...MOD };
+  ['HECHO', 'PEDIDO', 'PROPUESTA', 'ALERTA', 'PRESENTACION'].forEach((t, i) => (arch[`${MESA_DIR}/2026-10-24-${i + 1}-${t}.md`] = MSG({ tipo: t })));
+  arch[`${MESA_DIR}/2026-10-24-6-RESPUESTA.md`] = RESP('desktop:docs/modulos/identidad/mesa/mobile/2026-10-23-1-PROPUESTA.md@a1b2c3d4e5f6');
+  arch[`${MESA_DIR}/2026-10-24-7-PEDIDO.md`] = MSG({ extra: ['hechos: mobile:docs/modulos/identidad/SPEC.md:12@a1b2c3d4e5f6'] });
+  const d = repo(arch);
+  escribir(d, `${MESA_DIR}/2026-10-25-1-PRESENTACION.md`, MSG({ tipo: 'PRESENTACIÓN' }));
+  assert.deepEqual(chequeo('mesa', d), []);
+});
+
+test('mesa sí: > 2 KB, tipo fuera de la tabla, cabecera rota, nombre a mano, tipo del nombre ≠ cabecera, carpeta ≠ para', () => {
+  const d = repo({ ...MOD, [`${MESA_DIR}/2026-10-24-1-PEDIDO.md`]: MSG({ prosa: 'x'.repeat(2100) }) });
+  assert.match(ques(chequeo('mesa', d)).join('\n'), /pesa \d+ B \(el tope es 2000\)/);
+  const casos = [
+    [`${MESA_DIR}/2026-10-24-1-ENCARGO.md`, MSG({ tipo: 'ENCARGO' }), /tipo "ENCARGO" no es de la mesa/],
+    [`${MESA_DIR}/2026-10-24-1-PEDIDO.md`, MSG({ de: 'mobile' }), /"de:" no es <alias>\/<rol>/],
+    [`${MESA_DIR}/2026-10-24-1-PEDIDO.md`, MSG({ extra: ['estado: abierto'] }), /"estado:", que no es de la mesa/],
+    [`${MESA_DIR}/2026-10-24-1-PEDIDO.md`, MSG().replace('tema: endpoint X\n', ''), /falta "tema:"/],
+    [`${MESA_DIR}/2026-10-24-1-RESPUESTA.md`, MSG({ tipo: 'RESPUESTA' }), /no trae "responde-a/],
+    [`${MESA_DIR}/2026-10-24-1-RESPUESTA.md`, RESP('desktop:docs/modulos/identidad/mesa/mobile/a.md@a1b2c3d', 'ok'), /"resultado:" no vale/],
+    [`${MESA_DIR}/2026-10-24-1-PEDIDO.md`, MSG({ extra: ['resultado: aceptado'] }), /"resultado:" va solo en una RESPUESTA/],
+    [`${MESA_DIR}/2026-10-24-1-PEDIDO.md`, MSG({ extra: ['hechos: el spec dice que sí'] }), /no es <alias>:<archivo>/],
+    [`${MESA_DIR}/pedido-endpoint.md`, MSG(), /no tiene el nombre de la mesa/],
+    [`${MESA_DIR}/2026-10-24-1-HECHO.md`, MSG(), /el nombre dice HECHO y la cabecera PEDIDO/],
+    ['docs/modulos/identidad/mesa/otro/2026-10-24-1-PEDIDO.md', MSG(), /está en mesa\/otro\/ y es para desktop/],
+  ];
+  for (const [rel, texto, re] of casos) {
+    const e = repo(MOD);
+    escribir(e, rel, texto);
+    const f = chequeo('mesa', e);
+    assert.ok(f.length && f.every((x) => x.id === 'mesa' && x.detalle === rel), rel);
+    assert.match(ques(f).join('\n'), re, rel);
+  }
+});
+
+test('mesa sí: reescrito después de commiteado (o borrado del disco), reescrito después del push; firmado dos veces', () => {
+  const rel = `${MESA_DIR}/2026-10-24-1-PEDIDO.md`;
+  const d = repo({ ...MOD, [rel]: MSG() });
+  escribir(d, rel, MSG({ prosa: 'otra cosa' }));
+  assert.deepEqual(ques(chequeo('mesa', d)), [`${rel} cambió después de commiteado`]);
+  fs.rmSync(path.join(d, ...rel.split('/')));
+  assert.deepEqual(ques(chequeo('mesa', d)), [`${rel} cambió después de commiteado`], 'borrado también');
+  // Después del push: origin tiene la versión vieja y HEAD otra.
+  const b = path.join(TMP, `bare${n++}`);
+  g(TMP, 'init', '-q', '--bare', b);
+  const e = repo({ ...MOD, [rel]: MSG() });
+  g(e, 'remote', 'add', 'origin', b);
+  g(e, 'push', '-q', 'origin', 'main');
+  assert.deepEqual(chequeo('mesa', e), [], 'subido y sin tocar: verde');
+  commit(e, { [rel]: MSG({ prosa: 'reescrito' }) });
+  assert.deepEqual(ques(chequeo('mesa', e)), [`${rel} se reescribió después del push`]);
+  // Un acuerdo firmado dos veces en este repo.
+  const cita = 'desktop:docs/modulos/identidad/mesa/mobile/2026-10-23-1-PROPUESTA.md@a1b2c3d4e5f6';
+  const f = repo({ ...MOD, [`${MESA_DIR}/2026-10-24-1-RESPUESTA.md`]: RESP(cita), [`${MESA_DIR}/2026-10-24-2-RESPUESTA.md`]: RESP(cita, 'rechazado no va') });
+  assert.deepEqual(chequeo('mesa', f), [], 'aceptado una vez y rechazado otra: no es doble firma');
+  escribir(f, `${MESA_DIR}/2026-10-25-1-RESPUESTA.md`, RESP(cita));
+  const x = chequeo('mesa', f);
+  assert.equal(x.length, 1);
+  assert.match(x[0].que, /está aceptado 2 veces/);
+  assert.equal(x[0].detalle, `${MESA_DIR}/2026-10-25-1-RESPUESTA.md`);
+});
+
+test('mesa: correr() la frena (salida 1, una línea candado:mesa) y la anota en frenos.log', () => {
+  const d = repo(MOD);
+  escribir(d, `${MESA_DIR}/2026-10-24-1-PEDIDO.md`, MSG({ tipo: 'ORDEN' }));
+  const r = K.correr(d, { modo: 'ids', ids: ['mesa'] });
+  assert.equal(r.codigo, 1);
+  assert.match(r.lineas.join('\n'), /^candado:mesa · .*tipo "ORDEN" no es de la mesa · usá uno de HECHO, PEDIDO, RESPUESTA, PROPUESTA, ALERTA, PRESENTACION$/m);
+  assert.match(fs.readFileSync(path.join(d, '.claude', 'frenos.log'), 'utf8'), /candado:mesa/);
 });
 
 // ---------------------------------------------------------------- candado:estados

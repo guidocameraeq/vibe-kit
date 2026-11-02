@@ -16,6 +16,7 @@ const ficha = require('./ficha.cjs');
 const { datosFichaModulo } = require('./inyeccion.cjs');
 const barreras = require('./barreras.cjs');
 const cambiosRuta = require('./cambios-ruta.cjs');
+const mesaLib = require('./mesa.cjs');
 
 const IDS = ['raiz', 'rutas', 'topes', 'mesa', 'estados', 'lecturas', 'estado-viejo', 'barreras', 'datos'];
 const PARCIAL = ['topes', 'barreras']; // en `cierre parcial`: el handoff y las barreras
@@ -198,9 +199,11 @@ function topes_(raiz, opciones = {}) {
   return topes.revisarTopes(raiz, { home: opciones.home, ahora: opciones.ahora }).map((f) => ({ id: 'topes', ...partirMensaje(f.mensaje), detalle: f.archivo || 'lo que inyecta el hook' }));
 }
 
-// ---------------------------------------------------------------- candado:mesa (orden 5: hoy verde)
+// ---------------------------------------------------------------- candado:mesa (SPEC-0 5.9; G §5.5, §7.1)
 
-const mesa = () => [];
+// Cada archivo de docs/modulos/*/mesa/: nombre de `mesa nuevo`, ≤ 2 KB, cabecera válida con un tipo de la mesa; ninguno
+// reescrito después de commiteado o del push; ningún acuerdo firmado dos veces. La regla vive en lib/mesa.cjs.
+const mesa = (raiz) => mesaLib.revisar(raiz, { archivos: archivos(raiz, ['docs/modulos']) }).map((f) => ({ id: 'mesa', ...f }));
 
 // ---------------------------------------------------------------- candado:estados
 
