@@ -22,6 +22,9 @@ lo que falta con Read antes de confirmar, y el `/cierre` achica el handoff o el 
      la carpeta de proyectos de cada PC) → **el drift más peligroso de este repo**: si no da `LIMPIO`,
      alguien editó `~/.claude/` directo (prohibido) o quedó un cierre a medias. FRENAR y mostrarlo
      antes de trabajar — nunca pisar a ciegas en ninguna dirección.
+   - **`node kit/skills/arquitecto-skills/scripts/cambios-flota.cjs --urgentes`** (las urgencias de la
+     flota: cambios de método `urgente: sí` que siguen vivos en los proyectos; lee lo commiteado, sin
+     red, corre del árbol del kit). Si lista algo → va a la confirmación de 3 líneas.
    - ¿Hay tandas en `tips/` con propuestas sin procesar (checkboxes `- [ ]` sin marcar)? → es
      trabajo pendiente que el handoff puede no mencionar.
 2. **Confirmar en 3 líneas**: **Estado** / **Próxima acción** (del handoff y los pendientes de
