@@ -17,10 +17,10 @@ const USO = [
   '            <carpeta>; no commitea, no pushea, no pone core.hooksPath (eso es de flota). Se niega (1) si <carpeta> no es un repo',
   '            con ficha que se lee, si no está limpia (salvo .kit-rol) o si .kit-rol no dice actualizador.',
   '  chequear  las nueve líneas del chequeo mecánico sobre lo aplicado y ya commiteado (<base>..HEAD); lo hace lib/chequeo.cjs.',
-  '  flota     pone al día cada <repo> (una carpeta de --proyectos o la ruta de un checkout; todo = los de --proyectos con ficha),',
+  '  flota     pone al día cada <repo> (una carpeta de --proyectos o la ruta de un checkout; todo = los de --proyectos con ficha u origin),',
   '            uno detrás del otro, en un clon temporal de su origin (tu checkout nunca se toca): saltea los que tienen modulo/*',
-  '            vivas, kit/v<versión> ya subida (salvo ROTA: se rehace) o la ficha al día; rama kit/v<versión>, aplicar, commit,',
-  '            chequear; verde → un commit a la rama por defecto; rojo → kit/v<versión> ROTA; protegida → kit/v<versión> te espera.',
+  '            vivas, kit/<tag> ya subida (salvo ROTA: se rehace) o la ficha al día (sin -rc); rama kit/<tag>, aplicar, commit,',
+  '            chequear; verde → un commit a la rama por defecto; rojo → kit/<tag> ROTA; protegida → kit/<tag> te espera.',
   '            Al final, la tabla y "te espera:". Lo hace lib/flota.cjs.',
   '  adoptar   un proyecto sin ficha pasa al kit (P7.2; lo hace lib/adoptar.cjs). --mirar no cambia nada: imprime la propuesta (una',
   '            ficha con lo que vio arriba, en comentarios) y con --propuesta la escribe ahí, fuera de <carpeta>. --aplicar escribe la',
@@ -254,7 +254,7 @@ function planear(carpeta, opciones) {
   const vars = esMapa(datos.vars) ? datos.vars : {};
   const fecha = opciones.fecha || hoy();
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'kit-aplicar-'));
-  const plan = { tmp, lineas: [], ops: new Map(), vViejo, vNuevo };
+  const plan = { tmp, lineas: [], ops: new Map(), vViejo, vNuevo, vars, fecha };
   try {
     const nuevo = M.materializarNuevo(opciones.kit, { vars, fecha }, path.join(tmp, 'nuevo'));
     let viejo;
@@ -306,15 +306,42 @@ function armar(plan, carpeta, { textoFicha, datos, nuevo, viejo, opciones = {} }
   // La fusión de una pieza adaptada (D6-19). Fusionada → estado adaptada, el hash del molde nuevo si es de un archivo (lo que
   // escribió el molde DEBAJO de la adaptación: si alguien la vuelve a molde, el guardia no toma lo fusionado por intacto) y su
   // `por:` si lo tenía (el del git log no se copia: la ficha guarda solo el de Guido). Te espera → la pieza como estaba y su informe.
-  const fusionarPieza = (id, actual, mapV, mapN, hFicha, desvio) => {
+  // Un .claude/fusiones/<pieza>.md de antes (el dueño todavía no contestó): la pieza NO se fusiona sola y el informe se rehace
+  // contra el molde nuevo desde la base que dice el archivo (el molde de ese tag), no desde `kit:` de la ficha (D6-19).
+  const bases = new Map();
+  const moldeDeBase = (base) => {
+    if (!bases.has(base)) {
+      let m;
+      try {
+        m = M.materializarViejo(opciones.kit, base, { vars: plan.vars, fecha: plan.fecha }, path.join(plan.tmp, `base-${base}`));
+      } catch (e) {
+        throw new Negativa(`una pieza espera tu respuesta desde el kit ${base} (.claude/fusiones/) y no tengo ese molde: ${e.message}`);
+      }
+      bases.set(base, { a: M.archivosDe(m.dir), rep: C.repartir(m.forma, C.rutasDeMolde(m.dir)) });
+    }
+    return bases.get(base);
+  };
+  const fusionarPieza = (id, actual, mapV0, mapN, hFicha, desvio) => {
+    const informe = FU.rutaInforme(id);
+    const previo = leerP(informe);
+    let mapV = mapV0;
+    let vBase = plan.vViejo;
+    let forzado = noFusionar[id];
+    if (previo !== null) {
+      vBase = FU.baseDeInforme(previo) || plan.vViejo;
+      if (vBase !== plan.vViejo) {
+        const b = moldeDeBase(vBase);
+        mapV = new Map((b.rep.has(id) ? b.rep.get(id).archivos : []).map((a) => [a.proyecto, b.a.get(a.molde)]));
+      }
+      forzado = forzado || `todavía espera tu respuesta (desde el kit ${vBase}): no se fusiona sola`;
+    }
     const rels = [...new Set([...mapV.keys(), ...mapN.keys()])];
     const r = FU.fusionar({
-      carpeta, id, valorFicha: piezas[id], claude, plan: opciones.plan, forzado: noFusionar[id],
-      versiones: { viejo: plan.vViejo, nuevo: plan.vNuevo },
+      carpeta, id, valorFicha: piezas[id], claude, plan: opciones.plan, forzado,
+      versiones: { viejo: vBase, nuevo: plan.vNuevo },
       archivos: rels.map((rel) => ({ rel, v: mapV.has(rel) ? mapV.get(rel) : null, n: mapN.has(rel) ? mapN.get(rel) : null, p: leerP(rel) })),
     });
     const por = porDe(piezas[id]);
-    const informe = FU.rutaInforme(id);
     const yaAdaptada = actual === 'adaptada' || actual === ADAPTADA;
     if (r.resultado === 'sin cambios' || r.resultado === 'espera') {
       const est = yaAdaptada ? actual : ADAPTADA;
@@ -331,7 +358,6 @@ function armar(plan, carpeta, { textoFicha, datos, nuevo, viejo, opciones = {} }
       escribir(rel, texto);
       cambia = true;
     }
-    if (leerP(informe) !== null) borrar(informe); // un "te espera" de antes, ya resuelto
     const unico = mapN.size === 1 ? [...mapN.keys()][0] : null;
     const h = unico ? huella(unico, mapN.get(unico)) : undefined;
     if (actual !== 'adaptada' || hashDe(piezas[id]) !== h) cambiosFicha.set(id, valorPieza('adaptada', h, por));

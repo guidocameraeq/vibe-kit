@@ -75,7 +75,8 @@ function foto(dir) {
 function repoV2(nombre = 'gama', o = {}) {
   const d = nuevaCarpeta(nombre);
   for (const rel of C.rutasDeMolde(V2)) {
-    const t = fs.readFileSync(path.join(V2, rel), 'utf8').split('{{PROYECTO}}').join(nombre).replace(/\{\{[^{}]*\}\}/g, 'completado a mano');
+    // en las skills, los marcadores de contenido quedan vacíos (llenos son contenido propio: lo prueba su test, abajo)
+    const t = fs.readFileSync(path.join(V2, rel), 'utf8').split('{{PROYECTO}}').join(nombre).replace(/\{\{[^{}]*\}\}/g, rel.startsWith('skills/') ? '' : 'completado a mano');
     escribir(d, { [C.rutaEnProyecto(rel)]: t });
   }
   escribir(d, o.archivos || {});
@@ -375,6 +376,40 @@ test('casaPlantilla: los {{…}} son comodines y nada más cambia', () => {
   assert.ok(!AD.casaPlantilla('a {{X}} b {{Y}} c\n', 'a uno c\n'));
   assert.ok(!AD.casaPlantilla('ab{{X}}ba', 'aba'), 'el prefijo y el sufijo no se pisan');
   assert.ok(AD.casaPlantilla('sin marcas\n', 'sin marcas\n') && !AD.casaPlantilla('sin marcas\n', 'con marcas\n'));
+});
+
+test('contenidoPropio: un marcador de contenido lleno es propio; vacío, tal cual o el de valor corto (PROYECTO), no', () => {
+  const pl = '# {{PROYECTO}}\n8. Checklist — {{BUGS_HISTORICOS}} — *nota*\n4. correr `{{COMANDO_SALUD_OPCIONAL}}`\n';
+  assert.deepEqual(AD.contenidoPropio(pl, '# demo\n8. Checklist —  — *nota*\n4. correr ``\n'), []);
+  assert.deepEqual(AD.contenidoPropio(pl, '# demo\n8. Checklist — {{BUGS_HISTORICOS}} — *nota*\n4. correr `{{COMANDO_SALUD_OPCIONAL}}`\n'), [], 'la nota de la plantilla, tal cual');
+  assert.deepEqual(AD.contenidoPropio(pl, '# demo\n8. Checklist — el login: probar X\n- el pago: probar Y — *nota*\n4. correr `npm run salud`\n'), ['BUGS_HISTORICOS', 'COMANDO_SALUD_OPCIONAL']);
+  assert.equal(AD.contenidoPropio(pl, '# demo\notra cosa\n'), null, 'no casa');
+});
+
+test('--mirar: /cierre del v2 con {{BUGS_HISTORICOS}} lleno → propia, "trae contenido propio"; vacío → molde (el v2 sin editar)', deKit, () => {
+  const v2 = (rel) => fs.readFileSync(path.join(V2, rel), 'utf8');
+  const cierre = (bugs) => v2('skills/cierre/SKILL.md').split('{{PROYECTO}}').join('delta').replace('{{BUGS_HISTORICOS}}', bugs);
+  const lleno = repoV2('delta', { archivos: { '.claude/skills/cierre/SKILL.md': cierre('el login se rompe al volver: probar entrar dos veces') } });
+  const r = mirar(lleno);
+  assert.equal(piezas(r.texto).cierre, 'propia');
+  assert.match(r.texto, /^# {3}cierre · propia · \.claude\/skills\/cierre\/SKILL\.md ya está y es distinto del molde: no se pisa — trae contenido propio \(BUGS_HISTORICOS\): llevalo a la zona propia antes de aplicar$/m);
+  assert.equal(piezas(r.texto).inicio, 'molde');
+  const vacio = repoV2('delta', { archivos: { '.claude/skills/cierre/SKILL.md': cierre('') } });
+  const r2 = mirar(vacio);
+  assert.equal(piezas(r2.texto).cierre, 'molde');
+  assert.doesNotMatch(r2.texto, /contenido propio/);
+});
+
+test('los docs dicen lo que hace el script: los dos commits de --aplicar, barreras --rango y chequear desde la primera flota', () => {
+  const kit = path.resolve(__dirname, '..', '..', '..');
+  for (const rel of [['arquitecto', 'anexos', 'flota.md'], ['arquitecto-skills', 'SKILL.md']]) {
+    const t = fs.readFileSync(path.join(kit, ...rel), 'utf8');
+    const l = t.split('\n').find((x) => /--aplicar <archivo>/.test(x));
+    assert.match(l, /los \*\*dos\*\* commits que imprime \(piezas, ficha\)/, rel.join('/'));
+    assert.match(l, /node \.claude\/scripts\/estructura\.cjs barreras --rango <antes>\.\.HEAD` verde/, rel.join('/'));
+    assert.match(l, /`chequear`: desde la primera flota/, rel.join('/'));
+    assert.doesNotMatch(l, /commit, `chequear`/, rel.join('/'));
+  }
 });
 
 test('sin bypass: el adoptador no nombra bypassPermissions', () => {

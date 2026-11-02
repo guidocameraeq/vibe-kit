@@ -93,7 +93,8 @@ function kitEnDisco(molde, version) {
 }
 
 // El canónico: v2.9.0 (molde viejo) y después `tag` con el molde nuevo y kit/VERSION = `version`. Devuelve la ruta del bare.
-function armarCanon({ molde = MOLDE_NUEVO, version = '3.0.0', tag = 'v3.0.0-rc.1', anotado = true, viejo = MOLDE_VIEJO } = {}) {
+// `despues`: más [molde, tag] encima (anotados, kit/VERSION = el tag sin -rc).
+function armarCanon({ molde = MOLDE_NUEVO, version = '3.0.0', tag = 'v3.0.0-rc.1', anotado = true, viejo = MOLDE_VIEJO, despues = [] } = {}) {
   const src = nuevaCarpeta('canon-src');
   git(src, 'init', '-q', '-b', 'main');
   copiar(viejo, path.join(src, 'kit', 'molde'));
@@ -108,6 +109,14 @@ function armarCanon({ molde = MOLDE_NUEVO, version = '3.0.0', tag = 'v3.0.0-rc.1
   git(src, 'commit', '-q', '-m', `kit ${version}`);
   if (anotado) git(src, 'tag', '-a', tag, '-m', tag);
   else git(src, 'tag', tag);
+  for (const [m, t] of despues) {
+    fs.rmSync(path.join(src, 'kit', 'molde'), { recursive: true, force: true });
+    copiar(m, path.join(src, 'kit', 'molde'));
+    fs.writeFileSync(path.join(src, 'kit', 'VERSION'), `${FL.versionDeTag(t)}\n`);
+    git(src, 'add', '-A');
+    git(src, 'commit', '-q', '--allow-empty', '-m', `kit ${t}`);
+    git(src, 'tag', '-a', t, '-m', t);
+  }
   const bare = path.join(nuevaCarpeta('canon'), 'canon.git');
   git(T, 'clone', '-q', '--bare', src, bare);
   return bare;
@@ -234,7 +243,7 @@ test('crit. 15: alfa y beta se mezclan en un commit a main; gama con modulo/x se
 
 // ---------------------------------------------------------------- crit. 16: los casos de falla
 
-test('crit. 16: main protegido (pre-receive) → kit/v3.0.0 queda viva y va a "te espera"; las adaptadas, en la fila y en "te espera"', async () => {
+test('crit. 16: main protegido (pre-receive) → kit/v3.0.0-rc.1 queda viva y va a "te espera"; las adaptadas, en la fila y en "te espera"', async () => {
   const canon = armarCanon();
   const P = nuevaCarpeta('proyectos');
   const x = armarRepo(P, 'alfa', {
@@ -254,13 +263,13 @@ test('crit. 16: main protegido (pre-receive) → kit/v3.0.0 queda viva y va a "t
   assert.equal(r.codigo, 0, texto);
   const f = fila(r, 'alfa');
   assert.equal(f.resultado, 'te espera', texto);
-  assert.match(f.porque, /protegida; mezclá kit\/v3\.0\.0 vos/);
+  assert.match(f.porque, /protegida; mezclá kit\/v3\.0\.0-rc\.1 vos/);
   assert.match(f.porque, /te espera: hook-x/);
   assert.equal(git(x.bare, 'rev-parse', 'main'), x.base, 'main no se movió');
-  assert.deepEqual(ramasKit(x.bare), ['refs/heads/kit/v3.0.0']);
-  assert.equal(git(x.bare, 'rev-parse', 'kit/v3.0.0^'), x.base);
+  assert.deepEqual(ramasKit(x.bare), ['refs/heads/kit/v3.0.0-rc.1']);
+  assert.equal(git(x.bare, 'rev-parse', 'kit/v3.0.0-rc.1^'), x.base);
   assert.match(texto, /^te espera:$/m);
-  assert.match(texto, /^ {2}- alfa: la rama por defecto está protegida; mezclá kit\/v3\.0\.0 en main vos$/m);
+  assert.match(texto, /^ {2}- alfa: la rama por defecto está protegida; mezclá kit\/v3\.0\.0-rc\.1 en main vos$/m);
   assert.match(texto, /^ {2}- en alfa, la próxima sesión te pregunta por hook-x$/m);
 });
 
@@ -285,23 +294,23 @@ test('crit. 16: sin red, sin remoto o el remoto que no existe → sin tocar, y l
   assert.match(texto, /^nored +\| — +\| sin tocar +\| no pude clonar/m);
 });
 
-test('crit. 16: kit/v3.0.0 ya en el remoto → salteado; marcada ROTA → se borra y se rehace sin --force', async () => {
+test('crit. 16: kit/v3.0.0-rc.1 ya en el remoto → salteado; marcada ROTA → se borra y se rehace sin --force', async () => {
   const canon = armarCanon();
   const P = nuevaCarpeta('proyectos');
-  const espera = armarRepo(P, 'espera', { remoto: (b) => ramaEnRemoto(b, 'kit/v3.0.0', 'kit 2.9.0 → 3.0.0') });
+  const espera = armarRepo(P, 'espera', { remoto: (b) => ramaEnRemoto(b, 'kit/v3.0.0-rc.1', 'kit 2.9.0 → 3.0.0') });
   const rota = armarRepo(P, 'rota', {
     remoto: (b) => {
-      ramaEnRemoto(b, 'kit/v3.0.0', 'kit: ROTA — 1. llaves · ❌ · un {{X}} suelto', true);
+      ramaEnRemoto(b, 'kit/v3.0.0-rc.1', 'kit: ROTA — 1. llaves · ❌ · un {{X}} suelto', true);
       git(b, 'config', 'receive.denyNonFastForwards', 'true'); // un --force no pasaría
     },
   });
-  const tipEspera = git(espera.bare, 'rev-parse', 'kit/v3.0.0');
+  const tipEspera = git(espera.bare, 'rev-parse', 'kit/v3.0.0-rc.1');
   const r = await correr({ repos: ['espera', 'rota'], canon, tag: 'v3.0.0-rc.1', proyectos: P });
   const texto = r.lineas.join('\n');
   assert.equal(r.codigo, 0, texto);
   assert.equal(fila(r, 'espera').resultado, 'salteado', texto);
-  assert.match(fila(r, 'espera').porque, /kit\/v3\.0\.0 ya está en el remoto/);
-  assert.equal(git(espera.bare, 'rev-parse', 'kit/v3.0.0'), tipEspera);
+  assert.match(fila(r, 'espera').porque, /kit\/v3\.0\.0-rc\.1 ya está en el remoto: mezclala, o si no la querés, borrala y la próxima corrida la rehace$/);
+  assert.equal(git(espera.bare, 'rev-parse', 'kit/v3.0.0-rc.1'), tipEspera);
   assert.equal(git(espera.bare, 'rev-parse', 'main'), espera.base);
   assert.equal(fila(r, 'rota').resultado, 'mezclado', texto);
   assert.match(fila(r, 'rota').porque, /ROTA de antes se borró y se rehizo/);
@@ -309,7 +318,7 @@ test('crit. 16: kit/v3.0.0 ya en el remoto → salteado; marcada ROTA → se bor
   assert.equal(git(rota.bare, 'rev-list', '--count', `${rota.base}..main`), '1');
 });
 
-test('crit. 16: chequear rojo (un molde roto a propósito) → nada a main; kit/v3.0.0 queda ROTA con las nueve líneas; sale 1', async () => {
+test('crit. 16: chequear rojo (un molde roto a propósito) → nada a main; kit/v3.0.0-rc.1 queda ROTA con las nueve líneas; sale 1', async () => {
   const canon = armarCanon({ molde: MOLDE_ROTO });
   const P = nuevaCarpeta('proyectos');
   const x = armarRepo(P, 'alfa');
@@ -320,13 +329,13 @@ test('crit. 16: chequear rojo (un molde roto a propósito) → nada a main; kit/
   assert.equal(f.resultado, 'ROTA', texto);
   assert.match(f.porque, /^1\. llaves · ❌ · /);
   assert.equal(git(x.bare, 'rev-parse', 'main'), x.base, 'nada a main');
-  assert.deepEqual(ramasKit(x.bare), ['refs/heads/kit/v3.0.0']);
-  assert.match(git(x.bare, 'log', '-1', '--format=%s', 'kit/v3.0.0'), /^kit: ROTA — 1\. llaves · ❌ · /);
-  const cuerpo = git(x.bare, 'log', '-1', '--format=%b', 'kit/v3.0.0').split('\n').filter(Boolean);
+  assert.deepEqual(ramasKit(x.bare), ['refs/heads/kit/v3.0.0-rc.1']);
+  assert.match(git(x.bare, 'log', '-1', '--format=%s', 'kit/v3.0.0-rc.1'), /^kit: ROTA — 1\. llaves · ❌ · /);
+  const cuerpo = git(x.bare, 'log', '-1', '--format=%b', 'kit/v3.0.0-rc.1').split('\n').filter(Boolean);
   assert.equal(cuerpo.length, 9, cuerpo.join('\n'));
   cuerpo.forEach((l, i) => assert.match(l, new RegExp(`^${i + 1}\\. \\S+ · (✅|❌) · `)));
-  assert.equal(git(x.bare, 'rev-list', '--count', `${x.base}..kit/v3.0.0`), '2', 'el commit del kit y la marca vacía');
-  assert.match(texto, /^ {2}- alfa: kit\/v3\.0\.0 quedó ROTA — 1\. llaves/m);
+  assert.equal(git(x.bare, 'rev-list', '--count', `${x.base}..kit/v3.0.0-rc.1`), '2', 'el commit del kit y la marca vacía');
+  assert.match(texto, /^ {2}- alfa: kit\/v3\.0\.0-rc\.1 quedó ROTA — 1\. llaves/m);
 });
 
 test('el canónico: tag no anotado → 1; tag que no coincide con kit/VERSION → 1; tag que no está → 1; sin tocar ningún repo', async () => {
@@ -346,6 +355,120 @@ test('el canónico: tag no anotado → 1; tag que no coincide con kit/VERSION �
   assert.match(falta.lineas.join('\n'), /no tiene el tag v9\.9\.9/);
   assert.equal(git(x.bare, 'rev-parse', 'main'), x.base);
   assert.deepEqual(ramasKit(x.bare), []);
+});
+
+// ---------------------------------------------------------------- los -rc, la red, el pre-push, ssh y `todo` (RF-fix)
+
+const RC2 = '- Un paso más del molde 3.0.0: mirá que el handoff diga la versión del kit.\n- Y uno del rc.2: mirá también el TODO.';
+
+test('-rc: la rama lleva el tag; el rc.2 entrega aunque la ficha ya diga 3.0.0 y una kit/v3.0.0-rc.1 espere; sin cambios → al día; el final sin -rc saltea por la ficha', async () => {
+  const canon = armarCanon({ despues: [[conCierre(RC2), 'v3.0.0-rc.2'], [conCierre(RC2), 'v3.0.0']] });
+  const P = nuevaCarpeta('proyectos');
+  const x = armarRepo(P, 'alfa', {
+    remoto: (b) => {
+      const h = path.join(b, 'hooks', 'pre-receive');
+      fs.writeFileSync(h, '#!/bin/sh\nwhile read viejo nuevo ref; do\n  if [ "$ref" = refs/heads/main ] && [ -f "$GIT_DIR/protegida" ]; then echo "main está protegida" >&2; exit 1; fi\ndone\nexit 0\n');
+      fs.chmodSync(h, 0o755);
+      fs.writeFileSync(path.join(b, 'protegida'), '');
+    },
+  });
+  const r1 = await correr({ repos: ['alfa'], canon, tag: 'v3.0.0-rc.1', proyectos: P });
+  assert.equal(fila(r1, 'alfa').resultado, 'te espera', r1.lineas.join('\n'));
+  assert.deepEqual(ramasKit(x.bare), ['refs/heads/kit/v3.0.0-rc.1']);
+  // Guido mezcla el rc.1 a mano y deja la rama; main ya no está protegida
+  git(x.bare, 'update-ref', 'refs/heads/main', 'refs/heads/kit/v3.0.0-rc.1');
+  fs.rmSync(path.join(x.bare, 'protegida'));
+  const r2 = await correr({ repos: ['alfa'], canon, tag: 'v3.0.0-rc.2', proyectos: P });
+  const t2 = r2.lineas.join('\n');
+  assert.equal(fila(r2, 'alfa').resultado, 'mezclado', t2);
+  assert.match(git(x.bare, 'show', 'main:.claude/skills/cierre/SKILL.md'), /Y uno del rc\.2/, 'el rc.2 llegó');
+  assert.match(fichaEn(x.bare, 'main'), /^kit: 3\.0\.0$/m);
+  const r3 = await correr({ repos: ['alfa'], canon, tag: 'v3.0.0-rc.2', proyectos: P });
+  assert.equal(fila(r3, 'alfa').resultado, 'al día', r3.lineas.join('\n'));
+  assert.match(fila(r3, 'alfa').porque, /aplicar no cambió nada/);
+  const r4 = await correr({ repos: ['alfa'], canon, tag: 'v3.0.0', proyectos: P });
+  assert.equal(fila(r4, 'alfa').resultado, 'al día');
+  assert.match(fila(r4, 'alfa').porque, /la ficha ya dice 3\.0\.0/, 'sin -rc, la ficha alcanza');
+});
+
+// Un aplicar que, además, le cambia algo al clon (la red del push, un pre-push).
+const aplicarY = (extra) => (c, o) => {
+  const a = A.aplicar(c, o);
+  extra(c);
+  return a;
+};
+
+test('push a main sin red → "sin red: no se tocó el remoto", sin subir kit/v…; con red y rechazado, kit/v… sube (te espera)', async () => {
+  const canon = armarCanon();
+  const P = nuevaCarpeta('proyectos');
+  const x = armarRepo(P, 'alfa');
+  const aplicar = aplicarY((c) => git(c, 'remote', 'set-url', '--push', 'origin', 'https://127.0.0.1:9/nadie/nada.git'));
+  const r = await correr({ repos: ['alfa'], canon, tag: 'v3.0.0-rc.1', proyectos: P, aplicar });
+  const texto = r.lineas.join('\n');
+  assert.equal(r.codigo, 0, texto);
+  assert.equal(fila(r, 'alfa').resultado, 'sin tocar', texto);
+  assert.match(fila(r, 'alfa').porque, /^sin red: no se tocó el remoto \(/);
+  assert.deepEqual(ramasKit(x.bare), []);
+  assert.equal(git(x.bare, 'rev-parse', 'main'), x.base);
+  assert.equal(FL.porqueNoSubio({ colgado: true, err: '' }), 'red');
+  assert.equal(FL.porqueNoSubio({ colgado: false, err: 'fatal: unable to access \'https://x/\': Could not resolve host: x' }), 'red');
+  assert.equal(FL.porqueNoSubio({ colgado: false, err: ' ! [remote rejected] main -> main (pre-receive hook declined)' }), 'rechazo');
+  assert.equal(FL.porqueNoSubio({ colgado: false, err: 'frenado\nerror: failed to push some refs' }), 'local');
+});
+
+test('el pre-push frena el push a main → falla (salida 1) con su línea; nada sube', async () => {
+  const canon = armarCanon();
+  const P = nuevaCarpeta('proyectos');
+  const x = armarRepo(P, 'alfa');
+  const aplicar = aplicarY((c) => {
+    const h = path.join(c, '.git', 'hooks', 'pre-push');
+    fs.writeFileSync(h, '#!/bin/sh\necho "frenado por el pre-push" >&2\nexit 1\n');
+    fs.chmodSync(h, 0o755);
+  });
+  const r = await correr({ repos: ['alfa'], canon, tag: 'v3.0.0-rc.1', proyectos: P, aplicar });
+  const texto = r.lineas.join('\n');
+  assert.equal(r.codigo, 1, texto);
+  assert.equal(fila(r, 'alfa').falla, true);
+  assert.match(fila(r, 'alfa').porque, /^el push a main no salió \(el pre-push\): frenado por el pre-push/);
+  assert.deepEqual(ramasKit(x.bare), []);
+  assert.equal(git(x.bare, 'rev-parse', 'main'), x.base);
+});
+
+test('entorno: ssh en BatchMode salvo que GIT_SSH_COMMAND ya venga', () => {
+  const antes = process.env.GIT_SSH_COMMAND;
+  try {
+    delete process.env.GIT_SSH_COMMAND;
+    assert.equal(FL.entorno().GIT_SSH_COMMAND, 'ssh -o BatchMode=yes');
+    process.env.GIT_SSH_COMMAND = 'ssh -i mi-llave';
+    assert.equal(FL.entorno().GIT_SSH_COMMAND, 'ssh -i mi-llave');
+  } finally {
+    if (antes === undefined) delete process.env.GIT_SSH_COMMAND;
+    else process.env.GIT_SSH_COMMAND = antes;
+  }
+});
+
+test('todo: también las carpetas con origin sin ficha en el checkout (atrasado → se actualiza; sin ficha en el clon → "eso es adoptarlo"); sin git ni ficha, no', async () => {
+  const canon = armarCanon();
+  const P = nuevaCarpeta('proyectos');
+  const atrasado = armarRepo(P, 'delta');
+  git(atrasado.d, 'rm', '-q', '.claude/kit.md');
+  git(atrasado.d, 'commit', '-q', '-m', 'el checkout sin la ficha (el remoto la tiene)');
+  const eps = path.join(P, 'eps');
+  fs.mkdirSync(eps);
+  fs.writeFileSync(path.join(eps, 'leeme.md'), '# sin kit\n');
+  git(eps, 'init', '-q', '-b', 'main');
+  git(eps, 'add', '-A');
+  git(eps, 'commit', '-q', '-m', 'nace');
+  const bareEps = path.join(nuevaCarpeta('remotos'), 'eps.git');
+  git(T, 'clone', '-q', '--bare', eps, bareEps);
+  git(eps, 'remote', 'add', 'origin', bareEps);
+  fs.mkdirSync(path.join(P, 'notas'));
+  const r = await correr({ repos: ['todo'], canon, proyectos: P });
+  const texto = r.lineas.join('\n');
+  assert.deepEqual(r.filas.map((f) => f.repo), ['delta', 'eps'], texto);
+  assert.equal(fila(r, 'delta').resultado, 'mezclado', texto);
+  assert.equal(fila(r, 'eps').resultado, 'sin tocar');
+  assert.match(fila(r, 'eps').porque, /sin ficha .*eso es adoptarlo/);
 });
 
 // ---------------------------------------------------------------- crit. 18: la fusión de las adaptadas en la flota (D6-19)
