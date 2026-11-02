@@ -39,8 +39,8 @@ function correr(args, a) {
 }
 
 test('nombreCarpeta: todo lo que no es letra o número, "-" (como la carpeta de la PC: "C:\\x\\(1) y" → "C--x--1--y")', () => {
-  if (process.platform === 'win32') assert.equal(C.nombreCarpeta('C:\\Users\\g\\Desktop\\(1) Claude\\vibe-kit'), 'C--Users-g-Desktop--1--Claude-vibe-kit');
-  else assert.equal(C.nombreCarpeta('/home/g/(1) Claude/vibe-kit'), '-home-g--1--Claude-vibe-kit');
+  if (process.platform === 'win32') assert.equal(C.nombreCarpeta('C:\\Users\\ana\\Escritorio\\(1) Trabajo\\app'), 'C--Users-ana-Escritorio--1--Trabajo-app');
+  else assert.equal(C.nombreCarpeta('/home/ana/(1) Trabajo/app'), '-home-ana--1--Trabajo-app');
 });
 
 test('sí: el último mensaje del asistente con usage, la suma de los tres input, la ventana del modelo y la línea del contrato', () => {
