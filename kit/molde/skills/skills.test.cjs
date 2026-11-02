@@ -19,9 +19,11 @@ const DIR_MOLDE = path.join(__dirname, '..');
 // kit/skills del repo: contra donde se resuelve ~/.claude/skills/ (nunca el ~/.claude/ real).
 const DIR_KIT_SKILLS = path.join(__dirname, '..', '..', 'skills');
 
-const NOMBRES = ['inicio', 'cierre', 'director', 'obrero', 'tramo'];
+const NOMBRES = ['inicio', 'cierre', 'director', 'obrero', 'tramo', 'estado'];
 // Scripts cuyo primer argumento es posicional (no un subcomando): solo se les chequean los flags contra su USO.
-const SIN_SUBCOMANDO = ['paquete'];
+const SIN_SUBCOMANDO = ['paquete', 'estado', 'resumen'];
+// De estos, los que sin argumentos hacen su trabajo en vez de imprimir el USO: ahí se les pide --ayuda.
+const PIDE_AYUDA = ['estado', 'resumen'];
 const leer = (n) => fs.readFileSync(path.join(DIR_SKILLS, n, 'SKILL.md'), 'utf8').replace(/\r\n/g, '\n');
 const TEXTOS = Object.fromEntries(NOMBRES.map((n) => [n, leer(n)]));
 // El núcleo (no es una skill: sin SKILL.md), la plantilla del encargo y el revisor (un agente).
@@ -121,7 +123,9 @@ function comandosDeSkillRotos(texto) {
 const usoCache = {};
 function usoDe(script) {
   if (!usoCache[script]) {
-    const r = spawnSync(process.execPath, [path.join(DIR_SCRIPTS, `${script}.cjs`)], { encoding: 'utf8', cwd: DIR_SCRIPTS, timeout: 20000 });
+    // estado.cjs y resumen.cjs, sin argumentos, hacen su trabajo (no imprimen el USO): ahí se les pide --ayuda.
+    const args = PIDE_AYUDA.includes(script) ? ['--ayuda'] : [];
+    const r = spawnSync(process.execPath, [path.join(DIR_SCRIPTS, `${script}.cjs`), ...args], { encoding: 'utf8', cwd: DIR_SCRIPTS, timeout: 20000 });
     usoCache[script] = `${r.stdout || ''}\n${r.stderr || ''}`;
   }
   return usoCache[script];
@@ -763,4 +767,24 @@ test('los chequeos: marcasFueraDeLugar detecta una marca repetida, rota o dentro
   assert.ok(marcasFueraDeLugar(`${ok}${ok}`).length > 0);
   assert.ok(marcasFueraDeLugar(`${MARCA_ABRE}\n`).length > 0);
   assert.ok(marcasFueraDeLugar(`\`\`\`\n${MARCA_ABRE}\n\`\`\`\n${ok}`).length > 0);
+});
+
+// ---------------------------------------------------------------- /estado
+
+test('estado: corre estado.cjs sin preguntar, muestra tal cual y el resumen del día va una sola vez', () => {
+  const t = TEXTOS.estado;
+  assert.match(t, /node \.claude\/scripts\/estado\.cjs <x>/);
+  assert.match(t, /node \.claude\/scripts\/resumen\.cjs/);
+  assert.match(t, /Nunca preguntes/);
+  assert.match(t, /tal cual/);
+  assert.match(t, /una sola vez/);
+  assert.ok(Buffer.byteLength(t) < 3000, `${Buffer.byteLength(t)} bytes: la skill es corta`);
+  assert.doesNotMatch(t, /node \.claude\/scripts\/(cambios|worktree)\.cjs/, 'solo lee: no toca nada');
+});
+
+test('comandosRotos: estado.cjs y resumen.cjs no tienen subcomando; sus flags sí se miran contra el USO', () => {
+  assert.deepEqual(comandosRotos('`node .claude/scripts/estado.cjs` y `node .claude/scripts/estado.cjs <x>`'), []);
+  assert.deepEqual(comandosRotos('`node .claude/scripts/resumen.cjs m1 --forzar`'), []);
+  assert.equal(comandosRotos('`node .claude/scripts/resumen.cjs --inventada`').length, 1);
+  assert.equal(comandosRotos('`node .claude/scripts/estado.cjs --inventada`').length, 1);
 });
