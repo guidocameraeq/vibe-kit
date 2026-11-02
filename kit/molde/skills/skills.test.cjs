@@ -704,7 +704,11 @@ test('tramo: coordina y no escribe código; cada subagente que nombra existe; el
   const nombrados = [...t.matchAll(/agente `([a-z]+)`/g)].map((a) => a[1]);
   assert.ok(nombrados.includes('implementador') && nombrados.includes('revisor') && nombrados.includes('explorador'));
   for (const a of nombrados) assert.ok(fs.existsSync(path.join(DIR_MOLDE, 'agents', `${a}.md`)), `el agente ${a} no existe en kit/molde/agents`);
-  assert.match(t, /node \.claude\/scripts\/paquete\.cjs <sha-base> --salida <archivo>/);
+  // RF-fix 7 y 10: el paquete con las pruebas de lo tocado, dentro del checkout (el revisor no lee el temporal sin permiso)
+  assert.match(t, /node \.claude\/scripts\/paquete\.cjs <sha-base> --pruebas "<las de lo tocado>"`/);
+  assert.match(t, /`\.claude\/paquetes\/<sha7>\.md`, dentro del checkout/);
+  assert.doesNotMatch(t, /--salida/);
+  assert.match(NUCLEO, /paquete\.cjs <sha-base> --pruebas "<las de lo tocado>"` arma en `\.claude\/paquetes\/<sha7>\.md`, dentro del checkout/);
   assert.match(t, /\*\*la ruta\*\* al agente `revisor`/);
   assert.match(t, /nunca lo reanudás/);
   assert.match(t, /ningún proceso vivo/);

@@ -89,14 +89,50 @@ test('armado feliz: diff contra la base, status y pruebas en verde; la ruta es l
   assert.match(t, /Resultado: VERDE/);
 });
 
-test('sin --salida, el archivo va al temporal', () => {
-  const { d, base } = proyecto();
-  const r = correr(d, base);
+test('RF-fix 7: sin --salida, el archivo va a .claude/paquetes/<sha7>.md dentro del checkout (también corrido desde una subcarpeta), no al temporal', () => {
+  const { d, base, punta } = proyecto();
+  const esperada = path.join(d, '.claude', 'paquetes', `${punta.slice(0, 7)}.md`);
+  let r = correr(d, base);
   assert.equal(r.status, 0);
-  const ruta = r.stdout.trim().split('\n').pop();
-  assert.ok(path.resolve(ruta).startsWith(path.resolve(os.tmpdir())), ruta);
-  assert.ok(fs.existsSync(ruta));
-  fs.rmSync(ruta);
+  let ruta = r.stdout.trim().split('\n').pop();
+  assert.equal(path.resolve(ruta).toLowerCase(), path.resolve(esperada).toLowerCase());
+  assert.ok(!path.resolve(ruta).toLowerCase().startsWith(path.resolve(os.tmpdir(), 'paquete-revisor').toLowerCase()));
+  assert.match(fs.readFileSync(esperada, 'utf8'), /\+dos-cambiado/);
+  fs.rmSync(esperada);
+  fs.mkdirSync(path.join(d, 'sub'));
+  r = correr(path.join(d, 'sub'), base);
+  assert.equal(r.status, 0);
+  ruta = r.stdout.trim().split('\n').pop();
+  assert.equal(path.resolve(ruta).toLowerCase(), path.resolve(esperada).toLowerCase(), 'desde una subcarpeta, igual en la raíz');
+  // el gitignore.snippet la ignora: con él, el paquete no ensucia el árbol
+  const snippet = fs.readFileSync(path.join(__dirname, '..', 'gitignore.snippet'), 'utf8');
+  assert.ok(snippet.split('\n').includes('/.claude/paquetes/'));
+  fs.writeFileSync(path.join(d, '.gitignore'), snippet);
+  assert.equal(g(d, 'status', '--short', '--', '.claude/paquetes'), '');
+});
+
+test('RF-fix 10: --pruebas corre las de lo tocado (no la suite); --sin-pruebas no corre ninguna y dice NO VERIFICADO; juntas o sin valor → 2', () => {
+  const { d, base } = proyecto();
+  commit(d, { 'lo-tocado.js': 'console.log("solo lo tocado");\n' }, 'pruebas de lo tocado');
+  const s1 = path.join(TMP, 'sal-pruebas.md');
+  let r = correr(d, base, '--salida', s1, '--pruebas', 'node lo-tocado.js');
+  assert.equal(r.status, 0, r.stdout);
+  assert.match(r.stdout, /^pruebas: VERDE/);
+  let t = fs.readFileSync(s1, 'utf8');
+  assert.match(t, /Comando: node lo-tocado\.js · las de lo tocado \(--pruebas\)/);
+  assert.match(t, /solo lo tocado/);
+  assert.doesNotMatch(t, /corrimos las pruebas/, 'la suite (vars.comando-test) no corrió');
+  const s2 = path.join(TMP, 'sal-sin.md');
+  r = correr(d, base, '--salida', s2, '--sin-pruebas');
+  assert.equal(r.status, 0);
+  assert.match(r.stdout, /^pruebas: NO VERIFICADO \(--sin-pruebas/);
+  t = fs.readFileSync(s2, 'utf8');
+  assert.doesNotMatch(t, /corrimos las pruebas|VERDE/);
+  for (const args of [['--pruebas'], ['--pruebas', ''], ['--pruebas', 'node x.js', '--sin-pruebas']]) {
+    r = correr(d, base, ...args);
+    assert.equal(r.status, 2, args.join(' '));
+    assert.match(r.stdout, /--pruebas <cmd> \| --sin-pruebas/);
+  }
 });
 
 test('pruebas en rojo: el paquete se arma igual (salida 0) y dice ROJO con la salida del fallo', () => {
