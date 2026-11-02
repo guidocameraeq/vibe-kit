@@ -21,7 +21,7 @@ const DIR_KIT_SKILLS = path.join(__dirname, '..', '..', 'skills');
 
 const NOMBRES = ['inicio', 'cierre', 'director', 'obrero', 'tramo', 'estado'];
 // Scripts cuyo primer argumento es posicional (no un subcomando): solo se les chequean los flags contra su USO.
-const SIN_SUBCOMANDO = ['paquete', 'estado', 'resumen', 'contexto'];
+const SIN_SUBCOMANDO = ['paquete', 'estado', 'resumen', 'contexto', 'afirmaciones'];
 // De estos, los que sin argumentos hacen su trabajo en vez de imprimir el USO: ahí se les pide --ayuda.
 const PIDE_AYUDA = ['estado', 'resumen', 'contexto'];
 const leer = (n) => fs.readFileSync(path.join(DIR_SKILLS, n, 'SKILL.md'), 'utf8').replace(/\r\n/g, '\n');

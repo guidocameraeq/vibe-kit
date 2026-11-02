@@ -76,7 +76,7 @@ function armar({ cwd, base, salida, plazoMin = PLAZO_MIN, pruebas: cmdPruebas = 
     ruta = path.join(path.resolve(top.stdout.trim()), ...CARPETA.split('/'), `${punta.stdout.trim()}.md`);
   }
   fs.mkdirSync(path.dirname(ruta), { recursive: true });
-  // La prosa que promete de más (K5): avisos para el revisor; nunca cambia las salidas del paquete.
+  // La prosa que promete de más (K5): avisos para el revisor; si el corrector falla, el try lo anota y el paquete sale igual.
   let afirmaciones;
   try {
     afirmaciones = require('./afirmaciones.cjs').seccion({ cwd, base });
