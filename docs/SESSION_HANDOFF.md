@@ -19,10 +19,9 @@
 
 ## Próximo paso
 
-**D5.3**, en Opus, sin Guido, **en la PC `clientes`** (ahí vive el historial de Hermes): **`vibe-kit M5 · D5.3 · Paquete 5, cierre: el
-corrector de afirmaciones medido contra Hermes`**. Guido pega el prompt de "Abrir D5.3 sin Guido (el prompt)" del tracker
-(`docs/kit-v3/PLAN-construccion.md`) y se va. Es chico: ~2 h y ~4 encargos. **Si Guido está en otra PC, D6.1 puede ir antes** (el corrector
-no la traba); entonces se arma su prompt con el de D5.3 como modelo.
+**D5.3**, en Opus, sin Guido, **en `Draco-PC`** (el historial de Hermes es su git: `github.com/guidocameraeq/hermes-desktop`, clonable desde
+acá): **`vibe-kit M5 · D5.3 · Paquete 5, cierre: el corrector de afirmaciones medido contra Hermes`**. Guido pega el prompt de "Abrir D5.3 sin
+Guido (el prompt)" del tracker (`docs/kit-v3/PLAN-construccion.md`) y se va. Es chico: ~2 h y ~4 encargos. Después, D6.1.
 
 **Para Guido, cuando pueda (no traba nada)**, con el detalle en Pendientes del tracker ("Paquete 5 · te espera a vos", y los del 3 y el 4):
 - en una pestaña real en `alfa`: `/estado`, "me voy" en un módulo con director y `/inicio` al otro día (borra la marca);
@@ -51,4 +50,4 @@ no la traba); entonces se arma su prompt con el de D5.3 como modelo.
 
 ## Bloqueos
 
-Ninguno para D5.3, salvo estar en la PC `clientes`.
+Ninguno.
