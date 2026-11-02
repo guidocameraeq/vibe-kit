@@ -193,7 +193,7 @@ function meVoy(L, g, a, o) {
   else lineas.push(`${L.uso.linea(m)}${m.pct >= UMBRAL_MUDANZA ? ` — pasa del ${UMBRAL_MUDANZA}%: mudate antes de irte` : ''}`);
   // 5. la foto del despertador de este módulo, de nuevo: la primera vuelta de la noche compara contra el "me voy", no contra el día.
   guardarFoto(path.join(g.gitComun, fotoDe(p.modulo)), fotoDeAhora(L, g, p.modulo));
-  lineas.push('despertador: node .claude/scripts/noche.cjs despertador --cada 300 (en un Monitor o una tarea fuera del director)');
+  lineas.push(`despertador: node .claude/scripts/noche.cjs despertador --modulo ${p.modulo} --cada 300 (en un Monitor o una tarea fuera del director: con --modulo corre desde cualquier checkout)`);
   return { codigo: 0, lineas };
 }
 

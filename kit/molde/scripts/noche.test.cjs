@@ -146,7 +146,7 @@ test('me-voy desde el director: escribe .kit-noche e imprime el checklist (encar
   assert.equal(r.lineas[4], 'vence: VPN, credenciales y dispositivos no los ve el script: miralos vos (los encargos abiertos usan: suite, navegador)');
   assert.match(r.lineas[5], /^permisos: lo que no esté en el AUTORIZADO del encargo, de noche es PARADA \(predecirlo: NO VERIFICADO\)$/);
   assert.equal(r.lineas[6], 'contexto: 120k de 1000k (12%) · faltan 880k · claude-opus-5-5');
-  assert.match(r.lineas[7], /^despertador: node \.claude\/scripts\/noche\.cjs despertador --cada 300/);
+  assert.equal(r.lineas[7], 'despertador: node .claude/scripts/noche.cjs despertador --modulo nz --cada 300 (en un Monitor o una tarea fuera del director: con --modulo corre desde cualquier checkout)');
   assert.equal(r.lineas.length, 8);
   // y desde ahora el obrero es nocturno (contexto.deNoche)
   assert.deepEqual(require('../hooks/lib/contexto.cjs').deNoche(p.obr), { noche: true, por: 'kit-noche' });
