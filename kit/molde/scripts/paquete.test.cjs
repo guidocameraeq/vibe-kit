@@ -182,5 +182,5 @@ test('K5: la sección ## Afirmaciones va entre el diff y las pruebas, con los av
   const t = fs.readFileSync(salida, 'utf8');
   const i = t.indexOf('## Afirmaciones');
   assert.ok(i > t.indexOf('## Diff completo') && i < t.indexOf('## Pruebas'), 'la sección, en su lugar');
-  assert.match(t, /⚠️ a mirar · m\.py:2 · absoluto · eso no: "garantiza"/);
+  assert.match(t, /⚠️ a mirar · m\.py:2 · absoluto · ¿promete de más\? "garantiza"/);
 });
