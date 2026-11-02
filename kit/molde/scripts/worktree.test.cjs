@@ -191,7 +191,7 @@ test('<proyecto>: la misma regla que cargar-secreto.sh (ficha con comillas y com
 test('rutaPermiso: //c/… en Windows (unidad en minúscula, barras /), //… en el resto', () => {
   if (WIN) {
     assert.equal(W.rutaPermiso('C:\\Users\\U\\alfa'), '//c/Users/U/alfa');
-    assert.deepEqual(W.reglasDeny('D:\\p'), ['Read(//d/p/.env)', 'Read(//d/p/.env.*)', 'Edit(//d/p/.env)', 'Edit(//d/p/.env.*)', 'Write(//d/p/.env)', 'Write(//d/p/.env.*)']);
+    assert.deepEqual(W.reglasDeny('D:\\p'), ['Read(//d/p/.env)', 'Read(//d/p/.env.*)', 'Edit(//d/p/.env)', 'Edit(//d/p/.env.*)']);
   } else {
     assert.equal(W.rutaPermiso('/home/u/alfa'), '//home/u/alfa');
   }
@@ -525,6 +525,40 @@ test('cerrar x--01 desde el principal en main, con core.autocrlf=true: sin merge
   const fuente = fs.readFileSync(SCRIPT, 'utf8');
   const cuerpo = fuente.slice(fuente.indexOf('function cerrar('), fuente.indexOf('// ---------------------------------------------------------------- integrar'));
   assert.ok(cuerpo.length > 500 && !/['"]--force['"]/.test(cuerpo), 'remove de cerrar nunca con --force');
+});
+
+test('cerrar x--01 con lo sin trackear que dejó la suite → 1 que dice qué hacer (hasta 5 rutas, clean -nd, .gitignore), nada borrado; limpio → 0', () => {
+  const p = proyecto();
+  assert.equal(cli(p.P, ['crear', 'x']).codigo, 0);
+  assert.equal(cli(p.P, ['crear', 'x--01']).codigo, 0);
+  const wx = p.wt('modulo--x');
+  const w1 = p.wt('modulo--x--01');
+  commit(w1, { 'encargo.txt': 'hecho\n' });
+  g(wx, 'merge', '-q', '--no-ff', '-m', 'encargo 01', 'modulo/x--01');
+  // Sí: siete archivos sin trackear (coverage/ de la suite) → la negativa los nombra (5 y el total) y da los comandos.
+  for (let i = 1; i <= 7; i++) escribir(w1, `coverage/c${i}.json`, '{}\n');
+  let r = cli(p.P, ['cerrar', 'x--01']);
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, /archivos sin trackear: coverage\/c1\.json \| .*coverage\/c5\.json … \(7 en total\) — nada borrado/);
+  assert.ok(!/coverage\/c6\.json/.test(r.out), 'hasta 5 rutas');
+  assert.match(r.out, /git -C ".*modulo--x--01" clean -nd/);
+  assert.match(r.out, /\.gitignore/);
+  assert.ok(fs.existsSync(path.join(w1, 'coverage', 'c7.json')) && existeRama(p.P, 'modulo/x--01'), 'nada borrado');
+  // No: un archivo trackeado cambiado junto con lo sin trackear → el mensaje de siempre (cambios sin commitear), no el de la suite.
+  fs.writeFileSync(path.join(w1, 'encargo.txt'), 'cambiado\n');
+  r = cli(p.P, ['cerrar', 'x--01']);
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, /cambios sin commitear: .*encargo\.txt/);
+  assert.ok(!/clean -nd/.test(r.out));
+  g(w1, 'checkout', '--', 'encargo.txt');
+  // No: lo ignorado no cuenta (el arreglo del .gitignore) → cierra.
+  fs.appendFileSync(path.join(w1, '.gitignore'), '\ncoverage/\n');
+  g(w1, 'add', '.gitignore');
+  g(w1, 'commit', '-q', '-m', 'ignora coverage');
+  g(wx, 'merge', '-q', '--no-ff', '-m', 'encargo 01 bis', 'modulo/x--01');
+  r = cli(p.P, ['cerrar', 'x--01']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.ok(!existeRama(p.P, 'modulo/x--01'));
 });
 
 test('cerrar x: mergeado solo en origin/main → 0; sin mergear → 1; frenos.log creado por un hook → mudado entero; carpeta borrada a mano → prune', () => {

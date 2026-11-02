@@ -409,10 +409,13 @@ function rutaPermiso(abs) {
   if (m) return `//${m[1].toLowerCase()}/${m[2]}`.replace(/\/$/, '');
   return `/${p}`.replace(/\/$/, '');
 }
+// Read y Edit, sin Write: claude.exe 2.1.312+ avisa que una regla Write(ruta) no la mira el chequeo de archivos ("only Edit(path)
+// rules are"; Edit cubre todas las herramientas que escriben). Un settings.local.json viejo con las Write de más sigue andando:
+// encargo.cjs verificar exige que estén estas, no que falten las otras.
 function reglasDeny(principal) {
   const base = rutaPermiso(principal);
   const reglas = [];
-  for (const h of ['Read', 'Edit', 'Write']) for (const f of ['.env', '.env.*']) reglas.push(`${h}(${base}/${f})`);
+  for (const h of ['Read', 'Edit']) for (const f of ['.env', '.env.*']) reglas.push(`${h}(${base}/${f})`);
   return reglas;
 }
 
@@ -851,7 +854,20 @@ function cerrar(L, u, n, cancelado = false) {
     const antes = porcelana(L, wt);
     if (antes === null) return no('no pude leer el estado del worktree');
     const otros = antes.filter((l) => l.slice(3).replace(/^"|"$/g, '') !== LOG);
-    if (otros.length) return no(`el worktree tiene cambios sin commitear: ${otros.slice(0, 5).join(' | ')}${otros.length > 5 ? ' …' : ''}`);
+    const hasta5 = (xs) => `${xs.slice(0, 5).join(' | ')}${xs.length > 5 ? ` … (${xs.length} en total)` : ''}`;
+    const sueltos = otros.filter((l) => l.startsWith('?? ')).map((l) => l.slice(3).replace(/^"|"$/g, ''));
+    const cambiados = otros.filter((l) => !l.startsWith('?? '));
+    if (cambiados.length) return no(`el worktree tiene cambios sin commitear: ${hasta5(otros)}`);
+    // Solo lo sin trackear (lo deja la suite: coverage/, un .log; verificar ya lo marca ⚠️, rf-10): se dice qué hacer, no se borra
+    // acá (borrar es de una persona o del director).
+    if (sueltos.length) {
+      const c = `git -C "${barras(wt)}"`;
+      return no(
+        `el worktree tiene archivos sin trackear: ${hasta5(sueltos)} — nada borrado. Miralos con \`${c} clean -nd\`; si sobran, ` +
+          `los borrás vos (o el director) con \`${c} clean -fd\`, y si van a volver (ej. coverage/), sumalos al .gitignore y commitealo. ` +
+          'Después, cerrar de nuevo',
+      );
+    }
     const m = mudarFrenos(L, wt, u.gitComun, n.carpeta);
     if (m === 'cambiado') return no(`${LOG} cambió en el medio (no solo renglones al final): no lo toqué — commitealo o revisalo`);
     const despues = porcelana(L, wt);
