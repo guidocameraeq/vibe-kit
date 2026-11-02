@@ -180,7 +180,8 @@ test('sin director en el módulo: imprime el bloque (no escribe archivo en la bi
   assert.equal(r.codigo, 0, r.err);
   assert.ok(r.out.startsWith(`# Resumen del día · ${HOY} · m2\n`));
   assert.equal(fs.existsSync(path.join(dir, 'docs', 'modulos', 'm2', 'bitacora')), false);
-  assert.equal(fs.readFileSync(path.join(dir, '.claude', 'resumen-del-dia.txt'), 'utf8').trim(), HOY);
+  assert.equal(fs.readFileSync(path.join(dir, '.git', 'kit-resumen-del-dia'), 'utf8').trim(), HOY);
+  assert.equal(git(dir, 'status', '--porcelain'), '', 'el árbol queda limpio');
   const dos = resumen(dir, ['m2']);
   assert.match(dos.out, /^resumen de hoy ya mostrado/);
   assert.equal(dos.out.includes('## Qué se hizo'), false);

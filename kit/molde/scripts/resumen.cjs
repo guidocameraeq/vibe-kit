@@ -7,7 +7,7 @@
 // `aprobado` nuevos del día (de git: los commits "cambios: aprobado <id>" de hoy, con quién los corrió) · hablado con otros
 // directores (de mesa.cjs acordados; "— (sin mesa todavía)" si no hay mesa) · lo que medimos y aprendimos · lo que el método atajó
 // hoy, en números (los renglones de hoy de .claude/frenos.log, por tipo). "Se muestra una vez": si el de hoy ya existe (el archivo,
-// o la marca .claude/resumen-del-dia.txt cuando no hay archivo) no lo pisa, dice dónde está y sale 0; --forzar lo rehace.
+// o la marca .git/kit-resumen-del-dia cuando no hay archivo) no lo pisa, dice dónde está y sale 0; --forzar lo rehace.
 // Salidas: 0 anduvo (o ya estaba) · 1 el módulo no existe · 2 mal llamado. Node estándar, cero dependencias.
 // Es .cjs a propósito: corre igual en proyectos con "type": "module".
 
@@ -28,7 +28,11 @@ const USO = [
   '  --ayuda    este texto',
 ].join('\n');
 
-const MARCA = '.claude/resumen-del-dia.txt';
+const MARCA = 'kit-resumen-del-dia'; // dentro de la carpeta común de git: no viaja y no ensucia el árbol
+function rutaMarca(raiz) {
+  const c = git.texto(['rev-parse', '--git-common-dir'], { cwd: raiz });
+  return c ? path.resolve(raiz, c, MARCA) : null;
+}
 const T_GIT = 60000;
 const G = (cwd, args) => git.correr(args, { cwd, tiempo: T_GIT });
 const dos = (n) => String(n).padStart(2, '0');
@@ -38,7 +42,7 @@ const diaDe = (segundos) => hoyDe(new Date(segundos * 1000));
 const rutaResumen = (raiz, x, fecha) => path.join(raiz, 'docs', 'modulos', x, 'bitacora', `${fecha}-resumen.md`);
 function yaMostrado(raiz, fecha) {
   try {
-    return fs.readFileSync(path.join(raiz, ...MARCA.split('/')), 'utf8').trim() === fecha;
+    return fs.readFileSync(rutaMarca(raiz), 'utf8').trim() === fecha;
   } catch (e) {
     return false;
   }
@@ -259,13 +263,12 @@ function main(argv, opciones = {}) {
     return 0;
   }
   if (yaMostrado(raiz, fecha) && !forzar) {
-    salida(`resumen de hoy ya mostrado (${MARCA}; se muestra una vez; --forzar lo arma de nuevo para pegarlo en el CHANGELOG)\n`);
+    salida(`resumen de hoy ya mostrado (marca ${MARCA} en .git; se muestra una vez; --forzar lo arma de nuevo para pegarlo en el CHANGELOG)\n`);
     return 0;
   }
   const texto = armar(raiz, x, m, fecha, opciones);
   try {
-    fs.mkdirSync(path.join(raiz, '.claude'), { recursive: true });
-    fs.writeFileSync(path.join(raiz, ...MARCA.split('/')), `${fecha}\n`, 'utf8');
+    fs.writeFileSync(rutaMarca(raiz), `${fecha}\n`, 'utf8');
   } catch (e) {
     /* sin la marca, el resumen se vería más de una vez: no es un freno */
   }

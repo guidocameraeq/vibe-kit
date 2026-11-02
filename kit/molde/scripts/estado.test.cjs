@@ -262,8 +262,7 @@ test('resumen del día sin módulos con director: la marca de "ya mostrado" lo a
   fs.rmSync(path.join(dir, 'docs', 'modulos', 'm1'), { recursive: true, force: true });
   const ahora = new Date(2026, 10, 2, 20, 0);
   assert.match(estado(dir, [], { ahora }).out, /corré: node \.claude\/scripts\/resumen\.cjs$/m);
-  fs.mkdirSync(path.join(dir, '.claude'), { recursive: true });
-  fs.writeFileSync(path.join(dir, '.claude', 'resumen-del-dia.txt'), '2026-11-02\n');
+  fs.writeFileSync(path.join(dir, '.git', 'kit-resumen-del-dia'), '2026-11-02\n');
   assert.doesNotMatch(estado(dir, [], { ahora }).out, /resumen del día: falta/);
 });
 
