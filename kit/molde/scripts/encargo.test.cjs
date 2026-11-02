@@ -542,6 +542,25 @@ test('autorizado (crit. 4): allow = la base (con sus formas PowerShell) + las do
   assert.doesNotMatch(r.out, /ojo:/);
 });
 
+test('autorizado (RF-fix 14): un Write(<ruta>) de AUTORIZADO va como Edit(<ruta>) en las allow y en --allowedTools, sin duplicar; verificar no lo marca de más', () => {
+  const p = proyectoV();
+  commit(p.dir, { [RUTA]: textoEncargo(p).replace('- Edit(src/x/**)\n', '- Edit(src/x/**)\n- Write(src/x/**)\n- Write(src/x/nuevo.ts)\n') }, 'con Write');
+  const r = aut(p);
+  assert.equal(r.codigo, 0, r.out);
+  const base = E.base('node base.js');
+  const allow = leerSettings(p).permissions.allow;
+  assert.deepEqual(allow, [...base, 'Bash(npm run build)', 'Edit(src/x/**)', 'Edit(src/x/nuevo.ts)']);
+  assert.ok(!allow.some((x) => /^Write\(/.test(x)), 'ninguna Write(<ruta>)');
+  assert.ok(allow.includes('Write'), 'la base sigue con Write');
+  const fondo = r.out.trim().split('\n').pop();
+  assert.ok(fondo.endsWith(`--allowedTools ${allow.map((x) => `"${x}"`).join(' ')}`), fondo);
+  assert.doesNotMatch(fondo, /"Write\(/);
+  commit(p.obr, { 'src/x/a.js': 'a\n' }, 'sub-paso');
+  g(p.obr, 'push', '-q', 'origin', 'modulo/x--01');
+  const v = ver(p.dir);
+  assert.equal(marca(v, 6), '✅', v.linea(6));
+});
+
 test('autorizado (crit. 4, r1-5): de nuevo tras una CORRECCION que saca una regla → la regla ya no está (sin estado); sin sacar nada, lo avisa igual', () => {
   const p = proyectoV();
   assert.equal(aut(p).codigo, 0);
@@ -792,11 +811,25 @@ test('verificar línea 5 (main), crit. 16: la marca .kit-noche del director (el 
   listo(p);
   const futuro = new Date(Date.now() + 10 * 60000).toISOString();
   conEntorno({ GIT_COMMITTER_DATE: futuro, GIT_AUTHOR_DATE: futuro }, () => commit(p.P, { 'guido.txt': 'de Guido\n' }, 'Guido en main'));
-  fs.writeFileSync(path.join(p.dir, '.kit-noche'), 'desde 2026-11-02T22:00-03:00\n');
+  // el "me voy" 5 min antes del commit (la marca como la escribe me-voy, con su zona): de noche → ❌
+  const desde = new Date(Date.now() + 5 * 60000).toISOString().replace(/:\d\d\.\d+Z$/, '+00:00');
+  fs.writeFileSync(path.join(p.dir, '.kit-noche'), `desde ${desde}\nhasta —\n`);
   let r = ver(p.dir);
   assert.equal(r.codigo, 1, r.out);
   assert.equal(marcas(r), '✅✅✅✅❌✅');
-  assert.match(r.linea(5), /^5\. main · ❌ · 1 commit\(s\) en main después de la partida \(.+\): commit en main de noche: PARADA \(\.kit-noche\) · principal: /);
+  assert.match(r.linea(5), new RegExp(`^5\\. main · ❌ · 1 commit\\(s\\) en main después de la partida \\(.+\\): commit en main de noche: PARADA \\(\\.kit-noche: 1 desde el "me voy" de ${desde.replace(/\+/g, '\\+')}\\) · principal: `));
+  // RF-fix 2: el "me voy" DESPUÉS del commit (Guido commiteó de día y después se fue) → ⚠️, como de día, y salida 0
+  const tarde = new Date(Date.now() + 20 * 60000).toISOString();
+  fs.writeFileSync(path.join(p.dir, '.kit-noche'), `desde ${tarde}\nhasta —\n`);
+  r = ver(p.dir);
+  assert.equal(r.codigo, 0, r.out);
+  assert.equal(marcas(r), '✅✅✅✅⚠️✅');
+  assert.match(r.linea(5), /^5\. main · ⚠️ · 1 commit\(s\) en main después de la partida \(.+\), todos antes del "me voy" \(.+\) · principal: /);
+  // la marca sin fecha legible (a mano, o de antes de me-voy): cuentan todos, y lo dice → ❌
+  fs.writeFileSync(path.join(p.dir, '.kit-noche'), 'x\n');
+  r = ver(p.dir);
+  assert.equal(r.codigo, 1, r.out);
+  assert.match(r.linea(5), /: commit en main de noche: PARADA \(\.kit-noche: la marca no trae una fecha legible, cuentan todos\) · principal: /);
   fs.rmSync(path.join(p.dir, '.kit-noche'));
   r = ver(p.dir);
   assert.equal(r.codigo, 0, r.out);
@@ -852,7 +885,8 @@ test('verificar línea 6 (barreras): la rama que borra un renglón de frenos.log
   fs.rmSync(q.settings);
   r = ver(q.dir);
   assert.equal(r.codigo, 1);
-  assert.match(r.linea(6), /^6\. barreras · ❌ · falta el deny de worktree \(6\): /);
+  // sin el archivo, falta el deny entero: tantas como reglasDeny (desde W0 son 4, sin las Write)
+  assert.match(r.linea(6), new RegExp(`^6\\. barreras · ❌ · falta el deny de worktree \\(${q.deny.length}\\): `));
 });
 
 test('verificar: siempre seis líneas — sin la rama, sin el worktree en esta PC, una línea que se rompe: ❌ NO VERIFICADO con el porqué; error propio → encargo roto + NO VERIFICADO', () => {

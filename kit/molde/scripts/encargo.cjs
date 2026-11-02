@@ -293,11 +293,12 @@ function encargoLeido(L, raiz, n) {
   return { ok: true, u, e };
 }
 
-// Lo autorizado, sin estado (r1-3): la base + las reglas del encargo que valen, sin repetir, en ese orden.
+// Lo autorizado, sin estado (r1-3): la base + las reglas del encargo que valen, sin repetir, en ese orden. Un Write(<ruta>) del
+// encargo va como Edit(<ruta>) (E.aPermiso, RF-fix 14: la plataforma no mira Write(<ruta>) para archivos).
 function loAutorizado(L, ct, reglas) {
   const malas = new Set(L.E.validarAutorizado(reglas).map((m) => m.regla));
   const out = [];
-  for (const r of [...L.E.base(ct || ''), ...(reglas || []).filter((x) => !malas.has(x))]) if (!out.includes(r)) out.push(r);
+  for (const r of [...L.E.base(ct || ''), ...(reglas || []).filter((x) => !malas.has(x)).map(L.E.aPermiso)]) if (!out.includes(r)) out.push(r);
   return out;
 }
 
@@ -513,7 +514,9 @@ function lineaAlcance(L, c) {
 
 // 5. main (CM-79, D5-12): commits de la rama por defecto (local y origin) posteriores a la partida, y el status del principal. De
 // día ⚠️ (Guido trabaja en main); con el worktree del encargo de noche (.kit-rol nocturno o .kit-noche, la suya o la del
-// director: contexto.deNoche), un commit es ❌.
+// director: contexto.deNoche), un commit es ❌. Si la noche es por la marca, cuentan como de noche solo los commits con fecha de
+// commit ≥ el "desde" que escribe me-voy en ella (RF-fix 2: los de día anteriores al "me voy" son ⚠️, como de día); si la marca no
+// trae una fecha legible (escrita a mano, o de antes de me-voy), cuentan todos, como antes, y la línea lo dice.
 function lineaMain(L, c) {
   const desde = Date.parse(c.e.campos.partida.fecha);
   if (!Number.isFinite(desde)) return [MAL, `${NV} — la fecha de - Partida: no se lee`];
@@ -521,14 +524,14 @@ function lineaMain(L, c) {
   if (!def) return [MAL, `${NV} — no encuentro la rama por defecto`];
   // Desde el minuto SIGUIENTE a la partida: la partida va al minuto, y un commit de ese mismo minuto puede ser de antes.
   const limite = Math.floor(desde / 1000) + 60;
-  const shas = new Set();
+  const shas = new Map(); // sha → fecha de commit (segundos)
   for (const ref of [`refs/heads/${def}`, `refs/remotes/origin/${def}`]) {
     if (!L.E.shaDe(c.raiz, ref)) continue;
     const r = G(L, c.raiz, ['log', '-n', '2000', '--format=%H %ct', ref]);
     if (!r.ok) return [MAL, `${NV} — no pude leer el log de ${ref}`];
     for (const l of r.stdout.split('\n').map((s) => s.trim()).filter(Boolean)) {
       const [sha, ct] = l.split(' ');
-      if (Number(ct) >= limite) shas.add(sha);
+      if (Number(ct) >= limite) shas.set(sha, Number(ct));
     }
   }
   const st = G(L, path.dirname(c.gitComun), ['status', '-sb', '--untracked-files=all']);
@@ -536,9 +539,37 @@ function lineaMain(L, c) {
   const sucios = Math.max(0, lst.length - 1);
   const principal = `principal: ${lst.length ? lst[0] : '(sin estado)'}${sucios ? ` · ${sucios} sin commitear` : ''}`;
   const commits = `${shas.size} commit(s) en ${def} después de la partida (${c.e.campos.partida.fecha})`;
-  if (shas.size && c.noche && c.noche.noche) return [MAL, `${commits}: commit en main de noche: PARADA${c.noche.por === 'kit-noche' ? ' (.kit-noche)' : ''} · ${principal}`];
+  if (shas.size && c.noche && c.noche.noche) {
+    if (c.noche.por !== 'kit-noche') return [MAL, `${commits}: commit en main de noche: PARADA · ${principal}`];
+    const m = desdeMarca(L, c.wt, c.n.rama);
+    if (!m) return [MAL, `${commits}: commit en main de noche: PARADA (.kit-noche: la marca no trae una fecha legible, cuentan todos) · ${principal}`];
+    const deNoche = [...shas.values()].filter((ct) => ct >= Math.floor(m.ms / 1000)).length;
+    if (deNoche) return [MAL, `${commits}: commit en main de noche: PARADA (.kit-noche: ${deNoche} desde el "me voy" de ${m.texto}) · ${principal}`];
+    return [OJO, `${commits}, todos antes del "me voy" (${m.texto}) · ${principal}`];
+  }
   if (shas.size || sucios || !st.ok) return [OJO, `${commits} · ${principal}`];
   return [OK, `${commits} · ${principal}`];
+}
+
+// El "desde" de la .kit-noche que hizo nocturno al encargo (la de su checkout o, si no tiene, la del worktree del director: la misma
+// búsqueda que contexto.deNoche) → { ms, texto } o null si no se lee.
+function desdeMarca(L, wt, rama) {
+  const leer = (dir) => {
+    try {
+      return fs.readFileSync(path.join(dir, L.contexto.ARCHIVO_NOCHE), 'utf8');
+    } catch (e) {
+      return null;
+    }
+  };
+  let t = leer(wt);
+  if (t === null) {
+    const p = L.contexto.pestana(rama);
+    const d = p.tipo === 'obrero' ? (L.contexto.worktrees(wt) || []).find((w) => w.rama === `modulo/${p.modulo}`) : null;
+    t = d ? leer(d.ruta) : null;
+  }
+  const m = t === null ? null : /^\s*desde\s+(\S+)/m.exec(t.replace(/^﻿/, ''));
+  const ms = m ? Date.parse(m[1]) : NaN;
+  return Number.isFinite(ms) ? { ms, texto: m[1] } : null;
 }
 
 // 6. barreras: el candado de cada commit del rango, frenos.log sin bajas y el cruce de AUTORIZADO sin estado (r1-3): allow ⊆

@@ -259,6 +259,13 @@ test('validarRegla: las estrechas valen', () => {
   ]) assert.equal(E.validarRegla(r), null, r);
 });
 
+test('aPermiso (RF-fix 14): Write(<ruta>) va como Edit(<ruta>); Write solo (la base) y las demás, igual', () => {
+  assert.equal(E.aPermiso('Write(src/x/nuevo.ts)'), 'Edit(src/x/nuevo.ts)');
+  assert.equal(E.aPermiso(' Write(src/**) '), 'Edit(src/**)');
+  for (const r of ['Write', 'Edit(src/x/**)', 'Read(docs/**)', 'Bash(npm run build)', 'PowerShell(Write(x))', 'WebFetch(domain:ejemplo.com)']) assert.equal(E.aPermiso(r), r, r);
+  assert.ok(E.base('npm test').includes('Write'), 'la base sigue con Write, el nombre de la herramienta');
+});
+
 test('validarRegla: cada negativa, con su por qué', () => {
   const casos = [
     ['Task(x)', /Task no está entre las que se autorizan/],
