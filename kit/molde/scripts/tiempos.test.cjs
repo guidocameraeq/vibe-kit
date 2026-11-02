@@ -98,6 +98,26 @@ test('tiempos: primer y último commit, duración y sub-pasos de cada encargo, d
   assert.deepEqual(T.totalGuardado(dir, 'm1'), { encargos: 1, subpasos: 3, minutos: 65 });
 });
 
+test('tiempos (RF-fix 9): la duración arranca en la - Partida: del encargo; todo commiteado junto ya no da 0 min; una partida posterior al primer commit no cuenta', () => {
+  const dir = path.join(TMP, `r${++n}`);
+  fs.mkdirSync(dir);
+  git(dir, 'init', '-q', '-b', 'main');
+  const base = commit(dir, { 'docs/modulos/m1/README.md': '# M1\n- Estado: EN OBRA\n' }, 'ficha', '2026-11-01T08:30:00+00:00');
+  git(dir, 'checkout', '-q', '-b', 'modulo/m1');
+  // partida 06:30-03:00 = 09:30 UTC; los dos sub-pasos, juntos a las 10:00 UTC
+  const enc = encargo('07', 'm1', base.slice(0, 7), ['src/a/']).replace('2026-11-01T09:00-03:00', '2026-11-01T06:30-03:00');
+  commit(dir, { 'docs/modulos/m1/bitacora/2026-11-01-encargo-07.md': enc }, 'encargo 07', '2026-11-01T09:15:00+00:00');
+  git(dir, 'checkout', '-q', '-b', 'modulo/m1--07');
+  commit(dir, { 'src/a/x.js': '1\n' }, 'paso 1', '2026-11-01T10:00:00+00:00');
+  commit(dir, { 'src/a/y.js': '2\n' }, 'paso 2', '2026-11-01T10:00:00+00:00');
+  git(dir, 'checkout', '-q', 'main');
+  const r = correr(dir, 'tiempos', 'm1', '--ver');
+  assert.equal(r.codigo, 0, r.err);
+  assert.match(r.out, /^tiempos m1: 1 encargo\(s\) · 2 sub-paso\(s\) · 30 min/);
+  // No: la partida del repo de siempre (12:00 UTC) es posterior a su primer commit (10:00 UTC) → del primer al último, 65
+  assert.match(correr(repo(), 'tiempos', 'm1', '--ver').out, /^tiempos m1: 1 encargo\(s\) · 3 sub-paso\(s\) · 65 min/);
+});
+
 test('tiempos: lo que el director escribió fuera del bloque no se pisa, y correrlo dos veces da lo mismo', () => {
   const dir = repo();
   const f = path.join(dir, 'docs', 'modulos', 'm1', 'tiempos.md');
