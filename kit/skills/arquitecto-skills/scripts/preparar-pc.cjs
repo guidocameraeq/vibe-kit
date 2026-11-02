@@ -621,6 +621,11 @@ function principal(argv, { env = process.env, cwd = process.cwd(), renombrar = f
   const kitPcCambia = kp.texto !== nuevoKitPc;
 
   // ---- el plan, entero
+  // RF-12: con editados sin pisar (o salteados con --flota) el kit instalado no es el nuevo entero: VERSION no sube (así doctor
+  // version-kit sigue diciendo "atrás"). Con --pisar-editados o sin editados, se escribe como siempre.
+  const editadosSinPisar = o.pisarEditados ? 0 : pk.editados.length;
+  const versionRetenida = editadosSinPisar > 0 && pk.copiar.some((c) => c.rel === 'VERSION');
+  if (versionRetenida) pk.copiar = pk.copiar.filter((c) => c.rel !== 'VERSION');
   for (const c of pk.copiar) acciones.push(`${c.como} ~/.claude/${c.rel}`);
   for (const b of pk.borrar) acciones.push(`borro ~/.claude/${b.rel}: el kit ya no lo trae (está intacto)`);
   const saltear = o.pisarEditados ? [] : pk.editados;
@@ -633,6 +638,7 @@ function principal(argv, { env = process.env, cwd = process.cwd(), renombrar = f
   // ---- la tabla (antes de escribir: lo que pasa con cada paso)
   const nKit = pk.copiar.length;
   tabla.push(lin('✓', 'kit', `kit ${version}${tag ? ` (tag ${tag})` : ' (sin tag: prueba)'} · ${nKit ? `${nKit} archivo${nKit > 1 ? 's' : ''} para copiar` : 'sin cambios'}${pk.borrar.length ? ` · ${pk.borrar.length} para borrar (el kit ya no los trae)` : ''} · ${pk.iguales} iguales`));
+  if (versionRetenida) tabla.push(lin('⚠', 'version', `VERSION no subió: quedaron ${editadosSinPisar} archivo${editadosSinPisar === 1 ? '' : 's'} editado${editadosSinPisar === 1 ? '' : 's'} sin pisar`, 'llevá la edición al kit o volvé a correr con --pisar-editados'));
   if (pk.ajenos.length) tabla.push(lin('⚠', 'sobrantes', `lo dejo: no es del kit o lo editaste: ${pk.ajenos.join(', ')}`, 'si es tuyo a propósito, dejalo; si no, borralo a mano'));
   if (saltear.length) {
     const nombres = saltear.map((e) => e.rel).join(', ');

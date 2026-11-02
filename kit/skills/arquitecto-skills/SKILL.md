@@ -37,8 +37,8 @@ del Arquitecto: él monta proyectos; vos equipás máquinas.
 
 **"Preparame esta máquina"** (kit, hooks, settings, `kit-pc.md`: todo lo hace `preparar-pc.cjs`; no lo repitas a mano):
 1. Clon **completo, con tags** del canónico `guidocameraeq/vibe-kit` a un temporal (nunca `--depth 1`: sin historia todo archivo
-   viejo parece "editado a mano"), parado en el último **tag anotado** `v*` — nunca la punta de `main`. Es privado: si pide
-   credenciales, son del usuario.
+   viejo parece "editado a mano"), parado en el último **tag anotado** `v*` — nunca la punta de `main`. Es público; si `git`
+   pide credenciales, son del usuario.
 2. Corré el script **del clon nuevo**, nunca el instalado en `~/.claude/`:
    `node <clon>/kit/skills/arquitecto-skills/scripts/preparar-pc.cjs --kit <clon> --plan` (no escribe nada).
 3. **UNA pregunta** (`AskUserQuestion`): el plan, lo editado a mano con su diff y la carpeta de proyectos detectada

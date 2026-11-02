@@ -632,6 +632,41 @@ test('RF-8: lo que el kit ya no trae — intacto se borra (el plan lo muestra si
   assert.doesNotMatch(correr(e).texto, /borro/, 'la 2.ª corrida no tiene nada que borrar');
 });
 
+test('RF-12: con editados sin pisar (o --flota) VERSION no sube y la tabla lo dice; con --pisar-editados o sin editados, sube', () => {
+  const nuevaVersion = (e) => {
+    git(e.kit, 'checkout', '-q', '-');
+    fs.writeFileSync(path.join(e.kit, 'kit', 'VERSION'), '9.0.1\n');
+    git(e.kit, 'commit', '-qam', '9.0.1');
+    git(e.kit, 'tag', '-a', 'v9.0.1', '-m', 'v9.0.1');
+  };
+  const V = (e) => fs.readFileSync(path.join(e.home, '.claude', 'VERSION'), 'utf8');
+  const e = escenario();
+  git(e.kit, 'checkout', '-q', 'v9.0.0');
+  assert.equal(correr(e).codigo, 0);
+  const vieja = V(e);
+  nuevaVersion(e);
+  fs.appendFileSync(path.join(e.home, '.claude', ...ARCH), 'mío\n');
+  for (const extra of [[], ['--flota']]) {
+    const r = correr(e, extra);
+    assert.equal(r.codigo, 0, r.texto);
+    assert.equal(V(e), vieja, `no: VERSION queda la vieja (${extra.join(' ') || 'sin banderas'})`);
+    assert.match(linea(r, 'version'), /^⚠ version · VERSION no subió: quedaron 1 archivo editado sin pisar · /);
+    assert.doesNotMatch(r.texto, /actualizo ~\/\.claude\/VERSION/);
+  }
+  const p = correr(e, ['--pisar-editados']);
+  assert.equal(p.codigo, 0, p.texto);
+  assert.equal(V(e), '9.0.1\n', 'sí: con --pisar-editados sube');
+  assert.equal(linea(p, 'version'), undefined);
+  // sin editados, sube como siempre
+  const e2 = escenario();
+  git(e2.kit, 'checkout', '-q', 'v9.0.0');
+  assert.equal(correr(e2).codigo, 0);
+  nuevaVersion(e2);
+  const r2 = correr(e2);
+  assert.equal(V(e2), '9.0.1\n');
+  assert.equal(linea(r2, 'version'), undefined);
+});
+
 test.after(() => {
   try {
     fs.rmSync(RAIZ_TMP, { recursive: true, force: true });
