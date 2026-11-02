@@ -158,6 +158,90 @@ test('rol: sin .kit-rol humano; los cuatro tal cual; otra cosa desconocido', () 
   assert.equal(ctx.rol(null), 'desconocido');
 });
 
+// ---------------------------------------------------------------- de noche (crit. 16 del delta 5)
+
+const gitLib = require('./git.cjs');
+// Cuenta los git que lanza fn (y, con `romper`, hace fallar todos).
+// (contexto llama a git.correr y git.texto por el módulo: se cuentan las dos.)
+function contarGits(fn, romper = false) {
+  const orig = { correr: gitLib.correr, texto: gitLib.texto };
+  let k = 0;
+  gitLib.correr = (...a) => {
+    k++;
+    return romper ? { ok: false, codigo: null, stdout: '', salida: Buffer.alloc(0), stderr: '', error: 'sin-git' } : orig.correr(...a);
+  };
+  gitLib.texto = (...a) => {
+    k++;
+    return romper ? null : orig.texto(...a);
+  };
+  try {
+    return { r: fn(), gits: k };
+  } finally {
+    Object.assign(gitLib, orig);
+  }
+}
+// Un repo con el director de "nz" y dos obreros (uno de nz, uno de otro módulo), cada uno en su worktree.
+function conModulo() {
+  const d = repo();
+  commit(d, 'a.txt', '1');
+  const wt = (nombre, rama) => {
+    const w = path.join(d, '.claude', 'worktrees', nombre);
+    g(d, 'worktree', 'add', '-q', '-b', rama, w);
+    return w;
+  };
+  return { d, dir: wt('modulo--nz', 'modulo/nz'), obr: wt('modulo--nz--01', 'modulo/nz--01'), ajeno: wt('modulo--ot--01', 'modulo/ot--01') };
+}
+const NO = { noche: false, por: null };
+
+test('deNoche: de día nada; .kit-rol nocturno → kit-rol; .kit-noche propia → kit-noche (cualquier rama, también el principal)', () => {
+  const m = conModulo();
+  for (const w of [m.d, m.dir, m.obr, m.ajeno]) assert.deepEqual(ctx.deNoche(w), NO, w);
+  fs.writeFileSync(path.join(m.ajeno, '.kit-rol'), 'nocturno\n');
+  assert.deepEqual(ctx.deNoche(m.ajeno), { noche: true, por: 'kit-rol' });
+  fs.writeFileSync(path.join(m.ajeno, '.kit-rol'), 'obrero\n');
+  assert.deepEqual(ctx.deNoche(m.ajeno), NO, 'obrero no es noche');
+  fs.writeFileSync(path.join(m.d, '.kit-noche'), '');
+  assert.deepEqual(ctx.deNoche(m.d), { noche: true, por: 'kit-noche' }, 'una marca vacía vale');
+  assert.deepEqual(ctx.deNoche(m.dir), NO, 'la marca del principal no es la del director');
+  assert.deepEqual(ctx.deNoche(null), NO);
+});
+
+test('deNoche: la marca del director alcanza a SUS obreros (también por rama dada o leída por git), no a los de otro módulo', () => {
+  const m = conModulo();
+  fs.writeFileSync(path.join(m.dir, '.kit-noche'), 'desde 2026-11-02T22:00-03:00\n');
+  assert.deepEqual(ctx.deNoche(m.dir), { noche: true, por: 'kit-noche' });
+  assert.deepEqual(ctx.deNoche(m.obr), { noche: true, por: 'kit-noche' });
+  assert.deepEqual(ctx.deNoche(m.obr, { rama: 'modulo/nz--01' }), { noche: true, por: 'kit-noche' });
+  assert.deepEqual(ctx.deNoche(m.obr, { rama: null }), { noche: true, por: 'kit-noche' }, 'sin rama: la saca de worktree list');
+  assert.deepEqual(ctx.deNoche(m.ajeno), NO);
+  // un obrero de nz sin el worktree del director en esta PC: no es noche
+  g(m.d, 'worktree', 'remove', '--force', m.dir);
+  assert.deepEqual(ctx.deNoche(m.obr), NO);
+});
+
+test('deNoche es barata: 0 git si no es obrero o tiene marca propia; 1 en un obrero; git roto → no inventa noche', () => {
+  const m = conModulo();
+  fs.writeFileSync(path.join(m.dir, '.kit-noche'), '');
+  assert.equal(contarGits(() => ctx.deNoche(m.d)).gits, 0, 'principal (main por fs)');
+  assert.equal(contarGits(() => ctx.deNoche(m.dir)).gits, 0, 'marca propia');
+  assert.equal(contarGits(() => ctx.deNoche(m.ajeno, { rama: 'modulo/ot--01' })).gits, 1);
+  const c = contarGits(() => ctx.deNoche(m.obr));
+  assert.deepEqual([c.gits, c.r], [1, { noche: true, por: 'kit-noche' }]);
+  const roto = contarGits(() => ctx.deNoche(m.obr), true);
+  assert.deepEqual(roto.r, NO, 'sin git, decide como antes de .kit-noche');
+  fs.writeFileSync(path.join(m.obr, '.kit-rol'), 'nocturno\n');
+  assert.deepEqual(contarGits(() => ctx.deNoche(m.obr), true).r, { noche: true, por: 'kit-rol' }, 'el rol se lee sin git');
+});
+
+test('ramaPorFs: la del principal y la de un worktree sin git; HEAD suelto o fuera de git → null', () => {
+  const m = conModulo();
+  assert.equal(ctx.ramaPorFs(m.d), 'main');
+  assert.equal(ctx.ramaPorFs(m.obr), 'modulo/nz--01');
+  g(m.ajeno, 'checkout', '-q', '--detach');
+  assert.equal(ctx.ramaPorFs(m.ajeno), null);
+  assert.equal(ctx.ramaPorFs(carpeta('suelta')), null);
+});
+
 // ---------------------------------------------------------------- principal y carpetaRelativa
 
 test('principal y carpetaRelativa: "." en el checkout (y en su subcarpeta), .claude/worktrees/w1 en un worktree', () => {

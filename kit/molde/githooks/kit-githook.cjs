@@ -13,7 +13,8 @@
 // cualquiera da rojo. La ref sin ficha (nunca tuvo kit): solo la del disco, y lo dice. La ref con ficha y sin candado, o el de la ref
 // que sale 2 por otra cosa que "no conoce --indice/--rango", rojo. Si no conoce la bandera (es del orden 2): sin ella, y lo dice.
 // gitleaks: plazo de 60 s y un reintento (47 s en frío con Defender, r1-6, r2-10); dos veces colgado = "sin escáner (colgado)". Sin
-// escáner: humano, director y obrero pasan EN ROJO (con aviso y renglón); nocturno, actualizador y desconocido → 1.
+// escáner: humano, director y obrero pasan EN ROJO (con aviso y renglón); nocturno, actualizador y desconocido → 1. Uno de día con
+// la marca .kit-noche (la propia o la del director de un obrero) cuenta como nocturno (crit. 16 del delta 5).
 // Lo que ve gitleaks lo arma el runner (rf2-1): `gitleaks git` le pide el diff a git, y un `.gitattributes` con `-diff` (o un
 // `git -c core.attributesFile=…`) lo vuelve "binario" y la clave pasa. El runner saca él las líneas agregadas — pre-commit
 // `git diff --cached`, pre-push `git log -p --cc <rango>` (también lo que agrega un merge), siempre con --text --no-textconv
@@ -143,6 +144,42 @@ function rolDe(raiz) {
   }
   t = t.replace(/^﻿/, '').trim();
   return ROLES.includes(t) ? t : 'desconocido';
+}
+
+// De noche, como contexto.deNoche (crit. 16 del delta 5): la marca .kit-noche en la raíz de este checkout o, si la rama es de un
+// obrero (modulo/<x>--<ID>), en la del worktree del director (la rama modulo/<x>, por `git worktree list --porcelain`). Si git
+// falla, no inventa noche. El .kit-rol nocturno ya lo mira rolDe.
+function marcaDeNoche(raiz, o) {
+  const hay = (dir) => {
+    try {
+      fs.statSync(path.join(dir, '.kit-noche'));
+      return true;
+    } catch (e) {
+      return !!e && e.code !== 'ENOENT' && e.code !== 'ENOTDIR';
+    }
+  };
+  if (hay(raiz)) return true;
+  try {
+    const rama = gitTexto(['symbolic-ref', '--short', '-q', 'HEAD'], o);
+    const m = /^modulo\/([^/]+?)--([^/]+)$/.exec(rama || '');
+    if (!m) return false;
+    const t = gitTexto(['worktree', 'list', '--porcelain'], o);
+    if (!t) return false;
+    let ruta = null;
+    for (const l of t.split('\n').map((s) => s.replace(/\r$/, ''))) {
+      if (l.startsWith('worktree ')) ruta = l.slice('worktree '.length);
+      else if (ruta && l === `branch refs/heads/modulo/${m[1]}`) return hay(path.resolve(ruta));
+    }
+  } catch (e) {
+    /* sin git no hay noche que mirar: decide el .kit-rol */
+  }
+  return false;
+}
+
+// El rol con el que se juzga: el de .kit-rol, y uno de día (humano, director, obrero) con la marca .kit-noche pasa a nocturno.
+function rolEfectivo(raiz, o) {
+  const rol = rolDe(raiz);
+  return ROLES_PASAN_SIN_ESCANER.includes(rol) && marcaDeNoche(raiz, o) ? 'nocturno' : rol;
 }
 
 // La ref vigente, como contexto.refVigente (regla de 4.7): origin/HEAD si apunta a una candidata; si no origin/<candidata>; sin
@@ -626,7 +663,7 @@ function principal(argv, opciones = {}) {
   const foto = fotoLog(repo.raiz);
   try {
     const stdin = cual === 'pre-push' ? (opciones.stdin !== undefined ? opciones.stdin : leerStdin()) : undefined;
-    const rol = rolDe(repo.raiz);
+    const rol = rolEfectivo(repo.raiz, o);
     const lineas = [];
     let rojo = false;
     const sinEscaner = (por) => {
@@ -774,6 +811,8 @@ module.exports = {
   huellasIgnoradas,
   escanearCambios,
   rolDe,
+  marcaDeNoche,
+  rolEfectivo,
   refVigente,
   buscarGitleaks,
   leerReporte,

@@ -277,6 +277,34 @@ test('sin rol: lo lee de .kit-rol (nocturno niega; sin archivo, humano)', () => 
   assert.equal(dbg.juzgar(pedido(d, BORRA, { rol: undefined, banderas: ['--borra-datos-reales'] })).id, 'db:borra-de-noche');
 });
 
+test('crit. 16 del delta 5: .kit-noche vale como nocturno (la propia, o la del director para su obrero); sin marca, de día', () => {
+  const d = repo();
+  aprobar(d, BORRA);
+  aprobar(d, SUAVE);
+  const wt = (nombre, rama) => {
+    const w = path.join(d, '.claude', 'worktrees', nombre);
+    g(d, 'worktree', 'add', '-q', '-b', rama, w);
+    return w;
+  };
+  const dir = wt('modulo--nz', 'modulo/nz');
+  const obr = wt('modulo--nz--01', 'modulo/nz--01');
+  const ajeno = wt('modulo--ot--01', 'modulo/ot--01');
+  const conBandera = { banderas: ['--borra-datos-reales'] };
+  for (const w of [d, dir, obr]) assert.deepEqual(dbg.juzgar(pedido(w, BORRA, conBandera)), { ok: true }, `de día pasa: ${w}`);
+  fs.writeFileSync(path.join(dir, '.kit-noche'), '');
+  for (const [w, rol] of [[dir, 'director'], [obr, 'obrero'], [obr, undefined]]) {
+    const r = dbg.juzgar(pedido(w, BORRA, { ...conBandera, rol }));
+    assert.equal(r.id, 'db:borra-de-noche', `${w} ${rol}`);
+    assert.match(r.motivo, /sin una persona no se hace \(de noche: \.kit-noche\): dejá PARADA/);
+  }
+  assert.deepEqual(dbg.juzgar(pedido(obr, SUAVE)), { ok: true }, 'de noche, lo que no borra sigue');
+  assert.deepEqual(dbg.juzgar(pedido(ajeno, BORRA, conBandera)), { ok: true }, 'otro módulo, de día');
+  fs.writeFileSync(path.join(d, '.kit-noche'), '');
+  assert.equal(dbg.juzgar(pedido(d, BORRA, conBandera)).id, 'db:borra-de-noche', 'la marca propia, en el principal');
+  // el rol de noche sigue diciendo su rol
+  assert.match(dbg.juzgar(pedido(ajeno, BORRA, { ...conBandera, rol: 'nocturno' })).motivo, /\(rol nocturno\)/);
+});
+
 test('quitado pregunta:borrar-datos-reales vigente → sigue, aun de noche y sin bandera', () => {
   for (const hasta of ['siempre', '2026-11-15']) {
     const d = repo(FICHA({ id: 'pregunta:borrar-datos-reales', hasta }));

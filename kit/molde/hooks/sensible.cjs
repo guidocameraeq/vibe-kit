@@ -33,7 +33,8 @@
 // QUÉ DEVUELVE
 //   - Ids: `datos-reales` → `pregunta:borrar-datos-reales`; las otras, `pregunta:<clave>`. Un id quitado en `frenos.quitados` con
 //     `hasta:` vigente (siempre, o una fecha que no pasó, el día incluido) apaga esa clave y nada más.
-//   - `.kit-rol` `nocturno`, o `permission_mode` `bypassPermissions`/`dontAsk`/ausente/desconocido (r1-17) → `deny` con PARADA.
+//   - De noche (`contexto.deNoche`: `.kit-rol` `nocturno`, o la marca `.kit-noche` del checkout o, en un obrero, la del worktree
+//     de su director; el motivo dice cuál), o `permission_mode` `bypassPermissions`/`dontAsk`/ausente/desconocido (r1-17) → `deny` con PARADA.
 //   - `default`, `acceptEdits`, `plan`, `auto`, cualquier otro rol → `ask`, con cuál de las 5 es y qué entrada de la ficha la marca.
 //   - Los dos dejan renglón en .claude/frenos.log: id · herramienta · detalle = la clave (`preguntó <clave>` en el ask; `<clave>
 //     (<por qué no hay ventana>)` en el deny). NUNCA el comando.
@@ -462,13 +463,14 @@ const motivoAsk = (m, v) =>
   `Esto es «${PREGUNTAS[m.clave]}», una de las 5 preguntas de A: ${porQue(m)}. Si es lo que querés, aceptá; si no, rechazalo.${notaRota(v)}`;
 const SIN_VENTANA_TEXTO = {
   nocturno: 'de noche: .kit-rol nocturno',
+  'kit-noche': 'de noche: .kit-noche',
   'sin modo': 'no se sabe el modo de permisos, así que no hay ventana segura',
   'modo desconocido': 'un modo de permisos que el kit no conoce, así que no hay ventana segura',
 };
 const SI_SOS_VOS = ' Si sos vos, pasá a default (Shift+Tab) y pedilo de nuevo.';
 const motivoParada = (m, v, sinVentana) =>
   `esto es «${PREGUNTAS[m.clave]}» y sin una persona no se hace: dejá PARADA en tu bitácora y pará (${porQue(m)}; ${sinVentana}).` +
-  `${sinVentana === SIN_VENTANA_TEXTO.nocturno ? '' : SI_SOS_VOS}${notaRota(v)}`;
+  `${sinVentana === SIN_VENTANA_TEXTO.nocturno || sinVentana === SIN_VENTANA_TEXTO['kit-noche'] ? '' : SI_SOS_VOS}${notaRota(v)}`;
 
 // Lo que matchea, en el orden de las 5: [{clave, entrada, bandera}].
 function coincidencias(comandos, listas, ps, comando) {
@@ -517,8 +519,10 @@ function decidir(entrada, opciones = {}) {
   }
   const rol = contexto.rol(raiz);
   const modo = typeof e.permission_mode === 'string' ? e.permission_mode.trim() : '';
+  // De noche: .kit-rol nocturno, o la marca .kit-noche (la propia, o la del director si esto es un obrero). La rama ya está.
+  const noche = raiz ? contexto.deNoche(raiz, { rama }) : { noche: false, por: null };
   let sinVentana = null;
-  if (rol === 'nocturno') sinVentana = 'nocturno';
+  if (noche.noche) sinVentana = noche.por === 'kit-noche' ? 'kit-noche' : 'nocturno';
   else if (!modo) sinVentana = 'sin modo';
   else if (SIN_VENTANA.includes(modo)) sinVentana = modo;
   else if (!CON_VENTANA.includes(modo)) sinVentana = 'modo desconocido';

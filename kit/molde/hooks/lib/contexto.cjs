@@ -104,6 +104,92 @@ function rol(raizCheckout) {
   return ROLES.includes(t) ? t : 'desconocido';
 }
 
+// ---------------------------------------------------------------- de noche (RF-11, crit. 16 del delta 5, D5-16)
+
+const ARCHIVO_NOCHE = '.kit-noche';
+const NO_ES_NOCHE = Object.freeze({ noche: false, por: null });
+
+const existe = (p) => {
+  try {
+    fs.statSync(p);
+    return true;
+  } catch (e) {
+    return !!e && e.code !== 'ENOENT' && e.code !== 'ENOTDIR'; // existe pero no se mira (permisos): cuenta como que está
+  }
+};
+const leerFs = (p) => {
+  try {
+    return fs.readFileSync(p, 'utf8');
+  } catch (e) {
+    return null;
+  }
+};
+
+// La rama del checkout por fs, sin lanzar git: <raiz>/.git (carpeta, o archivo "gitdir: …" en un worktree) → HEAD. null si no se
+// lee (HEAD suelto, reftable, un .git raro): el que llama decide si le pregunta a git.
+function ramaPorFs(raizCheckout) {
+  const g = path.join(raizCheckout, '.git');
+  let gitDir = null;
+  let st = null;
+  try {
+    st = fs.statSync(g);
+  } catch (e) {
+    return null;
+  }
+  if (st.isDirectory()) gitDir = g;
+  else {
+    const m = /^gitdir:[ \t]*(.+?)[ \t]*\r?\n?$/.exec(leerFs(g) || '');
+    if (!m) return null;
+    gitDir = path.resolve(raizCheckout, m[1]);
+  }
+  const m = /^ref:\s*refs\/heads\/(\S+)\s*$/.exec(leerFs(path.join(gitDir, 'HEAD')) || '');
+  return m ? m[1] : null;
+}
+
+// `git worktree list --porcelain` → [{ ruta, rama }] (rama sin refs/heads/; null si está suelto). null si git falla.
+function worktrees(cwd) {
+  const t = git.texto(['worktree', 'list', '--porcelain'], { cwd });
+  if (t === null) return null;
+  const lista = [];
+  let actual = null;
+  for (const l of t.split('\n').map((s) => s.replace(/\r$/, ''))) {
+    if (l.startsWith('worktree ')) {
+      actual = { ruta: path.resolve(l.slice('worktree '.length)), rama: null };
+      lista.push(actual);
+    } else if (actual && l.startsWith('branch refs/heads/')) actual.rama = l.slice('branch refs/heads/'.length);
+  }
+  return lista;
+}
+
+const mismaRuta = (a, b) => (process.platform === 'win32' ? path.resolve(a).toLowerCase() === path.resolve(b).toLowerCase() : path.resolve(a) === path.resolve(b));
+
+// deNoche(raizCheckout, {rama}) → { noche, por: 'kit-rol' | 'kit-noche' | null } (SPEC-0 línea 26; crit. 16 del delta 5).
+// De noche si: .kit-rol es nocturno · hay .kit-noche en la raíz de este checkout · o este checkout es de un obrero (rama
+// modulo/<x>--<ID>) y hay .kit-noche en la raíz del worktree del director de ese módulo (la rama modulo/<x>): un obrero abierto de
+// día que sigue después del "me voy" pasa a nocturno. Nunca una variable de entorno.
+// Barata (corre en cada hook): dos lecturas de fs; la rama la da el que llama o sale por fs; git solo para un obrero sin marca
+// propia (UNA llamada: `git worktree list --porcelain`, que de paso da la rama si fs no la leyó). Si git falla, no inventa noche:
+// decide con lo que vio (el rol y la marca propia), como antes de .kit-noche.
+function deNoche(raizCheckout, opciones = {}) {
+  if (!raizCheckout) return NO_ES_NOCHE;
+  if (rol(raizCheckout) === 'nocturno') return { noche: true, por: 'kit-rol' };
+  if (existe(path.join(raizCheckout, ARCHIVO_NOCHE))) return { noche: true, por: 'kit-noche' };
+  let nombre = typeof opciones.rama === 'string' ? opciones.rama : opciones.rama === null ? null : ramaPorFs(raizCheckout);
+  // Sabiendo la rama y que no es de obrero, ni se lanza git.
+  if (nombre && pestana(nombre).tipo !== 'obrero') return NO_ES_NOCHE;
+  const lista = worktrees(raizCheckout);
+  if (!lista) return NO_ES_NOCHE;
+  if (!nombre) {
+    const yo = lista.find((w) => mismaRuta(w.ruta, raizCheckout));
+    nombre = yo ? yo.rama : null;
+  }
+  const p = pestana(nombre);
+  if (p.tipo !== 'obrero') return NO_ES_NOCHE;
+  const director = lista.find((w) => w.rama === `modulo/${p.modulo}`);
+  if (director && existe(path.join(director.ruta, ARCHIVO_NOCHE))) return { noche: true, por: 'kit-noche' };
+  return NO_ES_NOCHE;
+}
+
 // ---------------------------------------------------------------- rama por defecto y ficha vigente (regla de 4.7)
 
 // modulo/* y worktree-* nunca son rama por defecto, ni aunque init.defaultBranch lo diga (un agente lo cambia con git config; r2-5).
@@ -212,6 +298,7 @@ function armar(entrada) {
 module.exports = {
   RUTA_FICHA,
   ARCHIVO_ROL,
+  ARCHIVO_NOCHE,
   ROLES,
   FUERA_DEL_PRINCIPAL,
   cwdDe,
@@ -224,6 +311,9 @@ module.exports = {
   rama,
   pestana,
   rol,
+  ramaPorFs,
+  worktrees,
+  deNoche,
   prohibidaComoDefecto,
   candidatas,
   refVigente,

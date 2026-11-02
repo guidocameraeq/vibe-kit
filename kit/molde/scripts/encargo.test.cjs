@@ -787,6 +787,22 @@ test('verificar línea 5 (main): un commit en main después de la partida → �
   assert.match(r.linea(5), /^5\. main · ⚠️ · 0 commit\(s\) .* · principal: ## main · 1 sin commitear$/);
 });
 
+test('verificar línea 5 (main), crit. 16: la marca .kit-noche del director (el "me voy") vuelve ❌ el commit en main; sin marca, ⚠️', () => {
+  const p = proyectoV();
+  listo(p);
+  const futuro = new Date(Date.now() + 10 * 60000).toISOString();
+  conEntorno({ GIT_COMMITTER_DATE: futuro, GIT_AUTHOR_DATE: futuro }, () => commit(p.P, { 'guido.txt': 'de Guido\n' }, 'Guido en main'));
+  fs.writeFileSync(path.join(p.dir, '.kit-noche'), 'desde 2026-11-02T22:00-03:00\n');
+  let r = ver(p.dir);
+  assert.equal(r.codigo, 1, r.out);
+  assert.equal(marcas(r), '✅✅✅✅❌✅');
+  assert.match(r.linea(5), /^5\. main · ❌ · 1 commit\(s\) en main después de la partida \(.+\): commit en main de noche: PARADA \(\.kit-noche\) · principal: /);
+  fs.rmSync(path.join(p.dir, '.kit-noche'));
+  r = ver(p.dir);
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(r.linea(5), /^5\. main · ⚠️ · 1 commit\(s\)/);
+});
+
 test('verificar línea 6 (barreras): pregunta:borrar-datos-reales sumado a frenos.quitados → ❌ (candado rojo)', () => {
   const p = proyectoV();
   listo(p, { '.claude/kit.md': CON_QUITADO });

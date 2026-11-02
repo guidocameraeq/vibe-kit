@@ -331,6 +331,36 @@ test('PARADA: nocturno (en cualquier modo), bypassPermissions, dontAsk, sin modo
   }
 });
 
+test('crit. 16 del delta 5: .kit-noche vale como nocturno — la propia, o la del director para su obrero; sin marca, ask', () => {
+  const dir = worktree(P, 'modulo/nz', 'director');
+  const obr = worktree(P, 'modulo/nz--01', 'obrero');
+  const ajeno = worktree(P, 'modulo/otro--01', 'obrero');
+  const suelta = worktree(P, `tarea${n}`);
+  // de día: todos con ventana
+  for (const w of [dir, obr, ajeno, suelta]) decide(w, entrada(w, 'npm run release'), 'ask', 'pregunta:release');
+  // "me voy": la marca en el director
+  fs.writeFileSync(path.join(dir, '.kit-noche'), 'desde 2026-11-02T22:00-03:00\n');
+  for (const w of [dir, obr]) {
+    for (const modo of ['default', 'acceptEdits']) {
+      const r = decide(w, entrada(w, 'npm run release', { permission_mode: modo }), 'deny', 'pregunta:release');
+      assert.equal(r.detalleLog, 'release (kit-noche)');
+      assert.match(r.motivo, /PARADA.*\(.*de noche: \.kit-noche\)/);
+      assert.doesNotMatch(r.motivo, /Si sos vos/);
+    }
+  }
+  // el obrero de OTRO módulo no se entera de la noche de nz
+  decide(ajeno, entrada(ajeno, 'npm run release'), 'ask', 'pregunta:release');
+  // la marca propia, en una rama cualquiera
+  fs.writeFileSync(path.join(suelta, '.kit-noche'), '');
+  assert.equal(decide(suelta, entrada(suelta, 'npm run release'), 'deny', 'pregunta:release').detalleLog, 'release (kit-noche)');
+  // "volví": sin la marca, otra vez ask
+  fs.rmSync(path.join(dir, '.kit-noche'));
+  for (const w of [dir, obr]) decide(w, entrada(w, 'npm run release'), 'ask', 'pregunta:release');
+  // .kit-rol nocturno gana y lo dice como siempre
+  const noc = worktree(P, 'modulo/nz--02', 'nocturno');
+  assert.equal(decide(noc, entrada(noc, 'npm run release'), 'deny', 'pregunta:release').detalleLog, 'release (nocturno)');
+});
+
 test('el hook corrido como lo corre la plataforma: ask y deny por stdout, salida 0; lo que no matchea, sin salida', () => {
   let r = correr(entrada(P, 'npm run release'));
   assert.equal(r.codigo, 0, r.stderr);
