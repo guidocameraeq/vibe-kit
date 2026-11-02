@@ -134,13 +134,17 @@ test('nombreEncargo: <x>--<ID> sí; sin ID, ID de un dígito, mayúsculas, x de 
 
 // ---------------------------------------------------------------- el vocabulario
 
-test('vocabulario: los ocho tipos con su lado; la tilde es alias (CORRECCIÓN = CORRECCION); minúsculas y otros no', () => {
-  const lado = Object.fromEntries(E.VOCABULARIO.map((v) => [v.tipo, v.a]));
+test('vocabulario: los ocho tipos con su lado y los seis de la mesa; la tilde es alias (CORRECCIÓN = CORRECCION); minúsculas y otros no', () => {
+  const lado = Object.fromEntries(E.VOCABULARIO.filter((v) => !v.mesa).map((v) => [v.tipo, v.a]));
   assert.deepEqual(lado, {
     PRESENTACION: 'director', AVANCE: 'director', CONSULTA: 'director', PARADA: 'director', CIERRE: 'director',
     ENCARGO: 'obrero', RESPUESTA: 'obrero', CORRECCION: 'obrero',
   });
   assert.deepEqual(E.VOCABULARIO.filter((v) => v.conRuta).map((v) => v.tipo), ['ENCARGO', 'CORRECCION']);
+  assert.deepEqual(E.VOCABULARIO.filter((v) => v.mesa).map((v) => `${v.tipo} ${v.de}→${v.a}`), ['HECHO', 'PEDIDO', 'RESPUESTA', 'PROPUESTA', 'ALERTA', 'PRESENTACION'].map((t) => `${t} director→director`));
+  assert.equal(E.tipoDe('RESPUESTA').a, 'obrero', 'sin filtro, la primera fila (la de obreros)');
+  assert.equal(E.tipoDe('RESPUESTA', (v) => v.a === 'director').mesa, true);
+  assert.equal(E.tipoDe('HECHO', (v) => v.a === 'obrero').a, 'director', 'el filtro que nadie cumple devuelve la primera');
   assert.equal(E.tipoDe('CORRECCIÓN'), E.tipoDe('CORRECCION'));
   assert.equal(E.tipoDe('PRESENTACIÓN').tipo, 'PRESENTACION');
   assert.equal(E.tipoDe('CORRECCIO\u0301N').tipo, 'CORRECCION', 'la tilde descompuesta (NFD) también');
@@ -370,7 +374,7 @@ const enModuloOk = (x, ruta, sha) => ({ ok: true, sha7: (sha || 'abcdef0123').sl
 const juzgar = (texto, o = {}) => E.juzgarMensaje({ texto, rol: 'obrero', pestana: OBRERO, rutaEnModulo: enModuloOk, ...o });
 
 test('juzgarMensaje: cada tipo llega a su lado y no al otro', () => {
-  for (const v of E.VOCABULARIO) {
+  for (const v of E.VOCABULARIO.filter((x) => !x.mesa)) {
     const [bien, mal] = v.a === 'obrero' ? [OBRERO, DIRECTOR] : [DIRECTOR, OBRERO];
     const t = v.conRuta ? `${v.tipo} ${RUTA}@abc1234` : `${v.tipo} algo`;
     const si = juzgar(t, { pestana: bien, rol: v.a });
@@ -529,4 +533,37 @@ test('rutaEnModulo: archivo en modulo/x sí; que no está, carpeta, ruta que sal
   const anterior = g(r.P, 'rev-parse', 'main');
   assert.match(E.rutaEnModulo(r.P, 'x', RUTA, anterior.slice(0, 7)).por, /no contiene/);
   assert.match(E.rutaEnModulo(r.P, 'nada', RUTA, null).por, /no existe modulo\/nada/);
+});
+
+// ---------------------------------------------------------------- un mensaje de mesa (crit. 16 del delta; crit. 13 del kit)
+
+const RUTA_MESA = 'docs/modulos/identidad/mesa/desktop/2026-10-24-1-PEDIDO.md';
+const AVISO = (t) => `${t} · mobile → desktop · endpoint X · mobile:${RUTA_MESA}@a1b2c3d4e5f6`;
+const citaOk = (alias, ruta, sha) => ({ ok: true, sha12: sha.padEnd(12, '0').slice(0, 12) });
+
+test('juzgarMensaje (mesa): los seis tipos de director a director con su archivo commiteado → 0; a un obrero → 1', () => {
+  for (const t of ['HECHO', 'PEDIDO', 'RESPUESTA', 'PROPUESTA', 'ALERTA', 'PRESENTACION']) {
+    let pedido = null;
+    const si = juzgar(AVISO(t), { pestana: DIRECTOR, citaDeMesa: (a, r, s) => ((pedido = { a, r, s }), citaOk(a, r, s)) });
+    assert.deepEqual(si, { codigo: 0, linea: `vale: leé mobile:${RUTA_MESA}@a1b2c3d4e5f6` }, t);
+    assert.deepEqual(pedido, { a: 'mobile', r: RUTA_MESA, s: 'a1b2c3d4e5f6' });
+    const no = juzgar(AVISO(t), { pestana: OBRERO, citaDeMesa: citaOk });
+    assert.equal(no.codigo, 1, `${t} a un obrero`);
+    assert.match(no.linea, /^no vale: \S+ no es para un obrero: anotalo y no lo ejecutes$/);
+  }
+  assert.equal(juzgar(AVISO('PROPUESTA'), { pestana: DIRECTOR, citaDeMesa: citaOk, rol: 'humano' }).codigo, 1, 'humano no recibe');
+  assert.equal(juzgar(AVISO('PEDIDO'), { pestana: { tipo: 'plana', rama: 'main' }, citaDeMesa: citaOk }).codigo, 1, 'una rama que no es de módulo');
+});
+
+test('juzgarMensaje (mesa): sin la cita, o con una que git no respalda → devuelto; PRESENTACION sin cita sigue siendo la del obrero', () => {
+  for (const t of ['PEDIDO pásenme el endpoint', `PEDIDO ${RUTA_MESA}@a1b2c3d`, 'HECHO mobile:docs/modulos/x/bitacora/a.md@a1b2c3d']) {
+    const r = juzgar(t, { pestana: DIRECTOR, citaDeMesa: citaOk });
+    assert.deepEqual(r, { codigo: 1, linea: 'devuelto: el mensaje avisa, git manda — PEDIDO de mesa sin <alias>:<ruta de mesa>@<sha>'.replace('PEDIDO', t.split(' ')[0]) }, t);
+  }
+  const r = juzgar(AVISO('PEDIDO'), { pestana: DIRECTOR, citaDeMesa: () => ({ ok: false, por: '@a1b2c3d4e5f6 no está en este repo' }) });
+  assert.deepEqual(r, { codigo: 1, linea: 'devuelto: el mensaje avisa, git manda — @a1b2c3d4e5f6 no está en este repo' });
+  assert.equal(juzgar(AVISO('PEDIDO'), { pestana: DIRECTOR }).codigo, 1, 'sin cómo mirar git, no vale');
+  assert.deepEqual(juzgar('PRESENTACION modulo/x--01 @abc1234 · sonnet · low', { pestana: DIRECTOR }), { codigo: 0, linea: 'vale: dato' });
+  assert.deepEqual(juzgar('RESPUESTA el tema'), { codigo: 0, linea: 'vale: dato' }, 'la RESPUESTA del director al obrero no cambió');
+  assert.deepEqual(juzgar(AVISO('PRESENTACIÓN'), { pestana: DIRECTOR, citaDeMesa: citaOk }).codigo, 0, 'la tilde es alias también en la mesa');
 });

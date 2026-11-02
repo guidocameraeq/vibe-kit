@@ -27,7 +27,9 @@ function nombreEncargo(token) {
 // ---------------------------------------------------------------- el vocabulario (P5.4, G §6.1; congelado)
 
 // La primera línea del mensaje es el tipo, en mayúsculas y sin tilde. `conRuta`: lleva `<ruta>@<sha7>` que tiene que existir en
-// modulo/<x>. D5.2 suma los seis de la mesa a esta misma tabla.
+// modulo/<x>. Dos columnas, una sola tabla (G §6.1): la de director y obreros, y la de la mesa (`mesa: true`, entre directores de
+// dos proyectos), que lleva `<alias>:<ruta>@<sha>` del archivo de mesa commiteado en el repo del que escribe (crit. 13 del kit).
+// RESPUESTA y PRESENTACION están en las dos columnas: las separa la cita de mesa (ver juzgarMensaje).
 const VOCABULARIO = [
   { tipo: 'PRESENTACION', de: 'obrero', a: 'director', conRuta: false },
   { tipo: 'AVANCE', de: 'obrero', a: 'director', conRuta: false },
@@ -37,15 +39,23 @@ const VOCABULARIO = [
   { tipo: 'ENCARGO', de: 'director', a: 'obrero', conRuta: true },
   { tipo: 'RESPUESTA', de: 'director', a: 'obrero', conRuta: false },
   { tipo: 'CORRECCION', de: 'director', a: 'obrero', conRuta: true },
+  { tipo: 'HECHO', de: 'director', a: 'director', conRuta: false, mesa: true },
+  { tipo: 'PEDIDO', de: 'director', a: 'director', conRuta: false, mesa: true },
+  { tipo: 'RESPUESTA', de: 'director', a: 'director', conRuta: false, mesa: true },
+  { tipo: 'PROPUESTA', de: 'director', a: 'director', conRuta: false, mesa: true },
+  { tipo: 'ALERTA', de: 'director', a: 'director', conRuta: false, mesa: true },
+  { tipo: 'PRESENTACION', de: 'director', a: 'director', conRuta: false, mesa: true },
 ];
 
 // sinTilde("CORRECCIÓN") → "CORRECCION": saca solo el acento agudo (la Ñ queda; D5-6: la tilde es un alias).
 const sinTilde = (t) => String(t).normalize('NFD').replace(/\u0301/g, '').normalize('NFC');
 
-// tipoDe(palabra) → la fila del vocabulario, o null (en minúsculas no vale: el tipo va en mayúsculas).
-function tipoDe(palabra) {
+// tipoDe(palabra[, filtro]) → la primera fila del vocabulario con ese tipo (con filtro, la primera que además lo cumple; si
+// ninguna lo cumple, la primera con ese tipo), o null (en minúsculas no vale: el tipo va en mayúsculas).
+function tipoDe(palabra, filtro) {
   const t = sinTilde(palabra);
-  return VOCABULARIO.find((v) => v.tipo === t) || null;
+  const filas = VOCABULARIO.filter((v) => v.tipo === t);
+  return (filtro && filas.find(filtro)) || filas[0] || null;
 }
 
 // ---------------------------------------------------------------- la plantilla del encargo (P3.4, D §15.2; congelada)
@@ -475,18 +485,38 @@ function rutaEnModulo(cwd, x, ruta, sha) {
   return { ok: true, sha7: completo.slice(0, 7) };
 }
 
-// juzgarMensaje({ texto, rol, pestana, rutaEnModulo }) → { codigo: 0 | 1, linea }. `texto`: la primera línea (tipo y, si va, la
-// ruta); `rol`: el de contexto.rol; `pestana`: la de contexto.pestana(rama), que decide el lado; `rutaEnModulo(x, ruta, sha)`: el
-// chequeo de git (inyectado: así se prueba la tabla sola).
-function juzgarMensaje({ texto, rol, pestana, rutaEnModulo: enModulo }) {
+// La cita de mesa del aviso: `<alias>:docs/modulos/<x>/mesa/<alias>/<archivo>.md@<sha>` (G §5.7).
+const RE_CITA_MESA = /^([a-z0-9]+(?:-[a-z0-9]+)*):(docs\/modulos\/[^\s@]+\/mesa\/[^\s@]+\.md)@([0-9a-f]{7,40})$/;
+function citaMesa(palabras) {
+  for (const w of palabras) {
+    const m = RE_CITA_MESA.exec(w);
+    if (m) return { alias: m[1], ruta: m[2], sha: m[3] };
+  }
+  return null;
+}
+
+// juzgarMensaje({ texto, rol, pestana, rutaEnModulo, citaDeMesa }) → { codigo: 0 | 1, linea }. `texto`: la primera línea (tipo
+// y, si va, la ruta); `rol`: el de contexto.rol; `pestana`: la de contexto.pestana(rama), que decide el lado; `rutaEnModulo(x, ruta,
+// sha)` y `citaDeMesa(alias, ruta, sha)` → { ok, sha12 } · { ok: false, por }: los chequeos de git (inyectados: así se prueba la
+// tabla sola). Un tipo de mesa llega solo a un director y vale si git respalda su archivo en el repo del otro (crit. 13 y 16).
+function juzgarMensaje({ texto, rol, pestana, rutaEnModulo: enModulo, citaDeMesa }) {
   const no = (linea) => ({ codigo: 1, linea });
   if (rol === 'humano' || rol === 'desconocido') return no(`${NO_RECIBE} (rol ${rol})`);
   const lado = pestana && (pestana.tipo === 'director' || pestana.tipo === 'obrero') ? pestana.tipo : null;
   if (!lado) return no(`${NO_RECIBE} (la rama ${(pestana && pestana.rama) || '(ninguna)'} no es de un módulo)`);
   const p = String(texto || '').trim().split(/\s+/).map(limpiarPalabra).filter(Boolean);
-  const def = p.length ? tipoDe(p[0]) : null;
+  const cita = citaMesa(p.slice(1));
+  // RESPUESTA y PRESENTACION están en las dos columnas: con cita de mesa es la de la mesa (y a un obrero no llega); sin cita, la
+  // de director y obreros.
+  const def = p.length ? tipoDe(p[0], (v) => !!v.mesa === !!cita) : null;
   if (!def) return no(`no vale: "${p[0] || ''}" no es un tipo del vocabulario: anotalo y no lo ejecutes`);
   if (def.a !== lado) return no(`no vale: ${def.tipo} no es para un ${lado}: anotalo y no lo ejecutes`);
+  if (def.mesa) {
+    if (!cita) return no(`${DEVUELTO} — ${def.tipo} de mesa sin <alias>:<ruta de mesa>@<sha>`);
+    const r = citaDeMesa ? citaDeMesa(cita.alias, cita.ruta, cita.sha) : { ok: false, por: 'no hay cómo mirar el repo del otro' };
+    if (!r.ok) return no(`${DEVUELTO} — ${r.por}`);
+    return { codigo: 0, linea: `vale: leé ${cita.alias}:${cita.ruta}@${r.sha12}` };
+  }
   if (!def.conRuta) return { codigo: 0, linea: 'vale: dato' };
   if (p.length < 2) return no(`${DEVUELTO} — ${def.tipo} sin <ruta>@<sha7>`);
   const { ruta, sha } = rutaYSha(p[1]);
@@ -499,5 +529,5 @@ module.exports = {
   RE_X, RE_ID, VOCABULARIO, CAMPOS, SECCIONES, HERRAMIENTAS, INTERPRETES, SCRIPT_ENCARGO, SIN_SELLO, NO_RECIBE, DEVUELTO, ErrorGit,
   nombreEncargo, sinTilde, tipoDe, leerEncargo, interprete, interpreteAbierto, validarRegla, validarAutorizado, base,
   shaDe, esAncestro, refMasNueva, tipoEn, leerEn, ubicarEncargo, specVigente, gateQuitadoEl, juzgarSpec, limpiarPalabra, rutaYSha,
-  rutaEnModulo, juzgarMensaje,
+  rutaEnModulo, juzgarMensaje, citaMesa, RE_CITA_MESA,
 };

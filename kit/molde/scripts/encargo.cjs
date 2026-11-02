@@ -10,7 +10,8 @@
 // `partida` imprime la línea - Partida: del encargo. `presentar` es el primer paso de /obrero: la rama, el encargo según la
 // plantilla, el sello del spec (spec sin sello → "spec sin Arquitecto: corré Modo B") y la base (vars.comando-test, que no
 // cambia la salida); `--spec`, solo el sello, desde el worktree del director. `mensaje` dice si un mensaje entrante vale: el lado
-// sale de la rama (pestaña), .kit-rol decide solo humano/desconocido (r1-11). `autorizado` reescribe entero permissions.allow del
+// sale de la rama (pestaña), .kit-rol decide solo humano/desconocido (r1-11); un tipo de mesa (crit. 16) llega solo a un director
+// y vale si git respalda su `<alias>:<ruta>@<sha>` (trae el remoto <alias>; lib/mesa.cjs). `autorizado` reescribe entero permissions.allow del
 // settings.local.json del worktree del encargo con la base + ## AUTORIZADO (sin estado; el deny y lo demás quedan) e imprime las dos
 // aperturas: la de Guido, en su modo, y la de fondo (acceptEdits + --allowedTools; nunca el modo que saltea permisos). `verificar`
 // imprime siempre seis líneas (remoto · limpio · pruebas · alcance · main · barreras) y sale 0 si ninguna es ❌; lo que no se pudo
@@ -224,6 +225,13 @@ function mensaje(L, g, a) {
       const f = traerOrigin(L, g.raiz);
       if (f) avisos.push(f);
       return L.E.rutaEnModulo(g.raiz, x, ruta, sha);
+    },
+    // Un tipo de mesa: el archivo vive en el repo del otro, que es el remoto con su alias (G §5.6); se trae y se mira el SHA.
+    citaDeMesa: (alias, ruta, sha) => {
+      const M = require('../hooks/lib/mesa.cjs');
+      if (M.remotosAlias(g.raiz).includes(alias)) avisos.push(...M.traer(g.raiz, [alias]));
+      else avisos.push(`no hay un remoto ${alias} (git remote add ${alias} <url>): miro solo lo que ya está en este repo`);
+      return M.citaEnRepo(g.raiz, alias, ruta, sha);
     },
   });
   return { codigo: r.codigo, lineas: [...avisos, r.linea] };
