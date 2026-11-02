@@ -188,6 +188,29 @@ test('sin director en el módulo: imprime el bloque (no escribe archivo en la bi
   assert.match(resumen(dir, ['m2', '--forzar']).out, /## Qué se hizo/);
 });
 
+test('qué se hizo (RF-fix 6): el commit del director en modulo/<x> y el de un obrero que solo está en origin entran; los de otro módulo, no', () => {
+  const dir = mundo();
+  const bare = path.join(TMP, `remoto${++n}.git`);
+  git(TMP, 'init', '-q', '--bare', bare);
+  git(dir, 'remote', 'add', 'origin', bare);
+  git(dir, 'checkout', '-q', '-b', 'modulo/m1');
+  commit(dir, { 'director.txt': 'x\n' }, 'el director anota hoy', iso(AHORA, 11));
+  git(dir, 'checkout', '-q', '-b', 'modulo/m1--02');
+  commit(dir, { 'obrero.txt': 'x\n' }, 'el obrero 02 desde otra PC', iso(AHORA, 12));
+  git(dir, 'push', '-q', 'origin', 'modulo/m1--02');
+  git(dir, 'checkout', '-q', 'main');
+  git(dir, 'branch', '-q', '-D', 'modulo/m1--02');
+  git(dir, 'checkout', '-q', '-b', 'modulo/m2');
+  commit(dir, { 'otro.txt': 'x\n' }, 'el director de m2', iso(AHORA, 13));
+  git(dir, 'checkout', '-q', 'main');
+  const r = resumen(dir, ['m1']);
+  assert.equal(r.codigo, 0, r.err);
+  const hizo = r.out.split('## Qué se hizo')[1].split('\n## ')[0];
+  assert.match(hizo, /- \w+ el director anota hoy/);
+  assert.match(hizo, /- \w+ el obrero 02 desde otra PC/);
+  assert.doesNotMatch(hizo, /el director de m2/);
+});
+
 test('el módulo que no existe → 1; argumentos feos → 2; por la línea de comandos sale 0', () => {
   const dir = mundo();
   const no = resumen(dir, ['zzz']);
