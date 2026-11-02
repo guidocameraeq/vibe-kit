@@ -46,6 +46,7 @@ Por rutas (`git commit -- <rutas>`), uno por entregable, primera línea que se e
 - Casos de **sí y de no** de cada regla que el sub-paso agrega o cambia. **Todo arreglo trae su prueba en rojo primero.**
 - **Mutación solo en sub-pasos de `Riesgo: alto`** (datos reales, permisos, plata, producción, login), sobre las reglas que deciden, **tope 20 min**; nunca en una corrección.
 - **La suite entera, una vez por encargo**, al final (la corre `verificar`). En el medio, las pruebas de lo tocado.
+- **El paquete del revisor**: `node .claude/scripts/paquete.cjs <sha-base> --salida <archivo>` arma en un archivo el diff, el status y las pruebas; el revisor lee ese archivo (no tiene shell).
 - **El revisor del sub-paso**: agente `revisor`, Opus sin shell, en la 1.ª vuelta de todo sub-paso con código, sobre el commit congelado. *Aprobado* · *con observaciones* (una corrección acotada, sin 2.ª vuelta) · *rechazado* (2.ª vuelta con una lente; si falla, PARADA). Hasta 10 hallazgos, cada uno con su escenario del día normal; sin escenario no se reporta.
 
 ## 8. PARADA y la espera

@@ -244,5 +244,7 @@ Solo con `director: sí`; lo mantiene el director. Un renglón por sesión abier
 ```
 
 - **`Estado:` de la ficha, valores fijos**: `EN OBRA` · `PAUSADO (hasta <fecha>)` · `COMPLETO <fecha>` · `ABANDONADO <fecha> (por qué)`. `arquitecto.cjs ready --pendientes` saltea los que empiezan con `COMPLETO` o `ABANDONADO` y lista el resto cuyo `SPEC.md` no tiene un sello válido: `sin sello`, `borrador a medias` (un `SPEC.md` en BORRADOR sin sello: se retoma), `sello inválido: <qué>` o `cambió después del sello`.
+- **Solo con `director: sí`** el módulo lleva además `tiempos.md` (lo escribe `tiempos.cjs`, no la cabeza del director), `planes/`, `bitacora/` (encargos, evidencias, relevos, resumen del día) y `mesa/`. Un módulo solo no crea ninguna de las cuatro.
+- **`> Histórico`**: una línea con esa marca en las primeras 10 líneas de un archivo lo declara registro (un acta, una versión reemplazada): `candado:rutas` no le chequea las rutas y quien lo abre sabe que no se edita. Se pone al reemplazar un archivo aprobado por su versión nueva (la vieja queda al lado con la marca), nunca a uno vivo.
 - **`director:`** dice `sí` o `no` (lo mira `sello` contra la Ejecución). **`rama:`** existe solo con director, y es `modulo/<x>`; sin director, el renglón no va. **`parte-de:`** solo si el módulo es un tramo de una iniciativa abierta; si no, el renglón no va.
 - Al terminar: `- Estado: COMPLETO <fecha>` y la ficha pasa a ser **el manual del módulo** (qué hace, cómo se usa, qué no toca); la lista de tareas se borra. **La carpeta se queda en `docs/modulos/`.**
