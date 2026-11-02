@@ -61,6 +61,7 @@ const FICHA = (o = {}) =>
     '  proyecto: px',
     'piezas:',
     `  candado: ${o.candado || 'molde'}`,
+    ...(o.portada ? [`  portada: ${o.portada}`] : []),
     'frenos:',
     '  opcionales: []',
     ...(o.quitados ? ['  quitados:', ...o.quitados.map((q) => `    - ${q}`)] : ['  quitados: []']),
@@ -82,6 +83,8 @@ function repo(archivos = {}, o = {}) {
   commit(d, { '.gitignore': '/.claude/worktrees/\n/.kit-rol\n/ignorado/\n', ...DOCS, ...(o.ficha === false ? {} : { '.claude/kit.md': o.ficha || FICHA() }), ...archivos }, 'base');
   return d;
 }
+// Los nueve de siempre: portada es el décimo y corre solo con piezas.portada en la ficha (r1-4).
+const NUEVE = K.IDS.filter((x) => x !== 'portada');
 const chequeo = (id, d, op = {}) => K.CHEQUEOS[id](d, op);
 const ques = (fs_) => fs_.map((f) => f.que);
 
@@ -413,11 +416,11 @@ test('correr: sin ficha en ningún lado → 0 y "sin ficha: candado apagado" (re
   assert.deepEqual(r.lineas, ['sin ficha: candado apagado']);
 });
 
-test('correr: prendido corre los nueve; apagado (no o ausente) solo barreras', () => {
+test('correr: prendido corre los nueve (la portada no, sin piezas.portada); apagado (no o ausente) solo barreras', () => {
   const d = repo({ 'docs/suelto.md': 'x\n' });
   const r = correr(d);
   assert.equal(r.codigo, 1);
-  assert.deepEqual(r.corrieron, K.IDS);
+  assert.deepEqual(r.corrieron, NUEVE);
   assert.ok(r.lineas.includes('candado:raiz · `docs/suelto.md` no va ahí · movelo a `modulos/<x>/` o a `referencia/`'));
   for (const ficha of [FICHA({ candado: 'no' }), FICHA().replace('piezas:\n  candado: molde\n', '')]) {
     const e = repo({ 'docs/suelto.md': 'x\n' }, { ficha });
@@ -528,7 +531,7 @@ test('correr: ficha vigente rota (rf-9) → no da 1 sola: avisa y corre con los 
   const d = conFichaRota(vieja);
   const r = correr(d, { log: true });
   assert.equal(r.lineas[0], 'ficha rota: .claude/kit.md:3 — corré doctor (corro con los frenos de fábrica)');
-  assert.deepEqual(r.corrieron, K.IDS, 'entero: el quitado de raiz no vale con la ficha rota');
+  assert.deepEqual(r.corrieron, NUEVE, 'entero: el quitado de raiz no vale con la ficha rota');
   assert.equal(r.codigo, 0, r.lineas.join('\n'));
   assert.match(r.lineas[r.lineas.length - 1], /^candado: en verde \(raiz, /);
   assert.match(leerArchivo(d, '.claude/frenos.log'), / · candado:ficha · estructura · \.claude\/kit\.md\n$/);
@@ -548,7 +551,7 @@ test('correr: ficha vigente rota (rf-9) → no da 1 sola: avisa y corre con los 
   const e = repo({}, { ficha: '---\nkit: [\n---\n' });
   const re = correr(e);
   assert.equal(re.lineas[0], 'ficha rota: .claude/kit.md:2 — corré doctor (corro con los frenos de fábrica)');
-  assert.deepEqual(re.corrieron, K.IDS);
+  assert.deepEqual(re.corrieron, NUEVE);
 });
 
 test('correr: ficha vigente rota con el candado apagado en la última que se lee (rf-14) → solo barreras; el arreglo pasa con docs/ viejo', () => {
@@ -564,7 +567,7 @@ test('correr: ficha vigente rota con el candado apagado en la última que se lee
   // prendida en la última que se lee: corre entero y raiz frena
   const e = conFichaRota(FICHA(), { 'docs/viejo.md': 'x\n' });
   const re = correr(e);
-  assert.deepEqual(re.corrieron, K.IDS);
+  assert.deepEqual(re.corrieron, NUEVE);
   assert.ok(re.lineas.some((l) => l.startsWith('candado:raiz · ')));
 });
 
@@ -574,4 +577,66 @@ test('correr (P4.6): rango de una ref nueva (desde null) lo dice en la línea ve
   const r = correr(d, { modo: 'ids', ids: ['barreras'], rango: K.resolverRango(d, { desde: '0'.repeat(40), hasta: 'HEAD' }) });
   assert.equal(r.codigo, 0, r.lineas.join('\n'));
   assert.match(r.lineas[r.lineas.length - 1], /^candado: en verde \(barreras\) · el rango nuevo \.\.[0-9a-f]{12}$/);
+});
+
+// ---------------------------------------------------------------- candado:portada (P3.8; r1-4, r1-10)
+
+const readmeCon = (enlace) => `# px\n\nUna app.\n\n${enlace}\n`;
+
+test('portada sí: sin README en la raíz, o sin enlace a docs/NORTE.md, o con el NORTE inexistente (cada uno con su causa)', () => {
+  const sin = repo({});
+  assert.deepEqual(ques(chequeo('portada', sin)), ['no hay README.md en la raíz']);
+  const sinEnlace = repo({ 'README.md': readmeCon('Ver [el mapa](docs/MAPA.md)') });
+  assert.deepEqual(ques(chequeo('portada', sinEnlace)), ['README.md no enlaza a docs/NORTE.md']);
+  // un README que solo lo nombra entre comillas invertidas no lo enlaza; y el de una subcarpeta no cuenta
+  const citado = repo({ 'README.md': readmeCon('Ver `docs/NORTE.md`'), 'docs/modulos/x/README.md': '# X\nEstado: EN OBRA\n[n](../../NORTE.md)\n' });
+  assert.deepEqual(ques(chequeo('portada', citado)), ['README.md no enlaza a docs/NORTE.md']);
+  const roto = repo({ 'README.md': readmeCon('[norte](docs/NORTE.md)') });
+  g(roto, 'rm', '-q', '-f', '--', 'docs/NORTE.md');
+  assert.deepEqual(ques(chequeo('portada', roto)), ['README.md enlaza a docs/NORTE.md, que no existe']);
+  assert.ok(chequeo('portada', sin).every((f) => f.id === 'portada' && f.hacer.length > 0));
+});
+
+test('portada no: enlace directo, ./docs/NORTE.md, con ancla, estilo referencia, y Readme.md en cualquier mayúscula', () => {
+  for (const enlace of ['[norte](docs/NORTE.md)', '[norte](./docs/NORTE.md)', '[norte](docs/NORTE.md#que-es)', '[norte][n]\n\n[n]: ./docs/NORTE.md#que-es "El norte"', '[n]: <docs/NORTE.md>']) {
+    const d = repo({ 'README.md': readmeCon(enlace) });
+    assert.deepEqual(chequeo('portada', d), [], enlace);
+  }
+  const d = repo({ 'Readme.md': readmeCon('[norte](docs/NORTE.md)') });
+  assert.deepEqual(chequeo('portada', d), []);
+  // dentro de un bloque de código no cuenta como enlace
+  const cod = repo({ 'README.md': '# px\n\n```\n[n]: docs/NORTE.md\n```\n' });
+  assert.deepEqual(ques(chequeo('portada', cod)), ['README.md no enlaza a docs/NORTE.md']);
+});
+
+test('portada en correr: callada sin piezas.portada (o con no); con él, roja sin README y verde con el enlace; quitable', () => {
+  const sin = repo({});
+  const r0 = correr(sin);
+  assert.ok(!r0.corrieron.includes('portada'));
+  assert.equal(r0.codigo, 0, r0.lineas.join('\n'));
+  const no = repo({}, { ficha: FICHA({ portada: 'no' }) });
+  assert.ok(!correr(no).corrieron.includes('portada'));
+  assert.ok(!correr(sin, { modo: 'ids', ids: ['portada'] }).corrieron.includes('portada'));
+  const roja = repo({}, { ficha: FICHA({ portada: 'sí' }) });
+  const rr = correr(roja);
+  assert.equal(rr.codigo, 1);
+  assert.deepEqual(rr.corrieron, K.IDS);
+  assert.ok(rr.lineas.some((l) => l.startsWith('candado:portada · no hay README.md en la raíz · ')));
+  const verde = repo({ 'README.md': readmeCon('[norte](./docs/NORTE.md)') }, { ficha: FICHA({ portada: '{estado: molde, hash: 0123456789ab}' }) });
+  const rv = correr(verde);
+  assert.equal(rv.codigo, 0, rv.lineas.join('\n'));
+  assert.ok(rv.corrieron.includes('portada'));
+  const quitada = repo({}, { ficha: FICHA({ portada: 'sí', quitados: ['{id: candado:portada, por: "es una app sin portada", hasta: siempre}'] }) });
+  assert.ok(!correr(quitada).corrieron.includes('portada'));
+  assert.equal(correr(quitada).codigo, 0);
+  assert.equal(K.portadaPrendida({ piezas: { portada: 'no' } }), false);
+  assert.equal(K.portadaPrendida({ piezas: {} }), false);
+  assert.equal(K.portadaPrendida(null), false);
+});
+
+test('portada en correr: con la ficha vigente rota corre si la última que se lee la tenía prendida', () => {
+  const d = conFichaRota(FICHA({ portada: 'sí' }), {});
+  const r = correr(d);
+  assert.ok(r.corrieron.includes('portada'));
+  assert.ok(r.lineas.some((l) => l.startsWith('candado:portada · ')));
 });

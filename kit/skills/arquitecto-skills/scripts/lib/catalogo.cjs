@@ -36,6 +36,9 @@ const SUELTOS = {
   // los rituales son contratos: el Arquitecto los monta como skill (pieza propia) cuando el proyecto tiene el ritual (P5.8)
   'rituales/smoke.md': '.claude/skills/smoke/SKILL.md',
   'rituales/release.md': '.claude/skills/release/SKILL.md',
+  // la portada (P3.8; r1-4): plantillas sin pieza que reparta el actualizador. Solo `portada.cjs armar` hace nacer un README.
+  'README.md': 'README.md',
+  'assets/banner.svg': 'assets/banner.svg',
 };
 
 // La ruta del proyecto de una ruta del molde, o null si no viaja.
@@ -55,6 +58,7 @@ const PIEZAS_3 = [
   { id: 'settings', clase: BASE, forma: 'settings', trato: 'pieza', en: ['settings.json'] },
   { id: 'claude-md', clase: BASE, forma: 'texto', trato: 'nunca', en: ['CLAUDE.md'] },
   { id: 'snippets', clase: BASE, forma: 'ninguna', trato: 'snippet', en: ['gitignore.snippet', 'gitattributes.snippet'] },
+  { id: 'portada-plantillas', clase: BASE, forma: 'ninguna', trato: 'no-viaja', en: ['README.md', 'assets/banner.svg'] }, // las lleva portada.cjs adentro
   { id: 'ficha-ejemplo', clase: BASE, forma: 'ninguna', trato: 'no-viaja', en: ['kit.ejemplo.md'] },
   { id: 'hook-arranque', clase: BASE, forma: 'hook', trato: 'pieza', en: ['hooks/session-start.cjs'] },
   { id: 'hook-escritura', clase: BASE, forma: 'hook', trato: 'pieza', en: ['hooks/escritura-docs.cjs'] },

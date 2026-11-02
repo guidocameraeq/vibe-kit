@@ -1,5 +1,5 @@
 'use strict';
-// candado.cjs — el candado de estructura (B §14; SPEC-0 6.1; SPEC-paquete-2 P6.1 y F4): los nueve chequeos y quién corre.
+// candado.cjs — el candado de estructura (B §14; SPEC-0 6.1; SPEC-paquete-2 P6.1 y F4): los diez chequeos (el décimo, `portada`, solo si la ficha lo prende) y quién corre.
 // Cada chequeo es (raiz, opciones) → [{ id, que, hacer, detalle, soloLista? }]: corrector, no pregunta (dice qué pasa y qué hacer).
 // `barreras` vive aparte, en lib/barreras.cjs. correr() decide qué corre según la ficha vigente (regla de 4.7) y anota cada
 // frenada en .claude/frenos.log (herramienta `estructura`, detalle = ruta relativa o texto fijo). Lo usa scripts/estructura.cjs.
@@ -18,7 +18,7 @@ const barreras = require('./barreras.cjs');
 const cambiosRuta = require('./cambios-ruta.cjs');
 const mesaLib = require('./mesa.cjs');
 
-const IDS = ['raiz', 'rutas', 'topes', 'mesa', 'estados', 'lecturas', 'estado-viejo', 'barreras', 'datos'];
+const IDS = ['raiz', 'rutas', 'topes', 'mesa', 'estados', 'lecturas', 'estado-viejo', 'barreras', 'datos', 'portada'];
 const PARCIAL = ['topes', 'barreras']; // en `cierre parcial`: el handoff y las barreras
 const HERRAMIENTA = 'estructura';
 const LECTURA_GRANDE = 100 * 1024; // B §11.3
@@ -364,6 +364,44 @@ function datos(raiz) {
   return fallas;
 }
 
+// ---------------------------------------------------------------- candado:portada (P3.8; B §12bis)
+
+// Las definiciones de enlace estilo referencia (`[norte]: ./docs/NORTE.md#ancla "título"`): citas() no las ve, y la portada puede
+// enlazar así. Se miran solo acá (sumarlas a citas() ensancharía candado:rutas). Sin bloques de código.
+const RE_REFERENCIA = /^ {0,3}\[[^\]\n]+\]:[ \t]*<?([^\s>]+)>?(?:[ \t]+.*)?$/;
+function citasPortada(texto) {
+  const out = citas(texto).filter((c) => c.tipo === 'enlace');
+  let enCodigo = false;
+  sinBom(texto).split('\n').forEach((l, i) => {
+    if (RE_FENCE.test(l)) enCodigo = !enCodigo;
+    else if (!enCodigo) {
+      const m = RE_REFERENCIA.exec(l);
+      if (m) out.push({ linea: i + 1, tipo: 'enlace', cita: m[1] });
+    }
+  });
+  return out;
+}
+
+// Corre solo si la ficha tiene piezas.portada y no es `no` (r1-4: el apagado es por repo, así ningún repo viejo se pone rojo al
+// actualizarse). README en la raíz (sin mirar mayúsculas, como entradasRaiz), que enlace a docs/NORTE.md (resuelto con aRuta: vale
+// ./docs/NORTE.md, con ancla o estilo referencia) y que ese archivo exista (r1-10). Nada más: barato.
+const RUTA_NORTE = 'docs/NORTE.md';
+function portada(raiz) {
+  const todos = archivos(raiz);
+  const readme = todos.find((r) => !r.includes('/') && r.toLowerCase() === 'readme.md');
+  const falla = (que, hacer, detalle) => [{ id: 'portada', que, hacer, detalle }];
+  if (!readme) return falla('no hay README.md en la raíz', 'armalo con `node .claude/scripts/portada.cjs armar`', 'README.md');
+  const b = leer(raiz, readme);
+  const raices = entradasRaiz(todos);
+  const enlaza = b !== null && citasPortada(b.toString('utf8')).some((c) => {
+    const r = aRuta(c, readme, raices);
+    return r !== null && r.toLowerCase() === RUTA_NORTE.toLowerCase();
+  });
+  if (!enlaza) return falla(`${readme} no enlaza a ${RUTA_NORTE}`, 'agregá el enlace al NORTE (o rehacé la portada con `portada.cjs armar`)', readme);
+  if (!existe(raiz, RUTA_NORTE)) return falla(`${readme} enlaza a ${RUTA_NORTE}, que no existe`, 'escribí el NORTE o corregí el enlace', RUTA_NORTE);
+  return [];
+}
+
 // ---------------------------------------------------------------- candado:barreras
 
 // indice / rango (P4.6): solo el índice (pre-commit) o solo los commits de un rango ya resuelto (pre-push); sin ellos, como siempre.
@@ -380,6 +418,7 @@ const CHEQUEOS = {
   'estado-viejo': estadoViejo,
   barreras: barreras_,
   datos,
+  portada,
 };
 
 // ---------------------------------------------------------------- quién corre
@@ -399,6 +438,13 @@ function quitadosVigentes(datosFicha, ahora = new Date()) {
   }
   s.delete('barreras');
   return s;
+}
+
+// piezas.portada presente y distinta de `no` (texto suelto o {estado, hash}); ausente = el chequeo no corre (r1-4).
+function portadaPrendida(datosFicha) {
+  const p = datosFicha && esMapa(datosFicha.piezas) ? datosFicha.piezas.portada : undefined;
+  const e = typeof p === 'string' ? p : esMapa(p) && typeof p.estado === 'string' ? p.estado : null;
+  return e !== null && e !== 'no';
 }
 
 // piezas.candado presente y distinto de `no` (texto suelto o {estado, hash}); ausente = apagado (Cruces 8).
@@ -439,13 +485,16 @@ function correr(raiz, opciones = {}) {
   if (!rota && !datosFicha && !barreras.fichaEnAlgunLado(raiz, { rango: opciones.rango })) return { codigo: 0, lineas: ['sin ficha: candado apagado'], fallas: [], corrieron: [] };
 
   let encendido = prendido(datosFicha);
+  let conPortada = portadaPrendida(datosFicha);
   if (rota) {
     const u = fv.ref ? barreras.ultimaFichaQueSeLee(raiz, fv.ref) : null;
-    encendido = u ? prendido(ficha.leer(u.texto.toString('utf8')).datos) : true;
+    const previa = u ? ficha.leer(u.texto.toString('utf8')).datos : null;
+    encendido = u ? prendido(previa) : true;
+    conPortada = portadaPrendida(previa); // sin ficha que se lea, la portada no corre (no hay con qué saber que la tenía)
   }
   const quitados = rota ? new Set() : quitadosVigentes(datosFicha, ahora);
   const pedidos = modo === 'parcial' ? PARCIAL : modo === 'ids' ? IDS.filter((x) => (opciones.ids || []).includes(x)) : IDS;
-  const corrieron = pedidos.filter((id) => id === 'barreras' || (encendido && !quitados.has(id)));
+  const corrieron = pedidos.filter((id) => id === 'barreras' || (encendido && !quitados.has(id) && (id !== 'portada' || conPortada)));
   const op = { parcial: modo === 'parcial', molde: opciones.molde, moldeViejo: opciones.moldeViejo, indice: !!opciones.indice, rango: opciones.rango, fichaVigente: fv, ahora, home: opciones.home };
   const fallas = [];
   for (const id of corrieron) fallas.push(...CHEQUEOS[id](raiz, op));
@@ -469,6 +518,7 @@ module.exports = {
   limpiarCita,
   quitadosVigentes,
   prendido,
+  portadaPrendida,
   correr,
   resolverRango: barreras.resolverRango,
 };
