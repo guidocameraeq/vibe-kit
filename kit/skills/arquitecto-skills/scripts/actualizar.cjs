@@ -307,17 +307,17 @@ function armar(plan, carpeta, { textoFicha, datos, nuevo, viejo, opciones = {} }
   // escribió el molde DEBAJO de la adaptación: si alguien la vuelve a molde, el guardia no toma lo fusionado por intacto) y su
   // `por:` si lo tenía (el del git log no se copia: la ficha guarda solo el de Guido). Te espera → la pieza como estaba y su informe.
   // Un .claude/fusiones/<pieza>.md de antes (el dueño todavía no contestó): la pieza NO se fusiona sola y el informe se rehace
-  // contra el molde nuevo desde la base que dice el archivo (el molde de ese tag), no desde `kit:` de la ficha (D6-19).
+  // contra el molde nuevo desde la base que dice el archivo (el molde de ese tag), no desde `kit:` de la ficha (D6-19). Si el
+  // --kit no tiene ese tag, el informe queda como estaba (tampoco se fusiona): nunca se rehace contra otra base.
   const bases = new Map();
   const moldeDeBase = (base) => {
     if (!bases.has(base)) {
-      let m;
       try {
-        m = M.materializarViejo(opciones.kit, base, { vars: plan.vars, fecha: plan.fecha }, path.join(plan.tmp, `base-${base}`));
-      } catch (e) {
-        throw new Negativa(`una pieza espera tu respuesta desde el kit ${base} (.claude/fusiones/) y no tengo ese molde: ${e.message}`);
+        const m = M.materializarViejo(opciones.kit, base, { vars: plan.vars, fecha: plan.fecha }, path.join(plan.tmp, `base-${base}`));
+        bases.set(base, { a: M.archivosDe(m.dir), rep: C.repartir(m.forma, C.rutasDeMolde(m.dir)) });
+      } catch {
+        bases.set(base, null);
       }
-      bases.set(base, { a: M.archivosDe(m.dir), rep: C.repartir(m.forma, C.rutasDeMolde(m.dir)) });
     }
     return bases.get(base);
   };
@@ -331,6 +331,12 @@ function armar(plan, carpeta, { textoFicha, datos, nuevo, viejo, opciones = {} }
       vBase = FU.baseDeInforme(previo) || plan.vViejo;
       if (vBase !== plan.vViejo) {
         const b = moldeDeBase(vBase);
+        if (!b) {
+          const ya = actual === 'adaptada' || actual === ADAPTADA;
+          if (!ya) cambiosFicha.set(id, valorPieza(ADAPTADA, hFicha, porDe(piezas[id])));
+          linea(id, ya ? actual : ADAPTADA, `te espera: todavía espera tu respuesta (desde el kit ${vBase}); el --kit no tiene el tag v${vBase}: el informe queda como estaba`);
+          return;
+        }
         mapV = new Map((b.rep.has(id) ? b.rep.get(id).archivos : []).map((a) => [a.proyecto, b.a.get(a.molde)]));
       }
       forzado = forzado || `todavía espera tu respuesta (desde el kit ${vBase}): no se fusiona sola`;

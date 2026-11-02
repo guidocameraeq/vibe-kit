@@ -288,12 +288,15 @@ test('guardia: un hook editado → la pieza entera "adaptada (desvío detectado)
   assert.match(leer(d, '.claude/fusiones/hook-arranque.md'), /¿la mejoramos con esto\?/);
   const p = F.leer(leer(d, '.claude/kit.md')).datos.piezas['hook-arranque'];
   assert.deepEqual(p, { estado: 'adaptada (desvío detectado)', hash: hViejo });
-  // y la segunda corrida (el mismo molde): nada que fusionar, sin tocar
+  // y la segunda corrida (el mismo molde, sin el tag de la base): el dueño no contestó → sigue esperando, el informe como estaba
   git(d, 'add', '-A');
   git(d, 'commit', '-q', '-m', 'kit');
+  const inf = leer(d, '.claude/fusiones/hook-arranque.md');
   const r2 = A.aplicar(d, { kit: KIT, fecha: '2026-11-02', claude: 'no' });
-  assert.match(lineaDe(r2, 'hook-arranque'), /· sin cambios$/);
+  assert.equal(r2.codigo, 0, r2.lineas.join('\n'));
+  assert.match(lineaDe(r2, 'hook-arranque'), /· te espera: todavía espera tu respuesta \(desde el kit [^)]+\); el --kit no tiene el tag v[^:]+: el informe queda como estaba$/);
   assert.equal(leer(d, '.claude/hooks/session-start.cjs'), '// arranque v1\n// mío\n');
+  assert.equal(leer(d, '.claude/fusiones/hook-arranque.md'), inf);
 });
 
 test('guardia: distinto del molde viejo pero con el hash de la ficha → intacto (se reemplaza); sin hash ni igual → desvío', () => {

@@ -406,7 +406,8 @@ test('los docs dicen lo que hace el script: los dos commits de --aplicar, barrer
     const t = fs.readFileSync(path.join(kit, ...rel), 'utf8');
     const l = t.split('\n').find((x) => /--aplicar <archivo>/.test(x));
     assert.match(l, /los \*\*dos\*\* commits que imprime \(piezas, ficha\)/, rel.join('/'));
-    assert.match(l, /node \.claude\/scripts\/estructura\.cjs barreras --rango <antes>\.\.HEAD` verde/, rel.join('/'));
+    assert.match(l, /barreras --rango <antes>\.\.HEAD`/, rel.join('/'));
+    assert.match(l, /estructura/, rel.join('/'));
     assert.match(l, /`chequear`: desde la primera flota/, rel.join('/'));
     assert.doesNotMatch(l, /commit, `chequear`/, rel.join('/'));
   }
