@@ -310,6 +310,49 @@ test('7 casos (RF-9): dos dueños que comparten un archivo de pruebas → un sol
   assert.equal(leer(cuenta), 'x\n');
 });
 
+test('7 casos (D6.2, F0): con moldeCrudo la copia sale del molde SIN instanciar ({{…}}); sin él, del moldeNuevo (instanciado: [completar: …])', () => {
+  // crudo = como kit/molde/; m = lo que hace molde.cjs con los docs ({{marcador}} → [completar: marcador]). Ambos con el hook marca y su prueba.
+  const MARCADOR = 'una acción ejecutable, nunca "seguir avanzando"';
+  const crudo = nuevaCarpeta('molde-crudo');
+  fs.cpSync(moldeNuevo(), crudo, { recursive: true });
+  const L = (...r) => path.join(crudo, 'hooks', 'lib', ...r);
+  escribir(path.join(crudo, 'docs', 'SESSION_HANDOFF.md'), ['## Próximo paso', `{{${MARCADOR}}}`, ''].join('\n'));
+  escribir(L('marca.cjs'), 'module.exports = () => 1;\n');
+  escribir(
+    L('marca.test.cjs'),
+    [
+      "'use strict';",
+      "const test = require('node:test');",
+      "const assert = require('node:assert/strict');",
+      "const fs = require('fs');",
+      "const path = require('path');",
+      "const marca = require('./marca.cjs');",
+      "test('el handoff trae el marcador como en kit/molde/', () => {",
+      '  assert.equal(marca(), 1);',
+      "  const t = fs.readFileSync(path.join(__dirname, '..', '..', 'docs', 'SESSION_HANDOFF.md'), 'utf8');",
+      `  assert.ok(t.includes(${JSON.stringify(`{{${MARCADOR}}}`)}));`,
+      '});',
+      '',
+    ].join('\n'),
+  );
+  const m = nuevaCarpeta('molde-instanciado');
+  fs.cpSync(crudo, m, { recursive: true });
+  escribir(path.join(m, 'docs', 'SESSION_HANDOFF.md'), ['## Próximo paso', `[completar: ${MARCADOR}]`, ''].join('\n'));
+  const hl = (d, ...r) => path.join(d, '.claude', 'hooks', 'lib', ...r);
+  const armo = () =>
+    armar({
+      antes: (d) => escribir(hl(d, 'marca.cjs'), 'module.exports = () => 0;\n'),
+      cambio: (d) => escribir(hl(d, 'marca.cjs'), 'module.exports = () => 1;\n'),
+    });
+  const r = correr(armo(), { moldeNuevo: m, moldeCrudo: crudo });
+  nueveBienFormadas(r);
+  verde(r, 'casos');
+  // no: sin moldeCrudo se copia el instanciado y la prueba ve [completar: …] (el comportamiento de antes, el que daba rojo)
+  rojo(correr(armo(), { moldeNuevo: m }), 'casos', /el hook lib\/marca\.cjs pierde un caso: el handoff trae el marcador/);
+  // un moldeCrudo que no existe se ignora (se usa moldeNuevo)
+  verde(correr(armar(), { moldeCrudo: path.join(RAIZ_TMP, 'no-existe') }), 'casos');
+});
+
 test('rojosPorArchivo: el rojo va al archivo de su location; un archivo que no carga cuenta; lo de afuera no', () => {
   const h = path.join(RAIZ_TMP, 'hooks');
   const loc = (rel) => `  location: '${path.join(h, ...rel.split('/')).replace(/\\/g, '\\\\')}:3:1'`;

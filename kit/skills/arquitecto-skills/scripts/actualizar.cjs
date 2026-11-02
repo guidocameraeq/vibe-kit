@@ -695,7 +695,8 @@ async function chequear(carpeta, opciones) {
     const viejo = opciones.moldeViejo
       ? M.materializarDir(opciones.moldeViejo, { vars, fecha }, path.join(tmp, 'viejo'))
       : vBase === vNuevo ? nuevo : M.materializarViejo(opciones.kit, vBase, { vars, fecha }, path.join(tmp, 'viejo'));
-    const r = await chequeo.chequear(raiz, { moldeNuevo: nuevo.dir, moldeViejo: viejo.dir, base: opciones.base, plazoMs: opciones.plazoMs, version: vNuevo });
+    const crudo = path.join(opciones.kit, 'kit', 'molde'); // las pruebas del molde corren contra el crudo (línea 7)
+    const r = await chequeo.chequear(raiz, { moldeNuevo: nuevo.dir, moldeCrudo: fs.existsSync(path.join(crudo, 'settings.json')) ? crudo : null, moldeViejo: viejo.dir, base: opciones.base, plazoMs: opciones.plazoMs, version: vNuevo });
     const lineas = Array.isArray(r.lineas) ? r.lineas.map(String) : String(r.lineas || '').split('\n').filter(Boolean);
     return { codigo: r.ok ? 0 : 1, lineas };
   } finally {

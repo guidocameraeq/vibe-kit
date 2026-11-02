@@ -11,7 +11,7 @@
 // da esa línea así y las otras ocho siguen; un error que no deja correr nada (carpeta o base que no sirven) da las nueve así.
 //
 // Opciones: moldeNuevo (carpeta con la forma de kit/molde/, CON sus *.test.cjs: los usa la línea 7) · moldeViejo (opcional: va a
-// barreras como --molde-viejo) · base (sha o ref) · plazoMs (de comando-test y de las pruebas de la línea 7; 30 min por defecto) ·
+// barreras como --molde-viejo) · moldeCrudo (opcional: el kit/molde/ del --kit sin instanciar; la línea 7 copia ESE y no moldeNuevo) · base (sha o ref) · plazoMs (de comando-test y de las pruebas de la línea 7; 30 min por defecto) ·
 // version (opcional: la versión nueva; sin ella la línea 5 exige que la ficha de HEAD sea mayor que la de <base>) · gitleaks
 // (opcional, para las pruebas: la ruta del ejecutable, o null = "no hay"; sin la opción se busca en el PATH y en WinGet\Links).
 //
@@ -534,10 +534,13 @@ function casos(ctx) {
     .map((c) => c.ruta.slice(RUTA_HOOKS.length))
     .filter((r) => !r.endsWith('.test.cjs') && !/\.propio\.[^/]+$/.test(r));
   if (!tocados.length) return bien('ningún hook cambió en base..HEAD');
-  // La copia: el molde nuevo entero (con sus pruebas) y encima los hooks del proyecto (sin pruebas), fuera del árbol.
+  // La copia: el molde nuevo CRUDO entero (con sus pruebas) y encima los hooks del proyecto (sin pruebas), fuera del árbol. Crudo = el
+  // kit/molde/ del --kit, tal cual: las pruebas del molde se escribieron contra él (el materializado trae los docs instanciados, con
+  // [completar: …] donde las pruebas buscan {{…}}, y dos casos de candado daban rojo en toda actualización sana: D6.2, F0). Sin
+  // moldeCrudo, el moldeNuevo de siempre.
   const T = path.join(ctx.tmp, 'casos');
-  fs.cpSync(ctx.moldeNuevo, T, { recursive: true });
-  const hooksP = path.join(ctx.carpeta, '.claude', 'hooks');
+  fs.cpSync(ctx.moldeCrudo || ctx.moldeNuevo, T, { recursive: true });
+  const hooksP =path.join(ctx.carpeta, '.claude', 'hooks');
   const hooksT = path.join(T, 'hooks');
   for (const rel of archivosDe(hooksP)) {
     if (rel.endsWith('.test.cjs')) continue;
@@ -751,6 +754,7 @@ function chequear(carpeta, opciones = {}) {
     if (typeof o.moldeNuevo !== 'string' || !fs.existsSync(o.moldeNuevo) || !fs.statSync(o.moldeNuevo).isDirectory()) {
       ctx.moldeNuevo = null;
     } else ctx.moldeNuevo = path.resolve(o.moldeNuevo);
+    ctx.moldeCrudo = typeof o.moldeCrudo === 'string' && fs.existsSync(o.moldeCrudo) && fs.statSync(o.moldeCrudo).isDirectory() ? path.resolve(o.moldeCrudo) : null;
     if (ctx.moldeViejo && !fs.existsSync(ctx.moldeViejo)) throw new NoVerificado(`el molde viejo ${ctx.moldeViejo} no existe`);
     tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'kit-chequeo-'));
     ctx.tmp = tmp;
