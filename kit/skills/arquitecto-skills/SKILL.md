@@ -1,6 +1,6 @@
 ---
 name: arquitecto-skills
-description: El Equipador — instala, actualiza y poda las skills globales de Claude Code según el menú curado (hermana del Arquitecto). Puede AUTO-ACTUALIZARSE: baja la última versión del Arquitecto/Equipador/docs-fyd/relevamiento del repo canónico y se actualiza a sí mismo. Usar cuando el usuario dice "preparame esta máquina", "instalame skills", "actualizá las skills", "actualizá el kit", "actualizate", "traé lo último del Arquitecto", "instalar hooks por PC", "corré el doctor", "qué skills tengo instaladas", "agregá tal skill al menú", o al estrenar una PC nueva. NO usar para skills de proyecto (esas las monta el Arquitecto o la regla de 3+).
+description: El Equipador — instala, actualiza y poda las skills globales de Claude Code según el menú curado (hermana del Arquitecto). Puede AUTO-ACTUALIZARSE: baja la última versión del Arquitecto/Equipador/docs-fyd/relevamiento del repo canónico y se actualiza a sí mismo. Usar cuando el usuario dice "preparame esta máquina", "instalame skills", "actualizá las skills", "actualizá el kit", "actualizate", "traé lo último del Arquitecto", "instalar hooks por PC", "corré el doctor", "poné al día la flota", "adoptá X", "qué skills tengo instaladas", "agregá tal skill al menú", o al estrenar una PC nueva. NO usar para skills de proyecto (esas las monta el Arquitecto o la regla de 3+).
 ---
 
 # El Equipador (`/arquitecto-skills`)
@@ -18,11 +18,9 @@ del Arquitecto: él monta proyectos; vos equipás máquinas.
 2. **Clonar fresco, siempre.** Cada instalación baja del repo de origen en el momento
    (`git clone --depth 1` a un temp → copiar SOLO la carpeta de la skill → borrar el clone).
    Nunca de copias locales viejas. **Excepción acotada — entradas kit-owned (`docs-fyd`, `relevamiento`):**
-   no tienen repo externo; se COPIAN del kit local (o del Arquitecto ya instalado en
-   `~/.claude/skills/`), con el diff mostrado antes de pisar. Es la 2da excepción documentada (la 1ra
-   es shadcn, que viene por CLI); NO se generaliza — para todo lo demás del menú, clonado fresco sin
-   excepción. En el repo madre (vibe-kit) el sync kit→instalado lo hace `/cierre`, no el Equipador:
-   acá la excepción es solo para equipar máquinas consumidoras.
+   no tienen repo externo; se COPIAN del kit local (o del Arquitecto ya instalado), con el diff
+   mostrado antes de pisar. Es la 2da excepción (la 1ra es shadcn, por CLI); NO se generaliza.
+   En vibe-kit el sync kit→instalado lo hace `/cierre`: la excepción es solo para máquinas consumidoras.
 3. **Nunca pisar ediciones locales sin mostrar el diff.** Antes de actualizar una skill
    instalada, compará con lo fresco: idéntica → avisar "sin cambios"; upstream cambió →
    mostrar resumen del diff y preguntar; hay ediciones locales → ⚠️ mostrarlas y preguntar
@@ -89,6 +87,12 @@ El corrector de secretos de esta PC (hooks en `~/.claude/hooks/kit/`). Los scrip
 5. Un archivo de `hooks/kit/` editado a mano: el `doctor` lo reporta y el instalador lo pisa con el del kit — decile antes a
    Guido si la edición debe llevarse al repo madre.
 Nunca edites `~/.claude/settings.json` a mano ni toques secretos: el instalador es el único que lo escribe.
+
+## Modo FLOTA — "poné al día la flota" / "adoptá X"
+
+Los deriva el Arquitecto; los pasos y la pantalla están en su `anexos/flota.md`. Corrés `node "$HOME/.claude/skills/arquitecto-skills/scripts/actualizar.cjs"`:
+- `flota <X>… | todo --canon <url> [--proyectos <carpeta>]`: la tabla y "te espera:". Si `auto` no deja pushear, la corre Guido.
+- `adoptar <carpeta> --kit <clon> --mirar --propuesta <archivo>` → la pantalla con Guido → con el OK, `--aplicar <archivo>` en un clon con `.kit-rol` = `actualizador`, commit, `chequear`, push.
 
 ## Modo AUDITAR — "qué skills tengo" / "podá"
 
