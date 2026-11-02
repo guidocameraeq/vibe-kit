@@ -17,6 +17,7 @@ process.env.HOME = HOME_PROCESO;
 process.env.USERPROFILE = HOME_PROCESO;
 
 const DOCTOR = path.join(__dirname, 'doctor.cjs');
+const P = require('./preparar-pc.cjs');
 const INSTALADOR = path.join(__dirname, 'instalar-hooks-pc.cjs');
 const D = require('./doctor.cjs');
 const MOLDE = path.resolve(__dirname, '..', '..', '..', 'molde');
@@ -47,7 +48,32 @@ const sacarFalso = (bin, nombre) => fs.rmSync(path.join(bin, WIN ? `${nombre}.cm
 
 const FICHA = fs
   .readFileSync(path.join(MOLDE, 'kit.ejemplo.md'), 'utf8')
+  .replace('hasta: 2026-11-15', 'hasta: 2099-01-01')
   .replace(/^sensible:[\s\S]*?^secretos:/m, 'sensible:\n  datos-reales: ["tabla:clientes", git clean]\n  plata: no\n  sale-afuera: [node scripts/mandar-mails.cjs]\n  claves: [gitleaks detect]\n  release: [git tag]\nsecretos:');
+
+// El repo canónico de prueba (un bare local con un tag anotado v2.4.3 y uno liviano v9.0.0 que no cuenta): así nada toca la red.
+let CANON = null;
+function canonico() {
+  if (CANON) return CANON;
+  const bare = path.join(RAIZ_TMP, 'canonico.git');
+  const trab = path.join(RAIZ_TMP, 'canonico-trab');
+  fs.mkdirSync(trab, { recursive: true });
+  for (const a of [['init', '-q', '--bare', bare], ['init', '-q', trab]]) assert.equal(git(RAIZ_TMP, ...a).status, 0);
+  fs.writeFileSync(path.join(trab, 'x'), 'x');
+  const c = ['-c', 'user.name=t', '-c', 'user.email=t@t'];
+  for (const a of [['add', '.'], [...c, 'commit', '-q', '-m', 'x'], [...c, 'tag', '-a', 'v2.4.3', '-m', 'v2.4.3'], ['tag', 'v9.0.0'], ['push', '-q', bare, 'HEAD:refs/heads/main', '--tags']]) {
+    const r = git(trab, ...a);
+    assert.equal(r.status, 0, `${a.join(' ')}: ${r.stderr}`);
+  }
+  CANON = bare;
+  return CANON;
+}
+// La línea de la carpeta de proyectos del SKILL.md del Arquitecto instalado.
+function lineaArquitecto(e, carpeta) {
+  const d = path.join(e.home, '.claude', 'skills', 'arquitecto');
+  fs.mkdirSync(d, { recursive: true });
+  fs.writeFileSync(path.join(d, 'SKILL.md'), `---\nname: arquitecto\n---\n**Carpeta de proyectos de esta máquina**: \`${carpeta}\` (la de esta PC)\n`);
+}
 
 // El escenario "todo verde": HOME falso con el instalador aplicado, un PATH falso y un repo con ficha, .githooks/ y core.hooksPath.
 function escenario() {
@@ -57,6 +83,7 @@ function escenario() {
   falso(bin, 'gitleaks', '8.21.2');
   falso(bin, 'claude', '2.1.309 (Claude Code)');
   falso(bin, 'bash', 'GNU bash');
+  falso(bin, 'gh', 'true');
   const ins = spawnSync(process.execPath, [INSTALADOR, '--home', home], { encoding: 'utf8', env: { ...process.env, HOME: HOME_PROCESO, USERPROFILE: HOME_PROCESO }, cwd: RAIZ_TMP });
   assert.equal(ins.status, 0, ins.stdout + ins.stderr);
   assert.equal(git(repo, 'init', '-q').status, 0);
@@ -66,7 +93,19 @@ function escenario() {
   fs.writeFileSync(path.join(repo, 'scripts', 'mandar-mails.cjs'), '// x\n');
   fs.cpSync(path.join(MOLDE, 'githooks'), path.join(repo, '.githooks'), { recursive: true, filter: (s) => !s.endsWith('.test.cjs') });
   assert.equal(git(repo, 'config', 'core.hooksPath', '.githooks').status, 0);
-  return { home, bin, repo };
+  fs.writeFileSync(path.join(repo, 'CLAUDE.md'), '# CLAUDE.md\n\n## El tamaño del pedido\n\nlo de siempre\n');
+  assert.equal(git(repo, 'remote', 'add', 'origin', 'https://github.com/o-prueba/alfa.git').status, 0);
+  assert.equal(git(repo, 'remote', 'add', 'hub', 'https://github.com/o-prueba/hub.git').status, 0);
+  // lo que deja "preparame": VERSION, kit-pc.md, la línea del Arquitecto y crossSessionInbound
+  const proyectos = nuevaCarpeta('proy');
+  fs.writeFileSync(path.join(home, '.claude', 'VERSION'), '2.4.3\n');
+  const e = { home, bin, repo, proyectos };
+  lineaArquitecto(e, proyectos.replace(/\\/g, '/'));
+  fs.writeFileSync(P.rutaKitPc(home), P.textoKitPc({ entorno: 'nativo', gh: 'cuenta', proyectos, privada: null, autoMode: [] }));
+  const st = leerSettings(e);
+  st.crossSessionInbound = 'accept';
+  escribirSettings(e, st);
+  return e;
 }
 const settingsDe = (e) => path.join(e.home, '.claude', 'settings.json');
 const leerSettings = (e) => JSON.parse(fs.readFileSync(settingsDe(e), 'utf8'));
@@ -81,6 +120,7 @@ function entorno(e, extra = {}) {
     SystemRoot: process.env.SystemRoot || '',
     ComSpec: process.env.ComSpec || '',
     ProgramFiles: path.join(RAIZ_TMP, 'sin-program-files'),
+    KIT_REPO_CANONICO: canonico(),
   };
   return { ...base, ...extra };
 }
@@ -120,16 +160,19 @@ function foto(dir) {
 }
 
 // ================================================================ criterio 12: verde, igual, sin escribir
-test('verde con todo instalado: los 14 chequeos en ✓, en el orden fijo, sale 0', () => {
+test('verde con todo instalado: los 26 chequeos en ✓, en el orden fijo (los 14 de siempre primero), sale 0', () => {
   const e = escenario();
   const r = correr(e);
   assert.equal(r.codigo, 0, r.out + r.err);
   const ids = D.IDS;
-  assert.equal(ids.length, 14);
-  const chequeos = r.lineas.slice(0, 14);
+  assert.equal(ids.length, 26);
+  assert.deepEqual(ids.slice(0, 14), ['node', 'gitleaks', 'claude-code', 'lefthook', 'git-bash', 'settings-pc', 'hooks-pc', 'hooks-pc-iguales', 'deny-almacen', 'anti-secretos-viejo', 'plazo-arranque', 'pre-commit', 'ficha', 'sensible-prosa']);
+  assert.deepEqual(ids.slice(14), ['version-kit', 'kit-sync', 'githooks', 'archivo-pc', 'credencial', 'gh-push', 'mesa-gh', 'cross-session', 'automode', 'copias-kit', 'frenos-vencidos', 'regla-tamano']);
+  const chequeos = r.lineas.slice(0, 26);
   chequeos.forEach((l, i) => assert.ok(l.startsWith(`✓ ${ids[i]} · `), `${i}: ${l}`));
-  assert.match(r.lineas[14], /^doctor · 14 chequeos · 0 ✗ · 0 ⚠$/);
-  assert.equal(r.lineas.length, 15);
+  assert.match(r.lineas[26], /^doctor · 26 chequeos · 0 ✗ · 0 ⚠$/);
+  assert.equal(r.lineas[27], 'inventario · sin frenadas');
+  assert.equal(r.lineas.length, 28);
   // la salida de verde (sin rutas): se la muestra el informe
   assert.ok(!r.out.includes(RAIZ_TMP.replace(/\\/g, '/')) && !r.out.includes(RAIZ_TMP), 'ninguna ruta de la prueba en la salida');
   if (process.env.G11_MOSTRAR) process.stderr.write(`\n${r.out}\n`);
@@ -161,7 +204,7 @@ test('salida 0 con ⚠ y sin ✗; 1 con algún ✗; 2 con una opción que no con
   falso(e.bin, 'lefthook', 'x');
   const w = correr(e);
   assert.equal(w.codigo, 0, w.out);
-  assert.match(w.lineas[14], /1 ⚠$/);
+  assert.match(w.lineas[26], /1 ⚠$/);
   falso(e.bin, 'gitleaks', '8.1.0');
   assert.equal(correr(e).codigo, 1);
   const r = spawnSync(process.execPath, [DOCTOR, '--foo'], { encoding: 'utf8', env: entorno(e) });
@@ -434,4 +477,297 @@ test('sensible-prosa: una entrada cuyo primer término no está en el PATH ni en
   assert.ok(linea(correr(e), 'sensible-prosa').startsWith('✓'));
   // el verde de fábrica del escenario: las 5 claves, ninguna prosa
   assert.match(linea(correr(escenario()), 'sensible-prosa'), /^✓ sensible-prosa · las 4 entradas/);
+});
+
+// ================================================================ criterio 6: el doctor completo (SPEC-paquete-6 P2.3)
+// Un programa falso que imprime `texto` y sale con `codigo` (sin & | < > ^ % en el texto: es cmd.exe).
+function falsoCodigo(bin, nombre, texto, codigo) {
+  if (WIN) fs.writeFileSync(path.join(bin, `${nombre}.cmd`), `@echo off\r\necho ${texto}\r\nexit /b ${codigo}\r\n`);
+  else fs.writeFileSync(path.join(bin, nombre), `#!/bin/sh\necho '${texto}'\nexit ${codigo}\n`, { mode: 0o755 });
+}
+// El "bash" que corre kit-sync.sh: dice LIMPIO solo si el HOME que recibe es el de la prueba (r1-9); si no, falla.
+function falsoBashSync(e, limpio) {
+  if (WIN) {
+    const cuerpo = limpio ? `if /i "%HOME%"=="${e.home}" (echo LIMPIO) else (echo HOME equivocado & exit /b 1)` : 'echo SUCIO skills/arquitecto\r\nexit /b 1';
+    fs.writeFileSync(path.join(e.bin, 'bash.cmd'), `@echo off\r\n${cuerpo}\r\n`);
+  } else {
+    const cuerpo = limpio ? `[ "$HOME" = "${e.home}" ] && echo LIMPIO || { echo HOME equivocado; exit 1; }` : 'echo SUCIO skills/arquitecto; exit 1';
+    fs.writeFileSync(path.join(e.bin, 'bash'), `#!/bin/sh\n${cuerpo}\n`, { mode: 0o755 });
+  }
+}
+const comoVibeKit = (e) => {
+  fs.mkdirSync(path.join(e.repo, '.claude', 'scripts'), { recursive: true });
+  fs.writeFileSync(path.join(e.repo, '.claude', 'scripts', 'kit-sync.sh'), '# x\n');
+  fs.mkdirSync(path.join(e.repo, 'kit'), { recursive: true });
+  fs.writeFileSync(path.join(e.repo, 'kit', 'VERSION'), '2.4.3\n');
+};
+const kitPc = (e, datos) => fs.writeFileSync(P.rutaKitPc(e.home), P.textoKitPc({ entorno: 'nativo', gh: 'cuenta', proyectos: e.proyectos, privada: null, autoMode: [], ...datos }));
+
+test('los tags: solo cuentan los anotados v*, y gana el de mayor número', () => {
+  const salida = ['aaa\trefs/tags/v2.4.3', 'bbb\trefs/tags/v2.4.3^{}', 'ccc\trefs/tags/v9.0.0', 'ddd\trefs/tags/v3.0', 'eee\trefs/tags/v3.0^{}', 'fff\trefs/tags/otro', 'ggg\trefs/tags/otro^{}'].join('\n');
+  assert.equal(D.ultimoTagAnotado(salida).tag, 'v3.0');
+  assert.equal(D.ultimoTagAnotado('ccc\trefs/tags/v9.0.0'), null);
+});
+
+test('version-kit: igual al último tag ✓ (el liviano v9.0.0 no cuenta); atrás ⚠ "actualizate"; sin VERSION ✗; más nueva ✓', () => {
+  let e = escenario();
+  assert.match(linea(correr(e), 'version-kit'), /^✓ version-kit · el kit instalado \(2\.4\.3\) es el del último tag \(v2\.4\.3\)$/);
+  fs.writeFileSync(path.join(e.home, '.claude', 'VERSION'), '2.4.0\n');
+  rojo(e, 'version-kit', '⚠', /es 2\.4\.0 y el último tag del canónico es v2\.4\.3 · atrás: decile al Equipador "actualizate"/);
+  fs.writeFileSync(path.join(e.home, '.claude', 'VERSION'), '3.0.0\n');
+  assert.match(linea(correr(e), 'version-kit'), /^✓ .* más nuevo que el último tag/);
+  e = escenario();
+  fs.rmSync(path.join(e.home, '.claude', 'VERSION'));
+  const r = rojo(e, 'version-kit', '✗', /no hay ~\/\.claude\/VERSION.* · corré "preparame esta PC"/);
+  assert.equal(r.codigo, 1);
+});
+
+test('sin red (git y gh falsos que fallan): version-kit, gh-push y mesa-gh dan ⚠ NO VERIFICADO, nunca ✓, y la salida sigue en 0', () => {
+  const e = escenario();
+  const real = D.buscarEnPath('git', process.env);
+  if (WIN) fs.writeFileSync(path.join(e.bin, 'git.cmd'), `@echo off\r\nif "%1"=="ls-remote" (echo fatal: unable to access the remote & exit /b 128)\r\n"${real}" %*\r\n`);
+  else fs.writeFileSync(path.join(e.bin, 'git'), `#!/bin/sh\n[ "$1" = ls-remote ] && { echo fatal: unable to access the remote; exit 128; }\nexec "${real}" "$@"\n`, { mode: 0o755 });
+  falsoCodigo(e.bin, 'gh', 'error connecting to api.github.com', 1);
+  const r = correr(e);
+  for (const id of ['version-kit', 'gh-push', 'mesa-gh']) {
+    const l = linea(r, id);
+    assert.ok(l.startsWith(`⚠ ${id} · NO VERIFICADO: `), l);
+    assert.ok(l.split(' · ').length >= 3, `${id} dice cómo se arregla\n${l}`);
+  }
+  assert.match(linea(r, 'version-kit'), /git ls-remote falló \(fatal: unable to access/);
+  assert.equal(r.codigo, 0, r.out);
+  // sin gh en el PATH: lo mismo, con la causa
+  sacarFalso(e.bin, 'gh');
+  assert.match(linea(correr(e), 'gh-push'), /^⚠ gh-push · NO VERIFICADO: gh no está en el PATH/);
+  // el canónico que no existe (otro modo de "sin red")
+  const e2 = escenario();
+  const r2 = correr(e2, { extraEnv: { KIT_REPO_CANONICO: path.join(RAIZ_TMP, 'no-existe.git') } });
+  assert.match(linea(r2, 'version-kit'), /^⚠ version-kit · NO VERIFICADO: /);
+});
+
+test('kit-sync: en otro repo ✓ "no aplica"; en vibe-kit LIMPIO ✓ (corre con HOME = el --home); SUCIO ✗ con la primera ruta; sin bash ⚠ NO VERIFICADO', () => {
+  let e = escenario();
+  assert.match(linea(correr(e), 'kit-sync'), /^✓ kit-sync · no aplica/);
+  comoVibeKit(e);
+  falsoBashSync(e, true);
+  assert.match(linea(correr(e), 'kit-sync'), /^✓ kit-sync · kit ↔ ~\/\.claude: LIMPIO$/);
+  falsoBashSync(e, false);
+  const r = rojo(e, 'kit-sync', '✗', /no está limpio · SUCIO skills\/arquitecto · mirá el diff/);
+  assert.equal(r.codigo, 1);
+  sacarFalso(e.bin, 'bash');
+  rojo(e, 'kit-sync', '⚠', /NO VERIFICADO: no encuentro bash/);
+  e = escenario();
+  comoVibeKit(e);
+  falso(e.bin, 'bash', null);
+  assert.match(linea(correr(e, { plazo: 1500 }), 'kit-sync'), /^⚠ kit-sync · NO VERIFICADO: kit-sync\.sh no respondió a tiempo/);
+});
+
+test('githooks: sin .githooks/ ✓; con .githooks/ y core.hooksPath puesto ✓; sin core.hooksPath ⚠ con la línea', () => {
+  const e = escenario();
+  rojo(e, 'githooks', '✓', /core\.hooksPath=\.githooks/);
+  assert.equal(git(e.repo, 'config', '--unset', 'core.hooksPath').status, 0);
+  rojo(e, 'githooks', '⚠', /no está puesto: los githooks no corren · git config core\.hooksPath \.githooks$/);
+  assert.equal(git(e.repo, 'config', 'core.hooksPath', 'otro').status, 0);
+  rojo(e, 'githooks', '⚠', /es "otro"/);
+  fs.rmSync(path.join(e.repo, '.githooks'), { recursive: true });
+  rojo(e, 'githooks', '✓', /no tiene \.githooks/);
+});
+
+test('archivo-pc: sin kit-pc.md ⚠ "preparame"; carpeta distinta ⚠; las barras no importan; roto ⚠', () => {
+  let e = escenario();
+  fs.rmSync(P.rutaKitPc(e.home));
+  rojo(e, 'archivo-pc', '⚠', /no hay ~\/\.claude\/kit-pc\.md.*corré "preparame esta PC"/);
+  e = escenario();
+  lineaArquitecto(e, 'C:/otra/carpeta');
+  rojo(e, 'archivo-pc', '⚠', /no es la del SKILL\.md del Arquitecto.*corré "preparame esta PC"/);
+  lineaArquitecto(e, `${e.proyectos.replace(/\//g, '\\')}\\`);
+  assert.ok(linea(correr(e), 'archivo-pc').startsWith('✓'));
+  fs.writeFileSync(P.rutaKitPc(e.home), '---\nentorno nativo\n---\n');
+  rojo(e, 'archivo-pc', '⚠', /kit-pc\.md no se lee/);
+});
+
+test('credencial: sin capa privada ✓ "no aplica"; con ella, cada variable existe (el valor no se imprime) o ⚠ con las que faltan', () => {
+  const e = escenario();
+  assert.match(linea(correr(e), 'credencial'), /^✓ credencial · no aplica/);
+  const priv = nuevaCarpeta('priv');
+  fs.writeFileSync(path.join(priv, 'instalar.cjs'), "console.log(process.argv.includes('--variables') ? 'HUB_TOKEN_PRUEBA\\nOTRA_VAR_PRUEBA' : 'x');\n");
+  kitPc(e, { privada: priv });
+  const r = rojo(e, 'credencial', '⚠', /falta 1 variable de la capa privada · OTRA_VAR_PRUEBA · cargalas/, { extraEnv: { HUB_TOKEN_PRUEBA: 'VALOR-SECRETO-123' } });
+  assert.ok(!r.out.includes('VALOR-SECRETO-123'), 'no imprime el valor');
+  const ok = correr(e, { extraEnv: { HUB_TOKEN_PRUEBA: 'VALOR-SECRETO-123', OTRA_VAR_PRUEBA: 'otro-valor-456' } });
+  assert.match(linea(ok, 'credencial'), /^✓ credencial · las 2 variables de la capa privada existen \(no se imprime su valor\)$/);
+  assert.ok(!ok.out.includes('VALOR-SECRETO-123') && !ok.out.includes('otro-valor-456'));
+  fs.rmSync(path.join(priv, 'instalar.cjs'));
+  rojo(e, 'credencial', '⚠', /no trae instalar\.cjs/);
+});
+
+test('gh-push: puede ✓; permissions.push=false, sin acceso, sin login → ⚠ con su arreglo; origin que no es de GitHub ✓ no aplica; sin origin ⚠', () => {
+  let e = escenario();
+  assert.match(linea(correr(e), 'gh-push'), /^✓ gh-push · gh está logueado y puede pushear a o-prueba\/alfa$/);
+  falso(e.bin, 'gh', 'false');
+  rojo(e, 'gh-push', '⚠', /no te deja pushear a o-prueba\/alfa \(permissions\.push=false\) · pedí permiso de escritura/);
+  falsoCodigo(e.bin, 'gh', 'gh: Not Found HTTP 404', 1);
+  rojo(e, 'gh-push', '⚠', /gh no ve o-prueba\/alfa.*pedí acceso a o-prueba\/alfa/);
+  falsoCodigo(e.bin, 'gh', 'To get started with GitHub CLI please run: gh auth login', 4);
+  rojo(e, 'gh-push', '⚠', /gh no está logueado · gh auth login$/);
+  e = escenario();
+  assert.equal(git(e.repo, 'remote', 'set-url', 'origin', 'https://gitlab.com/x/y.git').status, 0);
+  assert.match(linea(correr(e), 'gh-push'), /^✓ gh-push · no aplica/);
+  assert.equal(git(e.repo, 'remote', 'remove', 'origin').status, 0);
+  rojo(e, 'gh-push', '⚠', /no tiene remoto origin.* · git remote add origin/);
+  rojo(e, 'gh-push', '⚠', /no estás dentro de un repo/, { cwd: e.home });
+});
+
+test('mesa-gh: gh lee el repo de cada remoto de la mesa ✓; sin acceso ⚠ "pedile acceso a <aprueba>"; sin el remoto ⚠; sin ficha ✓', () => {
+  let e = escenario();
+  assert.match(linea(correr(e), 'mesa-gh'), /^✓ mesa-gh · gh lee los 1 repos de la mesa$/);
+  falsoCodigo(e.bin, 'gh', 'gh: Not Found HTTP 404', 1);
+  rojo(e, 'mesa-gh', '⚠', /la mesa no se lee por gh · hub: gh no lee o-prueba\/hub · pedile acceso a po-ejemplo/);
+  e = escenario();
+  assert.equal(git(e.repo, 'remote', 'remove', 'hub').status, 0);
+  rojo(e, 'mesa-gh', '⚠', /hub: falta el remoto "hub" \(git remote add hub <url>\) · pedile acceso a po-ejemplo/);
+  fs.rmSync(path.join(e.repo, '.claude', 'kit.md'));
+  assert.ok(linea(correr(e), 'mesa-gh').startsWith('✓'));
+});
+
+test('cross-session: accept ✓; falta o "hold" ⚠', () => {
+  const e = escenario();
+  assert.ok(linea(correr(e), 'cross-session').startsWith('✓'));
+  const s = leerSettings(e);
+  s.crossSessionInbound = 'hold';
+  escribirSettings(e, s);
+  rojo(e, 'cross-session', '⚠', /dice "hold" y no "accept".*preparame esta PC/);
+  delete s.crossSessionInbound;
+  escribirSettings(e, s);
+  rojo(e, 'cross-session', '⚠', /no está puesto y no "accept"/);
+});
+
+test('automode: el bloque escrito = el que generan las fichas ✓ (con lo de Guido); una ficha cambió ⚠; sin "$defaults" ⚠', () => {
+  const e = escenario();
+  const proy = path.join(e.proyectos, 'alfa-p', '.claude');
+  fs.mkdirSync(proy, { recursive: true });
+  fs.writeFileSync(path.join(proy, 'kit.md'), FICHA);
+  const gen = P.generarAutoMode(e.proyectos).entradas;
+  assert.equal(gen.length, 1, gen.join(' | '));
+  // la ficha tiene una entrada nueva que el settings no tiene
+  rojo(e, 'automode', '⚠', /no es el que generan las fichas de hoy \(1 entrada generada\) · una ficha cambió: corré "preparame esta PC"/);
+  // ya aplicado (con una entrada de Guido en el medio)
+  kitPc(e, { autoMode: gen });
+  const s = leerSettings(e);
+  s.autoMode = { environment: [P.DEFAULTS, 'entrada de Guido', ...gen] };
+  escribirSettings(e, s);
+  assert.match(linea(correr(e), 'automode'), /^✓ automode · el bloque autoMode es el que generan las fichas \(1 entrada del kit\)$/);
+  // sin $defaults: reemplaza los defaults de Claude Code
+  s.autoMode = { environment: ['entrada de Guido', ...gen] };
+  escribirSettings(e, s);
+  rojo(e, 'automode', '⚠', /no trae "\$defaults"/);
+  // la ficha se fue: la entrada del kit sobra
+  s.autoMode = { environment: [P.DEFAULTS, ...gen] };
+  escribirSettings(e, s);
+  fs.rmSync(path.join(e.proyectos, 'alfa-p'), { recursive: true });
+  rojo(e, 'automode', '⚠', /0 entradas generadas/);
+  // sin kit-pc.md no se puede saber
+  fs.rmSync(P.rutaKitPc(e.home));
+  rojo(e, 'automode', '⚠', /NO VERIFICADO: sin kit-pc\.md/);
+});
+
+test('copias-kit: un repo de la carpeta de proyectos con .claude/skills/arquitecto adentro → ⚠ con la lista', () => {
+  const e = escenario();
+  assert.match(linea(correr(e), 'copias-kit'), /^✓ copias-kit · ninguno de los 0 repos/);
+  fs.mkdirSync(path.join(e.proyectos, 'beta-p', '.claude', 'skills', 'arquitecto'), { recursive: true });
+  fs.mkdirSync(path.join(e.proyectos, 'gama-p', '.claude', 'skills', 'arquitecto-skills'), { recursive: true });
+  fs.mkdirSync(path.join(e.proyectos, 'delta-p', '.claude', 'skills', 'inicio'), { recursive: true });
+  rojo(e, 'copias-kit', '⚠', /2 copias de las skills globales dentro de proyectos · beta-p\/\.claude\/skills\/arquitecto, gama-p\/\.claude\/skills\/arquitecto-skills · borralas/);
+  kitPc(e, { proyectos: null });
+  rojo(e, 'copias-kit', '⚠', /NO VERIFICADO: sin la carpeta de proyectos/);
+});
+
+test('frenos-vencidos: un frenos.quitados con hasta: pasado ⚠ "¿lo restauro o lo hago permanente?"; siempre y futuro ✓', () => {
+  const e = escenario();
+  assert.match(linea(correr(e), 'frenos-vencidos'), /^✓ frenos-vencidos · 3 frenos quitados, ninguno vencido$/);
+  fs.writeFileSync(path.join(e.repo, '.claude', 'kit.md'), FICHA.replace('hasta: 2099-01-01', 'hasta: 2020-01-01'));
+  rojo(e, 'frenos-vencidos', '⚠', /1 freno quitado vencido · pregunta:borrar-datos-reales \(venció 2020-01-01\) · ¿lo restauro o lo hago permanente\?/);
+  fs.rmSync(path.join(e.repo, '.claude', 'kit.md'));
+  assert.ok(linea(correr(e), 'frenos-vencidos').startsWith('✓'));
+});
+
+test('regla-tamano: el CLAUDE.md sin la sección (o sin CLAUDE.md) → ⚠ "el actualizador no toca el CLAUDE.md"', () => {
+  const e = escenario();
+  assert.ok(linea(correr(e), 'regla-tamano').startsWith('✓'));
+  fs.writeFileSync(path.join(e.repo, 'CLAUDE.md'), '# CLAUDE.md\n\n## Autonomía\n');
+  rojo(e, 'regla-tamano', '⚠', /no trae la sección "El tamaño del pedido" · el actualizador no toca el CLAUDE\.md: pegala del molde/);
+  fs.rmSync(path.join(e.repo, 'CLAUDE.md'));
+  rojo(e, 'regla-tamano', '⚠', /no tiene CLAUDE\.md/);
+});
+
+// ================================================================ criterio 7: el inventario de frenos
+const FL = require(path.join(MOLDE, 'hooks', 'lib', 'frenos-log.cjs'));
+const T0 = Date.UTC(2026, 9, 28, 15, 0, 0);
+const MIN = 60000;
+function anotar(e, filas) {
+  const txt = filas.map(([min, id, detalle, rama]) => `${FL.renglon({ id, herramienta: 'Bash', detalle, rol: 'obrero', rama: rama || 'main' }, new Date(T0 + min * MIN))}\n`).join('');
+  fs.writeFileSync(path.join(e.repo, '.claude', 'frenos.log'), txt);
+}
+const inventarioDe = (r) => r.lineas.filter((l) => l.startsWith('inventario · '));
+
+test('inventario: la clase sale del id; una pregunta que frenó 3 veces → molestó 3; las 5 de fábrica salen aunque no hayan frenado', () => {
+  const e = escenario();
+  anotar(e, [[0, 'pregunta:plata', 'a'], [1, 'pregunta:plata', 'a'], [2, 'pregunta:plata', 'b'], [3, 'hook:sensible/deploy', 'x'], [4, 'candado:raiz', 'docs/a.md']]);
+  const r = correr(e);
+  const inv = inventarioDe(r);
+  assert.ok(inv.includes('inventario · pregunta:plata · pregunta · frenó 3 · molestó 3'), inv.join('\n'));
+  assert.ok(inv.includes('inventario · hook:sensible/deploy · pregunta · frenó 1 · molestó 1'));
+  assert.ok(inv.includes('inventario · candado:raiz · corrector · frenó 1 · molestó 0'));
+  for (const id of ['borrar-datos-reales', 'claves', 'release', 'sale-afuera']) assert.ok(inv.includes(`inventario · pregunta:${id} · pregunta · frenó 0 · molestó 0`), id);
+  const ids = inv.map((l) => l.split(' · ')[1]);
+  assert.deepEqual(ids, [...ids].sort(), 'ordenadas por id');
+  assert.equal(r.codigo, 0, 'el inventario nunca cambia la salida');
+  assert.ok(!inv.some((l) => /\d{4}-\d{2}-\d{2}|\d\d:\d\d/.test(l)), 'sin fechas ni horas');
+});
+
+test('inventario: un corrector repetido a los 5 min sobre el mismo detalle → molestó 1; a los 20 min → molestó 0; otro detalle o otra rama → 0', () => {
+  const e = escenario();
+  anotar(e, [
+    [0, 'hook:git-seguro/stash', 'git stash'], [5, 'hook:git-seguro/stash', 'git stash'],
+    [0, 'hook:git-seguro/reset-hard', 'git reset --hard'], [20, 'hook:git-seguro/reset-hard', 'git reset --hard'],
+    [0, 'hook:git-seguro/clean-f', 'uno'], [5, 'hook:git-seguro/clean-f', 'otro'],
+    [0, 'candado:raiz', 'docs/a.md', 'main'], [5, 'candado:raiz', 'docs/a.md', 'otra'],
+    [0, 'hook:git-seguro/push-force', 'push'], [10, 'hook:git-seguro/push-force', 'push'],
+  ]);
+  const inv = inventarioDe(correr(e));
+  assert.ok(inv.includes('inventario · hook:git-seguro/stash · corrector · frenó 2 · molestó 1'), inv.join('\n'));
+  assert.ok(inv.includes('inventario · hook:git-seguro/reset-hard · corrector · frenó 2 · molestó 0'));
+  assert.ok(inv.includes('inventario · hook:git-seguro/clean-f · corrector · frenó 2 · molestó 0'));
+  assert.ok(inv.includes('inventario · candado:raiz · corrector · frenó 2 · molestó 0'));
+  assert.ok(inv.includes('inventario · hook:git-seguro/push-force · corrector · frenó 2 · molestó 1'), 'exactamente 10 min cuenta (≤ 10)');
+});
+
+test('inventario: una ask propia del settings del repo → su línea (las del molde no); sin frenos.log → "sin frenadas"; sin ficha → nada', () => {
+  const e = escenario();
+  fs.writeFileSync(path.join(e.repo, '.claude', 'settings.json'), JSON.stringify({ permissions: { ask: ['Bash(node .claude/scripts/cambios.cjs aprobar:*)', 'PowerShell(node .claude/scripts/cambios.cjs aprobar:*)', 'Bash(npm publish:*)'] } }));
+  const inv = inventarioDe(correr(e));
+  assert.deepEqual(inv, ['inventario · sin frenadas', 'inventario · ask propia · Bash(npm publish:*) · no está en las 5 de A: ¿pregunta o corrector?']);
+  fs.rmSync(path.join(e.repo, '.claude', 'kit.md'));
+  assert.deepEqual(inventarioDe(correr(e)), []);
+  assert.deepEqual(inventarioDe(correr(e, { cwd: e.home })), []);
+});
+
+// ================================================================ criterio 6: dos corridas iguales sobre una copia de alfa con un frenos.log
+test('dos corridas seguidas sobre una copia de alfa (con un frenos.log de prueba) dan la misma salida byte a byte', (t) => {
+  const comun = git(__dirname, 'rev-parse', '--path-format=absolute', '--git-common-dir');
+  const alfa = path.join(path.dirname(path.dirname(comun.stdout.trim())), 'vibe-kit-pruebas', 'remotos', 'alfa.git');
+  if (comun.status !== 0 || !fs.existsSync(alfa)) return t.skip(`no está ${alfa} (corré pruebas/rehacer.sh)`);
+  const e = escenario();
+  const copia = path.join(nuevaCarpeta('copia-alfa'), 'alfa');
+  const c = git(RAIZ_TMP, 'clone', '-q', alfa, copia);
+  assert.equal(c.status, 0, c.stderr);
+  e.repo = copia;
+  assert.ok(fs.existsSync(path.join(copia, '.claude', 'kit.md')), 'alfa trae su ficha');
+  anotar(e, [[0, 'pregunta:claves', 'gh secret set'], [1, 'pregunta:claves', 'gh secret set'], [0, 'hook:git-seguro/stash', 'git stash'], [3, 'hook:git-seguro/stash', 'git stash']]);
+  const a = correr(e);
+  const b = correr(e);
+  assert.equal(a.out, b.out);
+  assert.equal(a.codigo, b.codigo);
+  assert.ok(inventarioDe(a).includes('inventario · hook:git-seguro/stash · corrector · frenó 2 · molestó 1'), a.out);
+  assert.equal(a.lineas.filter((l) => /^[✓✗⚠] /.test(l)).length, 26);
 });

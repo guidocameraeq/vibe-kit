@@ -35,19 +35,23 @@ del Arquitecto: él monta proyectos; vos equipás máquinas.
 
 ## Modo INSTALAR — "preparame esta máquina" / "instalame skills"
 
-1. **Censo**: listá `~/.claude/skills/` y compará contra el menú (qué hay, qué falta).
-2. **Menú con AskUserQuestion** (multiSelect): ofrecé lo FALTANTE del Tier 1 con default ON
-   (en tandas de a 4 si son muchas), y mencioná el Tier 2 como "por-proyecto, cuando lo pidas".
-3. **Instalá lo elegido** (regla 2): un clone por repo de origen (varias skills del mismo
-   repo = un solo clone), copiar las carpetas elegidas, verificar frontmatter (`name` +
-   `description` presentes) con `head -5`. **Entradas kit-owned (`docs-fyd`, `relevamiento`)**: en vez
-   de clonar, copiá `skills/<la que sea>/` del kit local (o de `~/.claude/skills/` si el Arquitecto ya
-   la trajo) — **entera, con `anexos/` y `plantillas/`**. Si en esta máquina no está ni el kit ni
-   instalada, avisá que falta el paquete — no la inventes.
-4. **Plugins/MCPs elegidos**: entregá los comandos exactos del menú para que él los corra.
-5. **Cierre con evidencia** (regla 5) + si en esta máquina existe el PLAYBOOK-MAESTRO,
-   actualizá su "Nota de máquina" (§2.3) con el set nuevo — es la única línea-fuente.
-   Recordale: reiniciar Claude Code para que las skills nuevas aparezcan.
+**"Preparame esta máquina"** (kit, hooks, settings, `kit-pc.md`: todo lo hace `preparar-pc.cjs`; no lo repitas a mano):
+1. Clon **completo, con tags** del canónico `guidocameraeq/vibe-kit` a un temporal (nunca `--depth 1`: sin historia todo archivo
+   viejo parece "editado a mano"), parado en el último **tag anotado** `v*` — nunca la punta de `main`. Es privado: si pide
+   credenciales, son del usuario.
+2. Corré el script **del clon nuevo**, nunca el instalado en `~/.claude/`:
+   `node <clon>/kit/skills/arquitecto-skills/scripts/preparar-pc.cjs --kit <clon> --plan` (no escribe nada).
+3. **UNA pregunta** (`AskUserQuestion`): el plan, lo editado a mano con su diff y la carpeta de proyectos detectada
+   ("¿Lo aplico, con los proyectos en `<carpeta>`?"). Sí → el mismo comando sin `--plan` (con `--pisar-editados` si Guido vio el diff).
+4. Pegá la tabla final (ya corre `doctor`), borrá el clon y cerrá con **"reiniciá Claude Code"**. Si sale 1, contá su línea.
+
+**"Instalame skills"** (las del menú):
+1. **Censo** de `~/.claude/skills/` contra el menú.
+2. **Menú con AskUserQuestion** (multiSelect): lo FALTANTE del Tier 1 con default ON (tandas de a 4); el Tier 2 es "por-proyecto, cuando lo pidas".
+3. **Instalá lo elegido** (regla 2): un clone por repo de origen, copiar solo las carpetas elegidas, verificar `name` + `description`
+   con `head -5`. Las kit-owned (`docs-fyd`, `relevamiento`) vienen con `preparame`, no de acá.
+4. **Plugins/MCPs**: los comandos exactos del menú, para que él los corra.
+5. **Cierre con evidencia** (regla 5) y reiniciar Claude Code.
 
 ## Modo ACTUALIZAR — "actualizá las skills"
 
@@ -61,29 +65,10 @@ del Arquitecto: él monta proyectos; vos equipás máquinas.
 
 ## Modo AUTO-ACTUALIZAR EL KIT — "actualizá el kit" / "actualizate" / "traé lo último del Arquitecto"
 
-Actualizás las skills **kit-owned** (`arquitecto`, `arquitecto-skills` —vos mismo—, `docs-fyd` y
-`relevamiento`) + el agente `redteam-spec` desde el **repo canónico** `guidocameraeq/vibe-kit`, sin depender de un prompt a
-mano. Es la contracara del `/cierre` del repo madre: allá se editan y se pushean; acá se bajan e
-instalan en `~/.claude/`.
-
-1. **Bajá el repo canónico fresco** (regla 2): `git clone --depth 1 https://github.com/guidocameraeq/vibe-kit.git`
-   a un directorio temporal. Es **privado** → si pide credenciales, son del usuario (JAMÁS las manejás vos).
-   *(Si esta PC ya tiene un clon del repo y el usuario prefiere, un `git pull` ahí sirve igual; pero
-   clone-a-temp es lo más simple y no depende de saber dónde está el clon.)*
-2. **Actualizá cada ruta kit-owned con diff-antes-de-pisar** (regla 3), copiando del clon a `~/.claude/`:
-   `skills/arquitecto/` · `skills/arquitecto-skills/` · `skills/docs-fyd/` · `skills/relevamiento/`
-   (entera, con `anexos/` y `plantillas/` — **incluido `plantillas/_fuente/`**) → `~/.claude/skills/`; y
-   `agents/redteam-spec.md` → `~/.claude/agents/`; y `VERSION` → `~/.claude/VERSION` (la versión del kit instalada; la leen los hooks). Por cada una: idéntica → "sin cambios"; cambió →
-   mostrá el resumen del diff y copiá; ⚠️ **hay ediciones locales en `~/.claude/`** → mostralas y
-   preguntá SIEMPRE (una edición directa a `~/.claude/` está huérfana del repo — el lugar canónico es el
-   repo; conviene llevarla allá antes de pisar).
-3. **⚠️ Preservá lo que es por-PC**: la línea **"Carpeta de proyectos de esta máquina"** del
-   `arquitecto/SKILL.md` es local de cada máquina — al pisar, **conservá la ruta que ya estaba**: el repo
-   trae `{{CARPETA_DE_PROYECTOS}}`, un lugar vacío. Es el único slot que INSTALAR ajusta por-PC.
-4. **Auto-update**: al actualizar `arquitecto-skills` te pisás a vos mismo — está bien; la versión nueva
-   carga al **reiniciar Claude Code**.
-5. **Limpiá** el clon temporal.
-6. **Cierre con evidencia** (regla 5): `ls` de lo actualizado + fechas, y **recordá reiniciar Claude Code**.
+Es el mismo camino que **preparame** (arriba): clon completo con tags, último tag anotado, el `preparar-pc.cjs` **del clon nuevo**,
+`--plan` y la **una** pregunta. Actualiza las kit-owned (`arquitecto`, `arquitecto-skills` —vos mismo—, `docs-fyd`, `relevamiento`),
+`agents/redteam-spec.md` y `VERSION`; conserva la carpeta de proyectos de la PC; un archivo editado a mano no se pisa sin
+`--pisar-editados`. La versión nueva de vos carga al reiniciar Claude Code.
 
 **Acotado**: este modo toca SOLO lo kit-owned, y solo desde el repo canónico. Las skills del **menú**
 (externas) se actualizan con el Modo ACTUALIZAR (clonan de SUS repos). Y **en el repo madre** (vibe-kit)
@@ -97,8 +82,8 @@ El corrector de secretos de esta PC (hooks en `~/.claude/hooks/kit/`). Los scrip
 1. `node ~/.claude/skills/arquitecto-skills/scripts/instalar-hooks-pc.cjs --plan` — no escribe nada; mostrale a Guido lo que haría.
 2. **UNA pregunta**: "¿Lo aplico?" (es lo único que se pregunta). Si el `--plan` dice que el settings no se entiende (JSON roto,
    claves repetidas), no preguntes: contale el motivo, se arregla a mano.
-3. Sí → el mismo comando **sin** `--plan`. Después `node …/scripts/doctor.cjs` (solo lee) y pegale las líneas: cada `✗` trae
-   cómo se arregla; los `⚠` no traban. Cerrá con **"reiniciá Claude Code"** (los hooks nuevos cargan al reiniciar).
+3. Sí → el mismo comando **sin** `--plan`. Después `node …/scripts/doctor.cjs` (el completo: 26 chequeos, solo lee; sin red dice "NO VERIFICADO") y pegale las líneas **y el
+   inventario de frenos** (las líneas `inventario ·`): cada `✗` trae cómo se arregla; los `⚠` no traban. Cerrá con **"reiniciá Claude Code"** (los hooks nuevos cargan al reiniciar).
 4. **Sacar el anti-secretos viejo**: cuando Guido confirme que el del kit anda → `… instalar-hooks-pc.cjs --sacar-viejo`
    (saca solo su registro; el archivo queda). **Deshacer todo**: `… --quitar` (deja el `settings.json` como estaba).
 5. Un archivo de `hooks/kit/` editado a mano: el `doctor` lo reporta y el instalador lo pisa con el del kit — decile antes a
