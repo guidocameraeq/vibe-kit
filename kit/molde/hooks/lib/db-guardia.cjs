@@ -5,7 +5,8 @@
 //      `git show`, nunca del disco), con `veredicto: aprobado` y `hash: <hash>`; si no, `db:sin-veredicto` (hasta que exista el
 //      revisor, orden 5, toda migración real se niega: está bien);
 //   2. si el SQL borra datos reales (DELETE/DROP TABLE/TRUNCATE/ALTER … DROP sobre una `tabla:<x>` de `sensible.datos-reales`, o
-//      DROP SCHEMA/DATABASE siempre): con `pregunta:borrar-datos-reales` quitado y vigente sigue; de noche (o un rol sin persona)
+//      DROP SCHEMA/DATABASE siempre): con `pregunta:borrar-datos-reales` quitado y vigente sigue; de noche (un rol sin persona, o
+//      la marca `.kit-noche`: contexto.deNoche)
 //      `db:borra-de-noche` con PARADA; de día, sin `--borra-datos-reales`, `db:borra-datos-reales` con la línea lista; con la
 //      bandera pasa (la ventana la pone el hook `sensible`, D-4).
 // La ficha es la VIGENTE (regla 4.7: lo de la rama por defecto, no lo del worktree). Sin ficha, ficha rota o entorno no declarado
@@ -333,10 +334,13 @@ function juzgarSinRed({ raiz, entorno, plan, rol, banderas, ahora }) {
   if (quitadoVigente(datos, ahora instanceof Date ? ahora : new Date())) return { ok: true };
 
   const quien = typeof rol === 'string' && rol.trim() !== '' ? rol.trim() : contexto.rol(r);
-  if (!ROLES_DE_DIA.includes(quien)) {
+  // Con un rol de día, la marca .kit-noche (la del checkout o, en un obrero, la de su director) vale como nocturno (crit. 16).
+  const noche = ROLES_DE_DIA.includes(quien) && r ? contexto.deNoche(r) : { noche: false };
+  if (!ROLES_DE_DIA.includes(quien) || noche.noche) {
+    const porque = noche.noche ? (noche.por === 'kit-noche' ? 'de noche: .kit-noche' : 'de noche: .kit-rol nocturno') : `rol ${quien}`;
     return niega(
       'db:borra-de-noche',
-      `esta migración borra datos reales (${que}) en ${cual} y sin una persona no se hace (rol ${quien}): dejá PARADA en tu ` +
+      `esta migración borra datos reales (${que}) en ${cual} y sin una persona no se hace (${porque}): dejá PARADA en tu ` +
         `bitácora ("borrar datos reales: ${que}") y pará. Lo decide Guido de día.`,
     );
   }

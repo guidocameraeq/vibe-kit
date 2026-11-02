@@ -504,7 +504,8 @@ function lineaAlcance(L, c) {
 }
 
 // 5. main (CM-79, D5-12): commits de la rama por defecto (local y origin) posteriores a la partida, y el status del principal. De
-// día ⚠️ (Guido trabaja en main); con el worktree del encargo en rol nocturno, un commit es ❌.
+// día ⚠️ (Guido trabaja en main); con el worktree del encargo de noche (.kit-rol nocturno o .kit-noche, la suya o la del
+// director: contexto.deNoche), un commit es ❌.
 function lineaMain(L, c) {
   const desde = Date.parse(c.e.campos.partida.fecha);
   if (!Number.isFinite(desde)) return [MAL, `${NV} — la fecha de - Partida: no se lee`];
@@ -527,7 +528,7 @@ function lineaMain(L, c) {
   const sucios = Math.max(0, lst.length - 1);
   const principal = `principal: ${lst.length ? lst[0] : '(sin estado)'}${sucios ? ` · ${sucios} sin commitear` : ''}`;
   const commits = `${shas.size} commit(s) en ${def} después de la partida (${c.e.campos.partida.fecha})`;
-  if (shas.size && c.rol === 'nocturno') return [MAL, `${commits}: commit en main de noche: PARADA · ${principal}`];
+  if (shas.size && c.noche && c.noche.noche) return [MAL, `${commits}: commit en main de noche: PARADA${c.noche.por === 'kit-noche' ? ' (.kit-noche)' : ''} · ${principal}`];
   if (shas.size || sucios || !st.ok) return [OJO, `${commits} · ${principal}`];
   return [OK, `${commits} · ${principal}`];
 }
@@ -583,7 +584,7 @@ function verificar(L, g, a, opciones) {
     if (!c.punta) c.faltas.punta = `no existe ${n.rama} en esta PC`;
     c.wt = worktreeDe(L, g.raiz, n.rama);
     if (!c.wt) c.faltas.wt = 'el worktree del encargo no está en esta PC: corré verificar en la PC del worktree';
-    else c.rol = L.contexto.rol(c.wt);
+    else c.noche = L.contexto.deNoche(c.wt, { rama: n.rama });
     const enc = encargoLeido(L, g.raiz, n);
     if (!enc.ok) c.faltas.e = enc.por;
     else c.e = enc.e;
