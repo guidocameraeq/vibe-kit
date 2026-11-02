@@ -2,7 +2,8 @@
 // paquete.cjs — el paquete del revisor por script (SPEC-0 6.10; D §6 regla 9 y §10). El revisor no tiene shell: lo que no está en
 // un archivo, no lo ve y pide papeles en vez de revisar código. Este script los arma en UN archivo. Uso, desde el repo:
 //   node .claude/scripts/paquete.cjs <sha-base> [--salida <archivo>] [--plazo <min>] [--pruebas <cmd> | --sin-pruebas]
-// Arma: el diff de <sha-base> contra HEAD (el commit congelado del sub-paso), el `git status` y la salida de las pruebas, que corren
+// Arma: el diff de <sha-base> contra HEAD (el commit congelado del sub-paso), el `git status`, los avisos de afirmaciones.cjs (la
+// prosa que promete de más, K5) y la salida de las pruebas, que corren
 // adentro del vigía de proceso.cjs: las de --pruebas <cmd> (las de lo tocado: /tramo se las pasa en cada sub-paso, RF-fix 10) o, sin
 // él, el vars.comando-test de la ficha vigente (el mismo que lee `encargo.cjs verificar`: la suite entera). --sin-pruebas no corre
 // ninguna (el paquete lo dice como NO VERIFICADO). Sin --salida, el archivo va a .claude/paquetes/<sha7 de HEAD>.md DENTRO del
@@ -75,6 +76,13 @@ function armar({ cwd, base, salida, plazoMin = PLAZO_MIN, pruebas: cmdPruebas = 
     ruta = path.join(path.resolve(top.stdout.trim()), ...CARPETA.split('/'), `${punta.stdout.trim()}.md`);
   }
   fs.mkdirSync(path.dirname(ruta), { recursive: true });
+  // La prosa que promete de más (K5): avisos para el revisor; nunca cambia las salidas del paquete.
+  let afirmaciones;
+  try {
+    afirmaciones = require('./afirmaciones.cjs').seccion({ cwd, base });
+  } catch (e) {
+    afirmaciones = '## Afirmaciones\n\nafirmaciones: NO VERIFICADO (el corrector no corrió)\n';
+  }
   const trozo = (t) => (t.trim() === '' ? '(vacío)' : t.replace(/\s+$/, ''));
   fs.writeFileSync(
     ruta,
@@ -92,6 +100,7 @@ function armar({ cwd, base, salida, plazoMin = PLAZO_MIN, pruebas: cmdPruebas = 
       trozo(diff.stdout),
       '```',
       '',
+      afirmaciones,
       '## Pruebas',
       '',
     ].join('\n'),

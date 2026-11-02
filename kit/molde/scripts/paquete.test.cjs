@@ -172,3 +172,15 @@ test('el diff es contra la base pedida: una base más nueva deja afuera el cambi
   assert.match(t, /b\.txt/);
   assert.doesNotMatch(t, /dos-cambiado/);
 });
+
+test('K5: la sección ## Afirmaciones va entre el diff y las pruebas, con los avisos de la prosa agregada; la salida no cambia', () => {
+  const { d, base } = proyecto();
+  commit(d, { 'm.py': 'def f():\n    """Esto garantiza el orden."""\n    return 1\n' }, 'prosa');
+  const salida = path.join(TMP, 'sal-afirm', 'paquete.md');
+  const r = correr(d, base, '--salida', salida);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  const t = fs.readFileSync(salida, 'utf8');
+  const i = t.indexOf('## Afirmaciones');
+  assert.ok(i > t.indexOf('## Diff completo') && i < t.indexOf('## Pruebas'), 'la sección, en su lugar');
+  assert.match(t, /⚠️ a mirar · m\.py:2 · absoluto · eso no: "garantiza"/);
+});
