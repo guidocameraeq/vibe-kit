@@ -19,7 +19,9 @@ const DIR_MOLDE = path.join(__dirname, '..');
 // kit/skills del repo: contra donde se resuelve ~/.claude/skills/ (nunca el ~/.claude/ real).
 const DIR_KIT_SKILLS = path.join(__dirname, '..', '..', 'skills');
 
-const NOMBRES = ['inicio', 'cierre', 'director', 'obrero'];
+const NOMBRES = ['inicio', 'cierre', 'director', 'obrero', 'tramo'];
+// Scripts cuyo primer argumento es posicional (no un subcomando): solo se les chequean los flags contra su USO.
+const SIN_SUBCOMANDO = ['paquete'];
 const leer = (n) => fs.readFileSync(path.join(DIR_SKILLS, n, 'SKILL.md'), 'utf8').replace(/\r\n/g, '\n');
 const TEXTOS = Object.fromEntries(NOMBRES.map((n) => [n, leer(n)]));
 // El núcleo (no es una skill: sin SKILL.md), la plantilla del encargo y el revisor (un agente).
@@ -139,6 +141,10 @@ function comandosRotos(texto) {
       continue;
     }
     const uso = usoDe(c.script);
+    if (SIN_SUBCOMANDO.includes(c.script)) {
+      for (const f of c.flags) if (!uso.includes(f)) rotos.push(`${c.linea}: el USO de ${c.script}.cjs no nombra ${f}`);
+      continue;
+    }
     if (!c.sub || !palabra(uso, c.sub)) rotos.push(`${c.linea}: el USO de ${c.script}.cjs no nombra el subcomando "${c.sub}"`);
     for (const f of c.flags) if (!uso.includes(f)) rotos.push(`${c.linea}: el USO de ${c.script}.cjs no nombra ${f}`);
   }
@@ -529,7 +535,7 @@ test('nucleo: el canon de pruebas del ADR-029, el gate y la PARADA como archivo'
 });
 
 test('director y obrero citan el núcleo', () => {
-  for (const n of ['director', 'obrero']) assert.match(TEXTOS[n], /nucleo\/NUCLEO\.md/, `${n} no cita nucleo/NUCLEO.md`);
+  for (const n of ['director', 'obrero', 'tramo']) assert.match(TEXTOS[n], /nucleo\/NUCLEO\.md/, `${n} no cita nucleo/NUCLEO.md`);
 });
 
 test('obrero: el primer paso es presentar, y es el primer comando del texto', () => {
@@ -671,8 +677,27 @@ test('el revisor: opus, effort alto y solo lectura (sin Bash), con lo que /obrer
   assert.deepEqual(datosDeProyecto(REVISOR), []);
 });
 
+test('tramo: coordina y no escribe código; cada subagente que nombra existe; el revisor recibe la ruta del paquete (SPEC-0 5.6, 6.10)', () => {
+  const t = TEXTOS.tramo;
+  assert.match(t, /No escribís código/);
+  const nombrados = [...t.matchAll(/agente `([a-z]+)`/g)].map((a) => a[1]);
+  assert.ok(nombrados.includes('implementador') && nombrados.includes('revisor') && nombrados.includes('explorador'));
+  for (const a of nombrados) assert.ok(fs.existsSync(path.join(DIR_MOLDE, 'agents', `${a}.md`)), `el agente ${a} no existe en kit/molde/agents`);
+  assert.match(t, /node \.claude\/scripts\/paquete\.cjs <sha-base> --salida <archivo>/);
+  assert.match(t, /\*\*la ruta\*\* al agente `revisor`/);
+  assert.match(t, /nunca lo reanudás/);
+  assert.match(t, /ningún proceso vivo/);
+  assert.match(t, /Mutación solo en `Riesgo: alto`/);
+  assert.match(t, /PRESENTACION <rama> @<sha7> · <modelo> · <esfuerzo>/);
+});
+
+test('obrero: la presentación imprime modelo y esfuerzo reales, y la plantilla del encargo trae los dos con su razón (SPEC-0 5.7)', () => {
+  assert.match(TEXTOS.obrero, /PRESENTACION <rama> @<sha7> · <modelo> · <esfuerzo>` con los valores reales/);
+  assert.match(PLANTILLA, /- Modelo: sonnet \| opus · Esfuerzo: low \| medium \| high · Por qué: <razón>/);
+});
+
 test('sin bypass: ni el núcleo, ni las skills, ni la plantilla, ni el revisor nombran saltarse los permisos (D5-2, criterio 11)', () => {
-  for (const [donde, t] of [['nucleo', NUCLEO], ['director', TEXTOS.director], ['obrero', TEXTOS.obrero], ['plantilla', PLANTILLA], ['revisor', REVISOR]]) {
+  for (const [donde, t] of [['nucleo', NUCLEO], ['director', TEXTOS.director], ['obrero', TEXTOS.obrero], ['tramo', TEXTOS.tramo], ['plantilla', PLANTILLA], ['revisor', REVISOR]]) {
     assert.doesNotMatch(t, /bypass/i, donde);
     assert.doesNotMatch(t, /dangerously|skip-permissions/i, donde);
   }
