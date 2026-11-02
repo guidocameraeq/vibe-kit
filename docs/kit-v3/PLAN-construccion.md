@@ -592,7 +592,8 @@ Opus, chat nuevo en vibe-kit.
 
 ## Abrir D5.2 sin Guido (el prompt)
 
-*(Armado en el cierre de D5.1, 2026-10-31.)* En la PC `Usuario`, en Opus, chat nuevo en vibe-kit.
+*(Armado en el cierre de D5.1, 2026-10-31.)* ~~En la PC `Usuario`~~ **En la PC `Draco-PC`** (preparada el 2026-11-02: kit, repos de prueba,
+gitleaks, gh, VS Code y su extensión; antes de pegar, Guido inicia sesión en Claude dentro de VS Code y reinicia la app), en Opus, chat nuevo en vibe-kit.
 
 > inicio — misión 5, D5.2: el paquete 5, segunda mitad, sin mí, con el presupuesto del ADR-029.
 >
@@ -651,7 +652,7 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
   el orden 6** (Decisiones sin Guido); (b) el hash de `settings`: lo rehace F7 con `hashPieza`; (c) la carpeta hermana desde un worktree: F7;
   (d) pasó al paquete 3.
 - **Paquete 3 · te espera a vos, Guido** (D3.3 no lo podía hacer sin una persona; **no traba a D4.1**):
-  1. **Instalar los hooks por PC, en `clientes` y en `Usuario`**: `node ~/.claude/skills/arquitecto-skills/scripts/instalar-hooks-pc.cjs --plan`
+  1. **Instalar los hooks por PC, en `clientes`, en `Usuario` y en `Draco-PC`** (esta, desde el 2026-11-02): `node ~/.claude/skills/arquitecto-skills/scripts/instalar-hooks-pc.cjs --plan`
      (mirá qué va a tocar), después lo mismo sin `--plan`, reiniciá VS Code, y `node ~/.claude/skills/arquitecto-skills/scripts/doctor.cjs`
      parado en `../vibe-kit-pruebas/alfa` (tiene que dar todo ✓ o ⚠ explicado). Si está bien, `--sacar-viejo` saca el anti-secretos viejo.
      Si algo traba, `--quitar` deja el `settings.json` byte a byte como estaba.

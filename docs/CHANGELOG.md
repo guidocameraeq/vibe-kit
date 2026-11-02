@@ -2,6 +2,14 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-11-02 — La PC `Draco-PC`, preparada para D5.2
+
+Sin trabajo de misión. El `/inicio` encontró una PC sin el kit (`kit-sync` SUCIO por faltante, no por edición a mano), sin identidad de git y
+sin herramientas. Con el OK de Guido: `kit-sync sync` (LIMPIO, carpeta de proyectos `C:\Users\guido\Desktop\(1) Claude`), identidad global
+`guido.camera.eq@gmail.com`, repos de prueba por `rehacer.sh` (LISTO), y por winget gitleaks 8.30.1, gh 2.103.3, VS Code y la extensión de
+Claude Code 2.1.314 (`proceso.cjs` encuentra su `claude.exe`). **Falta de Guido**: el login de Claude en VS Code ("Not logged in") y reiniciar la
+app. Handoff y prompt de D5.2: la D5.2 corre en `Draco-PC`. Los hooks por PC, sin instalar (pendiente de Guido, ahora en tres PCs).
+
 ## 2026-11-02 — Los chats de vibe-kit de la PC `Usuario`, al privado
 
 Los seis chats de vibe-kit de esta PC (D3.2 a D5.1) están en `vibe-research/chats/usuario/`, condensados; el de D5.1, de nuevo al final. Guido
