@@ -24,7 +24,7 @@ Estas dos entradas **derivan, no ejecutan** (E §3): el Arquitecto reconoce el p
 **"Adoptá X"** (un repo v2 sin ficha: se adopta, no se actualiza) — también deriva al Equipador, que corre:
 1. `… actualizar.cjs adoptar <carpeta> --kit <raíz de un clon del kit> --mirar --propuesta <archivo fuera del repo>` — no cambia nada.
 2. A partir del comentario de la propuesta, la sesión arma con Guido delante **la pantalla** (D6-12): NORTE, MAPA, el plano de `docs/` y las reglas propias como cambios, cada uno con su `chico:`.
-3. Con el OK, en un clon con `.kit-rol` = `actualizador`: `… adoptar <clon> --kit <…> --aplicar <archivo>`, commit, `chequear` y push.
+3. Con el OK, en un clon con `.kit-rol` = `actualizador`: `… adoptar <clon> --kit <…> --aplicar <archivo>`, los **dos** commits que imprime (piezas, ficha), `node .claude/scripts/estructura.cjs barreras --rango <antes>..HEAD` verde y push (`chequear`: desde la primera flota).
 
 ## Lo que no entra por esta puerta
 

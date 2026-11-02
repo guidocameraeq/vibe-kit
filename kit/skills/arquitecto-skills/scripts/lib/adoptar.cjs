@@ -20,7 +20,8 @@
 //   - una base con un archivo del proyecto en su ruta, distinto del molde → propia (no se pisa), y el comentario lo dice;
 //   - sin ficha ni CLAUDE.md → todo en no (criterio 19, caso de falla): la propuesta sale igual y la sesión decide.
 // El molde v2: de los tags v2.* del --kit con templates/universales/, el que más casa con el proyecto. Un archivo del proyecto
-// que es esa plantilla con sus {{…}} completados y nada más ("el v2 sin editar") es el molde viejo intacto: al aplicar se
+// que es esa plantilla con sus {{…}} completados y nada más ("el v2 sin editar"; los de contenido, como {{BUGS_HISTORICOS}}, solo
+// vacíos o tal cual: llenos son contenido propio → propia, y el comentario lo dice) es el molde viejo intacto: al aplicar se
 // reemplaza (inicio, cierre) o se retira (session-start.sh, check-code.js, y sus reglas del settings por la mezcla). A aplicar
 // le llega como molde viejo ese v2 con el texto del proyecto en lo que casó; sin tag v2, el molde nuevo hace de viejo.
 //
@@ -109,20 +110,40 @@ function revisarRaiz(carpeta) {
 
 // ¿texto es la plantilla con sus {{…}} completados (con lo que sea, también nada) y ningún otro cambio? Sin regex: prefijo, sufijo
 // y los pedazos fijos del medio en orden, el primero que aparece (con solo comodines, el más a la izquierda nunca pierde un caso).
-function casaPlantilla(plantilla, texto) {
-  const partes = lf(plantilla).split(/\{\{[^{}]*\}\}/);
+// → null si no casa, o [[marcador, lo que se comió]] en orden.
+function comodinesDe(plantilla, texto) {
+  const p0 = lf(plantilla);
+  const marcas = p0.match(/\{\{[^{}]*\}\}/g) || [];
+  const partes = p0.split(/\{\{[^{}]*\}\}/);
   const t = lf(texto);
-  if (partes.length === 1) return t === partes[0];
+  if (partes.length === 1) return t === partes[0] ? [] : null;
   const ultima = partes[partes.length - 1];
-  if (!t.startsWith(partes[0]) || t.length < partes[0].length + ultima.length) return false;
+  if (!t.startsWith(partes[0]) || t.length < partes[0].length + ultima.length) return null;
   let i = partes[0].length;
   const tope = t.length - ultima.length;
+  const comidos = [];
   for (const p of partes.slice(1, -1)) {
     const j = t.indexOf(p, i);
-    if (j < 0 || j + p.length > tope) return false;
+    if (j < 0 || j + p.length > tope) return null;
+    comidos.push(t.slice(i, j));
     i = j + p.length;
   }
-  return t.endsWith(ultima);
+  if (!t.endsWith(ultima)) return null;
+  comidos.push(t.slice(i, tope));
+  return marcas.map((m, k) => [m, comidos[k]]);
+}
+function casaPlantilla(plantilla, texto) {
+  return comodinesDe(plantilla, texto) !== null;
+}
+// Los marcadores de VALOR CORTO (el nombre del proyecto, una fecha): completarlos es instanciar. Los demás son de CONTENIDO
+// ({{BUGS_HISTORICOS}}, {{COMANDO_SALUD_OPCIONAL}}, …): lleno con algo que no sea nada o la nota de la plantilla (el {{…}} tal
+// cual), es contenido propio que el molde nuevo pisaría — el archivo no es "el v2 sin editar".
+const CORTOS = new Set(['PROYECTO', 'YYYY-MM-DD', 'FECHA', 'FECHA_HORA']);
+const nombreMarca = (m) => m.slice(2, -2).split(' — ')[0].trim();
+function contenidoPropio(plantilla, texto) {
+  const c = comodinesDe(plantilla, texto);
+  if (!c) return null;
+  return c.filter(([m, x]) => !CORTOS.has(nombreMarca(m)) && x.trim() !== '' && x !== m).map(([m]) => nombreMarca(m));
 }
 
 const versionDeTag = (t) => t.slice(1).split('.').map(Number);
@@ -134,14 +155,17 @@ function compararTags(a, b) {
 }
 
 // Los archivos de un molde v2 que son "el v2 sin editar" en el proyecto: [{ rel, proyecto, texto }]. El settings no cuenta (la mezcla
-// es regla por regla), CLAUDE.md y docs/ tampoco (nunca y nacimiento).
-function casadosCon(carpeta, dir) {
+// es regla por regla), CLAUDE.md y docs/ tampoco (nunca y nacimiento). Los que casan pero traen contenido propio en un marcador de
+// contenido no cuentan: van a `propios` ({ proyecto, marcadores }), para el comentario de la propuesta.
+function casadosCon(carpeta, dir, propios = []) {
   const out = [];
   for (const rel of C.rutasDeMolde(dir)) {
     if (rel === 'settings.json' || rel === 'CLAUDE.md' || rel.startsWith('docs/')) continue;
     const rp = C.rutaEnProyecto(rel);
     const t = rp === null ? null : leerP(carpeta, rp);
-    if (t !== null && casaPlantilla(fs.readFileSync(path.join(dir, ...rel.split('/')), 'utf8'), t)) out.push({ rel, proyecto: rp, texto: lf(t) });
+    const propio = t === null ? null : contenidoPropio(fs.readFileSync(path.join(dir, ...rel.split('/')), 'utf8'), t);
+    if (propio && propio.length) propios.push({ proyecto: rp, marcadores: propio });
+    else if (propio) out.push({ rel, proyecto: rp, texto: lf(t) });
   }
   return out;
 }
@@ -164,16 +188,17 @@ function moldeV2(kit, carpeta, destino) {
       M.borrar(dir);
       continue;
     }
-    const casados = casadosCon(carpeta, dir);
+    const propios = [];
+    const casados = casadosCon(carpeta, dir, propios);
     if (!mejor || casados.length > mejor.casados.length) {
       if (mejor) M.borrar(mejor.dir);
-      mejor = { ...m, version: t.slice(1), casados };
+      mejor = { ...m, version: t.slice(1), casados, propios };
     } else M.borrar(dir);
   }
   if (!mejor) return null;
   fs.renameSync(mejor.dir, destino);
   for (const c of mejor.casados) fs.writeFileSync(path.join(destino, ...c.rel.split('/')), c.texto);
-  return { dir: destino, forma: mejor.forma, version: mejor.version, casados: mejor.casados.map((c) => c.proyecto) };
+  return { dir: destino, forma: mejor.forma, version: mejor.version, casados: mejor.casados.map((c) => c.proyecto), propios: mejor.propios };
 }
 
 // ---------------------------------------------------------------- lo que se infiere
@@ -376,7 +401,11 @@ function mirar(carpeta, opciones) {
       const ocupada = distintos.length ? `${listaCorta(distintos)} ya está y es distinto del molde` : '';
       if (id === 'candado') {
         pone('no', `apagado hasta migrar; .claude/scripts/estructura.cjs viene igual: barreras corre desde ahí${ocupada ? ` — ⚠ ${ocupada}: barreras no anda hasta resolverlo` : ''}`);
-      } else if (distintos.length) pone('propia', `${ocupada}: no se pisa`);
+      } else if (distintos.length) {
+        const conPropio = (viejo ? viejo.propios : []).filter((x) => distintos.includes(x.proyecto));
+        const marcas = [...new Set(conPropio.flatMap((x) => x.marcadores))];
+        pone('propia', `${ocupada}: no se pisa${marcas.length ? ` — trae contenido propio (${marcas.join(', ')}): llevalo a la zona propia antes de aplicar` : ''}`);
+      }
       else pone('molde', delV2.length ? `${listaCorta(delV2)}: el molde v2 sin editar → se reemplaza o se retira` : 'nueva');
     }
 
@@ -631,4 +660,4 @@ async function main(argv) {
   }
 }
 
-module.exports = { mirar, aplicarPropuesta, main, casaPlantilla, sinObservaciones, MARCA_INI, MARCA_FIN };
+module.exports = { mirar, aplicarPropuesta, main, casaPlantilla, contenidoPropio, sinObservaciones, MARCA_INI, MARCA_FIN };

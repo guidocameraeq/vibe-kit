@@ -10,7 +10,8 @@
 //   (1) por repo, UNO DETRÁS DEL OTRO (D6-11), y uno que falla no frena a los demás: del checkout de Guido se lee SOLO el origin
 //       (git remote get-url): su árbol de trabajo nunca se toca ni se lee. Sin origin → "sin remoto: no se toca".
 //   (2) git clone completo (nunca --depth) del origin a un temporal; sin red o colgado → "sin tocar: <por qué>", con plazo.
-//   (3) saltear con su porqué: ramas modulo/* vivas en el remoto (obra en curso) · la ficha ya dice la versión (al día) · kit/v<v>
+//   (3) saltear con su porqué: ramas modulo/* vivas en el remoto (obra en curso) · la ficha ya dice la versión y el tag no es -rc
+//       (al día; con un -rc siempre se aplica, y aplicar sin cambios = al día) · kit/<tag> (kit/v3.0.0-rc.1: la rama lleva el tag)
 //       ya en el remoto (está o espera a Guido), SALVO que su último commit diga "kit: ROTA — …" (D6-16): esa se borra del remoto
 //       (git push --delete, nunca --force) y se rehace.
 //   (4) .kit-rol = actualizador (y esa línea en .git/info/exclude), rama kit/v<v> desde la rama por defecto, aplicar.
@@ -21,7 +22,7 @@
 //   (6) chequear con --base = la rama por defecto de antes. Un ❌ (o NO VERIFICADO) → nada a la rama por defecto: commit vacío
 //       "kit: ROTA — <primera ❌>" con las nueve líneas en el cuerpo y push de kit/v<v> (D6-16).
 //   (7) verde → la rama por defecto avanza con el commit del kit (ff, un commit). Push rechazado (protegida, o se movió) → push de
-//       kit/v<v>, que queda viva y va a "te espera". En el camino verde kit/v<v> nunca se sube: no queda ninguna kit/* viva salvo
+//       kit/v<v>, que queda viva y va a "te espera". Sin red → "sin red: no se tocó el remoto"; el pre-push lo frena → falla. En el camino verde kit/v<v> nunca se sube: no queda ninguna kit/* viva salvo
 //       las ROTA y las que esperan.
 //   (8) piezas adaptadas (lib/fusion.cjs, D6-19): la fila dice "fusionadas: <ids>" y "te espera: <ids>"; las que esperan suman
 //       una línea a "te espera:" ("en <repo>, la próxima sesión te pregunta por <ids>"). Si el commit o chequear dan rojo y hubo
@@ -58,8 +59,10 @@ class Negativa extends Error {}
 function entorno(extra) {
   const e = {};
   for (const [k, v] of Object.entries(process.env)) if (!SACAR.test(k)) e[k] = v;
-  // sin red no se pregunta nada: ni usuario y clave por la terminal ni la ventana del administrador de credenciales
-  return { ...e, GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'never', ...(extra || {}) };
+  // sin red no se pregunta nada: ni usuario y clave por la terminal ni la ventana del administrador de credenciales, ni la
+  // passphrase o el "¿confiás en este host?" de ssh (BatchMode: falla en vez de colgarse), salvo un GIT_SSH_COMMAND que ya venga
+  const ssh = e.GIT_SSH_COMMAND ? {} : { GIT_SSH_COMMAND: 'ssh -o BatchMode=yes' };
+  return { ...e, GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'never', ...ssh, ...(extra || {}) };
 }
 
 function git(cwd, args, o = {}) {
@@ -117,13 +120,16 @@ function prepararCanon(canon, tagPedido, dir) {
     return { nombre, tipo };
   });
   const tag = elegirTag(tags, tagPedido);
+  // el -rc anterior de la misma versión (anotado): el molde viejo de un repo cuya ficha ya dice esa versión (vino de un -rc)
+  const rcs = tags.filter((x) => x.tipo === 'tag' && claveTag(x.nombre) && versionDeTag(x.nombre) === versionDeTag(tag) && /-rc\./.test(x.nombre)
+    && compararTags(x.nombre, tag) < 0).map((x) => x.nombre).sort(compararTags);
   const k = git(dir, ['-c', 'advice.detachedHead=false', 'checkout', '-q', '--detach', `refs/tags/${tag}`]);
   if (!k.ok) throw new Error(`no pude pararme en ${tag}: ${primera(k.err)}`);
   const rv = path.join(dir, 'kit', 'VERSION');
   if (!fs.existsSync(rv)) throw new Negativa(`el canónico en ${tag} no tiene kit/VERSION: no es un kit`);
   const version = fs.readFileSync(rv, 'utf8').trim();
   if (versionDeTag(tag) !== version) throw new Negativa(`el tag ${tag} no coincide con kit/VERSION (${version}): no reparto (D6-15)`);
-  return { dir, tag, version };
+  return { dir, tag, version, rcAnterior: rcs.length ? rcs[rcs.length - 1] : null };
 }
 
 // ---------------------------------------------------------------- de dónde sale cada repo
@@ -145,7 +151,8 @@ function origenDe(dir) {
   return { url: resolverOrigen(url, dir) };
 }
 
-// `todo`: los de --proyectos con ficha (la idea del adaptador registro de arquitecto.cjs, sin depender de esa skill).
+// `todo`: los de --proyectos con ficha o con origin (la idea del adaptador registro de arquitecto.cjs, sin depender de esa skill).
+// Con origin aunque el checkout no tenga ficha: puede estar atrasado; la ficha que manda es la del clon ("sin ficha" sale ahí).
 function todosLosRepos(proyectos) {
   let dirs;
   try {
@@ -153,7 +160,7 @@ function todosLosRepos(proyectos) {
   } catch {
     throw new Negativa(`no encuentro la carpeta de proyectos ${proyectos}`);
   }
-  return dirs.filter((n) => fs.existsSync(path.join(proyectos, n, ...RUTA_FICHA.split('/'))));
+  return dirs.filter((n) => fs.existsSync(path.join(proyectos, n, ...RUTA_FICHA.split('/'))) || !!origenDe(path.join(proyectos, n)).url);
 }
 
 function rutaDeRepo(nombre, proyectos) {
@@ -183,6 +190,14 @@ const primeraRoja = (lineas) => (lineas || []).find((l) => / · ❌ · /.test(l)
 function porqueRechazo(err) {
   if (/non-fast-forward|fetch first|\(stale info\)/i.test(err)) return 'la rama por defecto se movió mientras actualizaba';
   return 'la rama por defecto está protegida';
+}
+// Un push que no salió: el remoto lo rechazó ("[remote rejected]" / "[rejected]"), no hubo red, o algo local (el pre-push).
+const RE_RECHAZO = /\[(?:remote )?rejected\]/;
+const RE_RED = /unable to access|Could not resolve|Connection|timed out/i;
+function porqueNoSubio(p) {
+  if (!p.colgado && RE_RECHAZO.test(p.err)) return 'rechazo';
+  if (p.colgado || RE_RED.test(p.err)) return 'red';
+  return 'local';
 }
 
 // ---------------------------------------------------------------- los githooks del clon
@@ -240,12 +255,15 @@ async function actualizarRepo(nombre, url, ctx) {
   }
   fila.antes = String(datos.kit || '?');
   fila.despues = fila.antes;
-  if (datos.kit === ctx.version) return fin('al día', `la ficha ya dice ${ctx.version}`);
-  const rama = `kit/v${ctx.version}`;
+  // la ficha guarda la versión sin el -rc: con un -rc siempre se aplica (y "al día" sale de aplicar sin cambios, abajo)
+  const tag = ctx.tag || `v${ctx.version}`;
+  const esRc = /-rc\.\d+$/.test(tag);
+  if (datos.kit === ctx.version && !esRc) return fin('al día', `la ficha ya dice ${ctx.version}`);
+  const rama = `kit/${tag}`;
   let rehecha = false;
   if (ramas.includes(rama)) {
     const s = git(clon, ['log', '-1', '--format=%s', `refs/remotes/origin/${rama}`]);
-    if (!s.ok || !RE_ROTA.test(s.out.trim())) return fin('salteado', `${rama} ya está en el remoto: espera que la mezcles (o ya pasó)`);
+    if (!s.ok || !RE_ROTA.test(s.out.trim())) return fin('salteado', `${rama} ya está en el remoto: mezclala, o si no la querés, borrala y la próxima corrida la rehace`);
     // D6-16: la ROTA se borra y se rehace — un delete y un push nuevo, nunca --force
     const d = git(clon, ['push', '-q', 'origin', '--delete', rama], { plazo: PLAZO_RED });
     if (!d.ok) return fin('sin tocar', `${rama} está ROTA y no pude borrarla del remoto: ${d.colgado ? 'no respondió' : primera(d.err)}`);
@@ -262,9 +280,14 @@ async function actualizarRepo(nombre, url, ctx) {
   const vars = datos.vars && typeof datos.vars === 'object' && !Array.isArray(datos.vars) ? datos.vars : {};
   const opM = { vars, fecha: ctx.fecha };
   const nuevo = M.materializarNuevo(ctx.kit, opM, path.join(ctx.tmp, `molde-nuevo-${ctx.n}`));
-  const viejo = ctx.moldeViejo
-    ? M.materializarDir(ctx.moldeViejo, opM, path.join(ctx.tmp, `molde-viejo-${ctx.n}`))
-    : M.materializarViejo(ctx.kit, datos.kit, opM, path.join(ctx.tmp, `molde-viejo-${ctx.n}`));
+  // la ficha ya dice esta versión (vino de un -rc): el molde viejo es el -rc anterior; sin él, el nuevo (como aplicar)
+  let moldeViejo = ctx.moldeViejo;
+  if (!moldeViejo && datos.kit === ctx.version && ctx.rcAnterior) {
+    moldeViejo = M.materializarViejo(ctx.kit, ctx.rcAnterior.slice(1), opM, path.join(ctx.tmp, `molde-rc-${ctx.n}`)).dir;
+  }
+  let viejo = nuevo;
+  if (moldeViejo) viejo = M.materializarDir(moldeViejo, opM, path.join(ctx.tmp, `molde-viejo-${ctx.n}`));
+  else if (datos.kit !== ctx.version) viejo = M.materializarViejo(ctx.kit, datos.kit, opM, path.join(ctx.tmp, `molde-viejo-${ctx.n}`));
   const hooks = hooksDelMolde(nuevo.dir, path.join(ctx.tmp, `githooks-${ctx.n}`));
   const conGithooks = fs.existsSync(path.join(clon, '.githooks')) && fs.statSync(path.join(clon, '.githooks')).isDirectory();
   // Antes de cada commit y de cada push: chequear corre el hook de arranque del clon, que al ver un core.hooksPath que no es
@@ -289,7 +312,7 @@ async function actualizarRepo(nombre, url, ctx) {
   let noFusionar;
   let ch;
   for (let vuelta = 0; ; vuelta++) {
-    const a = ctx.aplicar(clon, { kit: ctx.kit, moldeViejo: ctx.moldeViejo, fecha: ctx.fecha, claude: ctx.claude, noFusionar });
+    const a = ctx.aplicar(clon, { kit: ctx.kit, moldeViejo, fecha: ctx.fecha, claude: ctx.claude, noFusionar });
     fus = fusionDe(a.lineas);
     if (a.codigo !== 0) {
       const msg = String([...a.lineas].reverse().find((l) => /^aplicar: /.test(l)) || a.lineas[a.lineas.length - 1] || '').replace(/^aplicar: /, '');
@@ -301,6 +324,9 @@ async function actualizarRepo(nombre, url, ctx) {
       if (!r.ok) throw new Error(`no pude volver ${rama} a la base: ${primera(r.err)}`);
       git(clon, ['clean', '-fdq', '-e', KIT_ROL]);
     };
+    // aplicar no cambió nada (un -rc que el repo ya tiene): no hay commit, al día
+    const st = git(clon, ['status', '--porcelain', '--untracked-files=all']);
+    if (st.ok && !st.out.trim()) return fin('al día', conNotas('aplicar no cambió nada'));
     const ad = git(clon, ['add', '-A']);
     if (!ad.ok) throw new Error(`git add: ${primera(ad.err)}`);
     ponerHooks();
@@ -315,7 +341,7 @@ async function actualizarRepo(nombre, url, ctx) {
       return fin('sin tocar', conNotas(`el commit del kit no pasó: ${err}`), { falla: true });
     }
     // (6) chequear contra la rama por defecto de antes
-    ch = await ctx.chequear(clon, { kit: ctx.kit, moldeViejo: ctx.moldeViejo, base, fecha: ctx.fecha, plazoMs: ctx.plazoMs });
+    ch = await ctx.chequear(clon, { kit: ctx.kit, moldeViejo, base, fecha: ctx.fecha, plazoMs: ctx.plazoMs });
     if (ch.codigo !== 0 && vuelta === 0 && fus.fusionadas.length) {
       sinFusion(`la fusión no pasó chequear: ${primeraRoja(ch.lineas)}`);
       continue;
@@ -346,7 +372,14 @@ async function actualizarRepo(nombre, url, ctx) {
     avisarFusiones();
     return fin('mezclado', conNotas(`un commit a ${def}`), { despues: ctx.version });
   }
-  const porque = p.colgado ? 'el remoto no respondió' : porqueRechazo(p.err);
+  // sin red: ni kit/v… (tampoco saldría); el pre-push u otro error local: falla con su línea
+  const no = porqueNoSubio(p);
+  if (no === 'red') return fin('sin tocar', conNotas(`sin red: no se tocó el remoto (${p.colgado ? `no respondió en ${minutos(PLAZO_RED)}` : primera(p.err)})`));
+  if (no === 'local') {
+    fila.espera.push(`${nombre}: el push a ${def} no salió (${primera(p.err) || 'sin salida'}): no subí nada`);
+    return fin('sin tocar', conNotas(`el push a ${def} no salió (el pre-push): ${primera(p.err) || 'sin salida'}`), { falla: true });
+  }
+  const porque = porqueRechazo(p.err);
   const q = git(clon, ['push', '-q', 'origin', `${rama}:refs/heads/${rama}`], { env, plazo: PLAZO_RED });
   if (!q.ok) return fin('sin tocar', conNotas(`${porque} (${primera(p.err)}) y no pude subir ${rama}: ${q.colgado ? 'no respondió' : primera(q.err)}`));
   fila.espera.push(`${nombre}: ${porque}; mezclá ${rama} en ${def} vos`);
@@ -399,7 +432,7 @@ async function flota(o) {
         continue;
       }
       try {
-        filas.push(await actualizarRepo(etiqueta, og.url, { ...o, aplicar, chequear, kit: canon.dir, version: canon.version, tmp, n: n++ }));
+        filas.push(await actualizarRepo(etiqueta, og.url, { ...o, aplicar, chequear, kit: canon.dir, version: canon.version, tag: canon.tag, rcAnterior: canon.rcAnterior, tmp, n: n++ }));
       } catch (e) {
         filas.push({ repo: etiqueta, antes: '?', despues: '?', resultado: 'error', porque: `${ROTO} (${e && e.message ? e.message : e})`, espera: [], falla: true });
       }
@@ -448,4 +481,4 @@ async function main(argv) {
   });
 }
 
-module.exports = { flota, main, leerArgs, actualizarRepo, hooksDelMolde, prepararCanon, elegirTag, compararTags, versionDeTag, origenDe, resolverOrigen, todosLosRepos, fusionDe, primeraRoja, porqueRechazo, tabla, Negativa, RE_ROTA };
+module.exports = { flota, main, leerArgs, entorno, porqueNoSubio, actualizarRepo, hooksDelMolde, prepararCanon, elegirTag, compararTags, versionDeTag, origenDe, resolverOrigen, todosLosRepos, fusionDe, primeraRoja, porqueRechazo, tabla, Negativa, RE_ROTA };

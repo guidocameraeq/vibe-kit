@@ -181,6 +181,13 @@ test('con el porqué solo en el git log → fusiona; la ficha no copia el porqu�
   assert.deepEqual(piezaDe(d, 'cierre'), { estado: 'adaptada', hash: Z.hashPieza(MOLDE_N['skills/cierre/SKILL.md']) });
 });
 
+test('un asunto que solo EMPIEZA con las letras kit (kitchen:, kits) sí es un porqué', () => {
+  for (const mensaje of ['kitchen: el paso seis es nuestro', 'kits: el paso seis']) {
+    const d = armarProyecto({ piezas: { cierre: 'adaptada' }, cambio: { '.claude/skills/cierre/SKILL.md': SEIS }, mensaje });
+    assert.equal(lineaDe(aplicar(d), 'cierre'), `cierre · adaptada · fusionada (sola, ${mensaje})`);
+  }
+});
+
 test('el guardia ve un desvío en esta corrida (estaba molde) y hay porqué en el git log → se fusiona igual, no queda vieja', () => {
   const d = armarProyecto({ cambio: { '.claude/skills/cierre/SKILL.md': SEIS } });
   const r = aplicar(d);
@@ -193,6 +200,8 @@ test('sin porqué: no fusiona; .claude/fusiones/<pieza>.md con los dos diffs, la
     ['el cambio nació con el archivo', { enNace: true }],
     ['el commit es del actualizador', { autor: 'kit-actualizador' }],
     ['el asunto empieza con "kit "', { mensaje: 'kit 2.8.0 → 2.9.0' }],
+    ['el asunto empieza con "kit:" (la adopción)', { mensaje: 'kit: adopción 2.9.0 (piezas)' }],
+    ['el asunto empieza con "kit:" (la ROTA)', { mensaje: 'kit: ROTA — 1. llaves · ❌ · x' }],
   ]) {
     const d = armarProyecto({ piezas: { cierre: 'adaptada' }, cambio: { '.claude/skills/cierre/SKILL.md': SEIS }, ...o });
     const r = aplicar(d);
@@ -291,10 +300,76 @@ test('la zona propia queda byte a byte: fusión limpia, con claude, y un claude 
 
 // ---------------------------------------------------------------- un "te espera" de antes se resuelve
 
-test('un .claude/fusiones/<pieza>.md de antes se borra cuando la pieza se fusiona', () => {
-  const d = armarProyecto({ piezas: { cierre: `{estado: adaptada, por: "${POR}"}` }, cambio: { '.claude/skills/cierre/SKILL.md': SEIS, '.claude/fusiones/cierre.md': '# viejo\n' } });
+test('un .claude/fusiones/<pieza>.md de antes (el dueño no contestó): no se fusiona sola aunque tenga porqué; el informe se rehace con su base', () => {
+  const d = armarProyecto({ piezas: { cierre: `{estado: adaptada, por: "${POR}"}` }, cambio: { '.claude/skills/cierre/SKILL.md': SEIS, '.claude/fusiones/cierre.md': '# viejo, sin línea base\n' } });
   const r = aplicar(d);
-  assert.match(lineaDe(r, 'cierre'), /fusionada \(sola/);
+  assert.equal(lineaDe(r, 'cierre'), 'cierre · adaptada · te espera: todavía espera tu respuesta (desde el kit 2.9.0): no se fusiona sola');
+  assert.equal(leer(d, '.claude/skills/cierre/SKILL.md'), SEIS);
+  const inf = leer(d, '.claude/fusiones/cierre.md');
+  assert.match(inf, /^base: 2\.9\.0$/m, 'sin línea base, la base es kit: de la ficha');
+  assert.equal(FU.baseDeInforme(inf), '2.9.0');
+  assert.equal(FU.baseDeInforme('# x\n\n## a\n\nbase: 1.0.0\n'), null, 'la línea va antes del primer ##');
+});
+
+// Un kit con historia: v2.9.0 (MOLDE_V), v3.0.0 (MOLDE_N) y v3.1.0 (MOLDE_N con "tres" cambiado), para las bases de verdad.
+const MOLDE_C = { ...MOLDE_N, 'skills/cierre/SKILL.md': MOLDE_N['skills/cierre/SKILL.md'].replace('tres\n', 'tres v3\n') };
+function kitConTags() {
+  const d = nuevaCarpeta('kit-git');
+  git(d, 'init', '-q', '-b', 'main');
+  git(d, 'config', 'core.autocrlf', 'false');
+  for (const [molde, v] of [[MOLDE_V, '2.9.0'], [MOLDE_N, '3.0.0'], [MOLDE_C, '3.1.0']]) {
+    fs.rmSync(path.join(d, 'kit'), { recursive: true, force: true });
+    escribirArbol(path.join(d, 'kit', 'molde'), molde);
+    fs.writeFileSync(path.join(d, 'kit', 'VERSION'), `${v}\n`);
+    git(d, 'add', '-A');
+    git(d, 'commit', '-q', '-m', `kit ${v}`);
+    git(d, 'tag', '-a', `v${v}`, '-m', `v${v}`);
+  }
+  return d;
+}
+const commitKit = (d, v) => {
+  git(d, 'add', '-A');
+  git(d, 'commit', '-q', '-m', v, '--author', 'kit-actualizador <k@kit.invalid>');
+};
+
+test('tres versiones: A → B queda en te espera (base A) → C rehace el informe con el diff desde A y nada se fusiona solo', () => {
+  const kit = kitConTags();
+  const d = armarProyecto({ piezas: { cierre: 'adaptada' }, cambio: { '.claude/skills/cierre/SKILL.md': SEIS }, enNace: true });
+  git(kit, 'checkout', '-q', 'v3.0.0');
+  const r1 = A.aplicar(d, { kit, fecha: '2026-11-02', claude: 'no' });
+  assert.match(lineaDe(r1, 'cierre'), /te espera: sin porqué/, r1.lineas.join('\n'));
+  assert.equal(FU.baseDeInforme(leer(d, '.claude/fusiones/cierre.md')), '2.9.0');
+  commitKit(d, 'kit 2.9.0 → 3.0.0');
+  // el dueño todavía no contestó, pero ya hay un porqué (en la ficha): igual no se fusiona sola
+  fs.writeFileSync(path.join(d, '.claude', 'kit.md'), leer(d, '.claude/kit.md').replace(/^ {2}cierre: adaptada$/m, `  cierre: {estado: adaptada, por: "${POR}"}`));
+  git(d, 'commit', '-q', '-am', 'ficha: el porqué del cierre');
+  git(kit, 'checkout', '-q', 'v3.1.0');
+  const r2 = A.aplicar(d, { kit, fecha: '2026-11-02', claude: 'no' });
+  assert.equal(r2.codigo, 0, r2.lineas.join('\n'));
+  assert.equal(lineaDe(r2, 'cierre'), 'cierre · adaptada · te espera: todavía espera tu respuesta (desde el kit 2.9.0): no se fusiona sola');
+  assert.equal(leer(d, '.claude/skills/cierre/SKILL.md'), SEIS, 'nada se fusiona solo');
+  assert.match(leer(d, '.claude/kit.md'), /^kit: 3\.1\.0$/m);
+  const inf = leer(d, '.claude/fusiones/cierre.md');
+  assert.match(inf, /kit 2\.9\.0 → 3\.1\.0/);
+  assert.equal(FU.baseDeInforme(inf), '2.9.0', 'la base se conserva');
+  assert.match(inf, /molde viejo → molde nuevo[\s\S]*^-uno$\n^\+uno v2$[\s\S]*^-tres$\n^\+tres v3$/m, 'el diff desde A: lo de B y lo de C');
+  assert.match(inf, /La fusión propuesta\n\n```md\n# cierre\n\nuno v2\ndos\ntres v3\n[\s\S]*seis \(a nuestra manera\)\n```/);
+});
+
+test('tres versiones, el dueño ya contestó (no hay archivo): la base es kit: de la ficha y con porqué se fusiona sola', () => {
+  const kit = kitConTags();
+  const d = armarProyecto({ piezas: { cierre: 'adaptada' }, cambio: { '.claude/skills/cierre/SKILL.md': SEIS }, enNace: true });
+  git(kit, 'checkout', '-q', 'v3.0.0');
+  A.aplicar(d, { kit, fecha: '2026-11-02', claude: 'no' });
+  commitKit(d, 'kit 2.9.0 → 3.0.0');
+  // "No" en /inicio: la pieza sigue adaptada con el porqué del dueño y el archivo se borra
+  fs.rmSync(path.join(d, '.claude', 'fusiones'), { recursive: true });
+  fs.writeFileSync(path.join(d, '.claude', 'kit.md'), leer(d, '.claude/kit.md').replace(/^ {2}cierre: adaptada$/m, `  cierre: {estado: adaptada, por: "${POR}"}`));
+  git(d, 'commit', '-q', '-am', 'inicio: el cierre sigue como lo tenemos');
+  git(kit, 'checkout', '-q', 'v3.1.0');
+  const r = A.aplicar(d, { kit, fecha: '2026-11-02', claude: 'no' });
+  assert.equal(lineaDe(r, 'cierre'), `cierre · adaptada · fusionada (sola, ${POR})`, r.lineas.join('\n'));
+  assert.equal(leer(d, '.claude/skills/cierre/SKILL.md'), SEIS.replace('tres\n', 'tres v3\n'), 'solo lo de C: lo de B lo rechazó el dueño');
   assert.equal(leer(d, '.claude/fusiones/cierre.md'), null);
 });
 
@@ -307,6 +382,18 @@ test('noFusionar (lo usa flota al rehacer): la pieza va a te espera con el motiv
 });
 
 // ---------------------------------------------------------------- piezas sueltas
+
+test('"No" en /inicio: la pieza sigue adaptada (D6-19 descartó la opción A); propia solo explícito y nunca en un freno', () => {
+  const inicio = fs.readFileSync(path.resolve(__dirname, '..', '..', '..', '..', 'molde', 'skills', 'inicio', 'SKILL.md'), 'utf8');
+  const paso = inicio.split('\n').find((l) => /Fusiones del kit/.test(l));
+  assert.match(paso, /No: la pieza \*\*sigue `adaptada`\*\* con el `por:` que dé el dueño y el archivo se borra/);
+  assert.match(paso, /`propia` solo si el dueño lo pide explícito/);
+  assert.match(paso, /\*\*nunca\*\* en una pieza de frenos \(`hook-\*`, `settings`, `candado`, `githooks`, `hooks-lib`\)/);
+  assert.doesNotMatch(paso, /No: la pieza pasa a `propia`/);
+  const inf = FU.informe({ id: 'cierre', versiones: { viejo: '2.9.0', nuevo: '3.0.0' }, motivo: 'x', porque: null, archivos: [], tmp: nuevaCarpeta('inf') });
+  assert.match(inf, /la pieza sigue adaptada/);
+  assert.doesNotMatch(inf, /pasa a `propia`/);
+});
 
 test('validar: marcadores, zona y node --check', () => {
   const tmp = nuevaCarpeta('val');

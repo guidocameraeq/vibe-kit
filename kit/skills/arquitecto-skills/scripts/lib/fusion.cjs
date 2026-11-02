@@ -9,7 +9,7 @@
 //     después mezclarTexto vuelve a poner la del proyecto, byte a byte).
 // Si ningún archivo necesita tres vías, se aplica sin más (el molde no tocó lo adaptado). Si alguno la necesita, EL GATE DEL PORQUÉ:
 // `por:` de la pieza en la ficha, o los asuntos de los commits que MODIFICARON sus archivos y no son del actualizador (autor
-// kit-actualizador o asunto "kit …"); el commit que los creó no cuenta (--diff-filter=M: nacer del molde no es adaptar).
+// kit-actualizador o asunto "kit …" / "kit: …"); el commit que los creó no cuenta (--diff-filter=M: nacer del molde no es adaptar).
 //   - sin porqué → "te espera" (no se fusiona aunque salga limpio: lo decide el dueño);
 //   - con porqué y merge-file limpio → esa es la fusión; con conflictos → un `claude -p` en el clon, que resuelve sobre una copia en
 //     .kit-fusion/<archivo> (acceptEdits, --allowedTools Read y Edit de .kit-fusion/**, las mismas allow en .claude/settings.local.json
@@ -18,6 +18,9 @@
 // node --check; si no → "te espera". "Te espera" = .claude/fusiones/<pieza>.md (viaja en el commit del kit): el motivo, los dos
 // diffs por archivo (molde viejo → nuevo; molde viejo → lo del proyecto), la fusión propuesta si merge-file dio una, y la pregunta.
 // La pieza queda como estaba. /inicio la ofrece en una sola pregunta; con la respuesta, `por:` queda en la ficha.
+// El informe guarda en una línea fija (`base: <versión>`) la versión del molde del que viene la pieza. Mientras exista, la pieza
+// NUNCA se fusiona sola: la flota siguiente lo rehace contra el molde nuevo DESDE ESA BASE (aplicar lo fuerza), así no se pierde
+// lo que trajo la versión intermedia. Cuando el dueño contesta y el archivo se borra, la base vuelve a ser `kit:` de la ficha.
 // Escribe solo en temporales y, durante el claude, .kit-fusion/ y .claude/settings.local.json del clon (los dos en
 // .git/info/exclude, y se borran siempre): nunca se commitean.
 
@@ -119,7 +122,7 @@ function porqueDe(carpeta, valorFicha, rutas) {
   const r = git(carpeta, ['log', '--no-renames', '--diff-filter=M', '--format=%an%x1f%s%x1e', '--', ...rutas]);
   if (!r.ok) return null;
   const asuntos = r.out.split('\x1e').map((x) => x.trim()).filter(Boolean).map((x) => x.split('\x1f'))
-    .filter(([autor, asunto]) => autor !== 'kit-actualizador' && !/^kit /.test(asunto || '')).map(([, asunto]) => (asunto || '').trim()).filter(Boolean);
+    .filter(([autor, asunto]) => autor !== 'kit-actualizador' && !/^kit[: ]/.test(asunto || '')).map(([, asunto]) => (asunto || '').trim()).filter(Boolean);
   return asuntos.length ? { de: 'git', texto: [...new Set(asuntos)].join('; ') } : null;
 }
 
@@ -287,13 +290,23 @@ const bloque = (lang, t) => {
 
 // La pregunta, textual (D6-19): la lee /inicio.
 const pregunta = (id) => `Actualicé ${id}; acá la tenías distinta así; ¿la mejoramos con esto?`;
+// La base de la pieza que espera: la línea fija `base: <versión>` del informe (antes del primer "## "). → la versión o null.
+function baseDeInforme(texto) {
+  const ls = String(texto || '').replace(/\r\n/g, '\n').split('\n');
+  const fin = ls.findIndex((l) => /^## /.test(l));
+  const m = (fin < 0 ? ls : ls.slice(0, fin)).map((l) => /^base: (\S+)$/.exec(l)).find(Boolean);
+  return m ? m[1] : null;
+}
 
 function informe({ id, versiones, motivo, porque, archivos, tmp }) {
   const out = [
     `# Te espera: la pieza \`${id}\` (kit ${versiones.viejo} → ${versiones.nuevo})`,
     '',
+    `base: ${versiones.viejo}`,
+    '',
     '> La dejó el actualizador del kit. La próxima sesión (`/inicio`) te lo pregunta una vez, junto con las otras; con tu respuesta',
-    '> se aplica (o la pieza pasa a `propia`), el porqué queda en `por:` de la ficha y este archivo se borra.',
+    '> se aplica o la pieza sigue adaptada (la próxima versión se te vuelve a ofrecer), el porqué queda en `por:` de la ficha y',
+    '> este archivo se borra. Mientras esté, la pieza no se fusiona sola: la próxima versión lo rehace desde la misma base.',
     '',
     `- **Por qué no se fusionó sola:** ${motivo}`,
     `- **El porqué que encontré:** ${porque ? `${porque.texto} (${porque.de === 'ficha' ? 'la ficha' : 'el git log'})` : 'ninguno (ni `por:` en la ficha ni un commit que la haya cambiado)'}`,
@@ -382,6 +395,6 @@ function que(r) {
 const rutaInforme = (id) => `${RUTA_FUSIONES}/${id}.md`;
 
 module.exports = {
-  fusionar, que, porqueDe, validar, clasificar, mergeFile, vaciarZonas, buscarClaude, lanzador, conClaude, informe, pregunta,
+  fusionar, que, porqueDe, validar, clasificar, mergeFile, vaciarZonas, buscarClaude, lanzador, conClaude, informe, pregunta, baseDeInforme,
   rutaInforme, RUTA_FUSIONES, CARPETA_FUSION, ARGS_CLAUDE, PERMITIDAS, PLAZO_CLAUDE, ADAPTADA,
 };
