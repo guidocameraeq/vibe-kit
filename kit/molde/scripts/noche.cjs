@@ -3,17 +3,20 @@
 // §11). Uso, desde el repo:
 //   node .claude/scripts/noche.cjs me-voy [--hasta HH:MM]
 //   node .claude/scripts/noche.cjs volvi
-//   node .claude/scripts/noche.cjs despertador [--cada <seg>] [--una-vez]
+//   node .claude/scripts/noche.cjs despertador [--modulo <x>] [--cada <seg>] [--una-vez]
 // `me-voy` corre en el worktree del director (rama modulo/<x>): escribe la marca .kit-noche en su raíz (desde ese momento los hooks,
 // el pre-commit, `db migrar` y `verificar` tratan como nocturno al director y a sus obreros: contexto.deNoche) e imprime el checklist
 // armado por script, sin preguntar nada: encargos abiertos y su obrero, cuáles abre Guido (esos paran de noche), la red, lo que vence
 // y el contexto del director (≥ 40 %: "mudate antes de irte", D §11). `volvi` borra la marca de este checkout y de todos los
-// worktrees del repo (lo llaman /inicio y /estado de Guido, que corren en el principal). `despertador` mira git — las ramas
-// modulo/<x>--<ID> locales y de origin (tras `fetch --prune`), y la rama por defecto local y de origin (CM-79: un commit en main
-// también despierta) — contra la foto anterior (`<git-dir común>/kit-despertador.json`, sin versionar y la misma para todos los
-// worktrees) y SOLO imprime cuando algo cambió: `DESPERTAR · <motivo> · <rama>@<sha7>`. Motivos: `PARADA` (la punta de la rama del
-// obrero trae su evidencia empezando con "PARADA:", NUCLEO §8), `commit`, `commit en <defecto>` y `sin red` (una vez, cuando el
-// fetch empieza a fallar). La PARADA de `presentar` no commitea (NUCLEO §8): esa no deja rastro en git y el despertador no la ve.
+// worktrees del repo (lo llaman /inicio y /estado de Guido SIEMPRE, en el principal: la marca vive en el worktree del director;
+// sin marca dice "ya era de día" y sale 0). `--hasta` es informativo (queda en la marca y en el checklist; no lo lee nadie): la noche
+// termina con `volvi`. `despertador` mira git — las ramas modulo/<x>--<ID> de SU módulo, locales y de origin (tras `fetch --prune`),
+// y la rama por defecto local y de origin (CM-79: un commit en main también despierta) — contra la foto anterior de ese módulo
+// (`<git-dir común>/kit-despertador-<x>.json`, sin versionar; una por módulo, RF-fix 3: con una sola, la vuelta de un director se
+// comía lo que tenía que ver otro) y SOLO imprime cuando algo cambió: `DESPERTAR · <motivo> · <rama>@<sha7>`. El <x> sale de la rama
+// del director (modulo/<x>) o de --modulo <x>. `me-voy` saca la foto de su módulo de nuevo: la primera vuelta de la noche no
+// despierta por lo que pasó de día. Motivos: `PARADA` (la punta de la rama del obrero trae su evidencia empezando con "PARADA:",
+// NUCLEO §8), `commit`, `commit en <defecto>` y `sin red` (una vez, cuando el fetch empieza a fallar). La PARADA de `presentar` no commitea (NUCLEO §8): esa no deja rastro en git y el despertador no la ve.
 // Cómo despierta de verdad al director (Monitor de Claude Code, tarea programada): NO VERIFICADO, piloto.
 // Salidas: 0 anduvo · 1 negado (una línea con qué hacer) · 2 mal llamado. Node estándar, cero dependencias. Es .cjs a propósito.
 
@@ -22,14 +25,18 @@ const path = require('path');
 
 const USO = [
   'Uso: node .claude/scripts/noche.cjs <comando> …   (desde el repo)',
-  '  me-voy [--hasta HH:MM]                    desde el worktree del director: escribe .kit-noche e imprime el checklist de la noche',
+  '  me-voy [--hasta HH:MM]                    desde el worktree del director: escribe .kit-noche, saca la foto del despertador e imprime el checklist',
+  '                                            (--hasta es informativo: la noche termina con volvi)',
   '  volvi                                     borra .kit-noche (de este checkout y de los worktrees del repo)',
-  '  despertador [--cada <seg>] [--una-vez]    "DESPERTAR · <motivo> · <rama>@<sha7>" solo si hay commit nuevo o PARADA',
+  '  despertador [--modulo <x>] [--cada <seg>] [--una-vez]   "DESPERTAR · <motivo> · <rama>@<sha7>" solo si hay commit nuevo o PARADA',
+  '                                            (una foto por módulo; <x>: la rama del director o --modulo)',
   '  (el despertador va en un Monitor de Claude Code o en una tarea fuera del director; cómo despierta al director: NO VERIFICADO)',
 ].join('\n');
 
 const ARCHIVO_NOCHE = '.kit-noche';
-const FOTO = 'kit-despertador.json';
+// Una foto por módulo (RF-fix 3): con una sola para todos, la vuelta de un director se comía los cambios que tenía que ver otro.
+const fotoDe = (x) => `kit-despertador-${x}.json`;
+const RE_X = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const UMBRAL_MUDANZA = 40; // % de la ventana del director: más que esto, se muda antes de irse (D §9.5, §11)
 const CADA_DEFECTO = 300;
 const CADA_MINIMO = 10;
@@ -55,7 +62,7 @@ function libs() {
 function leerArgumentos(argv) {
   const comando = argv[0];
   if (!['me-voy', 'volvi', 'despertador'].includes(comando)) malLlamado(comando ? `no conozco "${String(comando).slice(0, 40)}"` : 'falta el comando');
-  const a = { comando, hasta: null, cada: CADA_DEFECTO, unaVez: false };
+  const a = { comando, hasta: null, cada: CADA_DEFECTO, unaVez: false, modulo: null };
   for (let i = 1; i < argv.length; i++) {
     const x = argv[i];
     if (comando === 'me-voy' && x === '--hasta') {
@@ -67,6 +74,11 @@ function leerArgumentos(argv) {
       if (!Number.isInteger(v) || v < CADA_MINIMO) malLlamado(`--cada pide segundos, ${CADA_MINIMO} o más`);
       a.cada = v;
     } else if (comando === 'despertador' && x === '--una-vez') a.unaVez = true;
+    else if (comando === 'despertador' && x === '--modulo') {
+      const v = argv[++i];
+      if (!RE_X.test(v || '') || v.length > 20) malLlamado(`--modulo pide un módulo (minúsculas, números y guiones simples): "${v || ''}"`);
+      a.modulo = v;
+    }
     else malLlamado(`${comando} no lleva "${String(x).slice(0, 40)}"`);
   }
   return a;
@@ -179,6 +191,8 @@ function meVoy(L, g, a, o) {
   const m = L.uso.medir({ cwd: g.raiz, env: o.env });
   if (!m.ok) lineas.push(`${L.uso.linea(m)} — medilo antes de irte`);
   else lineas.push(`${L.uso.linea(m)}${m.pct >= UMBRAL_MUDANZA ? ` — pasa del ${UMBRAL_MUDANZA}%: mudate antes de irte` : ''}`);
+  // 5. la foto del despertador de este módulo, de nuevo: la primera vuelta de la noche compara contra el "me voy", no contra el día.
+  guardarFoto(path.join(g.gitComun, fotoDe(p.modulo)), fotoDeAhora(L, g, p.modulo));
   lineas.push('despertador: node .claude/scripts/noche.cjs despertador --cada 300 (en un Monitor o una tarea fuera del director)');
   return { codigo: 0, lineas };
 }
@@ -204,7 +218,7 @@ function volvi(L, g) {
 // ---------------------------------------------------------------- despertador
 
 // La foto de ahora: { refs: { 'refs/...': sha }, red: true|false|null }.
-function fotoDeAhora(L, g) {
+function fotoDeAhora(L, g, x) {
   const def = L.contexto.ramaPorDefecto(g.raiz);
   let red = null;
   if ((L.git.texto(['remote'], { cwd: g.raiz }) || '').split('\n').map((s) => s.trim()).includes('origin')) {
@@ -216,7 +230,8 @@ function fotoDeAhora(L, g) {
     for (const l of r.stdout.split('\n').map((s) => s.trim()).filter(Boolean)) {
       const [ref, sha] = l.split(' ');
       const corta = ref.replace(/^refs\/heads\//, '').replace(/^refs\/remotes\/origin\//, '');
-      if (RE_OBRERO.test(corta) || (def && corta === def)) refs[ref] = sha;
+      const m = RE_OBRERO.exec(corta);
+      if ((m && m[1] === x) || (def && corta === def)) refs[ref] = sha;
     }
   }
   return { refs, red, def };
@@ -237,10 +252,10 @@ function guardarFoto(archivo, f) {
 }
 
 // Una vuelta: compara con la foto guardada, la reemplaza y devuelve las líneas DESPERTAR (sin foto anterior: ninguna).
-function vuelta(L, g) {
-  const archivo = path.join(g.gitComun, FOTO);
+function vuelta(L, g, x) {
+  const archivo = path.join(g.gitComun, fotoDe(x));
   const antes = leerFoto(archivo);
-  const ahora = fotoDeAhora(L, g);
+  const ahora = fotoDeAhora(L, g, x);
   const lineas = [];
   if (antes) {
     if (ahora.red === false && antes.red !== false) {
@@ -266,11 +281,17 @@ function vuelta(L, g) {
 
 function despertador(L, g, a, o) {
   const salida = o.salida;
-  if (a.unaVez) return { codigo: 0, lineas: vuelta(L, g) };
+  let x = a.modulo;
+  if (!x) {
+    const p = L.contexto.pestana(L.contexto.rama(g.raiz));
+    if (p.tipo !== 'director') return { codigo: 1, lineas: ['despertador: no sé de qué módulo — corrélo desde el worktree del director (rama modulo/<x>) o pasale --modulo <x>'] };
+    x = p.modulo;
+  }
+  if (a.unaVez) return { codigo: 0, lineas: vuelta(L, g, x) };
   // En loop: imprime solo lo que cambió; nunca termina solo (lo corta quien lo lanzó).
   const tic = () => {
     try {
-      const ls = vuelta(L, g);
+      const ls = vuelta(L, g, x);
       if (ls.length) salida(`${ls.join('\n')}\n`);
     } catch (e) {
       /* una vuelta rota no corta el loop: la próxima vuelve a mirar */
@@ -317,4 +338,4 @@ if (require.main === module) {
   process.exitCode = codigo;
 }
 
-module.exports = { USO, ARCHIVO_NOCHE, FOTO, UMBRAL_MUDANZA, leerArgumentos, paradaDe, vuelta, main };
+module.exports = { USO, ARCHIVO_NOCHE, fotoDe, UMBRAL_MUDANZA, leerArgumentos, paradaDe, vuelta, main };

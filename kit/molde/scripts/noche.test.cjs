@@ -198,9 +198,9 @@ test('despertador --una-vez: la 1.ª vuelta solo saca la foto (en el git-dir com
   const una = (cwd = p.dir) => correr(cwd, ['despertador', '--una-vez'], p.env);
   let r = una();
   assert.deepEqual([r.codigo, r.out], [0, '']);
-  assert.ok(fs.existsSync(path.join(p.P, '.git', N.FOTO)), 'la foto vive en el git-dir común');
+  assert.ok(fs.existsSync(path.join(p.P, '.git', N.fotoDe('nz'))), 'la foto vive en el git-dir común');
   assert.equal(una().out, '', 'nada cambió: nada');
-  assert.equal(una(p.obr).out, '', 'desde otro worktree, la misma foto');
+  assert.equal(correr(p.obr, ['despertador', '--una-vez', '--modulo', 'nz'], p.env).out, '', 'desde otro worktree con --modulo, la misma foto');
   // commit local del obrero (sin push): una línea, aunque después se pushee no se repite
   const s1 = commit(p.obr, { 'src/a.js': '2\n' }, 'sub-paso 2');
   assert.equal(una().out, `DESPERTAR · commit · modulo/nz--01@${s1.slice(0, 7)}\n`);
@@ -236,7 +236,7 @@ test('despertador: sin red despierta UNA vez ("sin red"); al volver la red, nada
   g(p.P, 'remote', 'set-url', 'origin', p.bare);
   assert.equal(una(), '');
   // una foto rota se rehace sin despertar
-  fs.writeFileSync(path.join(p.P, '.git', N.FOTO), '{roto');
+  fs.writeFileSync(path.join(p.P, '.git', N.fotoDe('nz')), '{roto');
   assert.equal(una(), '');
 });
 
@@ -253,4 +253,67 @@ test('despertador en loop: no imprime nada si nada cambió y avisa en la 1.ª vu
   for (const args of [['despertador', '--cada', '5'], ['despertador', '--cada', 'x'], ['despertador', '--hasta', '07:00']]) {
     assert.equal(correr(p.dir, args, p.env).codigo, 2, args.join(' '));
   }
+});
+
+// ---------------------------------------------------------------- RF-fix 1, 3 y 11
+
+test('RF-fix 1: la marca SOLO en el worktree del director (como la deja me-voy); volvi desde el principal la borra; sin marca, una línea y 0', () => {
+  const p = proyecto();
+  assert.equal(correr(p.dir, ['me-voy'], p.env, AHORA).codigo, 0);
+  assert.ok(fs.existsSync(path.join(p.dir, '.kit-noche')));
+  assert.equal(fs.existsSync(path.join(p.P, '.kit-noche')), false, 'en la raíz del principal no hay marca: por eso /inicio corre volvi siempre');
+  let r = correr(p.P, ['volvi'], p.env);
+  assert.deepEqual([r.codigo, r.out], [0, 'volví: borré .kit-noche de modulo/nz — de día otra vez\n']);
+  assert.equal(fs.existsSync(path.join(p.dir, '.kit-noche')), false);
+  r = correr(p.P, ['volvi'], p.env);
+  assert.deepEqual([r.codigo, r.out], [0, 'volví: no había ninguna .kit-noche (ya era de día)\n'], 'idempotente: una línea, salida 0');
+  const s = spawnSync(process.execPath, [SCRIPT, 'volvi'], { cwd: p.P, env: p.env, encoding: 'utf8' });
+  assert.deepEqual([s.status, s.stdout, s.stderr], [0, 'volví: no había ninguna .kit-noche (ya era de día)\n', '']);
+});
+
+test('RF-fix 3: una foto por módulo — la vuelta de un director no se come lo del otro; sin módulo → 1; --modulo feo → 2', () => {
+  const p = proyecto();
+  const dirOt = path.join(p.P, '.claude', 'worktrees', 'modulo--ot');
+  g(p.P, 'worktree', 'add', '-q', '-b', 'modulo/ot', dirOt);
+  const obrOt = path.join(p.P, '.claude', 'worktrees', 'modulo--ot--01');
+  g(p.P, 'worktree', 'add', '-q', '-b', 'modulo/ot--01', obrOt);
+  const una = (cwd, ...extra) => correr(cwd, ['despertador', '--una-vez', ...extra], p.env);
+  assert.equal(una(p.dir).out, '');
+  assert.equal(una(dirOt).out, '');
+  assert.ok(fs.existsSync(path.join(p.P, '.git', N.fotoDe('nz'))) && fs.existsSync(path.join(p.P, '.git', N.fotoDe('ot'))), 'dos fotos');
+  // un commit del obrero de nz: la vuelta de ot no lo ve (ni lo consume); la de nz, sí
+  const s = commit(p.obr, { 'src/a.js': '3\n' }, 'de nz');
+  assert.equal(una(dirOt).out, '', 'ot no despierta por nz');
+  assert.equal(una(p.dir).out, `DESPERTAR · commit · modulo/nz--01@${s.slice(0, 7)}\n`, 'nz lo ve aunque ot dio su vuelta antes');
+  // y uno de ot, al revés; desde el principal con --modulo, la foto de ese módulo
+  const t = commit(obrOt, { 'src/b.js': '1\n' }, 'de ot');
+  assert.equal(una(p.dir).out, '');
+  assert.equal(una(p.P, '--modulo', 'ot').out, `DESPERTAR · commit · modulo/ot--01@${t.slice(0, 7)}\n`);
+  // main despierta a los dos (cada uno en su foto)
+  const m = commit(p.P, { 'c.txt': 'c\n' }, 'en main');
+  assert.equal(una(p.dir).out, `DESPERTAR · commit en main · main@${m.slice(0, 7)}\n`);
+  assert.equal(una(dirOt).out, `DESPERTAR · commit en main · main@${m.slice(0, 7)}\n`);
+  // sin módulo (el principal, un obrero) → 1 con qué hacer; --modulo feo → 2
+  for (const cwd of [p.P, p.obr]) {
+    const r = una(cwd);
+    assert.equal(r.codigo, 1);
+    assert.equal(r.out, 'despertador: no sé de qué módulo — corrélo desde el worktree del director (rama modulo/<x>) o pasale --modulo <x>\n');
+  }
+  for (const v of [['--modulo'], ['--modulo', 'NZ'], ['--modulo', 'a--b']]) assert.equal(una(p.P, ...v).codigo, 2, v.join(' '));
+});
+
+test('RF-fix 3: me-voy saca la foto de nuevo — lo que pasó de día no despierta en la primera vuelta de la noche; sin me-voy, sí', () => {
+  for (const conMeVoy of [true, false]) {
+    const p = proyecto();
+    const una = () => correr(p.dir, ['despertador', '--una-vez'], p.env).out;
+    assert.equal(una(), '', 'la foto de la mañana');
+    const s = commit(p.obr, { 'src/a.js': 'de día\n' }, 'de día');
+    if (conMeVoy) assert.equal(correr(p.dir, ['me-voy'], p.env, AHORA).codigo, 0);
+    assert.equal(una(), conMeVoy ? '' : `DESPERTAR · commit · modulo/nz--01@${s.slice(0, 7)}\n`, conMeVoy ? 'con me-voy' : 'sin me-voy');
+  }
+});
+
+test('RF-fix 11: el USO dice que --hasta es informativo y que la noche termina con volvi; el despertador nombra --modulo', () => {
+  assert.match(N.USO, /--hasta es informativo: la noche termina con volvi/);
+  assert.match(N.USO, /despertador \[--modulo <x>\] \[--cada <seg>\] \[--una-vez\]/);
 });
