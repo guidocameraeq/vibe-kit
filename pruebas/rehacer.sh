@@ -623,7 +623,7 @@ try {
   if (!cmds.some((x) => x.includes('niega-aprobar.cjs'))) mal('el settings no tiene el hook niega-aprobar.cjs');
   if (!cmds.some((x) => x.includes('escritura-docs.cjs'))) mal('el settings no tiene el hook escritura-docs.cjs');
   if (cmds.some((x) => x.includes('session-start.sh'))) mal('el settings sigue con session-start.sh');
-  if (!((s.permissions || {}).deny || []).includes('Write(./.claude/cambios/**)')) mal('el settings no niega Write a .claude/cambios');
+  if (!((s.permissions || {}).deny || []).includes('Edit(./.claude/cambios/**)')) mal('el settings no niega Edit a .claude/cambios'); // Edit, no Write: la deny Write(…) no la mira la plataforma
 } catch (e) { mal('el settings no se lee: ' + e.message); }
 console.log(problemas.join('\n'));
 JS

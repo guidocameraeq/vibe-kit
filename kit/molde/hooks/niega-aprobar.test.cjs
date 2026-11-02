@@ -279,12 +279,12 @@ test('no corre ningún .propio.sh: un hermano que imprime un allow no cambia nad
 
 // ---------------------------------------------------------------- el settings.json del molde
 
-test('settings.json: la ask de aprobar en Bash y PowerShell, el allow del resto, el deny de Write/Edit sobre la carpeta de la constante; lo de antes igual', () => {
+test('settings.json: la ask de aprobar en Bash y PowerShell, el allow del resto, el deny de Edit sobre la carpeta de la constante; lo de antes igual', () => {
   const s = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'settings.json'), 'utf8'));
   const { CARPETA } = require('./lib/cambios-ruta.cjs');
   assert.deepEqual(s.permissions.ask, ['Bash(node .claude/scripts/cambios.cjs aprobar:*)', 'PowerShell(node .claude/scripts/cambios.cjs aprobar:*)']);
   assert.deepEqual(s.permissions.allow, ['Bash(node .claude/scripts/cambios.cjs:*)']);
-  assert.deepEqual(s.permissions.deny.slice(0, 2), [`Write(./${CARPETA}/**)`, `Edit(./${CARPETA}/**)`]); // el resto (revisiones/, F §5): settings.test.cjs
+  assert.deepEqual(s.permissions.deny.slice(0, 1), [`Edit(./${CARPETA}/**)`]); // solo Edit (Write no lo mira el chequeo de archivos); el resto: settings.test.cjs
   assert.deepEqual(s.hooks.SessionStart, [{ matcher: '', hooks: [{ type: 'command', command: 'node', args: ['${CLAUDE_PROJECT_DIR}/.claude/hooks/session-start.cjs'], timeout: 20 }] }]);
   assert.deepEqual(s.hooks.PreToolUse[0], { matcher: 'Write', hooks: [{ type: 'command', command: 'node', args: ['${CLAUDE_PROJECT_DIR}/.claude/hooks/escritura-docs.cjs'], timeout: 20, onFailure: 'block' }] });
   // las rutas de los comandos existen en el molde (hooks/ y scripts/)

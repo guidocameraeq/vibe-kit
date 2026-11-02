@@ -1,6 +1,7 @@
 'use strict';
 // Pruebas del settings.json del molde (SPEC-paquete-3 MODIFICA y P4.7; D-6, D-7): todo hook en forma exec, los que niegan con
-// timeout 20 y onFailure "block", el deny de F §5 (= DENY_FABRICA) y el de revisiones/. Corren con: node --test "kit/**/*.test.cjs".
+// timeout 20 y onFailure "block", el deny de F §5 (= DENY_FABRICA) y el de revisiones/, sin
+// ninguna regla Write(…). Corren con: node --test "kit/**/*.test.cjs".
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
@@ -54,7 +55,7 @@ test('escritura-docs niega escrituras: registrado con onFailure "block" (crit. 1
   assert.ok(r.error || r.status !== 0);
 });
 
-test('deny: las 9 de F §5 (= DENY_FABRICA, D-6), ninguna Bash(...) (apagaría PowerShell), y Write/Edit sobre cambios/ y revisiones/', () => {
+test('deny: las 9 de F §5 (= DENY_FABRICA, D-6), ninguna Bash(...) (apagaría PowerShell), y Edit sobre cambios/ y revisiones/', () => {
   assert.deepEqual([...DENY_FABRICA], [
     'Read(./**/.env)',
     'Read(./**/.env.*)',
@@ -70,10 +71,21 @@ test('deny: las 9 de F §5 (= DENY_FABRICA, D-6), ninguna Bash(...) (apagaría P
   const deny = S.permissions.deny;
   for (const r of DENY_FABRICA) assert.ok(deny.includes(r), r);
   assert.ok(!deny.some((r) => /^(Bash|PowerShell)\(/.test(r)));
-  for (const c of [CARPETA, '.claude/revisiones']) for (const h of ['Write', 'Edit']) assert.ok(deny.includes(`${h}(./${c}/**)`), `${h} ${c}`);
+  for (const c of [CARPETA, '.claude/revisiones']) assert.ok(deny.includes(`Edit(./${c}/**)`), `Edit ${c}`);
   assert.equal(new Set(deny).size, deny.length, 'sin repetidas');
   assert.deepEqual(S.permissions.ask, ['Bash(node .claude/scripts/cambios.cjs aprobar:*)', 'PowerShell(node .claude/scripts/cambios.cjs aprobar:*)']);
   assert.deepEqual(S.permissions.allow, ['Bash(node .claude/scripts/cambios.cjs:*)']);
+});
+
+// El aviso de la plataforma (claude.exe 2.1.312+, visto en D5.2, 2026-11-02): "Write(./.claude/cambios/**) is not matched by file
+// permission checks — only Edit(path) rules are. Use Edit(…) instead (Edit rules cover all file-editing tools)". Una deny Write(…)
+// no frena nada: parece un freno y no lo es. Ni el molde ni el deny que worktree.cjs suma a cada worktree traen una.
+test('ninguna regla Write( en deny: ni el settings.json del molde ni reglasDeny de worktree.cjs (Edit cubre todo lo que escribe)', () => {
+  assert.deepEqual(S.permissions.deny.filter((r) => /^Write\(/.test(r)), []);
+  const { reglasDeny } = require('./scripts/worktree.cjs');
+  const reglas = reglasDeny(process.platform === 'win32' ? 'C:\\p' : '/p');
+  assert.deepEqual(reglas.filter((r) => /^Write\(/.test(r)), []);
+  assert.deepEqual(reglas.map((r) => r.slice(0, r.indexOf('('))), ['Read', 'Read', 'Edit', 'Edit'], 'lo que sí queda: Read y Edit de .env y .env.*');
 });
 
 test('abre sin claves repetidas y con la forma que pide la mezcla', () => {

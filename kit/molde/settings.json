@@ -8,9 +8,7 @@
       "PowerShell(node .claude/scripts/cambios.cjs aprobar:*)"
     ],
     "deny": [
-      "Write(./.claude/cambios/**)",
       "Edit(./.claude/cambios/**)",
-      "Write(./.claude/revisiones/**)",
       "Edit(./.claude/revisiones/**)",
       "Read(./**/.env)",
       "Read(./**/.env.*)",

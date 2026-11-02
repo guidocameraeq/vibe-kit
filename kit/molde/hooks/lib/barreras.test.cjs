@@ -627,6 +627,28 @@ test('--molde-viejo (6): un archivo que el molde nuevo retira, borrado, vale sol
   rojo(x, /hooks/, { molde: nuevo, moldeViejo: viejo });
 });
 
+// D5.2 (W0): el molde retiró las deny Write(./.claude/cambios/**) y Write(./.claude/revisiones/**) (claude.exe 2.1.312+ avisa que una
+// Write(ruta) no la mira el chequeo de archivos; las Edit hermanas cubren todo). Un proyecto con el molde de antes las trae.
+test('--molde-viejo (7), la migración de las Write: el actualizador las retira → verde con el viejo, rojo sin él; quedarse con ellas → verde', () => {
+  const WRITES = ['Write(./.claude/cambios/**)', 'Write(./.claude/revisiones/**)'];
+  assert.ok(!MOLDE_ACTUAL().permissions.deny.some((r) => /^Write\(/.test(r)), 'el molde de hoy no trae ninguna Write(');
+  const viejo = MOLDE_ACTUAL();
+  viejo.permissions.deny.unshift(...WRITES); // el molde de antes de W0
+  const proyecto = JSON.parse(JSON.stringify(viejo));
+  proyecto.permissions.allow.push(PROPIA);
+  const m = mezcla(viejo, proyecto);
+  assert.ok(!m.permissions.deny.some((r) => /^Write\(/.test(r)) && m.permissions.allow.includes(PROPIA), 'la mezcla retira las Write y respeta lo propio');
+  const a = conViejo(proyecto, m, viejo);
+  verde(a.d, { molde: MOLDE, moldeViejo: a.viejo });
+  rojo(a.d, /deny:Write\(\.\/\.claude\/cambios\/\*\*\)/, { molde: MOLDE }); // sin el molde viejo no se distingue de una regla propia
+  // Un proyecto que se queda con las Write de más (lo propio igual que antes) no da rojo, con o sin el viejo.
+  const queda = JSON.parse(JSON.stringify(m));
+  queda.permissions.deny.unshift(...WRITES);
+  const b = conViejo(proyecto, queda, viejo);
+  verde(b.d, { molde: MOLDE, moldeViejo: b.viejo });
+  verde(b.d, { molde: MOLDE });
+});
+
 // ---------------------------------------------------------------- exención (b)
 
 const FABRICA = {

@@ -284,7 +284,7 @@ const NUEVO = {
   permissions: {
     allow: ['Bash(node --test:*)', 'Bash(node .claude/scripts/cambios.cjs:*)'],
     ask: ['Bash(node .claude/scripts/cambios.cjs aprobar:*)'],
-    deny: ['Read(./.env)', 'Write(./.claude/cambios/**)'],
+    deny: ['Read(./.env)', 'Edit(./.claude/cambios/**)'],
   },
   hooks: {
     SessionStart: [{ matcher: '', hooks: [hook(ARRANQUE)] }],
@@ -318,12 +318,12 @@ test('mezclarSettings: primera instalación sobre un settings del proyecto: lo d
 
 test('mezclarSettings: la regla nueva entra; lo que no cambió queda igual', () => {
   const r = mezclar();
-  assert.deepEqual(r.settings.permissions.deny, ['Read(./.env)', 'Write(./.claude/cambios/**)']);
+  assert.deepEqual(r.settings.permissions.deny, ['Read(./.env)', 'Edit(./.claude/cambios/**)']);
   assert.deepEqual(r.settings.permissions.ask, ['Bash(node .claude/scripts/cambios.cjs aprobar:*)']);
   assert.deepEqual(r.informe.sumadas, [
     'allow:Bash(node .claude/scripts/cambios.cjs:*)',
     'ask:Bash(node .claude/scripts/cambios.cjs aprobar:*)',
-    'deny:Write(./.claude/cambios/**)',
+    'deny:Edit(./.claude/cambios/**)',
     H(`hook:PreToolUse/Bash|PowerShell/${NIEGA}`),
   ]);
 });
@@ -335,10 +335,10 @@ test('mezclarSettings: la regla que el molde retiró se va si el proyecto la ten
 });
 
 test('mezclarSettings: la regla quitada en la ficha no vuelve (vigente)', () => {
-  const r = mezclar({ quitados: [{ id: 'deny:Write(./.claude/cambios/**)', por: 'x', hasta: 'siempre' }] });
+  const r = mezclar({ quitados: [{ id: 'deny:Edit(./.claude/cambios/**)', por: 'x', hasta: 'siempre' }] });
   assert.deepEqual(r.settings.permissions.deny, ['Read(./.env)']);
-  assert.ok(r.informe.respetadas.includes('deny:Write(./.claude/cambios/**)'));
-  assert.ok(!r.informe.sumadas.includes('deny:Write(./.claude/cambios/**)'));
+  assert.ok(r.informe.respetadas.includes('deny:Edit(./.claude/cambios/**)'));
+  assert.ok(!r.informe.sumadas.includes('deny:Edit(./.claude/cambios/**)'));
 });
 
 test('mezclarSettings: la regla quitada no vuelve aunque su hasta esté vencido; tampoco un hook', () => {
@@ -363,7 +363,7 @@ test('mezclarSettings: un quitado escrito sin comillas o con \\ casa con la regl
     ],
   });
   assert.deepEqual(sin.settings.hooks.PreToolUse, VIEJO.hooks.PreToolUse);
-  assert.deepEqual(sin.settings.permissions.deny, ['Read(./.env)', 'Write(./.claude/cambios/**)']);
+  assert.deepEqual(sin.settings.permissions.deny, ['Read(./.env)', 'Edit(./.claude/cambios/**)']);
   const con = mezclar({ nuevo: J(n), quitados: [{ id: 'hook:PreToolUse/Bash|PowerShell/node $CLAUDE_PROJECT_DIR/.claude/hooks/otro.cjs' }] });
   assert.equal(con.settings.hooks.PreToolUse.length, 2);
   assert.ok(con.settings.permissions.deny.includes('Read(.\\secretos\\**)'));
@@ -373,7 +373,7 @@ test('mezclarSettings: la misma regla escrita con \\ en el proyecto no se duplic
   const p = copiar(VIEJO);
   p.permissions.deny = ['Read(.\\.env)'];
   const r = mezclar({ proyecto: J(p) });
-  assert.deepEqual(r.settings.permissions.deny, ['Read(.\\.env)', 'Write(./.claude/cambios/**)']);
+  assert.deepEqual(r.settings.permissions.deny, ['Read(.\\.env)', 'Edit(./.claude/cambios/**)']);
 });
 
 test('mezclarSettings: la regla que el proyecto ya había borrado no vuelve', () => {
@@ -381,7 +381,7 @@ test('mezclarSettings: la regla que el proyecto ya había borrado no vuelve', ()
   proy.permissions.deny = [];
   proy.hooks.SessionStart = [];
   const r = mezclar({ proyecto: J(proy) });
-  assert.deepEqual(r.settings.permissions.deny, ['Write(./.claude/cambios/**)']);
+  assert.deepEqual(r.settings.permissions.deny, ['Edit(./.claude/cambios/**)']);
   assert.deepEqual(r.settings.hooks.SessionStart, []);
   assert.ok(r.informe.respetadas.includes('deny:Read(./.env)'));
   assert.ok(r.informe.respetadas.includes(H(`hook:SessionStart//${ARRANQUE}`)));
@@ -539,7 +539,7 @@ test('mezclarSettings: un hook igual al del viejo con las claves en otro orden c
 });
 
 test('mezclarSettings: quitados también acepta el id suelto, como texto', () => {
-  const r = mezclar({ quitados: ['deny:Write(./.claude/cambios/**)'] });
+  const r = mezclar({ quitados: ['deny:Edit(./.claude/cambios/**)'] });
   assert.deepEqual(r.settings.permissions.deny, ['Read(./.env)']);
 });
 
@@ -593,7 +593,7 @@ test('mezclarSettings: determinista — dos corridas dan el mismo texto, y mezcl
   const p = copiar(VIEJO);
   p.permissions.allow.push('Bash(npm run build)');
   p.model = 'opus';
-  const o = { proyecto: J(p), quitados: [{ id: 'deny:Write(./.claude/cambios/**)' }] };
+  const o = { proyecto: J(p), quitados: [{ id: 'deny:Edit(./.claude/cambios/**)' }] };
   const a = mezclar(o);
   const b = mezclar(o);
   assert.equal(a.texto, b.texto);
@@ -601,7 +601,7 @@ test('mezclarSettings: determinista — dos corridas dan el mismo texto, y mezcl
   assert.ok(a.texto.startsWith('{\n  "'));
   const c = mezclar({ viejo: J(NUEVO), nuevo: J(NUEVO), proyecto: a.texto, quitados: o.quitados });
   assert.equal(c.texto, a.texto);
-  assert.deepEqual(c.informe, { sumadas: [], retiradas: [], respetadas: ['deny:Write(./.claude/cambios/**)'], actualizadas: [] });
+  assert.deepEqual(c.informe, { sumadas: [], retiradas: [], respetadas: ['deny:Edit(./.claude/cambios/**)'], actualizadas: [] });
 });
 
 test('mezclarSettings: una clave "__proto__" es un dato, no cambia el prototipo', () => {
@@ -617,7 +617,7 @@ test('desviosSettings: lo del molde que falta en el proyecto, salvo lo quitado',
   const p = copiar(NUEVO);
   p.permissions.deny = ['Read(./.env)'];
   p.hooks.PreToolUse.pop();
-  const d = desviosSettings({ molde: NUEVO, proyecto: p, quitados: [{ id: 'deny:Write(./.claude/cambios/**)', hasta: '2020-01-01' }] });
+  const d = desviosSettings({ molde: NUEVO, proyecto: p, quitados: [{ id: 'deny:Edit(./.claude/cambios/**)', hasta: '2020-01-01' }] });
   assert.deepEqual(d.map((r) => r.id), [H(`hook:PreToolUse/Bash|PowerShell/${NIEGA}`)]);
 });
 
