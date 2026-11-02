@@ -4,7 +4,8 @@
 > nuevo de esta carpeta. **Tope 5.500 bytes**; el hook corta y avisa "CORTADO" si se pasa, y termina con la huella.
 
 **Última sesión cerrada:** 2026-10-31, **D5.1** de la misión 5 en la PC `Usuario` (Opus, sin Guido, dos tramos por una pausa pedida, ~3,5 h,
-8 encargos). **El paquete 5 va por la mitad** (D5.1 ✅, sigue D5.2). `kit-sync` LIMPIO.
+8 encargos). **El paquete 5 va por la mitad** (D5.1 ✅, sigue D5.2). `kit-sync` LIMPIO. **2026-11-02: Guido se muda de la PC `Usuario`** (la
+borra): todo en git y pusheado, y **los chats, las memorias y la config de esa PC en `vibe-research`** (`chats/usuario/barrido-2026-11-02/`, `pc-usuario/`).
 
 ## Dónde estamos
 
@@ -19,10 +20,14 @@
 
 ## Próximo paso
 
-**D5.2**, en Opus, en `Usuario`, sin Guido: **`vibe-kit M5 · D5.2 · Paquete 5, segunda mitad: la noche, /estado, el resumen y la mesa`**.
+**D5.2**, en Opus, **en la PC nueva**, sin Guido: **`vibe-kit M5 · D5.2 · Paquete 5, segunda mitad: la noche, /estado, el resumen y la mesa`**.
 Guido pega el prompt de "Abrir D5.2 sin Guido (el prompt)" del tracker (`docs/kit-v3/PLAN-construccion.md`) y se va. Sin delta nuevo ni red
 team (el delta es del paquete entero); primero "Paquete 5 · para D5.2" de Pendientes (las `deny` con `Write`). Si no entra, la mesa y el
 corrector de afirmaciones a un D5.3.
+
+**En la PC nueva, antes de D5.2** (el `/inicio` lo verifica): clonar `vibe-kit` y `vibe-research` (`core.longpaths true`); `kit-sync.sh sync`
+(o el Equipador, "preparame esta PC"); `bash pruebas/rehacer.sh` (los repos de prueba no viajan); `gitleaks` y `node` en el PATH; las memorias
+de cada proyecto, de `vibe-research/pc-usuario/memorias/` (su `LEEME.md` dice cómo).
 
 **Para Guido, cuando pueda (no traba a D5.2)**, con el detalle en Pendientes del tracker ("Paquete 5 · te espera a vos", y los del 3 y el 4):
 - la pestaña real del obrero en VS Code: cero pop-ups para git, `encargo.cjs` y el test (fila 3 del delta);

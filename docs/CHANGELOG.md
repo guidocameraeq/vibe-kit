@@ -2,6 +2,16 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-11-02 — Mudanza de la PC `Usuario`
+
+Guido se muda de PC y borra `Usuario`. **Todo en git y pusheado** (vibe-kit, vibe-research y los repos de proyectos con remoto; lo que no tiene
+remoto, en la lista de abajo). **En `vibe-research`**: el barrido de **todos** los chats de esa PC (457 transcripts de todos los proyectos, con
+subagentes y las sesiones de prueba del kit, condensados con `condensar.py`, gitleaks 0 y datos de terceros tapados) en
+`chats/usuario/barrido-2026-11-02/`, y las memorias de Claude Code de 11 proyectos más la config de `~/.claude/` de referencia en `pc-usuario/`.
+
+**Changed**
+- Handoff y prompt de D5.2: la sesión siguiente arranca en la PC nueva, con los pasos de antes (clonar, `kit-sync`, `rehacer.sh`, las memorias).
+
 ## 2026-10-31 — Misión 5, paquete 5, primera mitad (D5.1): el canon director/obrero, `encargo.cjs` e `integrar`
 
 PC `Usuario`, chat `vibe-kit M5 · D5.1 · Paquete 5, primera mitad: delta, red team y el canon director/obrero`, en Opus, sin Guido, con el
