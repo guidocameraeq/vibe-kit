@@ -227,6 +227,27 @@ test('mesa sí: > 2 KB, tipo fuera de la tabla, cabecera rota, nombre a mano, ti
   }
 });
 
+test('mesa (RF-fix 4): el tope se cuenta sin los \\r — un mensaje de 2000 B con LF, en CRLF (core.autocrlf=true en otra PC), no frena; 2001 B sí, con o sin CR', () => {
+  const rel = `${MESA_DIR}/2026-10-24-1-PEDIDO.md`;
+  const base = MSG({ prosa: 'p' });
+  const justo = base.replace('\np\n', `\n${'linea\n'.repeat(Math.floor((2000 - Buffer.byteLength(base)) / 6))}p\n`);
+  const lf = justo + 'q'.repeat(2000 - Buffer.byteLength(justo));
+  assert.equal(Buffer.byteLength(lf), 2000);
+  const crlf = lf.replace(/\n/g, '\r\n');
+  assert.ok(Buffer.byteLength(crlf) > 2300, 'con CRLF pasa largo los 2000');
+  const d = repo(MOD);
+  escribir(d, rel, crlf);
+  assert.deepEqual(chequeo('mesa', d), [], 'nuevo en el disco, con CRLF');
+  const e = repo({ ...MOD, [rel]: crlf });
+  assert.deepEqual(chequeo('mesa', e), [], 'commiteado con CRLF');
+  for (const texto of [`${lf}x`, `${lf}x`.replace(/\n/g, '\r\n')]) {
+    const f = repo(MOD);
+    escribir(f, rel, texto);
+    assert.match(ques(chequeo('mesa', f)).join('\n'), /pesa 2001 B \(el tope es 2000\)/);
+  }
+  assert.deepEqual(require('./mesa.cjs').validar(crlf, { ruta: rel }).map((x) => x.que), [], 'validar sin bytes: también sin los \\r');
+});
+
 test('mesa sí: reescrito después de commiteado (o borrado del disco), reescrito después del push; firmado dos veces', () => {
   const rel = `${MESA_DIR}/2026-10-24-1-PEDIDO.md`;
   const d = repo({ ...MOD, [rel]: MSG() });

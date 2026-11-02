@@ -122,6 +122,29 @@ function leerCuerpo(a, opciones) {
   }
 }
 
+// El <n> del nombre (RF-fix 5): el mayor de ese día entre el disco y git — la carpeta en cada rama local y en cada una de origin
+// (lo que ya trajo el último fetch: no trae nada) — más uno. Solo con el disco, dos sesiones del mismo día (otra rama, otra PC)
+// elegían el mismo número y los nombres chocaban.
+function siguienteN(L, raiz, carpeta, abs, fecha) {
+  const nombres = [];
+  try {
+    nombres.push(...fs.readdirSync(abs));
+  } catch (e) {
+    /* la carpeta todavía no existe en el disco */
+  }
+  const refs = G(L, raiz, ['for-each-ref', '--format=%(refname)', 'refs/heads/', 'refs/remotes/origin/']);
+  for (const ref of refs.ok ? refs.stdout.split('\n').map((s) => s.trim()).filter((s) => s && !/\/HEAD$/.test(s)) : []) {
+    const r = G(L, raiz, ['ls-tree', '-z', '--name-only', ref, '--', `${carpeta}/`]);
+    if (r.ok) nombres.push(...r.stdout.split('\0').filter(Boolean).map((p) => path.posix.basename(p)));
+  }
+  let n = 1;
+  for (const f of nombres) {
+    const m = /^(\d{4}-\d{2}-\d{2})-(\d+)-/.exec(f);
+    if (m && m[1] === fecha) n = Math.max(n, Number(m[2]) + 1);
+  }
+  return n;
+}
+
 function nuevo(L, g, a, opciones) {
   const no = (...lineas) => ({ codigo: 1, lineas });
   const raiz = g.raiz;
@@ -142,15 +165,7 @@ function nuevo(L, g, a, opciones) {
   const fecha = L.M.dia(ahora);
   const carpeta = `docs/modulos/${a.x}/mesa/${aliasPara}`;
   const abs = path.join(raiz, ...carpeta.split('/'));
-  let n = 1;
-  try {
-    for (const f of fs.readdirSync(abs)) {
-      const m = /^(\d{4}-\d{2}-\d{2})-(\d+)-/.exec(f);
-      if (m && m[1] === fecha) n = Math.max(n, Number(m[2]) + 1);
-    }
-  } catch (e) {
-    /* la carpeta todavía no existe */
-  }
+  const n = siguienteN(L, raiz, carpeta, abs, fecha);
   const ruta = `${carpeta}/${fecha}-${n}-${a.tipo}.md`;
   const fallas = L.M.validar(texto, { ruta });
   if (fallas.length) return no(...fallas.map((f) => `mesa: no lo escribo — ${f.que} — ${f.hacer}`));

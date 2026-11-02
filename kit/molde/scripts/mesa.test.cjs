@@ -157,6 +157,35 @@ test('nuevo: sin push no hay aviso (salida 1, el archivo commiteado); el número
   assert.equal(g(m, 'status', '--porcelain'), '');
 });
 
+test('nuevo (RF-fix 5): el <n> mira también git — un número del día en otra rama local o solo en origin cuenta; otro día u otra carpeta, no', () => {
+  const p = dosProyectos();
+  const m = p.mobile.d;
+  const DIA = new Date(2026, 9, 24, 12, 0, 0);
+  const dir = 'docs/modulos/identidad/mesa/desktop';
+  const hecho = (n, fecha = '2026-10-24', carpeta = dir) => `${carpeta}/${fecha}-${n}-HECHO.md`;
+  const enRama = (rama, archivos) => {
+    g(m, 'checkout', '-q', '-b', rama);
+    for (const rel of archivos) escribir(m, rel, 'tipo: HECHO\nde: mobile/sesion\npara: desktop/director\ntema: x\n');
+    g(m, 'add', '-A');
+    g(m, 'commit', '-q', '-m', `mesa en ${rama}`);
+    g(m, 'checkout', '-q', 'modulo/identidad');
+  };
+  // otra rama local con el 2 del día (y uno de otro día y otra carpeta con números más altos, que no cuentan)
+  enRama('otra', [hecho(2), hecho(9, '2026-10-23'), hecho(8, '2026-10-24', 'docs/modulos/identidad/mesa/otro')]);
+  // una rama que está solo en origin, con el 3
+  enRama('remota', [hecho(3)]);
+  g(m, 'push', '-q', 'origin', 'remota');
+  g(m, 'branch', '-q', '-D', 'remota');
+  assert.ok(!fs.existsSync(path.join(m, ...dir.split('/'))), 'en el disco de modulo/identidad no hay nada');
+  const r = enProceso(m, ['nuevo', 'HECHO', 'desktop/director', 'identidad', '--archivo', borrador('tema: algo\n'), '--de', 'mobile'], DIA);
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(ultima(r.out), /mobile:docs\/modulos\/identidad\/mesa\/desktop\/2026-10-24-4-HECHO\.md@/);
+  // sin nada en git ni en el disco de ese día: 1
+  const q = dosProyectos();
+  const s = enProceso(q.mobile.d, ['nuevo', 'HECHO', 'desktop/director', 'identidad', '--archivo', borrador('tema: algo\n'), '--de', 'mobile'], DIA);
+  assert.match(ultima(s.out), /2026-10-24-1-HECHO\.md@/);
+});
+
 // ---------------------------------------------------------------- la ficha canónica (G §19)
 
 test('G §19: PEDIDO → aviso → mensaje vale del otro lado → abiertos de los dos lados → trabado a los 2 días → RESPUESTA hecho → nada abierto', () => {
