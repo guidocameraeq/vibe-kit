@@ -5,6 +5,19 @@ Una sección por versión, la más nueva arriba. Cada una trae su **nota de migr
 Es lo que lee el agente de la fusión al actualizar un proyecto. La historia de sesiones del repo vive aparte, en `docs/CHANGELOG.md`.
 `kit/VERSION` lleva la versión del último tag y se sube en el commit que pone el tag siguiente.
 
+## 3.0.0
+
+- **Qué piezas cambiaron**: el molde v3 entero. La ficha `.claude/kit.md` (versión, nivel, `vars`, frenos); los hooks, ahora en node, con
+  candado y barreras; `/inicio` y `/cierre` v3; director/obrero (worktrees por módulo); `/estado`; la mesa; los githooks del clon.
+  Se retiran `check-code` y `session-start.sh`, y las `deny` con `Write(...)` de los settings. Del lado de la PC: `actualizar.cjs`
+  (`aplicar`, `chequear`, `flota`, `adoptar`) y `cargar-secreto`, que ahora calcula el `<proyecto>` desde el checkout principal.
+- **Automático o pide revisión**: pide revisión, porque casi todo es pieza que los proyectos adaptan. Un repo v2 **sin ficha se adopta,
+  no se actualiza**: `adoptar` (con Guido delante, la pantalla). Uno **con ficha** se pone al día con `flota`. Las piezas adaptadas se
+  fusionan solas si traen su porqué; sin porqué quedan en `.claude/fusiones/` del proyecto, y el `/inicio` de la próxima sesión le hace
+  **una** pregunta al dueño. Una rama `kit/v3.0.0` ROTA se rehace sin `--force`; un repo protegido deja la rama "te espera".
+- **Qué chequear después**: `doctor` sin ✗; `chequear` con las nueve líneas en ✅; abrir el `/inicio` del proyecto y ver que confirme
+  en tres líneas, sin avisos de fusión pendientes.
+
 ## 2.4.3
 
 - **Qué piezas cambiaron**: el hook de arranque del molde (`templates/universales/hooks/session-start.sh`) ahora le pone tope al

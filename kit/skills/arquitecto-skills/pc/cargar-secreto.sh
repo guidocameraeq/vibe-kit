@@ -30,6 +30,11 @@ fi
 # Raiz del repo de git del cwd (o el cwd si no hay repo).
 raiz="$(git rev-parse --show-toplevel 2>/dev/null)" || raiz=""
 [ -n "$raiz" ] && [ -d "$raiz" ] || raiz="$(pwd)"
+# El <proyecto> sale del checkout PRINCIPAL (el padre del git-common-dir), no del worktree (r1-4 de D4.1):
+# mismo nombre y mismo almacen corra donde corra.
+raiz_proy="$raiz"
+comun="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" || comun=""
+if [ -n "$comun" ] && [ "$(basename "$comun")" = ".git" ] && [ -d "$(dirname "$comun")" ]; then raiz_proy="$(dirname "$comun")"; fi
 
 # --- el valor: oculto si hay terminal; un renglon de stdin si esta redirigida ---
 valor=""
@@ -59,7 +64,7 @@ if [ "$al_env" -eq 1 ]; then
 else
   if [ -z "${HOME:-}" ]; then echo "HOME no esta definido; no se puede ubicar el almacen." >&2; exit 1; fi
   proyecto=""
-  ficha="$raiz/.claude/kit.md"
+  ficha="$raiz_proy/.claude/kit.md"
   if [ -f "$ficha" ]; then
     en_vars=0
     while IFS= read -r l || [ -n "$l" ]; do
@@ -78,7 +83,7 @@ else
       fi
     done < "$ficha"
   fi
-  [ -n "$proyecto" ] || proyecto="$(basename "$raiz")"
+  [ -n "$proyecto" ] || proyecto="$(basename "$raiz_proy")"
   proyecto="$(printf '%s' "$proyecto" | tr 'A-Z' 'a-z' | tr -c 'a-z0-9' '-')"
   [ -n "$proyecto" ] || proyecto="proyecto"
   mkdir -p "$HOME/.config/kit-secretos" || { echo "no pude crear $HOME/.config/kit-secretos" >&2; exit 1; }

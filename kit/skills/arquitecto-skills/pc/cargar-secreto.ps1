@@ -36,6 +36,19 @@ try {
 $ErrorActionPreference = 'Stop'
 if (-not $raiz -or -not (Test-Path -LiteralPath $raiz -PathType Container)) { $raiz = (Get-Location).ProviderPath }
 $raiz = [System.IO.Path]::GetFullPath($raiz)
+# El <proyecto> sale del checkout PRINCIPAL (el padre del git-common-dir), no del worktree (r1-4 de D4.1):
+# mismo nombre y mismo almacen corra donde corra.
+$raizProy = $raiz
+try {
+  $ErrorActionPreference = 'Continue'
+  $c = & git rev-parse --path-format=absolute --git-common-dir 2>$null
+  if ($LASTEXITCODE -eq 0 -and $c) {
+    $c = [System.IO.Path]::GetFullPath(([string]($c | Select-Object -First 1)).Trim())
+    $pp = Split-Path -Parent $c
+    if ((Split-Path -Leaf $c) -eq '.git' -and $pp -and (Test-Path -LiteralPath $pp -PathType Container)) { $raizProy = $pp }
+  }
+} catch { $raizProy = $raiz }
+$ErrorActionPreference = 'Stop'
 
 # --- el valor: oculto si hay terminal; un renglon de stdin si esta redirigida ---
 $valor = $null
@@ -64,7 +77,7 @@ if ($AlEnv) {
   $home_ = $env:USERPROFILE
   if ([string]::IsNullOrEmpty($home_)) { Salir-Con 1 'USERPROFILE no esta definido; no se puede ubicar el almacen.' }
   $proyecto = ''
-  $ficha = Join-Path $raiz '.claude\kit.md'
+  $ficha = Join-Path $raizProy '.claude\kit.md'
   if (Test-Path -LiteralPath $ficha -PathType Leaf) {
     try {
       $enVars = $false
@@ -85,7 +98,7 @@ if ($AlEnv) {
       }
     } catch { $proyecto = '' }
   }
-  if (-not $proyecto) { $proyecto = Split-Path -Leaf $raiz }
+  if (-not $proyecto) { $proyecto = Split-Path -Leaf $raizProy }
   # a [a-z0-9-] byte a byte (UTF-8), igual que el .sh: lo demas pasa a '-'
   $sb = New-Object System.Text.StringBuilder
   foreach ($b in $enc.GetBytes($proyecto)) {

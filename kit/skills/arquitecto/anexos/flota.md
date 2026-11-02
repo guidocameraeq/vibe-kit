@@ -16,9 +16,15 @@ Estas dos entradas **derivan, no ejecutan** (E §3): el Arquitecto reconoce el p
 - Mostrá **una tabla**: alias · tipo (`código` / `sin código`) · versión del kit · repo (o "sin remoto") · se conecta con (las `conexiones`). Una ficha rota sale por stderr: una línea por cada una, debajo de la tabla.
 - Solo lectura. Es el adaptador de ejemplo (lee las fichas `.claude/kit.md` de los repos clonados en esa carpeta); el registro de la empresa es capa privada y no entra acá.
 
-**"Poné al día X"** y **"adoptá X"**
-- Una línea, y nada más: *"la flota: llega con el kit v3 (orden 6); hoy: `actualizate` del Equipador para la PC, el §2.9 del playbook para adoptar"*.
-- No tocás `X`, ni `~/.claude/`, ni abrís spec.
+**"Poné al día X"** / "poné al día la flota" — derivás al Equipador (D6-13): primera línea `la flota: te paso al Equipador` e invocás **`/arquitecto-skills`**, que corre el script. Vos no tocás `X` ni abrís spec.
+- `node "$HOME/.claude/skills/arquitecto-skills/scripts/actualizar.cjs" flota <X>… | todo --canon <url del repo canónico> [--proyectos <carpeta>]` (sin `--tag`: el último tag anotado).
+- Muestra la tabla y "te espera:". Una sesión en `auto` puede no tener permiso para pushear: si el clasificador la frena, la línea la corre Guido en su terminal (nunca en bypass).
+- Piezas adaptadas (D6-19): con porqué se fusionan solas; sin porqué quedan en `.claude/fusiones/` del proyecto y la próxima sesión ahí (`/inicio`) le hace **una** pregunta al dueño.
+
+**"Adoptá X"** (un repo v2 sin ficha: se adopta, no se actualiza) — también deriva al Equipador, que corre:
+1. `… actualizar.cjs adoptar <carpeta> --kit <raíz de un clon del kit> --mirar --propuesta <archivo fuera del repo>` — no cambia nada.
+2. A partir del comentario de la propuesta, la sesión arma con Guido delante **la pantalla** (D6-12): NORTE, MAPA, el plano de `docs/` y las reglas propias como cambios, cada uno con su `chico:`.
+3. Con el OK, en un clon con `.kit-rol` = `actualizador`: `… adoptar <clon> --kit <…> --aplicar <archivo>`, commit, `chequear` y push.
 
 ## Lo que no entra por esta puerta
 

@@ -164,6 +164,32 @@ for (const impl of IMPLS) {
     } finally { limpiar(sb); }
   });
 
+  test(`${nombreSuite}: desde un worktree guarda en el mismo almacén y con el mismo proyecto que desde el principal`, () => {
+    const sb = sandbox();
+    try {
+      const cwd = repo(sb, 'Principal Uno', 'vars:\n  proyecto: Mi App\n');
+      const g = (...a) => spawnSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...a], { cwd, encoding: 'utf8' });
+      assert.equal(g('add', '-A').status, 0);
+      assert.equal(g('commit', '-q', '-m', 'x').status, 0);
+      const wt = path.join(sb.raiz, 'otro-worktree');
+      const w = g('worktree', 'add', '-q', '-b', 'rama-wt', wt);
+      assert.equal(w.status, 0, w.stderr);
+      const r1 = correr(impl, sb, wt, 'CLAVE_WT', [], VALOR + '\n');
+      assert.equal(r1.code, 0, r1.stderr);
+      const r2 = correr(impl, sb, cwd, 'CLAVE_PRINCIPAL', [], VALOR + '\n');
+      assert.equal(r2.code, 0, r2.stderr);
+      assert.deepEqual(propios(path.join(sb.home, '.config', 'kit-secretos')), ['mi-app.env']);
+      assert.equal(leer(almacen(sb, 'mi-app')), `CLAVE_WT=${VALOR}\nCLAVE_PRINCIPAL=${VALOR}\n`);
+      // sin ficha: el nombre es el de la carpeta del principal, no el del worktree
+      fs.rmSync(almacen(sb, 'mi-app'));
+      fs.rmSync(path.join(cwd, '.claude'), { recursive: true });
+      const r3 = correr(impl, sb, wt, 'CLAVE_SIN', [], VALOR + '\n');
+      assert.equal(r3.code, 0, r3.stderr);
+      assert.deepEqual(propios(path.join(sb.home, '.config', 'kit-secretos')), ['principal-uno.env']);
+      sinValor(r1); sinValor(r2); sinValor(r3);
+    } finally { limpiar(sb); }
+  });
+
   test(`${nombreSuite}: el nombre con tildes o raros pasa a [a-z0-9-] (mismo resultado en sh y ps1)`, () => {
     const sb = sandbox();
     try {
