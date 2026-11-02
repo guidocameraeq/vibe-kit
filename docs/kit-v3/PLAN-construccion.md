@@ -441,6 +441,9 @@ D5.2 corrió sin Guido, con su autorización previa (su prompt, abajo) y la vara
   de "`Write(...)` is not matched", y el `Write` a `.claude/cambios/` lo niega la `deny` de `Edit` ("File is in a directory that is denied by your
   permission settings"), aun con el `allow` del proyecto ignorado por la confianza. `/estado` corrió de verdad: vista corta sin preguntar, `contexto`
   medido sobre su propio transcript (51k de 1000k).
+- **Sesión real 2, la noche** (mismo clon, `acceptEdits`, `echo … --borra-datos-reales` permitido por `--allowedTools`): con `.kit-noche` en la raíz, el
+  hook `sensible` **negó con PARADA** ("de noche: .kit-noche") y dejó el renglón `datos-reales (kit-noche)` en `frenos.log` (crit. 16 del delta). De
+  yapa: `vercel --prod` pasa en `alfa` porque su ficha dice `release: no` (correcto); y `rehacer.sh` no ponía `/.kit-noche` en el `.gitignore`.
 
 ## Abrir D3.1 sin Guido (el prompt)
 
