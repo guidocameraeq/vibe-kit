@@ -9,7 +9,7 @@ Solo información. No decide, no pregunta cuál módulo, no frena nada: las cifr
 
 ## Pasos
 
-1. **Elegir la vista, sin preguntar.** Con un nombre en el pedido (`/estado <x>`), o si esta pestaña es la de un módulo (la rama `modulo/<x>` o `modulo/<x>--NN` lo dice), corré `node .claude/scripts/estado.cjs <x>`. Si no, `node .claude/scripts/estado.cjs`: la vista corta del proyecto. Nunca preguntes "¿de cuál?".
+1. **Elegir la vista, sin preguntar.** Con un nombre en el pedido (`/estado <x>`), o si esta pestaña es la de un módulo (la rama `modulo/<x>` o `modulo/<x>--NN` lo dice), corré `node .claude/scripts/estado.cjs <x>`. Si no, `node .claude/scripts/estado.cjs`: la vista corta del proyecto. Nunca preguntes "¿de cuál?". Si existe `.kit-noche` y no hay `.kit-rol` (el rol es `humano`), el dueño volvió: antes de la vista, `node .claude/scripts/noche.cjs volvi`.
 2. **Mostrar la salida tal cual**, en ese orden: `TE ESPERA` primero. No la resumas, no la reordenes, no le sumes cifras. `avance —` quiere decir que la ficha no tiene tareas de dónde medir: dejalo así. `NO VERIFICADO` también se muestra como viene.
 3. **El resumen del día, una sola vez.** Si la última línea dice `resumen del día: falta … corré: <comando>` (son las 18 h o más), o el dueño pregunta "¿cómo terminamos?", corré ese comando (`node .claude/scripts/resumen.cjs`, con el módulo si la línea lo trae) y mostralo. Si el script dice que el de hoy ya existe, decí dónde está y no lo repitas.
 4. **Líneas propias.** Si el dueño pide "agregá tal línea al estado", sumá un renglón con esa frase, tal cual la dijo, a `.claude/estado-lineas.md` (se muestra siempre, en cualquier pestaña y PC). Quitarla es borrar el renglón.

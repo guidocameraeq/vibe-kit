@@ -25,7 +25,7 @@ Solo con razón con nombre: **escritor** (el implementador), **verificador indep
    7. **Un AVANCE por commit** (≤ 5 líneas, con SHA).
 4. **Cierre del sub-paso exige:** commit hecho, revisor resuelto y **ningún proceso vivo de un subagente**. Antes de decir "¿qué pasó?", mirá si hay subagentes en curso.
 5. **Lo que no está en AUTORIZADO y los mensajes del director:** igual que `/obrero` (pasos 4 y 5), incluido `node .claude/scripts/encargo.cjs mensaje <TIPO> <ruta>@<sha7>` antes de actuar sobre un aviso. Nunca un rodeo de permisos; los subagentes tampoco.
-6. **CIERRE.** Igual que `/obrero` (paso 6): evidencia en `docs/modulos/<x>/bitacora/<fecha>-evidencia-<ID>.md` (qué se probó y qué no se miró, más los veredictos de cada sub-paso), un commit por rutas con ella y `.claude/frenos.log`, `git push origin modulo/<x>--<ID>` y `CIERRE @<sha7>`. No corrés `/cierre`.
+6. **CIERRE.** Igual que `/obrero` (paso 6): evidencia en `docs/modulos/<x>/bitacora/<fecha>-evidencia-<ID>.md` (qué se probó y qué no se miró, más los veredictos de cada sub-paso), un commit por rutas con ella y `.claude/frenos.log`, `git push origin modulo/<x>--<ID>` y `CIERRE @<sha7>`; antes del mensaje, `node .claude/scripts/tiempos.cjs alarma`: si sale 1, su línea va en las notas. No corrés `/cierre`.
 
 ## Reglas
 

@@ -21,9 +21,9 @@ const DIR_KIT_SKILLS = path.join(__dirname, '..', '..', 'skills');
 
 const NOMBRES = ['inicio', 'cierre', 'director', 'obrero', 'tramo', 'estado'];
 // Scripts cuyo primer argumento es posicional (no un subcomando): solo se les chequean los flags contra su USO.
-const SIN_SUBCOMANDO = ['paquete', 'estado', 'resumen'];
+const SIN_SUBCOMANDO = ['paquete', 'estado', 'resumen', 'contexto'];
 // De estos, los que sin argumentos hacen su trabajo en vez de imprimir el USO: ahí se les pide --ayuda.
-const PIDE_AYUDA = ['estado', 'resumen'];
+const PIDE_AYUDA = ['estado', 'resumen', 'contexto'];
 const leer = (n) => fs.readFileSync(path.join(DIR_SKILLS, n, 'SKILL.md'), 'utf8').replace(/\r\n/g, '\n');
 const TEXTOS = Object.fromEntries(NOMBRES.map((n) => [n, leer(n)]));
 // El núcleo (no es una skill: sin SKILL.md), la plantilla del encargo y el revisor (un agente).
@@ -787,4 +787,33 @@ test('comandosRotos: estado.cjs y resumen.cjs no tienen subcomando; sus flags s�
   assert.deepEqual(comandosRotos('`node .claude/scripts/resumen.cjs m1 --forzar`'), []);
   assert.equal(comandosRotos('`node .claude/scripts/resumen.cjs --inventada`').length, 1);
   assert.equal(comandosRotos('`node .claude/scripts/estado.cjs --inventada`').length, 1);
+});
+
+// ---------------------------------------------------------------- /smoke y /release: contratos, no skills del día cero (P5.8)
+
+test('rituales: smoke y release son contratos en kit/molde/rituales/, no skills (nacen propia, no el día cero)', () => {
+  const smoke = fs.readFileSync(path.join(DIR_MOLDE, 'rituales', 'smoke.md'), 'utf8');
+  const release = fs.readFileSync(path.join(DIR_MOLDE, 'rituales', 'release.md'), 'utf8');
+  for (const w of ['SMOKE: OK', 'SMOKE: FALLÓ', 'SMOKE: NO VERIFICADO']) assert.ok(smoke.includes(w), `smoke.md: falta "${w}"`);
+  assert.match(smoke, /\.claude\/smoke\/<AAAA-MM-DD>-<x>\.md/, 'el contrato es un archivo');
+  assert.match(smoke, /Fallback del navegador/);
+  assert.match(release, /quinta pregunta/);
+  assert.match(release, /agrupada/);
+  for (const n of ['smoke', 'release']) {
+    assert.ok(!fs.existsSync(path.join(DIR_SKILLS, n)), `${n} no puede estar en skills/: no se copia el día cero`);
+    assert.ok(!NOMBRES.includes(n));
+  }
+  assert.deepEqual(datosDeProyecto(smoke), []);
+  assert.deepEqual(datosDeProyecto(release), []);
+});
+
+test('el CLAUDE.md del molde: autonomía con las 5, español, ruta absoluta, y más corto que el de antes (P3.7)', () => {
+  const claude = fs.readFileSync(path.join(DIR_MOLDE, 'CLAUDE.md'), 'utf8').replace(/\r\n/g, '\n');
+  assert.match(claude, /## Autonomía/);
+  assert.match(claude, /merge con el gate verde/);
+  assert.match(claude, /publicar un release/);
+  assert.match(claude, /Todo en español, narración incluida/);
+  assert.match(claude, /ruta absoluta/);
+  assert.match(claude, /## Mapa de documentación/);
+  assert.ok(Buffer.byteLength(claude) < 3044, `${Buffer.byteLength(claude)} bytes: tiene que ser más corto que el de antes (3.044)`);
 });
