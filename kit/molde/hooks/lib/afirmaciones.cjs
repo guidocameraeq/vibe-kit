@@ -171,8 +171,7 @@ const REGLAS = [
 // La salida de escape: la línea cita su evidencia.
 const RE_EVIDENCIA = new RegExp(
   [
-    '\\bNO VERIFICADO\\b',
-    '\\b(no|sin) (medid|medir|verificad|verificar|probad|probar|comprobad)\\w*|\\bsupuesto\\b', // lo dice como no medido
+    '\\b(no|sin) (medid|medir|verificad|verificar|probad|probar|comprobad)\\w*|\\bsupuesto\\b', // no medido (y NO VERIFICADO)
     '\\b\\d{4}-\\d{2}-\\d{2}\\b', // la fecha de cuándo se midió
     '\\b[0-9a-f]{7,40}\\b', // un SHA
     '\\btest_\\w+|\\w+\\.test\\.\\w+|\\w+_test\\.\\w+', // el nombre de una prueba

@@ -80,7 +80,7 @@ const SI = [
   ['medido contra la base: que PostgREST acepte la llamada como `anon` lo', 'evidencia'],
   ['solo lectura, aditivo, nunca expuesto al front por ningún método', 'absoluto'],
   ['Integración probada contra la base real', 'evidencia'],
-  ['Cubre todos los caminos de escritura', 'cobertura'],
+  ['Cubre todas las ramas de escritura', 'cobertura'],
   ['cobertura completa del módulo', 'cobertura'],
   ['esto es imposible con el lock tomado', 'absoluto'],
   ['Garantiza que el orden se mantiene', 'absoluto'],
