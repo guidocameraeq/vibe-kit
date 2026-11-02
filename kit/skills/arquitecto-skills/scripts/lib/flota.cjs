@@ -2,9 +2,9 @@
 // flota.cjs — `actualizar.cjs flota`: la flota de punta a punta (SPEC-paquete-6 P7.1, D6.2; E §6; D6-1, D6-6, D6-11, D6-15, D6-16).
 //
 //   node actualizar.cjs flota <repo>… | todo --canon <url o dir> [--tag vX.Y.Z[-rc.N]] [--proyectos <carpeta>] [--plazo <min>]
-//                                             [--fecha <AAAA-MM-DD>] [--molde-viejo <dir>]
+//                                             [--fecha <AAAA-MM-DD>] [--molde-viejo <dir>] [--claude <exe> | no]
 //
-// Un script determinista (D6-1): nadie lo corre en bypass y no lanza agentes. En orden:
+// Un script determinista (D6-1): nadie lo corre en bypass; el único agente es el de la fusión (aplicar → lib/fusion.cjs). En orden:
 //   (0) el canónico: git clone de --canon a un temporal, con tags, parado en --tag (sin él, el último tag v* ANOTADO por versión).
 //       Tag no anotado → 1. D6-15: kit/VERSION de ese árbol = el tag sin el -rc.N; si no → 1. Ese árbol es el --kit de aplicar.
 //   (1) por repo, UNO DETRÁS DEL OTRO (D6-11), y uno que falla no frena a los demás: del checkout de Guido se lee SOLO el origin
@@ -14,14 +14,19 @@
 //       ya en el remoto (está o espera a Guido), SALVO que su último commit diga "kit: ROTA — …" (D6-16): esa se borra del remoto
 //       (git push --delete, nunca --force) y se rehace.
 //   (4) .kit-rol = actualizador (y esa línea en .git/info/exclude), rama kit/v<v> desde la rama por defecto, aplicar.
-//   (5) D6-6: si el clon trae .githooks/, core.hooksPath = .githooks; commit "kit <v> → <v'>" y los push con KIT_MOLDE y
-//       KIT_MOLDE_VIEJO en el entorno (los moldes materializados; el runner los lee solo con .kit-rol = actualizador: F2).
+//   (5) D6-6: el commit y los push los juzga el runner del MOLDE NUEVO: core.hooksPath = una carpeta del temporal de flota con
+//       los tres sh del molde llamando a su kit-githook.cjs (hooksDelMolde; el .githooks/ del clon puede ser viejo o adaptado). Si
+//       el molde no trae runner y el clon trae .githooks/, core.hooksPath = .githooks como antes. Commit "kit <v> → <v'>" y los
+//       push con KIT_MOLDE y KIT_MOLDE_VIEJO en el entorno (el runner los lee solo con .kit-rol = actualizador: F2).
 //   (6) chequear con --base = la rama por defecto de antes. Un ❌ (o NO VERIFICADO) → nada a la rama por defecto: commit vacío
 //       "kit: ROTA — <primera ❌>" con las nueve líneas en el cuerpo y push de kit/v<v> (D6-16).
 //   (7) verde → la rama por defecto avanza con el commit del kit (ff, un commit). Push rechazado (protegida, o se movió) → push de
 //       kit/v<v>, que queda viva y va a "te espera". En el camino verde kit/v<v> nunca se sube: no queda ninguna kit/* viva salvo
 //       las ROTA y las que esperan.
-//   (8) piezas adaptadas: la fila suma "adaptadas: <ids>" con lo que aplicar informó (la fusión es de F3, lib/fusion.cjs).
+//   (8) piezas adaptadas (lib/fusion.cjs, D6-19): la fila dice "fusionadas: <ids>" y "te espera: <ids>"; las que esperan suman
+//       una línea a "te espera:" ("en <repo>, la próxima sesión te pregunta por <ids>"). Si el commit o chequear dan rojo y hubo
+//       fusionadas, se rehace la rama sin fusionarlas (esas van a "te espera" con el motivo) y se chequea otra vez; sigue rojo → ROTA.
+//       --claude <exe> | no se le pasa a aplicar (el claude de la fusión con conflictos).
 //   (9) los temporales se borran siempre.
 // Al final, la tabla (repo · antes → después · resultado · porqué) y "te espera:". Salida 0 si ningún repo quedó ROTA ni con error
 // propio; 1 si alguno; 2 uso. Nada de gh: el protegido se detecta por el push rechazado.
@@ -159,14 +164,18 @@ function rutaDeRepo(nombre, proyectos) {
 
 // ---------------------------------------------------------------- lo que dijo aplicar y chequear
 
-// Las piezas adaptadas que aplicar informó: "<id> · adaptada… · …" o "… · adaptada: no fusiona …".
-function adaptadasDe(lineas) {
-  const ids = [];
+// Lo que aplicar dijo de las adaptadas (lib/fusion.cjs): "<id> · … · fusionada (…)" y "<id> · … · te espera: <motivo>".
+function fusionDe(lineas) {
+  const fusionadas = [];
+  const esperan = [];
   for (const l of lineas || []) {
     const p = String(l).split(' · ');
-    if (p.length >= 3 && (/^"?adaptada/.test(p[1]) || /^adaptada:/.test(p[2])) && !ids.includes(p[0])) ids.push(p[0]);
+    if (p.length < 3) continue;
+    const resto = p.slice(2).join(' · ');
+    if (/^fusionada \(/.test(resto) && !fusionadas.includes(p[0])) fusionadas.push(p[0]);
+    else if (/^te espera: /.test(resto) && !esperan.includes(p[0])) esperan.push(p[0]);
   }
-  return ids;
+  return { fusionadas, esperan };
 }
 const primeraRoja = (lineas) => (lineas || []).find((l) => / · ❌ · /.test(l)) || (lineas || []).find(Boolean) || 'chequear no dijo nada';
 
@@ -176,10 +185,33 @@ function porqueRechazo(err) {
   return 'la rama por defecto está protegida';
 }
 
+// ---------------------------------------------------------------- los githooks del clon
+
+const GITHOOKS = ['pre-commit', 'pre-merge-commit', 'pre-push'];
+const LLAMADA = 'node .githooks/kit-githook.cjs';
+
+// El commit y los push del actualizador los juzga el runner del MOLDE NUEVO, no el .githooks/ del clon (que puede ser viejo, o de
+// una pieza githooks adaptada que aplicar no reemplaza: el runner viejo no conoce KIT_MOLDE y el repo nunca se actualizaría).
+// Arma en `destino` (el temporal de flota, fuera del clon) los tres sh del molde, con el mismo saneo de entorno, llamando al
+// kit-githook.cjs del molde materializado por su ruta. El runner usa el cwd (la raíz de git), no su carpeta: anda desde ahí.
+// → la carpeta, o null si el molde no trae el runner (entonces, como antes, el .githooks/ del clon).
+function hooksDelMolde(moldeDir, destino) {
+  const runner = path.join(moldeDir, 'githooks', 'kit-githook.cjs');
+  if (!fs.existsSync(runner)) return null;
+  fs.mkdirSync(destino, { recursive: true });
+  for (const cual of GITHOOKS) {
+    const sh = path.join(moldeDir, 'githooks', cual);
+    const t = fs.existsSync(sh) ? fs.readFileSync(sh, 'utf8').replace(/\r\n/g, '\n') : '';
+    if (!t.includes(LLAMADA)) throw new Error(`el githooks/${cual} del molde no llama a ${LLAMADA}`);
+    fs.writeFileSync(path.join(destino, cual), t.replace(LLAMADA, `node "${runner.replace(/\\/g, '/')}"`), { mode: 0o755 });
+  }
+  return destino;
+}
+
 // ---------------------------------------------------------------- un repo
 
 // actualizarRepo(nombre, url, ctx) → fila {repo, antes, despues, resultado, porque, espera: [], falla}. Escribe solo en su clon temporal
-// y en el remoto. ctx = {kit, version, tmp, n, moldeViejo, fecha, plazoMs, aplicar, chequear}.
+// y en el remoto. ctx = {kit, version, tmp, n, moldeViejo, fecha, plazoMs, claude, aplicar, chequear}.
 async function actualizarRepo(nombre, url, ctx) {
   const fila = { repo: nombre, antes: '?', despues: '?', resultado: '', porque: '', espera: [], falla: false };
   const fin = (resultado, porque, extra = {}) => Object.assign(fila, { resultado, porque }, extra);
@@ -220,49 +252,85 @@ async function actualizarRepo(nombre, url, ctx) {
     rehecha = true;
   }
 
-  // (4) el rol, la rama y aplicar
+  // (4) el rol y la rama
   fs.writeFileSync(path.join(clon, KIT_ROL), 'actualizador\n');
   fs.appendFileSync(path.join(clon, '.git', 'info', 'exclude'), `\n${KIT_ROL}\n`);
   const b = git(clon, ['checkout', '-q', '-b', rama]);
   if (!b.ok) throw new Error(`no pude crear ${rama}: ${primera(b.err)}`);
-  const a = ctx.aplicar(clon, { kit: ctx.kit, moldeViejo: ctx.moldeViejo, fecha: ctx.fecha });
-  const adaptadas = adaptadasDe(a.lineas);
-  const notas = [];
-  if (rehecha) notas.push(`la ${rama} ROTA de antes se borró y se rehizo`);
-  if (adaptadas.length) {
-    notas.push(`adaptadas: ${adaptadas.join(', ')}`);
-    fila.espera.push(`${nombre}: piezas adaptadas sin fusionar (${adaptadas.join(', ')}): mirá el diff del molde contra lo tuyo`);
-  }
-  const conNotas = (porque) => [porque, ...notas].filter(Boolean).join(' · ');
-  if (a.codigo !== 0) {
-    const msg = String([...a.lineas].reverse().find((l) => /^aplicar: /.test(l)) || a.lineas[a.lineas.length - 1] || '').replace(/^aplicar: /, '');
-    return fin('sin tocar', conNotas(`aplicar se negó: ${msg}`));
-  }
 
-  // (5) los githooks en el clon (D6-6), el commit y el entorno de los push
-  if (fs.existsSync(path.join(clon, '.githooks')) && fs.statSync(path.join(clon, '.githooks')).isDirectory()) {
-    const h = git(clon, ['config', 'core.hooksPath', '.githooks']);
-    if (!h.ok) throw new Error(`no pude poner core.hooksPath: ${primera(h.err)}`);
-  }
+  // (5) los githooks en el clon (D6-6) y el entorno del commit y de los push
   const vars = datos.vars && typeof datos.vars === 'object' && !Array.isArray(datos.vars) ? datos.vars : {};
   const opM = { vars, fecha: ctx.fecha };
   const nuevo = M.materializarNuevo(ctx.kit, opM, path.join(ctx.tmp, `molde-nuevo-${ctx.n}`));
   const viejo = ctx.moldeViejo
     ? M.materializarDir(ctx.moldeViejo, opM, path.join(ctx.tmp, `molde-viejo-${ctx.n}`))
     : M.materializarViejo(ctx.kit, datos.kit, opM, path.join(ctx.tmp, `molde-viejo-${ctx.n}`));
+  const hooks = hooksDelMolde(nuevo.dir, path.join(ctx.tmp, `githooks-${ctx.n}`));
+  const conGithooks = fs.existsSync(path.join(clon, '.githooks')) && fs.statSync(path.join(clon, '.githooks')).isDirectory();
+  // Antes de cada commit y de cada push: chequear corre el hook de arranque del clon, que al ver un core.hooksPath que no es
+  // .githooks lo guarda en kit.hooksPathPrevio (el runner lo encadena como "hook previo"): con la carpeta del molde ahí, el
+  // pre-push se llamaría a sí mismo sin fin. En el clon no hay hook previo que cuidar (es un clon nuevo): se borra siempre.
+  const ponerHooks = () => {
+    if (!hooks && !conGithooks) return;
+    const h = git(clon, ['config', 'core.hooksPath', hooks ? hooks.replace(/\\/g, '/') : '.githooks']);
+    if (!h.ok) throw new Error(`no pude poner core.hooksPath: ${primera(h.err)}`);
+    git(clon, ['config', '--unset-all', 'kit.hooksPathPrevio']); // sale 5 si no estaba: da igual
+  };
+  ponerHooks();
   const env = { ...IDENTIDAD, KIT_MOLDE: nuevo.dir, KIT_MOLDE_VIEJO: viejo.dir };
-  const ad = git(clon, ['add', '-A']);
-  if (!ad.ok) throw new Error(`git add: ${primera(ad.err)}`);
-  const cm = git(clon, ['commit', '-q', '-m', `kit ${fila.antes} → ${ctx.version}`], { env, plazo: PLAZO_RED });
-  if (!cm.ok) {
-    fila.espera.push(`${nombre}: el commit del kit no pasó (${primera(cm.err || cm.out) || 'sin salida'}): no subí nada`);
-    return fin('sin tocar', conNotas(`el commit del kit no pasó: ${primera(cm.err || cm.out) || 'sin salida'}`), { falla: true });
-  }
 
-  // (6) chequear contra la rama por defecto de antes
-  const ch = await ctx.chequear(clon, { kit: ctx.kit, moldeViejo: ctx.moldeViejo, base, fecha: ctx.fecha, plazoMs: ctx.plazoMs });
+  // (4)-(6) aplicar, commit y chequear. (8) Una fusión que pierde un caso no llega a la rama por defecto (D6-19): si el commit o
+  // chequear dan rojo y hubo piezas fusionadas, la rama vuelve a la base y se aplica otra vez SIN fusionar esas (van a "te espera"
+  // con el motivo); recién si sigue rojo, ROTA como siempre.
+  const notas = [];
+  if (rehecha) notas.push(`la ${rama} ROTA de antes se borró y se rehizo`);
+  const conNotas = (porque) => [porque, ...notas].filter(Boolean).join(' · ');
+  let fus = { fusionadas: [], esperan: [] };
+  let noFusionar;
+  let ch;
+  for (let vuelta = 0; ; vuelta++) {
+    const a = ctx.aplicar(clon, { kit: ctx.kit, moldeViejo: ctx.moldeViejo, fecha: ctx.fecha, claude: ctx.claude, noFusionar });
+    fus = fusionDe(a.lineas);
+    if (a.codigo !== 0) {
+      const msg = String([...a.lineas].reverse().find((l) => /^aplicar: /.test(l)) || a.lineas[a.lineas.length - 1] || '').replace(/^aplicar: /, '');
+      return fin('sin tocar', conNotas(`aplicar se negó: ${msg}`));
+    }
+    const sinFusion = (motivo) => {
+      noFusionar = Object.fromEntries(fus.fusionadas.map((id) => [id, motivo]));
+      const r = git(clon, ['reset', '-q', '--hard', base]);
+      if (!r.ok) throw new Error(`no pude volver ${rama} a la base: ${primera(r.err)}`);
+      git(clon, ['clean', '-fdq', '-e', KIT_ROL]);
+    };
+    const ad = git(clon, ['add', '-A']);
+    if (!ad.ok) throw new Error(`git add: ${primera(ad.err)}`);
+    ponerHooks();
+    const cm = git(clon, ['commit', '-q', '-m', `kit ${fila.antes} → ${ctx.version}`], { env, plazo: PLAZO_RED });
+    if (!cm.ok) {
+      const err = primera(cm.err || cm.out) || 'sin salida';
+      if (vuelta === 0 && fus.fusionadas.length) {
+        sinFusion(`la fusión no pasó el commit: ${err}`);
+        continue;
+      }
+      fila.espera.push(`${nombre}: el commit del kit no pasó (${err}): no subí nada`);
+      return fin('sin tocar', conNotas(`el commit del kit no pasó: ${err}`), { falla: true });
+    }
+    // (6) chequear contra la rama por defecto de antes
+    ch = await ctx.chequear(clon, { kit: ctx.kit, moldeViejo: ctx.moldeViejo, base, fecha: ctx.fecha, plazoMs: ctx.plazoMs });
+    if (ch.codigo !== 0 && vuelta === 0 && fus.fusionadas.length) {
+      sinFusion(`la fusión no pasó chequear: ${primeraRoja(ch.lineas)}`);
+      continue;
+    }
+    break;
+  }
+  if (fus.fusionadas.length) notas.push(`fusionadas: ${fus.fusionadas.join(', ')}`);
+  if (fus.esperan.length) notas.push(`te espera: ${fus.esperan.join(', ')}`);
+  // las que esperan viajan en el commit (.claude/fusiones/): las ve la sesión del proyecto cuando el commit está en su rama
+  const avisarFusiones = () => {
+    if (fus.esperan.length) fila.espera.push(`en ${nombre}, la próxima sesión te pregunta por ${fus.esperan.join(', ')}`);
+  };
   if (ch.codigo !== 0) {
     const roja = primeraRoja(ch.lineas);
+    ponerHooks();
     const rc = git(clon, ['commit', '-q', '--allow-empty', '-m', `kit: ROTA — ${roja}`, '-m', ch.lineas.join('\n')], { env, plazo: PLAZO_RED });
     if (!rc.ok) throw new Error(`no pude commitear la marca ROTA: ${primera(rc.err)}`);
     const p = git(clon, ['push', '-q', 'origin', `${rama}:refs/heads/${rama}`], { env, plazo: PLAZO_RED });
@@ -272,12 +340,17 @@ async function actualizarRepo(nombre, url, ctx) {
   }
 
   // (7) verde: la rama por defecto avanza con el commit del kit (ff); rechazado → kit/v<v> queda viva y espera
+  ponerHooks();
   const p = git(clon, ['push', '-q', 'origin', `HEAD:refs/heads/${def}`], { env, plazo: PLAZO_RED });
-  if (p.ok) return fin('mezclado', conNotas(`un commit a ${def}`), { despues: ctx.version });
+  if (p.ok) {
+    avisarFusiones();
+    return fin('mezclado', conNotas(`un commit a ${def}`), { despues: ctx.version });
+  }
   const porque = p.colgado ? 'el remoto no respondió' : porqueRechazo(p.err);
   const q = git(clon, ['push', '-q', 'origin', `${rama}:refs/heads/${rama}`], { env, plazo: PLAZO_RED });
   if (!q.ok) return fin('sin tocar', conNotas(`${porque} (${primera(p.err)}) y no pude subir ${rama}: ${q.colgado ? 'no respondió' : primera(q.err)}`));
   fila.espera.push(`${nombre}: ${porque}; mezclá ${rama} en ${def} vos`);
+  avisarFusiones();
   return fin('te espera', conNotas(`${porque}; mezclá ${rama} vos`));
 }
 
@@ -297,7 +370,7 @@ function tabla(filas) {
 
 // ---------------------------------------------------------------- flota
 
-// flota({repos, canon, tag, proyectos, plazoMs, fecha, moldeViejo, aplicar?, chequear?}) → {codigo, lineas, filas}
+// flota({repos, canon, tag, proyectos, plazoMs, fecha, moldeViejo, claude?, aplicar?, chequear?}) → {codigo, lineas, filas}
 async function flota(o) {
   const A = require('../actualizar.cjs');
   const aplicar = o.aplicar || A.aplicar;
@@ -342,7 +415,7 @@ async function flota(o) {
 
 function leerArgs(argv) {
   const o = { repos: [] };
-  const conValor = { '--canon': 'canon', '--tag': 'tag', '--proyectos': 'proyectos', '--plazo': 'plazo', '--fecha': 'fecha', '--molde-viejo': 'moldeViejo' };
+  const conValor = { '--canon': 'canon', '--tag': 'tag', '--proyectos': 'proyectos', '--plazo': 'plazo', '--fecha': 'fecha', '--molde-viejo': 'moldeViejo', '--claude': 'claude' };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (Object.prototype.hasOwnProperty.call(conValor, a)) {
@@ -371,7 +444,8 @@ async function main(argv) {
     plazoMs: Math.round(Number(o.plazo || 30) * 60000),
     fecha: o.fecha,
     moldeViejo: o.moldeViejo ? path.resolve(o.moldeViejo) : undefined,
+    claude: o.claude && /[\\/]/.test(o.claude) ? path.resolve(o.claude) : o.claude, // sin él: el del PATH (lo busca aplicar)
   });
 }
 
-module.exports = { flota, main, leerArgs, actualizarRepo, prepararCanon, elegirTag, compararTags, versionDeTag, origenDe, resolverOrigen, todosLosRepos, adaptadasDe, primeraRoja, porqueRechazo, tabla, Negativa, RE_ROTA };
+module.exports = { flota, main, leerArgs, actualizarRepo, hooksDelMolde, prepararCanon, elegirTag, compararTags, versionDeTag, origenDe, resolverOrigen, todosLosRepos, fusionDe, primeraRoja, porqueRechazo, tabla, Negativa, RE_ROTA };

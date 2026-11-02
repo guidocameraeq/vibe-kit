@@ -149,7 +149,7 @@ function armarProyecto(opciones = {}) {
   return d;
 }
 
-const aplicar = (d, o = {}) => A.aplicar(d, { kit: KIT, moldeViejo: VIEJO, fecha: '2026-11-02', ...o });
+const aplicar = (d, o = {}) => A.aplicar(d, { kit: KIT, moldeViejo: VIEJO, fecha: '2026-11-02', claude: 'no', ...o });
 const lineaDe = (r, id) => r.lineas.find((l) => l.startsWith(`${id} · `));
 
 // ---------------------------------------------------------------- el camino feliz y la segunda corrida
@@ -185,7 +185,7 @@ test('aplicar: reemplaza lo intacto, trae lo nuevo, borra la baja intacta; la se
   assert.equal(spawnSync('git', ['config', '--get', 'core.hooksPath'], { cwd: d }).status, 1);
   git(d, 'add', '-A');
   git(d, 'commit', '-q', '-m', 'kit');
-  const r2 = A.aplicar(d, { kit: KIT, fecha: '2026-11-02' }); // la ficha ya dice 3.0.0: el viejo es el nuevo
+  const r2 = A.aplicar(d, { kit: KIT, fecha: '2026-11-02', claude: 'no' }); // la ficha ya dice 3.0.0: el viejo es el nuevo
   assert.equal(r2.codigo, 0, r2.lineas.join('\n'));
   for (const l of r2.lineas) assert.match(l, /sin cambios$/, `segunda corrida: ${l}`);
   assert.equal(git(d, 'status', '--porcelain'), '');
@@ -268,9 +268,9 @@ test('D6-15: el --kit parado en un tag que no dice lo mismo que kit/VERSION → 
   git(k, 'add', '-A');
   git(k, 'commit', '-q', '-m', 'kit');
   git(k, 'tag', '-a', 'v3.0.0-rc.1', '-m', 'rc');
-  assert.equal(A.aplicar(armarProyecto(), { kit: k, moldeViejo: VIEJO, fecha: '2026-11-02' }).codigo, 0);
+  assert.equal(A.aplicar(armarProyecto(), { kit: k, moldeViejo: VIEJO, fecha: '2026-11-02', claude: 'no' }).codigo, 0);
   git(k, 'tag', '-a', 'v3.1.0', '-m', 'otro');
-  const r = A.aplicar(armarProyecto(), { kit: k, moldeViejo: VIEJO, fecha: '2026-11-02' });
+  const r = A.aplicar(armarProyecto(), { kit: k, moldeViejo: VIEJO, fecha: '2026-11-02', claude: 'no' });
   assert.equal(r.codigo, 1);
   assert.match(r.lineas[0], /no coinciden/);
 });
@@ -282,15 +282,17 @@ test('guardia: un hook editado → la pieza entera "adaptada (desvío detectado)
   const hViejo = F.leer(leer(d, '.claude/kit.md')).datos.piezas['hook-arranque'].hash;
   const r = aplicar(d);
   assert.equal(r.codigo, 0);
-  assert.match(lineaDe(r, 'hook-arranque'), /^hook-arranque · adaptada \(desvío detectado\) · desvío: no se tocó \(\.claude\/hooks\/session-start\.cjs\)$/);
+  // el commit que creó el archivo no es un porqué (nacer no es adaptar): sin porqué → "te espera" del proyecto (D6-19)
+  assert.match(lineaDe(r, 'hook-arranque'), /^hook-arranque · adaptada \(desvío detectado\) · te espera: sin porqué .* · desvío: no se tocó \(\.claude\/hooks\/session-start\.cjs\)$/);
   assert.equal(leer(d, '.claude/hooks/session-start.cjs'), '// arranque v1\n// mío\n');
+  assert.match(leer(d, '.claude/fusiones/hook-arranque.md'), /¿la mejoramos con esto\?/);
   const p = F.leer(leer(d, '.claude/kit.md')).datos.piezas['hook-arranque'];
   assert.deepEqual(p, { estado: 'adaptada (desvío detectado)', hash: hViejo });
-  // y la segunda corrida: adaptada → no fusiona y avisa, sin tocar
+  // y la segunda corrida (el mismo molde): nada que fusionar, sin tocar
   git(d, 'add', '-A');
   git(d, 'commit', '-q', '-m', 'kit');
-  const r2 = A.aplicar(d, { kit: KIT, fecha: '2026-11-02' });
-  assert.match(lineaDe(r2, 'hook-arranque'), /adaptada: no fusiona/);
+  const r2 = A.aplicar(d, { kit: KIT, fecha: '2026-11-02', claude: 'no' });
+  assert.match(lineaDe(r2, 'hook-arranque'), /· sin cambios$/);
   assert.equal(leer(d, '.claude/hooks/session-start.cjs'), '// arranque v1\n// mío\n');
 });
 
@@ -365,8 +367,15 @@ test('propia y adaptada: no se tocan, y sus bajas no se borran (r1-3)', () => {
     const r = aplicar(d);
     assert.equal(r.codigo, 0);
     assert.equal(leer(d, '.claude/skills/estado/SKILL.md'), '# estado v1\n', `${est}: la baja no se borra`);
-    assert.equal(leer(d, '.claude/skills/cierre/SKILL.md'), '# cierre v1\n', `${est}: no se toca`);
-    assert.match(lineaDe(r, 'cierre'), est === 'propia' ? /· propia \(el molde cambió su contrato/ : /adaptada: no fusiona/);
+    if (est === 'propia') {
+      assert.equal(leer(d, '.claude/skills/cierre/SKILL.md'), '# cierre v1\n', `${est}: no se toca`);
+      assert.match(lineaDe(r, 'cierre'), /· propia \(el molde cambió su contrato/);
+    } else {
+      // D6-19: una adaptada nunca queda vieja; acá lo suyo está igual al molde viejo → el nuevo, sin pedir porqué
+      assert.equal(leer(d, '.claude/skills/cierre/SKILL.md'), '# cierre v2\n', `${est}: se pone al día`);
+      assert.equal(lineaDe(r, 'cierre'), 'cierre · adaptada · fusionada (sola, el molde no tocó lo adaptado)');
+      assert.match(lineaDe(r, 'estado'), / · sin cambios$/, `${est}: la baja de una adaptada no se toca`);
+    }
   }
   // la misma baja, de una pieza molde: intacta se borra; editada se deja y se informa
   const d = armarProyecto();
@@ -525,7 +534,7 @@ test('RF-1: sin --molde-viejo, un --kit shallow o sin el tag de la ficha → 1 c
   const raso = clonar(origen, '--depth', '1');
   const d = armarProyecto();
   const antes = foto(d);
-  const r = A.aplicar(d, { kit: raso, fecha: '2026-11-02' });
+  const r = A.aplicar(d, { kit: raso, fecha: '2026-11-02', claude: 'no' });
   assert.equal(r.codigo, 1);
   assert.match(r.lineas[0], /^aplicar: el --kit es un clon sin historia \(shallow\) y no tiene el tag v2\.9\.0 .*`git -C .* fetch --unshallow --tags`/);
   assert.doesNotMatch(r.lineas.join('\n'), /actualizador roto/);
@@ -537,12 +546,12 @@ test('RF-1: sin --molde-viejo, un --kit shallow o sin el tag de la ficha → 1 c
   assert.equal(c.lineas[1], 'NO VERIFICADO');
   // un clon completo sin tags → la línea de traer los tags
   const sinTags = clonar(origen, '--no-tags');
-  const s = A.aplicar(d, { kit: sinTags, fecha: '2026-11-02' });
+  const s = A.aplicar(d, { kit: sinTags, fecha: '2026-11-02', claude: 'no' });
   assert.equal(s.codigo, 1);
   assert.match(s.lineas[0], /^aplicar: el --kit no tiene el tag v2\.9\.0 \(el de la ficha\): completalo con `git -C .* fetch --tags`/);
   // sí: completo (con historia y tags) → aplica
   git(raso, 'fetch', '-q', '--unshallow', '--tags');
-  const ok = A.aplicar(d, { kit: raso, fecha: '2026-11-02' });
+  const ok = A.aplicar(d, { kit: raso, fecha: '2026-11-02', claude: 'no' });
   assert.equal(ok.codigo, 0, ok.lineas.join('\n'));
   assert.equal(leer(d, '.claude/hooks/session-start.cjs'), '// arranque v2\n');
 });
@@ -563,7 +572,7 @@ test('una ruta del molde nuevo sin pieza en el catálogo → 1 sin escribir (nad
   const k = armarKit({ ...MOLDE_N, 'hooks/raro.cjs': '// sin dueño\n' });
   const d = armarProyecto();
   const antes = foto(d);
-  const r = A.aplicar(d, { kit: k, moldeViejo: VIEJO, fecha: '2026-11-02' });
+  const r = A.aplicar(d, { kit: k, moldeViejo: VIEJO, fecha: '2026-11-02', claude: 'no' });
   assert.equal(r.codigo, 1);
   assert.match(r.lineas[0], /sin pieza en el catálogo: hooks\/raro\.cjs/);
   assert.deepEqual(foto(d), antes);
@@ -594,7 +603,7 @@ test('un proyecto con el molde de D2.2 (deny Write(...)): con --molde-viejo las 
   const molde = M.archivosDe(M.materializarDir(viejo, { vars: { proyecto: 'demo' } }).dir);
   const d = armarProyecto({ molde: Object.fromEntries(molde) });
   const base = git(d, 'rev-parse', 'HEAD').trim();
-  const r = A.aplicar(d, { kit: RAIZ_KIT, moldeViejo: viejo, fecha: '2026-11-02' });
+  const r = A.aplicar(d, { kit: RAIZ_KIT, moldeViejo: viejo, fecha: '2026-11-02', claude: 'no' });
   assert.equal(r.codigo, 0, r.lineas.join('\n'));
   const deny = JSON.parse(leer(d, '.claude/settings.json')).permissions.deny;
   assert.ok(!deny.some((x) => x.startsWith('Write(')), deny.join(', '));
@@ -620,7 +629,7 @@ function copiaScripts(chequeo) {
   fs.cpSync(path.join(__dirname, '..', 'pc', 'lib'), path.join(d, 'pc', 'lib'), { recursive: true });
   fs.mkdirSync(path.join(d, 'scripts', 'lib'), { recursive: true });
   fs.copyFileSync(path.join(__dirname, 'actualizar.cjs'), path.join(d, 'scripts', 'actualizar.cjs'));
-  for (const f of ['catalogo.cjs', 'molde.cjs']) fs.copyFileSync(path.join(__dirname, 'lib', f), path.join(d, 'scripts', 'lib', f));
+  for (const f of ['catalogo.cjs', 'molde.cjs', 'fusion.cjs']) fs.copyFileSync(path.join(__dirname, 'lib', f), path.join(d, 'scripts', 'lib', f));
   if (chequeo) fs.writeFileSync(path.join(d, 'scripts', 'lib', 'chequeo.cjs'), chequeo);
   return path.join(d, 'scripts', 'actualizar.cjs');
 }

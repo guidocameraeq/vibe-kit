@@ -31,6 +31,7 @@ const ESPERADO = {
     'hook-arranque': { estado: 'molde', hash: '90e2f1aa7c06' },
     settings: { estado: 'molde+propio', hash: '5d04e9b3c218' },
     'check-code': { estado: 'adaptada (desvío detectado)', hash: '7a1b2c3d4e5f' },
+    'hook-sensible': { estado: 'adaptada', hash: '4c2e8f0b9d17', por: 'también pregunta antes de db borrar en la base de prueba' },
     docs: 'molde',
     'hook-escritura': 'molde',
     candado: 'molde',
@@ -212,6 +213,12 @@ const CASOS = [
   ['hash de 11 hexa', ficha('piezas:\n  inicio: {estado: molde, hash: 3f9a0c1d2e4}\n'), 7, /"piezas.<nombre>.hash" tiene un valor que no se acepta — tiene que tener 12/],
   ['hash de 13 hexa', ficha('piezas:\n  inicio: {estado: molde, hash: 3f9a0c1d2e4b5}\n'), 7, /"piezas.<nombre>.hash"/],
   ['hash con mayúsculas', ficha('piezas:\n  inicio: {estado: molde, hash: 3F9A0C1D2E4B}\n'), 7, /"piezas.<nombre>.hash"/],
+  // por: el porqué de una adaptada o propia (D6-19)
+  ['por vacío en una pieza', ficha('piezas:\n  inicio: {estado: adaptada, por: ""}\n'), 7, /"piezas.<nombre>.por" está vacío/],
+  ['por solo espacios en una pieza', ficha('piezas:\n  inicio: {estado: propia, por: "  "}\n'), 7, /"piezas.<nombre>.por" está vacío/],
+  ['por como lista', ficha('piezas:\n  inicio:\n    estado: adaptada\n    por: [a]\n'), 9,/"piezas.<nombre>.por" tiene que ser un texto/],
+  ['por en una pieza molde (lugar raro)', ficha('piezas:\n  inicio: {estado: molde, por: x}\n'), 7, /"piezas.<nombre>.por" va solo en una pieza adaptada, adaptada \(desvío detectado\), propia/],
+  ['por en una pieza no (lugar raro, en bloque)', ficha('piezas:\n  inicio:\n    estado: no\n    por: x\n'), 9, /"piezas.<nombre>.por" va solo/],
   // --- frenos
   ['frenos no es un mapa', ficha('frenos: x\n'), 6, /"frenos" tiene que ser un mapa/],
   ['opcionales no es lista', ficha('frenos:\n  opcionales: x\n'), 7, /"frenos.opcionales" tiene que ser una lista/],

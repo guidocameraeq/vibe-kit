@@ -1,11 +1,11 @@
 'use strict';
-// flota.test.cjs — `actualizar.cjs flota` (SPEC-paquete-6 P7.1, D6.2; crit. 15 y 16). Corren con:
+// flota.test.cjs — `actualizar.cjs flota` (SPEC-paquete-6 P7.1, D6.2; crit. 15, 16, 17 y 18). Corren con:
 //   node --test kit/skills/arquitecto-skills/scripts/lib/flota.test.cjs
 // Todo en temporales: el canónico es un bare que arma la prueba (un árbol chico con kit/VERSION y kit/molde/ y sus tags), cada repo
 // es un checkout "de Guido" con su remoto bare, y git corre sin la config de la PC. Nunca el origin real, ~/.claude ni ../vibe-kit-pruebas.
-// El molde: kit/molde/ real sin sus *.test.cjs y sin githooks/ (el runner lee KIT_MOLDE recién con F2: la prueba de punta a punta
-// con los githooks del molde real queda en skip hasta ese merge). El molde nuevo cambia una línea de skills/cierre; el roto, además,
-// deja un {{…}} suelto (chequear 1 ❌).
+// El molde: kit/molde/ real sin sus *.test.cjs y sin githooks/; las pruebas de los githooks (D6-6) usan el molde CON githooks/ y
+// el gitleaks de la PC (sin él, en skip). El molde nuevo cambia una línea de skills/cierre; el roto, además, deja un {{…}} suelto
+// (chequear 1 ❌). Nunca el claude real: --claude no (la fusión con claude la prueba fusion.test.cjs con uno falso).
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
@@ -93,10 +93,10 @@ function kitEnDisco(molde, version) {
 }
 
 // El canónico: v2.9.0 (molde viejo) y después `tag` con el molde nuevo y kit/VERSION = `version`. Devuelve la ruta del bare.
-function armarCanon({ molde = MOLDE_NUEVO, version = '3.0.0', tag = 'v3.0.0-rc.1', anotado = true } = {}) {
+function armarCanon({ molde = MOLDE_NUEVO, version = '3.0.0', tag = 'v3.0.0-rc.1', anotado = true, viejo = MOLDE_VIEJO } = {}) {
   const src = nuevaCarpeta('canon-src');
   git(src, 'init', '-q', '-b', 'main');
-  copiar(MOLDE_VIEJO, path.join(src, 'kit', 'molde'));
+  copiar(viejo, path.join(src, 'kit', 'molde'));
   fs.writeFileSync(path.join(src, 'kit', 'VERSION'), '2.9.0\n');
   git(src, 'add', '-A');
   git(src, 'commit', '-q', '-m', 'kit 2.9.0');
@@ -121,11 +121,11 @@ const FICHA = (nombre) => fs.readFileSync(path.join(MOLDE, 'hooks', 'lib', 'fabr
 
 // La plantilla: un proyecto nacido del molde 2.9.0 — cada archivo en su ruta según el catálogo (como armarProyecto de
 // actualizar.test.cjs), la ficha de fábrica con sus piezas y hashes, y un comando-test verde. Una vez; cada prueba la copia.
-let plantilla = null;
-function plantillaProyecto() {
-  if (plantilla) return plantilla;
+const plantillas = new Map();
+function plantillaProyecto(viejo = MOLDE_VIEJO) {
+  if (plantillas.has(viejo)) return plantillas.get(viejo);
   const d = nuevaCarpeta('plantilla');
-  const mat = M.materializarDir(kitEnDisco(MOLDE_VIEJO, '2.9.0'), { vars: { proyecto: 'demo' }, fecha: '2026-01-01' });
+  const mat = M.materializarDir(kitEnDisco(viejo, '2.9.0'), { vars: { proyecto: 'demo' }, fecha: '2026-01-01' });
   const archivos = M.archivosDe(mat.dir);
   const piezas = [];
   for (const [id, { pieza, archivos: as }] of C.repartir(mat.forma, C.rutasDeMolde(mat.dir))) {
@@ -156,14 +156,15 @@ function plantillaProyecto() {
   git(d, 'config', 'core.autocrlf', 'false');
   git(d, 'add', '-A');
   git(d, 'commit', '-q', '-m', 'nace con el kit 2.9.0');
-  plantilla = d;
+  plantillas.set(viejo, d);
   return d;
 }
 
 // Un repo de la flota: el checkout "de Guido" en <proyectos>/<nombre> y su remoto bare. `remoto(bare)` lo toca antes.
-function armarRepo(proyectos, nombre, { remoto, origen } = {}) {
+function armarRepo(proyectos, nombre, { remoto, origen, antes, viejo } = {}) {
   const d = path.join(proyectos, nombre);
-  fs.cpSync(plantillaProyecto(), d, { recursive: true });
+  fs.cpSync(plantillaProyecto(viejo), d, { recursive: true });
+  if (antes) antes(d);
   const bare = path.join(nuevaCarpeta('remotos'), `${nombre}.git`);
   git(T, 'clone', '-q', '--bare', d, bare);
   if (origen !== null) git(d, 'remote', 'add', 'origin', origen || bare);
@@ -186,7 +187,7 @@ function ramaEnRemoto(bare, rama, mensaje = 'obra', vacio = false) {
 const ramasKit = (bare) => git(bare, 'for-each-ref', '--format=%(refname)', 'refs/heads/kit').split('\n').filter(Boolean);
 const fichaEn = (bare, ref) => git(bare, 'show', `${ref}:.claude/kit.md`);
 const fila = (r, repo) => r.filas.find((f) => f.repo === repo);
-const correr = (o) => FL.flota({ fecha: FECHA, plazoMs: 120000, ...o });
+const correr = (o) => FL.flota({ fecha: FECHA, plazoMs: 120000, claude: 'no', ...o });
 
 // ---------------------------------------------------------------- crit. 15: la flota de punta a punta
 
@@ -243,10 +244,10 @@ test('crit. 16: main protegido (pre-receive) → kit/v3.0.0 queda viva y va a "t
       fs.chmodSync(h, 0o755);
     },
   });
-  // aplicar de verdad, más una pieza adaptada informada (la fusión es de F3: acá solo se mira que la fila la diga)
+  // aplicar de verdad, más una pieza adaptada que espera (la fusión de verdad, en las pruebas de abajo y en fusion.test.cjs)
   const aplicar = (c, o) => {
     const a = A.aplicar(c, o);
-    return { ...a, lineas: [...a.lineas, 'hook-x · adaptada (desvío detectado) · desvío: no se tocó (.claude/hooks/x.cjs)'] };
+    return { ...a, lineas: [...a.lineas, 'hook-x · adaptada · te espera: sin porqué (ni `por:` en la ficha ni un commit tuyo que la haya cambiado)'] };
   };
   const r = await correr({ repos: ['alfa'], canon, tag: 'v3.0.0-rc.1', proyectos: P, aplicar });
   const texto = r.lineas.join('\n');
@@ -254,13 +255,13 @@ test('crit. 16: main protegido (pre-receive) → kit/v3.0.0 queda viva y va a "t
   const f = fila(r, 'alfa');
   assert.equal(f.resultado, 'te espera', texto);
   assert.match(f.porque, /protegida; mezclá kit\/v3\.0\.0 vos/);
-  assert.match(f.porque, /adaptadas: hook-x/);
+  assert.match(f.porque, /te espera: hook-x/);
   assert.equal(git(x.bare, 'rev-parse', 'main'), x.base, 'main no se movió');
   assert.deepEqual(ramasKit(x.bare), ['refs/heads/kit/v3.0.0']);
   assert.equal(git(x.bare, 'rev-parse', 'kit/v3.0.0^'), x.base);
   assert.match(texto, /^te espera:$/m);
   assert.match(texto, /^ {2}- alfa: la rama por defecto está protegida; mezclá kit\/v3\.0\.0 en main vos$/m);
-  assert.match(texto, /^ {2}- alfa: piezas adaptadas sin fusionar \(hook-x\)/m);
+  assert.match(texto, /^ {2}- en alfa, la próxima sesión te pregunta por hook-x$/m);
 });
 
 test('crit. 16: sin red, sin remoto o el remoto que no existe → sin tocar, y la tabla dice por qué; el resto sigue', async () => {
@@ -347,7 +348,147 @@ test('el canónico: tag no anotado → 1; tag que no coincide con kit/VERSION �
   assert.deepEqual(ramasKit(x.bare), []);
 });
 
-test.skip('D6-6, de punta a punta con los githooks del molde real (core.hooksPath en el clon, KIT_MOLDE en el commit y el push) — espera el merge de F2 (kit-githook.cjs lee KIT_MOLDE con .kit-rol = actualizador); lo destraba el director', () => {});
+// ---------------------------------------------------------------- crit. 18: la fusión de las adaptadas en la flota (D6-19)
+
+// Adapta una pieza en el commit de nacimiento (amend: el cambio NACE con el archivo, así el git log no da porqué) y la marca
+// adaptada en la ficha, con `por` o sin él.
+const adaptar = (id, rel, cambiar, por) => (d) => {
+  const p = path.join(d, ...rel.split('/'));
+  fs.writeFileSync(p, cambiar(fs.readFileSync(p, 'utf8')));
+  const f = path.join(d, '.claude', 'kit.md');
+  fs.writeFileSync(f, fs.readFileSync(f, 'utf8').replace(new RegExp(`^ {2}${id}: .*$`, 'm'), por ? `  ${id}: {estado: adaptada, por: "${por}"}` : `  ${id}: adaptada`));
+  git(d, 'add', '-A');
+  git(d, 'commit', '-q', '--amend', '--no-edit');
+};
+const TITULO = '# /cierre — cerrar la sesión (después el chat se descarta)';
+const cierreAdaptado = (por) => adaptar('cierre', '.claude/skills/cierre/SKILL.md', (t) => t.replace(TITULO, '# /cierre — cerrar la sesión de este proyecto'), por);
+
+test('crit. 18: con por: la adaptada se fusiona sola y pasa chequear → main; sin porqué → main con .claude/fusiones/<pieza>.md y la pieza vieja', async () => {
+  const canon = armarCanon();
+  const P = nuevaCarpeta('proyectos');
+  const alfa = armarRepo(P, 'alfa', { antes: cierreAdaptado('el título dice de qué proyecto es') });
+  const beta = armarRepo(P, 'beta', { antes: cierreAdaptado(null) });
+  const r = await correr({ repos: ['alfa', 'beta'], canon, tag: 'v3.0.0-rc.1', proyectos: P });
+  const texto = r.lineas.join('\n');
+  assert.equal(r.codigo, 0, texto);
+  // alfa: el molde nuevo con la adaptación encima, en main, y la fila lo dice
+  assert.equal(fila(r, 'alfa').resultado, 'mezclado', texto);
+  assert.match(fila(r, 'alfa').porque, /fusionadas: cierre/);
+  const cierreA = git(alfa.bare, 'show', 'main:.claude/skills/cierre/SKILL.md');
+  assert.match(cierreA, /^# \/cierre — cerrar la sesión de este proyecto$/m);
+  assert.match(cierreA, /Un paso más del molde 3\.0\.0/);
+  assert.match(fichaEn(alfa.bare, 'main'), /^ {2}cierre: \{estado: adaptada, hash: [0-9a-f]{12}, por: "el título dice de qué proyecto es"\}$/m);
+  // beta: el commit llega a main (chequear verde con .claude/fusiones/), la pieza queda vieja y la próxima sesión pregunta
+  assert.equal(fila(r, 'beta').resultado, 'mezclado', texto);
+  assert.match(fila(r, 'beta').porque, /te espera: cierre/);
+  const cierreB = git(beta.bare, 'show', 'main:.claude/skills/cierre/SKILL.md');
+  assert.doesNotMatch(cierreB, /Un paso más del molde 3\.0\.0/);
+  assert.match(git(beta.bare, 'show', 'main:.claude/fusiones/cierre.md'), /¿la mejoramos con esto\?/);
+  assert.match(texto, /^ {2}- en beta, la próxima sesión te pregunta por cierre$/m);
+  assert.doesNotMatch(texto, /en alfa, la próxima sesión/);
+});
+
+test('crit. 18: una fusión que no pasa chequear (un hook fusionado: no es el molde) no llega a main; la pieza va a "te espera" y el resto se mezcla', async () => {
+  const conHook = conCierre('- Un paso más del molde 3.0.0: mirá que el handoff diga la versión del kit.');
+  const ph = path.join(conHook, 'hooks', 'escritura-docs.cjs');
+  fs.writeFileSync(ph, fs.readFileSync(ph, 'utf8').replace("'use strict';\n", "'use strict';\n// v3.0.0: una línea nueva del molde\n"));
+  const canon = armarCanon({ molde: conHook });
+  const P = nuevaCarpeta('proyectos');
+  const x = armarRepo(P, 'alfa', {
+    antes: adaptar('hook-escritura', '.claude/hooks/escritura-docs.cjs', (t) => `${t}// lo nuestro: un renglón al final\n`, 'avisamos distinto'),
+  });
+  const r = await correr({ repos: ['alfa'], canon, tag: 'v3.0.0-rc.1', proyectos: P });
+  const texto = r.lineas.join('\n');
+  assert.equal(r.codigo, 0, texto);
+  const f = fila(r, 'alfa');
+  assert.equal(f.resultado, 'mezclado', texto);
+  assert.doesNotMatch(f.porque, /fusionadas:/);
+  assert.match(f.porque, /te espera: hook-escritura/);
+  assert.equal(git(x.bare, 'rev-list', '--count', `${x.base}..main`), '1', 'un solo commit, el de la segunda vuelta');
+  const hook = git(x.bare, 'show', 'main:.claude/hooks/escritura-docs.cjs');
+  assert.doesNotMatch(hook, /una línea nueva del molde/, 'lo fusionado no llegó a main');
+  assert.match(hook, /lo nuestro: un renglón al final/);
+  assert.match(git(x.bare, 'show', 'main:.claude/skills/cierre/SKILL.md'), /Un paso más del molde 3\.0\.0/, 'lo demás, sí');
+  assert.match(git(x.bare, 'show', 'main:.claude/fusiones/hook-escritura.md'), /\*\*Por qué no se fusionó sola:\*\* la fusión no pasó chequear: \d\. /);
+  assert.deepEqual(ramasKit(x.bare), []);
+  assert.match(texto, /^ {2}- en alfa, la próxima sesión te pregunta por hook-escritura$/m);
+});
+
+// ---------------------------------------------------------------- D6-6: los githooks del clon, con el runner del molde nuevo
+
+const GITLEAKS = String(process.env[Object.keys(process.env).find((k) => k.toLowerCase() === 'path')] || '').split(path.delimiter)
+  .some((d) => d && ['gitleaks', 'gitleaks.exe'].some((x) => fs.existsSync(path.join(d, x))));
+const SIN_GITLEAKS = GITLEAKS ? false : 'gitleaks no está en esta PC (el runner del actualizador no commitea sin escáner)';
+const conGithooks = (nombre, esDir) => esDir || !nombre.endsWith('.test.cjs');
+const MOLDE_GH_VIEJO = nuevaCarpeta('molde-gh-viejo');
+copiar(MOLDE, MOLDE_GH_VIEJO, conGithooks);
+const MOLDE_GH_NUEVO = nuevaCarpeta('molde-gh-nuevo');
+copiar(conCierre('- Un paso más del molde 3.0.0: mirá que el handoff diga la versión del kit.'), MOLDE_GH_NUEVO);
+copiar(path.join(MOLDE, 'githooks'), path.join(MOLDE_GH_NUEVO, 'githooks'), conGithooks);
+// El .githooks/ del repo con un runner viejo que siempre frena, y la pieza githooks adaptada (aplicar no la reemplaza).
+const githooksViejo = adaptar('githooks', '.githooks/kit-githook.cjs', () => "'use strict';\n// un runner viejo: no conoce KIT_MOLDE y siempre frena\nprocess.exit(1);\n", null);
+
+test('D6-6 de punta a punta: un .githooks/ viejo que siempre frena y la pieza githooks adaptada → el commit y el push del kit los juzga el runner del molde nuevo (KIT_MOLDE) y pasan', { skip: SIN_GITLEAKS }, async () => {
+  const canon = armarCanon({ molde: MOLDE_GH_NUEVO, viejo: MOLDE_GH_VIEJO });
+  const P = nuevaCarpeta('proyectos');
+  const x = armarRepo(P, 'alfa', { viejo: MOLDE_GH_VIEJO, antes: githooksViejo });
+  const r = await correr({ repos: ['alfa'], canon, tag: 'v3.0.0-rc.1', proyectos: P });
+  const texto = r.lineas.join('\n');
+  assert.equal(r.codigo, 0, texto);
+  assert.equal(fila(r, 'alfa').resultado, 'mezclado', texto);
+  assert.equal(git(x.bare, 'rev-list', '--count', `${x.base}..main`), '1');
+  assert.match(git(x.bare, 'show', 'main:.githooks/kit-githook.cjs'), /siempre frena/, 'la pieza adaptada no se tocó');
+  assert.match(git(x.bare, 'show', 'main:.claude/skills/cierre/SKILL.md'), /Un paso más del molde 3\.0\.0/);
+});
+
+test('D6-6: con el runner del molde nuevo, un commit del kit que NO es igual al molde (un hook tocado) sigue dando rojo: nada sube', { skip: SIN_GITLEAKS }, async () => {
+  const canon = armarCanon({ molde: MOLDE_GH_NUEVO, viejo: MOLDE_GH_VIEJO });
+  const P = nuevaCarpeta('proyectos');
+  const x = armarRepo(P, 'alfa', { viejo: MOLDE_GH_VIEJO, antes: githooksViejo });
+  const aplicar = (c, o) => {
+    const a = A.aplicar(c, o);
+    fs.appendFileSync(path.join(c, '.claude', 'hooks', 'escritura-docs.cjs'), '// metido sin aprobado\n');
+    return a;
+  };
+  const r = await correr({ repos: ['alfa'], canon, tag: 'v3.0.0-rc.1', proyectos: P, aplicar });
+  const texto = r.lineas.join('\n');
+  assert.equal(r.codigo, 1, texto);
+  assert.equal(fila(r, 'alfa').resultado, 'sin tocar', texto);
+  assert.match(fila(r, 'alfa').porque, /el commit del kit no pasó/);
+  assert.equal(git(x.bare, 'rev-parse', 'main'), x.base);
+  assert.deepEqual(ramasKit(x.bare), []);
+});
+
+test('D6-6 y crit. 18: un hook fusionado que el pre-commit del molde frena (no es el molde) → la rama se rehace sin fusionarlo; va a "te espera" y lo demás se mezcla', { skip: SIN_GITLEAKS }, async () => {
+  const nuevo = nuevaCarpeta('molde-gh-hook');
+  copiar(MOLDE_GH_NUEVO, nuevo);
+  const ph = path.join(nuevo, 'hooks', 'escritura-docs.cjs');
+  fs.writeFileSync(ph, fs.readFileSync(ph, 'utf8').replace("'use strict';\n", "'use strict';\n// v3.0.0: una línea nueva del molde\n"));
+  const canon = armarCanon({ molde: nuevo, viejo: MOLDE_GH_VIEJO });
+  const P = nuevaCarpeta('proyectos');
+  const x = armarRepo(P, 'alfa', {
+    viejo: MOLDE_GH_VIEJO,
+    antes: adaptar('hook-escritura', '.claude/hooks/escritura-docs.cjs', (t) => `${t}// lo nuestro: un renglón al final\n`, 'avisamos distinto'),
+  });
+  const r = await correr({ repos: ['alfa'], canon, tag: 'v3.0.0-rc.1', proyectos: P });
+  const texto = r.lineas.join('\n');
+  assert.equal(r.codigo, 0, texto);
+  assert.equal(fila(r, 'alfa').resultado, 'mezclado', texto);
+  assert.match(fila(r, 'alfa').porque, /te espera: hook-escritura/);
+  assert.doesNotMatch(git(x.bare, 'show', 'main:.claude/hooks/escritura-docs.cjs'), /una línea nueva del molde/);
+  assert.match(git(x.bare, 'show', 'main:.claude/fusiones/hook-escritura.md'), /\*\*Por qué no se fusionó sola:\*\* la fusión no pasó el commit: /);
+});
+
+test('hooksDelMolde: los tres sh del molde, con su saneo, llamando al runner del molde por su ruta; sin runner → null', () => {
+  const d = FL.hooksDelMolde(MOLDE_GH_NUEVO, path.join(nuevaCarpeta('gh'), 'hooks'));
+  for (const cual of ['pre-commit', 'pre-merge-commit', 'pre-push']) {
+    const t = fs.readFileSync(path.join(d, cual), 'utf8');
+    const molde = fs.readFileSync(path.join(MOLDE, 'githooks', cual), 'utf8').replace(/\r\n/g, '\n');
+    assert.equal(t, molde.replace('node .githooks/kit-githook.cjs', `node "${path.join(MOLDE_GH_NUEVO, 'githooks', 'kit-githook.cjs').replace(/\\/g, '/')}"`));
+    assert.match(t, /unset -f env sed command echo/);
+  }
+  assert.equal(FL.hooksDelMolde(MOLDE_NUEVO, path.join(nuevaCarpeta('gh'), 'hooks')), null);
+});
 
 // ---------------------------------------------------------------- las piezas chicas
 
@@ -361,10 +502,13 @@ test('el orden de los tags: -rc.N antes que la versión; el último anotado; uno
   assert.equal(FL.versionDeTag('v3.0.0-rc.4'), '3.0.0');
 });
 
-test('adaptadasDe, primeraRoja, porqueRechazo, resolverOrigen', () => {
+test('fusionDe, primeraRoja, porqueRechazo, resolverOrigen', () => {
   assert.equal(FL.primeraRoja(['1. llaves · ✅ · bien', '2. arranque · ❌ · 9.800', '3. settings · ❌ · x']), '2. arranque · ❌ · 9.800');
   assert.equal(FL.primeraRoja(['actualizador roto: corré doctor (x)', 'NO VERIFICADO']), 'actualizador roto: corré doctor (x)');
-  assert.deepEqual(FL.adaptadasDe(['a · molde · reemplazada', 'b · "adaptada (desvío detectado)" · desvío: no se tocó (x)', 'c · adaptada · adaptada: no fusiona (…)', 'b · adaptada (desvío detectado) · desvío']), ['b', 'c']);
+  assert.deepEqual(FL.fusionDe([
+    'a · molde · reemplazada', 'b · adaptada · fusionada (sola, el paso · seis)', 'c · adaptada · fusionada (claude)',
+    'd · adaptada (desvío detectado) · te espera: sin porqué · desvío: no se tocó (x)', 'e · adaptada · sin cambios', 'b · adaptada · fusionada (claude)',
+  ]), { fusionadas: ['b', 'c'], esperan: ['d'] });
   assert.equal(FL.porqueRechazo('! [remote rejected] main -> main (pre-receive hook declined)'), 'la rama por defecto está protegida');
   assert.equal(FL.porqueRechazo(' ! [rejected] main -> main (fetch first)'), 'la rama por defecto se movió mientras actualizaba');
   const d = path.join(T, 'x');
