@@ -2,6 +2,44 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-11-02 — Misión 5, paquete 6, primera mitad (D6.1): "preparame esta PC", el `doctor` completo y el núcleo del actualizador
+
+PC `Draco-PC`, chat `vibe-kit M5 · D6.1 · Paquete 6: Equipador v3, actualizador, adoptador y doctor completo`, en Opus, sin Guido, con el
+presupuesto del ADR-029: **~3 h de reloj (13:40-16:40), 8 encargos (7 Opus: redactor del delta, red team, E1, E3, E4, revisor frío, RF-fix ·
+1 Sonnet: E2), ~1,77 M de tokens de subagentes**. Sin tag. El paquete 6 queda 🔨: **sigue D6.2** (la flota de punta a punta y el adoptador).
+Decisiones sin Guido: tracker, "D6.1 · Decisiones sin Guido".
+
+**Added**
+- **`docs/kit-v3/SPEC-paquete-6.md`**: el delta del paquete 6 entero, partido en D6.1 y D6.2; red team de una ronda (6 ALTOS integrados; el
+  peor: un bloque `autoMode` sin `"$defaults"`), **sellado sin Guido por script**. **D6-1: nadie corre en bypass**: el actualizador y el adoptador
+  son un script de node (el SPEC-0 pedía `claude -p` en bypass, que el clasificador de `auto` frena desde D4.2); vuelve al diseño E §6 en D6.2.
+- **`preparar-pc.cjs`** (P2.2, "preparame esta PC"): chequea node, git, `gh`, gitleaks y Claude Code y da la línea para instalarlos; copia el
+  kit desde un clon completo parado en un tag anotado (lo editado a mano no se pisa sin `--pisar-editados`; con `--flota` se saltea); hooks por
+  PC, `crossSessionInbound: accept` y el bloque `autoMode.environment` desde las fichas, con merge por regla y `"$defaults"` primero (forma
+  verificada contra la doc oficial); capa privada por `instalar.cjs`; `~/.claude/kit-pc.md`; `--plan`; una sola escritura atómica; una pregunta.
+- **`actualizar.cjs aplicar`** (P7.1, núcleo) con `lib/catalogo.cjs` (pieza → archivos, `base`/`opcional`) y `lib/molde.cjs` (materializa el
+  molde viejo, del tag de la ficha, y el nuevo): pieza por pieza según la ficha y el guardia (intacto = igual al molde viejo fuera de la zona,
+  el hash de la ficha o ya el nuevo; si no, "adaptada (desvío detectado)" y no se toca), las bajas, `docs` solo nacimiento, el `settings` por
+  regla (se van las `deny` con `Write(...)`), los `.snippet`, la ficha y un renglón en el CHANGELOG. Solo en un clon con `.kit-rol` = `actualizador`.
+- **`lib/chequeo.cjs`** (`actualizar.cjs chequear`): el chequeo mecánico de nueve líneas antes de mezclar (llaves, arranque, settings con cada
+  hook que existe y compila, skills del molde, ficha, barreras con `--molde`/`--molde-viejo`, los casos de los hooks tocados, `comando-test` con
+  `comando-setup`, gitleaks); lo que no se pudo ver es ❌ NO VERIFICADO.
+- **`skill.test.cjs`** (P2.4): el nombre `arquitecto-skills` y cada comando citado en su `USO`.
+
+**Changed**
+- **`doctor.cjs` completo** (P2.3): de 14 a 26 chequeos (versión contra el último tag, `kit-sync`, `githooks`, `kit-pc.md`, credencial, `gh` pushea,
+  la mesa, `crossSessionInbound`, `autoMode`, copias del kit, frenos vencidos, regla del tamaño) y el inventario de frenos de formato fijo.
+- El `SKILL.md` del Equipador: "preparame" y "actualizate" van por `preparar-pc` del clon nuevo (10,2 → 9,1 KB). `instalar-hooks-pc.cjs` exporta su plan.
+
+**Fixed**
+- Los 11 hallazgos del revisor frío (1 ALTO: un clon `--depth 1` hacía que todo pareciera "editado a mano") más RF-9 a RF-11 del director (la
+  línea 7 corría las pruebas de los hooks dueño por dueño con un solo plazo; la frase "es privado"; un falso positivo de gitleaks), en un encargo.
+
+Pruebas: **156/156** las del paquete, corridas por el director; **mutación** E1 23/25 · E3 24/25 · E4 25/25 (vivos equivalentes); prueba viva
+del crit. 9 sobre un clon de `gama` (`aplicar` bien; `chequear` 8 ✅ y la 7 NO VERIFICADO por el plazo, a D6.2); suite entera **2.575 de 2.575**
+(16 min, una vez, al final). `kit-sync` LIMPIO; `~/.claude/settings.json` real con la huella de la apertura. **Tropiezo**: un merge se pusheó
+con 2 avisos de gitleaks (falso positivo, un valor de prueba) porque un `| tail` tapó la salida; desde ahí, gitleaks sin tubería.
+
 ## 2026-11-02 — Misión 5, paquete 5, cierre (D5.3): el corrector de afirmaciones, medido contra Hermes
 
 PC `Draco-PC`, chat `vibe-kit M5 · D5.3 · Paquete 5, cierre: el corrector de afirmaciones medido contra Hermes`, en Opus, sin Guido, con el

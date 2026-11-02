@@ -117,7 +117,9 @@ manual de actualización; de ahí en más, "actualizate".)*
 skill al menú"* (la investiga primero — nada entra sin curaduría).
 **Frenos de la PC** (kit v3, en construcción): *"instalar hooks por PC"* (el corrector de secretos en toda
 la máquina; primero te muestra el plan, y se deshace byte a byte) y *"corré el doctor"* (dice qué anda y
-qué no, sin tocar nada). El detalle, en `kit/skills/arquitecto-skills/SKILL.md`.
+qué no, sin tocar nada). Con el próximo tag del kit, **"preparame esta PC"** deja la máquina entera lista (el kit, los
+frenos, los ajustes de Claude Code) con **una sola pregunta**, y el doctor revisa además versión, `gh`, copias del kit y frenos vencidos.
+El detalle, en `kit/skills/arquitecto-skills/SKILL.md`.
 
 ### 🔧 "Quiero cambiar algo del método / del Arquitecto / del menú"
 Chat nuevo **en la raíz de este repo** → pedilo. La regla la sabe Claude: se edita en `kit/`,

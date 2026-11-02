@@ -79,13 +79,13 @@ sesión sigue con lo que no depende de eso. Lo que sí se decide y es grande se 
 | 3 | Seguridad: corrector de secretos, barreras, hooks por PC, `doctor` mínimo | 3 | ✅ 2026-10-30 (D3.1, D3.2, D3.3; **te espera**: instalar los hooks por PC en las dos PCs, la pestaña real, borrar 4 transcripts de prueba: Pendientes) ([`SPEC-paquete-3.md`](SPEC-paquete-3.md)) |
 | 4 | El Arquitecto v3, el script `worktree`, el sello, `formato-spec.md` | 2 | ✅ 2026-10-30 (D4.1 y D4.2; **te espera**: el Arquitecto en un proyecto v2 de verdad, la pestaña en un worktree: Pendientes) ([`SPEC-paquete-4.md`](SPEC-paquete-4.md)) |
 | 5 | Director/obrero, `/estado`, resumen del día, la mesa, subagentes | 3 | ✅ 2026-11-02 (D5.1 el día · D5.2 la noche, las vistas, `/tramo`, los subagentes, la mesa · D5.3 el corrector de afirmaciones, que avisa; **te espera**: las pestañas reales y repasar las ⚠️: Pendientes) ([`SPEC-paquete-5.md`](SPEC-paquete-5.md)) |
-| 6 | Equipador v3, actualizador, adoptador, `doctor` completo | 1 | ⬜ |
+| 6 | Equipador v3, actualizador, adoptador, `doctor` completo | 2 | 🔨 D6.1 ✅ 2026-11-02 (la PC, el `doctor` completo, `aplicar` y `chequear`); sigue D6.2 (la flota, el adoptador) ([`SPEC-paquete-6.md`](SPEC-paquete-6.md)) |
 | 7 | El ciclo de `cambios` (flota, migración de Hermes) y la portada | 1 | ⬜ |
 | 8 | El observatorio mide la línea base; playbook, guía y manuales al día | 1 | ⬜ |
 | 8½ | Deptos prepara sus credenciales (**lo hace Guido**, sin director) | 0 | ⬜ |
 | 9 | Piloto en Deptos, un mes; después Hub y Portal | 2 en la madre | ⬜ |
 | 10 | Tag `v3.0` y nota de migración | 1 | ⬜ |
-| | **Total** (sin el 0, ya hecho) | **15** | |
+| | **Total** (sin el 0, ya hecho) | **16** | |
 
 Estado: ⬜ sin empezar · 🔨 en curso · ✅ cerrado (con fecha) · ⏸️ frenado (con razón).
 
@@ -108,7 +108,8 @@ cuántos lanzó y en qué modelo (por ejemplo `4 Sonnet · 2 Opus`): es la medid
 | D5.1 | Paquete 5, primera mitad: spec delta + red team, el canon director/obrero y sus correctores | 2026-10-30/31 (sin Guido, PC `Usuario`; **dos tramos** por una pausa pedida; **~3,5 h de reloj, ~2,0 M de tokens de subagentes** más 2 sesiones `claude.exe -p`) | `vibe-kit M5 · D5.1 · Paquete 5, primera mitad: delta, red team y el canon director/obrero` | 1 Sonnet (E4) · 7 Opus (redactor del delta, red team ×1, E1, E2, E3, revisor frío ×1, RF-fix) = **8** (ADR-029: ~8) | `5a3a1c9`…el cierre | ✅ **El día del canon en `main`**: el núcleo, `/director`, `/obrero`, la plantilla del encargo, el revisor; `encargo.cjs` (`presentar` con el corrector "spec sin sello", `mensaje`, `autorizado` sin bypass, `verificar` de seis líneas); `worktree integrar` y `cerrar --cancelado`. Delta **sellado sin Guido por script** (red team 1 ronda, 4 ALTOS integrados). Pruebas del paquete **163/163** corridas por el director; **mutación E1 64/67 · E3 30/32 · E2 29/30** (vivos equivalentes). Revisor frío 1 vuelta, 10 hallazgos (3 ALTOS del día normal: cancelar, dos PCs, temporal sucio), todos en un encargo. **Sesiones reales**: crit. 3 del kit ✅ (el obrero para sin commit); la ficha canónica de día de punta a punta (crit. 10 del delta); el clasificador dejó lanzar. **Hallazgo**: las `deny` con `Write(...)` no frenan (primero de D5.2). Suite: **2.290 de 2.291** (25 min, una vez, al final); la que falló (`kit-githook.test.cjs`, "el temporal se borró") cuenta los `kit-githook-*` del temporal del sistema y a la vez commiteaban los clones de las sesiones reales: sola da 41/41. Huella del `~/.claude/` real igual a la de la apertura. **Decisiones sin Guido**: arriba |
 | D5.2 | Paquete 5, segunda mitad: `/estado`, resumen del día, subagentes, `CLAUDE.md` por criterios, la mesa | 2026-11-02 (sin Guido, PC `Draco-PC`; **~2,2 h de reloj, ~1,64 M de tokens de subagentes** más 3 sesiones `claude.exe -p`) | `vibe-kit M5 · D5.2 · Paquete 5, segunda mitad: la noche, /estado, el resumen y la mesa` | 3 Sonnet (K2, K4, K6) · 5 Opus (W0, K1, K3, revisor frío ×1, RF-fix) = **8** (ADR-029: ~8) | `36b5637`…el cierre | ✅ **Todo D5.2 en `main` salvo K5** (el corrector de afirmaciones, a D5.3 de entrada). W0 las `deny` sin `Write` (sesión real: sin aviso y el `Write` negado); K1 `.kit-noche`, `contexto`, `noche.cjs` (mutación 22/22; sesión real: niega con PARADA); K2 `tiempos`, `/estado`, `resumen` (la prueba RT1-13 compara cada cifra); K3 la mesa (G §19 entre dos clones; mutación 37/37); K4 `/tramo`, 6 agentes con `effort:`, `paquete.cjs`; K6 el texto y el `CLAUDE.md` del molde por los 11 criterios (3.044 → 2.666 B). Revisor frío 1 vuelta, 10 hallazgos (2 ALTOS), todos arreglados con 6 del director en un encargo. `rehacer.sh` LISTO y `estructura todo` 0 en `alfa` y `beta`. Suite: **2.431 de 2.432** (15 min, una vez, al final); la que falló es real: `pc/lib/contexto.cjs` tiene que ser copia byte a byte de la del molde que cambió K1 — la copió el director (mecánico, lo pide la prueba) y `pc/` dio 75/75. **Decisiones sin Guido**: arriba |
 | D5.3 | Paquete 5, cierre: el corrector de afirmaciones (P6.10, A §5) medido contra el historial de git de Hermes | 2026-11-02 (sin Guido, PC `Draco-PC`; **~1,2 h de reloj, ~0,50 M de tokens de subagentes**) | `vibe-kit M5 · D5.3 · Paquete 5, cierre: el corrector de afirmaciones medido contra Hermes` | 3 Opus (K5, revisor frío ×1, RF-fix) = **3** (ADR-029: ~4) | `b10ed73`…`f849c0d` y el cierre | ✅ **Paquete 5 cerrado.** `afirmaciones.cjs` (lib con las reglas + CLI sobre las líneas agregadas de `git diff <base>..HEAD`), la sección `## Afirmaciones` del paquete del revisor, una línea en el obrero, `/tramo` y `revisor.md`. **Medido contra el git de Hermes** (unos 30 commits de solo prosa; reglas afinadas con la mitad vieja, medidas en la nueva): caza **27 de 504** líneas que se corrigieron (**5 de 9** sobre-afirmaciones de una muestra a mano; 1 de 41 obsoletas, fuera de alcance), marca **34 de 1.386** líneas vivas buenas (2,5%) y **17 de 1.552** de las aprobadas (1,1%) → **avisa, no frena** (D5.3-1). Revisor frío 1 vuelta, 8 hallazgos (1 ALTO: un archivo con espacio en la ruta daba "limpio"), todos en un encargo. Pruebas **148/148** y **mutación 49/49**, corridas por el director. Suite entera **2.454 de 2.454** verde (16 min, una vez, al final). **Decisiones sin Guido**: abajo |
-| D6.1 | Paquete 6: Equipador v3, actualizador, adoptador, `doctor` completo, "toda la flota" en los repos de prueba | | | | | |
+| D6.1 | Paquete 6, primera mitad: delta + red team, "preparame esta PC", el `doctor` completo, P2.4, el núcleo del actualizador (`aplicar`, `chequear`) | 2026-11-02 (sin Guido, PC `Draco-PC`; **~3 h de reloj, ~1,77 M de tokens de subagentes**) | `vibe-kit M5 · D6.1 · Paquete 6: Equipador v3, actualizador, adoptador y doctor completo` | 1 Sonnet (E2) · 7 Opus (redactor del delta, red team ×1, E1, E3, E4, revisor frío ×1, RF-fix) = **8** (ADR-029: ~8) | `25a151e`…`2ecd550` y el cierre | ✅ **La PC y el núcleo del actualizador en `main`; la flota y el adoptador, a D6.2** (el delta ya lo partía). Delta **sellado sin Guido por script** (red team 1 ronda, 6 ALTOS integrados; el peor: un bloque `autoMode` sin `"$defaults"` le sacaba al clasificador la confianza en los repos de toda la PC). **E1** `preparar-pc.cjs` (una pregunta, `--plan`, `--flota`, lo editado no se pisa, `autoMode` y `crossSessionInbound` contra la doc, capa privada, `kit-pc.md`; mutación 23/25) · **E2** `doctor` de 14 a 26 chequeos con el inventario de frenos, `skill.test.cjs` (P2.4), el `SKILL.md` del Equipador por `preparar-pc` (10,2 → 9,1 KB) · **E3** `actualizar.cjs aplicar` con el catálogo y los moldes (mutación 24/25) · **E4** `chequear`, nueve líneas (mutación 25/25). Revisor frío 1 vuelta, 11 hallazgos (1 ALTO: el clon `--depth 1`), todos con RF-9 a RF-11 del director en un encargo. Pruebas **156/156** corridas por el director. **Prueba viva del crit. 9** (clon de `gama`, 2.4.2 → 2.4.3): `aplicar` bien y la segunda corrida "sin cambios"; `chequear` 8 ✅ y la línea 7 NO VERIFICADO por el plazo (→ RF-9, y 2 casos de `candado.test.cjs` que dan rojo fuera del repo: Pendientes). Suite: la cifra en el CHANGELOG. `settings.json` real con la huella de la apertura. **Decisiones sin Guido**: arriba |
+| D6.2 | Paquete 6, cierre: la flota de punta a punta (`flota`, githooks en el clon, la fusión `adaptada`), el adoptador, `cargar-secreto` en un worktree, "toda la flota" en los repos de prueba | | | | | |
 | D7.1 | Paquete 7: el ciclo de `cambios` y la portada | | | | | |
 | D8.1 | Paquete 8: medir la línea base; playbook, guía, manuales | | | | | |
 | D9.1 | Arrancar el piloto en Deptos | | | | | |
@@ -668,6 +669,44 @@ D5.3 corrió sin Guido, con su autorización previa (su prompt, abajo) y la vara
   mirarla): los números de la fila son con las reglas finales. `[mejor código]`
 - *No se cierra* (trampas, sin arreglo): tapar un aviso con cualquier fecha, un hex o una cifra; escribir el absoluto en un `.md` común.
 
+### D6.1 · Decisiones sin Guido
+
+D6.1 corrió sin Guido, con su autorización previa (su prompt, abajo) y la vara del ADR-030, el 2026-11-02 en `Draco-PC` desde las 13:40.
+**Las ⚠️ arriba**; todas se deshacen antes del tag. No hay preguntas nuevas arriba de Pendientes. El detalle de cada una, en el delta
+(`SPEC-paquete-6.md`, "Riesgos y decisiones").
+
+- ⚠️ **D6-1 · Nadie corre en bypass: el actualizador y el adoptador son un script de node.** El SPEC-0 (P7.1, P7.2 y su ⚠️) pedía un `claude -p`
+  por proyecto en bypass; desde D4.2 el clasificador de `auto` frena eso. `aplicar`, `chequear`, la rama, la mezcla y la tabla los hace
+  `actualizar.cjs`; solo la fusión de una pieza `adaptada` usaría un `claude -p` en `acceptEdits` con `--allowedTools` estrecho, y si no entra,
+  "no fusiona y avisa". **Vuelve al diseño E §6 con fecha** al cerrar D6.2. `[workflow · mejor código · acordarse de menos]`
+- ⚠️ **D6-5 · Un catálogo pieza → archivos** (`lib/catalogo.cjs`), con cada pieza `base` u `opcional`; hoy eso lo sabía solo `rehacer.sh`.
+  Toda ruta del molde cae en una pieza o la prueba da rojo. E3 sumó la pieza `scripts` (los scripts dependen unos de otros). `[consistencia]`
+- ⚠️ **D6-6 · Los githooks en el clon** dejan pasar el molde (`KIT_MOLDE`, solo con `.kit-rol` = `actualizador`): **es de D6.2**. Por r1-5,
+  `aplicar` **no** pone `core.hooksPath` en D6.1 (trabaría su propio commit); lo pone `flota`. `[mejor código]`
+- ⚠️ **D6-7 · El guardia**: un archivo está intacto si es igual al molde viejo fuera de la zona propia, si coincide el hash de la ficha, o si
+  ya es igual al nuevo (E3: así una corrida cortada se repite sin falsos desvíos). **Por pieza entera**: uno solo editado y la pieza no se toca.
+  `[mejor código]`
+- ⚠️ **r1-1 · El bloque `autoMode` se crea con `"$defaults"` primero** (la doc oficial: una lista sin él reemplaza los de fábrica, entre ellos
+  "Trusted repo" y "Source control", y el clasificador frenaría los push de toda la PC). El kit toca solo `autoMode.environment`. **RF-2**: una
+  entrada idéntica a la que el kit genera se reclama como del kit (si no, quedaba colgada para siempre al borrar el proyecto). `[workflow]`
+- **D6-18 (r1-8)**: `core.hooksPath` en los checkouts de Guido no lo pone nadie solo: `doctor` tiene el id `githooks` (⚠ con la línea
+  `git config`). `/inicio` no se tocó (eso sí sería decisión de Guido). `[acordarse de menos · consistencia]`
+- **RF-12**: si "actualizate" deja archivos editados sin pisar, `VERSION` **no sube** (así `doctor` sigue diciendo "atrás"). `[consistencia]`
+- **Lo que la prueba viva enseñó** (aplicar + `chequear` sobre un clon de `gama`, v2.4.2 → 2.4.3): `aplicar` anduvo (segunda corrida todo
+  "sin cambios", `CLAUDE.md` intacto) y `chequear` dio 8 ✅ y la línea 7 NO VERIFICADO: corría las pruebas de los hooks **dueño por dueño, en
+  fila, con un solo plazo de 30 min**. RF-9 las junta en una corrida (la tanda entera del molde: 1.908 casos, 12,5-18 min). Y 2 casos de
+  `candado.test.cjs` ("estado-viejo") dieron rojo en la copia y verde en el molde: a Pendientes de D6.2. `[mejor código]`
+- **Del revisor frío** (Opus, una vuelta, 11 hallazgos: 1 ALTO, 6 MEDIOS, 4 BAJOS, todos del día normal; los arreglos en **un** encargo con
+  RF-9 a RF-11 del director): el clon `--depth 1` hacía que todo pareciera "editado a mano" (ahora ✗ con `fetch --unshallow --tags`); correr
+  el `preparar-pc` instalado con un `--kit` nuevo; `"$CLAUDE_PROJECT_DIR"/…` partido en dos; `comando-setup` antes de `comando-test`; el
+  mensaje tras un corte; `gh` sin red daba ✓; lo que el kit retira no se borraba; el bash de WSL; un remoto de la mesa que no es de GitHub.
+  Nada pisaba un archivo propio ni daba `chequear` verde con algo roto (lo probó).
+- **Un tropiezo del director**: un merge se pusheó con 2 avisos de gitleaks porque la tubería con `tail` tapó el código de salida. Eran un
+  falso positivo (`VALOR-SECRETO-123`, un valor de prueba en `doctor.test.cjs`; RF-11 lo reescribió), pero queda en la historia pública. Desde
+  ahí, gitleaks sin tubería y el push solo con salida 0. `[mejor código]`
+- *No se cierra* (trampas, sin arreglo): `.kit-rol: actualizador` escrito a mano en la carpeta de Guido; editar `kit-pc.md` para adoptar
+  entradas ajenas; un `instalar.cjs` privado malicioso; `KIT_MOLDE` o `KIT_REPO_CANONICO` exportados a mano; un allowlist de gitleaks en el commit.
+
 ## Abrir D5.2 sin Guido (el prompt)
 
 *(Armado en el cierre de D5.1, 2026-10-31.)* ~~En la PC `Usuario`~~ **En la PC `Draco-PC`** (preparada el 2026-11-02: kit, repos de prueba,
@@ -754,6 +793,33 @@ revisiones que Hermes guarda en su repo.
 >    tokens**, el prompt de la sesión siguiente armado como este, y /cierre completo con el "Próximo paso" y su título. En el resumen final,
 >    primero "Decisiones sin Guido" y después lo que me espera a mí.
 
+## Abrir D6.2 sin Guido (el prompt)
+
+*(Armado en el cierre de D6.1, 2026-11-02.)* En cualquier PC con el kit (`Draco-PC` está lista), en Opus, chat nuevo en vibe-kit.
+
+> inicio — misión 5, D6.2: el cierre del paquete 6 (la flota de punta a punta y el adoptador), sin mí, con el presupuesto del ADR-029.
+>
+> Me voy y te dejo trabajando solo. Te autorizo por adelantado a lo mismo que a D6.1 (su prompt, en el tracker, "Abrir D6.1 sin Guido"):
+> después del /inicio no esperás mi OK, decidís con la vara (ADR-030) y anotás en "Decisiones sin Guido" de una sección D6.2 nueva (las ⚠️
+> arriba), no tocás el `~/.claude/` real salvo el `kit-sync` del `/cierre`, y lo que necesita una persona va a Pendientes. Lo que cambia:
+>
+> 1. **Alcance: la mitad D6.2 del delta ya sellado** (`docs/kit-v3/SPEC-paquete-6.md`: "Los dos directores", criterios 15 a 21 y "Los encargos de
+>    D6.2", provisorios: los ajustás vos). **Sin delta nuevo ni red team** (el delta es del paquete entero); si un encargo toca un permiso o un freno
+>    que el delta no fijó, lo decidís con la vara y lo anotás ⚠️. **Primero lo de "Paquete 6 · para D6.2" de Pendientes** (arriba: la línea 7 de
+>    `chequear` y los 2 casos de `candado.test.cjs` que dan rojo fuera del repo, que harían "rota" toda actualización sana).
+> 2. **El presupuesto manda (ADR-029)**: **~4 h de reloj y ~8 encargos**. El corte ya está escrito en el delta: la fusión `adaptada` queda en "no
+>    fusiona y avisa" si no entra, y el adoptador pasa a un D6.3. Cerrás limpio: lo hecho en `main`, lo que falta en Pendientes con su porqué.
+> 3. **Contra accidentes, no contra trampas.** Revisor frío: una vuelta, hasta 10 hallazgos con su escenario del día normal, los arreglos en un
+>    encargo. Mutación solo en lo que decide un freno o un permiso (saltear y mezclar, la regla de `KIT_MOLDE`, lo que trae el adoptador; tope 20
+>    min); la suite entera una vez, al final, en segundo plano. De a dos Opus como máximo; cada encargo en su worktree en `scratchpad/<x>/wt`.
+> 4. **"Toda la flota"** se corre con los repos de prueba (`bash pruebas/rehacer.sh`: `alfa`, `beta`, `gama`) y un canónico de prueba (un `bare`
+>    de este árbol con un tag anotado `v3.0.0-rc.1`), nunca contra un repo real, el `origin` real ni el `~/.claude/` real.
+> 5. Leés cada diff y corrés las pruebas de cada encargo. Aceptado → merge a `main`, **gitleaks sin tubería (si sale distinto de 0, no se
+>    pushea)**, commit y push.
+> 6. Al terminar: el paquete 6 en ✅ si cerró, los `✅ <fecha>` de P7.1 y P7.2 en el SPEC-0, el delta en `✅ IMPLEMENTADO`, D6-1 y D6-6 de vuelta al
+>    diseño E §6 con fecha (y un ADR si sobreviven), la fila D6.2 con **horas, encargos y tokens**, el prompt de la sesión siguiente armado como
+>    este, y /cierre completo con el "Próximo paso" y su título. En el resumen final, primero "Decisiones sin Guido" y después lo que me espera a mí.
+
 ## Paralelizar: decidido que no (DP, 2026-10-29)
 
 **La misión 5 sigue en secuencia: un director por vez, en el orden de la tabla de arriba.** Guido: "Prefiero hacerlo bien y que tarde
@@ -810,12 +876,6 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
      la pestaña de Claude ahí, y fijate que el arranque diga el rol (`director`) y que `cambios aprobar` se niegue. Es la mitad VS Code del
      NO VERIFICADO de `.kit-rol`.
   3. Repasar las ⚠️ de D4.1 y D4.2 (arriba) y el delta sellado sin vos.
-- **Paquete 6 · de D5.2 y D5.3** (menores; los toma D6.1 si le sirven, si no el piloto):
-  1. El `--hasta` de `noche.cjs me-voy` no termina la noche solo (hoy informativo).
-  2. En proyectos con el `gitignore.snippet` viejo, `.claude/paquetes/` aparece sin trackear (⚠️ de `verificar`) hasta que el actualizador pegue el nuevo.
-  3. El corrector de afirmaciones: el escape por lenguaje no cubre `sh` ni SQL (`'…'` sin escape); no hay prueba de la salida 1 por un archivo que git
-     no lee (NO VERIFICADO parcial). **Para que frene algún día**: re-medir con un corpus nuevo (el piloto) y bajar los falsos positivos a 0; los
-     scripts de la medición no viajan (scratchpad): se rearman con el método escrito en "D5.3 · Decisiones sin Guido".
 - **Paquete 5 · te espera a vos, Guido** (D5.2 no lo podía hacer sin una persona; **no traba a D5.3 ni a D6.1**):
   0. **Lo nuevo de D5.2, en una pestaña real de VS Code en `../vibe-kit-pruebas/alfa`** (antes `bash pruebas/rehacer.sh`): `/estado` (vista corta, sin
      preguntar); en un módulo con director, decir "me voy" (tiene que correr el checklist y dejar `.kit-noche`) y al otro día `/inicio` (tiene que
@@ -827,14 +887,34 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
      para git, `encargo.cjs` y el test**, y la ventana sí para una de las 5 de A. Es la mitad VS Code de D5-19.
   2. Repasar las ⚠️ de D5.1 (arriba) y el delta sellado sin vos: lo que más pesa es D5-2 (nadie en bypass), D5-19 (tu pestaña en tu modo) y
      D5-3 (`integrar` sin `/cierre`).
-- **Paquete 6 · de D4.1**: `cargar-secreto` corrido adentro de un worktree calcula otro `<proyecto>` y guarda en otro almacén (red team r1-4,
-  "fuera de este paquete"); el Modo A con el molde v3 y `docs/modulos/v1/` (D4-6); "adoptá X" y "poné al día X" de verdad (hoy `flota.md` da una
-  línea). Y un clon no trae `core.hooksPath`: el actualizador lo pone (J5a lo tuvo que poner a mano en sus clones).
-- **Paquete 6 · de D2.2 (F4)**: la exención (a) de `barreras` da rojo con una regla de `settings` que el molde nuevo retira, porque sin el
-  molde viejo no la distingue de una propia. **Resuelto en `barreras` en D3.3 (G6b, `--molde-viejo`)**: falta que el actualizador se
-  lo pase. Los `.githooks/**` y gitleaks ya están en el molde (G7).
-- **Paquete 6/7 · de D2.2**: en `claude -p` sobre una carpeta que no es de confianza, **Claude Code ignora el `permissions.allow` del
-  proyecto** ("this workspace has not been trusted"): el actualizador y todo agente de fondo en un clon nuevo lo van a sufrir.
+- **Paquete 6 · para D6.2** (de D6.1; **lo primero, los dos de arriba**):
+  1. **La línea 7 de `chequear` (`casos`) haría "rota" toda actualización sana desde v2**: en la copia que arma (el molde nuevo con los hooks
+     del proyecto encima, fuera del repo) **2 casos de `hooks/lib/candado.test.cjs` ("estado-viejo: sin base, verde…" y "…un módulo con
+     rama…") dan rojo**; en `kit/molde/` dan verde. Lo vio el director corriendo la tanda entera en una copia materializada (1.906 de 1.908, 18
+     min); RF-fix la corrió y le dio 1.908 de 1.908 (12,5 min): **puede ser intermitente** (archivos en paralelo). Mirar por qué depende de dónde
+     corre y arreglar la prueba o la copia. Y medir la línea 7 entera con RF-9 sobre un clon de `gama` (la tanda pegada al plazo de 30 min).
+  2. La prueba viva del crit. 9 **otra vez, con RF-9**: `bash pruebas/rehacer.sh`, clon de `gama`, `.kit-rol` + `.git/info/exclude`,
+     `actualizar.cjs aplicar`, commit, `chequear --base <sha>`: tienen que ser nueve ✅ (D6.1 dio 8 ✅ y la 7 NO VERIFICADO por el plazo).
+  3. **`core.hooksPath` y los githooks del clon** (D6-6, F2): lo pone `flota`, no `aplicar` (r1-5). `--molde-viejo` ya se lo pasa `chequear` a
+     `barreras` (el pendiente F4 de D2.2 queda cerrado del lado de `chequear`); falta el runner de los githooks con `KIT_MOLDE`.
+  4. `cargar-secreto` corrido adentro de un worktree calcula otro `<proyecto>` y guarda en otro almacén (red team r1-4 de D4.1; F5).
+  5. "Adoptá X" y "poné al día X" de verdad en `flota.md` (hoy una línea); el Modo A con el molde v3 y `docs/modulos/v1/` (D4-6).
+  6. **El `allow` ignorado en un clon sin confianza** (de D2.2): con D6-1 ya no pega en el script; sí en la fusión `adaptada` por `claude -p` (F3,
+     con las `allow` en el `settings.local.json` del clon y `--allowedTools`; fila 3 de "Lo prueba una sesión real" del delta).
+  7. Menores de `chequear`: un `comando-test` con `&&` (`cd web && npm test`) da NO VERIFICADO (el delta dice "sin tuberías": revisar si
+     duele en la flota); si `comando-setup` falla en el clon de base, la línea queda roja "no se sabe si ya estaba rojo antes".
+  8. NO VERIFICADO de `preparar-pc`: la línea para instalar Claude Code y los ids de `winget` que imprime (no se cruzaron con su fuente).
+- **Paquete 6 · te espera a vos, Guido** (D6.1 no lo podía hacer sin una persona; **no traba a D6.2**):
+  1. **"Preparame esta PC" de verdad, en tu segunda PC** (o en la de un compañero): decile al Equipador "actualizate" o "preparame esta PC"; tiene
+     que hacer **una sola pregunta**, mostrar la tabla y decir "reiniciá Claude Code"; después `doctor` sin ✗. Mirá que el bloque `autoMode` de
+     `~/.claude/settings.json` empiece con `"$defaults"` (NO VERIFICADO del SPEC-0: el bloque en la segunda PC). **Ojo**: hasta que haya un tag
+     `v*` nuevo, "actualizate" baja el último tag (`v2.4.3`), que no trae `preparar-pc`: esto se prueba con el tag de la misión (orden 10) o
+     con un `v3.0.0-rc`.
+  2. Repasar las ⚠️ de D6.1 (arriba), sobre todo **D6-1** (nadie en bypass: contradice el SPEC-0) y que `VERSION` no sube si quedó algo editado.
+- **Del piloto** (menores de D5.2 y D5.3, sin dueño en el paquete 6): el `--hasta` de `noche.cjs me-voy` no termina la noche solo (hoy
+  informativo); el corrector de afirmaciones (escape de `sh` y SQL; la salida 1 por un archivo que git no lee; **para que frene algún día**,
+  re-medir con un corpus nuevo y bajar los falsos positivos a 0, con el método escrito en "D5.3 · Decisiones sin Guido"). El `.claude/paquetes/`
+  sin trackear lo cierra `aplicar` (pega el `gitignore.snippet` nuevo) cuando la flota corra.
 - **Paquete 1 · menor**: una ficha en Latin-1 da "valor inválido" (sin eco) en vez de "guardala en UTF-8". Se arregla si aparece en la flota.
 
 ## NO VERIFICADO, para tachar
@@ -973,6 +1053,7 @@ Del spec, sección "Lo que hacés vos de nuevo". Acá solo cuándo toca, para qu
 | 2026-10-30 | **El revisor frío del paquete: una vuelta, con tope** (primer paso, a mitad de D3.3; lo amplió el ADR-029 el mismo día): se arregla en el paquete solo lo que rompe el día normal o deja pasar una clave sin que nadie lo intente; los ataques rebuscados van a "Lo que esto no cierra" y a Pendientes. D3.3 termina las rondas que ya corrían (RF-C2, RF-D2) y no hace una tercera vuelta | Guido, al ver D3.3 en ~9 h: "hay que corregir ese revisor frío, no hay que hacer tantas vueltas". D2.2 hizo tres vueltas; D3.3, dos vueltas y seis rondas de arreglos, cada una más cara (mutación + 16.470 llamadas del corpus) y rindiendo menos |
 | 2026-10-28 | **Un director Opus por paquete con subagentes** en vez de una sesión por paso: de ~18-21 sesiones a 13 directores; los encargos mecánicos vuelven a Sonnet | ADR-028: propuesta de Guido (un orquestador para todo el spec), acotada a uno por paquete |
 | 2026-11-02 | **El paquete 5 pasa de 2 a 3 directores: D5.3** lleva solo el corrector de afirmaciones (K5, P6.10 segunda mitad), (primero pensado en `clientes`; corregido el mismo día: corre en cualquier PC, el historial que mide es el git de Hermes, que se clona de GitHub) | Su "hecho cuando" es medirlo contra el historial de Hermes antes de instalarlo; D5.2 hizo todo lo demás en ~2 h y no lo intentó sin poder medirlo (el corte que el delta ya preveía, D5-1). No traba a D6.1 |
+| 2026-11-02 | **El paquete 6 pasa a dos directores** (D6.1 la PC y el núcleo del actualizador; D6.2 la flota de punta a punta y el adoptador) | No entraba en ~4 h y ~8 encargos (ADR-029): delta, red team, revisor frío y arreglos ya son 4. El "el chequeo antes que la mezcla" del SPEC-0 marca el corte. Decidido sin Guido en el delta (D6.1) |
 
 ## Lecciones (insumo de la misión 6)
 
