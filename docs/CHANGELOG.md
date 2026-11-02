@@ -2,6 +2,44 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-11-02 — Misión 5, paquete 6, cierre (D6.2): la flota de punta a punta, la fusión de piezas adaptadas y el adoptador
+
+PC `Draco-PC`, chat `vibe-kit M5 · D6.2 · Paquete 6, cierre: la flota de punta a punta y el adoptador`, en Opus, sin Guido, con el
+presupuesto del ADR-029: **~3,1 h de reloj (16:51-19:55), 8 encargos (6 Opus: F1, F2, F3, F4, revisor frío, RF-fix · 2 Sonnet: F0, F5),
+~1,80 M de tokens de subagentes**. Sin tag. **El paquete 6 queda ✅** (el adoptador entró: no hizo falta D6.3). Decisiones sin Guido:
+tracker, "D6.2 · Decisiones sin Guido"; una pregunta nueva arriba de Pendientes.
+
+**Added**
+- `actualizar.cjs flota` (`lib/flota.cjs`): el canónico desde un tag anotado (la versión = `kit/VERSION`), un repo detrás del otro en un clon
+  de su `origin` (el checkout de Guido no se toca), saltear con su porqué, rama `kit/<tag>`, `chequear` antes de mezclar, ROTA rehecha sin
+  `--force`, protegido o sin red → "te espera", la tabla. Mutación 19/19.
+- La fusión de piezas adaptadas (`lib/fusion.cjs`, D6-19 opción C): `git merge-file` a tres vías; con porqué, sola; con conflictos, un
+  `claude -p` en `acceptEdits` con `Read`/`Edit` de `.kit-fusion/**`; sin porqué o si no pasa, `.claude/fusiones/<pieza>.md` con su base y
+  los dos diffs, y una pregunta en el `/inicio` del proyecto. `piezas.<id>.por` en la ficha. Mutación 23/24.
+- El adoptador (`actualizar.cjs adoptar --mirar` / `--aplicar`, `lib/adoptar.cjs`): la ficha de fábrica del nivel, `candado: no` salvo
+  barreras, el molde `v2.*` que más casa como viejo, dos commits (piezas, ficha). Mutación 21/22.
+- ADR-032 (el actualizador es un script; el único agente es el de la fusión; el clon lo juzga el runner del molde nuevo); la nota de 3.0.0
+  en `kit/CHANGELOG.md`; la receta "poné al día mis proyectos" en la guía.
+
+**Changed**
+- `kit-githook.cjs`: `KIT_MOLDE`/`KIT_MOLDE_VIEJO` van a los dos candados solo con `.kit-rol` = `actualizador`; un v2.4.2 sin candado en la
+  ref corre el del molde (mutación 19/21, 2 equivalentes). `flota` pone `core.hooksPath` en una carpeta de hooks del molde nuevo, fuera del clon.
+- `chequear`, línea 7: copia el molde **crudo** (el instanciado rompía 2 casos de `candado.test` en toda actualización sana; la línea tarda
+  ~13,5 min de 30). `cargar-secreto` calcula el `<proyecto>` desde el checkout principal en un worktree. `flota.md` y el Equipador derivan a
+  `flota` y `adoptar`. El `/inicio` del molde ofrece las fusiones en una sola pregunta.
+- Diseño E §6 con la nota de cómo quedó; SPEC-0 P7.1 y P7.2 ✅; el delta del paquete 6 ✅ IMPLEMENTADO.
+
+**Fixed**
+- Los 10 del revisor frío (1 ALTO: la base de una pieza que quedó en "te espera" se perdía; "No" en `/inicio` la dejaba `propia` para
+  siempre; los `-rc`; push sin red rotulado "protegida"; ssh colgado; `todo`; contenido propio tragado por el adoptador; los docs). 476/476.
+- `arquitecto/scripts/lib/ficha.cjs` volvió a ser copia del molde (la suite lo encontró).
+
+**Verificado**
+- Prueba viva (crit. 15 y 9 del kit): `flota alfa beta gama` sobre copias de los remotos y un canónico `bare` con `v3.0.0-rc.1` → `alfa` y
+  `beta` mezclados en un commit, `gama` salteado, ninguna `kit/*` viva; `gama` v2.4.2 puro → 3.0.0 con las nueve ✅ y mezclado (17,6 min).
+- Suite entera: **2.644 de 2.645** (18 min, una vez, al final); la roja era la copia de `ficha.cjs` del Arquitecto, arreglada y re-corrida
+  (39/39). NO VERIFICADO: la fusión con un `claude` real (fila 3 del delta).
+
 ## 2026-11-02 — Misión 5, paquete 6, primera mitad (D6.1): "preparame esta PC", el `doctor` completo y el núcleo del actualizador
 
 PC `Draco-PC`, chat `vibe-kit M5 · D6.1 · Paquete 6: Equipador v3, actualizador, adoptador y doctor completo`, en Opus, sin Guido, con el

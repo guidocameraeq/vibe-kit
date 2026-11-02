@@ -37,6 +37,7 @@
 - ADR-029 · Revisar y probar con presupuesto: contra accidentes, no contra trampas; pruebas proporcionales al riesgo; tope por sesión (2026-10-30)
 - ADR-030 · Las sesiones que deciden sin Guido usan su vara: las cuatro cosas, el filtro pragmático y los 11 criterios; si no alcanza, preguntan (2026-10-30)
 - ADR-031 · El Arquitecto es la puerta única con cinco entradas; la PC y la flota derivan, no ejecutan (2026-10-30)
+- ADR-032 · El actualizador es un script de node; el único agente es el de la fusión con conflictos, y el clon lo juzga el runner del molde nuevo (2026-11-02)
 
 *Cada ADR nuevo suma su línea acá (lo pide `/cierre`).*
 
@@ -693,3 +694,21 @@ repo, y que E §3 lo dejara en un ADR al construir. D4.1 lo construyó (SPEC-paq
   Equipador (la razón de REJ-003 sigue valiendo). El `SKILL.md` queda en 5,6 KB con un anexo por entrada, leído bajo demanda.
 - **Descartado:** *que el Arquitecto haga el setup* (es REJ-003 de nuevo) · *dejar las entradas como hoy* (tres puertas, y Guido tiene que
   saber que existe `/arquitecto-skills`).
+
+## ADR-032 · El actualizador es un script de node; el único agente es el de la fusión con conflictos, y el clon lo juzga el runner del molde nuevo (2026-11-02)
+El SPEC-0 (P7.1, P7.2 y su ⚠️ "corren en bypass") y el diseño E §6 pedían un proceso `claude` por proyecto, en bypass, en un clon
+temporal. Desde D4.2 el clasificador del modo `auto` frena lanzar `claude -p` en bypass (D4.2-2). D6.1 lo resolvió en el delta (D6-1,
+D6-6) y D6.2 lo construyó y lo probó con la flota de prueba (`alfa` y `beta` mezclados, `gama` salteado).
+- **Decisión (D6.1 y D6.2, sin Guido, con la vara del ADR-030; Guido la repasa):** (1) **`actualizar.cjs` es un script de node
+  determinista** (`aplicar`, `chequear`, `flota`, `adoptar`): clon, rama `kit/<tag>`, chequeo de nueve líneas, mezcla, push y tabla;
+  nadie corre en bypass. (2) **El único agente es el de la fusión de una pieza adaptada con conflictos** (`lib/fusion.cjs`): primero
+  `git merge-file` a tres vías sin agente; con conflictos y con porqué, un `claude -p` en `acceptEdits` con `Read` y `Edit` solo de
+  `.kit-fusion/**`, y el script valida lo que vuelve. Sin porqué o si no pasa, la pieza va a "te espera" del proyecto (D6-19, de
+  Guido). (3) **Los githooks corren en el clon y dejan pasar el molde** solo con `.kit-rol` = `actualizador` y `KIT_MOLDE` a una
+  carpeta; el commit y el push del clon los juzga **el runner del molde nuevo**, desde una carpeta fuera del clon (el `.githooks/` del
+  proyecto puede estar adaptado). `[workflow · mejor código · acordarse de menos]`
+- **Por qué:** un script sale igual siempre, no lo frena el clasificador y se prueba con mutación; el criterio solo hace falta en la
+  fusión, y ahí el agente toca una carpeta aparte. Los githooks + `chequear` reemplazan a "los hooks de Claude cargados en el clon".
+- **Descartado:** *un `claude -p` por proyecto en bypass* (lo frena el clasificador; corre sin red de seguridad) · *no poner
+  `core.hooksPath` en el clon y confiar solo en `chequear`* (la alternativa de D6-6: F2 midió que no hacía falta) · *el `.githooks/`
+  del clon* (un proyecto con los githooks adaptados quedaba trabado para siempre: lo midió F2 en `alfa`).

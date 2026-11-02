@@ -1,7 +1,7 @@
 # SPEC delta: paquete 6 — el Equipador v3, el `doctor` completo, el actualizador y el adoptador — vibe-kit
 Una PC nueva queda lista con un pedido y una pregunta; el `doctor` dice qué falta y cómo se arregla, igual en dos corridas; y "poné al
 día la flota" la corre un script de node que no pisa lo propio, chequea todo antes de mezclar y devuelve una tabla. Nadie corre en bypass.
-- Estado: **READY — sellado sin Guido (provisorio)** · **D6.1 implementada 2026-11-02** (la PC, el `doctor` completo, `aplicar` y `chequear`; la flota y el adoptador, D6.2), 2026-11-02, por el director D6.1, después de la ronda única del red team con sus
+- Estado: **✅ IMPLEMENTADO 2026-11-02** (D6.1: la PC, el `doctor` completo, `aplicar` y `chequear`; D6.2: la flota, la fusión `adaptada`, el adoptador; ADR-032) · READY — sellado sin Guido (provisorio), 2026-11-02, por el director D6.1, después de la ronda única del red team con sus
   6 ALTOS integrados. Guido lo repasa al volver; todo se deshace antes del tag
 - Fecha: 2026-11-02 · Misión: 5, director **D6.1**, sin Guido (tracker, "Abrir D6.1 sin Guido"; la vara: ADR-030; el presupuesto: ADR-029)
 - Plano: [`SPEC-0-kit-v3.md`](SPEC-0-kit-v3.md), orden 6 = **P2.2, P2.3 (el `doctor` completo), P2.4, P7.1, P7.2**; criterios del kit 1, 9,

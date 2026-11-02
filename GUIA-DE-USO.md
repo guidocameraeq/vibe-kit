@@ -121,6 +121,13 @@ qué no, sin tocar nada). Con el próximo tag del kit, **"preparame esta PC"** d
 frenos, los ajustes de Claude Code) con **una sola pregunta**, y el doctor revisa además versión, `gh`, copias del kit y frenos vencidos.
 El detalle, en `kit/skills/arquitecto-skills/SKILL.md`.
 
+### 🚚 "Quiero poner al día mis proyectos con el kit nuevo" (kit v3, llega con el tag)
+*"Poné al día la flota"* (o *"poné al día Hub"*): el Arquitecto te pasa al Equipador, que corre el actualizador **en una copia
+temporal de cada repo** (tu carpeta no se toca) y te devuelve una tabla: mezclado, salteado (con su porqué), ROTA o "te espera".
+Lo que vos adaptaste en un proyecto no se pisa: si tiene su porqué se fusiona solo; si no, la próxima vez que abras ese proyecto
+`/inicio` te hace **una** pregunta con el diff. Un repo que todavía no tiene el kit v3: *"adoptá X"* (te muestra la propuesta sin tocar
+nada; con tu OK la aplica). Si la pestaña no te deja pushear, la línea la corrés vos. El detalle: `kit/skills/arquitecto/anexos/flota.md`.
+
 ### 🔧 "Quiero cambiar algo del método / del Arquitecto / del menú"
 Chat nuevo **en la raíz de este repo** → pedilo. La regla la sabe Claude: se edita en `kit/`,
 se sincroniza a `~/.claude/`, y `cierre` deja todo commiteado y pusheado.
@@ -170,6 +177,7 @@ de la anterior en `tips/tanda-2026-10-chats.md` §0; lo ya hallado en `D:\vibe-h
 | `docs-fyd auditar` | Chequeo antes de entregar a FyD: qué quedó viejo, dudas abiertas, secretos — no escribe |
 | `actualizate` | El Equipador baja lo último del repo y se actualiza a sí mismo |
 | `instalar hooks por PC` · `corré el doctor` | El Equipador pone los frenos de la PC (con plan y vuelta atrás) · revisa qué anda |
+| `poné al día la flota` · `adoptá X` | (kit v3) Cada repo al día en una copia temporal, con una tabla · un repo sin kit v3 pasa a tenerlo, con tu OK |
 | *(pegar links en `observatorio/extractor/`)* | Informe de tips con veredictos, listo para procesar |
 
 ## Dónde profundizar

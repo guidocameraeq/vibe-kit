@@ -219,6 +219,16 @@ secretos, y con `allow` para pushear a `kit/*` y a `main` de los repos de la flo
 permiso y despierta a Guido (el obrero trabado 1,5 h de A.4). **No pregunta nada**: es reversible. Y **el `--dry-run`
 no se construye**: la rama ya es la vista previa cuando algo falla, y git es el deshacer.
 
+> **Cómo quedó al construirse (2026-11-02, D6.1 y D6.2, sin Guido; ADR-032).** (a) **No es un agente por proyecto: es un script de
+> node** (`actualizar.cjs flota`), un repo detrás del otro, que nadie corre en bypass (el clasificador de `auto` frena un `claude -p`
+> en bypass, D4.2-2). El único agente es el de la fusión de una pieza `adaptada` **con conflictos**: un `claude -p` en `acceptEdits`
+> con `Read` y `Edit` solo de `.kit-fusion/**`; lo demás de la fusión es `git merge-file` a tres vías. Sin porqué, o si la fusión no
+> pasa el chequeo, **no fusiona y no queda vieja para siempre**: la pieza va a `.claude/fusiones/<pieza>.md` y el `/inicio` del
+> proyecto le hace una pregunta al dueño (D6-19, opción C de Guido). Los "permisos de los agentes de fondo" de arriba quedan para esa
+> fusión: el script no pide `allow` para pushear. (b) **Los githooks corren en el clon** y dejan pasar el molde (`KIT_MOLDE`, solo con
+> `.kit-rol` = `actualizador`); el commit y el push del clon los juzga el runner **del molde nuevo**, desde una carpeta fuera del clon,
+> no el `.githooks/` del proyecto (que puede estar adaptado y no conocer `KIT_MOLDE`). El chequeo mecánico tiene nueve líneas (P7.1).
+
 ## 7. Adoptar un proyecto que ya anda (decisión 4)
 
 Para Portal, el Bot, y cualquier repo que nunca pasó por el Arquitecto.
