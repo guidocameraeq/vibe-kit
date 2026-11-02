@@ -791,12 +791,16 @@ test('el candado de la ref se saca a un temporal FUERA del repo y se borra; el �
   escribir(d, 'b.txt', 'b\n');
   g(d, ['add', 'b.txt']);
   const antes = gt(d, 'status', '--porcelain');
-  const tmps = () => fs.readdirSync(os.tmpdir()).filter((x) => x.startsWith('kit-githook-') && !x.startsWith('kit-githook-test-')).length;
-  const t0 = tmps();
-  const r = kg.principal(['pre-commit'], { cwd: d, env: entorno('verde') });
-  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  // Un temporal propio (TMPDIR/TEMP/TMP del proceso hijo): contar en el os.tmpdir() de la PC daba rojo de más con otro git
+  // commiteando a la vez (sus kit-githook-* entran y salen en el medio). D5.2, W0.
+  const propio = carpeta('tmp-propio');
+  const env = entorno('verde');
+  for (const k of Object.keys(env)) if (/^(tmpdir|temp|tmp)$/i.test(k)) delete env[k];
+  Object.assign(env, { TMPDIR: propio, TEMP: propio, TMP: propio });
+  const r = spawnSync(process.execPath, [path.join(__dirname, 'kit-githook.cjs'), 'pre-commit'], { cwd: d, env, encoding: 'utf8', timeout: 600000 });
+  assert.equal(r.status, 0, `${r.stdout}${r.stderr}`);
   assert.equal(gt(d, 'status', '--porcelain'), antes);
-  assert.equal(tmps(), t0, 'el temporal se borró');
+  assert.deepEqual(fs.readdirSync(propio), [], 'el temporal se borró');
 });
 
 test('gitattributes.snippet: con core.autocrlf=true, los .githooks/ salen con LF (el #!/bin/sh no se rompe); sin la línea, salen con CRLF', () => {
