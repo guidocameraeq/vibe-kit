@@ -8,7 +8,7 @@ día la flota" la corre un script de node que no pisa lo propio, chequea todo an
   10 y 20; los ⚠️ "mezcla a `main` sin preguntar", "corren en bypass", "lo privado va aparte" y `crossSessionInbound`; NO VERIFICADO "bloque
   `autoMode`" y "adaptador local del registro". Del tracker, **"Paquete 6 · de D4.1"**, **"de D2.2 (F4)"**, **"6/7 · de D2.2"** y lo que sirva
   de **"de D5.2 y D5.3"**. Diseño: E §4-§10 · F §14 · G §10, §15 · A §3-§4, §9.
-- Sello del Arquitecto: `arquitecto: 2026-11-02 · kit 2.4.3 · chequeos: tamaño — (paquete del método) · entorno — (sin ficha del kit) · tope ⚠️ (41,7 KB y 21 criterios; no partir: D6.1: partido en dos directores adentro) · hash 2674e101fae2`
+- Sello del Arquitecto: `arquitecto: 2026-11-02 · kit 2.4.3 · chequeos: tamaño — (paquete del método) · entorno — (sin ficha del kit) · tope ⚠️ (42,2 KB y 21 criterios; no partir: D6.1: partido en dos directores adentro) · hash 6dd4e867641c`
 - Red team: **obligatorio** (RF-16: el actualizador escribe `settings` y hooks de diez repos; "preparame esta PC" escribe el `settings.json`
   de la PC), Opus con `redteam-spec`, **una ronda** (ADR-029). Revisor frío Opus al cerrar cada director, una vuelta, hasta 10 hallazgos con
   su escenario del día normal.
@@ -216,6 +216,13 @@ prueba sobre clones en temporales). `kit/VERSION` (el tag `v3.0` es del orden 10
 ningún campo nuevo en la ficha del proyecto). `zona-propia.cjs`, `barreras.cjs` y `estructura.cjs` (se usan, no se cambian; si hace falta
 algo, es un pendiente con su porqué). `pc/lib/` (copia del molde). Los hooks del molde y su `settings.json` (en D6.1; D6.2 solo el runner de
 los githooks, D6-6). `pruebas/rehacer.sh` (en D6.1). `tips/`, `_fuente/`.
+
+## Entorno de prueba
+
+- `preparar-pc` y `doctor`: siempre con `--home` falso (un temporal con `~/.claude` vacío) y `gh`, gitleaks y `claude` falsos en el `PATH`.
+- `aplicar` y `chequear`: moldes chicos sintéticos en las pruebas; la prueba viva, sobre `bash pruebas/rehacer.sh --solo-tag` y un clon de
+  `remotos/<x>.git` en un temporal, con `.kit-rol` = `actualizador` y esa línea en `.git/info/exclude`.
+- **Nunca** el `~/.claude/` real ni `../vibe-kit-pruebas/` a mano (se rehacen con `rehacer.sh`; las pruebas, con el `cwd` fuera de vibe-kit).
 
 ## Criterios de aceptación
 
