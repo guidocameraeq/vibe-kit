@@ -592,7 +592,7 @@ Opus, chat nuevo en vibe-kit.
 
 ## Abrir D5.2 sin Guido (el prompt)
 
-*(Armado en el cierre de D5.1, 2026-10-31.)* En la PC nueva (Guido se mudó de `Usuario` el 2026-11-02), en Opus, chat nuevo en vibe-kit.
+*(Armado en el cierre de D5.1, 2026-10-31.)* En la PC `Usuario`, en Opus, chat nuevo en vibe-kit.
 
 > inicio — misión 5, D5.2: el paquete 5, segunda mitad, sin mí, con el presupuesto del ADR-029.
 >
