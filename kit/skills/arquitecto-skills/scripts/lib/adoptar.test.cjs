@@ -1,0 +1,382 @@
+'use strict';
+// adoptar.test.cjs — el adoptador (SPEC-paquete-6 P7.2, D6-12, criterio 19; crit. 20 del kit: barreras verde con la ficha de fábrica).
+// Sobre repos temporales armados con el molde v2 del tag v2.4.2 de este repo (como rehacer.sh, con los {{…}} completados) y el
+// molde v3 del árbol de trabajo como --kit. Sin la config de git de quien corre. Nunca ~/.claude ni ../vibe-kit-pruebas.
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const crypto = require('crypto');
+const { spawnSync } = require('child_process');
+
+const AD = require('./adoptar.cjs');
+const M = require('./molde.cjs');
+const C = require('./catalogo.cjs');
+const F = require('../../pc/lib/ficha.cjs');
+
+const SCRIPTS = path.resolve(__dirname, '..');
+const RAIZ_KIT = path.resolve(__dirname, '..', '..', '..', '..', '..'); // la raíz de vibe-kit (o del worktree)
+const T = fs.mkdtempSync(path.join(os.tmpdir(), 'kit-adoptar-test-'));
+test.after(() => fs.rmSync(T, { recursive: true, force: true }));
+fs.writeFileSync(path.join(T, 'gitconfig-vacio'), '');
+Object.assign(process.env, {
+  GIT_CONFIG_GLOBAL: path.join(T, 'gitconfig-vacio'), GIT_CONFIG_NOSYSTEM: '1',
+  GIT_AUTHOR_NAME: 'prueba', GIT_AUTHOR_EMAIL: 'p@kit.invalid', GIT_COMMITTER_NAME: 'prueba', GIT_COMMITTER_EMAIL: 'p@kit.invalid',
+});
+
+// Instalado en ~/.claude no hay molde ni tags: estas pruebas son del kit.
+const HAY_KIT = fs.existsSync(path.join(RAIZ_KIT, 'kit', 'molde', 'settings.json'))
+  && spawnSync('git', ['-C', RAIZ_KIT, 'rev-parse', '-q', '--verify', 'refs/tags/v2.4.2^{commit}'], { windowsHide: true }).status === 0;
+const deKit = HAY_KIT ? {} : { skip: 'sin el kit (kit/molde y el tag v2.4.2)' };
+const V2 = HAY_KIT ? M.materializarViejo(RAIZ_KIT, '2.4.2', {}, path.join(T, 'v2')).dir : null;
+const VERSION = fs.existsSync(path.join(RAIZ_KIT, 'kit', 'VERSION')) ? fs.readFileSync(path.join(RAIZ_KIT, 'kit', 'VERSION'), 'utf8').trim() : null;
+const FECHA = '2026-11-02';
+
+let n = 0;
+const nuevaCarpeta = (nombre) => {
+  const d = path.join(T, `${n++}`, nombre);
+  fs.mkdirSync(d, { recursive: true });
+  return d;
+};
+function git(cwd, ...args) {
+  const r = spawnSync('git', args, { cwd, encoding: 'utf8', windowsHide: true });
+  if (r.status !== 0) throw new Error(`git ${args.join(' ')}: ${r.stderr}`);
+  return r.stdout;
+}
+function escribir(dir, mapa) {
+  for (const [rel, t] of Object.entries(mapa)) {
+    const p = path.join(dir, ...rel.split('/'));
+    if (t === null) fs.rmSync(p, { force: true });
+    else {
+      fs.mkdirSync(path.dirname(p), { recursive: true });
+      fs.writeFileSync(p, t);
+    }
+  }
+}
+const leer = (dir, rel) => {
+  const p = path.join(dir, ...rel.split('/'));
+  return fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : null;
+};
+// Una foto byte a byte de todo, .git incluido.
+function foto(dir) {
+  const out = {};
+  (function rec(d, rel) {
+    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+      const q = rel ? `${rel}/${e.name}` : e.name;
+      if (e.isDirectory()) rec(path.join(d, e.name), q);
+      else out[q] = crypto.createHash('sha256').update(fs.readFileSync(path.join(d, e.name))).digest('hex');
+    }
+  })(dir, '');
+  return out;
+}
+
+// Un repo como lo dejaba el molde v2 (2.4.2) armado a mano: cada archivo en su ruta, los {{…}} completados, sin ficha.
+function repoV2(nombre = 'gama', o = {}) {
+  const d = nuevaCarpeta(nombre);
+  for (const rel of C.rutasDeMolde(V2)) {
+    const t = fs.readFileSync(path.join(V2, rel), 'utf8').split('{{PROYECTO}}').join(nombre).replace(/\{\{[^{}]*\}\}/g, 'completado a mano');
+    escribir(d, { [C.rutaEnProyecto(rel)]: t });
+  }
+  escribir(d, o.archivos || {});
+  return commitear(d);
+}
+function repoPelado(nombre, archivos) {
+  const d = nuevaCarpeta(nombre);
+  escribir(d, archivos);
+  return commitear(d);
+}
+function commitear(d) {
+  git(d, 'init', '-q', '-b', 'main');
+  git(d, 'config', 'core.autocrlf', 'false');
+  git(d, 'add', '-A');
+  git(d, 'commit', '-q', '-m', 'molde v2 (2.4.2) instanciado');
+  return d;
+}
+const rol = (d, r = 'actualizador') => {
+  fs.writeFileSync(path.join(d, '.kit-rol'), `${r}\n`);
+  fs.appendFileSync(path.join(d, '.git', 'info', 'exclude'), '.kit-rol\n');
+};
+
+const mirar = (d, o = {}) => AD.mirar(d, { kit: RAIZ_KIT, fecha: FECHA, ...o });
+const propuestaDe = (d, o) => {
+  const p = path.join(nuevaCarpeta('prop'), 'propuesta.md');
+  fs.writeFileSync(p, mirar(d, o).texto);
+  return p;
+};
+const aplicar = (d, propuesta) => AD.main([d, '--kit', RAIZ_KIT, '--aplicar', propuesta, '--fecha', FECHA]);
+const barreras = (d, desde) => spawnSync(process.execPath, [path.join(d, '.claude', 'scripts', 'estructura.cjs'), 'barreras', '--rango', `${desde}..HEAD`, '--sin-log'], { cwd: d, encoding: 'utf8' });
+// Los commits que dice la línea final de --aplicar, tal cual.
+function commitsDeLaLinea(d, lineas) {
+  const cmds = lineas.filter((l) => /^ {2}git add /.test(l));
+  for (const c of cmds) {
+    const r = spawnSync(c.trim(), { cwd: d, shell: true, encoding: 'utf8' });
+    assert.equal(r.status, 0, `${c}: ${r.stdout}${r.stderr}`);
+  }
+  return cmds.length;
+}
+const piezas = (texto) => Object.fromEntries(Object.entries(F.leer(texto).datos.piezas).map(([k, v]) => [k, typeof v === 'string' ? v : v.estado]));
+const fabrica = (nivel) => F.leer(fs.readFileSync(path.join(RAIZ_KIT, 'kit', 'molde', 'hooks', 'lib', 'fabrica', `ficha.${nivel}.md`), 'utf8')).datos;
+const deFabrica = (datos, nivel) => ['frenos', 'sensible', 'autorizado'].every((k) => JSON.stringify(datos[k]) === JSON.stringify(fabrica(nivel)[k]));
+const BASE = ['settings', 'hook-arranque', 'hook-escritura', 'hook-git-seguro', 'hook-sensible', 'cambios-metodo', 'hooks-lib', 'scripts', 'inicio', 'cierre', 'githooks', 'docs'];
+const OPCIONALES = ['estado', 'director-obrero', 'smoke', 'release', 'docs-fyd'];
+
+// ---------------------------------------------------------------- mirar
+
+test('--mirar sobre un v2.4.2 sin ficha: el árbol y el .git quedan byte a byte; la propuesta es una ficha de fábrica con lo base en molde', deKit, () => {
+  const d = repoV2('gama');
+  const antes = foto(d);
+  const r = mirar(d);
+  assert.deepEqual(foto(d), antes, 'mirar no cambió nada');
+  const f = F.leer(r.texto).datos; // la propuesta entera se lee como ficha (lo que vio va en comentarios)
+  assert.equal(f.kit, VERSION);
+  assert.equal(f.nivel, 'liviano', 'sin código → liviano');
+  assert.equal(f.vars.proyecto, 'gama');
+  assert.ok(deFabrica(f, 'liviano'));
+  const p = piezas(r.texto);
+  for (const id of BASE) assert.equal(p[id], 'molde', id);
+  assert.equal(p.candado, 'no');
+  for (const id of OPCIONALES) assert.equal(p[id], 'no', id);
+  assert.ok(!('claude-md' in p) && !('snippets' in p) && !('ficha-ejemplo' in p));
+  assert.match(r.texto, /^# {3}inicio · molde · \.claude\/skills\/inicio\/SKILL\.md: el molde v2 sin editar/m);
+  assert.match(r.texto, /^# v2: \.claude\/hooks\/check-code\.js — el del molde v2 sin editar: se retira/m);
+  assert.match(r.texto, /^# CLAUDE\.md: hay — no se toca/m);
+  assert.match(r.texto, /^# docs-fyd: se ofrece/m);
+  assert.match(r.texto, /^# nivel: liviano \(inferido: no hay código/m);
+  assert.match(r.texto, /^# reglas propias candidatas: ninguna$/m);
+  // por la CLI: imprime lo mismo; con --propuesta, la escribe afuera; adentro de la carpeta, se niega
+  const fuera = path.join(nuevaCarpeta('afuera'), 'p.md');
+  const cli = spawnSync(process.execPath, [path.join(SCRIPTS, 'actualizar.cjs'), 'adoptar', d, '--kit', RAIZ_KIT, '--mirar', '--fecha', FECHA, '--propuesta', fuera], { cwd: T, encoding: 'utf8' });
+  assert.equal(cli.status, 0, cli.stdout + cli.stderr);
+  assert.equal(fs.readFileSync(fuera, 'utf8'), r.texto);
+  assert.ok(cli.stdout.startsWith(r.texto));
+  assert.deepEqual(foto(d), antes);
+  const adentro = spawnSync(process.execPath, [path.join(SCRIPTS, 'actualizar.cjs'), 'adoptar', d, '--kit', RAIZ_KIT, '--mirar', '--propuesta', path.join(d, 'p.md')], { cwd: T, encoding: 'utf8' });
+  assert.equal(adentro.status, 1);
+  assert.match(adentro.stdout, /^adoptar: --propuesta .* cae adentro/);
+  assert.deepEqual(foto(d), antes);
+});
+
+test('--mirar: con código → estandar y las vars de package.json; --nivel manda', deKit, () => {
+  const d = repoV2('app', { archivos: { 'package.json': '{"scripts": {"test": "node --test"}}\n', 'package-lock.json': '{}\n', 'src/suma.js': 'module.exports = 1;\n' } });
+  const r = mirar(d);
+  const f = F.leer(r.texto).datos;
+  assert.equal(f.nivel, 'estandar');
+  assert.deepEqual(f.vars, { proyecto: 'app', 'comando-test': 'npm test', 'comando-setup': 'npm ci' });
+  assert.ok(deFabrica(f, 'estandar'));
+  assert.match(r.texto, /inferido: hay código \(package\.json, src\/suma\.js\)/);
+  const l = F.leer(mirar(d, { nivel: 'liviano' }).texto).datos;
+  assert.equal(l.nivel, 'liviano');
+  assert.ok(deFabrica(l, 'liviano'));
+});
+
+test('criterio 19, caso de falla: un repo sin ficha ni CLAUDE.md recibe la propuesta igual, con todo en no', deKit, () => {
+  const d = repoPelado('suelto', { 'notas.txt': 'nada del kit\n' });
+  const r = mirar(d);
+  const p = piezas(r.texto);
+  assert.ok(Object.keys(p).length >= BASE.length + OPCIONALES.length + 1);
+  for (const [id, e] of Object.entries(p)) assert.equal(e, 'no', id);
+  assert.match(r.texto, /sin ficha ni CLAUDE\.md: todo en no/);
+  assert.ok(deFabrica(F.leer(r.texto).datos, 'liviano'));
+});
+
+test('--mirar: copias del kit adentro, reglas propias, AGENTS.md y el registro de cambios van al comentario; una ruta ocupada y distinta → propia', deKit, () => {
+  const d = repoV2('hermes', {
+    archivos: {
+      '.claude/skills/arquitecto/SKILL.md': '# una copia vieja del Arquitecto\n',
+      '.claude/hooks/mio.sh': 'echo mio\n',
+      'AGENTS.md': '# agentes de hermes\n',
+      'docs/cambios-de-metodo.md': '# registro\n',
+      '.claude/skills/cierre/SKILL.md': '# el cierre de hermes, reescrito\n',
+      '.claude/scripts/todo.cjs': '// un todo.cjs propio\n',
+    },
+  });
+  const s = JSON.parse(leer(d, '.claude/settings.json'));
+  s.permissions.deny = ['Bash(rm -rf:*)'];
+  s.permissions.ask = ['Bash(git push --force:*)'];
+  s.hooks.PreToolUse = [{ matcher: 'Bash', hooks: [{ type: 'command', command: 'bash .claude/hooks/mio.sh' }] }];
+  escribir(d, { '.claude/settings.json': `${JSON.stringify(s, null, 2)}\n` });
+  git(d, 'commit', '-qam', 'lo propio');
+  const r = mirar(d);
+  const p = piezas(r.texto);
+  assert.equal(p.cierre, 'propia');
+  assert.equal(p.scripts, 'propia');
+  assert.equal(p.inicio, 'molde');
+  assert.match(r.texto, /^# {3}cierre · propia · \.claude\/skills\/cierre\/SKILL\.md ya está y es distinto del molde: no se pisa$/m);
+  assert.match(r.texto, /^# copias del kit adentro: \.claude\/skills\/arquitecto — /m);
+  assert.match(r.texto, /^# AGENTS\.md: hay — aviso/m);
+  assert.match(r.texto, /^# registro de cambios de método: docs\/cambios-de-metodo\.md → migración: P6\.8b, orden 7, queda en te espera$/m);
+  assert.match(r.texto, /^# {3}deny Bash\(rm -rf:\*\)$/m);
+  assert.match(r.texto, /^# {3}ask Bash\(git push --force:\*\)$/m);
+  assert.match(r.texto, /^# {3}hook PreToolUse Bash: bash \.claude\/hooks\/mio\.sh$/m);
+  assert.match(r.texto, /^# {3}archivo \.claude\/hooks\/mio\.sh$/m);
+  assert.ok(!/archivo \.claude\/hooks\/(session-start\.sh|check-code\.js)/.test(r.texto), 'el v2 sin editar no es una regla propia');
+});
+
+// ---------------------------------------------------------------- aplicar
+
+test('--aplicar: la ficha de fábrica, /inicio, /cierre, el hook con tope, las barreras y los docs; candado no; los dos commits → barreras verde (exención b)', { ...deKit, timeout: 180000 }, async () => {
+  const d = repoV2('gama');
+  const prop = propuestaDe(d);
+  rol(d);
+  const antes = git(d, 'rev-parse', 'HEAD').trim();
+  const claude = leer(d, 'CLAUDE.md');
+  const r = await aplicar(d, prop);
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  const ficha = leer(d, '.claude/kit.md');
+  const f = F.leer(ficha).datos;
+  assert.ok(!ficha.includes(AD.MARCA_INI) && !/lo que vio el adoptador/.test(ficha), 'lo que vio no queda en la ficha');
+  assert.ok(deFabrica(f, 'liviano'));
+  assert.equal(f.piezas.candado, 'no');
+  for (const id of OPCIONALES) assert.equal(f.piezas[id], 'no', id);
+  for (const id of BASE) assert.match(String(f.piezas[id].estado || f.piezas[id]), /^molde/, id);
+  const mN = M.materializarNuevo(RAIZ_KIT, { vars: { proyecto: 'gama' }, fecha: FECHA });
+  try {
+    for (const [rel, enProy] of [['skills/inicio/SKILL.md', '.claude/skills/inicio/SKILL.md'], ['skills/cierre/SKILL.md', '.claude/skills/cierre/SKILL.md'], ['hooks/session-start.cjs', '.claude/hooks/session-start.cjs'], ['hooks/lib/topes.cjs', '.claude/hooks/lib/topes.cjs'], ['hooks/lib/barreras.cjs', '.claude/hooks/lib/barreras.cjs'], ['scripts/estructura.cjs', '.claude/scripts/estructura.cjs'], ['githooks/pre-commit', '.githooks/pre-commit'], ['hooks/lib/fabrica/ficha.liviano.md', '.claude/hooks/lib/fabrica/ficha.liviano.md'], ['docs/NORTE.md', 'docs/NORTE.md'], ['docs/MAPA.md', 'docs/MAPA.md']]) {
+      assert.equal(leer(d, enProy), fs.readFileSync(path.join(mN.dir, ...rel.split('/')), 'utf8'), enProy);
+    }
+  } finally {
+    M.borrar(mN.dir);
+  }
+  assert.equal(leer(d, '.claude/hooks/session-start.sh'), null, 'el arranque v2 sin editar se retira');
+  assert.equal(leer(d, '.claude/hooks/check-code.js'), null);
+  assert.equal(leer(d, '.claude/skills/smoke/SKILL.md'), null, 'smoke no viene');
+  assert.equal(leer(d, '.claude/skills/director/SKILL.md'), null, 'director no viene');
+  assert.equal(leer(d, 'CLAUDE.md'), claude, 'el CLAUDE.md que hay no se toca');
+  const s = leer(d, '.claude/settings.json');
+  assert.ok(s.includes('session-start.cjs') && !s.includes('session-start.sh') && !s.includes('check-code.js'), 'la mezcla enchufa el v3 y retira lo del v2');
+  assert.match(leer(d, 'docs/CHANGELOG.md'), new RegExp(`^kit ${VERSION.replace(/\./g, '\\.')}: adopción — piezas `, 'm'));
+  assert.match(r.lineas.join('\n'), /^ficha · \.claude\/kit\.md · kit .*frenos, sensible y autorizado de fábrica$/m);
+  assert.match(r.lineas.join('\n'), /^después: node \.claude\/scripts\/estructura\.cjs barreras --rango [0-9a-f]{40}\.\.HEAD → verde/m);
+  assert.equal(git(d, 'rev-parse', 'HEAD').trim(), antes, 'no commitea');
+  assert.equal(commitsDeLaLinea(d, r.lineas), 2);
+  assert.equal(git(d, 'status', '--porcelain'), '', 'los dos commits se llevan todo');
+  assert.deepEqual(git(d, 'show', '--name-only', '--format=', 'HEAD').trim().split('\n'), ['.claude/kit.md'], 'la ficha va sola, después');
+  for (const h of ['pre-commit', 'pre-merge-commit', 'pre-push']) assert.match(git(d, 'ls-files', '-s', `.githooks/${h}`), /^100755 /, `${h} con +x`);
+  const b = barreras(d, antes);
+  assert.equal(b.status, 0, b.stdout + b.stderr);
+  // y una corrida más: ya tiene ficha → 1
+  const otra = await aplicar(d, prop);
+  assert.equal(otra.codigo, 1);
+  assert.match(otra.lineas[0], /ya tiene ficha .* eso es actualizarlo: flota/);
+});
+
+test('--aplicar con frenos, sensible o autorizado distintos de fábrica: lo dice, y el commit de la ficha da rojo en barreras', { ...deKit, timeout: 180000 }, async () => {
+  const d = repoV2('beta');
+  const prop = propuestaDe(d);
+  fs.writeFileSync(prop, fs.readFileSync(prop, 'utf8').replace('  plata: no', '  plata: [la caja]'));
+  rol(d);
+  const antes = git(d, 'rev-parse', 'HEAD').trim();
+  const r = await aplicar(d, prop);
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  const t = r.lineas.join('\n');
+  assert.match(t, /^ficha · .* sensible distinto de fábrica$/m);
+  assert.match(t, /da ROJO en el commit de la ficha \(sensible no es de fábrica\): eso lo aprueba Guido después/);
+  commitsDeLaLinea(d, r.lineas);
+  const b = barreras(d, antes);
+  assert.equal(b.status, 1, b.stdout + b.stderr);
+  assert.match(b.stdout + b.stderr, /sensible/);
+});
+
+test('--aplicar: una pieza propia (la ruta ocupada y distinta) no se toca; el resto viene', { ...deKit, timeout: 180000 }, async () => {
+  const propio = '# el cierre de delta, reescrito\n';
+  const d = repoV2('delta', { archivos: { '.claude/skills/cierre/SKILL.md': propio } });
+  const prop = propuestaDe(d);
+  assert.equal(piezas(fs.readFileSync(prop, 'utf8')).cierre, 'propia');
+  rol(d);
+  const r = await aplicar(d, prop);
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  assert.equal(leer(d, '.claude/skills/cierre/SKILL.md'), propio);
+  assert.match(r.lineas.join('\n'), /^cierre · propia · propia: no se toca$/m);
+  assert.equal(F.leer(leer(d, '.claude/kit.md')).datos.piezas.cierre, 'propia');
+  assert.ok(leer(d, '.claude/hooks/session-start.cjs'));
+});
+
+test('sin CLAUDE.md: la propuesta con todo en no escribe solo la ficha; con lo base prendido por la sesión, nace el CLAUDE.md del molde', { ...deKit, timeout: 180000 }, async () => {
+  const sinGit = (f) => Object.fromEntries(Object.entries(f).filter(([k]) => !k.startsWith('.git/')));
+  const d = repoPelado('suelto', { 'notas.txt': 'nada del kit\n' });
+  const prop = propuestaDe(d);
+  rol(d);
+  const antes = sinGit(foto(d));
+  const r = await aplicar(d, prop);
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  const despues = sinGit(foto(d));
+  assert.deepEqual(Object.keys(despues).filter((k) => despues[k] !== antes[k]), ['.claude/kit.md'], 'solo la ficha');
+  for (const [id, e] of Object.entries(F.leer(leer(d, '.claude/kit.md')).datos.piezas)) assert.equal(e, 'no', id);
+  assert.match(r.lineas.join('\n'), /^va un commit, solo la ficha/m);
+  // la sesión prende lo base: viene todo, y el CLAUDE.md nace del molde
+  const s = repoPelado('suelto2', { 'notas.txt': 'nada del kit\n' });
+  const p2 = propuestaDe(s);
+  let t = fs.readFileSync(p2, 'utf8');
+  for (const id of BASE) t = t.replace(`\n  ${id}: no\n`, `\n  ${id}: molde\n`);
+  fs.writeFileSync(p2, t);
+  rol(s);
+  const r2 = await aplicar(s, p2);
+  assert.equal(r2.codigo, 0, r2.lineas.join('\n'));
+  const mN = M.materializarNuevo(RAIZ_KIT, { vars: { proyecto: 'suelto2' }, fecha: FECHA });
+  try {
+    assert.equal(leer(s, 'CLAUDE.md'), fs.readFileSync(path.join(mN.dir, 'CLAUDE.md'), 'utf8'));
+  } finally {
+    M.borrar(mN.dir);
+  }
+  assert.ok(leer(s, '.claude/hooks/session-start.cjs') && leer(s, '.claude/scripts/estructura.cjs'));
+  assert.equal(F.leer(leer(s, '.claude/kit.md')).datos.piezas.candado, 'no');
+  assert.match(r2.lineas.join('\n'), /^CLAUDE\.md · nace del molde$/m);
+});
+
+test('--aplicar se niega (1) sin escribir: ya con ficha, sucia, sin .kit-rol actualizador, la propuesta rota o de otro kit', deKit, () => {
+  const d = repoV2('epsilon');
+  const prop = propuestaDe(d);
+  const quieto = (carpeta, args, re) => {
+    const antes = foto(carpeta);
+    return AD.main(args).then((r) => {
+      assert.equal(r.codigo, 1, r.lineas.join('\n'));
+      assert.match(r.lineas[0], re);
+      assert.deepEqual(foto(carpeta), antes, 'no escribió nada');
+    });
+  };
+  const args = (p) => [d, '--kit', RAIZ_KIT, '--aplicar', p];
+  return (async () => {
+    await quieto(d, args(prop), /\.kit-rol no dice "actualizador"/);
+    rol(d, 'nocturno');
+    await quieto(d, args(prop), /\.kit-rol no dice "actualizador"/);
+    rol(d);
+    escribir(d, { 'suelto.txt': 'sin commitear\n' });
+    await quieto(d, args(prop), /no está limpia \(suelto\.txt\)/);
+    escribir(d, { 'suelto.txt': null });
+    const rota = path.join(path.dirname(prop), 'rota.md');
+    fs.writeFileSync(rota, fs.readFileSync(prop, 'utf8').replace('\nnivel: liviano\n', '\nnivel: mediano\n'));
+    await quieto(d, args(rota), /^adoptar: la propuesta no se lee \(.*nivel/);
+    const otra = path.join(path.dirname(prop), 'otra.md');
+    fs.writeFileSync(otra, fs.readFileSync(prop, 'utf8').replace(`kit: ${VERSION}`, 'kit: 9.9.9'));
+    await quieto(d, args(otra), /es del kit 9\.9\.9/);
+    await quieto(d, args(path.join(path.dirname(prop), 'no-esta.md')), /no leo la propuesta/);
+    const conFicha = repoV2('zeta', { archivos: { '.claude/kit.md': '---\nkit: 2.4.2\nnivel: liviano\nvars:\n  proyecto: zeta\n---\n' } });
+    rol(conFicha);
+    await quieto(conFicha, [conFicha, '--kit', RAIZ_KIT, '--aplicar', prop], /ya tiene ficha .* flota/);
+    await quieto(conFicha, [conFicha, '--kit', RAIZ_KIT, '--mirar'], /ya tiene ficha/);
+  })();
+});
+
+test('la CLI: adoptar mal llamado → 2 con el USO (que nombra adoptar)', () => {
+  for (const args of [['adoptar'], ['adoptar', 'x'], ['adoptar', 'x', '--kit', 'k'], ['adoptar', 'x', '--kit', 'k', '--mirar', '--aplicar', 'p'], ['adoptar', 'x', '--kit', 'k', '--mirar', '--nivel', 'mediano'], ['adoptar', 'x', '--kit', 'k', '--aplicar', 'p', '--nivel', 'liviano'], ['adoptar', 'x', '--kit', 'k', '--aplicar', 'p', '--propuesta', 'q'], ['adoptar', 'x', '--kit', 'k', '--mirar', '--raro'], ['adoptar', 'x', '--kit', 'k', '--aplicar']]) {
+    const r = spawnSync(process.execPath, [path.join(SCRIPTS, 'actualizar.cjs'), ...args], { cwd: T, encoding: 'utf8' });
+    assert.equal(r.status, 2, args.join(' '));
+    assert.match(r.stderr, /^uso: node actualizar\.cjs aplicar/);
+    assert.match(r.stderr, /node actualizar\.cjs adoptar <carpeta> --kit <raíz del kit> --mirar/);
+  }
+});
+
+test('casaPlantilla: los {{…}} son comodines y nada más cambia', () => {
+  assert.ok(AD.casaPlantilla('a {{X}} b {{Y}} c\n', 'a uno b dos c\n'));
+  assert.ok(AD.casaPlantilla('a {{X}} b\n', 'a  b\n'), 'completado con nada');
+  assert.ok(AD.casaPlantilla('a {{X}} b\n', 'a b b b\r\n'), 'CRLF y el comodín que se come un pedazo igual al fijo');
+  assert.ok(!AD.casaPlantilla('a {{X}} b\n', 'a uno b\nuna línea más\n'));
+  assert.ok(!AD.casaPlantilla('a {{X}} b {{Y}} c\n', 'a uno c\n'));
+  assert.ok(!AD.casaPlantilla('ab{{X}}ba', 'aba'), 'el prefijo y el sufijo no se pisan');
+  assert.ok(AD.casaPlantilla('sin marcas\n', 'sin marcas\n') && !AD.casaPlantilla('sin marcas\n', 'con marcas\n'));
+});
+
+test('sin bypass: el adoptador no nombra bypassPermissions', () => {
+  assert.ok(!fs.readFileSync(path.join(__dirname, 'adoptar.cjs'), 'utf8').includes('bypassPermissions'));
+});

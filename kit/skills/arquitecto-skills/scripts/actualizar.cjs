@@ -3,13 +3,16 @@
 // actualizar.cjs — el actualizador del kit, el núcleo (SPEC-paquete-6 P7.1, D6.1; E §4-§6; D6-1, D6-5, D6-7, D6-15; r1-2..r1-5).
 // Un script de node determinista: nadie lo corre en bypass. El único agente es el de la fusión de una pieza adaptada con
 // conflictos (lib/fusion.cjs, D6-19: un `claude -p` en acceptEdits con herramientas estrechas, en el clon). La flota (clon, rama,
-// mezcla, push; D6.2) vive en lib/flota.cjs: acá solo se despacha (`flota` → su main; uso → este USO).
+// mezcla, push; D6.2) vive en lib/flota.cjs y el adoptador (P7.2, D6-12) en lib/adoptar.cjs: acá solo se despacha
+// (`flota`/`adoptar` → su main; uso → este USO).
 const USO = [
   'uso: node actualizar.cjs aplicar  <carpeta> --kit <raíz del kit> [--molde-viejo <dir>] [--plan] [--fecha <AAAA-MM-DD>]',
   '                                   [--claude <exe> | --claude no]',
   '     node actualizar.cjs chequear <carpeta> --kit <raíz del kit> --base <sha> [--molde-viejo <dir>] [--plazo <min>]',
   '     node actualizar.cjs flota <repo>… | todo --canon <url o dir del canónico> [--tag <vX.Y.Z[-rc.N]>] [--proyectos <carpeta>]',
   '                               [--plazo <min>] [--fecha <AAAA-MM-DD>] [--molde-viejo <dir>] [--claude <exe> | --claude no]',
+  '     node actualizar.cjs adoptar <carpeta> --kit <raíz del kit> --mirar [--nivel liviano|estandar] [--propuesta <archivo>]',
+  '     node actualizar.cjs adoptar <carpeta> --kit <raíz del kit> --aplicar <archivo de propuesta> [--fecha <AAAA-MM-DD>]',
   '  aplicar   pone al día <carpeta> pieza por pieza según su ficha (.claude/kit.md), contra el molde del --kit. Escribe solo en',
   '            <carpeta>; no commitea, no pushea, no pone core.hooksPath (eso es de flota). Se niega (1) si <carpeta> no es un repo',
   '            con ficha que se lee, si no está limpia (salvo .kit-rol) o si .kit-rol no dice actualizador.',
@@ -19,6 +22,11 @@ const USO = [
   '            vivas, kit/v<versión> ya subida (salvo ROTA: se rehace) o la ficha al día; rama kit/v<versión>, aplicar, commit,',
   '            chequear; verde → un commit a la rama por defecto; rojo → kit/v<versión> ROTA; protegida → kit/v<versión> te espera.',
   '            Al final, la tabla y "te espera:". Lo hace lib/flota.cjs.',
+  '  adoptar   un proyecto sin ficha pasa al kit (P7.2; lo hace lib/adoptar.cjs). --mirar no cambia nada: imprime la propuesta (una',
+  '            ficha con lo que vio arriba, en comentarios) y con --propuesta la escribe ahí, fuera de <carpeta>. --aplicar escribe la',
+  '            ficha y trae las piezas en molde; se niega (1) como aplicar (sucia salvo .kit-rol, .kit-rol ≠ actualizador) o si ya',
+  '            tiene ficha. No commitea: la última línea dice los dos commits que van.',
+  '  --nivel        el nivel de la propuesta (sin él: con código → estandar, sin código → liviano).',
   '  --canon        el repo canónico del kit (URL o carpeta): se clona con sus tags.',
   '  --tag          el tag anotado a repartir (sin él, el último v* anotado); su versión sin -rc.N = kit/VERSION, o 1.',
   '  --proyectos    la carpeta de proyectos (para nombrar un repo por su carpeta, y para todo).',
@@ -87,13 +95,15 @@ const mismaRuta = (a, b) => {
 
 // ---------------------------------------------------------------- (1) la negativa
 
-function revisarCarpeta(carpeta) {
+// fichaDada: la ficha que propone el adoptador (lib/adoptar.cjs), que todavía no está en el disco (y no tiene que estar).
+function revisarCarpeta(carpeta, fichaDada) {
   if (!fs.existsSync(carpeta) || !fs.statSync(carpeta).isDirectory()) throw new Negativa(`${carpeta} no es una carpeta`);
   const top = gitEn(carpeta, ['rev-parse', '--show-toplevel']);
   if (!top.ok || !mismaRuta(top.out.trim(), carpeta)) throw new Negativa(`${carpeta} no es la raíz de un repo git — no toco nada`);
   const rf = path.join(carpeta, ...RUTA_FICHA.split('/'));
-  if (!fs.existsSync(rf)) throw new Negativa(`${carpeta} no tiene ficha (${RUTA_FICHA}) — eso es del adoptador, no del actualizador`);
-  const textoFicha = fs.readFileSync(rf, 'utf8');
+  if (fichaDada !== undefined && fs.existsSync(rf)) throw new Negativa(`${carpeta} ya tiene ficha — eso es actualizarlo: flota`);
+  if (fichaDada === undefined && !fs.existsSync(rf)) throw new Negativa(`${carpeta} no tiene ficha (${RUTA_FICHA}) — eso es del adoptador, no del actualizador`);
+  const textoFicha = fichaDada !== undefined ? fichaDada : fs.readFileSync(rf, 'utf8');
   let ficha;
   try {
     ficha = F.leer(textoFicha);
@@ -233,10 +243,11 @@ function hoy() {
   return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
 }
 
-// planear(carpeta, {kit, moldeViejo, fecha}) → { lineas, ops: Map(ruta → texto | null), ... }. No escribe en <carpeta>.
-// Materializa los moldes en un temporal: quien llama lo borra (M.borrar(plan.tmp)).
+// planear(carpeta, {kit, moldeViejo, fecha, ficha}) → { lineas, ops: Map(ruta → texto | null), ... }. No escribe en <carpeta>.
+// Materializa los moldes en un temporal: quien llama lo borra (M.borrar(plan.tmp)). ficha: el texto de la ficha que propone el
+// adoptador (todavía no está en el disco); sin ella, la de <carpeta>.
 function planear(carpeta, opciones) {
-  const { textoFicha, ficha } = revisarCarpeta(carpeta);
+  const { textoFicha, ficha } = revisarCarpeta(carpeta, opciones.ficha);
   const datos = ficha.datos;
   const vNuevo = versionDelKit(opciones.kit);
   const vViejo = datos.kit;
@@ -693,8 +704,8 @@ function leerArgs(argv) {
 }
 
 async function main(argv) {
-  if (argv[0] === 'flota') {
-    const r = await require('./lib/flota.cjs').main(argv.slice(1));
+  if (argv[0] === 'flota' || argv[0] === 'adoptar') {
+    const r = await require(argv[0] === 'flota' ? './lib/flota.cjs' : './lib/adoptar.cjs').main(argv.slice(1));
     return r ? { codigo: r.codigo, lineas: r.lineas } : { codigo: 2, lineas: [USO] };
   }
   const o = leerArgs(argv);
@@ -705,6 +716,9 @@ async function main(argv) {
   if (o.sub === 'aplicar') return aplicar(o.carpeta, { kit, moldeViejo, plan: o.plan, fecha: o.fecha, claude });
   return chequear(o.carpeta, { kit, moldeViejo, base: o.base, fecha: o.fecha, plazoMs: Math.round(Number(o.plazo || 30) * 60000) });
 }
+
+// Antes de correr: lib/adoptar.cjs (que se carga desde main) lee estos exports.
+module.exports = { aplicar, planear, chequear, main, reescribirFicha, ejecutar, versionDelKit, Negativa, USO };
 
 if (require.main === module) {
   main(process.argv.slice(2))
@@ -720,5 +734,3 @@ if (require.main === module) {
       process.exitCode = 1;
     });
 }
-
-module.exports = { aplicar, planear, chequear, main, reescribirFicha, ejecutar, Negativa, USO };
