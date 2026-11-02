@@ -409,6 +409,18 @@ pedida por Guido por el corte de internet, y 2026-10-31 desde las 13:25). **Las 
   líneas aunque falte algo (la que no se puede mirar, NO VERIFICADO). E3 · el setup del temporal corre después del merge; un módulo ya integrado sale 0 "nada
   que integrar"; el test corre adentro de un vigía que mata el árbol (`hooks/lib/proceso.cjs`, compartido).
 
+### D5.2 · Decisiones sin Guido
+
+D5.2 corrió sin Guido, con su autorización previa (su prompt, abajo) y la vara del ADR-030, el 2026-11-02 en `Draco-PC` desde las 10:15.
+**Las ⚠️ arriba**; todas se deshacen antes del tag.
+
+- ⚠️ **K5 (el corrector de afirmaciones) pasa a D5.3 de entrada**, sin intentarlo: su "hecho cuando" es *medido contra el historial de Hermes antes
+  de instalar*, y ese historial vive en la PC `clientes`. Construirlo acá sin medir es un corrector que nadie calibró. `[mejor código]`
+- **W0 junta los pendientes 1-3 de "Paquete 5 · para D5.2"** (las `deny` con `Write`, la negativa de `cerrar` con lo sin trackear, el temporal
+  de la prueba del githook): son chicos y tocan los mismos alrededores; un encargo en vez de tres. `[workflow]`
+- **`contexto` es un script nuevo** (`scripts/contexto.cjs`), distinto de `hooks/lib/contexto.cjs` (el rol): la salida tiene un contrato fijo de
+  una línea que leen `/estado` y `/director`, fijado por el director antes de repartir para que K1 y K2 corran en paralelo. `[consistencia]`
+
 ## Abrir D3.1 sin Guido (el prompt)
 
 Guido abre un chat nuevo en vibe-kit, en Opus, pega esto y se va. Es el de D2.2 con lo que cambia para el paquete 3:
