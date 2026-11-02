@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 'use strict';
 // actualizar.cjs — el actualizador del kit, el núcleo (SPEC-paquete-6 P7.1, D6.1; E §4-§6; D6-1, D6-5, D6-7, D6-15; r1-2..r1-5).
-// Un script de node determinista: nadie lo corre en bypass y no lanza agentes. La flota (clon, rama, mezcla, push; D6.2)
-// vive en lib/flota.cjs: acá solo se despacha (`flota` → su main; uso → este USO).
+// Un script de node determinista: nadie lo corre en bypass. El único agente es el de la fusión de una pieza adaptada con
+// conflictos (lib/fusion.cjs, D6-19: un `claude -p` en acceptEdits con herramientas estrechas, en el clon). La flota (clon, rama,
+// mezcla, push; D6.2) vive en lib/flota.cjs: acá solo se despacha (`flota` → su main; uso → este USO).
 const USO = [
   'uso: node actualizar.cjs aplicar  <carpeta> --kit <raíz del kit> [--molde-viejo <dir>] [--plan] [--fecha <AAAA-MM-DD>]',
+  '                                   [--claude <exe> | --claude no]',
   '     node actualizar.cjs chequear <carpeta> --kit <raíz del kit> --base <sha> [--molde-viejo <dir>] [--plazo <min>]',
   '     node actualizar.cjs flota <repo>… | todo --canon <url o dir del canónico> [--tag <vX.Y.Z[-rc.N]>] [--proyectos <carpeta>]',
-  '                               [--plazo <min>] [--fecha <AAAA-MM-DD>] [--molde-viejo <dir>]',
+  '                               [--plazo <min>] [--fecha <AAAA-MM-DD>] [--molde-viejo <dir>] [--claude <exe> | --claude no]',
   '  aplicar   pone al día <carpeta> pieza por pieza según su ficha (.claude/kit.md), contra el molde del --kit. Escribe solo en',
   '            <carpeta>; no commitea, no pushea, no pone core.hooksPath (eso es de flota). Se niega (1) si <carpeta> no es un repo',
   '            con ficha que se lee, si no está limpia (salvo .kit-rol) o si .kit-rol no dice actualizador.',
@@ -23,7 +25,9 @@ const USO = [
   '  --kit          la raíz de un clon del kit: el molde nuevo es su kit/molde/ y la versión nueva su kit/VERSION.',
   '  --molde-viejo  el molde del que viene el proyecto (sin él: git archive v<kit de la ficha> del --kit; con la misma',
   '                 versión, el mismo molde nuevo). Acepta la raíz de un kit, kit/molde/ o templates/universales/.',
-  '  --plan         lo mismo, sin escribir nada.',
+  '  --plan         lo mismo, sin escribir nada (y sin lanzar claude).',
+  '  --claude       el claude de la fusión de una adaptada con conflictos (sin la bandera: claude del PATH, si está; no = sin él:',
+  '                 esas piezas van a "te espera" del proyecto, .claude/fusiones/<pieza>.md).',
   '  --fecha        la fecha de los docs que nacen ({{YYYY-MM-DD}}); sin ella, hoy (las pruebas la fijan).',
   '  --plazo        minutos para el comando de pruebas del proyecto en chequear (30 por defecto; en flota, el de cada repo).',
   'Salidas: 0 bien · 1 se negó, algo falló o un ❌ (flota: algún repo ROTA o con error propio) · 2 uso.',
@@ -34,7 +38,8 @@ const USO = [
 // un archivo de una pieza molde o molde+propio está intacto si, fuera de su zona propia, es igual al del molde viejo (LF), o su
 // huella coincide con el hash de la ficha, o ya es el del molde nuevo. Intacto → se reemplaza (o mezclarTexto: la zona queda
 // byte a byte). Uno solo no intacto → la pieza entera no se toca y pasa a "adaptada (desvío detectado)". Pieza nueva con la
-// ruta ocupada y distinta → desvío (r1-3). adaptada → no fusiona y avisa (la fusión es de D6.2). propia → no se toca.
+// ruta ocupada y distinta → desvío (r1-3). adaptada, y la que el guardia acaba de ver en desvío → la FUSIÓN (lib/fusion.cjs,
+// D6-19): sola con porqué, o "te espera" (.claude/fusiones/<pieza>.md). propia → no se toca.
 // (3) Bajas: lo que el viejo traía y el nuevo no; intacto → se borra, editado → se deja; las de propia/adaptada no se borran.
 // (4) settings por mezclarSettings (lo quitado no vuelve; lo retirado que el proyecto tenía igual se va: las deny Write(...)).
 // (5) los .snippet renglón por renglón. (6) core.hooksPath NO (r1-5). (7) la ficha: kit y los hashes de lo reemplazado, el
@@ -51,6 +56,7 @@ const F = require('../pc/lib/ficha.cjs');
 const Z = require('../pc/lib/zona-propia.cjs');
 const C = require('./lib/catalogo.cjs');
 const M = require('./lib/molde.cjs');
+const FU = require('./lib/fusion.cjs');
 
 const ROTO = 'actualizador roto: corré doctor';
 const RUTA_FICHA = '.claude/kit.md';
@@ -149,9 +155,13 @@ const esMapa = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const estadoDe = (v) => (esMapa(v) ? v.estado : v);
 const hashDe = (v) => (esMapa(v) ? v.hash : undefined);
 
-function valorPieza(estado, hash) {
+const porDe = (v) => (esMapa(v) && typeof v.por === 'string' ? v.por : undefined);
+
+// El valor de una pieza en la ficha. `por` (el porqué de Guido, D6-19) viaja siempre que la pieza lo tenía.
+function valorPieza(estado, hash, por) {
   const e = /[\s()]/.test(estado) ? `"${estado}"` : estado;
-  return hash ? `{estado: ${e}, hash: ${hash}}` : e;
+  const extra = [hash ? `hash: ${hash}` : '', por ? `por: "${por}"` : ''].filter(Boolean);
+  return extra.length ? `{estado: ${e}, ${extra.join(', ')}}` : e;
 }
 
 // Reescribe la cabecera: el renglón kit: y las entradas de piezas: de `cambios` (Map id → valor en texto). Lo demás, byte a byte.
@@ -250,7 +260,7 @@ function planear(carpeta, opciones) {
     }
     plan.moldeNuevo = nuevo.dir;
     plan.moldeViejo = viejo.dir;
-    armar(plan, carpeta, { textoFicha, datos, nuevo, viejo });
+    armar(plan, carpeta, { textoFicha, datos, nuevo, viejo, opciones });
     return plan;
   } catch (e) {
     M.borrar(tmp);
@@ -258,7 +268,7 @@ function planear(carpeta, opciones) {
   }
 }
 
-function armar(plan, carpeta, { textoFicha, datos, nuevo, viejo }) {
+function armar(plan, carpeta, { textoFicha, datos, nuevo, viejo, opciones = {} }) {
   const aN = M.archivosDe(nuevo.dir);
   const aV = viejo === nuevo ? aN : M.archivosDe(viejo.dir);
   let repN, repV;
@@ -279,6 +289,44 @@ function armar(plan, carpeta, { textoFicha, datos, nuevo, viejo }) {
   const cambiosFicha = new Map();
   const tocadas = [];
   const linea = (id, estado, que) => plan.lineas.push(`${id} · ${estado} · ${que}`);
+  const claude = opciones.plan ? null : FU.buscarClaude(opciones.claude);
+  const noFusionar = opciones.noFusionar || {};
+
+  // La fusión de una pieza adaptada (D6-19). Fusionada → estado adaptada, el hash del molde nuevo si es de un archivo (lo que
+  // escribió el molde DEBAJO de la adaptación: si alguien la vuelve a molde, el guardia no toma lo fusionado por intacto) y su
+  // `por:` si lo tenía (el del git log no se copia: la ficha guarda solo el de Guido). Te espera → la pieza como estaba y su informe.
+  const fusionarPieza = (id, actual, mapV, mapN, hFicha, desvio) => {
+    const rels = [...new Set([...mapV.keys(), ...mapN.keys()])];
+    const r = FU.fusionar({
+      carpeta, id, valorFicha: piezas[id], claude, plan: opciones.plan, forzado: noFusionar[id],
+      versiones: { viejo: plan.vViejo, nuevo: plan.vNuevo },
+      archivos: rels.map((rel) => ({ rel, v: mapV.has(rel) ? mapV.get(rel) : null, n: mapN.has(rel) ? mapN.get(rel) : null, p: leerP(rel) })),
+    });
+    const por = porDe(piezas[id]);
+    const informe = FU.rutaInforme(id);
+    const yaAdaptada = actual === 'adaptada' || actual === ADAPTADA;
+    if (r.resultado === 'sin cambios' || r.resultado === 'espera') {
+      const est = yaAdaptada ? actual : ADAPTADA;
+      if (!yaAdaptada) cambiosFicha.set(id, valorPieza(est, hFicha, por));
+      if (r.resultado === 'espera') escribir(informe, r.informe);
+      const visto = desvio && !yaAdaptada ? `desvío: no se tocó (${desvio})` : '';
+      linea(id, est, r.resultado === 'espera' ? [FU.que(r), visto].filter(Boolean).join(' · ') : visto || 'sin cambios');
+      return;
+    }
+    let cambia = false;
+    for (const [rel, texto] of r.destinos) {
+      const antes = leerP(rel);
+      if (antes !== null && lf(antes) === texto) continue;
+      escribir(rel, texto);
+      cambia = true;
+    }
+    if (leerP(informe) !== null) borrar(informe); // un "te espera" de antes, ya resuelto
+    const unico = mapN.size === 1 ? [...mapN.keys()][0] : null;
+    const h = unico ? huella(unico, mapN.get(unico)) : undefined;
+    if (actual !== 'adaptada' || hashDe(piezas[id]) !== h) cambiosFicha.set(id, valorPieza('adaptada', h, por));
+    if (cambia) tocadas.push(id);
+    linea(id, 'adaptada', FU.que(r));
+  };
 
   const ids = [...repN.keys(), ...[...repV.keys()].filter((k) => !repN.has(k)), ...Object.keys(piezas).filter((k) => !repN.has(k) && !repV.has(k))];
   for (const id of ids) {
@@ -326,12 +374,7 @@ function armar(plan, carpeta, { textoFicha, datos, nuevo, viejo }) {
       linea(id, estado, cambio ? 'propia (el molde cambió su contrato: mirá el diff del molde)' : 'propia');
       continue;
     }
-    if (estado === 'adaptada' || estado === ADAPTADA) {
-      linea(id, estado, 'adaptada: no fusiona (la fusión de una adaptada llega con D6.2)');
-      continue;
-    }
-
-    // settings: regla por regla (mezclarSettings), sin guardia de archivo
+    // settings: regla por regla (mezclarSettings), sin guardia de archivo — también adaptada: esa mezcla ya es a tres puntas
     if (def.forma === 'settings') {
       const rel = archivosN.length ? archivosN[0].proyecto : RUTA_SETTINGS;
       const textoN = archivosN.length ? aN.get(archivosN[0].molde) : null;
@@ -351,7 +394,7 @@ function armar(plan, carpeta, { textoFicha, datos, nuevo, viejo }) {
       }
       const nuevoEstado = estado === 'molde' ? 'molde+propio' : estado;
       const h = Z.hashPieza(Z.textoSettings(JSON.parse(textoN)));
-      if (nuevoEstado !== actual || hashDe(piezas[id]) !== h) cambiosFicha.set(id, valorPieza(nuevoEstado, h));
+      if (nuevoEstado !== actual || hashDe(piezas[id]) !== h) cambiosFicha.set(id, valorPieza(nuevoEstado, h, porDe(piezas[id])));
       linea(id, nuevoEstado, cambia ? 'mezclada (zona intacta)' : 'sin cambios');
       continue;
     }
@@ -359,6 +402,10 @@ function armar(plan, carpeta, { textoFicha, datos, nuevo, viejo }) {
     const mapN = new Map(archivosN.map((a) => [a.proyecto, aN.get(a.molde)]));
     const mapV = new Map(archivosV.map((a) => [a.proyecto, aV.get(a.molde)]));
     const hFicha = enFicha ? hashDe(piezas[id]) : undefined;
+    if (estado === 'adaptada' || estado === ADAPTADA) {
+      fusionarPieza(id, actual, mapV, mapN, hFicha);
+      continue;
+    }
     // el guardia (D6-7): igual al viejo fuera de la zona, o el hash de la ficha (solo si la pieza vieja es un archivo), o ya el nuevo
     const intacto = (rel, t) => {
       if (mapN.has(rel) && iguales(rel, t, mapN.get(rel))) return true;
@@ -429,8 +476,8 @@ function armar(plan, carpeta, { textoFicha, datos, nuevo, viejo }) {
       }
     }
     if (desvios.length) {
-      cambiosFicha.set(id, valorPieza(ADAPTADA, hFicha));
-      linea(id, ADAPTADA, `desvío: no se tocó (${desvios[0]}${desvios.length > 1 ? ` y ${desvios.length - 1} más` : ''})`);
+      // el guardia la vio adaptada en esta corrida: no queda vieja, va a la fusión como las declaradas (D6-19)
+      fusionarPieza(id, actual, mapV, mapN, hFicha, `${desvios[0]}${desvios.length > 1 ? ` y ${desvios.length - 1} más` : ''}`);
       continue;
     }
     let escritos = 0;
@@ -625,7 +672,7 @@ function leerArgs(argv) {
   const [sub, ...resto] = argv;
   if (sub !== 'aplicar' && sub !== 'chequear') return null;
   const o = { sub, plan: false };
-  const conValor = { '--kit': 'kit', '--molde-viejo': 'moldeViejo', '--base': 'base', '--plazo': 'plazo', '--fecha': 'fecha' };
+  const conValor = { '--kit': 'kit', '--molde-viejo': 'moldeViejo', '--base': 'base', '--plazo': 'plazo', '--fecha': 'fecha', '--claude': 'claude' };
   for (let i = 0; i < resto.length; i++) {
     const a = resto[i];
     if (a === '--plan' && sub === 'aplicar') o.plan = true;
@@ -639,6 +686,7 @@ function leerArgs(argv) {
   if (sub === 'chequear') {
     if (!o.base) return null;
     if (o.plazo !== undefined && !(Number(o.plazo) > 0)) return null;
+    if (o.claude !== undefined) return null;
   } else if (o.base !== undefined || o.plazo !== undefined) return null;
   if (o.fecha !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(o.fecha)) return null;
   return o;
@@ -653,7 +701,8 @@ async function main(argv) {
   if (!o) return { codigo: 2, lineas: [USO] };
   const kit = path.resolve(o.kit);
   const moldeViejo = o.moldeViejo ? path.resolve(o.moldeViejo) : undefined;
-  if (o.sub === 'aplicar') return aplicar(o.carpeta, { kit, moldeViejo, plan: o.plan, fecha: o.fecha });
+  const claude = o.claude && /[\\/]/.test(o.claude) ? path.resolve(o.claude) : o.claude; // un nombre suelto se lanza por el PATH
+  if (o.sub === 'aplicar') return aplicar(o.carpeta, { kit, moldeViejo, plan: o.plan, fecha: o.fecha, claude });
   return chequear(o.carpeta, { kit, moldeViejo, base: o.base, fecha: o.fecha, plazoMs: Math.round(Number(o.plazo || 30) * 60000) });
 }
 

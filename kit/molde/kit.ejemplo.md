@@ -11,11 +11,13 @@ vars:                                # con qué se instanció el molde: sin esto
   comando-setup: npm install
   lenguajes: [js, ts]
 piezas:                              # molde · molde+propio · adaptada · propia · sí · no; hash: 12 hexa de lo que escribió el molde
+                                     # por: el porqué de una adaptada o propia (con él, el actualizador fusiona sola la adaptada)
   inicio: {estado: molde+propio, hash: 3f9a0c1d2e4b}
   cierre: {estado: molde+propio, hash: b71c55d0a9e3}
   hook-arranque: {estado: molde, hash: 90e2f1aa7c06}
   settings: {estado: molde+propio, hash: 5d04e9b3c218}
   check-code: {estado: "adaptada (desvío detectado)", hash: 7a1b2c3d4e5f}
+  hook-sensible: {estado: adaptada, hash: 4c2e8f0b9d17, por: "también pregunta antes de db borrar en la base de prueba"}
   docs: molde                        # solo las plantillas del nacimiento; docs/ es del proyecto
   hook-escritura: molde              # frena archivos sueltos en docs/ al escribirlos
   candado: molde
