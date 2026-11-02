@@ -50,7 +50,8 @@ const RE_ID = /^[0-9]{2}$/;
 const RE_MODELO = /^[A-Za-z0-9][A-Za-z0-9._\-[\]]*$/;
 const RE_ENV = /^\.env(\..+)?$/;
 const RE_PLANTILLA = /^\.env\.(example|sample|template)$/i;
-const IGNORADOS = ['.claude/worktrees/', '.kit-rol', '.claude/settings.local.json'];
+// .kit-noche (RF-fix 13): la marca de la noche que me-voy escribe en el worktree del director; sin versionar, como .kit-rol.
+const IGNORADOS = ['.claude/worktrees/', '.kit-rol', '.kit-noche', '.claude/settings.local.json'];
 const LOG = '.claude/frenos.log';
 const LOG_COMUN = 'kit-frenos.log';
 const T_GIT = 60000; // worktree add, fetch, remove y ls-files en un repo grande pasan los 5 s de git.cjs
@@ -183,7 +184,7 @@ function noIgnorados(L, principal) {
 }
 const lineaIgnorados = (faltan) =>
   `${faltan.join(', ')} no ${faltan.length === 1 ? 'está ignorado' : 'están ignorados'} — pegá en el .gitignore del principal el ` +
-  'gitignore.snippet del kit ENTERO (trae /.claude/worktrees/, /.kit-rol y /.claude/settings.local.json) y commitealo';
+  'gitignore.snippet del kit ENTERO (trae /.claude/worktrees/, /.kit-rol, /.kit-noche y /.claude/settings.local.json) y commitealo';
 
 // ---------------------------------------------------------------- el almacén y el filtro de credenciales (RT1-3, RT2-5, D4-5, r1-4)
 
@@ -861,10 +862,12 @@ function cerrar(L, u, n, cancelado = false) {
     // Solo lo sin trackear (lo deja la suite: coverage/, un .log; verificar ya lo marca ⚠️, rf-10): se dice qué hacer, no se borra
     // acá (borrar es de una persona o del director).
     if (sueltos.length) {
+      // RF-fix 8: `-e .claude/frenos.log` en los dos (así -nd muestra lo mismo que borra -fd): un frenos.log sin trackear tiene
+      // renglones que cerrar muda al log común, y un clean pelado se los llevaba.
       const c = `git -C "${barras(wt)}"`;
       return no(
-        `el worktree tiene archivos sin trackear: ${hasta5(sueltos)} — nada borrado. Miralos con \`${c} clean -nd\`; si sobran, ` +
-          `los borrás vos (o el director) con \`${c} clean -fd\`, y si van a volver (ej. coverage/), sumalos al .gitignore y commitealo. ` +
+        `el worktree tiene archivos sin trackear: ${hasta5(sueltos)} — nada borrado. Miralos con \`${c} clean -nd -e ${LOG}\`; si sobran, ` +
+          `los borrás vos (o el director) con \`${c} clean -fd -e ${LOG}\`, y si van a volver (ej. coverage/), sumalos al .gitignore y commitealo. ` +
           'Después, cerrar de nuevo',
       );
     }

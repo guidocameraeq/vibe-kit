@@ -351,6 +351,24 @@ test('frenos-del-proyecto: en sesión de agente (obrero, nocturno, desconocido, 
   assert.equal(d(W(path.join(r, '.kit-rol'), 'humano', 'default', r)).decision, 'deny');
 });
 
+test('frenos-del-proyecto (RF-fix 13): .kit-noche, como .kit-rol — un agente no la escribe ni la borra (Write o Bash); humano y director sí; leerla pasa', () => {
+  for (const rol of ['obrero', 'nocturno']) {
+    const r = repo(rol);
+    const res = d(W(path.join(r, '.kit-noche'), 'desde x', 'default', r));
+    assert.equal(res.decision, 'deny', rol);
+    assert.equal(res.id, 'secretos:frenos-del-proyecto');
+    assert.equal(res.detalle, '.kit-noche');
+  }
+  const r = repo('obrero');
+  siNo(['rm .kit-noche', 'rm -f .kit-noche', 'echo x > .kit-noche', 'find . -name .kit-noche -delete'], ['cat .kit-noche', 'git log -- .kit-noche'], (c) => bash(c, 'default', r), 'frenos-del-proyecto');
+  siNo(['Remove-Item .kit-noche'], ['Get-Content .kit-noche'], (c) => ps(c, 'default', r), 'frenos-del-proyecto');
+  for (const rol of [null, 'director']) {
+    const h = repo(rol);
+    assert.equal(d(W(path.join(h, '.kit-noche'), 'desde x', 'default', h)).decision, 'nada', rol || 'humano');
+    assert.equal(d(bash('rm .kit-noche', 'default', h)).decision, 'nada', rol || 'humano');
+  }
+});
+
 test('frenos-del-proyecto: por Bash/PowerShell escribe frena, la lista de lectura pasa, escribir por redirección nunca pasa', () => {
   const r = repo('obrero');
   siNo(
