@@ -803,16 +803,19 @@ test('el candado de la ref se saca a un temporal FUERA del repo y se borra; el �
   assert.deepEqual(fs.readdirSync(propio), [], 'el temporal se borró');
 });
 
-test('gitattributes.snippet: con core.autocrlf=true, los .githooks/ salen con LF (el #!/bin/sh no se rompe); sin la línea, salen con CRLF', () => {
+test('gitattributes.snippet: con core.autocrlf=true, los .githooks/ (el #!/bin/sh no se rompe) y la mesa (RF-fix 4: no crece en otra PC) salen con LF; sin la línea, salen con CRLF', () => {
   const snippet = fs.readFileSync(path.join(MOLDE, 'gitattributes.snippet'), 'utf8');
   assert.ok(snippet.split('\n').includes('.githooks/* text eol=lf'));
+  assert.ok(snippet.split('\n').includes('docs/modulos/**/mesa/** text eol=lf'));
+  const MESA = 'docs/modulos/x/mesa/otro/2026-10-24-1-PEDIDO.md';
   for (const [attrs, conCR] of [[snippet, false], ['.claude/frenos.log merge=union\n', true]]) {
     const d = carpeta('attr');
     g(d, ['init', '-q', '-b', 'main']);
-    commitArmado(d, { '.gitattributes': attrs, '.githooks/pre-commit': MOLDE_ARCHIVOS['.githooks/pre-commit'], '.githooks/kit-githook.cjs': MOLDE_ARCHIVOS['.githooks/kit-githook.cjs'] });
+    commitArmado(d, { '.gitattributes': attrs, '.githooks/pre-commit': MOLDE_ARCHIVOS['.githooks/pre-commit'], '.githooks/kit-githook.cjs': MOLDE_ARCHIVOS['.githooks/kit-githook.cjs'], [MESA]: 'tipo: PEDIDO\ntema: x\n' });
     const c = carpeta('attr-clon');
     g(TMP, ['-c', 'core.autocrlf=true', 'clone', '-q', d, c]);
     for (const f of ['pre-commit', 'kit-githook.cjs']) assert.equal(fs.readFileSync(path.join(c, '.githooks', f), 'utf8').includes('\r'), conCR, `${f} con ${JSON.stringify(attrs)}`);
+    assert.equal(fs.readFileSync(path.join(c, ...MESA.split('/')), 'utf8').includes('\r'), conCR, `la mesa con ${JSON.stringify(attrs)}`);
   }
 });
 

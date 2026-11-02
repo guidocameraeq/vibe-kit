@@ -240,6 +240,7 @@ test('crear se niega (1, sin crear nada) si .claude/worktrees/, .kit-rol o setti
   const casos = [
     ['/.claude/worktrees/\n', /\.claude\/worktrees\/ no está ignorado/],
     ['/.kit-rol\n', /\.kit-rol no está ignorado/],
+    ['/.kit-noche\n', /\.kit-noche no está ignorado/], // RF-fix 13
     ['/.claude/settings.local.json\n', /\.claude\/settings\.local\.json no está ignorado/],
   ];
   for (const [quitar, re] of casos) {
@@ -583,6 +584,31 @@ test('cerrar x: mergeado solo en origin/main → 0; sin mergear → 1; frenos.lo
   assert.match(r.out, /hice prune/);
   assert.ok(!existeRama(p.P, 'modulo/y'));
   assert.ok(!g(p.P, 'worktree', 'list').includes('modulo--y'));
+});
+
+test('RF-fix 8: cerrar con lo sin trackear sugiere clean -nd/-fd con -e .claude/frenos.log — corrido tal cual, el frenos.log sin trackear queda y cerrar lo muda', () => {
+  const p = proyecto({ sinLog: true });
+  assert.equal(cli(p.P, ['crear', 'x']).codigo, 0);
+  assert.equal(cli(p.P, ['crear', 'x--01']).codigo, 0);
+  const wx = p.wt('modulo--x');
+  const w1 = p.wt('modulo--x--01');
+  commit(w1, { 'encargo.txt': 'hecho\n' });
+  g(wx, 'merge', '-q', '--no-ff', '-m', 'encargo 01', 'modulo/x--01');
+  const renglon = frenosLog.anotar(w1, { id: 'x', herramienta: 'Edit', detalle: 'a', rol: 'obrero', rama: 'modulo/x--01' });
+  escribir(w1, 'coverage/c1.json', '{}\n');
+  let r = cli(p.P, ['cerrar', 'x--01']);
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, /`git -C "[^"]*modulo--x--01" clean -nd -e \.claude\/frenos\.log`/);
+  const fd = /`git -C "([^"]*modulo--x--01)" clean -fd -e \.claude\/frenos\.log`/.exec(r.out);
+  assert.ok(fd, r.out);
+  // -nd muestra lo mismo que borra -fd: el coverage/, no el frenos.log
+  assert.equal(g(fd[1], 'clean', '-nd', '-e', '.claude/frenos.log'), 'Would remove coverage/');
+  g(fd[1], 'clean', '-fd', '-e', '.claude/frenos.log');
+  assert.ok(!fs.existsSync(path.join(w1, 'coverage')), 'coverage/ borrado');
+  assert.ok(fs.readFileSync(path.join(w1, '.claude', 'frenos.log'), 'utf8').includes(renglon), 'el frenos.log sin trackear sobrevive');
+  r = cli(p.P, ['cerrar', 'x--01']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.ok(fs.readFileSync(path.join(p.P, '.git', 'kit-frenos.log'), 'utf8').includes(renglon), 'y cerrar lo mudó al log común');
 });
 
 test('rf-5: cerrar hace fetch — mergeado en "GitHub" sin traerlo → 0; con squash → 1 con el consejo; fetch que falla → sigue', () => {

@@ -351,7 +351,7 @@ const QUE = {
   'imprime-variable': (d) => `${d} es secreta: su valor no sale a la pantalla. Como argumento de otro programa, sin -v ni set -x, pasa ("usar sin ver") — `,
   'credencial-guardada': () => 'eso imprime una credencial guardada (gh y git la usan solos, sin mostrarla) — ',
 };
-const MSG_FRENO_PROYECTO = 'no toques los frenos del proyecto (hooks, settings, .githooks, .kit-rol, el git-dir) desde una sesión de agente: son la red del método. Si hace falta, pedíselo al director.';
+const MSG_FRENO_PROYECTO = 'no toques los frenos del proyecto (hooks, settings, .githooks, .kit-rol, .kit-noche, el git-dir) desde una sesión de agente: son la red del método. Si hace falta, pedíselo al director.';
 const MSG_LOCK = 'un .lock viejo del git-dir: pedíselo al director (no lo borres desde una sesión de agente). `index.lock` sí se puede.';
 const MSG_PC_KIT = 'no toques el corrector de la PC (<home>/.claude/hooks/kit): lo pone y lo cura el instalador (`instalar-hooks-pc`). Leerlo pasa.';
 const MSG_PC_SETTINGS = 'no toques el settings de la PC (<home>/.claude/settings.json) desde una sesión de agente o sin ventana: el camino es el instalador.';
@@ -865,6 +865,7 @@ const RAIZ_FRENO = (rel) =>
   /^\.claude\/settings(\.local)?\.json$/.test(rel) ||
   /^\.githooks(\/|$)/.test(rel) ||
   rel === '.kit-rol' ||
+  rel === '.kit-noche' || // RF-fix 13: la marca de la noche; la escribe me-voy (director) y la borra volvi (humano), nunca un agente
   rel === '.git'; // el .git de la raíz del worktree (r2-2 b); lo de adentro del común va arriba
 
 // Las raíces cuyos frenos se cuidan → [{ dir, prefijo }]: la propia (prefijo ''), el principal (`dirname(común)` cuando el común se
@@ -907,7 +908,7 @@ function raicesProtegidas(ctx) {
 
 // ---- rf3-14: la carpeta que contiene un freno
 // Los frenos como rutas absolutas → [{ segs, carpeta, detalle }] (de las tres raíces y del git común). Una vez por llamada.
-const FRENOS_RAIZ = [['.claude/hooks', true], ['.claude/settings.json', false], ['.claude/settings.local.json', false], ['.githooks', true], ['.kit-rol', false], ['.git', true]];
+const FRENOS_RAIZ = [['.claude/hooks', true], ['.claude/settings.json', false], ['.claude/settings.local.json', false], ['.githooks', true], ['.kit-rol', false], ['.kit-noche', false], ['.git', true]];
 const FRENOS_COMUN = [['config', false], ['hooks', true], ['refs', true], ['packed-refs', false], ['fetch_head', false], ['logs', true], ['worktrees', true]];
 function frenosAbsolutos(ctx) {
   if (ctx.frenosAbs) return ctx.frenosAbs;

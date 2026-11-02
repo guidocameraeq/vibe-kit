@@ -14,7 +14,7 @@
 # (1, candado:barreras); después del push, `estructura.cjs todo` (0). Todo con --sin-log: nada mete la hora actual.
 # Encima, en un TERCER commit "molde v3 orden 3" (D3.3), alfa y beta reciben lo de kit/molde/ del árbol de trabajo (sin los
 # *.test.cjs): hooks (git-seguro, sensible, comando, db-guardia, agente…), scripts, skills, el CLAUDE.md del árbol de trabajo (con la
-# sección "El tamaño del pedido"; el 2b no lo toca), settings por mezclarSettings (viejo = el de D22, todo en exec), el snippet de .gitattributes (.githooks/* eol=lf) y githooks/** → .githooks/** con +x en el índice
+# sección "El tamaño del pedido"; el 2b no lo toca), settings por mezclarSettings (viejo = el de D22, todo en exec), los snippets de .gitattributes (.githooks/* eol=lf) y de .gitignore (/.kit-noche…) y githooks/** → .githooks/** con +x en el índice
 # (update-index --chmod=+x; los tres sh; el runner .cjs queda 100644 como en el kit). NO setea core.hooksPath (lo hace el arranque).
 # Mismos candados que el 2b: `barreras --molde` 0, sin --molde 1, `todo` 0 tras el push. gama no recibe ninguno de los tres.
 # Los arma AFUERA de vibe-kit, en la carpeta hermana vibe-kit-pruebas/ (junto a la raíz del checkout PRINCIPAL, también si se corre
@@ -451,7 +451,7 @@ molde_v3() {   # $1 nombre · $2 qué es · $3 módulo A · $4 módulo B · $5 b
 }
 
 # --- los pasos "orden 2b" (D2.2, molde congelado en D22) y "orden 3" (D3.3, molde del árbol de trabajo): encima del de D2.1, uno tras otro
-#     (hooks, scripts, skills; sin *.test.cjs; el 3 suma githooks/ y el snippet de .gitattributes)
+#     (hooks, scripts, skills; sin *.test.cjs; el 3 suma githooks/ y los snippets de .gitattributes y .gitignore)
 cat > "$TMPD/molde-v3b.cjs" <<'JS'
 // Instancia el paso "2b" (D2.2) o el "3" (D3.3) sobre un repo de prueba que ya tiene el commit anterior. No toca git.
 // Uso: node molde-v3b.cjs <molde viejo> <molde nuevo> <repo> <ficha.cjs> <zona-propia.cjs> <2b|3>
@@ -488,7 +488,7 @@ for (const [de, a] of [['hooks', '.claude/hooks'], ['scripts', '.claude/scripts'
   for (const rel of archivos(path.join(molde22, de))) escribir(path.join(repo, a, rel), leerT(path.join(molde22, de, rel)));
 }
 
-// orden 3: githooks/** → .githooks/** (sin los *.test.cjs; el +x lo pone rehacer.sh en el índice) y el snippet de .gitattributes
+// orden 3: githooks/** → .githooks/** (sin los *.test.cjs; el +x lo pone rehacer.sh en el índice) y los dos .snippet
 if (paso === '3') {
   for (const rel of archivos(path.join(molde22, 'githooks'))) escribir(path.join(repo, '.githooks', rel), leerT(path.join(molde22, 'githooks', rel)));
   // paquete 5 (D5.1 · E4): agents/ y las skills nuevas (nucleo, director, obrero) tal cual: son nuevas, no hay zona propia que mezclar
@@ -497,11 +497,15 @@ if (paso === '3') {
     if (!fs.existsSync(path.join(molde22, de))) continue;
     for (const rel of archivos(path.join(molde22, de))) escribir(path.join(repo, a, rel), leerT(path.join(molde22, de, rel)));
   }
-  const ga = path.join(repo, '.gitattributes');
-  let actual = fs.existsSync(ga) ? leerT(ga) : '';
-  const ya = new Set(actual.split('\n').map((l) => l.trim()));
-  const faltan = leerT(path.join(molde22, 'gitattributes.snippet')).split('\n').filter((l) => l.trim() !== '' && !ya.has(l.trim()));
-  if (faltan.length) { if (actual && !actual.endsWith('\n')) actual += '\n'; escribir(ga, actual + faltan.join('\n') + '\n'); }
+  // Los dos .snippet del árbol de trabajo, línea por línea, sin duplicar. El .gitignore también (RF-fix 16): antes solo lo sumaba el
+  // paso "orden 2", con el molde congelado de D2.1, y lo que el snippet trajo después (/.kit-noche, /.claude/paquetes/) no llegaba.
+  for (const [archivo, snippet] of [['.gitattributes', 'gitattributes.snippet'], ['.gitignore', 'gitignore.snippet']]) {
+    const ga = path.join(repo, archivo);
+    let actual = fs.existsSync(ga) ? leerT(ga) : '';
+    const ya = new Set(actual.split('\n').map((l) => l.trim()));
+    const faltan = leerT(path.join(molde22, snippet)).split('\n').filter((l) => l.trim() !== '' && !ya.has(l.trim()));
+    if (faltan.length) { if (actual && !actual.endsWith('\n')) actual += '\n'; escribir(ga, actual + faltan.join('\n') + '\n'); }
+  }
   // .githooks/ cuenta como código para candado:estado-viejo: el "## Próximo paso" del handoff se reescribe (lo que haría el dueño)
   const hp = path.join(repo, 'docs/SESSION_HANDOFF.md');
   const viejoPaso = 'Probar el actualizador del kit sobre este repo';
@@ -754,7 +758,7 @@ for x in alfa beta gama; do
     done
     [ ! -e "$d/.claude/hooks/session-start.sh" ] || FALLOS+=("$x: sigue el session-start.sh viejo")
     if [ -n "$(find "$d" -name '*.test.cjs' -not -path '*/.git/*' | head -n1)" ]; then FALLOS+=("$x: se coló un *.test.cjs"); fi
-    for p in .env .env.local .claude/settings.local.json .kit-rol .claude/worktrees/x/a; do
+    for p in .env .env.local .claude/settings.local.json .kit-rol .kit-noche .claude/paquetes/x.md .claude/worktrees/x/a; do
       git_pruebas -C "$d" check-ignore -q -- "$p" || FALLOS+=("$x: $p debería estar ignorado")
     done
     if git_pruebas -C "$d" check-ignore -q -- .vscode/launch.json; then FALLOS+=("$x: .vscode/launch.json no debería estar ignorado"); fi
@@ -844,7 +848,7 @@ if [ "$EVIDENCIA" = si ]; then   # lo que mira quien revisa (criterio 12 del paq
     echo "-- archivos versionados:"; git_pruebas -C "$d" ls-files | sed 's/^/   /'
     if [ "$SOLO_TAG" = no ] && [ "$x" != gama ]; then
       echo "-- git check-ignore -v:"
-      for p in .env .env.local .claude/settings.local.json .kit-rol .claude/worktrees/x/a .vscode/launch.json; do
+      for p in .env .env.local .claude/settings.local.json .kit-rol .kit-noche .claude/paquetes/x.md .claude/worktrees/x/a .vscode/launch.json; do
         git_pruebas -C "$d" check-ignore -v -- "$p" | sed 's/^/   ignorado  /' || echo "   NO ignorado  $p"
       done
       echo "-- git check-attr merge .claude/frenos.log:"; git_pruebas -C "$d" check-attr merge -- .claude/frenos.log | sed 's/^/   /'

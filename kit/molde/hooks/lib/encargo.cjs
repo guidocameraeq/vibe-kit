@@ -319,6 +319,15 @@ function validarAutorizado(reglas) {
   return malas;
 }
 
+// aPermiso(regla) → la regla de AUTORIZADO como va en las allow y en --allowedTools (RF-fix 14). Para archivos la plataforma solo mira
+// Edit(<ruta>): con una regla Write(<ruta>) avisa "`Write(...)` is not matched" (el aviso por el que W0 de D5.2 sacó las Write del
+// deny de worktree; con ellas fuera, la sesión real 1 ya no lo mostró). Por eso un Write(<ruta>) del encargo se escribe Edit(<ruta>),
+// sin duplicar si el encargo ya lo trae. `Write` solo, el nombre de la herramienta (la base), queda igual. El validador no cambia.
+function aPermiso(regla) {
+  const m = /^Write\((.+)\)$/.exec(String(regla).trim());
+  return m ? `Edit(${m[1]})` : regla;
+}
+
 // ---------------------------------------------------------------- la base fija de --allowedTools (r1-2, r1-4)
 
 // Las formas (`:*`, equivalente a ` *`) son las de la doc oficial, con la cita en scripts/encargo.cjs:
@@ -527,7 +536,7 @@ function juzgarMensaje({ texto, rol, pestana, rutaEnModulo: enModulo, citaDeMesa
 
 module.exports = {
   RE_X, RE_ID, VOCABULARIO, CAMPOS, SECCIONES, HERRAMIENTAS, INTERPRETES, SCRIPT_ENCARGO, SIN_SELLO, NO_RECIBE, DEVUELTO, ErrorGit,
-  nombreEncargo, sinTilde, tipoDe, leerEncargo, interprete, interpreteAbierto, validarRegla, validarAutorizado, base,
+  nombreEncargo, sinTilde, tipoDe, leerEncargo, interprete, interpreteAbierto, validarRegla, validarAutorizado, aPermiso, base,
   shaDe, esAncestro, refMasNueva, tipoEn, leerEn, ubicarEncargo, specVigente, gateQuitadoEl, juzgarSpec, limpiarPalabra, rutaYSha,
   rutaEnModulo, juzgarMensaje, citaMesa, RE_CITA_MESA,
 };

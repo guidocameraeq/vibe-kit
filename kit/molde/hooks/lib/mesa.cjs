@@ -66,11 +66,12 @@ const parsearCita = (t) => {
   return m ? { alias: m[1], ruta: m[2], sha: m[3] } : null;
 };
 
-// validar(texto, { ruta, bytes }) → [{ que, hacer }]: lo que candado:mesa frena y `mesa nuevo` no deja escribir.
+// validar(texto, { ruta, bytes }) → [{ que, hacer }]: lo que candado:mesa frena y `mesa nuevo` no deja escribir. El tope se cuenta
+// sin los \r (RF-fix 4): con core.autocrlf=true el mismo mensaje sale con CRLF y crecía en otra PC hasta pasar los 2000 B.
 function validar(texto, { ruta = null, bytes = null } = {}) {
   const f = [];
   const mal = (que, hacer) => f.push({ que, hacer });
-  const n = bytes === null ? Buffer.byteLength(String(texto), 'utf8') : bytes;
+  const n = bytes === null ? Buffer.byteLength(String(texto).replace(/\r/g, ''), 'utf8') : bytes;
   if (n > TOPE) mal(`pesa ${n} B (el tope es ${TOPE})`, 'pasá el detalle a un documento del módulo (planes/ o el spec) y citalo');
   const c = leerCabecera(texto);
   for (const k of c.desconocidas) mal(`la cabecera trae "${k}:", que no es de la mesa`, `usá solo ${CLAVES.join(', ')}`);
@@ -304,7 +305,8 @@ function revisar(raiz, { archivos }) {
     }
     if (buf === null) continue; // borrado: lo dice el chequeo de abajo
     const texto = buf.toString('utf8');
-    for (const f of validar(texto, { ruta: rel, bytes: buf.length })) add(rel, `${rel}: ${f.que}`, f.hacer);
+    const sinCR = buf.length - buf.reduce((k, b) => k + (b === 0x0d ? 1 : 0), 0); // los bytes sin \r (RF-fix 4)
+    for (const f of validar(texto, { ruta: rel, bytes: sinCR })) add(rel, `${rel}: ${f.que}`, f.hacer);
     const c = leerCabecera(texto).campos;
     if (tipoMesa(c.tipo) === 'RESPUESTA' && c.resultado === 'aceptado') {
       const k = claveDeCita(c['responde-a']);

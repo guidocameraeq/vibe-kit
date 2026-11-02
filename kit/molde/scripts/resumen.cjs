@@ -51,10 +51,14 @@ function yaMostrado(raiz, fecha) {
 // ---------------------------------------------------------------- las partes
 
 // Qué se hizo: los commits de hoy (con módulo: modulo/<x> y sus obreros; sin módulo: la rama actual).
+// RF-fix 6: `--branches=modulo/<x>` no agarra refs/heads/modulo/<x> (sin comodín, git lo lee como modulo/<x>/*): la rama del director
+// va explícita (si existe), y los obreros, locales y los que solo están en origin.
 function queSeHizo(raiz, x, fecha) {
   const args = ['log', '--no-merges', `--since=${fecha}T00:00:00`, '--format=%h %s', '-n', '60'];
-  if (x) args.push(`--branches=modulo/${x}`, `--branches=modulo/${x}--*`);
-  else args.push('HEAD');
+  if (x) {
+    if (G(raiz, ['rev-parse', '--verify', '-q', `refs/heads/modulo/${x}^{commit}`]).ok) args.push(`refs/heads/modulo/${x}`);
+    args.push(`--branches=modulo/${x}--*`, `--remotes=origin/modulo/${x}--*`);
+  } else args.push('HEAD');
   const r = G(raiz, args);
   if (!r.ok) return ['— (NO VERIFICADO: no pude leer el log de git)'];
   const ls = r.stdout.split('\n').map((s) => s.trim()).filter(Boolean);

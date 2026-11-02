@@ -4,7 +4,7 @@
 //   node .claude/scripts/tiempos.cjs alarma [--transcript <ruta>]
 //   node .claude/scripts/tiempos.cjs contador <x>
 // `tiempos <x>`: por cada encargo del módulo (ramas modulo/<x>--<ID>, locales o de origin) el primer y el último commit, la duración
-// y los sub-pasos (los commits del obrero desde la partida del encargo); lo escribe en docs/modulos/<x>/tiempos.md, en un bloque
+// (desde la - Partida: del encargo si se lee; si no, desde el primer commit) y los sub-pasos (los commits del obrero desde la partida del encargo); lo escribe en docs/modulos/<x>/tiempos.md, en un bloque
 // entre marcas (el resto del archivo, la estimación y el "por qué" del director, no se pisa). Un encargo cuya rama ya no está
 // conserva su renglón de la vez anterior. --ver imprime sin escribir.
 // `alarma`: cuenta las intervenciones de Guido en la pestaña (los mensajes de usuario reales del transcript .jsonl: sin los
@@ -86,7 +86,8 @@ function encargoDe(raiz, x, id) {
     if (!u.ok) return null;
     const e = E.leerEncargo(u.texto, n);
     if (e.errores.length || !e.secciones.toca) return null;
-    return { toca: e.secciones.toca.rutas, partida: e.campos.partida ? e.campos.partida.sha : null, madre: u.ref };
+    const fecha = e.campos.partida ? Date.parse(e.campos.partida.fecha) : NaN;
+    return { toca: e.secciones.toca.rutas, partida: e.campos.partida ? e.campos.partida.sha : null, partidaS: Number.isFinite(fecha) ? Math.floor(fecha / 1000) : null, madre: u.ref };
   } catch (e) {
     return null;
   }
@@ -162,7 +163,11 @@ function datosEncargo(raiz, x, rama) {
   if (cs.length) {
     d.primero = cs[0].t;
     d.ultimo = cs[cs.length - 1].t;
-    d.minutos = Math.round((Math.max(...cs.map((c) => c.t)) - Math.min(...cs.map((c) => c.t))) / 60);
+    // RF-fix 9: la duración arranca en la - Partida: del encargo si se lee y no es posterior al primer commit (un obrero que commitea
+    // todo junto daba 0 min); si no, como antes: del primer al último commit.
+    const min = Math.min(...cs.map((c) => c.t));
+    const desde = enc && enc.partidaS !== null && enc.partidaS <= min ? enc.partidaS : min;
+    d.minutos = Math.round((Math.max(...cs.map((c) => c.t)) - desde) / 60);
   }
   if (!enc) {
     d.porQue = 'sin encargo commiteado que se lea: los desvíos no se pueden juzgar';
