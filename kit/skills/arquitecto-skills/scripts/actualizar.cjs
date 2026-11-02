@@ -1,21 +1,33 @@
 #!/usr/bin/env node
 'use strict';
 // actualizar.cjs — el actualizador del kit, el núcleo (SPEC-paquete-6 P7.1, D6.1; E §4-§6; D6-1, D6-5, D6-7, D6-15; r1-2..r1-5).
-// Un script de node determinista: nadie lo corre en bypass y no lanza agentes. La flota (clon, rama, mezcla, push) es de D6.2.
+// Un script de node determinista: nadie lo corre en bypass y no lanza agentes. La flota (clon, rama, mezcla, push; D6.2)
+// vive en lib/flota.cjs: acá solo se despacha (`flota` → su main; uso → este USO).
 const USO = [
   'uso: node actualizar.cjs aplicar  <carpeta> --kit <raíz del kit> [--molde-viejo <dir>] [--plan] [--fecha <AAAA-MM-DD>]',
   '     node actualizar.cjs chequear <carpeta> --kit <raíz del kit> --base <sha> [--molde-viejo <dir>] [--plazo <min>]',
+  '     node actualizar.cjs flota <repo>… | todo --canon <url o dir del canónico> [--tag <vX.Y.Z[-rc.N]>] [--proyectos <carpeta>]',
+  '                               [--plazo <min>] [--fecha <AAAA-MM-DD>] [--molde-viejo <dir>]',
   '  aplicar   pone al día <carpeta> pieza por pieza según su ficha (.claude/kit.md), contra el molde del --kit. Escribe solo en',
   '            <carpeta>; no commitea, no pushea, no pone core.hooksPath (eso es de flota). Se niega (1) si <carpeta> no es un repo',
   '            con ficha que se lee, si no está limpia (salvo .kit-rol) o si .kit-rol no dice actualizador.',
   '  chequear  las nueve líneas del chequeo mecánico sobre lo aplicado y ya commiteado (<base>..HEAD); lo hace lib/chequeo.cjs.',
+  '  flota     pone al día cada <repo> (una carpeta de --proyectos o la ruta de un checkout; todo = los de --proyectos con ficha),',
+  '            uno detrás del otro, en un clon temporal de su origin (tu checkout nunca se toca): saltea los que tienen modulo/*',
+  '            vivas, kit/v<versión> ya subida (salvo ROTA: se rehace) o la ficha al día; rama kit/v<versión>, aplicar, commit,',
+  '            chequear; verde → un commit a la rama por defecto; rojo → kit/v<versión> ROTA; protegida → kit/v<versión> te espera.',
+  '            Al final, la tabla y "te espera:". Lo hace lib/flota.cjs.',
+  '  --canon        el repo canónico del kit (URL o carpeta): se clona con sus tags.',
+  '  --tag          el tag anotado a repartir (sin él, el último v* anotado); su versión sin -rc.N = kit/VERSION, o 1.',
+  '  --proyectos    la carpeta de proyectos (para nombrar un repo por su carpeta, y para todo).',
   '  --kit          la raíz de un clon del kit: el molde nuevo es su kit/molde/ y la versión nueva su kit/VERSION.',
   '  --molde-viejo  el molde del que viene el proyecto (sin él: git archive v<kit de la ficha> del --kit; con la misma',
   '                 versión, el mismo molde nuevo). Acepta la raíz de un kit, kit/molde/ o templates/universales/.',
   '  --plan         lo mismo, sin escribir nada.',
   '  --fecha        la fecha de los docs que nacen ({{YYYY-MM-DD}}); sin ella, hoy (las pruebas la fijan).',
-  '  --plazo        minutos para el comando de pruebas del proyecto en chequear (30 por defecto).',
-  'Salidas: 0 bien · 1 se negó, algo falló o un ❌ · 2 uso. Error propio: "actualizador roto: corré doctor".',
+  '  --plazo        minutos para el comando de pruebas del proyecto en chequear (30 por defecto; en flota, el de cada repo).',
+  'Salidas: 0 bien · 1 se negó, algo falló o un ❌ (flota: algún repo ROTA o con error propio) · 2 uso.',
+  'Error propio: "actualizador roto: corré doctor".',
 ].join('\n');
 //
 // aplicar, en orden (SPEC-paquete-6, P7.1): (1) se niega si no corresponde; (2) por pieza, según la ficha, con el GUARDIA (D6-7):
@@ -633,6 +645,10 @@ function leerArgs(argv) {
 }
 
 async function main(argv) {
+  if (argv[0] === 'flota') {
+    const r = await require('./lib/flota.cjs').main(argv.slice(1));
+    return r ? { codigo: r.codigo, lineas: r.lineas } : { codigo: 2, lineas: [USO] };
+  }
   const o = leerArgs(argv);
   if (!o) return { codigo: 2, lineas: [USO] };
   const kit = path.resolve(o.kit);
