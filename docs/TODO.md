@@ -8,26 +8,18 @@
 > **La hoja de ruta, reordenada el 2026-10-26 (ADR-025)**: 4 cerrar el diseño sin mensajería → 4½ ordenar la casa → 5 construir **v3.0** →
 > 6 el ciclo como proceso → 7 la mensajería agéntica (**v3.1**). Después, el reloj: una vuelta cada 3-4 meses (abajo, "El ciclo").
 
-- [ ] **Misión 5 — construir el pack por piezas → kit v3.0** (en curso: paquetes 1 a 8 y 8b ✅, **beta `v3.0.0-rc.1` taggeada** el 2026-11-03; sigue **la mañana con Guido** (8½: preparar la PC y adoptar Hermes, tracker "Mañana con Guido") y la prueba real en Hermes con los `rc.N`; el modelo de cada rol, en la sección "Ejecución" del spec). **El plano es `docs/kit-v3/SPEC-0-kit-v3.md` (READY, 2026-10-27)**:
+- [ ] **Misión 5 — construir el pack por piezas → kit v3.0** (en curso: paquetes 1 a 8 y 8b ✅, **beta `v3.0.0-rc.1` taggeada** el 2026-11-03; siguen, en orden (tracker, "Después de la rc.1: las sesiones que siguen"): **R1** la revisión integral (sin Guido) → **la mañana con Guido** (el informe de R1 y sus decisiones de negocio; preparar la PC y adoptar Hermes) → **el diseño de los experimentos de método con Guido** → **D8c.1 la `rc.2`** (el obrero de cierre de tramo, los experimentos, las correcciones de R1) → la prueba real en Hermes con los `rc.N` → R2 y la `v3.0`; el modelo de cada rol, en la sección "Ejecución" del spec). **El plano es `docs/kit-v3/SPEC-0-kit-v3.md` (READY, 2026-10-27)**:
   9 paquetes en el orden de su tabla "Orden de construcción" (1 ficha y parser · 2 documentos, hook, candado, `cambios` · 3 seguridad · 4 Arquitecto
   y `worktree` · 5 canon director/obrero, `/estado`, mesa · 6 Equipador, actualizador, adoptador · 7 ciclo y portada · 8 observatorio y docs del
   método · 8½ credenciales de Deptos · 9 piloto · 10 tag). Cada paquete con spec delta en `docs/kit-v3/SPEC-paquete-N.md`, red team si toca
-  permisos, revisor frío. **Piloto: ya no en Deptos, en un proyecto de verdad a decidir con Guido (2026-11-03)**, medición contra TABLERO §1; su lista NO VERIFICADO y "Lo que hacés vos de nuevo" están
+  permisos, revisor frío. **Prueba real: Hermes Desktop, con su módulo nuevo, desde el 2026-11-04** (ya no un piloto en Deptos), medición contra TABLERO §1; su lista NO VERIFICADO y "Lo que hacés vos de nuevo" están
   en el spec. La primera sesión abre con la línea de la sección "Ejecución". **Por dónde vamos: `docs/kit-v3/PLAN-construccion.md`** (el tracker: no
   se repite acá; este ítem sale cuando el tracker diga ✅ el paquete 10).
-- [ ] **Misión 6 — escribir el ciclo de mejora del método** (al terminar la misión 5, con todo fresco; antes de la mensajería, porque es lo que
-  más se evapora). Juntar en un documento reusable y genérico de vibe-kit lo que hoy está repartido (ADR-021, SPEC-investigacion-chats,
-  observatorio/investigacion/METODO.md, docs/mision-4/PLAN.md):
-  - **revisar cómo trabajamos de verdad en estas sesiones** (pedido de Guido, 2026-10-26): leer los chats de las misiones 1-5 en
-    `vibe-research/chats/` (completo hasta el 2026-10-29, las tres PCs; desde ahí los sube el `/cierre`), cómo fue cada sesión y cuánto costó cada racimo;
-  - cuándo arranca una vuelta y cada cuánto (el disparador: 3-4 meses, y recién con la versión nueva un mes andando en el piloto);
-  - los 5 pasos: investigar → ordenar la casa → diseñar con Guido → construir con piloto → medir;
-  - qué sale de cada paso y cuánto costó; los registros de cambios de método de los proyectos como fuente, además de los chats;
-  - plantillas genéricas del SPEC de investigación y del PLAN de diseño;
-  - la fecha de corte de la próxima vuelta;
-  - las lecciones de esta vuelta (se juntan en `docs/mision-4/PLAN.md` §Lecciones para el ciclo).
-
-  Es una receta, no una skill (regla de 3+).
+- [ ] **Misión 6 — el ciclo de mejora del método** (adelantada por Guido el 2026-11-03 y partida en dos). **6a ✅ 2026-11-03**:
+  `docs/CICLO-DE-MEJORA.md` (la receta: el reloj, los cinco pasos con lo de adentro y lo de afuera, cómo se decide con ADR-030 y ADR-034,
+  la revisión integral como paso fijo, cómo trabajamos de verdad en la vuelta 1, lo que costó, las lecciones y las plantillas; el plan y la
+  medición en `docs/mision-6/PLAN-6a.md`). **Falta la 6b**, corta, cuando cierre el primer módulo de Hermes: §3.5 (probar en un proyecto
+  real y medir) y §8 (la fecha de corte de la próxima vuelta) con lo vivido. Es una receta, no una skill (regla de 3+).
 - [ ] **Misión 7 — la mensajería agéntica → kit v3.1** (lo que era G.1; brief en `DISENO-G` §18 + sus insumos del acta de contraste: hueco 3/P71,
   P68, P77 y las "otras" 5, 8 y 24). Con investigación en internet y piloto. Guido, 2026-10-26: "no está bien claro todavía; siguiente versión;
   no bien termine lo otro, lo hago".

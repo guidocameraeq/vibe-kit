@@ -39,6 +39,7 @@
 - ADR-031 · El Arquitecto es la puerta única con cinco entradas; la PC y la flota derivan, no ejecutan (2026-10-30)
 - ADR-032 · El actualizador es un script de node; el único agente es el de la fusión con conflictos, y el clon lo juzga el runner del molde nuevo (2026-11-02)
 - ADR-033 · La credencial del Hub no pasa por el kit: el Equipador no maneja tokens, sin excepciones (2026-11-03)
+- ADR-034 · La vara suma la coherencia entre piezas; lo técnico lo decide la sesión; la revisión integral es paso fijo (2026-11-03)
 
 *Cada ADR nuevo suma su línea acá (lo pide `/cierre`).*
 
@@ -731,3 +732,28 @@ pasa por el kit** (lo dice el paso 5 y la cabecera de `kit/skills/arquitecto-ski
   superficie para una filtración y una regla con agujero) · *no escribir ADR* (E §3 lo pedía, y un chat futuro re-diseñaría la excepción).
 - **Reversible** (es texto y un paso del Equipador): si Guido quiere la excepción, se reabre este ADR y se construye como un paso de
   "preparame esta PC" con su red team (toca credenciales).
+
+## ADR-034 · La vara suma la coherencia entre piezas; lo técnico lo decide la sesión; la revisión integral es paso fijo (2026-11-03)
+En el repaso de las ~150 decisiones sin Guido (2026-11-03) aparecieron tres huecos del criterio. (1) **Cada director miró su paquete**: la
+vara del ADR-030 se aplicaba pieza por pieza, y lo que no cerraba estaba **entre** piezas: el director vivía en su rama y el `/cierre` del
+proyecto lo hacía una sesión principal que Guido no usa (renglón 11), el `-rc` que la ficha no guardaba y que solo dolía con la prueba en un
+proyecto real (7), una pieza adaptada sin la opción "tomar la nueva" (6). Ningún revisor del paquete lo podía ver: cada uno miró su parte.
+(2) **Le llegaban preguntas que no eran para él**: "cómo sale el 3.0.0 después de un rc" ("acá no entiendo nada, es súper técnico").
+(3) **Nadie revisó el kit entero funcionando junto** antes de ponerlo en un proyecto real.
+- **Decisión (de Guido):**
+  1. **La coherencia entre piezas entra a la vara** como quinta cosa, al lado de las cuatro del ADR-030: ¿esto concuerda con las otras
+     partes del kit, no las contradice, y el conjunto sigue siendo cohesivo? Toda decisión se mira contra cómo interactúa con el resto
+     (quién lo lee, quién lo escribe, qué otra pieza espera eso), no solo contra la pieza que se toca. Etiqueta: `[coherencia]`.
+  2. **Lo técnico que no le cambia el día a día a Guido lo decide la sesión**, con la vara y mirando el sistema entero, y lo anota; a
+     Guido le llega solo lo que le cambia algo (lo que ve, hace, aprueba, o un riesgo que corre), dicho como "qué cambia en tu día".
+     Cada sesión que decide sin él deja sus decisiones en criollo, separadas las que le afectan.
+  3. **La revisión integral es paso fijo del ciclo** (`docs/CICLO-DE-MEJORA.md`): al terminar de construir y antes de usar la beta en el
+     proyecto real, y otra vez antes de la versión final. Solo lectura, tres miradas (el día de Guido de punta a punta · la coherencia de
+     las decisiones con el código y entre paquetes · la documentación contra el código), hallazgos con escenario, informe en criollo.
+- **Por qué:** los revisores por paquete son buenos para su parte y ciegos para el conjunto; las tres cosas que no vio ningún revisor las
+  encontró Guido con una pregunta de usuario. Y una pregunta técnica que no le cambia nada le cuesta atención sin darle nada.
+- **Dónde vive:** la vara operativa, en "Cómo decide una sesión sin Guido" del tracker (`docs/kit-v3/PLAN-construccion.md`); el paso fijo, en
+  el ciclo; cada prompt "sin Guido" los cita. Para los proyectos, la misma idea ya está en el `CLAUDE.md` del molde ("lo rutinario lo
+  decidís con la recomendada y lo avisás en una línea").
+- **Descartado:** *una revisión integral por paquete* (cara y repetida; la del paquete ya es el revisor frío) · *que Guido decida todo
+  lo que toque más de una pieza* (casi todo toca más de una; sube la intervención, criterio 1).

@@ -64,6 +64,10 @@ se desvía, qué se arregla y qué no). "Decidís con la recomendada" quiere dec
 3. **Los 11 criterios del diseño** ([`docs/mision-4/PLAN.md`](../mision-4/PLAN.md), "Los 11 criterios"), como desempate. Deciden sobre
    todo el 1 (menos intervención de Guido), el 2 (pragmático), el 4 (software que anda y se sostiene) y el 5 (tokens y el modelo justo).
 4. **Contra accidentes, no contra trampas, y con el presupuesto de la sesión** (ADR-029).
+5. **La coherencia entre piezas** (ADR-034, Guido, 2026-11-03): toda decisión se mira contra cómo interactúa con las otras partes del kit
+   (quién lo lee, quién lo escribe, qué otra pieza espera eso): que concuerden, no se contradigan y el conjunto siga cohesivo. Etiqueta `[coherencia]`.
+6. **Lo técnico lo decide la sesión** (ADR-034): lo que no le cambia el día a día a Guido se decide con esta vara mirando el sistema
+   entero y se anota; a él le llega solo lo que le cambia algo, dicho como "qué cambia en tu día", y las decisiones quedan en criollo.
 
 **Si con la vara no alcanza** (dos opciones empatadas en las cuatro cosas, o una que contradice el SPEC-0 o un ADR y no se puede hacer
 reversible): **no se decide**. Va arriba de Pendientes como pregunta para Guido, con las opciones, sus pros y contras y la recomendada, y la
@@ -84,6 +88,8 @@ sesión sigue con lo que no depende de eso. Lo que sí se decide y es grande se 
 | 8 | El observatorio mide la línea base; playbook, guía y manuales al día | 1 | ✅ 2026-11-03 (D8.1; **te espera**: repasar las ⚠️ y las decisiones sin vos en criollo, y decidir el proyecto de la prueba real: "Cambios al plan") ([`SPEC-paquete-8.md`](SPEC-paquete-8.md)) |
 | 8b | Lo que dejó el repaso de Guido (2026-11-03): obrero de fondo en `auto`, el `por:` de las adaptadas, las cuatro opciones con recomendada, el `-rc` en la ficha, el `/inicio` sin arranques heredados, el obrero de cierre por tramo, githooks al adoptar, el Modo A en v3, la línea del banner; y la beta `v3.0.0-rc.1` | 1 | ✅ 2026-11-03 (D8b.1; **la beta `v3.0.0-rc.1` taggeada**; el renglón (11), el obrero de cierre de tramo, sale en `rc.2`: D8b.1-c) ([`SPEC-paquete-8b.md`](SPEC-paquete-8b.md)) |
 | 8½ | **Hermes** prepara sus llaves y se adopta (**con Guido**, la mañana del 2026-11-04): "preparame esta PC", `entornos:` con su clase, la credencial de escritura al almacén, `adoptar` con su OK | 0 | ⬜ |
+| R1 | **La revisión integral de la rc.1** (ADR-034): el kit entero, tres miradas, solo lectura; y la tanda de correcciones (lo de taller lo decide la sesión, lo de negocio con Guido) | 1 | ⬜ |
+| 8c | **La rc.2**: el obrero de cierre de tramo (renglón 11), los experimentos de método (diseño con Guido antes), las correcciones de R1 | 1 + el diseño | ⬜ |
 | 9 | **La prueba real: el primer módulo nuevo de Hermes con el kit v3** (desde el 2026-11-04); cada arreglo sale como `rc.N` y le llega a Hermes por la flota | 2 en la madre | ⬜ |
 | 10 | Tag `v3.0` y nota de migración | 1 | ⬜ |
 | | **Total** (sin el 0, ya hecho) | **16** | |
@@ -114,6 +120,9 @@ cuántos lanzó y en qué modelo (por ejemplo `4 Sonnet · 2 Opus`): es la medid
 | D7.1 | Paquete 7: el ciclo de `cambios` y la portada | 2026-11-02 (sin Guido, PC `Draco-PC`; **~3 h de reloj (19:45-22:45), ~1,45 M de tokens de subagentes**) | `vibe-kit M5 · D7.1 · Paquete 7: el ciclo de cambios y la portada` | 3 Sonnet (B, D, el banner) · 6 Opus (red team ×1, A, C, revisor frío ×1, RF-fix, E8) = **9** (ADR-029: ~8; el noveno, pedido de Guido al cierre: **el banner siempre**) | `a61e648`…`511ec24` y el cierre | ✅ **Paquete 7 cerrado.** Delta **sellado sin Guido por script** (red team 1 ronda acotada, 4 ALTOS integrados: el retiro vaciaba zonas ajenas, un `3-barrera` subido quedaba rojo para siempre, la regla que no llegó, el candado de portada prendido en toda la flota). **A** `subio-al-kit` (lib pura + CLI + `verificar` + `barreras`), `kit/cubiertos.md` y `aplicar` cierra el ciclo con cinco condiciones (mutación 27/27) · **B** `cambios-flota.cjs` y `--urgentes` en el `/inicio` de vibe-kit (10 repos en 1,7 s; los de prueba, 0,9 s) · **C** `migrar-cambios.cjs`: **Hermes, 103 CM → 102 `aplicado` + 1 `propuesto`, 0 SHA sin resolver, `verificar` verde, `CAMBIOS.md` intacto** (corrido por el director sobre una copia del clon) · **D** la portada: `portada.cjs`, `candado:portada`, plantillas (README de `alfa` armado desde su NORTE). Revisor frío 1 vuelta, 7 hallazgos (1 ALTO: la línea para pegar sin `pieza:` mataba el ciclo de la flota), todos en un encargo (mutación 12/13, el vivo explicado); **E8** (lo encontró RF-fix): las zonas del molde traen texto de fábrica y el retiro no andaba nunca (mutación 5/5). Pruebas de cada encargo corridas por el director; suite entera **2.737 de 2.737** verde (17,5 min, una vez, al final). **Decisiones sin Guido**: arriba |
 | D8.1 | Paquete 8: medir la línea base; playbook, guía, manuales | 2026-11-03 (casi todo sin Guido, PC `Guido-PC-eQ`; **~1,4 h de reloj (09:05-10:30), ~1,37 M de tokens de subagentes** más ~0,17 M del pedido aparte) | `vibe-kit M5 · D8.1 · Paquete 8: la línea base y la documentación al día` | 4 Sonnet (E1, E2, E4b, RF-fix) · 4 Opus (redactor del delta, E3, E4a, revisor frío ×1) = **8** (ADR-029: ~8) · más 1 Opus pedido por Guido (las decisiones sin él en criollo) | `6694244`…el cierre | ✅ **Paquete 8 cerrado.** Delta **sellado sin Guido por script, sin red team** (D8-1). **E1** `flota.py` lee la ficha con el parser del kit, ramas `kit/*`, copias, "aparece en N", specs con sello, portada, `--hook` en un clon, frases viejas y rutas absolutas (P8.3, 0 y 0 sobre el molde v3); `huella.py` con las dos historias del molde · **E2** la corrida del 2026-11-03 sobre clones de los 10 (`mediciones/2026-11-03.md` público en cifras agregadas, el detalle en `vibe-research`; las filas de lector quedan con octubre, D8-4) y la receta en `METODO.md` · **E3** PLAYBOOK §1.5 con los dos ejes, 25 notas en los diseños, ADR-033 · **E4a/E4b** la guía v3 y cinco manuales nuevos o reescritos (Arquitecto, Equipador, roles, molde, scripts) más el runbook; el manual v2 a `legacy/`. Revisor frío 1 vuelta, 6 hallazgos (1 ALTO: el hook con `args`), todos en un encargo. Pruebas del observatorio **42/42** corridas por el director; la suite del kit no se corrió (no se tocó `kit/`). **Decisiones sin Guido**: arriba |
 | D8b.1 | Paquete 8b: lo que dejó el repaso de Guido, y la beta `v3.0.0-rc.1` | 2026-11-03 (sin Guido, PC `Guido-PC-eQ`; **~6,7 h de reloj (11:50-18:30; ADR-029: ~4 h, estirado por la beta), ~1,80 M de tokens de subagentes**) | `vibe-kit M5 · D8b.1 · Paquete 8b y la beta v3.0.0-rc.1` | 2 Sonnet (C, E) · 6 Opus (redactor del delta, red team ×1, A, B, revisor frío ×1, RF-fix) = **8** (ADR-029: ~8; D no corrió) | `4be71f1`…el tag `v3.0.0-rc.1` | ✅ **La beta `v3.0.0-rc.1`.** Delta **sellado sin Guido por script** (red team 1 ronda, 3 ALTOS integrados; r1-3 cerrado midiendo `auto` con los porteros). **C** la versión entera con `-rc` y la línea del banner · **A** el obrero de fondo en `auto` con respaldo (mutación 5/5), los githooks en el OK de la adopción con `--principal` (mutación 8/8), el Modo A con el molde v3 (corrida de punta a punta 26/26, con y sin `scripts.test`) · **B** el `por:` solo, las cuatro salidas, `resolver`, `desde:`, el `/inicio` sin arranques heredados (mutación 7/7) · **E** (fuera del plan) la línea llaves daba ROTA desde D7.1. Revisor frío 1 vuelta, 8 hallazgos (1 ALTO), todos en un encargo. Suite entera **2.774 de 2.774** (2 fallas en la corrida cargada: una de plazo y la prueba de la nota que buscaba `## 3.0.0`; solas, verdes). **Flota** sobre copias de los remotos rehechos y un canónico bare: `alfa` y `beta` 2.4.2 → rc.1 mezclados; con un `rc.2` de prueba, `alfa` y `beta` rc.1 → rc.2 y `gama` 2.4.2 → rc.2 mezclados, nada te espera, **sale 0**. (11) a `rc.2`. **Decisiones sin Guido**: arriba |
+| R1 | La revisión integral de la rc.1 | | | | | |
+| — | Diseño con Guido: probar una idea nueva (experimentos) | | | | | |
+| D8c.1 | La rc.2: cierre de tramo, experimentos y las correcciones de R1 | | | | | |
 | D9.1 | Acompañar la prueba real en Hermes (los `rc.N`) | | | | | |
 | D9.2 | Medir la prueba contra la línea base (`mediciones/2026-11-03.md`) | | | | | |
 | D10.1 | Tag `v3.0` y nota de migración | | | | | |
@@ -1057,6 +1066,7 @@ trabajo. Cada paso, con quién lo hace:
 
 | # | Paso | La sesión | Guido |
 |---|---|---|---|
+| 0 | **El informe de R1** (`docs/kit-v3/REVISION-INTEGRAL-rc1.md`): primero lo que traba la adopción, después las decisiones de negocio, una por una (las de taller ya las decidió R1) | lo presenta en criollo, con la recomendada | decide las de negocio; si algo traba la adopción, se arregla antes o Hermes se adopta después |
 | 1 | **"preparame esta PC"** con la beta (`v3.0.0-rc.1`), en cada PC (`Guido-PC-eQ` y la otra) | corre el Equipador, muestra el plan (`--plan`) y lo que cambia en `settings.json` | dice sí a la pregunta; en la segunda PC, la abre él |
 | 2 | **El corrector viejo**: cruzar los cinco regex de `~/.claude/hooks/block_secrets.ps1` (está en `Guido-PC-eQ`) con los de `secretos.cjs` (pendiente (e) de D3.2) | lee los dos y dice qué frena el viejo que el nuevo no; si falta alguno, delta chico como G5b | decide si se saca el viejo (`--sacar-viejo`) |
 | 3 | **`adoptar --mirar`** sobre Hermes Desktop (en un clon, como dice `anexos/flota.md`) | muestra la propuesta: bases, piezas adaptadas, qué herramienta de hooks usa | la lee |
@@ -1067,6 +1077,61 @@ trabajo. Cada paso, con quién lo hace:
 
 Lo que se mira y se anota en "Pendientes" para D9.1: cuánto tardó cada paso, qué preguntó de más, y todo lo que haya que arreglar (sale
 como `rc.2` y le llega a Hermes por la flota).
+
+## Después de la rc.1: las sesiones que siguen, en orden (asentado el 2026-11-03 con Guido)
+
+Cada una en un chat nuevo de vibe-kit, en Opus salvo que diga otra cosa. Todas con la vara del ADR-030 **y el ADR-034** (la coherencia
+entre piezas, lo técnico lo decide la sesión, la revisión integral como paso fijo), el presupuesto del ADR-029 y las reglas del repo
+(gitleaks sin tubería antes de cada push; en `Guido-PC-eQ`, el push por `gh`: ver el handoff). Guido aparece solo en la 2 y la 3.
+
+| # | Sesión | Con Guido | Cuándo | Qué sale |
+|---|---|---|---|---|
+| 1 | **R1 · Revisión integral del kit v3** (`vibe-kit M5 · R1 · Revisión integral de la rc.1`) | no | la noche del 2026-11-03, después del cierre de D8b.1 | `docs/kit-v3/REVISION-INTEGRAL-rc1.md`: hallazgos con escenario, separados "te afecta" / "de taller", y cuáles traban la adopción de mañana |
+| 2 | **Mañana: preparar la PC y adoptar Hermes** (`vibe-kit M5 · Mañana: preparar la PC y adoptar Hermes`; el prompt lo dejó D8b.1, sección "Mañana con Guido") | **sí** | 2026-11-04 a la mañana, antes del proyecto nuevo | primero el informe de R1 (si algo grave toca la adopción, Hermes arranca igual como hoy y se adopta después); después "preparame esta PC", las llaves (8½), `adoptar` con su OK, y el proyecto nuevo con `/arquitecto` |
+| 2b | **La tanda de correcciones de R1** (en la misma sesión 2, antes de adoptar, y en la 4): R1 deja cada hallazgo clasificado. **Los de taller los decide la sesión** (ADR-034) y van directo al arreglo; **los de negocio** (los que le cambian algo a Guido) se ven con él en la sesión 2, uno por uno, con la recomendada. Lo que **traba la adopción** se arregla antes de adoptar (un encargo corto en la 2, o Hermes arranca igual como hoy y se adopta después); el resto entra en la 4 (la rc.2) como un paquete de correcciones | en parte | 2026-11-04 | la lista de correcciones decidida, cada una con su destino |
+| 3 | **Diseño: los experimentos de método** (`vibe-kit M5 · Diseño: probar una idea nueva (experimentos)`) | **sí** | cuando Guido pueda, 2026-11-04 o 05 | el Arquitecto (Modo B sobre vibe-kit) charla con Guido y deja el spec sellado de la pieza nueva |
+| 4 | **D8c.1 · La rc.2** (`vibe-kit M5 · D8c.1 · La rc.2: cierre de tramo, experimentos y la revisión`) | no | después de la 3 | el obrero de cierre de tramo (renglón 11), los experimentos (el spec de la 3), los arreglos de R1 que no trabaron la adopción; `v3.0.0-rc.2` y "poné al día la flota" en Hermes |
+| 5 | **D9.x · Acompañar la prueba real** | a ratos | mientras dure el primer módulo de Hermes | cada arreglo del uso como `rc.N` |
+| 6 | **M6b · El ciclo, segunda parte** | sí, corta | cuando cierre el primer módulo de Hermes | §3.5 y §8 del ciclo con lo vivido; la fecha de la próxima vuelta |
+| 7 | **R2 · Revisión integral final + D10.1 · `v3.0`** | no / OK de Guido para publicar | después de la 6 | la segunda revisión integral (ADR-034), la medición contra `mediciones/2026-11-03.md`, el tag `v3.0` idéntico al último rc |
+
+### Abrir R1 sin Guido (el prompt)
+
+> inicio — misión 5, **R1: la revisión integral de la rc.1**, sin mí. Solo lectura: no cambiás código ni docs del kit; el único archivo
+> que escribís es el informe. Autorizado lo mismo que a D8.1 (su prompt), con la vara del ADR-030 y el ADR-034.
+>
+> 1. **Qué se revisa**: el kit entero en `main` (el tag `v3.0.0-rc.1`): `kit/` (molde, skills, scripts, hooks), la guía, los manuales, el
+>    PLAYBOOK, el SPEC-0 y los deltas de los paquetes 1 a 8b, y lo decidido con Guido (`docs/kit-v3/DECISIONES-SIN-GUIDO-en-criollo.md`,
+>    "El repaso con Guido").
+> 2. **Tres revisores Opus en paralelo, sin contexto previo, cada uno con una mirada**: (a) **el día de Guido de punta a punta** en un
+>    proyecto real que se adopta (preparar la PC → adoptar → `/inicio` → pedir algo chico y algo más que chico → el Arquitecto → director y
+>    obreros → "me voy" → `/estado` a la mañana → cierre de tramo → poner al día la flota con un `rc.2`), buscando dónde se corta, dónde una
+>    pieza espera algo que otra no da, dónde le pregunta de más; (b) **la coherencia**: las decisiones (las 150 y el repaso) contra el
+>    código, y entre paquetes (dos piezas que dicen distinto sobre lo mismo); (c) **la documentación contra el código** (guía, manuales,
+>    playbook). Cada uno hasta 10 hallazgos, cada uno con su escenario del día normal; lo rebuscado, a "lo que no cierra".
+> 3. **El informe** `docs/kit-v3/REVISION-INTEGRAL-rc1.md` (y su fila en `docs/README.md`): arriba, en criollo, **qué traba la adopción de
+>    Hermes de mañana** (si algo), después "te afecta" y "de taller", cada hallazgo con su arreglo propuesto y a qué sesión va (la rc.2 o
+>    Pendientes). Lo de taller lo decidís vos (ADR-034); lo que le afecta a Guido queda como pregunta con la recomendada.
+> 4. Presupuesto: ~2 h y 4 encargos (3 revisores + la síntesis). `/cierre` completo; el "Próximo paso" del handoff = la sesión 2 de la tabla.
+
+### Abrir el diseño de los experimentos (el prompt, con Guido)
+
+> inicio — misión 5: diseñar con Guido **"probar una idea nueva de método"** (los experimentos), para la rc.2. Es más que chico: llamá al
+> Arquitecto (Modo B sobre vibe-kit). Lo que ya se habló (2026-11-03, memoria `experimentos-de-metodo`): la entrada "quiero probar X" arma
+> un experimento liviano en el proyecto (la idea y el dolor que cura, cómo se mide, hasta cuándo, una bitácora que llevan las sesiones
+> solas); al vencer, el veredicto con evidencia (oficializar en vibe-kit · descartar con su razón · seguir); y el ciclo
+> (`docs/CICLO-DE-MEJORA.md`) los lee como primera fuente. El antecedente real: director/obrero en Hermes (bitácora y `CAMBIOS.md`). Que
+> reuse el registro de cambios (`.claude/cambios/`) antes de inventar otro archivo, y que lo técnico lo decida la sesión (ADR-034). Sale el
+> spec sellado para la D8c.1. Sin código.
+
+### Abrir D8c.1 sin Guido (el prompt)
+
+> inicio — misión 5, **D8c.1: la rc.2**, sin mí, con el presupuesto del ADR-029 y lo mismo que autoricé a D8b.1 (su prompt), con la vara
+> del ADR-030 y el ADR-034. Alcance: (1) el obrero de cierre de tramo (renglón 11 del repaso, que D8b.1 dejó con su porqué); (2) los
+> experimentos de método (el spec que salió del diseño con Guido); (3) los arreglos de `REVISION-INTEGRAL-rc1.md` que no se hicieron antes de
+> adoptar Hermes. Delta `docs/kit-v3/SPEC-paquete-8c.md`, red team si toca un freno, revisor frío que recorra el día de Guido, la suite
+> entera, la prueba de la flota con un canónico `bare`, y si todo da verde: `kit/VERSION` `3.0.0-rc.2`, su nota, tag anotado, push, y
+> "poné al día la flota" sobre Hermes (en `auto`; si el clasificador frena el push, la línea la corre Guido). `/cierre` completo.
 
 ## Paralelizar: decidido que no (DP, 2026-10-29)
 
@@ -1347,6 +1412,7 @@ Del spec, sección "Lo que hacés vos de nuevo". Acá solo cuándo toca, para qu
 | 2026-11-02 | **El paquete 6 pasa a dos directores** (D6.1 la PC y el núcleo del actualizador; D6.2 la flota de punta a punta y el adoptador) | No entraba en ~4 h y ~8 encargos (ADR-029): delta, red team, revisor frío y arreglos ya son 4. El "el chequeo antes que la mezcla" del SPEC-0 marca el corte. Decidido sin Guido en el delta (D6.1) |
 | 2026-11-03 | **Sin piloto de prueba en Deptos: la prueba es en un proyecto de verdad** (el que se recomendó: **Hermes Desktop**, con un módulo nuevo; Mobile no, su formato de cambios no se exploró). El orden pasa a: D8.1 → **Guido repasa las decisiones sin él** (la página en criollo que armó D8.1) → release (el tag) → el proyecto real → se ajusta lo que haga falta. **A cerrar con Guido al volver de D8.1**: el proyecto exacto, si el tag va antes o después del primer módulo, y cómo queda el paquete 8½ (las llaves de ese proyecto, no de Deptos). Hasta entonces, el SPEC-0 (orden 9) y las filas D9.1/D9.2 no se tocan |
 | 2026-11-03 | **Cerrado con Guido** (el repaso, en el chat de D8.1): la prueba es **Hermes**, con el proyecto nuevo que arranca el 2026-11-04. Orden: **paquete 8b** (lo que dejó el repaso: los 17 renglones de "El repaso con Guido" en `DECISIONES-SIN-GUIDO-en-criollo.md`, los que dicen "delta") → **beta `v3.0.0-rc.1`** → con Guido a la mañana: "preparame esta PC", las llaves y la adopción de Hermes (8½) → el módulo nuevo con el Arquitecto v3 → los arreglos como `rc.N` → `v3.0` cuando el módulo cierre bien. **La red**: si el 8b no cierra limpio o la adopción muestra algo raro, Guido arranca igual como hoy (el Arquitecto v3 ya está en su PC) y Hermes se adopta al cierre del primer tramo; la beta nunca frena su trabajo. Además, una regla nueva de Guido: lo técnico que no le cambia el día a día lo decide la sesión con la vara | Guido: "estoy próximo a arrancar en Hermes, mañana un proyecto nuevo"; el repaso dejó 9 cambios chicos que tienen que estar antes de la primera adopción real | Guido, durante D8.1: "estoy en un muy buen momento en mis proyectos […] no tengo nada grande arrancado"; Hermes solo entra en un cierre de tramo (ADR-021) y hoy lo es. "Si revisamos las decisiones y después revisamos que el proyecto más o menos salió bien, la prueba puede ser en un proyecto de verdad". Las condiciones que recomendó el director: un módulo nuevo (no migrar todo de golpe), la adopción en dos commits que se revierten, un tag de prueba y las llaves preparadas antes |
+| 2026-11-03 | **Después de la rc.1, siete sesiones en orden** ("Después de la rc.1: las sesiones que siguen"): R1 la revisión integral (sin Guido, esa noche) → la mañana con Guido (el informe de R1 primero: la tanda de correcciones, lo de negocio con él; después preparar la PC y adoptar Hermes) → el diseño de los experimentos con Guido → D8c.1 la rc.2 (el obrero de cierre de tramo, los experimentos, las correcciones de R1) → la prueba real → M6b → R2 y la `v3.0`. **La sesión madre orquesta**: lanza las que no piden a Guido cuando les toca, con su visto bueno previo. Y dos criterios nuevos en la vara (ADR-034): la coherencia entre piezas, y lo técnico lo decide la sesión; la revisión integral pasa a paso fijo del ciclo | Guido, en el chat del repaso: "una revisión integral del Vibe Kit, cómo quedó esta nueva versión […] cómo interactúan entre sí las partes"; "que las cosas interactúen bien entre sí, tengan coherencia, concordancia, sean cohesivas"; "ya tenés mi visto bueno para lanzarlas […] como una especie de agente orquestador"; "no dejes pasar lo de agregar el tema de probar una feature" |
 
 ## Lecciones (insumo de la misión 6)
 
