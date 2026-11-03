@@ -232,6 +232,21 @@ class Hook(unittest.TestCase):
         self.assertEqual(r["hook_chars"], 12000)
         self.assertTrue(r["hook_pasado_del_tope"])
 
+    def test_project_dir_se_expande_en_las_tres_formas(self):
+        clon = self.clon("import sys\nsys.stdout.write('y' * 7)\n")
+        py = f'"{sys.executable}"'
+        for cmd in (f'{py} $CLAUDE_PROJECT_DIR/hook.py', f'{py} "$CLAUDE_PROJECT_DIR/hook.py"',
+                    f'{py} "${{CLAUDE_PROJECT_DIR}}/hook.py"'):
+            with open(os.path.join(clon, ".claude", "settings.json"), "w") as f:
+                f.write(json.dumps({"hooks": {"SessionStart": [{"hooks": [{"type": "command", "command": cmd}]}]}}))
+            r = flota.huella_hook(clon)
+            self.assertEqual(r["hook_chars"], 7, cmd)
+
+    def test_expandir_proyecto_pone_comillas_solo_si_faltan(self):
+        self.assertEqual(flota.expandir_proyecto('x "$CLAUDE_PROJECT_DIR"/a', "/c").count('""'), 0)
+        self.assertTrue(flota.expandir_proyecto("x $CLAUDE_PROJECT_DIR/a", "/c").startswith('x "'))
+        self.assertNotIn("CLAUDE_PROJECT_DIR", flota.expandir_proyecto("x ${CLAUDE_PROJECT_DIR}/a", "/c"))
+
     def test_hook_que_cuelga_da_null_al_plazo(self):
         t0 = time.time()
         r = flota.huella_hook(self.clon("import time\ntime.sleep(60)\n"), plazo=1)
