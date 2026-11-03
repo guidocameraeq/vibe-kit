@@ -8,7 +8,7 @@
 > **La hoja de ruta, reordenada el 2026-10-26 (ADR-025)**: 4 cerrar el diseño sin mensajería → 4½ ordenar la casa → 5 construir **v3.0** →
 > 6 el ciclo como proceso → 7 la mensajería agéntica (**v3.1**). Después, el reloj: una vuelta cada 3-4 meses (abajo, "El ciclo").
 
-- [ ] **Misión 5 — construir el pack por piezas → kit v3.0** (en curso: paquetes 1 a 8 ✅; sigue **una sesión con Guido**: repasar las decisiones sin él (`docs/kit-v3/DECISIONES-SIN-GUIDO-en-criollo.md`) y decidir la prueba en un proyecto de verdad, que reemplaza al piloto en Deptos (tracker, "Cambios al plan", 2026-11-03); el modelo de cada rol, en la sección "Ejecución" del spec). **El plano es `docs/kit-v3/SPEC-0-kit-v3.md` (READY, 2026-10-27)**:
+- [ ] **Misión 5 — construir el pack por piezas → kit v3.0** (en curso: paquetes 1 a 8 y 8b ✅, **beta `v3.0.0-rc.1` taggeada** el 2026-11-03; sigue **la mañana con Guido** (8½: preparar la PC y adoptar Hermes, tracker "Mañana con Guido") y la prueba real en Hermes con los `rc.N`; el modelo de cada rol, en la sección "Ejecución" del spec). **El plano es `docs/kit-v3/SPEC-0-kit-v3.md` (READY, 2026-10-27)**:
   9 paquetes en el orden de su tabla "Orden de construcción" (1 ficha y parser · 2 documentos, hook, candado, `cambios` · 3 seguridad · 4 Arquitecto
   y `worktree` · 5 canon director/obrero, `/estado`, mesa · 6 Equipador, actualizador, adoptador · 7 ciclo y portada · 8 observatorio y docs del
   método · 8½ credenciales de Deptos · 9 piloto · 10 tag). Cada paquete con spec delta en `docs/kit-v3/SPEC-paquete-N.md`, red team si toca

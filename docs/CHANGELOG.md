@@ -2,6 +2,36 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-11-03 — Misión 5, paquete 8b (D8b.1): lo que dejó el repaso de Guido, y la beta · v3.0.0-rc.1
+
+PC `Guido-PC-eQ`, chat `vibe-kit M5 · D8b.1 · Paquete 8b y la beta v3.0.0-rc.1`, en Opus, sin Guido (con su autorización previa):
+**~6,7 h de reloj (11:50-18:30; el ADR-029 pedía ~4 h), 8 encargos (6 Opus: redactor, red team, A, B, revisor frío, RF-fix · 2 Sonnet:
+C, E), ~1,80 M de tokens de subagentes**. **Tag anotado `v3.0.0-rc.1`** (la beta de la v3). El paquete 8b queda ✅ salvo el renglón (11).
+
+**Added**
+- `docs/kit-v3/SPEC-paquete-8b.md`, sellado sin Guido por script, con red team de 1 ronda (3 ALTOS integrados) y la medición de `auto`.
+- `actualizar.cjs resolver` (las cuatro salidas de una adaptada: mezclar · propia · nueva · congelar; no pisa trabajo) y `ultimo-tag`;
+  `desde:` en las piezas de la ficha; `FRENOS` en `fusion.cjs`.
+- `adoptar --mirar --nuevo` y `--comando-test`; `adoptar --aplicar --principal` (los githooks en la carpeta del dueño, validada).
+- La línea "el banner quedó en assets/banner.svg" de `portada.cjs`.
+
+**Changed**
+- La versión del kit lleva `-rc.N` entera (ficha, `kit/VERSION`, tags, sello, `doctor`, flota); `kit/VERSION` = `3.0.0-rc.1`.
+- El obrero de fondo se lanza en `auto` con la lista, con una línea de respaldo en `acceptEdits` (`encargo.cjs`, `/director`, NUCLEO).
+- Una adaptada se fusiona sola solo con `por:` y la mezcla limpia; si no, el informe trae lo que dice el kit, la nueva entera y las cuatro
+  salidas. El `/inicio`: lo que dejó otra sesión es propuesta con OK (pasos 5, 6 y 9).
+- El Modo A monta el molde v3 con el adoptador y el SPEC-0 vive en `docs/modulos/v1/SPEC.md`; `ready` lo reconoce.
+- `kit/CHANGELOG.md`: la nota v3 pasa a `## 3.0.0-rc.1`, con lo del 8b.
+
+**Fixed**
+- La línea "llaves" de `chequear` daba ROTA a toda actualización desde D7.1 (`portada.cjs` trae `{{` a propósito): ahora mira solo lo que
+  el molde instancia, y saltea los informes de `.claude/fusiones/`. `rehacer.sh` fallaba por lo mismo.
+- Revisor frío (8 hallazgos): `resolver` trabado tras un commit legítimo, `--a-mano` que perdía lo nuevo, el Modo A sin `comando-test`,
+  URLs de `origin` sin normalizar, el tag elegido a mano, `aplicar` con kit rc.
+
+**Verificado**: suite entera 2.774 de 2.774 (dos que fallaron con la PC cargada, verdes solas); flota sobre copias de los remotos
+rehechos: 2.4.2 → rc.1 y, con un `rc.2` de prueba, `alfa`/`beta` rc.1 → rc.2 y `gama` 2.4.2 → rc.2, todo mezclado, sale 0.
+
 ## 2026-11-03 — Misión 5, paquete 8 (D8.1): la línea base medida y la documentación al día
 
 PC `Guido-PC-eQ`, chat `vibe-kit M5 · D8.1 · Paquete 8: la línea base y la documentación al día`, en Opus, casi todo sin Guido (estuvo al
