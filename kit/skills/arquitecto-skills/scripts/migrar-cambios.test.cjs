@@ -169,6 +169,45 @@ test('la corrida entera: un archivo por CM, cada estado como manda el delta, y v
   assert.match(uno.cuerpo, new RegExp(`## Medición\n\n${MC.SIN_MEDIR.replace(/[()]/g, '\\$&')}`));
 });
 
+test('RF-fix rf-5: un SHA colgado (rama borrada, sigue en el reflog) resuelve con rev-parse pero no está en main → propuesto con la nota', () => {
+  let colgado = null;
+  const { d, shaA } = armarRepo((a) => `# Cambios
+
+## CM-1 · Aplicado en una rama que se borró
+
+**Estado**: ✅ **aplicado** en \`COLGADO\` (2026-09-21).
+
+## CM-2 · Aplicado en main, con otro colgado de yapa
+
+**Estado**: ✅ **aplicado** en \`${a}\` y \`COLGADO\` (2026-09-22).
+`);
+  // el commit en una rama que después se borra: rev-parse lo sigue encontrando (objeto suelto, reflog), pero no es de main
+  git(d, ['checkout', '-q', '-b', 'efimera']);
+  fs.writeFileSync(path.join(d, 'c.txt'), 'c\n');
+  git(d, ['add', 'c.txt']);
+  git(d, ['commit', '-q', '-m', 'c, en una rama que se borra']);
+  colgado = git(d, ['rev-parse', 'HEAD']);
+  git(d, ['checkout', '-q', 'main']);
+  git(d, ['branch', '-q', '-D', 'efimera']);
+  assert.equal(git(d, ['rev-parse', '--verify', '-q', `${colgado.slice(0, 7)}^{commit}`]), colgado, 'rev-parse lo resuelve igual');
+  const f = path.join(d, ...FUENTE.split('/'));
+  fs.writeFileSync(f, fs.readFileSync(f, 'utf8').replace(/COLGADO/g, colgado.slice(0, 7)));
+  git(d, ['add', FUENTE]);
+  git(d, ['commit', '-q', '-m', 'cita el colgado']);
+  const r = correr(d);
+  assert.equal(r.codigo, 0, r.salida);
+  const uno = CM.leer(leerCambio(d, '2026-09-21-cm-1'));
+  assert.equal(uno.datos.estado, 'propuesto');
+  assert.equal(uno.datos.sha, undefined);
+  assert.match(uno.cuerpo, new RegExp(`lo da por aplicado en \`${colgado.slice(0, 7)}\`, pero ese commit no está en main \\(commit colgado: rama borrada o reflog\\)\\. Nunca un \`aplicado\` falso`));
+  const dos = CM.leer(leerCambio(d, '2026-09-22-cm-2'));
+  assert.equal(dos.datos.estado, 'aplicado');
+  assert.equal(dos.datos.sha, shaA);
+  assert.match(dos.cuerpo, new RegExp(`Otros commits de la línea de Estado: \`${colgado.slice(0, 7)}\` \\(no está en main \\(commit colgado: rama borrada o reflog\\)\\)\\.`));
+  assert.deepEqual(CM.verificar(d), []);
+  assert.match(r.salida, new RegExp(`SHA que no resolvieron: CM-1 \\(\`${colgado.slice(0, 7)}\`\\), CM-2 \\(\`${colgado.slice(0, 7)}\`\\)`));
+});
+
 test('un SHA que no resuelve → propuesto y el cuerpo lo dice (nunca un aplicado falso)', () => {
   const { d } = armarRepo(fuenteChica);
   assert.equal(correr(d).codigo, 0);

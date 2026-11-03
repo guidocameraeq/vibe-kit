@@ -11,7 +11,8 @@
 //   - cabecera (D7-5): clase 2 · toca [metodo] · origen "CAMBIOS.md CM-<n> (migrado)" · cicatriz no · chico no · urgente no, sin
 //     cita (Hermes no guarda las citas en forma de id: inventarlas sería un dato falso).
 //   - estado: `✅ **aplicado** en `<sha>`` → aplicado con el SHA COMPLETO (git rev-parse <corto>^{commit}; si hay varios, el primero,
-//     los otros al cuerpo). Un SHA que no resuelve → propuesto, y el cuerpo lo dice (nunca un aplicado falso). `**rechazado**` →
+//     los otros al cuerpo). Un SHA que no resuelve, o que resuelve pero NO es ancestro de la rama por defecto local (un commit
+//     colgado: rama borrada, reflog; RF-fix rf-5) → propuesto, y el cuerpo lo dice (nunca un aplicado falso). `**rechazado**` →
 //     rechazado con el motivo de la línea. Cualquier otro (propuesto, "propuesto, aprobado por el PO") → propuesto, la línea al cuerpo.
 //   - cuerpo, las cuatro secciones: Caso de origen (la sección original entera, citada) · Regla (el título del CM) · Dónde vive (la
 //     columna "Aplicado en" del índice) · Medición (la tabla de medición si la sección la trae; si no, "no está medido").
@@ -29,6 +30,7 @@ const path = require('path');
 const C = require('../pc/lib/cambios.cjs');
 const R = require('../pc/lib/cambios-ruta.cjs');
 const G = require('../pc/lib/git.cjs');
+const { ramaPorDefecto } = require('./cambios-flota.cjs');
 
 const USO = 'Uso: node migrar-cambios.cjs --repo <dir> [--fuente docs/metodo/CAMBIOS.md] [--plan] [--commit]';
 const FUENTE = 'docs/metodo/CAMBIOS.md';
@@ -168,15 +170,37 @@ function enGit(raiz, args) {
   return G.texto(args, { cwd: raiz, tiempo: TIEMPO });
 }
 
+// resolver(corto) → el SHA completo si el commit existe Y es ancestro de la rama por defecto local (la misma vara que cambios-flota:
+// lo que vale es lo que está en la rama), si no null. resolver.porque(corto) dice por qué no: "no está en este repo" o "no está en
+// <rama> (commit colgado: …)". Un commit de una rama borrada que sigue en el reflog resuelve con rev-parse, pero no es un aplicado.
 function crearResolvedor(raiz) {
   const cache = new Map();
-  return (corto) => {
+  let rama;
+  const ramaDef = () => {
+    if (rama === undefined) {
+      try {
+        rama = ramaPorDefecto(raiz);
+      } catch {
+        rama = 'HEAD'; // sin main, master ni origin/HEAD: lo que está sacado
+      }
+    }
+    return rama;
+  };
+  const resolver = (corto) => {
     if (!cache.has(corto)) {
       const s = enGit(raiz, ['rev-parse', '--verify', '-q', `${corto}^{commit}`]);
-      cache.set(corto, s && C.RE_SHA.test(s) ? s : null);
+      if (!s || !C.RE_SHA.test(s)) cache.set(corto, { sha: null, porque: 'no está en este repo' });
+      else if (enGit(raiz, ['merge-base', '--is-ancestor', s, ramaDef()]) === null) {
+        cache.set(corto, { sha: null, porque: `no está en ${ramaDef().replace(/^refs\/(heads|remotes)\//, '')} (commit colgado: rama borrada o reflog)` });
+      } else cache.set(corto, { sha: s, porque: null });
     }
-    return cache.get(corto);
+    return cache.get(corto).sha;
   };
+  resolver.porque = (corto) => {
+    resolver(corto);
+    return cache.get(corto).porque;
+  };
+  return resolver;
 }
 
 // La fecha (AAAA-MM-DD) del commit más viejo de una lista de `git log`, o null.
@@ -187,6 +211,9 @@ const masVieja = (salida) => {
 };
 
 // ---------------------------------------------------------------- armar un CM
+
+// Por qué un SHA no resolvió (ctx.resolver de crearResolvedor; uno de prueba sin .porque: "no está en este repo").
+const porqueDe = (ctx, corto) => (typeof ctx.resolver.porque === 'function' && ctx.resolver.porque(corto)) || 'no está en este repo';
 
 // armarCm(cm, ctx) → { id, tipo, texto, notas: [..], sinResolver: [cortos] } o { problema }.
 function armarCm(cm, ctx) {
@@ -213,14 +240,15 @@ function armarCm(cm, ctx) {
     } else if (!completos[0].completo) {
       tipo = 'propuesto';
       notas.push(
-        `Migrado como \`propuesto\`: ${ctx.nombre} lo da por aplicado en \`${completos[0].corto}\`, pero ese commit no está en este repo ` +
-          '(`git rev-parse` no lo encontró). Nunca un `aplicado` falso: si el commit aparece, `cambios anotar-sha` lo anota.',
+        `Migrado como \`propuesto\`: ${ctx.nombre} lo da por aplicado en \`${completos[0].corto}\`, pero ese commit ` +
+          (porqueDe(ctx, completos[0].corto) === 'no está en este repo' ? 'no está en este repo (`git rev-parse` no lo encontró)' : porqueDe(ctx, completos[0].corto)) +
+          '. Nunca un `aplicado` falso: si el commit aparece en la rama, `cambios anotar-sha` lo anota.',
       );
     } else sha = completos[0].completo;
     const otros = completos.slice(1);
     if (otros.length) {
       notas.push(
-        `Otros commits de la línea de Estado: ${otros.map((x) => (x.completo ? `\`${x.completo}\`` : `\`${x.corto}\` (no está en este repo)`)).join(', ')}.`,
+        `Otros commits de la línea de Estado: ${otros.map((x) => (x.completo ? `\`${x.completo}\`` : `\`${x.corto}\` (${porqueDe(ctx, x.corto)})`)).join(', ')}.`,
       );
     }
   } else if (tipo === 'rechazado') {

@@ -70,6 +70,7 @@ const C = require('./lib/catalogo.cjs');
 const M = require('./lib/molde.cjs');
 const FU = require('./lib/fusion.cjs');
 const CA = require('../pc/lib/cambios.cjs');
+const CU = require('./lib/cubiertos.cjs');
 
 const ROTO = 'actualizador roto: corré doctor';
 const RUTA_FICHA = '.claude/kit.md';
@@ -79,9 +80,7 @@ const KIT_ROL = '.kit-rol';
 const RE_VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 const SNIPPETS = [['gitignore.snippet', '.gitignore'], ['gitattributes.snippet', '.gitattributes']];
 const ADAPTADA = 'adaptada (desvío detectado)';
-const RUTA_CUBIERTOS = 'kit/cubiertos.md'; // en la raíz del --kit (D7-2)
-const RE_CITA = /^[a-z0-9-]+ \S+$/; // la de cambios.cjs
-const RE_PIEZA = /^[a-z0-9][a-z0-9-]*$/;
+const RUTA_CUBIERTOS = CU.RUTA; // en la raíz del --kit (D7-2); el lector es lib/cubiertos.cjs, el mismo de flota y cambios-flota
 // Lo que cuenta como "la pieza se reemplazó o se mezcló en esta corrida" (P6.8b-1, condición c).
 const LLEGARON = ['reemplazada', 'mezclada (zona intacta)'];
 
@@ -578,7 +577,13 @@ function armar(plan, carpeta, { textoFicha, datos, nuevo, viejo, opciones = {} }
   }
 
   // (6bis) el cierre del ciclo (P6.8b-1): después de las piezas, antes de la ficha
-  cerrarCiclo(plan, carpeta, { opciones, llegadas, leerP, escribir });
+  // el texto del molde nuevo de <archivo> si es de <pieza> (para (c): la pieza ya llegó, en esta corrida o en un -rc), si no null
+  const moldeNuevoDe = (pieza, archivo) => {
+    const p = repN.get(pieza);
+    const a = p && p.archivos.find((x) => mismaRel(x.proyecto, archivo));
+    return a && aN.has(a.molde) ? aN.get(a.molde) : null;
+  };
+  cerrarCiclo(plan, carpeta, { opciones, llegadas, moldeNuevoDe, leerP, escribir });
 
   // (7) la ficha y el CHANGELOG
   const cambiaVersion = plan.vViejo !== plan.vNuevo;
@@ -608,28 +613,6 @@ function armar(plan, carpeta, { textoFicha, datos, nuevo, viejo, opciones = {} }
 
 // ---------------------------------------------------------------- (6bis) el cierre del ciclo: subio-al-kit (SPEC-paquete-7 P6.8b-1)
 
-// kit/cubiertos.md del kit nuevo (D7-2) → { entradas: [{cita, version, pieza}] } o { problema }. Una entrada que no tiene
-// exactamente esas tres claves, con su forma, hace que el archivo entero no valga: ante la duda no se marca nada.
-function leerCubiertos(kit) {
-  let texto;
-  try {
-    texto = fs.readFileSync(path.join(kit, ...RUTA_CUBIERTOS.split('/')), 'utf8');
-  } catch {
-    return { problema: 'no está' };
-  }
-  let datos;
-  try {
-    datos = F.leerCabecera(texto).datos;
-  } catch (e) {
-    return { problema: `no se lee (${e.message})` };
-  }
-  if (!Array.isArray(datos.cubiertos)) return { problema: 'no tiene la lista cubiertos:' };
-  for (const [i, x] of datos.cubiertos.entries()) {
-    const bien = esMapa(x) && Object.keys(x).sort().join() === 'cita,pieza,version' && RE_CITA.test(x.cita) && RE_VERSION.test(x.version) && RE_PIEZA.test(x.pieza);
-    if (!bien) return { problema: `la entrada ${i + 1} no es {cita: "<alias> <id>", version: N.N.N, pieza: <id>}` };
-  }
-  return { entradas: datos.cubiertos };
-}
 
 // El texto con lo de ADENTRO de cada zona propia vaciado (las marcas quedan), con LF. Solo se llama con zonas sanas.
 function vaciarZonas(texto) {
@@ -664,14 +647,20 @@ const mismaRel = (a, b) => String(a).replace(/\\/g, '/') === String(b).replace(/
 
 // Por qué la zona propia de un cambio que sube NO se retira (D7-7, las cinco condiciones; ante cualquier duda, queda), o null si
 // se retira. c: el cambio cargado; entrada: la suya de cubiertos.md; todos: los cambios del proyecto; llegadas: pieza → rutas de
-// lo que se reemplazó o se mezcló en esta corrida; texto: el archivo ya mezclado.
-function porQueQueda(carpeta, { c, entrada, todos, llegadas, texto }) {
+// lo que se reemplazó o se mezcló en esta corrida; moldeNuevoDe(pieza, archivo): el texto del molde nuevo de ese archivo si es de
+// esa pieza (si no, null); texto: el archivo ya mezclado.
+function porQueQueda(carpeta, { c, entrada, todos, llegadas, moldeNuevoDe, texto }) {
   const archivo = c.datos.aplico.archivo;
   // (a) clase 2 y (b) no es un archivo de frenos (la vara del candado, r1-9): un freno nunca se retira solo (D7-3)
   if (c.datos.clase !== '2' || CA.categoriaDe(archivo) !== null) return 'te espera (freno)';
-  // (c) la regla llegó por el actualizador: su pieza se reemplazó o se mezcló ahora, y el archivo es de esa pieza (r1-3)
+  // (c) la regla llegó por el actualizador (r1-3), y el archivo es de esa pieza: o su pieza se reemplazó o se mezcló en esta
+  // corrida, o el archivo, fuera de sus zonas propias, ya es igual al del molde nuevo — la pieza ya llegó, ahora o en un -rc de
+  // esta versión (RF-fix rf-4: de un rc al final la pieza viene "sin cambios" porque la trajo el rc; sin esto, "te espera" eterno)
   const llego = llegadas.get(entrada.pieza);
-  if (!llego || ![...llego].some((r) => mismaRel(r, archivo))) return 'te espera (la regla no llegó por el actualizador)';
+  const ahora = !!llego && [...llego].some((r) => mismaRel(r, archivo));
+  const molde = ahora ? null : moldeNuevoDe(entrada.pieza, archivo);
+  const yaLlego = molde !== null && texto !== null && iguales(archivo, texto, molde);
+  if (!ahora && !yaLlego) return 'te espera (la regla no llegó por el actualizador)';
   // (d) la zona era toda del cambio (vacía en <sha>^) y ningún otro cambio vivo la usa (r1-1)
   const otro = todos.some((o) => o !== c && !o.error && !['rechazado', 'subio-al-kit'].includes(o.datos.estado) && esMapa(o.datos.aplico) && mismaRel(o.datos.aplico.archivo, archivo));
   if (otro || !zonaVaciaAntes(carpeta, c.datos.sha, archivo)) return 'zona compartida, queda';
@@ -684,20 +673,22 @@ function porQueQueda(carpeta, { c, entrada, todos, llegadas, texto }) {
 // `aplicado` del proyecto cuyo id (<vars.proyecto> <id>) o cita: está en kit/cubiertos.md con version ≤ la del kit nuevo y cuyo
 // verificar da verde pasa a subio-al-kit con la versión del kit nuevo, y su zona propia se retira si se cumplen las cinco
 // condiciones. Con un tag -rc, nada: "subiría al kit" (r1-6). Sin aplicados no mira cubiertos.md; sin cubiertos.md, una línea.
-function cerrarCiclo(plan, carpeta, { opciones, llegadas, leerP, escribir }) {
+// Lo lee lib/cubiertos.cjs: una entrada mala se saltea y se dice en una línea; las demás valen (RF-fix rf-1).
+function cerrarCiclo(plan, carpeta, { opciones, llegadas, moldeNuevoDe, leerP, escribir }) {
   const todos = CA.listarArchivos(carpeta).filter((a) => a.id).map((a) => CA.cargar(a));
   const aplicados = todos.filter((c) => !c.error && c.datos.estado === 'aplicado');
   if (!aplicados.length) return;
-  const cub = leerCubiertos(opciones.kit);
+  const cub = CU.leer(path.join(opciones.kit, ...RUTA_CUBIERTOS.split('/')));
   if (cub.problema) {
     plan.lineas.push(`${RUTA_CUBIERTOS} · ${cub.problema} · no marqué nada: los cambios siguen aplicado`);
     return;
   }
+  for (const m of cub.malas) plan.lineas.push(`${RUTA_CUBIERTOS} · ${CU.lineaMala(m)}`);
   const alias = typeof plan.vars.proyecto === 'string' ? plan.vars.proyecto : null;
   const ctx = CA.contextoVerificar(carpeta);
   for (const c of aplicados) {
     const claves = [alias === null ? null : `${alias} ${c.id}`, typeof c.datos.cita === 'string' ? c.datos.cita : null].filter(Boolean);
-    const entrada = cub.entradas.find((x) => claves.includes(x.cita) && F.compararVersiones(x.version, plan.vNuevo) <= 0);
+    const entrada = CU.cubre(cub.entradas, claves, plan.vNuevo);
     if (!entrada) continue;
     const fallas = CA.verificarCambio(carpeta, c, ctx);
     if (fallas.length) {
@@ -715,7 +706,7 @@ function cerrarCiclo(plan, carpeta, { opciones, llegadas, leerP, escribir }) {
     }
     const archivo = c.datos.aplico.archivo;
     const texto = leerP(archivo);
-    const queda = porQueQueda(carpeta, { c, entrada, todos, llegadas, texto });
+    const queda = porQueQueda(carpeta, { c, entrada, todos, llegadas, moldeNuevoDe, texto });
     if (queda === null) escribir(archivo, vaciarZonas(texto));
     plan.lineas.push(`subió al kit · ${c.id} · ${queda === null ? 'zona retirada' : queda}`);
   }

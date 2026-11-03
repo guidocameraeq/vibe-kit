@@ -676,3 +676,131 @@ test('SPEC-paquete-7 r1-6: flota le dice a aplicar si el tag es -rc (con -rc, ap
     assert.ok(vistos.every((v) => v === rc), `${tag}: ${JSON.stringify(vistos)}`);
   }
 });
+
+// ---------------------------------------------------------------- RF-fix rf-4: el salto "al día" no deja un ciclo sin cerrar
+
+const CA = require('../../pc/lib/cambios.cjs');
+const CLI_CAMBIOS = require(path.join(MOLDE, 'scripts', 'cambios.cjs'));
+const CUERPO = '## Caso de origen\nel cierre se olvidaba del handoff (2026-10)\n\n## Regla\nel cierre relee el handoff\n\n## Dónde vive\n.claude/skills/cierre/SKILL.md\n\n## Medición\n| antes | después |\n';
+const ZONA = /<!-- kit:propio -->\n[\s\S]*?<!-- \/kit:propio -->/;
+
+// Un cambio a mano en <dir>/.claude/cambios/<id>.md (solo para leerlo: sin git).
+function cambioEn(dir, id, campos = {}, cita) {
+  const t = CA.ponerCampos(CA.armar({ clase: '2', toca: ['cierre'], origen: cita ? null : 'lo vio el director', cita, cicatriz: 'no', chico: 'sí', urgente: 'no', cuerpo: CUERPO }), campos);
+  fs.mkdirSync(path.join(dir, '.claude', 'cambios'), { recursive: true });
+  fs.writeFileSync(path.join(dir, '.claude', 'cambios', `${id}.md`), t);
+}
+function kitConCubiertos(lineas) {
+  const k = nuevaCarpeta('kit-cub');
+  fs.mkdirSync(path.join(k, 'kit'), { recursive: true });
+  fs.writeFileSync(path.join(k, 'kit', 'cubiertos.md'), ['---', 'cubiertos:', ...lineas.map((l) => `  - ${l}`), '---', ''].join('\n'));
+  return k;
+}
+
+test('RF-fix rf-4: pendienteDeSubir — un aplicado nombrado por id o cita con versión ≤ la nueva; nada más', () => {
+  const ID = '2026-10-01-relee-handoff';
+  const fichaDemo = { vars: { proyecto: 'demo' } };
+  const aplicado = { estado: 'aplicado', sha: 'a'.repeat(40) };
+  const repo = (campos, cita) => {
+    const d = nuevaCarpeta('pendiente');
+    cambioEn(d, ID, campos, cita);
+    return d;
+  };
+  const k = kitConCubiertos;
+  const entrada = (cita, v = '3.0.0') => `{cita: "${cita}", version: ${v}, pieza: cierre}`;
+  // por id (<vars.proyecto> <id>)
+  assert.equal(FL.pendienteDeSubir(repo(aplicado), k([entrada(`demo ${ID}`)]), '3.0.0', fichaDemo), true);
+  // versión menor también; mayor (numérica, no de texto) no
+  assert.equal(FL.pendienteDeSubir(repo(aplicado), k([entrada(`demo ${ID}`, '2.10.0')]), '3.0.0', fichaDemo), true);
+  assert.equal(FL.pendienteDeSubir(repo(aplicado), k([entrada(`demo ${ID}`, '10.0.0')]), '3.0.0', fichaDemo), false);
+  assert.equal(FL.pendienteDeSubir(repo(aplicado), k([entrada(`demo ${ID}`, '3.0.1')]), '3.0.0', fichaDemo), false);
+  // por cita
+  assert.equal(FL.pendienteDeSubir(repo(aplicado, 'hub 2026-09-01-x'), k([entrada('hub 2026-09-01-x')]), '3.0.0', fichaDemo), true);
+  // otro alias, otra cita, o sin alias en la ficha: no
+  assert.equal(FL.pendienteDeSubir(repo(aplicado), k([entrada(`otro ${ID}`)]), '3.0.0', fichaDemo), false);
+  assert.equal(FL.pendienteDeSubir(repo(aplicado, 'hub 2026-09-01-x'), k([entrada('hub 2026-09-01-y')]), '3.0.0', fichaDemo), false);
+  assert.equal(FL.pendienteDeSubir(repo(aplicado), k([entrada(`demo ${ID}`)]), '3.0.0', {}), false);
+  // un propuesto, o uno que ya subió: no
+  assert.equal(FL.pendienteDeSubir(repo({}), k([entrada(`demo ${ID}`)]), '3.0.0', fichaDemo), false);
+  assert.equal(FL.pendienteDeSubir(repo({ estado: 'subio-al-kit', sha: 'a'.repeat(40), version: '3.0.0' }), k([entrada(`demo ${ID}`)]), '3.0.0', fichaDemo), false);
+  // sin cubiertos.md, o solo con entradas malas: no; una mala no tapa a la buena
+  assert.equal(FL.pendienteDeSubir(repo(aplicado), nuevaCarpeta('sin-cub'), '3.0.0', fichaDemo), false);
+  assert.equal(FL.pendienteDeSubir(repo(aplicado), k([`{cita: "demo ${ID}", version: 3.0.0}`]), '3.0.0', fichaDemo), false);
+  assert.equal(FL.pendienteDeSubir(repo(aplicado), k([`{cita: "demo ${ID}", version: 3.0.0}`, entrada(`demo ${ID}`)]), '3.0.0', fichaDemo), true);
+  // sin cambios: no
+  assert.equal(FL.pendienteDeSubir(nuevaCarpeta('sin-cambios'), k([entrada(`demo ${ID}`)]), '3.0.0', fichaDemo), false);
+});
+
+test('RF-fix rf-4: rc → final — el rc solo "subiría"; el final no saltea por la ficha, el cambio sube con 3.0.0 y la zona se retira', async () => {
+  // moldes con la zona del cierre vacía (la del molde real trae texto: ahí (d) diría "zona compartida")
+  const vaciar = (dir) => {
+    const p = path.join(dir, 'skills', 'cierre', 'SKILL.md');
+    fs.writeFileSync(p, fs.readFileSync(p, 'utf8').replace(ZONA, '<!-- kit:propio -->\n<!-- /kit:propio -->'));
+    return dir;
+  };
+  const viejo = vaciar(conCierre(''));
+  const nuevo = vaciar(conCierre('- Un paso más del molde 3.0.0: mirá que el handoff diga la versión del kit.'));
+  let id;
+  const P = nuevaCarpeta('proyectos');
+  const REL = '.claude/skills/cierre/SKILL.md';
+  const x = armarRepo(P, 'alfa', {
+    viejo,
+    antes: (d) => {
+      let out = '';
+      const cli = (...args) => {
+        const c = CLI_CAMBIOS.main(args, { cwd: d, salida: (s) => (out += s), error: (s) => (out += s), entradaEstandar: () => CUERPO });
+        assert.equal(c, 0, `cambios ${args.join(' ')}: ${out}`);
+        return out;
+      };
+      id = /propuesto (\S+)/.exec(cli('nuevo', '--slug', 'relee-handoff', '--clase', '2', '--toca', 'cierre', '--origen', 'lo vio el director'))[1];
+      const p = path.join(d, ...REL.split('/'));
+      fs.writeFileSync(p, fs.readFileSync(p, 'utf8').replace(ZONA, '<!-- kit:propio -->\nreleer el handoff antes de cerrar\n<!-- /kit:propio -->'));
+      git(d, 'add', '-A');
+      git(d, 'commit', '-q', '-m', `aplica ${id}`);
+      cli('anotar-sha', id, git(d, 'rev-parse', 'HEAD'), '--aplico', REL);
+      git(d, 'add', '-A');
+      git(d, 'commit', '-q', '-m', `cambios: aplicado ${id}`);
+    },
+  });
+  // el canónico: rc.1 y el final con el mismo molde; cubiertos.md nombra el cambio desde el rc
+  const src = nuevaCarpeta('canon-src');
+  git(src, 'init', '-q', '-b', 'main');
+  copiar(viejo, path.join(src, 'kit', 'molde'));
+  fs.writeFileSync(path.join(src, 'kit', 'VERSION'), '2.9.0\n');
+  git(src, 'add', '-A');
+  git(src, 'commit', '-q', '-m', 'kit 2.9.0');
+  git(src, 'tag', '-a', 'v2.9.0', '-m', 'v2.9.0');
+  fs.rmSync(path.join(src, 'kit', 'molde'), { recursive: true, force: true });
+  copiar(nuevo, path.join(src, 'kit', 'molde'));
+  fs.writeFileSync(path.join(src, 'kit', 'VERSION'), '3.0.0\n');
+  fs.writeFileSync(path.join(src, 'kit', 'cubiertos.md'), `---\ncubiertos:\n  - {cita: "demo ${id}", version: 3.0.0, pieza: cierre}\n---\n`);
+  git(src, 'add', '-A');
+  git(src, 'commit', '-q', '-m', 'kit 3.0.0-rc.1');
+  git(src, 'tag', '-a', 'v3.0.0-rc.1', '-m', 'v3.0.0-rc.1');
+  git(src, 'commit', '-q', '--allow-empty', '-m', 'kit 3.0.0');
+  git(src, 'tag', '-a', 'v3.0.0', '-m', 'v3.0.0');
+  const canon = path.join(nuevaCarpeta('canon'), 'canon.git');
+  git(T, 'clone', '-q', '--bare', src, canon);
+  const estado = () => CA.leer(git(x.bare, 'show', `main:.claude/cambios/${id}.md`)).datos;
+
+  const r1 = await correr({ repos: ['alfa'], canon, tag: 'v3.0.0-rc.1', proyectos: P });
+  assert.equal(fila(r1, 'alfa').resultado, 'mezclado', r1.lineas.join('\n'));
+  assert.equal(estado().estado, 'aplicado', 'con el rc, solo "subiría"');
+  assert.match(git(x.bare, 'show', `main:${REL}`), /releer el handoff antes de cerrar/);
+  assert.match(fichaEn(x.bare, 'main'), /^kit: 3\.0\.0$/m);
+
+  const r2 = await correr({ repos: ['alfa'], canon, tag: 'v3.0.0', proyectos: P });
+  const t2 = r2.lineas.join('\n');
+  assert.equal(r2.codigo, 0, t2);
+  assert.equal(fila(r2, 'alfa').resultado, 'mezclado', `no "al día": tiene un cambio que subir\n${t2}`);
+  const e = estado();
+  assert.equal(e.estado, 'subio-al-kit', t2);
+  assert.equal(e.version, '3.0.0');
+  const final = git(x.bare, 'show', `main:${REL}`);
+  assert.doesNotMatch(final, /releer el handoff/, 'la zona se retiró');
+  assert.match(final, /<!-- kit:propio -->\n<!-- \/kit:propio -->/);
+  // la tercera: ya subió, nada pendiente → al día por la ficha
+  const r3 = await correr({ repos: ['alfa'], canon, tag: 'v3.0.0', proyectos: P });
+  assert.equal(fila(r3, 'alfa').resultado, 'al día', r3.lineas.join('\n'));
+  assert.match(fila(r3, 'alfa').porque, /la ficha ya dice 3\.0\.0/);
+});

@@ -71,7 +71,59 @@ test('crit. 4: citado por otro proyecto son 2 y "no"; con un tercero, "sí (3+)"
   const gama = repo(dir, 'gama', 'gama', { '2026-11-01-copia': cambio({ cita: `alfa ${ID}` }) });
   r = correr([alfa, beta, gama]);
   assert.match(r.out, new RegExp(`alfa ${ID} \\| alfa, beta, gama \\(3\\) \\| no \\| aplicado \\| sí \\(3\\+\\)`));
-  assert.match(r.out, new RegExp(`  - \\{cita: "alfa ${ID}", version: N\\.N\\.N\\}`));
+  assert.match(r.out, new RegExp(`  - \\{cita: "alfa ${ID}", version: N\\.N\\.N, pieza: <id de la pieza>\\}`));
+});
+
+test('RF-fix rf-1: la línea para pegar trae pieza: como hueco; pegada sin llenar, el lector la saltea y lo dice; llena, vale', () => {
+  const dir = carpeta('flota');
+  const alfa = repo(dir, 'alfa', 'alfa', { [ID]: cambio({ cicatriz: 'plata' }) });
+  const r = correr([alfa]);
+  assert.match(r.out, /para pegar en kit\/cubiertos\.md \(llená los huecos: N\.N\.N = .*<id de la pieza> = /);
+  const linea = r.out.split('\n').find((l) => l.startsWith('  - {cita: '));
+  // pegada tal cual: mala (se saltea y se dice), la fila sigue viva
+  const kit = carpeta('kit');
+  fs.mkdirSync(path.join(kit, 'kit'));
+  const escribir = (l) => fs.writeFileSync(path.join(kit, 'kit', 'cubiertos.md'), `---\ncubiertos:\n${l}\n---\n`);
+  escribir(linea);
+  let r2 = correr([alfa, '--kit', kit]);
+  assert.match(r2.out, /⚠ .*cubiertos\.md: la entrada 1 no es \{cita: "<alias> <id>", version: N\.N\.N, pieza: <id>\} \(version: no es N\.N\.N\): la salteo, las demás valen/);
+  assert.doesNotMatch(r2.out, /ya en el kit:/);
+  // llena: vale para cambios-flota Y para el lector de aplicar (el mismo módulo)
+  const llena = linea.replace('N.N.N', '3.1.0').replace('<id de la pieza>', 'cierre');
+  escribir(`  - {cita: "otro x", version: 3.1.0}\n${llena}`);
+  r2 = correr([alfa, '--kit', kit]);
+  assert.match(r2.out, /la entrada 1 no es .*\(le falta pieza:\)/);
+  assert.match(r2.out, new RegExp(`ya en el kit:\\n {2}alfa ${ID} \\| alfa`), 'una mala no anula las demás');
+  const CU = require('./lib/cubiertos.cjs');
+  assert.deepEqual(CU.leer(path.join(kit, 'kit', 'cubiertos.md')).entradas, [{ cita: `alfa ${ID}`, version: '3.1.0', pieza: 'cierre' }]);
+});
+
+test('RF-fix rf-1 (e): sin ficha, el alias de la carpeta va en minúsculas; si igual no tiene forma [a-z0-9-]+, la fila lo marca', () => {
+  const dir = carpeta('flota');
+  const a = repo(dir, 'Hermes', 'x', { [ID]: cambio({ cicatriz: 'plata' }) }, { sinFicha: true });
+  let r = correr([a]);
+  assert.match(r.out, new RegExp(`^hermes ${ID} \\| hermes \\(1\\) \\| plata \\| aplicado \\| sí \\(cicatriz\\)$`, 'm'));
+  assert.match(r.out, new RegExp(`- \\{cita: "hermes ${ID}"`));
+  const b = repo(dir, 'Mi_Repo', 'x', { [ID]: cambio({ cicatriz: 'plata' }) }, { sinFicha: true });
+  r = correr([b]);
+  assert.match(r.out, new RegExp(`^mi_repo ${ID} \\| .* \\| ⚠ alias "mi_repo" sin forma \\[a-z0-9-\\]\\+: poné vars\\.proyecto en su ficha$`, 'm'));
+  assert.doesNotMatch(r.out, /para pegar/, 'una cita que no valdría no se ofrece para pegar');
+});
+
+test('RF-fix rf-2: --kit acepta la raíz del repo (kit/cubiertos.md) o la carpeta kit/ (cubiertos.md); sin ninguno, lo dice', () => {
+  const dir = carpeta('flota');
+  const alfa = repo(dir, 'alfa', 'alfa', { [ID]: cambio({}) });
+  const entrada = `---\ncubiertos:\n  - {cita: "alfa ${ID}", version: 3.0.0, pieza: cierre}\n---\n`;
+  const raiz = carpeta('raiz');
+  fs.mkdirSync(path.join(raiz, 'kit'));
+  fs.writeFileSync(path.join(raiz, 'kit', 'cubiertos.md'), entrada);
+  assert.match(correr([alfa, '--kit', raiz]).out, new RegExp(`ya en el kit:\\n {2}alfa ${ID}`));
+  assert.match(correr([alfa, '--kit', path.join(raiz, 'kit')]).out, new RegExp(`ya en el kit:\\n {2}alfa ${ID}`));
+  const vacia = carpeta('vacia');
+  const r = correr([alfa, '--kit', vacia]);
+  assert.equal(r.code, 0);
+  assert.equal(r.out.split('\n').filter((l) => /no encuentro cubiertos\.md/.test(l)).length, 1);
+  assert.match(r.out, /⚠ no encuentro cubiertos\.md en .* \(ni kit\/cubiertos\.md ni cubiertos\.md\)/);
 });
 
 test('un proyecto cuenta una vez, aunque tenga dos cambios de la misma regla', () => {
@@ -105,7 +157,7 @@ test('crit. 4: subio-al-kit y lo de cubiertos.md van a "ya en el kit"', () => {
   const alfa = repo(dir, 'alfa', 'alfa', { [ID]: cambio({ estado: 'subio-al-kit', extra: ['version: 3.1.0'] }), '2026-10-29-otra': cambio({ cicatriz: 'plata' }) });
   const beta = repo(dir, 'beta', 'beta', { '2026-10-31-x': cambio({ cicatriz: 'plata' }) });
   const kit = carpeta('kit');
-  fs.writeFileSync(path.join(kit, 'cubiertos.md'), '---\ncubiertos:\n  - {cita: "beta 2026-10-31-x", version: 3.1.0}\n---\n');
+  fs.writeFileSync(path.join(kit, 'cubiertos.md'), '---\ncubiertos:\n  - {cita: "beta 2026-10-31-x", version: 3.1.0, pieza: cierre}\n---\n');
   let r = correr([alfa, beta], {});
   assert.match(r.out, /ya en el kit:\n {2}alfa 2026-10-30-guardia-de-saldos \| alfa/);
   r = correr([alfa, beta, '--kit', kit]);
@@ -179,6 +231,28 @@ test('sin repos: --proyectos toma las carpetas con .git; las demás se ignoran',
   assert.equal(r.code, 0);
   assert.equal(r.out.trim().split('\n').length, 1);
   assert.match(r.out, /⚠ alfa/);
+});
+
+test('RF-fix rf-3: descubiertos por carpeta, solo los repos con .claude/cambios/; uno sin rama por defecto y sin registro, en silencio', () => {
+  const dir = carpeta('flota');
+  repo(dir, 'alfa', 'alfa', { [ID]: cambio({ urgente: 'sí', regla: 'Una.' }) });
+  const crudo = path.join(dir, 'crudo'); // git init sin commits: no tiene rama por defecto
+  fs.mkdirSync(crudo);
+  git(crudo, 'init', '-q');
+  const ajeno = path.join(dir, 'ajeno'); // un repo cualquiera, sin registro de cambios
+  fs.mkdirSync(ajeno);
+  git(ajeno, 'init', '-q', '-b', 'trunk');
+  fs.writeFileSync(path.join(ajeno, 'x.txt'), 'x\n');
+  git(ajeno, 'add', '-A');
+  git(ajeno, 'commit', '-q', '-m', 'x');
+  const r = correr(['--proyectos', dir, '--urgentes']);
+  assert.equal(r.code, 0);
+  assert.doesNotMatch(r.out, /no se lee/);
+  assert.deepEqual(r.out.trim().split('\n'), [r.out.trim().split('\n').find((l) => /^⚠ alfa · /.test(l))]);
+  // nombrados a mano, siguen avisando
+  const r2 = correr([crudo, ajeno, '--urgentes']);
+  assert.match(r2.out, /⚠ crudo: no se lee/);
+  assert.match(r2.out, /⚠ ajeno: no se lee/);
 });
 
 test('sin repos ni --proyectos: el proyectos: de kit-pc.md de --home; sin eso, "no sé dónde está la flota"', () => {

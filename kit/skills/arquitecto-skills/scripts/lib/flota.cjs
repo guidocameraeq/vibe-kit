@@ -11,7 +11,8 @@
 //       (git remote get-url): su árbol de trabajo nunca se toca ni se lee. Sin origin → "sin remoto: no se toca".
 //   (2) git clone completo (nunca --depth) del origin a un temporal; sin red o colgado → "sin tocar: <por qué>", con plazo.
 //   (3) saltear con su porqué: ramas modulo/* vivas en el remoto (obra en curso) · la ficha ya dice la versión y el tag no es -rc
-//       (al día; con un -rc siempre se aplica, y aplicar sin cambios = al día) · kit/<tag> (kit/v3.0.0-rc.1: la rama lleva el tag)
+//       (al día; con un -rc siempre se aplica, y aplicar sin cambios = al día; tampoco es "al día" si el repo tiene un cambio
+//       aplicado que el kit/cubiertos.md nuevo nombra: el final tiene que cerrarle el ciclo, RF-fix rf-4) · kit/<tag> (kit/v3.0.0-rc.1: la rama lleva el tag)
 //       ya en el remoto (está o espera a Guido), SALVO que su último commit diga "kit: ROTA — …" (D6-16): esa se borra del remoto
 //       (git push --delete, nunca --force) y se rehace.
 //   (4) .kit-rol = actualizador (y esa línea en .git/info/exclude), rama kit/v<v> desde la rama por defecto, aplicar.
@@ -38,6 +39,8 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 const F = require('../../pc/lib/ficha.cjs');
 const M = require('./molde.cjs');
+const CU = require('./cubiertos.cjs');
+const CA = require('../../pc/lib/cambios.cjs');
 
 const ROTO = 'actualizador roto: corré doctor';
 const RUTA_FICHA = '.claude/kit.md';
@@ -225,6 +228,20 @@ function hooksDelMolde(moldeDir, destino) {
 
 // ---------------------------------------------------------------- un repo
 
+// ¿El repo (su clon) tiene algo que subir al kit con esta versión? (RF-fix rf-4) Un cambio `aplicado` cuyo id (<vars.proyecto>
+// <id>) o cita: está en el kit/cubiertos.md del kit nuevo con version ≤ la nueva. Lo usa el salto "al día": un repo que ya recibió
+// el -rc de esta versión dice ya la versión en su ficha, y sin esto el final no corría nunca el cierre del ciclo. El lector es
+// lib/cubiertos.cjs (el de aplicar): lo que este salto deja pasar es lo mismo que aplicar va a mirar.
+function pendienteDeSubir(clon, kit, version, datosFicha) {
+  const aplicados = CA.listarArchivos(clon).filter((a) => a.id).map((a) => CA.cargar(a)).filter((c) => !c.error && c.datos.estado === 'aplicado');
+  if (!aplicados.length) return false;
+  const cub = CU.leer(path.join(kit, ...CU.RUTA.split('/')));
+  if (cub.problema || !cub.entradas.length) return false;
+  const vars = datosFicha && datosFicha.vars && typeof datosFicha.vars === 'object' && !Array.isArray(datosFicha.vars) ? datosFicha.vars : {};
+  const alias = typeof vars.proyecto === 'string' ? vars.proyecto : null;
+  return aplicados.some((c) => !!CU.cubre(cub.entradas, [alias === null ? null : `${alias} ${c.id}`, typeof c.datos.cita === 'string' ? c.datos.cita : null], version));
+}
+
 // actualizarRepo(nombre, url, ctx) → fila {repo, antes, despues, resultado, porque, espera: [], falla}. Escribe solo en su clon temporal
 // y en el remoto. ctx = {kit, version, tmp, n, moldeViejo, fecha, plazoMs, claude, aplicar, chequear}.
 async function actualizarRepo(nombre, url, ctx) {
@@ -258,7 +275,8 @@ async function actualizarRepo(nombre, url, ctx) {
   // la ficha guarda la versión sin el -rc: con un -rc siempre se aplica (y "al día" sale de aplicar sin cambios, abajo)
   const tag = ctx.tag || `v${ctx.version}`;
   const esRc = /-rc\.\d+$/.test(tag);
-  if (datos.kit === ctx.version && !esRc) return fin('al día', `la ficha ya dice ${ctx.version}`);
+  // …salvo que tenga algo que subir al kit (RF-fix rf-4): si el rc ya trajo la versión, sin esto el final nunca cerraba el ciclo
+  if (datos.kit === ctx.version && !esRc && !pendienteDeSubir(clon, ctx.kit, ctx.version, datos)) return fin('al día', `la ficha ya dice ${ctx.version}`);
   const rama = `kit/${tag}`;
   let rehecha = false;
   if (ramas.includes(rama)) {
@@ -482,4 +500,4 @@ async function main(argv) {
   });
 }
 
-module.exports = { flota, main, leerArgs, entorno, porqueNoSubio, actualizarRepo, hooksDelMolde, prepararCanon, elegirTag, compararTags, versionDeTag, origenDe, resolverOrigen, todosLosRepos, fusionDe, primeraRoja, porqueRechazo, tabla, Negativa, RE_ROTA };
+module.exports = { flota, main, leerArgs, entorno, porqueNoSubio, actualizarRepo, pendienteDeSubir, hooksDelMolde, prepararCanon, elegirTag, compararTags, versionDeTag, origenDe, resolverOrigen, todosLosRepos, fusionDe, primeraRoja, porqueRechazo, tabla, Negativa, RE_ROTA };

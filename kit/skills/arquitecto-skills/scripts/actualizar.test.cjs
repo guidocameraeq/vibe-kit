@@ -632,7 +632,7 @@ function copiaScripts(chequeo) {
   fs.cpSync(path.join(__dirname, '..', 'pc', 'lib'), path.join(d, 'pc', 'lib'), { recursive: true });
   fs.mkdirSync(path.join(d, 'scripts', 'lib'), { recursive: true });
   fs.copyFileSync(path.join(__dirname, 'actualizar.cjs'), path.join(d, 'scripts', 'actualizar.cjs'));
-  for (const f of ['catalogo.cjs', 'molde.cjs', 'fusion.cjs']) fs.copyFileSync(path.join(__dirname, 'lib', f), path.join(d, 'scripts', 'lib', f));
+  for (const f of ['catalogo.cjs', 'molde.cjs', 'fusion.cjs', 'cubiertos.cjs']) fs.copyFileSync(path.join(__dirname, 'lib', f), path.join(d, 'scripts', 'lib', f));
   if (chequeo) fs.writeFileSync(path.join(d, 'scripts', 'lib', 'chequeo.cjs'), chequeo);
   return path.join(d, 'scripts', 'actualizar.cjs');
 }
@@ -837,14 +837,41 @@ test('crit. 2, queda (c): la pieza de cubiertos.md no se reemplazó ni se mezcl�
   const e = armarProyecto();
   const id2 = aplicarCambio(e);
   queda(e, id2, 'te espera (la regla no llegó por el actualizador)', { pieza: 'no-existe' });
-  // inicio igual al molde nuevo (sin cambios en la corrida): tampoco llegó por el actualizador
+  // inicio editado fuera de su zona (el guardia lo ve en desvío: la pieza no se toca) → el archivo no es el del molde nuevo: no llegó
   const f = armarProyecto();
+  commitear(f, { [INICIO]: leer(f, INICIO).replace('fin\n', 'fin\nuna línea mía, fuera de la zona\n') }, 'adapto el inicio');
   const id3 = aplicarCambio(f);
-  const k = kitConCubiertos([{ cita: `demo ${id3}` }]);
+  const r = aplicar(f, { kit: kitConCubiertos([{ cita: `demo ${id3}` }]) });
+  assert.doesNotMatch(lineaDe(r, 'inicio'), /reemplazada|mezclada/, r.lineas.join('\n'));
+  assert.equal(lineaCiclo(r, id3), `subió al kit · ${id3} · te espera (la regla no llegó por el actualizador)`);
+  assert.match(leer(f, INICIO), /releer el handoff/);
+});
+
+test('RF-fix rf-4, (c) ampliada: la pieza vino "sin cambios" pero el archivo, fuera de su zona, ya es el del molde nuevo → la zona se retira', () => {
+  // el molde nuevo trae inicio igual al viejo (la pieza ya estaba): sin cambios en la corrida, pero llegó
+  const f = armarProyecto();
+  const id = aplicarCambio(f);
+  const k = kitConCubiertos([{ cita: `demo ${id}` }]);
   escribirArbol(k, { 'kit/molde/skills/inicio/SKILL.md': MOLDE_V['skills/inicio/SKILL.md'] });
   const r = aplicar(f, { kit: k });
   assert.match(lineaDe(r, 'inicio'), /sin cambios$/);
-  assert.equal(lineaCiclo(r, id3), `subió al kit · ${id3} · te espera (la regla no llegó por el actualizador)`);
+  assert.equal(lineaCiclo(r, id), `subió al kit · ${id} · zona retirada`, r.lineas.join('\n'));
+  assert.equal(leer(f, INICIO), MOLDE_V['skills/inicio/SKILL.md'].replace('{{PROYECTO}}', 'demo'));
+  // rc → final: el rc trae la pieza (subiría), se commitea; el final la ve "sin cambios" y igual sube y retira la zona
+  const g = armarProyecto();
+  const id2 = aplicarCambio(g);
+  const kf = kitConCubiertos([{ cita: `demo ${id2}` }]);
+  const rc = aplicar(g, { kit: kf, rc: true });
+  assert.equal(lineaDe(rc, 'inicio'), 'inicio · molde+propio · mezclada (zona intacta)');
+  assert.equal(lineaCiclo(rc, id2), `subiría al kit · ${id2}`);
+  commitear(g, {}, 'kit 2.9.0 → 3.0.0 (rc)');
+  assert.match(leer(g, '.claude/kit.md'), /^kit: 3\.0\.0$/m);
+  const fin = A.aplicar(g, { kit: kf, fecha: '2026-11-02', claude: 'no' }); // la ficha ya dice 3.0.0: el viejo es el nuevo
+  assert.equal(fin.codigo, 0, fin.lineas.join('\n'));
+  assert.match(lineaDe(fin, 'inicio'), /sin cambios$/);
+  assert.equal(lineaCiclo(fin, id2), `subió al kit · ${id2} · zona retirada`, fin.lineas.join('\n'));
+  assert.equal(estadoDe(g, id2).estado, 'subio-al-kit');
+  assert.equal(leer(g, INICIO), INICIO_V2_VACIO);
 });
 
 test('crit. 2, queda (a): un 3-barrera, aunque todo lo demás cumpla → "te espera (freno)" (D7-3)', () => {
@@ -893,12 +920,34 @@ test('crit. 2: con un tag -rc (opciones.rc), nada: solo "subiría al kit"; --pla
   assert.deepEqual(foto(e), foto0, '--plan no escribe');
 });
 
+test('RF-fix rf-1: una entrada mala de cubiertos.md (sin pieza:, versión rara) se saltea y se dice; las demás valen', () => {
+  const d = armarProyecto();
+  const id = aplicarCambio(d);
+  const k = kitConCubiertos([]);
+  escribirArbol(k, { 'kit/cubiertos.md': [
+    '---', 'cubiertos:',
+    '  - {cita: "otro 2026-01-01-x", version: 3.0.0}', // la línea vieja de cambios-flota: sin pieza
+    '  - {cita: "demo y", version: 3.0, pieza: inicio}',
+    `  - {cita: "demo ${id}", version: 3.0.0, pieza: inicio}`,
+    '---', '',
+  ].join('\n') });
+  const r = aplicar(d, { kit: k });
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  const malas = r.lineas.filter((x) => x.startsWith('kit/cubiertos.md · '));
+  assert.deepEqual(malas, [
+    'kit/cubiertos.md · la entrada 1 no es {cita: "<alias> <id>", version: N.N.N, pieza: <id>} (le falta pieza:): la salteo, las demás valen',
+    'kit/cubiertos.md · la entrada 2 no es {cita: "<alias> <id>", version: N.N.N, pieza: <id>} (version: no es N.N.N): la salteo, las demás valen',
+  ]);
+  assert.equal(lineaCiclo(r, id), `subió al kit · ${id} · zona retirada`, 'la buena vale aunque haya malas');
+  assert.equal(estadoDe(d, id).estado, 'subio-al-kit');
+});
+
 test('crit. 2: sin cubiertos.md (o uno que no se lee) → nada cambia y una línea; sin aplicados, ni la mira', () => {
   for (const [k, re] of [[kitConCubiertos(null), /no está/], [(() => {
     const x = kitConCubiertos([]);
-    escribirArbol(x, { 'kit/cubiertos.md': '---\ncubiertos:\n  - {cita: "demo x", version: 3.0}\n---\n' });
+    escribirArbol(x, { 'kit/cubiertos.md': '---\ncubiertos: no-es-una-lista\n---\n' });
     return x;
-  })(), /la entrada 1 no es/]]) {
+  })(), /no tiene la lista cubiertos:/]]) {
     const d = armarProyecto();
     const id = aplicarCambio(d);
     const antes = leer(d, relCambio(id));
@@ -914,9 +963,9 @@ test('crit. 2: sin cubiertos.md (o uno que no se lee) → nada cambia y una lín
   assert.ok(!r.lineas.some((x) => x.startsWith('kit/cubiertos.md')), 'un proyecto sin cambios aplicados no la menciona');
 });
 
-test('kit/cubiertos.md del kit real: nace vacía y se lee con la gramática de la ficha', () => {
+test('kit/cubiertos.md del kit real: se lee con la gramática de la ficha y trae la lista (la valida entera lib/cubiertos.test.cjs)', () => {
   const t = fs.readFileSync(path.join(RAIZ_KIT, 'kit', 'cubiertos.md'), 'utf8');
-  assert.deepEqual(F.leerCabecera(t).datos, { cubiertos: [] });
+  assert.ok(Array.isArray(F.leerCabecera(t).datos.cubiertos));
   assert.match(t, /- \{cita: "<alias> <id>", version: N\.N\.N, pieza: <id>\}/);
 });
 
