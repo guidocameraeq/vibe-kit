@@ -3,7 +3,7 @@ Nueve cambios chicos que Guido pidió al repasar las decisiones (2026-11-03) y q
 (Hermes, 2026-11-04): el obrero de fondo en `auto`, las piezas adaptadas con cuatro salidas y una recomendada, la versión `-rc` entera en
 la ficha, el `/inicio` que no ejecuta lo que dejó otra sesión, el obrero de cierre de tramo, los githooks prendidos al adoptar, el Modo A
 con el molde v3 y la línea del banner. Cierra con la beta `v3.0.0-rc.1` repartida por la flota en verde.
-- Estado: READY
+- Estado: ✅ IMPLEMENTADO 2026-11-03 (D8b.1, la beta `v3.0.0-rc.1`; salvo el renglón (11), el obrero de cierre de tramo, que sale en `rc.2`: D8b.1-c del tracker)
 - Fecha: 2026-11-03 · Misión: 5, director **D8b.1** (tracker, fila 8b; la vara: ADR-030; el presupuesto: ADR-029)
 - Sello del Arquitecto: `arquitecto: 2026-11-03 · kit 2.4.3 · chequeos: tamaño — (paquete del método) · entorno — (sin ficha del kit) · tope ✅ · hash d63f40e464ec`
 - Plano: [`SPEC-0-kit-v3.md`](SPEC-0-kit-v3.md); el repaso: [`DECISIONES-SIN-GUIDO-en-criollo.md`](DECISIONES-SIN-GUIDO-en-criollo.md),
