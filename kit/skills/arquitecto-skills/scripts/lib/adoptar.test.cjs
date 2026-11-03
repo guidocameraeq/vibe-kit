@@ -377,6 +377,23 @@ test('--mirar --nuevo (8b, 15): sin CLAUDE.md y con él, lo base en molde, el ca
   assert.ok(Object.values(piezas(mirar(repoPelado('viejo', { 'notas.txt': 'x\n' })).texto)).every((e) => e === 'no'));
 });
 
+test('--mirar --comando-test (RF-fix 4): sin scripts.test el comando del SPEC-0 va a vars.comando-test (y le gana a npm test); con comillas o sin --mirar → uso', deKit, async () => {
+  const d = repoPelado('vite', { 'package.json': '{"name":"vite","scripts":{"dev":"vite"}}\n' });
+  assert.equal(F.leer(mirar(d, { nuevo: true }).texto).datos.vars['comando-test'], undefined, 'sin scripts.test no sale de ningún lado');
+  const r = mirar(d, { nuevo: true, comandoTest: 'npx vitest run' });
+  assert.equal(F.leer(r.texto).datos.vars['comando-test'], 'npx vitest run');
+  assert.match(r.texto, /comando-test = npx vitest run \(--comando-test: el Entorno de prueba del SPEC-0\)/);
+  assert.ok(deFabrica(F.leer(r.texto).datos, 'estandar'), 'frenos de fábrica: barreras pasa por la exención b');
+  const conTest = repoPelado('contest', { 'package.json': '{"name":"c","scripts":{"test":"node --test"}}\n' });
+  assert.equal(F.leer(mirar(conTest, { comandoTest: 'node --test src' }).texto).datos.vars['comando-test'], 'node --test src');
+  // por la CLI
+  const p = path.join(nuevaCarpeta('prop'), 'p.md');
+  const ok = await AD.main([d, '--kit', RAIZ_KIT, '--mirar', '--nuevo', '--comando-test', 'node --test', '--propuesta', p]);
+  assert.equal(ok.codigo, 0, ok.lineas.join('\n'));
+  assert.equal(F.leer(fs.readFileSync(p, 'utf8')).datos.vars['comando-test'], 'node --test');
+  for (const args of [[d, '--kit', RAIZ_KIT, '--mirar', '--comando-test', 'echo "x"'], [d, '--kit', RAIZ_KIT, '--aplicar', p, '--comando-test', 'npm test'], [d, '--kit', RAIZ_KIT, '--mirar', '--comando-test']]) assert.equal(await AD.main(args), null, args.join(' '));
+});
+
 test('--aplicar de una propuesta --nuevo: vienen el candado, el director y el estado; la ficha los dice en sí; los dos commits → barreras verde', { ...deKit, timeout: 180000 }, async () => {
   const d = repoPelado('nuevo', { 'notas.txt': 'recién nacido\n' });
   const prop = path.join(nuevaCarpeta('prop'), 'propuesta.md');

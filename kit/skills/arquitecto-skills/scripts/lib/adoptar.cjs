@@ -2,6 +2,7 @@
 // adoptar.cjs — `actualizar.cjs adoptar`: el adoptador (SPEC-0 P7.2; SPEC-paquete-6 D6-1, D6-12, criterio 19; crit. 20 del kit).
 //
 //   node actualizar.cjs adoptar <carpeta> --kit <raíz del kit> --mirar [--nivel liviano|estandar] [--propuesta <archivo>] [--nuevo]
+//                               [--comando-test "<comando>"]
 //   node actualizar.cjs adoptar <carpeta> --kit <raíz del kit> --aplicar <archivo de propuesta> [--fecha <AAAA-MM-DD>]
 //                               [--principal <carpeta principal>]
 //
@@ -367,7 +368,7 @@ function registroDeCambios(carpeta) {
   return out;
 }
 
-// mirar(carpeta, {kit, nivel, fecha}) → { texto: la propuesta, datos } — no escribe nada en <carpeta> ni en su .git.
+// mirar(carpeta, {kit, nivel, fecha, nuevo, comandoTest}) → { texto: la propuesta, datos } — no escribe nada en <carpeta> ni en su .git.
 function mirar(carpeta, opciones) {
   revisarRaiz(carpeta);
   const version = A.versionDelKit(opciones.kit);
@@ -377,6 +378,13 @@ function mirar(carpeta, opciones) {
     const inf = inferirNivel(carpeta);
     const nivel = opciones.nivel || inf.nivel;
     const { vars, notas } = inferirVars(carpeta);
+    if (opciones.comandoTest !== undefined) {
+      // el de "Entorno de prueba" del SPEC-0 (Modo A): le gana al de los manifiestos; sin él, un repo sin scripts.test traba el sello
+      vars['comando-test'] = opciones.comandoTest;
+      const i = notas.findIndex((n) => n.startsWith('sin comando-test'));
+      if (i >= 0) notas.splice(i, 1);
+      notas.push(`comando-test = ${opciones.comandoTest} (--comando-test: el Entorno de prueba del SPEC-0)`);
+    }
     const nuevo = M.materializarNuevo(opciones.kit, { vars, fecha }, path.join(tmp, 'nuevo'));
     if (nuevo.forma !== '3') throw new Negativa('el --kit no trae kit/molde/ (el molde v3): con ese no se adopta');
     const viejo = moldeV2(opciones.kit, carpeta, path.join(tmp, 'viejo'));
@@ -718,7 +726,7 @@ function prenderGithooks(clon, principal) {
 
 function leerArgs(argv) {
   const o = { mirar: false, nuevo: false };
-  const conValor = { '--kit': 'kit', '--nivel': 'nivel', '--propuesta': 'propuesta', '--aplicar': 'aplicar', '--fecha': 'fecha', '--principal': 'principal' };
+  const conValor = { '--kit': 'kit', '--nivel': 'nivel', '--propuesta': 'propuesta', '--aplicar': 'aplicar', '--fecha': 'fecha', '--principal': 'principal', '--comando-test': 'comandoTest' };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--mirar') o.mirar = true;
@@ -730,7 +738,8 @@ function leerArgs(argv) {
     else return null;
   }
   if (!o.carpeta || !o.kit || o.mirar === (o.aplicar !== undefined)) return null;
-  if (!o.mirar && (o.nivel !== undefined || o.propuesta !== undefined || o.nuevo)) return null;
+  if (!o.mirar && (o.nivel !== undefined || o.propuesta !== undefined || o.nuevo || o.comandoTest !== undefined)) return null;
+  if (o.comandoTest !== undefined && !escribible(o.comandoTest)) return null; // va entre comillas en la ficha: sin comillas dobles, barras invertidas ni saltos
   if (o.mirar && o.principal !== undefined) return null;
   if (o.nivel !== undefined && !NIVELES.includes(o.nivel)) return null;
   if (o.fecha !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(o.fecha)) return null;
@@ -751,7 +760,7 @@ async function main(argv) {
   try {
     if (o.mirar) {
       if (o.propuesta !== undefined && dentroDe(carpeta, o.propuesta)) throw new Negativa(`--propuesta ${o.propuesta} cae adentro de ${carpeta}: --mirar no escribe ahí — elegí otro lugar`);
-      const r = mirar(carpeta, { kit, nivel: o.nivel, fecha: o.fecha, nuevo: o.nuevo });
+      const r = mirar(carpeta, { kit, nivel: o.nivel, fecha: o.fecha, nuevo: o.nuevo, comandoTest: o.comandoTest });
       const lineas = r.texto.replace(/\n$/, '').split('\n');
       if (o.propuesta !== undefined) {
         const destino = path.resolve(o.propuesta);

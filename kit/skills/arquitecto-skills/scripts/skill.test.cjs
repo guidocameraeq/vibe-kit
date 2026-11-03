@@ -128,7 +128,7 @@ test('modo-a.md (8b, 15): el Paso 5 nombra adoptar --nuevo y --principal, el pul
   assert.doesNotMatch(t, /templates\//);
   assert.doesNotMatch(t, /molde v2/);
   const p5 = /## Paso 5[\s\S]*?(?=\n## )/.exec(t)[0];
-  for (const x of ['--mirar --nuevo', '--principal "<carpeta>"', 'pull --ff-only', '.kit-rol', 'docs/modulos/v1/SPEC.md', 'docs/modulos/v1/README.md']) assert.ok(p5.includes(x), `el Paso 5 no nombra ${x}`);
+  for (const x of ['--mirar --nuevo', '--comando-test "<comando>"', 'gate:entorno-prueba', '--principal "<carpeta>"', 'pull --ff-only', '.kit-rol', 'docs/modulos/v1/SPEC.md', 'docs/modulos/v1/README.md']) assert.ok(p5.includes(x), `el Paso 5 no nombra ${x}`);
   // el orden: el adoptador, el pull y recién ahí el sello y ready; después la portada
   const pos = ['--mirar --nuevo', '--aplicar', 'pull --ff-only', '<arq> sello', '<arq> ready', 'portada.cjs armar'].map((x) => p5.indexOf(x));
   assert.ok(pos.every((v, i) => v >= 0 && (i === 0 || v > pos[i - 1])), `el orden del Paso 5: ${pos.join(' ')}`);
