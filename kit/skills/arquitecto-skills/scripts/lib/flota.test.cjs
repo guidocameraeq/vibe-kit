@@ -241,6 +241,38 @@ test('crit. 15: alfa y beta se mezclan en un commit a main; gama con modulo/x se
   assert.match(r2.lineas[0], /tag v3\.0\.0-rc\.1/, 'sin --tag: el último v* anotado');
 });
 
+// Una modulo/<x> mezclada en main en el remoto (un merge, como integrar) que nadie borró.
+function moduloMezclado(bare, rama) {
+  const c = path.join(nuevaCarpeta('clon-aux'), 'c');
+  git(T, 'clone', '-q', bare, c);
+  git(c, 'checkout', '-q', '-b', rama);
+  fs.writeFileSync(path.join(c, 'obra.txt'), `${rama}\n`);
+  git(c, 'add', '-A');
+  git(c, 'commit', '-q', '-m', 'obra del módulo');
+  git(c, 'checkout', '-q', 'main');
+  git(c, 'merge', '-q', '--no-ff', '-m', `integrar: módulo ${rama.slice('modulo/'.length)}`, rama);
+  git(c, 'push', '-q', 'origin', 'main', rama);
+}
+
+test('crit. 5 (8r, 1): una modulo/x ya mezclada en main en el remoto no saltea; una sin mezclar, sí, con la salida del squash', async () => {
+  const canon = armarCanon();
+  const P = nuevaCarpeta('proyectos');
+  const hecho = armarRepo(P, 'hecho', { remoto: (b) => moduloMezclado(b, 'modulo/x') });
+  const vacio = armarRepo(P, 'vacio', { remoto: (b) => { const c = path.join(nuevaCarpeta('clon-aux'), 'c'); git(T, 'clone', '-q', b, c); git(c, 'push', '-q', 'origin', 'main:modulo/y'); } });
+  const obra = armarRepo(P, 'obra', { remoto: (b) => { moduloMezclado(b, 'modulo/x'); ramaEnRemoto(b, 'modulo/z'); } });
+  const r = await correr({ repos: ['hecho', 'vacio', 'obra'], canon, tag: 'v3.0.0-rc.1', proyectos: P });
+  const texto = r.lineas.join('\n');
+  assert.equal(r.codigo, 0, texto);
+  assert.equal(fila(r, 'hecho').resultado, 'mezclado', texto);
+  assert.equal(git(hecho.bare, 'show', 'main:obra.txt'), 'modulo/x');
+  assert.equal(fila(r, 'vacio').resultado, 'mezclado', 'empujada sin commits propios: cuenta como mezclada');
+  assert.equal(vacio.base, git(vacio.bare, 'rev-parse', 'main^'));
+  const f = fila(r, 'obra');
+  assert.equal(f.resultado, 'salteado', texto);
+  assert.equal(f.porque, 'obra en curso: modulo/z viva en el remoto, sin mezclar en main — no me meto en el medio (si la mezclaste con squash en GitHub, borrá la rama desde la web)');
+  assert.ok(!f.porque.includes('modulo/x'), 'la mezclada no cuenta');
+});
+
 // ---------------------------------------------------------------- crit. 16: los casos de falla
 
 test('crit. 16: main protegido (pre-receive) → kit/v3.0.0-rc.1 queda viva y va a "te espera"; las adaptadas, en la fila y en "te espera"', async () => {

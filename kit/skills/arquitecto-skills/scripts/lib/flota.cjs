@@ -10,7 +10,7 @@
 //   (1) por repo, UNO DETRÁS DEL OTRO (D6-11), y uno que falla no frena a los demás: del checkout de Guido se lee SOLO el origin
 //       (git remote get-url): su árbol de trabajo nunca se toca ni se lee. Sin origin → "sin remoto: no se toca".
 //   (2) git clone completo (nunca --depth) del origin a un temporal; sin red o colgado → "sin tocar: <por qué>", con plazo.
-//   (3) saltear con su porqué: ramas modulo/* vivas en el remoto (obra en curso) · la ficha dice exactamente esa versión
+//   (3) saltear con su porqué: ramas modulo/* vivas en el remoto y no mezcladas en origin/<def> (obra en curso; 8r, 1) · la ficha dice exactamente esa versión
 //       (al día, también con un -rc; la ficha guarda la versión entera; tampoco es "al día" si el repo tiene un cambio
 //       aplicado que el kit/cubiertos.md nuevo nombra: el final tiene que cerrarle el ciclo, RF-fix rf-4) · kit/<tag> (kit/v3.0.0-rc.1: la rama lleva el tag)
 //       ya en el remoto (está o espera a Guido), SALVO que su último commit diga "kit: ROTA — …" (D6-16): esa se borra del remoto
@@ -261,8 +261,10 @@ async function actualizarRepo(nombre, url, ctx) {
   const ramas = rr.out.split(/\r?\n/).filter(Boolean).map((r) => r.replace(/^refs\/remotes\/origin\//, '')).filter((r) => r !== 'HEAD');
 
   // (3) saltear, con su porqué
-  const modulos = ramas.filter((r) => r.startsWith('modulo/'));
-  if (modulos.length) return fin('salteado', `obra en curso: ${modulos.join(', ')} viva${modulos.length > 1 ? 's' : ''} en el remoto — no me meto en el medio`);
+  // solo las no mezcladas en origin/<def> (SPEC-paquete-8r, 1; D8r-7): una ya mezclada que nadie borró no es obra en curso
+  const mezclada = (r) => git(clon, ['merge-base', '--is-ancestor', `refs/remotes/origin/${r}`, `refs/remotes/origin/${def}`]).ok;
+  const modulos = ramas.filter((r) => r.startsWith('modulo/') && !mezclada(r));
+  if (modulos.length) return fin('salteado', `obra en curso: ${modulos.join(', ')} viva${modulos.length > 1 ? 's' : ''} en el remoto, sin mezclar en ${def} — no me meto en el medio (si la mezclaste con squash en GitHub, borrá la rama desde la web)`);
   const rf = path.join(clon, ...RUTA_FICHA.split('/'));
   if (!fs.existsSync(rf)) return fin('sin tocar', `sin ficha (${RUTA_FICHA}): eso es adoptarlo, no actualizarlo`);
   let datos;
