@@ -1,8 +1,9 @@
 'use strict';
 // adoptar.cjs — `actualizar.cjs adoptar`: el adoptador (SPEC-0 P7.2; SPEC-paquete-6 D6-1, D6-12, criterio 19; crit. 20 del kit).
 //
-//   node actualizar.cjs adoptar <carpeta> --kit <raíz del kit> --mirar [--nivel liviano|estandar] [--propuesta <archivo>]
+//   node actualizar.cjs adoptar <carpeta> --kit <raíz del kit> --mirar [--nivel liviano|estandar] [--propuesta <archivo>] [--nuevo]
 //   node actualizar.cjs adoptar <carpeta> --kit <raíz del kit> --aplicar <archivo de propuesta> [--fecha <AAAA-MM-DD>]
+//                               [--principal <carpeta principal>]
 //
 // Un script determinista (D6-1): MIRA y APLICA. La pantalla (NORTE, MAPA, el plano de docs/, las reglas propias como cambios) la
 // arma la sesión del Arquitecto con Guido delante, leyendo la propuesta (D6-12): eso necesita leer el código y no es de un script.
@@ -19,6 +20,9 @@
 //   - opcionales (smoke, release, director-obrero, estado, docs-fyd) → no; docs-fyd se ofrece en el comentario;
 //   - una base con un archivo del proyecto en su ruta, distinto del molde → propia (no se pisa), y el comentario lo dice;
 //   - sin ficha ni CLAUDE.md → todo en no (criterio 19, caso de falla): la propuesta sale igual y la sesión decide.
+//   - --nuevo (el Modo A: un repo que acaba de nacer, con o sin CLAUDE.md; SPEC-paquete-8b (15), D8b-8): las bases → molde (no el
+//     todo en no del criterio 19), candado → sí, director-obrero y estado → sí (todo proyecto nuevo nace con módulos); docs-fyd y
+//     las otras opcionales, como siempre.
 // El molde v2: de los tags v2.* del --kit con templates/universales/, el que más casa con el proyecto. Un archivo del proyecto
 // que es esa plantilla con sus {{…}} completados y nada más ("el v2 sin editar"; los de contenido, como {{BUGS_HISTORICOS}}, solo
 // vacíos o tal cual: llenos son contenido propio → propia, y el comentario lo dice) es el molde viejo intacto: al aplicar se
@@ -32,6 +36,13 @@
 // porque la exención (b) compara contra la ficha de fábrica DEL ÁRBOL DEL PADRE (barreras.cjs, exencionB) y la fábrica llega con
 // las piezas. La ficha con frenos, sensible o autorizado distintos de fábrica da rojo en barreras: lo aprueba Guido después.
 // Después va barreras --rango <antes>..HEAD; chequear no, porque pide la ficha en la base (corre desde la primera puesta al día).
+// Una pieza en sí (las opcionales que prendió la sesión, o las de --nuevo) se trae como una molde.
+//
+// --principal (SPEC-paquete-8b (14), D8b-9): ya escrito el clon (ahí NO se prende: el pre-commit frenaría la ficha; r1-5), en la
+// carpeta principal, validada (r1-7: su raíz git, sin .kit-rol, y el origin del clon es ella o el mismo que el de ella),
+// core.hooksPath → .githooks con las reglas de ponerHooksPath del hook de arranque, más una (r1-6): vacío y sin .githooks/ en el
+// disco, solo si .git/hooks no tiene hooks propios (fuera de *.sample); con otro valor (husky, lefthook), solo si .githooks/ ya está
+// en el disco. Si no, "queda para el arranque" (el primer arranque después del pull). Solo --local; una línea "githooks · …".
 
 const fs = require('fs');
 const os = require('os');
@@ -51,7 +62,9 @@ const MARCA_INI = '# ==== lo que vio el adoptador (este bloque se va al aplicar)
 const MARCA_FIN = '# ==== fin de lo que vio el adoptador ====';
 const NIVELES = ['liviano', 'estandar'];
 const DE_FABRICA = ['frenos', 'sensible', 'autorizado'];
-const TRAE = ['molde', 'molde+propio'];
+const TRAE = ['molde', 'molde+propio', 'sí'];
+// --nuevo: las opcionales que nacen prendidas (D8b-8: todo proyecto nuevo nace con módulos) y el candado, prendido.
+const NUEVO_SI = ['candado', 'director-obrero', 'estado'];
 // Las skills del kit que viven en ~/.claude: una copia adentro del repo se queda vieja sola.
 const COPIAS_KIT = ['.claude/skills/arquitecto', '.claude/skills/arquitecto-skills', '.claude/skills/docs-fyd', '.claude/skills/relevamiento'];
 const V2 = ['.claude/hooks/session-start.sh', '.claude/hooks/check-code.js'];
@@ -198,6 +211,15 @@ function moldeV2(kit, carpeta, destino) {
   if (!mejor) return null;
   fs.renameSync(mejor.dir, destino);
   for (const c of mejor.casados) fs.writeFileSync(path.join(destino, ...c.rel.split('/')), c.texto);
+  // Lo del v2 que el proyecto no tiene, fuera del molde viejo: en una adopción, un archivo que falta nunca estuvo (no lo borró el
+  // dueño). Sin esto, el guardia de aplicar ve "(falta)" y manda la pieza a la fusión: un repo recién nacido (--nuevo) se quedaba
+  // sin /inicio ni /cierre (SPEC-paquete-8b (15), la corrida de punta a punta). El settings y los snippets se quedan: van por su
+  // mezcla, y la del settings necesita al viejo para retirar sus reglas.
+  for (const rel of C.rutasDeMolde(destino)) {
+    if (['settings.json', 'gitignore.snippet', 'gitattributes.snippet'].includes(rel)) continue;
+    const rp = C.rutaEnProyecto(rel);
+    if (rp !== null && !hay(carpeta, rp)) fs.rmSync(path.join(destino, ...rel.split('/')), { force: true });
+  }
   return { dir: destino, forma: mejor.forma, version: mejor.version, casados: mejor.casados.map((c) => c.proyecto), propios: mejor.propios };
 }
 
@@ -363,13 +385,19 @@ function mirar(carpeta, opciones) {
     const repN = C.repartir(nuevo.forma, C.rutasDeMolde(nuevo.dir));
     const repV = viejo ? C.repartir(viejo.forma, C.rutasDeMolde(viejo.dir)) : new Map();
     const conClaude = hay(carpeta, 'CLAUDE.md');
+    const nuevoRepo = !!opciones.nuevo;
+    const base = conClaude || nuevoRepo; // lo base va en molde; sin CLAUDE.md y sin --nuevo, todo en no (criterio 19)
 
     const piezas = []; // { id, estado, que }
     for (const [id, { pieza, archivos }] of repN) {
       if (['nunca', 'no-viaja', 'snippet'].includes(pieza.trato)) continue;
       const pone = (estado, que) => piezas.push({ id, estado, que });
-      if (!conClaude) {
+      if (!base) {
         pone('no', 'sin ficha ni CLAUDE.md: todo en no (criterio 19); la sesión decide qué se prende');
+        continue;
+      }
+      if (nuevoRepo && pieza.clase === C.OPCIONAL && NUEVO_SI.includes(id)) {
+        pone('sí', 'proyecto nuevo (--nuevo): nace con módulos');
         continue;
       }
       if (pieza.clase === C.OPCIONAL) {
@@ -399,7 +427,9 @@ function mirar(carpeta, opciones) {
         else distintos.push(rel);
       }
       const ocupada = distintos.length ? `${listaCorta(distintos)} ya está y es distinto del molde` : '';
-      if (id === 'candado') {
+      if (id === 'candado' && nuevoRepo) {
+        pone('sí', `proyecto nuevo (--nuevo): prendido desde el primer commit${ocupada ? ` — ⚠ ${ocupada}: barreras no anda hasta resolverlo` : ''}`);
+      } else if (id === 'candado') {
         pone('no', `apagado hasta migrar; .claude/scripts/estructura.cjs viene igual: barreras corre desde ahí${ocupada ? ` — ⚠ ${ocupada}: barreras no anda hasta resolverlo` : ''}`);
       } else if (distintos.length) {
         const conPropio = (viejo ? viejo.propios : []).filter((x) => distintos.includes(x.proyecto));
@@ -419,10 +449,11 @@ function mirar(carpeta, opciones) {
     o(`vars: ${notas.join(' · ')}`);
     o('piezas (id · estado · qué pasa al aplicar):');
     for (const p of piezas) o(`  ${p.id} · ${p.estado} · ${p.que}`);
-    if (conClaude) {
+    if (nuevoRepo) o('proyecto nuevo (--nuevo): lo base en molde, el candado prendido y director-obrero y estado en sí (nace con módulos)');
+    if (base) {
       o('trae (molde) lo base del catálogo: la ficha, inicio, cierre, el hook con tope, las barreras (settings, los hooks de escritura,');
       o('  git-seguro y sensible, cambios-metodo, githooks), docs (solo lo que falta) y lo que eso necesita para andar (hooks-lib: la');
-      o('  usan todos los hooks; scripts: estructura, cambios, todo). No trae smoke, release, director-obrero, estado ni docs-fyd.');
+      o(`  usan todos los hooks; scripts: estructura, cambios, todo). No trae smoke, release${nuevoRepo ? '' : ', director-obrero, estado'} ni docs-fyd.`);
       o(`frenos, sensible y autorizado: los de fábrica del nivel ${nivel} (así el commit de la ficha pasa barreras: exención b)`);
     }
     o(`CLAUDE.md: ${conClaude ? 'hay — no se toca (la regla del tamaño la marca doctor)' : 'no hay — si la sesión prende alguna pieza, nace el del molde'}`);
@@ -462,7 +493,9 @@ function mirar(carpeta, opciones) {
       '',
       '## Cómo se adaptó el kit a este proyecto',
       '',
-      `- Adoptado con el kit ${version} (${fecha}): frenos, sensible y autorizado de fábrica; el candado apagado hasta migrar (corre barreras).`,
+      nuevoRepo
+        ? `- Nació con el kit ${version} (${fecha}, Modo A): frenos, sensible y autorizado de fábrica; el candado prendido; con módulos (director-obrero y estado).`
+        : `- Adoptado con el kit ${version} (${fecha}): frenos, sensible y autorizado de fábrica; el candado apagado hasta migrar (corre barreras).`,
       '',
     ].join('\n');
     const leida = F.leer(texto).datos;
@@ -524,7 +557,8 @@ function aplicarPropuesta(carpeta, opciones) {
     const repV = C.repartir(formaV, C.rutasDeMolde(plan.moldeViejo));
     const duenoDe = new Map();
     for (const rep of [repV, repN]) for (const [id, { archivos }] of rep) for (const a of archivos) if (a.proyecto) duenoDe.set(a.proyecto, id);
-    const traidas = [...repN].filter(([id, { pieza }]) => !['nunca', 'no-viaja', 'snippet'].includes(pieza.trato) && trae(id)).map(([id]) => id);
+    // las que traen archivos (docs-fyd: sí no trae ninguno: la skill es global)
+    const traidas = [...repN].filter(([id, { pieza, archivos }]) => !['nunca', 'no-viaja', 'snippet'].includes(pieza.trato) && trae(id) && archivos.length).map(([id]) => id);
     const algo = traidas.length > 0;
     // candado en no: su archivo viene igual si viene la lib de los hooks (barreras corre desde estructura.cjs)
     const candadoCorre = estado('candado') === 'no' && trae('hooks-lib');
@@ -584,6 +618,8 @@ function aplicarPropuesta(carpeta, opciones) {
     } catch (e) {
       return { codigo: 1, lineas: [...lineas, `adoptar: no pude escribir ${e.ruta || '?'} (${e.code || e.message}) — cada archivo quedó entero, el viejo o el nuevo. Es el clon: \`git checkout -- . && git clean -fd\` (deja .kit-rol) y corré de nuevo`] };
     }
+    // los githooks, en la carpeta principal (en el clon no: r1-5)
+    lineas.push(opciones.principal ? prenderGithooks(carpeta, opciones.principal) : 'githooks · sin --principal · no los prendí (van con --principal <la carpeta de Guido> en el --aplicar): los prende el primer arranque después del pull');
     const msg = `kit: adopción ${version}`;
     if (algo) {
       // los githooks sh con +x en el índice (en Windows el disco no lo lleva; en la flota lo pone flota, acá el commit)
@@ -607,14 +643,78 @@ function aplicarPropuesta(carpeta, opciones) {
   }
 }
 
+// ---------------------------------------------------------------- los githooks en la carpeta principal (SPEC-paquete-8b (14))
+
+const HOOKS_PATH = '.githooks';
+const CLAVE_PREVIO = 'kit.hooksPathPrevio'; // la misma del hook de arranque (ponerHooksPath): el runner encadena el previo
+const esCarpeta = (p) => {
+  try {
+    return fs.statSync(p).isDirectory();
+  } catch {
+    return false;
+  }
+};
+const origenDe = (d) => {
+  const r = gitEn(d, ['config', '--get', 'remote.origin.url']);
+  return r.ok ? r.out.trim() : '';
+};
+// r1-7: ¿el origin del clon es la carpeta principal (el Modo A clona la carpeta) o el mismo origin que el de ella (la flota clona
+// el remoto)? Una ruta local se compara resuelta; file:// también.
+function mismoRepo(clon, principal) {
+  const oc = origenDe(clon);
+  if (!oc) return false;
+  const op = origenDe(principal);
+  if (op && oc === op) return true;
+  const ruta = oc.replace(/^file:\/\//, '').replace(/^\/(?=[A-Za-z]:)/, '');
+  return esCarpeta(ruta) && comparable(ruta) === comparable(principal);
+}
+// r1-6: los hooks de verdad de .git/hooks (husky v4, pre-commit los ponen ahí), fuera de los *.sample de git init.
+function hooksPropiosDeGit(principal) {
+  const r = gitEn(principal, ['rev-parse', '--git-path', 'hooks']);
+  if (!r.ok) return [];
+  const dir = path.resolve(principal, r.out.trim());
+  try {
+    return fs.readdirSync(dir, { withFileTypes: true }).filter((e) => e.isFile() && !e.name.endsWith('.sample')).map((e) => e.name);
+  } catch {
+    return [];
+  }
+}
+
+// prenderGithooks(clon, principal) → la línea "githooks · <carpeta> · <puesto | ya estaba | queda para el arranque | no pude: …>".
+// Solo --local, solo core.hooksPath y kit.hooksPathPrevio; nunca --global.
+function prenderGithooks(clon, principal) {
+  const linea = (que) => `githooks · ${principal} · ${que}`;
+  const top = esCarpeta(principal) ? gitEn(principal, ['rev-parse', '--show-toplevel']) : { ok: false };
+  if (!top.ok || comparable(top.out.trim()) !== comparable(principal) || hay(principal, '.kit-rol') || comparable(principal) === comparable(clon) || !mismoRepo(clon, principal)) {
+    return linea('no pude: no es el mismo repo (tiene que ser la raíz de tu carpeta, sin .kit-rol, y el clon salir de ella o de su mismo origin) — no toqué nada');
+  }
+  const enDisco = esCarpeta(path.join(principal, HOOKS_PATH));
+  const g = gitEn(principal, ['config', '--get', 'core.hooksPath']);
+  const actual = g.ok ? g.out.trim() : '';
+  if (actual === HOOKS_PATH) return linea('ya estaba');
+  if (actual && !enDisco) return linea(`queda para el arranque — hoy apunta a ${actual} y ${HOOKS_PATH}/ todavía no está en el disco: apagaría esos hooks hasta el pull; lo prende el primer arranque después del pull`);
+  if (!actual && !enDisco) {
+    const propios = hooksPropiosDeGit(principal);
+    if (propios.length) return linea(`queda para el arranque — .git/hooks tiene ${listaCorta(propios)} y ${HOOKS_PATH}/ todavía no está en el disco: apagaría esos hooks hasta el pull; lo prende el primer arranque después del pull`);
+  }
+  if (actual) {
+    const p = gitEn(principal, ['config', '--local', CLAVE_PREVIO, actual]);
+    if (!p.ok) return linea(`no pude: git config ${CLAVE_PREVIO} (${p.err.trim() || 'sin detalle'}) — no toqué core.hooksPath`);
+  }
+  const s = gitEn(principal, ['config', '--local', 'core.hooksPath', HOOKS_PATH]);
+  if (!s.ok) return linea(`no pude: git config core.hooksPath (${s.err.trim() || 'sin detalle'})`);
+  return linea(actual ? `puesto (el anterior, ${actual}, quedó en ${CLAVE_PREVIO}: el runner lo encadena)` : 'puesto');
+}
+
 // ---------------------------------------------------------------- línea de comandos
 
 function leerArgs(argv) {
-  const o = { mirar: false };
-  const conValor = { '--kit': 'kit', '--nivel': 'nivel', '--propuesta': 'propuesta', '--aplicar': 'aplicar', '--fecha': 'fecha' };
+  const o = { mirar: false, nuevo: false };
+  const conValor = { '--kit': 'kit', '--nivel': 'nivel', '--propuesta': 'propuesta', '--aplicar': 'aplicar', '--fecha': 'fecha', '--principal': 'principal' };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--mirar') o.mirar = true;
+    else if (a === '--nuevo') o.nuevo = true;
     else if (Object.prototype.hasOwnProperty.call(conValor, a)) {
       if (i + 1 >= argv.length || !argv[i + 1] || o[conValor[a]] !== undefined) return null;
       o[conValor[a]] = argv[++i];
@@ -622,7 +722,8 @@ function leerArgs(argv) {
     else return null;
   }
   if (!o.carpeta || !o.kit || o.mirar === (o.aplicar !== undefined)) return null;
-  if (!o.mirar && (o.nivel !== undefined || o.propuesta !== undefined)) return null;
+  if (!o.mirar && (o.nivel !== undefined || o.propuesta !== undefined || o.nuevo)) return null;
+  if (o.mirar && o.principal !== undefined) return null;
   if (o.nivel !== undefined && !NIVELES.includes(o.nivel)) return null;
   if (o.fecha !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(o.fecha)) return null;
   return o;
@@ -642,7 +743,7 @@ async function main(argv) {
   try {
     if (o.mirar) {
       if (o.propuesta !== undefined && dentroDe(carpeta, o.propuesta)) throw new Negativa(`--propuesta ${o.propuesta} cae adentro de ${carpeta}: --mirar no escribe ahí — elegí otro lugar`);
-      const r = mirar(carpeta, { kit, nivel: o.nivel, fecha: o.fecha });
+      const r = mirar(carpeta, { kit, nivel: o.nivel, fecha: o.fecha, nuevo: o.nuevo });
       const lineas = r.texto.replace(/\n$/, '').split('\n');
       if (o.propuesta !== undefined) {
         const destino = path.resolve(o.propuesta);
@@ -653,11 +754,11 @@ async function main(argv) {
       }
       return { codigo: 0, lineas };
     }
-    return aplicarPropuesta(carpeta, { kit, propuesta: path.resolve(o.aplicar), fecha: o.fecha });
+    return aplicarPropuesta(carpeta, { kit, propuesta: path.resolve(o.aplicar), fecha: o.fecha, principal: o.principal === undefined ? undefined : path.resolve(o.principal) });
   } catch (e) {
     if (e instanceof Negativa) return { codigo: 1, lineas: [`adoptar: ${e.message}`] };
     throw e;
   }
 }
 
-module.exports = { mirar, aplicarPropuesta, main, casaPlantilla, contenidoPropio, sinObservaciones, MARCA_INI, MARCA_FIN };
+module.exports = { mirar, aplicarPropuesta, main, prenderGithooks, casaPlantilla, contenidoPropio, sinObservaciones, MARCA_INI, MARCA_FIN };

@@ -611,39 +611,48 @@ test('autorizado (crit. 4): cada negativa → 1 sin tocar el archivo; una - Part
   assert.deepEqual(r, { codigo: 1, out: 'autorizado: no — el worktree de modulo/x--01 no está en esta PC: worktree crear x--01 (o abrir) y después autorizado\n', err: '' });
 });
 
-test('autorizado (crit. 4, D5-2, D5-19): la de fondo con acceptEdits, la base y las reglas, una por argumento, y nunca el bypass; la de Guido no fuerza el modo; sin claude → la apertura es de Guido', () => {
+test('autorizado (crit. 4, D5-2, D5-19, D8b-1): dos de fondo, auto y el respaldo en acceptEdits, las dos con la base y las reglas, una por argumento, y nunca el bypass; la de Guido no fuerza el modo; sin claude → un renglón: la apertura es de Guido', () => {
   const p = proyectoV();
   const r = aut(p);
   const lineas = r.out.trim().split('\n');
   const reglas = [...E.base('node base.js'), 'Bash(npm run build)', 'Edit(src/x/**)'];
-  const fondo = lineas[lineas.length - 1];
-  assert.match(fondo, /^apertura de fondo: cd "[^"]+\/modulo--x--01" && printf '%s\\n' '\/obrero x--01' \| claude -p --model sonnet --permission-mode acceptEdits --allowedTools "Read" /);
-  // D-a: en Git Bash, MSYS convierte un argumento que empieza con `/`: ninguno de claude empieza así (el pedido va por stdin).
-  const args = fondo.slice(fondo.indexOf(' | ') + 3).match(/"[^"]*"|'[^']*'|\S+/g).slice(1).map((x) => x.replace(/^["']|["']$/g, ''));
-  assert.ok(args.length > 10 && !args.some((x) => x.startsWith('/')), args.join(' '));
-  assert.doesNotMatch(fondo, /MSYS_NO_PATHCONV/);
-  assert.ok(fondo.endsWith(`--allowedTools ${reglas.map((x) => `"${x}"`).join(' ')}`), fondo);
-  const guido = lineas[lineas.length - 2];
+  const lista = `--allowedTools ${reglas.map((x) => `"${x}"`).join(' ')}`;
+  const [guido, fondo, respaldo] = lineas.slice(-3);
+  assert.match(fondo, /^apertura de fondo: cd "[^"]+\/modulo--x--01" && printf '%s\\n' '\/obrero x--01' \| claude -p --model sonnet --permission-mode auto --allowedTools "Read" /);
+  assert.match(respaldo, /^apertura de fondo \(respaldo, si auto no está\): cd "[^"]+\/modulo--x--01" && printf '%s\\n' '\/obrero x--01' \| claude -p --model sonnet --permission-mode acceptEdits --allowedTools "Read" /);
+  // D8b-1: la lista entera sigue en las dos; el respaldo es la misma línea con otro modo.
+  for (const l of [fondo, respaldo]) {
+    assert.ok(l.endsWith(lista), l);
+    assert.equal(l.match(/--permission-mode/g).length, 1, l);
+    assert.doesNotMatch(l, /bypass|dangerously/i);
+    // D-a: en Git Bash, MSYS convierte un argumento que empieza con `/`: ninguno de claude empieza así (el pedido va por stdin).
+    const args = l.slice(l.indexOf(' | ') + 3).match(/"[^"]*"|'[^']*'|\S+/g).slice(1).map((x) => x.replace(/^["']|["']$/g, ''));
+    assert.ok(args.length > 10 && !args.some((x) => x.startsWith('/')), args.join(' '));
+    assert.doesNotMatch(l, /MSYS_NO_PATHCONV/);
+  }
+  assert.equal(respaldo.replace('apertura de fondo (respaldo, si auto no está): ', '').replace('acceptEdits', 'auto'), fondo.replace('apertura de fondo: ', ''));
   assert.match(guido, /^apertura de Guido: code "[^"]+\/modulo--x--01" → en esa ventana, la pestaña de Claude con Sonnet, en tu modo \(nombre sugerido: obrero-x--01\)$/);
-  assert.doesNotMatch(r.out, /bypass|dangerously|--permission-mode (?!acceptEdits)/i);
-  const sin = aut(p, { claudeEnPath: false });
-  assert.equal(sin.out.trim().split('\n').pop(), 'apertura de fondo: sin `claude` (ni en el PATH ni el de la extensión de VS Code): la apertura es de Guido');
+  assert.doesNotMatch(r.out, /bypass|dangerously|--permission-mode (?!auto |acceptEdits )/i);
+  const sin = aut(p, { claudeEnPath: false }).out.trim().split('\n');
+  assert.equal(sin.pop(), 'apertura de fondo: sin `claude` (ni en el PATH ni el de la extensión de VS Code): la apertura es de Guido');
+  assert.match(sin.pop(), /^apertura de Guido: /);
   // D-b: sin `claude` en el PATH pero con la extensión de VS Code → su binario, entre comillas, en lugar de `claude`.
   const ext = path.join(p.base, 'extensiones');
   const bin = path.join(ext, 'anthropic.claude-code-2.1.312-win32-x64', 'resources', 'native-binary', process.platform === 'win32' ? 'claude.exe' : 'claude');
   escribir(path.dirname(bin), path.basename(bin), '');
-  const vs = aut(p, { claudeEnPath: false, dirExtensiones: ext }).out.trim().split('\n').pop();
+  const vs = aut(p, { claudeEnPath: false, dirExtensiones: ext }).out.trim().split('\n').slice(-2);
   const P = require('../hooks/lib/proceso.cjs');
-  assert.ok(vs.includes(`| "${P.rutaGitBash(bin)}" -p --model sonnet --permission-mode acceptEdits --allowedTools "Read" `), vs);
+  assert.ok(vs[0].includes(`| "${P.rutaGitBash(bin)}" -p --model sonnet --permission-mode auto --allowedTools "Read" `), vs[0]);
+  assert.ok(vs[1].includes(`| "${P.rutaGitBash(bin)}" -p --model sonnet --permission-mode acceptEdits --allowedTools "Read" `), vs[1]);
   // El modelo sale del encargo.
   commit(p.dir, { [RUTA]: textoEncargo(p).replace('- Modelo: sonnet', '- Modelo: opus') }, 'opus');
-  assert.match(aut(p).out, /con Opus, en tu modo[\s\S]*--model opus --permission-mode acceptEdits/);
+  assert.match(aut(p).out, /con Opus, en tu modo[\s\S]*--model opus --permission-mode auto[\s\S]*--model opus --permission-mode acceptEdits/);
   // Las comillas: dobles si se puede; simples si la regla trae comillas dobles o $; con una simple adentro, ninguna sirve.
   assert.equal(C.citar('Read'), '"Read"');
   assert.equal(C.citar('Bash(node --test "kit/**/*.test.cjs")'), `'Bash(node --test "kit/**/*.test.cjs")'`);
   assert.equal(C.citar("Bash(echo 'a' \"b\")"), null);
   const q = proyectoV({ ficha: { test: "node t.js '$x'" } });
-  assert.match(aut(q).out, /\napertura de fondo: la regla Bash\(node t\.js '\$x'\) no se puede citar igual en PowerShell y en Bash: la apertura es de Guido\n$/);
+  assert.match(aut(q).out, /\napertura de Guido: [^\n]*\napertura de fondo: la regla Bash\(node t\.js '\$x'\) no se puede citar igual en PowerShell y en Bash: la apertura es de Guido\n$/);
   const h = proyectoV({ ficha: { test: 'echo $HOME' } });
   assert.match(aut(h).out, / 'Bash\(echo \$HOME\)' 'Bash\(echo \$HOME \*\)' "PowerShell\(git status:\*\)"/);
   // Criterio 11: el script no nombra el modo que saltea los permisos.

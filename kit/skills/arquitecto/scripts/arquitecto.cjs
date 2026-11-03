@@ -341,7 +341,10 @@ function ready(a, { cwd }) {
   if (r.estado === 'invalido') return { codigo: 1, lineas: [`sello inválido: ${r.error} — corré sello de nuevo`] };
   if (r.estado === 'cambio') return { codigo: 1, lineas: ['el spec cambió después del sello: corré sello de nuevo'] };
   const lineas = S.renglones(s.buf);
-  const porRuta = moduloDe(raiz, specAbs) !== null && path.basename(specAbs) === 'SPEC.md';
+  // SPEC-paquete-8b (15), D8b-8: el SPEC-0 del Modo A vive en docs/modulos/v1/SPEC.md; su H1 `# SPEC-0:` manda sobre la ruta.
+  const h1 = S.titulos(lineas).find((t) => t.nivel === 1);
+  const spec0 = !!h1 && h1.texto.startsWith('# SPEC-0:');
+  const porRuta = !spec0 && moduloDe(raiz, specAbs) !== null && path.basename(specAbs) === 'SPEC.md';
   const falta = S.faltantes(lineas, S.esDelta(lineas, porRuta));
   if (falta.length) return { codigo: 1, lineas: falta.map((x) => `ready: ${x} — agregalas y corré sello de nuevo`) };
   const p = S.pasarAReady(s.buf);

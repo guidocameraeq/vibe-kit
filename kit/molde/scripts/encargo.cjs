@@ -13,8 +13,9 @@
 // sale de la rama (pestaña), .kit-rol decide solo humano/desconocido (r1-11); un tipo de mesa (crit. 16) llega solo a un director
 // y vale si git respalda su `<alias>:<ruta>@<sha>` (trae el remoto <alias>; lib/mesa.cjs). `autorizado` reescribe entero permissions.allow del
 // settings.local.json del worktree del encargo con la base + ## AUTORIZADO (sin estado; el deny y lo demás quedan) e imprime las dos
-// aperturas: la de Guido, en su modo, y la de fondo (acceptEdits + --allowedTools; nunca el modo que saltea permisos). `verificar`
-// imprime siempre seis líneas (remoto · limpio · pruebas · alcance · main · barreras) y sale 0 si ninguna es ❌; lo que no se pudo
+// aperturas: la de Guido, en su modo, y la de fondo en dos renglones (auto + --allowedTools; el de respaldo, acceptEdits con la misma
+// lista, si auto no se deja lanzar; D8b-1): el director usa la primera línea de fondo, o la de respaldo, tal cual, nunca otra; nunca
+// el modo que saltea permisos. `verificar` imprime siempre seis líneas (remoto · limpio · pruebas · alcance · main · barreras) y sale 0 si ninguna es ❌; lo que no se pudo
 // mirar es ❌ NO VERIFICADO. La lógica común vive en .claude/hooks/lib/encargo.cjs y proceso.cjs.
 // Salidas: 0 anduvo · 1 negado o rojo (una línea por qué y qué hacer) · 2 mal llamado. Un error propio: "encargo roto: corré
 // doctor", 1. Node estándar, cero dependencias. Es .cjs a propósito: corre igual en proyectos con "type": "module".
@@ -331,18 +332,22 @@ function citar(regla) {
   return null;
 }
 
-// La línea de fondo (D5-2): acceptEdits y --allowedTools con la base + el encargo; nunca el modo que saltea los permisos. No depende
-// del archivo. La corre el director desde su Bash, que en Windows es Git Bash: MSYS convierte un argumento que empieza con `/` en una
+// Las líneas de fondo (D5-2, D8b-1) → una lista de renglones: el primero en auto, el de respaldo en acceptEdits (la cuenta sin auto o
+// el clasificador del director que lo frena), los dos con --allowedTools con la base + el encargo (la lista preaprueba sin el
+// clasificador; auto juzga el resto y los porteros siguen negando); nunca el modo que saltea los permisos. Sin `claude` o con una
+// regla que no se cita, un renglón solo. No depende del archivo. La corre el director desde su Bash, que en Windows es Git Bash: MSYS convierte un argumento que empieza con `/` en una
 // ruta (`-p "/obrero x--01"` llegaba como `C:/Program Files/Git/obrero x--01`; D2.2). Por eso el pedido va por stdin con `printf`, un
 // builtin (no se convierte), y ningún argumento suelto empieza con `/`. Nunca MSYS_NO_PATHCONV: la sesión lo heredaría. `claude` es
 // el del PATH o el de la extensión de VS Code (hooks/lib/proceso.cjs comandoClaude; D-b); sin ninguno, la apertura es de Guido.
 function lineaDeFondo(L, wt, n, modelo, reglas, opciones) {
   const claude = L.proceso.comandoClaude(opciones);
-  if (!claude) return 'apertura de fondo: sin `claude` (ni en el PATH ni el de la extensión de VS Code): la apertura es de Guido';
+  if (!claude) return ['apertura de fondo: sin `claude` (ni en el PATH ni el de la extensión de VS Code): la apertura es de Guido'];
   const citadas = reglas.map(citar);
   const k = citadas.indexOf(null);
-  if (k >= 0) return `apertura de fondo: la regla ${reglas[k]} no se puede citar igual en PowerShell y en Bash: la apertura es de Guido`;
-  return `apertura de fondo: cd "${barras(wt)}" && printf '%s\\n' '/obrero ${n.x}--${n.id}' | ${claude} -p --model ${modelo} --permission-mode acceptEdits --allowedTools ${citadas.join(' ')}`;
+  if (k >= 0) return [`apertura de fondo: la regla ${reglas[k]} no se puede citar igual en PowerShell y en Bash: la apertura es de Guido`];
+  const resto = (modo) =>
+    `cd "${barras(wt)}" && printf '%s\\n' '/obrero ${n.x}--${n.id}' | ${claude} -p --model ${modelo} --permission-mode ${modo} --allowedTools ${citadas.join(' ')}`;
+  return [`apertura de fondo: ${resto('auto')}`, `apertura de fondo (respaldo, si auto no está): ${resto('acceptEdits')}`];
 }
 
 function autorizado(L, g, n, opciones) {
@@ -381,7 +386,7 @@ function autorizado(L, g, n, opciones) {
   const modelo = e.campos.modelo.modelo;
   // D5-19: la de Guido no fuerza el modo: la pestaña abre en el suyo.
   lineas.push(`apertura de Guido: code "${barras(wt)}" → en esa ventana, la pestaña de Claude con ${modelo[0].toUpperCase()}${modelo.slice(1)}, en tu modo (nombre sugerido: obrero-${n.x}--${n.id})`);
-  lineas.push(lineaDeFondo(L, wt, n, modelo, allow, opciones));
+  lineas.push(...lineaDeFondo(L, wt, n, modelo, allow, opciones));
   return { codigo: 0, lineas };
 }
 
