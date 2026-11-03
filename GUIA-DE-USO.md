@@ -2,7 +2,8 @@
 
 > La guía práctica del sistema completo, organizada por situación: **"quiero X → hacé Y"**.
 > No repite procedimientos (viven en el kit y las skills — si algo difiere, ganan ellos);
-> te dice qué decir, dónde, y qué esperar. Actualizada 2026-10-13 (el repo se reordenó: el Extractor y la investigación viven en `observatorio/`).
+> te dice qué decir, dónde, y qué esperar; el detalle está en `manuales/`. Actualizada 2026-11-03 (kit v3: las cinco entradas del
+> Arquitecto, el Equipador, director y obrero, `/estado`, la noche).
 
 ## El mapa mental en 30 segundos
 
@@ -10,9 +11,11 @@ Tu sistema tiene **3 niveles**, cada uno con su herramienta:
 
 | Nivel | Herramienta | Se usa… |
 |---|---|---|
-| **La máquina** (esta PC, la del SAAS, cualquiera) | El Equipador (`/arquitecto-skills`) | Al estrenar una PC, actualizar skills, o traer lo último (*"actualizate"*) |
-| **Cada proyecto** (Perseo, el ERP, apps nuevas) | `inicio` / `cierre` + su CLAUDE.md | Todos los días |
+| **La máquina** (esta PC, la del SAAS, cualquiera) | El Equipador (`/arquitecto-skills`) | Al estrenar una PC, actualizar skills, traer lo último (*"actualizate"*) o poner al día la flota |
+| **Cada proyecto** (Perseo, el ERP, apps nuevas) | `inicio` / `cierre` + su CLAUDE.md (y `/estado`, director y obrero en el kit v3) | Todos los días |
 | **Este repo** (el método mismo) | El Arquitecto, el Extractor, el playbook | Al arrancar proyectos, procesar tips, o mejorar el método |
+
+El Arquitecto es **la puerta**: si no sabés a quién llamar, `/arquitecto` y lo que querés; él te deriva.
 
 Y hay un **paso previo**, que sólo aparece cuando el pedido **vino de otra persona**: `/relevamiento`
 (entender el problema con la gente, antes de que exista un plano). En lo tuyo no aparece nunca.
@@ -23,6 +26,10 @@ Y la regla que gobierna todo: **el contexto vive en archivos, los chats se desca
 
 ## Recetas por situación
 
+### 🙋 "Quiero pedir algo" (en un proyecto)
+Pedilo en el chat del proyecto. La sesión te dice primero el tamaño: *"chico, lo hago acá"* o *"esto es más que chico: llamo al
+Arquitecto"*, y lo llama sola (en un proyecto v2, sin esa regla, lo llamás vos). → [`manuales/COMO-USAR-EL-ARQUITECTO.md`](manuales/COMO-USAR-EL-ARQUITECTO.md) §2
+
 ### 💡 "Tengo una idea de app nueva"
 Chat nuevo en cualquier lado → **`/arquitecto` + tu idea en una frase**.
 Te entrevista (una pregunta por vez, con "Recomendado"), piensa lo que no ves venir, te
@@ -30,7 +37,7 @@ muestra el plano, y con tu OK monta TODO. Al final te da el prompt exacto para e
 constructor. Atajo si tenés apuro: *"dale con los defaults"*.
 **Esto NO cambió con `/relevamiento`**: si la idea es tuya, seguís yendo directo al Arquitecto,
 y él no se entera de que existe ningún relevamiento. Es así por construcción, no por prolijidad.
-→ Detalle completo: `manuales/COMO-USAR-EL-ARQUITECTO.md` (caso A)
+→ Detalle completo: [`manuales/COMO-USAR-EL-ARQUITECTO.md`](manuales/COMO-USAR-EL-ARQUITECTO.md) §3 (Modo A)
 
 ### 📥 "Me pidieron algo en el laburo"
 Otra persona te paró en el pasillo, o te mandó un mail, y hay que averiguar de qué se trata antes
@@ -70,13 +77,24 @@ no un fracaso.
 Chat nuevo **en la carpeta del proyecto** → decís **`inicio`** → te confirma dónde están en
 3 líneas → le das la misión → trabajás → **`cierre`** → chat a la basura.
 Cambió la misión → cambiá el chat. Compactar es emergencia (*"cierre parcial"*), no rutina.
+→ Qué hacen `inicio` y `cierre` en el kit v3: [`manuales/ROLES.md`](manuales/ROLES.md) §1
 
 ### 🏗️ "Quiero una feature más que chica en una app existente"
-Chat nuevo **en la carpeta de esa app** → **`/arquitecto`** → detecta que hay código (Modo B),
-lo explora primero, charlan anclados a lo real, y deja el **spec delta** (con su "qué NO se
-toca") listo para que una sesión fresca lo construya.
-Para features chicas: ni Arquitecto ni spec — pedila directo en el chat del proyecto.
-Prueba de tamaño, dos preguntas: ¿hace falta algo más que el pedido y el `git diff` para retomarlo? ¿lleva más de una sesión? Ninguna sí → directo; alguna sí → spec. Tocar plata, permisos o datos no la agranda.
+Chat nuevo **en la carpeta de esa app** → **`/arquitecto`** (o lo llama la sesión sola, si midió "más que chico"): explora el código
+(Modo B), deja el **spec delta sellado** y el módulo armado, y te da la línea para la sesión que lo construye.
+→ [`manuales/COMO-USAR-EL-ARQUITECTO.md`](manuales/COMO-USAR-EL-ARQUITECTO.md) §4
+
+### 👋 "Me voy" (y quedó un módulo con director andando)
+Decile **"me voy"** al director: sin preguntarte nada te muestra el checklist de la noche y qué queda andando. Cuando volvés, tu
+`/inicio` o `/estado` le avisa que ya es de día. → [`manuales/ROLES.md`](manuales/ROLES.md) §7
+
+### 📊 "¿Cómo vamos?"
+**`/estado`** en el proyecto (o `/estado <módulo>`): lo que te espera arriba, el avance medido de cada módulo, qué pestañas cerrar.
+*"¿Cómo terminamos?"* suma el resumen del día. → [`manuales/ROLES.md`](manuales/ROLES.md) §6
+
+### 🔏 "La sesión me pide aprobar un cambio de freno"
+Leé la regla en "Te espera" del handoff; si estás de acuerdo, el `cambios aprobar <id>` se corre en la pestaña principal y **tu clic
+en la ventana de permiso es la firma**. Desde otra pestaña, de noche o en bypass se niega solo. → [`manuales/ROLES.md`](manuales/ROLES.md) §9
 
 ### 📋 "Necesito documentar un repo para la auditoría FyD"
 Chat nuevo **en la carpeta de esa app** → **`/docs-fyd`**. Deriva del código los 10 documentos que
@@ -87,13 +105,12 @@ dudas faltan, y si hay secretos). Un repo por vez.
 → Detalle: `kit/skills/docs-fyd/SKILL.md` · el inventario central (Excel) es Fase 2 (a mano desde tu Kanban).
 
 ### 🗣️ "Vengo charlando algo en un chat y tomó forma de feature"
-Quedate en ese chat: **"cristalizá todo esto en un spec"** → lo revisás → chat nuevo:
-`inicio — ejecutá el spec docs/SPEC-X.md`. (Y si te olvidás de pedirlo, Claude te lo va a
-ofrecer solo — es regla de tus CLAUDE.md.)
+Quedate en ese chat y llamá a **`/arquitecto`**: con el plan ya charlado entra en **Modo B corto** (sin entrevista), lo sella y te da
+la línea para el chat que lo construye. Un spec sin sello no lo ejecuta nadie. → [`manuales/COMO-USAR-EL-ARQUITECTO.md`](manuales/COMO-USAR-EL-ARQUITECTO.md) §4
 
 ### 🤔 "No sé cómo pedirle esto a Claude / quiero armar un prompt o una skill"
-**`/arquitecto`** y contale — el Modo C (consultorio) te entrevista sobre la traba y te
-entrega el prompt listo para pegar, o la skill armada.
+**`/arquitecto`** y contale: el consultorio te devuelve el prompt listo para pegar, un veredicto con su regla, o el brief para
+armar la skill. → [`manuales/COMO-USAR-EL-ARQUITECTO.md`](manuales/COMO-USAR-EL-ARQUITECTO.md) §5
 
 ### 📱 "Guardé TikToks con tips de vibe coding"
 Abrí Claude Code en **`observatorio/extractor/`** (VSCode → Abrir carpeta) → **pegá los links** — nada más.
@@ -101,39 +118,25 @@ El agente extrae, verifica y deja el informe en `tips/`. Después, chat en la ra
 repo: *"leé tips/tanda-<fecha> y procesemos las conclusiones"* — ahí decidís qué entra.
 → Detalle completo: `observatorio/extractor/COMO-USAR-EL-EXTRACTOR.md`
 
-### 💻 "Estoy en una PC nueva (o quiero actualizar la del SAAS)"
-**PC nueva:** `git clone` del repo → abrir Claude Code en `kit/` → pegar el prompt de
-`kit/INSTALAR.md`. Se instala solo y al final te ofrece equipar la máquina con el menú curado.
-*(Hace falta git. Si alguna vez hay una PC sin git, ver REJ-015.)*
-**Actualizar una PC que ya lo tiene:** decile al Equipador **`actualizate`** (o *"actualizá el
-kit"*) — baja lo último del repo canónico y se actualiza a sí mismo (con diff antes de pisar).
-Reiniciás Claude Code y listo. *(La 1ra vez en una PC con el Equipador viejo va con el prompt
-manual de actualización; de ahí en más, "actualizate".)*
+### 💻 "Preparame esta PC" (PC nueva, o actualizar la del SAAS)
+Decile al Equipador (o al Arquitecto) **"preparame esta PC"**: te hace **una sola pregunta**, deja el kit, los frenos y los ajustes
+de Claude Code, y cierra con "reiniciá Claude Code". **Llega con el tag del kit v3**: hasta entonces, la PC nueva va con `kit/INSTALAR.md`.
+→ [`manuales/EQUIPADOR.md`](manuales/EQUIPADOR.md) §1
+
+### 🔄 "Actualizate" (traer lo último del kit a esta PC)
+**`actualizate`**: el mismo camino que "preparame esta PC", y reiniciás Claude Code. → [`manuales/EQUIPADOR.md`](manuales/EQUIPADOR.md) §2
 
 ### 🧰 "Quiero instalar una skill nueva / ver qué skills tengo"
-**`/arquitecto-skills`**: *"preparame esta máquina"* (instala lo que falte del menú),
-*"qué skills tengo"* (censo), *"actualizá las skills"* (update del menú con diff),
-**`actualizate`** (el propio kit se baja lo último del repo y se auto-actualiza), *"agregá tal
-skill al menú"* (la investiga primero — nada entra sin curaduría).
-**Frenos de la PC** (kit v3, en construcción): *"instalar hooks por PC"* (el corrector de secretos en toda
-la máquina; primero te muestra el plan, y se deshace byte a byte) y *"corré el doctor"* (dice qué anda y
-qué no, sin tocar nada). Con el próximo tag del kit, **"preparame esta PC"** deja la máquina entera lista (el kit, los
-frenos, los ajustes de Claude Code) con **una sola pregunta**, y el doctor revisa además versión, `gh`, copias del kit y frenos vencidos.
-El detalle, en `kit/skills/arquitecto-skills/SKILL.md`.
+**`/arquitecto-skills`**: *"instalame skills"*, *"qué skills tengo"*, *"actualizá las skills"*, *"agregá tal skill al menú"* (nada
+entra sin curaduría). Los frenos de la PC: *"instalar hooks por PC"* y *"corré el doctor"* (solo mira). → [`manuales/EQUIPADOR.md`](manuales/EQUIPADOR.md) §3, §4 y §6
 
-### 🚚 "Quiero poner al día mis proyectos con el kit nuevo" (kit v3, llega con el tag)
-*"Poné al día la flota"* (o *"poné al día Hub"*): el Arquitecto te pasa al Equipador, que corre el actualizador **en una copia
-temporal de cada repo** (tu carpeta no se toca) y te devuelve una tabla: mezclado, salteado (con su porqué), ROTA o "te espera".
-Lo que vos adaptaste en un proyecto no se pisa: si tiene su porqué se fusiona solo; si no, la próxima vez que abras ese proyecto
-`/inicio` te hace **una** pregunta con el diff. Un repo que todavía no tiene el kit v3: *"adoptá X"* (te muestra la propuesta sin tocar
-nada; con tu OK la aplica). Si la pestaña no te deja pushear, la línea la corrés vos. El detalle: `kit/skills/arquitecto/anexos/flota.md`.
+### 🚚 "Poné al día la flota" / "Adoptá X" (llega con el tag del kit v3)
+*"Poné al día la flota"* (o *"poné al día Hub"*): cada repo se actualiza en una copia temporal (tu carpeta no se toca) y te vuelve una
+tabla. Un repo que todavía no tiene el kit v3: *"adoptá X"* (primero mira, con tu OK aplica). → [`manuales/EQUIPADOR.md`](manuales/EQUIPADOR.md) §5
 
-### 📈 "¿Qué aprendieron mis proyectos que debería subir al kit?" (kit v3)
-*"¿Cómo está la flota?"* o *"qué se repite en la flota"*: un script cuenta los cambios de método de todos los proyectos y te dice qué
-regla está en 3 o más, o tiene cicatriz de producción, seguridad o plata. Lo que sube se anota en `kit/cubiertos.md` y, al poner al día
-la flota, cada proyecto lo marca solo como "subió al kit". Las urgentes te aparecen en el `/inicio` de este repo. Un proyecto con un
-`CAMBIOS.md` gigante (Hermes) se pasa a archivos chicos con un comando al adoptarlo. Y cada repo nuevo o adoptado sale con su
-**portada** (el README que se ve en GitHub), armada sola desde el `NORTE.md`.
+### 📈 "¿Qué aprendieron mis proyectos que debería subir al kit?"
+*"¿Cómo está la flota?"* (la tabla de proyectos) o *"qué se repite en la flota"* (qué regla está en 3+ proyectos o tiene cicatriz
+grave; las urgentes te aparecen en el `/inicio` de este repo). → [`manuales/EQUIPADOR.md`](manuales/EQUIPADOR.md) §5
 
 ### 🔧 "Quiero cambiar algo del método / del Arquitecto / del menú"
 Chat nuevo **en la raíz de este repo** → pedilo. La regla la sabe Claude: se edita en `kit/`,
@@ -151,9 +154,9 @@ commits. Para el "por qué" de cualquier cosa: `docs/DECISIONS.md` (los ADRs) y
 
 ### ✂️ "El arranque dice CORTADO" (o un proyecto viejo arranca sin saber dónde quedó)
 La plataforma corta lo que inyecta el hook en 10.000 caracteres. Desde el kit v2.4.3 el hook del molde
-lo avisa y termina con la huella `inyectado: N caracteres`. Si dice CORTADO: *"leé el resto del handoff
-y en el cierre achicalo"*. Un proyecto armado antes de la v2.4.3 no tiene el hook nuevo: en un chat
-de ese proyecto, *"traé el hook de arranque del molde del kit y medilo"*.
+lo avisa y termina con la huella `inyectado: N …` (en el kit v3, `inyectado: N de 9.700`, y el `/inicio` lee
+solo lo que falta). Si dice CORTADO: *"leé el resto del handoff y en el cierre achicalo"*. Un proyecto armado
+antes de la v2.4.3 no tiene el hook nuevo: se arregla adoptándolo al kit v3 (*"adoptá X"*, arriba).
 
 ### 🔎 "Quiero volver a investigar mis chats (o los de otra PC)"
 Chat nuevo acá → *"investigación de chats, desde el último corte, seguí `observatorio/investigacion/METODO.md`"*.
@@ -178,8 +181,12 @@ de la anterior en `tips/tanda-2026-10-chats.md` §0; lo ya hallado en `D:\vibe-h
 | `cierre` | Docs al día, commit, push — chat descartable |
 | `cierre parcial` | Emergencia pre-compactación: guarda el estado y seguís |
 | `dale con los defaults` | El Arquitecto salta a confirmar solo las 2 decisiones irreversibles |
-| `cristalizá esto en un spec` | La charla se vuelve un plano ejecutable por otra sesión |
-| `preparame esta máquina` | El Equipador instala el menú curado |
+| `/arquitecto` con el plan ya charlado | Modo B corto: sin entrevista, la charla se vuelve un spec sellado que ejecuta otra sesión |
+| `/estado` · `¿cómo terminamos?` | Cómo vamos: lo que te espera arriba, el avance de cada módulo · más el resumen del día |
+| `me voy` | (al director) El checklist de la noche y qué queda andando; tu `/inicio` al volver dice que ya es de día |
+| `cambios aprobar <id>` | Aprobar un cambio de freno: en la pestaña principal, tu clic en la ventana de permiso es la firma |
+| `preparame esta PC` | (kit v3, con su tag) El Equipador deja la PC entera lista: kit, frenos y ajustes, con una sola pregunta |
+| `instalame skills` | El Equipador instala lo que falte del menú curado |
 | `/docs-fyd` | Documenta el repo para la auditoría FyD (te pregunta por opciones lo que el código no sabe) |
 | `docs-fyd auditar` | Chequeo antes de entregar a FyD: qué quedó viejo, dudas abiertas, secretos — no escribe |
 | `actualizate` | El Equipador baja lo último del repo y se actualiza a sí mismo |
@@ -190,7 +197,12 @@ de la anterior en `tips/tanda-2026-10-chats.md` §0; lo ya hallado en `D:\vibe-h
 ## Dónde profundizar
 
 - **El método completo** (por qué de todo): `PLAYBOOK-MAESTRO.md`
-- **El Arquitecto y el Equipador a fondo**: `manuales/COMO-USAR-EL-ARQUITECTO.md`
+- **El Arquitecto** (las cinco entradas, el tamaño, Modo A y B, el sello): [`manuales/COMO-USAR-EL-ARQUITECTO.md`](manuales/COMO-USAR-EL-ARQUITECTO.md)
+- **El Equipador** (la PC, `doctor`, poner al día la flota, adoptar): [`manuales/EQUIPADOR.md`](manuales/EQUIPADOR.md)
+- **Director, obrero, tramo, `/estado`, la noche y la mesa**: [`manuales/ROLES.md`](manuales/ROLES.md)
+- **Qué trae un proyecto con el kit v3** (la ficha, `docs/`, los frenos, el registro de cambios): [`manuales/MOLDE.md`](manuales/MOLDE.md)
+- **Cada script del kit**, qué hace y cómo se llama: [`manuales/SCRIPTS.md`](manuales/SCRIPTS.md)
+- **Si se filtró una credencial**: [`manuales/se-filtro-una-credencial.md`](manuales/se-filtro-una-credencial.md)
 - **`/relevamiento` en una hoja** (para tener a mano cuando te piden algo): `manuales/HOJA-DE-MANO-relevamiento.md`
 - **Instalar en otra PC**: `kit/INSTALAR.md` (o la carpeta del Escritorio con los PDFs)
 - **Por qué el kit es como es**: `docs/DECISIONS.md` · lo que se descartó: `docs/REJECTED.md`
