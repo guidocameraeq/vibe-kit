@@ -726,7 +726,8 @@ for x in alfa beta gama; do
   oh=$(git_pruebas -C "$d" rev-parse --abbrev-ref origin/HEAD 2>/dev/null) || oh=""
   if [ "$oh" = "origin/main" ]; then T_REMOTO[$x]="ok"; else FALLOS+=("$x: origin/HEAD='$oh'"); fi
   rc=0
-  grep -rqF --exclude-dir=.git -- '{{' "$d" || rc=$?
+  # solo lo que el molde instancia (.md/.json, como seInstancia): portada.cjs lleva {{…}} a propósito
+  grep -rqF --exclude-dir=.git --include='*.md' --include='*.json' -- '{{' "$d" || rc=$?
   case $rc in
     1) ;;
     0) FALLOS+=("$x: quedó un {{") ;;

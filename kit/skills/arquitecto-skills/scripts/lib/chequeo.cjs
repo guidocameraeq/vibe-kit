@@ -28,6 +28,7 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 const { leerJsonSinDuplicados } = require('../../pc/lib/zona-propia.cjs');
 const ficha = require('../../pc/lib/ficha.cjs');
+const { seInstancia } = require('./molde.cjs');
 
 const IDS = ['llaves', 'arranque', 'settings', 'skills', 'ficha', 'barreras', 'casos', 'pruebas', 'gitleaks'];
 const PLAZO_DEFECTO = 30 * 60 * 1000;
@@ -217,6 +218,8 @@ function llaves(ctx) {
   const sueltas = [];
   for (const a of diffDe(ctx)) {
     if (a.archivo.split('/').includes('_fuente')) continue;
+    // solo lo que el molde instancia (.md/.json): un {{ en un .cjs (p. ej. las plantillas de portada.cjs) es suyo a propósito
+    if (!seInstancia(a.archivo)) continue;
     if (RE_LLAVE.test(Buffer.from(a.texto, 'latin1').toString('utf8'))) sueltas.push(`${a.archivo}:${a.linea}`);
   }
   if (!sueltas.length) return bien('ningún {{ suelto en lo que trajo el molde');

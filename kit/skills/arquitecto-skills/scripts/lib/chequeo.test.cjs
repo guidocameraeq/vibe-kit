@@ -176,13 +176,19 @@ test('1 llaves: un {{X}} suelto en lo que trajo → ❌ con archivo:línea; {{LI
       fs.appendFileSync(path.join(d, '.claude', 'skills', 'inicio', 'SKILL.md'), '\nUn hueco {{X}} que quedó.\n');
       escribir(path.join(d, 'docs', 'plantillas', '_fuente', 'a.md'), 'aprobada: {{SIN_TOCAR}}\n');
       escribir(path.join(d, 'docs', 'b.md'), 'tabla de {{LINEAS:12}} renglones\n');
+      escribir(path.join(d, '.claude', 'scripts', 'portada.cjs'), "const t = '{{PROYECTO}} {{BANNER}}';\n");
     },
   });
   const r = correr(p);
   nueveBienFormadas(r);
   rojo(r, 'llaves', /\.claude\/skills\/inicio\/SKILL\.md:\d+/);
-  assert.doesNotMatch(linea(r, 'llaves'), /_fuente|docs\/b\.md/);
+  assert.doesNotMatch(linea(r, 'llaves'), /_fuente|docs\/b\.md|portada\.cjs/);
   verde(r, 'skills');
+});
+
+test('1 llaves: un .cjs con {{X}} (las plantillas de portada.cjs; el molde no lo instancia) → ✅', () => {
+  const p = armar({ cambio: (d) => escribir(path.join(d, '.claude', 'scripts', 'portada.cjs'), "const t = '{{PROYECTO}}';\n") });
+  verde(correr(p), 'llaves');
 });
 
 test('2 arranque: un hook de arranque que inyecta 9.800 → ❌; uno que no deja huella → ❌', () => {
