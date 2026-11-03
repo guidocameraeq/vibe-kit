@@ -2,6 +2,25 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-11-03 — El repaso de las decisiones con Guido, el plan después de la rc.1 y la misión 6a
+
+En el chat de D8.1 (PC `Guido-PC-eQ`, Opus, con Guido): el repaso de las ~150 decisiones sin él, y desde ahí la sesión madre orquestó
+D8b.1 y la 6a en sesiones aparte.
+
+**Added**
+- "El repaso con Guido" al final de `docs/kit-v3/DECISIONES-SIN-GUIDO-en-criollo.md`: 17 renglones (lo aprobado, lo corregido y lo que
+  pidió hacer antes del tag, que hizo D8b.1).
+- ADR-034: la coherencia entre piezas entra a la vara; lo técnico que no le cambia el día a día a Guido lo decide la sesión; la revisión
+  integral es paso fijo del ciclo.
+- `docs/CICLO-DE-MEJORA.md` (misión 6a, la receta del ciclo: el reloj, los cinco pasos mirando adentro y afuera, cómo se decide, la
+  revisión integral, cómo trabajamos de verdad en la vuelta 1 y lo que costó) y `docs/mision-6/PLAN-6a.md`.
+- En el tracker: "Después de la rc.1: las sesiones que siguen" (R1, la mañana, el diseño de los experimentos, D8c.1, la prueba, M6b, R2)
+  con los prompts de las nuevas, y la vara con sus dos criterios nuevos.
+
+**Changed**
+- El plan: la prueba real es Hermes desde el 2026-11-04 (ya no un piloto en Deptos); la `rc.2` suma los experimentos de método (pedido
+  de Guido) y las correcciones de la revisión integral.
+
 ## 2026-11-03 — Misión 5, paquete 8b (D8b.1): lo que dejó el repaso de Guido, y la beta · v3.0.0-rc.1
 
 PC `Guido-PC-eQ`, chat `vibe-kit M5 · D8b.1 · Paquete 8b y la beta v3.0.0-rc.1`, en Opus, sin Guido (con su autorización previa):

@@ -15,7 +15,13 @@ ya tiene la beta en `~/.claude/`** (skills y `VERSION`; los settings y hooks los
 
 ## Próximo paso
 
-**Una sesión CON Guido**, en Opus: **`vibe-kit M5 · Mañana: preparar la PC y adoptar Hermes`**. Los pasos, con qué hace la sesión y qué
+**El orden de las sesiones que siguen está en el tracker, "Después de la rc.1: las sesiones que siguen"** (asentado con Guido el 03-11;
+**la sesión madre las orquesta y lanza las que no piden a Guido**, con su visto bueno). Primero **R1, la revisión integral de la rc.1**,
+sin Guido, la noche del 03-11 (`docs/kit-v3/REVISION-INTEGRAL-rc1.md`); después la mañana con Guido, que **abre con el informe de R1**
+(sus decisiones de negocio y lo que traba la adopción); después el diseño de los experimentos con Guido y D8c.1 (la `rc.2`). Criterio
+nuevo para todas: ADR-034 (la coherencia entre piezas; lo técnico lo decide la sesión).
+
+**La mañana: una sesión CON Guido**, en Opus: **`vibe-kit M5 · Mañana: preparar la PC y adoptar Hermes`**. Los pasos, con qué hace la sesión y qué
 Guido, en el tracker (`docs/kit-v3/PLAN-construccion.md`), sección **"Mañana con Guido: preparar la PC y adoptar Hermes (8½)"**:
 "preparame esta PC" en cada PC → el cruce de `block_secrets.ps1` (está en esta PC) con `secretos.cjs` → `adoptar --mirar` sobre Hermes →
 `entornos:` con su clase → `cargar-secreto` (la tipea Guido) → `adoptar --aplicar … --principal` con su OK → el módulo nuevo con
