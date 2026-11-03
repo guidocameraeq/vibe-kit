@@ -125,7 +125,7 @@ y si el SQL borra datos reales, de día pregunta y de noche se niega.
 | `datos` | Que las skills no lleven datos de ningún proyecto. |
 | `portada` | Que el README de la raíz esté al día (solo si la ficha prende `piezas.portada`). |
 
-Cada falla dice **qué pasa y qué hacer**. Un id se puede quitar en `frenos.quitados` con `hasta: vigente`, **salvo `barreras`**:
+Cada falla dice **qué pasa y qué hacer**. Un id se puede quitar en `frenos.quitados` con `id: candado:<id>` y `hasta: siempre` (o una fecha que no pasó), **salvo `barreras`**:
 esa no se apaga. Con `piezas.candado: no` corre solo `barreras`. El código está en `hooks/lib/candado.cjs`.
 
 ## 6. La zona propia
