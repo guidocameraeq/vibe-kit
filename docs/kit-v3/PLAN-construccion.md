@@ -982,6 +982,14 @@ porteros), 4 MEDIOS, 1 BAJO; todos integrados, r1-3 cerrado midiendo.
   no en `subio-al-kit` ni `cubiertos.md` (un rc nunca sube reglas al kit). **D8b-4 · El porqué es solo el `por:`** (lo decidiste vos):
   cada adaptada pregunta una vez. **D8b-7 · La línea del módulo en los 300 caracteres de hoy.** **D8b-9 · Los githooks en la carpeta
   principal, nunca en el clon**; con un `hooksPath` ajeno (husky) y sin `.githooks/` en el disco, no se tocan.
+- ⚠️ **D8b.1-c · El renglón (11), el obrero de cierre de tramo (encargo D), queda para `rc.2`.** A las 15:40 el presupuesto (~4 h) se
+  había ido en C, A, B y un arreglo que no estaba en el plan (E, abajo). (11) no hace falta hasta que cierre el primer tramo del módulo de
+  Hermes, días después de mañana; la beta sin él no cambia nada de la adopción ni del arranque. Lo que se ve mientras tanto: la ficha de
+  `v1` sale en el arranque con "(sin "Próximo paso:")". *Alternativa*: estirar ~1 h más y arriesgar la beta. `[workflow · acordarse de menos]`
+- ⚠️ **D8b.1-d · Encargo E, fuera del plan: la línea "llaves" de `chequear` daba ROTA a toda actualización desde D7.1** (`portada.cjs`
+  trae sus plantillas con `{{…}}` y la línea miraba también los `.cjs`, que el molde nunca instancia). Lo encontró la prueba temprana de la
+  flota (`gama` ROTA); `rehacer.sh` fallaba por lo mismo. Ahora las dos miran solo lo que el molde instancia (`seInstancia`). Además, los
+  repos de prueba de esta PC eran del 29-10 (sin el "orden 3"): se rehicieron. `[mejor código]`
 - **D8b.1-a · `sello.cjs` repite la gramática de la versión** (usa solo node: se copia al molde); `copias.test.cjs` la compara con la de
   `ficha.cjs`, así que no pueden separarse sin que una prueba se ponga roja. `[mejor código]`
 - **D8b.1-b · Un tag raro (`v3.0.0-beta.1`) el `doctor` lo ignora** (antes lo leía como 3.0.0); y **un rc nunca cuenta como "pendiente de
