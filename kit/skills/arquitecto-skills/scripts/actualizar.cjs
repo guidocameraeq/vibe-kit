@@ -31,8 +31,9 @@ const USO = [
   '  resolver  la salida que eligió el dueño para una pieza que espera (.claude/fusiones/<pieza>.md), en SU checkout (rol humano):',
   '            mezclar (la fusión propuesta) · propia (sigue adaptada; la próxima versión se ofrece desde la misma base) · nueva',
   '            (la del kit entera: pasa a molde) · congelar (propia; no en una pieza de frenos). Escribe lo del informe, la ficha',
-  '            (estado y por:) y borra el informe; no commitea: la última línea dice el commit. Se niega (1) sin escribir si algo',
-  '            de la pieza cambió desde el informe. --a-mano (con mezclar): la armaste vos; valida lo del disco.',
+  '            (estado y por:) y borra el informe; no commitea: la última línea dice el commit. mezclar y nueva se niegan (1) sin',
+  '            escribir si algo de la pieza cambió desde el informe (propia y congelar pueden igual). --a-mano (con mezclar):',
+  '            lo que cambió lo armaste vos y se valida del disco; lo que sigue igual va con lo del informe.',
   '  --nuevo        (con --mirar) un repo recién nacido: las bases van en molde, el candado va (sí) y el director-obrero y el estado también.',
   '  --principal    (con --aplicar) la carpeta principal: ahí se prende core.hooksPath (los githooks del molde).',
   '  --nivel        el nivel de la propuesta (sin él: con código → estandar, sin código → liviano).',
@@ -766,7 +767,7 @@ function cerrarCiclo(plan, carpeta, { opciones, llegadas, moldeNuevoDe, fabricaD
       plan.lineas.push(`no subió al kit · ${c.id} · verificar en rojo (${fallas[0].que}): sigue aplicado`);
       continue;
     }
-    if (opciones.rc) {
+    if (opciones.rc || /-rc\./.test(plan.vNuevo)) { // un aplicar suelto con kit -rc, igual que la flota (cambios.cjs no deja subir a un rc)
       plan.lineas.push(`subiría al kit · ${c.id}`);
       continue;
     }

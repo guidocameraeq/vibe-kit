@@ -979,6 +979,16 @@ test('crit. 2: con un tag -rc (opciones.rc), nada: solo "subiría al kit"; --pla
   assert.deepEqual(foto(e), foto0, '--plan no escribe');
 });
 
+test('RF-fix (7): un aplicar suelto (sin --rc) con un kit -rc y un cubiertos.md que lo cubre → "subiría al kit", sin tocar el cambio', () => {
+  const d = armarProyecto();
+  const id = aplicarCambio(d);
+  const antes = leer(d, relCambio(id));
+  const r = aplicar(d, { kit: kitConCubiertos([{ cita: `demo ${id}`, version: '2.9.0' }], '3.0.0-rc.2') });
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  assert.equal(lineaCiclo(r, id), `subiría al kit · ${id}`);
+  assert.equal(leer(d, relCambio(id)), antes);
+});
+
 test('RF-fix rf-1: una entrada mala de cubiertos.md (sin pieza:, versión rara) se saltea y se dice; las demás valen', () => {
   const d = armarProyecto();
   const id = aplicarCambio(d);
