@@ -441,7 +441,7 @@ test('sello: pone la línea después de - Fecha:, en un renglón, con el hash bu
   assert.equal(r.codigo, 0, r.out);
   const l = leer(p).split('\n');
   assert.equal(l[3], '- Fecha: 2026-10-30');
-  assert.match(l[4], /^- Sello del Arquitecto: `arquitecto: \d{4}-\d{2}-\d{2} · kit \d+\.\d+\.\d+ · chequeos: tamaño ✅ · entorno — \(sin ficha del kit\) · tope ✅ · hash [0-9a-f]{12}`$/);
+  assert.match(l[4], /^- Sello del Arquitecto: `arquitecto: \d{4}-\d{2}-\d{2} · kit \d+\.\d+\.\d+(?:-rc\.\d+)? · chequeos: tamaño ✅ · entorno — \(sin ficha del kit\) · tope ✅ · hash [0-9a-f]{12}`$/);
   const c = S.parsear(l[4]).campos;
   assert.equal(c.hash, S.hash(fs.readFileSync(p)));
   assert.equal(c.kit, KIT_VERSION);
@@ -565,6 +565,103 @@ test('sello entorno: real sin dummy → 1; real con dummy → ✅', () => {
   // clase prueba también vale.
   const prueba = repo(ficha({ extra: ['entornos:', '  base-real:', '    clase: real', '  ensayo:', '    clase: prueba'].join('\n') }));
   assert.equal(sellado(prueba, 's.md', spec()).r.codigo, 0);
+});
+
+// ---------------------------------------------------------------- SPEC-paquete-8r T3: la tarea 0 (crit. 3; rt-1, rt-3, rt-10)
+
+const fichaKit = (kit, extra) => ['---', `kit: ${kit}`, 'nivel: estandar', 'vars:', '  proyecto: prueba', extra, '---', ''].join('\n');
+const conTarea = (texto, renglon = '- **Tarea 0**: montar la base de prueba') => texto.replace('node --test, base dummy.', renglon);
+const RAZON_T0 = '— (tarea 0: montar el entorno de prueba)';
+
+test('8r tareaCero: el primer renglón de ## Entorno de prueba que casa, fuera de los bloques de código; si no, null', () => {
+  const de = (cuerpo) => S.tareaCero(S.renglones(['# SPEC: x', '', '## Entorno de prueba', ...cuerpo, '', '## Otra', '- Tarea 0: no es acá'].join('\n')));
+  assert.equal(de(['- **Tarea 0**: montar la base']), '- **Tarea 0**: montar la base');
+  assert.equal(de(['Algo antes.', '- Tarea 0: montar']), '- Tarea 0: montar');
+  assert.equal(de(['tarea 0: sin guion']), 'tarea 0: sin guion');
+  assert.equal(de(['**TAREA 0**: en mayúsculas']), '**TAREA 0**: en mayúsculas');
+  assert.equal(de(['```', '- Tarea 0: en un bloque', '```']), null);
+  assert.equal(de(['- La tarea 0: no empieza así', '- Tarea 01: otro número', '- Tarea 0 sin dos puntos']), null);
+  assert.equal(S.tareaCero(S.renglones('# SPEC: x\n\n## Otra\n- Tarea 0: afuera\n')), null, 'sin la sección');
+});
+
+test('8r validar: entorno — (tarea 0: …) con ficha vale solo si el spec trae el renglón y es módulo con director', () => {
+  const c = S.parsear(valido({ entorno: RAZON_T0 })).campos;
+  assert.equal(S.validar(c, { hayFicha: true, tareaCero: true, director: true }), null);
+  assert.match(S.validar(c, { hayFicha: true, tareaCero: false, director: true }), /no trae el renglón "Tarea 0:"/);
+  assert.match(S.validar(c, { hayFicha: true, tareaCero: true, director: false }), /módulo con director/);
+  assert.equal(S.validar(c, { hayFicha: false }), null, 'sin ficha, como cualquier —');
+  assert.match(S.validar(S.parsear(valido({ entorno: '— (tarea 0: otra cosa)' })).campos, { hayFicha: true, tareaCero: true, director: true }), /solo "— \(quitado/);
+});
+
+test('8r sello entorno: solo real + kit rc.2 — sin tarea 0 niega; con director y la tarea 0 sella con — (tarea 0) y ready pasa', () => {
+  const d = repo(fichaKit('3.0.0-rc.2', SOLO_REAL));
+  const dir = spec({ ejecucion: 'módulo con director' });
+  // Sin la tarea 0: como siempre.
+  escribir(d, 'a.md', dir);
+  const sin = correr(['sello', 'a.md'], d);
+  assert.equal(sin.codigo, 1);
+  assert.match(sin.out, /clase: real y ningún dummy ni prueba/);
+  // Con la tarea 0 en negrita y sin negrita.
+  for (const renglon of ['- **Tarea 0**: montar la base de prueba', '- Tarea 0: montar la base de prueba']) {
+    const { p, r } = sellado(d, 'b.md', conTarea(dir, renglon));
+    assert.equal(r.codigo, 0, r.out);
+    assert.ok(lineaSello(p).includes(`entorno ${RAZON_T0}`), lineaSello(p));
+    assert.equal(correr(['ready', 'b.md'], d).codigo, 0);
+    fs.rmSync(p);
+  }
+  // La tarea 0 solo dentro de un bloque de código no cuenta.
+  escribir(d, 'c.md', conTarea(dir, '```\n- Tarea 0: montar\n```'));
+  const bloque = correr(['sello', 'c.md'], d);
+  assert.equal(bloque.codigo, 1, bloque.out);
+});
+
+test('8r sello entorno: la tarea 0 niega en un módulo solo, con la ficha en rc.1 (poné al día) y con una herramienta en rojo', () => {
+  const conDir = conTarea(spec({ ejecucion: 'módulo con director' }));
+  const d = repo(fichaKit('3.0.0-rc.2', SOLO_REAL));
+  escribir(d, 'a.md', conTarea(spec({ ejecucion: 'módulo solo' })));
+  const solo = correr(['sello', 'a.md'], d);
+  assert.equal(solo.codigo, 1);
+  assert.match(solo.out, /^entorno: la tarea 0 vale solo en un módulo con director \(en un módulo solo nadie ordena los pasos\) — montá la base de prueba como módulo previo$/m);
+  const viejo = repo(fichaKit('3.0.0-rc.1', SOLO_REAL));
+  escribir(viejo, 'a.md', conDir);
+  const v = correr(['sello', 'a.md'], viejo);
+  assert.equal(v.codigo, 1);
+  assert.match(v.out, /^entorno: la ficha dice kit: 3\.0\.0-rc\.1 y el sello con tarea 0 pide 3\.0\.0-rc\.2 o más — poné al día el proyecto \(flota\) antes de sellar con tarea 0$/m);
+  // 3.0.0 (sin rc) es más nuevo que rc.2: sella.
+  const nuevo = repo(fichaKit('3.0.0', SOLO_REAL));
+  assert.equal(sellado(nuevo, 'a.md', conDir).r.codigo, 0);
+  // Las herramientas se siguen chequeando.
+  const conH = repo(fichaKit('3.0.0-rc.2', ['herramientas:', '  db:', '    chequeo: node rojo.js', '    necesita-guido: no', 'entornos:', '  base-real:', '    clase: real', '    herramientas: [db]'].join('\n')));
+  escribir(conH, 'a.md', conDir);
+  const h = correr(['sello', 'a.md'], conH);
+  assert.equal(h.codigo, 1);
+  assert.match(h.out, /la herramienta db dio rojo/);
+  assert.doesNotMatch(h.out, /ningún dummy/);
+});
+
+test('8r: un sello de tarea 0 con el renglón quitado y el hash rehecho → sello inválido; con un dummy, entorno ✅', () => {
+  const d = repo(fichaKit('3.0.0-rc.2', SOLO_REAL));
+  const { p, r } = sellado(d, 's.md', conTarea(spec({ ejecucion: 'módulo con director' })));
+  assert.equal(r.codigo, 0, r.out);
+  const campos = S.parsear(lineaSello(p)).campos;
+  const sinRenglon = leer(p).replace('- **Tarea 0**: montar la base de prueba', 'node --test.');
+  fs.writeFileSync(p, sinRenglon);
+  ponerSello(p, S.armar({ ...campos, tamano: '✅', entorno: RAZON_T0, tope: '✅', hash: S.hash(fs.readFileSync(p)) }));
+  assert.equal(S.parsear(lineaSello(p)).campos.hash, S.hash(fs.readFileSync(p)), 'el hash rehecho es el bueno');
+  const rr = correr(['ready', 's.md'], d);
+  assert.equal(rr.codigo, 1);
+  assert.match(rr.out, /^sello inválido: entorno dice tarea 0, pero el spec no trae el renglón/);
+  // Con un dummy en la ficha, la tarea 0 no hace falta: ✅.
+  const bueno = repo(fichaKit('3.0.0-rc.2', REAL_Y_DUMMY));
+  const { p: q, r: r2 } = sellado(bueno, 's.md', conTarea(spec({ ejecucion: 'módulo con director' })));
+  assert.equal(r2.codigo, 0, r2.out);
+  assert.match(lineaSello(q), /entorno ✅/);
+});
+
+test('8r entorno: solo real → 1 y dice cómo se sella con tarea 0', () => {
+  const r = correr(['entorno'], repo(fichaKit('3.0.0-rc.2', SOLO_REAL)));
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, /clase: real y ningún dummy ni prueba .*; o, en un módulo con director, sellá con tarea 0: el renglón "- \*\*Tarea 0\*\*: montar la base de prueba" en ## Entorno de prueba del spec/);
 });
 
 test('sello entorno: sin real, comando-test tiene que existir y salir 0; rojo o colgado → 1', () => {

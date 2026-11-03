@@ -23,6 +23,9 @@ const RE_VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-rc\.(0|[1-9]\d*
 const RE_DIA = /^(\d{4})-(\d{2})-(\d{2})$/;
 const RE_FENCE = /^\s*(```|~~~)/;
 const KB = 1024;
+// SPEC-paquete-8r T3 (rt-1, rt-10): la tarea 0 del spec, y la razón del entorno que la acepta con ficha.
+const RE_TAREA_CERO = /^(?:- )?(?:\*\*)?tarea 0(?:\*\*)?:/i;
+const RAZON_TAREA_CERO = 'tarea 0: montar el entorno de prueba';
 
 const T_EJECUCION = 'Ejecución';
 const T_ENTORNO = 'Entorno de prueba';
@@ -156,14 +159,21 @@ function parsear(linea) {
 }
 
 // Lo que vale según haya ficha (D4-8): `—` solo sin ficha; con ficha, entorno `— (quitado: …)` solo con gate:entorno-prueba
-// quitado y vigente EL DÍA DEL SELLO (rf-3). `gateQuitado`: un booleano, o una función (campos) → booleano que se llama solo si
-// hace falta. → null si vale, o el <qué> de "sello inválido: <qué>".
-function validar(campos, { hayFicha, gateQuitado }) {
+// quitado y vigente EL DÍA DEL SELLO (rf-3), y entorno `— (tarea 0: montar el entorno de prueba)` solo si el spec trae el renglón
+// de la tarea 0 y es un módulo con director (SPEC-paquete-8r T3, rt-1). `gateQuitado`: un booleano, o una función (campos) →
+// booleano que se llama solo si hace falta. `tareaCero`: ¿el spec trae la tarea 0? `director`: ¿su Ejecución dice módulo con
+// director? (los dos los calcula revisarSello con el texto). → null si vale, o el <qué> de "sello inválido: <qué>".
+function validar(campos, { hayFicha, gateQuitado, tareaCero, director }) {
   if (!hayFicha) return null;
   if (campos.tamano.tipo !== 'ok') return 'tamaño "— (razón)" vale solo sin ficha del kit, y este repo tiene .claude/kit.md';
   if (campos.tope.tipo === 'no') return 'tope "— (razón)" vale solo sin ficha del kit, y este repo tiene .claude/kit.md';
+  if (campos.entorno.tipo === 'no' && campos.entorno.razon === RAZON_TAREA_CERO) {
+    if (!tareaCero) return 'entorno dice tarea 0, pero el spec no trae el renglón "Tarea 0:" en ## Entorno de prueba';
+    if (!director) return 'entorno dice tarea 0, y la tarea 0 vale solo en un módulo con director';
+    return null;
+  }
   if (campos.entorno.tipo === 'no') {
-    if (!campos.entorno.razon.startsWith('quitado: ')) return 'entorno "— (razón)" vale solo sin ficha del kit; con ficha, solo "— (quitado: <por>)"';
+    if (!campos.entorno.razon.startsWith('quitado: ')) return `entorno "— (razón)" vale solo sin ficha del kit; con ficha, solo "— (quitado: <por>)" o "— (${RAZON_TAREA_CERO})"`;
     const vigente = typeof gateQuitado === 'function' ? gateQuitado(campos) : gateQuitado;
     if (!vigente) return `entorno dice quitado, pero gate:entorno-prueba no estaba vigente el ${campos.fecha} en frenos.quitados de la ficha`;
   }
@@ -232,6 +242,22 @@ function ejecucion(lineas) {
   const solo = t.includes('módulo solo');
   const director = t.includes('módulo con director');
   return { hay: true, tamano: solo === director ? null : solo ? 'solo' : 'director' };
+}
+
+// tareaCero(lineas) → el primer renglón del cuerpo de ## Entorno de prueba, fuera de los bloques de código, que es la tarea 0
+// (`- **Tarea 0**: …`, `- Tarea 0: …`, `Tarea 0: …`), o null (SPEC-paquete-8r T3, rt-10).
+function tareaCero(lineas) {
+  const c = cuerpo(lineas, T_ENTORNO);
+  if (!c) return null;
+  let enCodigo = false;
+  for (const l of c.lineas) {
+    if (RE_FENCE.test(l)) {
+      enCodigo = !enCodigo;
+      continue;
+    }
+    if (!enCodigo && RE_TAREA_CERO.test(l)) return l;
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------- el tope (H §12: avisa, no corta)
@@ -364,14 +390,14 @@ function revisarSello(buf, { hayFicha, gateQuitado }) {
   if (u.sellos > 1) return { estado: 'invalido', error: 'hay más de una línea de sello en la cabecera' };
   const p = parsear(lineas[u.sello]);
   if (!p.ok) return { estado: 'invalido', error: p.error };
-  const e = validar(p.campos, { hayFicha, gateQuitado });
+  const e = validar(p.campos, { hayFicha, gateQuitado, tareaCero: tareaCero(lineas) !== null, director: ejecucion(lineas).tamano === 'director' });
   if (e) return { estado: 'invalido', error: e, campos: p.campos };
   if (hash(buf) !== p.campos.hash) return { estado: 'cambio', campos: p.campos };
   return { estado: 'ok', campos: p.campos };
 }
 
 module.exports = {
-  VENTANA, OK, NO, AVISO, TOPES, T_EJECUCION, T_ENTORNO, T_PEDIDO, T_NO_SE_TOCA, T_CRITERIOS,
+  VENTANA, OK, NO, AVISO, TOPES, T_EJECUCION, T_ENTORNO, T_PEDIDO, T_NO_SE_TOCA, T_CRITERIOS, RE_TAREA_CERO, RAZON_TAREA_CERO,
   renglones, ubicar, textoNormalizado, hash, textoLibreValido, cOk, cNo, cAviso, armar, parsear, validar, esTitulo, titulos, cuerpo, esDelta,
-  faltantes, ejecucion, kbTexto, medirTope, lineasTope, valorEstado, pasarAReady, ponerLinea, revisarSello,
+  faltantes, ejecucion, tareaCero, kbTexto, medirTope, lineasTope, valorEstado, pasarAReady, ponerLinea, revisarSello,
 };

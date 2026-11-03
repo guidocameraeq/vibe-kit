@@ -16,7 +16,9 @@
 // aperturas: la de Guido, en su modo, y la de fondo en dos renglones (auto + --allowedTools; el de respaldo, acceptEdits con la misma
 // lista, si auto no se deja lanzar; D8b-1): el director usa la primera línea de fondo, o la de respaldo, tal cual, nunca otra; nunca
 // el modo que saltea permisos. `verificar` imprime siempre seis líneas (remoto · limpio · pruebas · alcance · main · barreras) y sale 0 si ninguna es ❌; lo que no se pudo
-// mirar es ❌ NO VERIFICADO. La lógica común vive en .claude/hooks/lib/encargo.cjs y proceso.cjs.
+// mirar es ❌ NO VERIFICADO. El freno de la tarea 0 (SPEC-paquete-8r T3, rt-1): con el sello `entorno — (tarea 0: …)` en el spec,
+// `presentar` y `autorizado` niegan todo encargo ≠ 00 mientras la ficha de la punta de modulo/<x> no tenga un entorno dummy o prueba;
+// la apertura de Guido termina en `→ primer mensaje: /obrero <x>--<ID>` (8r T2). La lógica común vive en .claude/hooks/lib/encargo.cjs y proceso.cjs.
 // Salidas: 0 anduvo · 1 negado o rojo (una línea por qué y qué hacer) · 2 mal llamado. Un error propio: "encargo roto: corré
 // doctor", 1. Node estándar, cero dependencias. Es .cjs a propósito: corre igual en proyectos con "type": "module".
 
@@ -148,12 +150,13 @@ function traerOrigin(L, raiz) {
   return `sin fetch de origin (${(f.stderr || '').trim().split('\n')[0] || f.error}): sigo con lo que hay en esta PC`;
 }
 
-// El sello de un spec leído de git: { ok } o { ok: false, por }.
+// El sello de un spec leído de git: { ok, buf } o { ok: false, por }.
 function chequearSpec(L, raiz, ref, ruta) {
   const buf = L.E.leerEn(raiz, ref.sha, ruta);
   if (!buf) return { ok: false, por: `el spec ${ruta} no está en ${ref.nombre}: que el director lo commitee` };
   const hayFicha = fs.existsSync(path.join(raiz, '.claude', 'kit.md'));
-  return L.E.juzgarSpec(buf, { hayFicha, datosFicha: datosFicha(L, raiz) });
+  const j = L.E.juzgarSpec(buf, { hayFicha, datosFicha: datosFicha(L, raiz) });
+  return j.ok ? { ...j, buf } : j;
 }
 
 // ---------------------------------------------------------------- partida
@@ -201,6 +204,9 @@ function presentar(L, g, a, opciones) {
   // 3. El spec de - Spec:, con su sello y READY.
   const s = chequearSpec(L, g.raiz, u.ref, e.campos.spec.ruta);
   if (!s.ok) return no(s.por);
+  // SPEC-paquete-8r T3 (rt-1): con el sello de tarea 0, solo el 00 hasta que la ficha de modulo/<x> tenga el entorno de prueba.
+  const t0 = L.E.tareaCeroPendiente(g.raiz, n, u.ref, s.buf);
+  if (t0) return no(t0);
   // 4. Lo que se presenta, y la base.
   const head = L.E.shaDe(g.raiz, 'HEAD');
   const c = e.campos;
@@ -355,6 +361,9 @@ function autorizado(L, g, n, opciones) {
   const c = encargoLeido(L, g.raiz, n);
   if (!c.ok) return no(c.por);
   const { u, e } = c;
+  // SPEC-paquete-8r T3 (rt-1): la tarea 0 primero (el spec que cita el encargo, de la punta de modulo/<x>; sin él, lo frena presentar).
+  const t0 = L.E.tareaCeroPendiente(g.raiz, n, u.ref, L.E.leerEn(g.raiz, u.ref.sha, e.campos.spec.ruta));
+  if (t0) return no(t0);
   const reglas = e.secciones.autorizado;
   const malas = L.E.validarAutorizado(reglas);
   if (malas.length) {
@@ -385,7 +394,7 @@ function autorizado(L, g, n, opciones) {
   if (!Array.isArray(s.datos.permissions.deny) || !s.datos.permissions.deny.length) lineas.push(`ojo: ${SETTINGS} no tiene el deny de worktree: corré worktree abrir (verificar lo marca ❌)`);
   const modelo = e.campos.modelo.modelo;
   // D5-19: la de Guido no fuerza el modo: la pestaña abre en el suyo.
-  lineas.push(`apertura de Guido: code "${barras(wt)}" → en esa ventana, la pestaña de Claude con ${modelo[0].toUpperCase()}${modelo.slice(1)}, en tu modo (nombre sugerido: obrero-${n.x}--${n.id})`);
+  lineas.push(`apertura de Guido: code "${barras(wt)}" → en esa ventana, la pestaña de Claude con ${modelo[0].toUpperCase()}${modelo.slice(1)}, en tu modo (nombre sugerido: obrero-${n.x}--${n.id}) → primer mensaje: /obrero ${n.x}--${n.id}`);
   lineas.push(...lineaDeFondo(L, wt, n, modelo, allow, opciones));
   return { codigo: 0, lineas };
 }

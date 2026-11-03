@@ -33,6 +33,9 @@ const USO = [
 const PLAZO_TEST_MS = 5 * 60 * 1000;
 const PLAZO_CHEQUEO_MS = 30 * 1000;
 const GATE = 'gate:entorno-prueba';
+// SPEC-paquete-8r T3 (rt-3): el sello con tarea 0 lo entiende un molde desde esta versión; uno más viejo, no.
+const KIT_TAREA_CERO = '3.0.0-rc.2';
+const REAL_SIN_PRUEBA = 'entorno: hay un entorno clase: real y ningún dummy ni prueba — declaralo en entornos: de la ficha (montarlo es la tarea 0 del spec)';
 
 class MalLlamado extends Error {}
 class Roto extends Error {}
@@ -220,8 +223,33 @@ function chequearTamano(lineas, { raiz, specAbs, hayFicha, noAplica }) {
   return { c: S.cOk(), tamano: ej.tamano };
 }
 
-// entorno (gate:entorno-prueba, H §9.2) con la ficha ya leída: { c } o { fallas }.
-function chequearEntornoFicha(raiz, datos, { ahora, env }) {
+// ¿El kit de la ficha es ≥ KIT_TAREA_CERO? (el comparador de ficha.cjs; sin kit: o uno que no se lee, no).
+function kitConTareaCero(datos) {
+  try {
+    return ficha.compararVersiones(String(datos.kit), KIT_TAREA_CERO) >= 0;
+  } catch (e) {
+    return false;
+  }
+}
+
+// La tarea 0 (SPEC-paquete-8r T3; rt-1, rt-3): con "real sin dummy ni prueba" como ÚNICA falla de entornos, el spec con el renglón de
+// la tarea 0, módulo con director y el kit de la ficha ≥ rc.2 → { c } con "— (tarea 0: …)"; si no, { falla } con por qué.
+// spec null (el comando `entorno`, sin spec) → { falla } con la falla de siempre y cómo se sella con tarea 0.
+function conTareaCero(datos, spec) {
+  if (!spec) {
+    return { falla: `${REAL_SIN_PRUEBA}; o, en un módulo con director, sellá con tarea 0: el renglón "- **Tarea 0**: montar la base de prueba" en ## Entorno de prueba del spec` };
+  }
+  if (!spec.tareaCero) return { falla: REAL_SIN_PRUEBA };
+  if (spec.tamano !== 'director') return { falla: 'entorno: la tarea 0 vale solo en un módulo con director (en un módulo solo nadie ordena los pasos) — montá la base de prueba como módulo previo' };
+  if (!kitConTareaCero(datos)) {
+    return { falla: `entorno: la ficha dice kit: ${datos.kit === undefined ? '(nada)' : String(datos.kit)} y el sello con tarea 0 pide ${KIT_TAREA_CERO} o más — poné al día el proyecto (flota) antes de sellar con tarea 0` };
+  }
+  return { c: S.cNo(S.RAZON_TAREA_CERO) };
+}
+
+// entorno (gate:entorno-prueba, H §9.2) con la ficha ya leída: { c } o { fallas }. `spec`: { tareaCero, tamano } del spec que se
+// sella, o null (el comando `entorno`).
+function chequearEntornoFicha(raiz, datos, { ahora, env, spec = null }) {
   const q = gateQuitado(datos, ahora);
   if (q) {
     const por = String(q.por).trim();
@@ -229,12 +257,16 @@ function chequearEntornoFicha(raiz, datos, { ahora, env }) {
     return { c: S.cNo(`quitado: ${por}`) };
   }
   const fallas = [];
+  let cTareaCero = null;
   const entornos = datos.entornos && typeof datos.entornos === 'object' ? datos.entornos : {};
   const lista = Object.entries(entornos);
   const reales = lista.filter(([, v]) => v.clase === 'real');
   const dePrueba = lista.filter(([, v]) => v.clase === 'dummy' || v.clase === 'prueba');
   if (reales.length && !dePrueba.length) {
-    fallas.push('entorno: hay un entorno clase: real y ningún dummy ni prueba — declaralo en entornos: de la ficha (montarlo es la tarea 0 del spec)');
+    // Con un entorno real, la de comando-test no corre: esta es la única falla de entornos; las herramientas se chequean igual.
+    const t0 = conTareaCero(datos, spec);
+    if (t0.c) cTareaCero = t0.c;
+    else fallas.push(t0.falla);
   }
   if (!reales.length) {
     const ct = datos.vars ? datos.vars['comando-test'] : undefined;
@@ -260,16 +292,16 @@ function chequearEntornoFicha(raiz, datos, { ahora, env }) {
     if (r === 'rojo') fallas.push(`entorno: el chequeo de la herramienta ${h} dio rojo — que ande antes de sellar`);
     if (r === 'colgado') fallas.push(`entorno: el chequeo de la herramienta ${h} se colgó (pasó los ${plazoTexto(ms)})`);
   }
-  return fallas.length ? { fallas } : { c: S.cOk() };
+  return fallas.length ? { fallas } : { c: cTareaCero || S.cOk() };
 }
 
-function chequearEntorno({ raiz, hayFicha, datos, noAplica, ahora, env }) {
+function chequearEntorno({ raiz, hayFicha, datos, noAplica, ahora, env, spec }) {
   if (noAplica !== undefined) {
     if (hayFicha) return { fallas: [`entorno: con ficha del kit no se saltea — quitá ${GATE} en frenos.quitados con su razón, si de verdad no aplica`] };
     return { c: S.cNo(noAplica) };
   }
   if (!hayFicha) return { c: S.cNo('sin ficha del kit') };
-  return chequearEntornoFicha(raiz, datos, { ahora, env });
+  return chequearEntornoFicha(raiz, datos, { ahora, env, spec });
 }
 
 // tope (H §12, avisa y no corta): { c, lineas } o { fallas }.
@@ -299,7 +331,8 @@ function sello(a, { cwd, ahora, env }) {
   const fallas = [];
   const tam = chequearTamano(lineas, { raiz, specAbs, hayFicha, noAplica: a.noAplica['tamaño'] });
   if (tam.fallas) fallas.push(...tam.fallas);
-  const ent = chequearEntorno({ raiz, hayFicha, datos, noAplica: a.noAplica.entorno, ahora, env });
+  const spec = { tareaCero: S.tareaCero(lineas) !== null, tamano: tam.fallas ? null : tam.tamano };
+  const ent = chequearEntorno({ raiz, hayFicha, datos, noAplica: a.noAplica.entorno, ahora, env, spec });
   if (ent.fallas) fallas.push(...ent.fallas);
   const top = chequearTope(s.buf, tam.fallas ? null : tam.tamano, a.noPartir);
   if (top.fallas) fallas.push(...top.fallas);

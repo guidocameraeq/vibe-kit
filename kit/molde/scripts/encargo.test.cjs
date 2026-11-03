@@ -631,7 +631,7 @@ test('autorizado (crit. 4, D5-2, D5-19, D8b-1): dos de fondo, auto y el respaldo
     assert.doesNotMatch(l, /MSYS_NO_PATHCONV/);
   }
   assert.equal(respaldo.replace('apertura de fondo (respaldo, si auto no está): ', '').replace('acceptEdits', 'auto'), fondo.replace('apertura de fondo: ', ''));
-  assert.match(guido, /^apertura de Guido: code "[^"]+\/modulo--x--01" → en esa ventana, la pestaña de Claude con Sonnet, en tu modo \(nombre sugerido: obrero-x--01\)$/);
+  assert.match(guido, /^apertura de Guido: code "[^"]+\/modulo--x--01" → en esa ventana, la pestaña de Claude con Sonnet, en tu modo \(nombre sugerido: obrero-x--01\) → primer mensaje: \/obrero x--01$/);
   assert.doesNotMatch(r.out, /bypass|dangerously|--permission-mode (?!auto |acceptEdits )/i);
   const sin = aut(p, { claudeEnPath: false }).out.trim().split('\n');
   assert.equal(sin.pop(), 'apertura de fondo: sin `claude` (ni en el PATH ni el de la extensión de VS Code): la apertura es de Guido');
@@ -929,4 +929,62 @@ test('verificar: siempre seis líneas — sin la rama, sin el worktree en esta P
   // Un error propio fuera de las líneas: "encargo roto" y NO VERIFICADO (en verificar; en partida, solo roto).
   assert.deepEqual(cli(42, ['verificar', 'x--01']), { codigo: 1, out: 'encargo roto: corré doctor\nNO VERIFICADO\n', err: '' });
   assert.deepEqual(cli(42, ['partida', 'x--01']), { codigo: 1, out: 'encargo roto: corré doctor\n', err: '' });
+});
+
+// ---------------------------------------------------------------- SPEC-paquete-8r T3: el freno de la tarea 0 en script (crit. 3; rt-1)
+
+// El spec del módulo con director sellado con tarea 0 (el sello que escribe `arquitecto.cjs sello` con solo la base real).
+function specTareaCero() {
+  const texto = ['# SPEC: x', '- Estado: READY', '- Fecha: 2026-10-30', '', '## Pedido original, textual', 'algo', '', '## Ejecución', 'módulo con director', '',
+    '## Entorno de prueba', '- **Tarea 0**: montar la base de prueba', ''].join('\n');
+  const linea = S.armar({ fecha: '2026-10-30', kit: '3.0.0-rc.2', tamano: '✅', entorno: `— (${S.RAZON_TAREA_CERO})`, tope: '✅', hash: S.hash(texto) });
+  return texto.replace('- Fecha: 2026-10-30\n', `- Fecha: 2026-10-30\n${linea}\n`);
+}
+const FICHA_CON_PRUEBA = ['---', 'kit: 3.0.0-rc.2', 'nivel: estandar', 'vars:', '  proyecto: prueba', '  comando-test: node base.js', 'frenos:', '  quitados: []',
+  'entornos:', '  base-real:', '    clase: real', '  ensayo:', '    clase: prueba', '---', ''].join('\n');
+const TAREA_CERO = 'la tarea 0 (encargo 00) va primero: el entorno de prueba no está en la ficha de modulo/x';
+
+test('8r T3: con el sello de tarea 0, autorizado y presentar de x--01 → 1 hasta que la ficha de modulo/x tenga el entorno; x--00 → 0', () => {
+  const p = proyectoV();
+  commit(p.dir, { 'docs/modulos/x/SPEC.md': specTareaCero() }, 'spec con tarea 0');
+  g(p.dir, 'push', '-q', 'origin', 'modulo/x');
+  const antes = fs.readFileSync(p.settings, 'utf8');
+  let r = aut(p);
+  assert.equal(r.codigo, 1, r.out);
+  assert.equal(r.out, `autorizado: no — ${TAREA_CERO}\n`);
+  assert.equal(fs.readFileSync(p.settings, 'utf8'), antes, 'no escribió nada');
+  r = cli(p.obr, ['presentar', 'x--01', '--sin-base']);
+  assert.equal(r.codigo, 1, r.out);
+  assert.equal(r.out, `presentar: no — ${TAREA_CERO}\n`);
+  // El 00 es la tarea 0: pasa.
+  const ruta00 = 'docs/modulos/x/bitacora/2026-10-30-encargo-00.md';
+  const e00 = encargo({ '# Encargo 01': '# Encargo 00 · x · la tarea 0', '- Partida:': partidaAhora().replace('modulo/x--01', 'modulo/x--00') });
+  commit(p.dir, { [ruta00]: e00 }, 'encargo 00');
+  g(p.dir, 'push', '-q', 'origin', 'modulo/x');
+  const o00 = path.join(p.P, '.claude', 'worktrees', 'modulo--x--00');
+  g(p.P, 'worktree', 'add', '-q', '-b', 'modulo/x--00', o00, 'modulo/x');
+  fs.writeFileSync(path.join(o00, '.kit-rol'), 'obrero\n');
+  escribir(o00, '.claude/settings.local.json', `${JSON.stringify({ permissions: { deny: p.deny } }, null, 2)}\n`);
+  r = cli(o00, ['autorizado', 'x--00'], { claudeEnPath: false });
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(r.out, /→ primer mensaje: \/obrero x--00\n/);
+  r = cli(o00, ['presentar', 'x--00', '--sin-base']);
+  assert.equal(r.codigo, 0, r.out);
+  // La ficha de main (la vigente) con el entorno no alcanza: el freno mira la punta de modulo/x.
+  commit(p.P, { '.claude/kit.md': FICHA_CON_PRUEBA }, 'ficha de main con prueba');
+  g(p.P, 'push', '-q', 'origin', 'main');
+  assert.equal(aut(p).codigo, 1, 'la de origin/main no la ve el freno');
+  // El 00 suma el entorno a la ficha de modulo/x: el 01 ya pasa.
+  commit(p.dir, { '.claude/kit.md': FICHA_CON_PRUEBA }, 'tarea 0: el entorno de prueba en la ficha');
+  g(p.dir, 'push', '-q', 'origin', 'modulo/x');
+  r = aut(p);
+  assert.equal(r.codigo, 0, r.out);
+  r = cli(p.obr, ['presentar', 'x--01', '--sin-base']);
+  assert.equal(r.codigo, 0, r.out);
+});
+
+test('8r T3: sin el sello de tarea 0 (entorno ✅) el freno no cuenta, aunque la ficha de modulo/x no tenga entorno de prueba', () => {
+  const p = proyectoV();
+  assert.equal(aut(p).codigo, 0);
+  assert.equal(cli(p.obr, ['presentar', 'x--01', '--sin-base']).codigo, 0);
 });
