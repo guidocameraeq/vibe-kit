@@ -2,6 +2,34 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-11-03 — Misión 5, paquete 8 (D8.1): la línea base medida y la documentación al día
+
+PC `Guido-PC-eQ`, chat `vibe-kit M5 · D8.1 · Paquete 8: la línea base y la documentación al día`, en Opus, casi todo sin Guido (estuvo al
+principio), con el presupuesto del ADR-029: **~1,4 h de reloj (09:05-10:30), 8 encargos (4 Opus: redactor, E3, E4a, revisor frío · 4
+Sonnet: E1, E2, E4b, RF-fix), ~1,37 M de tokens de subagentes** más un Opus aparte pedido por Guido. Sin tag. **El paquete 8 queda ✅.**
+
+**Added**
+- `docs/kit-v3/SPEC-paquete-8.md`, sellado sin Guido por script, sin red team (D8-1).
+- `observatorio/investigacion/flota.py` v3 (la ficha con el parser del kit, ramas `kit/*`, copias, "aparece en N", specs con sello,
+  portada, `--hook` en un clon, frases viejas y rutas absolutas, `--carpeta`), `huella.py` con las dos historias del molde,
+  `frases-viejas.txt`, y sus primeras pruebas (`test_flota.py`, `test_huella.py`: 42/42).
+- La corrida de la línea base: `observatorio/investigacion/mediciones/2026-11-03.md` (10 de 10, cifras agregadas; el detalle en
+  `vibe-research/mediciones/2026-11-03/`) y la receta "La corrida mensual" en `METODO.md`.
+- `manuales/EQUIPADOR.md`, `ROLES.md`, `MOLDE.md`, `SCRIPTS.md`; ADR-033 (la credencial del Hub no pasa por el kit, sin excepción).
+- `docs/kit-v3/DECISIONES-SIN-GUIDO-en-criollo.md`: las ~150 decisiones sin Guido explicadas, 54 que le afectan (pedido de Guido).
+
+**Changed**
+- `PLAYBOOK-MAESTRO.md` §1.5: "Tamaño del pedido y nivel del proyecto", los dos ejes y la prueba de dos preguntas.
+- `GUIA-DE-USO.md` a v3 (pedir, "me voy", `/estado`, `cambios aprobar`, "preparame esta PC", "actualizate"); `manuales/COMO-USAR-EL-ARQUITECTO.md`
+  reescrito a v3 (el v2 a `legacy/`); el runbook de la credencial con `cargar-secreto` y `doctor`.
+- 25 notas con fecha en los `DISENO-*` (19 filas de "Lo que este spec corrige"; 2 ya estaban).
+- SPEC-0: P8 y P9 ✅, con dos correcciones (D8-4: las filas de lector quedan para la prueba real; D8-5: los specs con sello los mide `flota.py`).
+- **Plan**: sin piloto de prueba en Deptos; la prueba es en un proyecto de verdad, después de que Guido repase las decisiones (tracker,
+  "Cambios al plan", 2026-11-03).
+
+**Fixed**
+- Del revisor frío (6, 1 ALTO): `flota.py` perdía los `args` del hook del molde v3 (la corrida del "después" habría dado 0 en todos).
+
 ## 2026-11-02 — Misión 5, paquete 7 (D7.1): el ciclo del registro de cambios y la portada
 
 PC `Draco-PC`, chat `vibe-kit M5 · D7.1 · Paquete 7: el ciclo de cambios y la portada`, en Opus, sin Guido, con el presupuesto del

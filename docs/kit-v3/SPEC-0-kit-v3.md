@@ -143,16 +143,16 @@ El kit `v2.4.2` instala tres skills y un agente, y de ahí en más cada proyecto
 ### P8 · El observatorio mide (TABLERO §1; B §18; E §13)
 | # | Pieza | Hecho cuando |
 |---|---|---|
-| 8.1 | `flota.py` lee la ficha de cada repo (versión, nivel, piezas, barreras, hook pasado del tope, ramas `kit/*` vivas, copias del kit, "X aparece en N proyectos" para el 3+) | Tabla de la flota con una fila por repo |
-| 8.2 | `repos.py`, `costos.py --desde`, `lotes.py`, `huella.py` corren sobre lo nuevo y repiten todas las líneas base de TABLERO §1 (RF-25) | Una corrida mensual documentada |
-| 8.3 | Grep de frases viejas y de rutas absolutas en skills (los dos "a escribir" del TABLERO) | Dan 0 en los repos adoptados |
+| 8.1 | ✅ 2026-11-03 (D8.1; `SPEC-paquete-8`; sigue por `gh` y la ficha la parsea `ficha.cjs`, D8-2; `--hook` corre el arranque en un clon) `flota.py` lee la ficha de cada repo (versión, nivel, piezas, barreras, hook pasado del tope, ramas `kit/*` vivas, copias del kit, "X aparece en N proyectos" para el 3+) | Tabla de la flota con una fila por repo |
+| 8.2 | ✅ 2026-11-03 (D8.1; `SPEC-paquete-8`; **corregido**: `costos.py` no gana `--desde`, el corte es de `condensar.py`; `lotes.py` arma lotes para lectores, no mide, y las filas de lector quedan con el número de octubre hasta la prueba en el proyecto real, D8-4 y D8-5; la corrida: `observatorio/investigacion/mediciones/2026-11-03.md`, la receta en `METODO.md`) `repos.py`, `costos.py --desde`, `lotes.py`, `huella.py` corren sobre lo nuevo y repiten todas las líneas base de TABLERO §1 (RF-25) | Una corrida mensual documentada |
+| 8.3 | ✅ 2026-11-03 (D8.1; `SPEC-paquete-8`; dos columnas de `flota.py`, no un id del candado, D8-1; 0 y 0 sobre el molde v3; "0 en los adoptados" lo confirma la prueba en el proyecto real) Grep de frases viejas y de rutas absolutas en skills (los dos "a escribir" del TABLERO) | Dan 0 en los repos adoptados |
 
 ### P9 · La documentación del método, al día (H §22; B §15; RF-5)
 | # | Pieza | Hecho cuando |
 |---|---|---|
-| 9.1 | **`PLAYBOOK-MAESTRO.md` §1.5** reescrito con los dos ejes de H §4 (tamaño del pedido · nivel del proyecto) y la prueba de dos preguntas; lo que §1.5 exigía "a lo grande o en producción" se reparte entre la ficha (`autorizado:`, `sensible:`) y los frenos | `grep` de "regla de bolsillo" y de los niveles viejos da 0 en el PLAYBOOK |
-| 9.2 | **`GUIA-DE-USO.md`** con las recetas nuevas (pedir, "me voy", `/estado`, `cambios aprobar`, "poné al día la flota", "adoptá X", "preparame esta PC") y **`manuales/`** con una página por pieza del kit v3 (Arquitecto, Equipador, molde, roles, scripts, el runbook de la credencial filtrada) | Cada skill y script del kit tiene su página; la guía apunta y no duplica (anti-espejo) |
-| 9.3 | **Las notas con fecha en los ocho `DISENO-*`** por cada fila de "Lo que este spec corrige de los diseños", y el **ADR nuevo** que E §3 pidió (la puerta única, la excepción del Equipador con la credencial del Hub) | Cada fila de esa tabla tiene su nota en el diseño; el ADR existe con número correlativo |
+| 9.1 | ✅ 2026-11-03 (D8.1; `SPEC-paquete-8`) **`PLAYBOOK-MAESTRO.md` §1.5** reescrito con los dos ejes de H §4 (tamaño del pedido · nivel del proyecto) y la prueba de dos preguntas; lo que §1.5 exigía "a lo grande o en producción" se reparte entre la ficha (`autorizado:`, `sensible:`) y los frenos | `grep` de "regla de bolsillo" y de los niveles viejos da 0 en el PLAYBOOK |
+| 9.2 | ✅ 2026-11-03 (D8.1; `SPEC-paquete-8`; una página por pieza, no por script, y `SCRIPTS.md` de referencia, D8-10) **`GUIA-DE-USO.md`** con las recetas nuevas (pedir, "me voy", `/estado`, `cambios aprobar`, "poné al día la flota", "adoptá X", "preparame esta PC") y **`manuales/`** con una página por pieza del kit v3 (Arquitecto, Equipador, molde, roles, scripts, el runbook de la credencial filtrada) | Cada skill y script del kit tiene su página; la guía apunta y no duplica (anti-espejo) |
+| 9.3 | ✅ 2026-11-03 (D8.1; `SPEC-paquete-8`; **corregido**: el ADR es el 033 y dice que la credencial del Hub **no** pasa por el kit, sin excepción: así se construyó en D6.1, D8-9; la puerta única ya era el ADR-031) **Las notas con fecha en los ocho `DISENO-*`** por cada fila de "Lo que este spec corrige de los diseños", y el **ADR nuevo** que E §3 pidió (la puerta única, la excepción del Equipador con la credencial del Hub) | Cada fila de esa tabla tiene su nota en el diseño; el ADR existe con número correlativo |
 
 ### Lo que el tramo 4 dejó explícitamente para este spec, resuelto
 | Pregunta | Decisión |
@@ -242,7 +242,7 @@ Se corre con los scripts de P8, **antes del piloto (línea base nueva) y al mes*
 | 3 Documentos | Proyectos con versión del método legible | 0 de 10 | 10 de 10 | `flota.py` |
 | 3 | Handoff más grande de la flota | 534 KB | ≤ 5 KB | `flota.py` |
 | 3 | Archivos sueltos en la raíz de `docs/` | 15-40 | 0 | `candado:raiz` |
-| 4 Procesos | Specs con sello del Arquitecto | 11 de 41 | 100% | `lotes.py` |
+| 4 Procesos | Specs con sello del Arquitecto | 11 de 41 | 100% | `flota.py` (corregido en D8.1, D8-5: `lotes.py` no lo mide) |
 | 4 | Dictados de ejecución por módulo | ~6 | 0 | `lotes.py` |
 | 4 | Pop-ups sobre lo ya autorizado, por tramo | ~30 | 0 | `frenos.log` + lector |
 | 5 PCs | Abrir un rol en otra PC sin editar nada | no | sí; rutas absolutas en skills = 0 | grep |

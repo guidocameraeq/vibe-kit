@@ -2,17 +2,17 @@
 
 > ÚNICA fuente de pendientes del proyecto. Completado → SE BORRA (la historia vive en `CHANGELOG.md` y git). Header de 1 línea, sin narrativa de sesión.
 
-2026-11-02 — ver SESSION_HANDOFF.md
+2026-11-03 — ver SESSION_HANDOFF.md
 
 ## 🔴 Crítico
 > **La hoja de ruta, reordenada el 2026-10-26 (ADR-025)**: 4 cerrar el diseño sin mensajería → 4½ ordenar la casa → 5 construir **v3.0** →
 > 6 el ciclo como proceso → 7 la mensajería agéntica (**v3.1**). Después, el reloj: una vuelta cada 3-4 meses (abajo, "El ciclo").
 
-- [ ] **Misión 5 — construir el pack por piezas → kit v3.0** (en curso: paquetes 1 a 7 ✅, sigue D8.1 (la línea base y la documentación al día); el modelo de cada rol, en la sección "Ejecución" del spec). **El plano es `docs/kit-v3/SPEC-0-kit-v3.md` (READY, 2026-10-27)**:
+- [ ] **Misión 5 — construir el pack por piezas → kit v3.0** (en curso: paquetes 1 a 8 ✅; sigue **una sesión con Guido**: repasar las decisiones sin él (`docs/kit-v3/DECISIONES-SIN-GUIDO-en-criollo.md`) y decidir la prueba en un proyecto de verdad, que reemplaza al piloto en Deptos (tracker, "Cambios al plan", 2026-11-03); el modelo de cada rol, en la sección "Ejecución" del spec). **El plano es `docs/kit-v3/SPEC-0-kit-v3.md` (READY, 2026-10-27)**:
   9 paquetes en el orden de su tabla "Orden de construcción" (1 ficha y parser · 2 documentos, hook, candado, `cambios` · 3 seguridad · 4 Arquitecto
   y `worktree` · 5 canon director/obrero, `/estado`, mesa · 6 Equipador, actualizador, adoptador · 7 ciclo y portada · 8 observatorio y docs del
   método · 8½ credenciales de Deptos · 9 piloto · 10 tag). Cada paquete con spec delta en `docs/kit-v3/SPEC-paquete-N.md`, red team si toca
-  permisos, revisor frío. **Piloto en Deptos**, un mes, medición contra TABLERO §1; su lista NO VERIFICADO y "Lo que hacés vos de nuevo" están
+  permisos, revisor frío. **Piloto: ya no en Deptos, en un proyecto de verdad a decidir con Guido (2026-11-03)**, medición contra TABLERO §1; su lista NO VERIFICADO y "Lo que hacés vos de nuevo" están
   en el spec. La primera sesión abre con la línea de la sección "Ejecución". **Por dónde vamos: `docs/kit-v3/PLAN-construccion.md`** (el tracker: no
   se repite acá; este ítem sale cuando el tracker diga ✅ el paquete 10).
 - [ ] **Misión 6 — escribir el ciclo de mejora del método** (al terminar la misión 5, con todo fresco; antes de la mensajería, porque es lo que

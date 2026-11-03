@@ -3,56 +3,48 @@
 > **Save game** del proyecto madre. `/cierre` lo sobreescribe entero; el hook SessionStart lo inyecta en cada chat
 > nuevo de esta carpeta. **Tope 5.500 bytes**; el hook corta y avisa "CORTADO" si se pasa, y termina con la huella.
 
-**Última sesión cerrada:** 2026-11-02, **D7.1** (Opus, sin Guido, PC `Draco-PC`, ~3 h, 9 encargos; el noveno, al cierre: **todo repo lleva banner, siempre**, decisión de Guido): el ciclo del registro de cambios
-(`subio-al-kit`, `cubiertos.md`, `cambios-flota`, la migración de Hermes) y la portada en `main`. **Paquete 7 ✅.** Suite 2.737/2.737.
-`kit-sync` LIMPIO.
+**Última sesión cerrada:** 2026-11-03, **D8.1** (Opus, PC `Guido-PC-eQ`, ~1,4 h, 8 encargos; Guido estuvo al principio): la línea base
+medida de nuevo (`observatorio/investigacion/mediciones/2026-11-03.md`, 10 de 10) y la documentación en v3 (PLAYBOOK §1.5, guía, cinco
+manuales, notas en los diseños, ADR-033). **Paquete 8 ✅.** Pruebas del observatorio 42/42. `kit-sync` LIMPIO (no se tocó `kit/`).
 
 ## Dónde estamos
 
-- **Paquetes 1 a 7 ✅.** Lo nuevo de D7.1: `aplicar` marca `subio-al-kit` lo que `kit/cubiertos.md` nombra y retira la zona propia solo
-  con cinco condiciones; `cambios-flota.cjs` (tabla del ciclo y `--urgentes`, renglón nuevo en el `/inicio` de acá); `migrar-cambios.cjs`
-  (Hermes en un clon: 103 CM, `verificar` verde); `portada.cjs` + `candado:portada`.
-- Hoja de ruta ADR-025: 5 construir v3.0 (1-7 ✅; siguen 8, 8½, piloto, tag) → 6 el ciclo → 7 mensajería v3.1.
+- **Paquetes 1 a 8 ✅.** Hoy **Guido cambió el plan** (tracker, "Cambios al plan", 2026-11-03): **sin piloto de prueba en Deptos**; antes del
+  release repasa las decisiones sin él y después la prueba es **en un proyecto de verdad** (recomendado Hermes Desktop, con un módulo nuevo;
+  Mobile no). El SPEC-0 (orden 9) y las filas D9.x **no se tocaron**: se reescriben con él.
+- Para eso está `docs/kit-v3/DECISIONES-SIN-GUIDO-en-criollo.md`: ~150 decisiones, 54 que le afectan por tema, las 5 para mirar primero y 4
+  preguntas abiertas.
 
 ## Próximo paso
 
-**Guido sigue en otra PC**: `git pull` en vibe-kit y en `vibe-research` (los chats de `Draco-PC` están subidos hasta este cierre). En esa
-PC: `/inicio` (que `kit-sync` dé LIMPIO; si no, `kit-sync sync` trae lo del paquete 7 a su `~/.claude/`), `bash pruebas/rehacer.sh` para los
-repos de prueba, y el clon de Hermes se vuelve a bajar al scratchpad cuando haga falta.
+**Una sesión CON Guido**, en Opus: **`vibe-kit M5 · Repaso de decisiones y la prueba real`**. Guido pega el prompt de "Después de D8.1: una
+sesión CON Guido" del tracker (`docs/kit-v3/PLAN-construccion.md`): repasar la página en criollo y las ⚠️ de D8.1, decidir el proyecto,
+cuándo va el tag (`-rc` o `v3.0`) y el 8½ (las llaves de ese proyecto); con eso se reescriben el orden 9, las D9.x y el prompt siguiente.
+Nada de código ahí.
 
-**D8.1**, en Opus, sin Guido: **`vibe-kit M5 · D8.1 · Paquete 8: la línea base y la documentación al día`**. Guido pega el prompt de
-"Abrir D8.1 sin Guido (el prompt)" del tracker (`docs/kit-v3/PLAN-construccion.md`) y se va. Delta nuevo (`SPEC-paquete-8.md`), sin red
-team salvo que toque un freno. Necesita acceso a `vibe-research` (chats y corpus del observatorio).
-
-**Para Guido, cuando pueda (no traba nada)**, con el detalle en Pendientes del tracker:
-- repasar las ⚠️ de D7.1 (sobre todo D7-7: el retiro automático de la zona propia, y D7-5: la migración todo clase 2, Mobile afuera);
-- la pregunta de D6.2 (qué cuenta como "porqué" de una pieza adaptada; recomendada: solo el `por:` de la ficha);
-- "preparame esta PC" en la segunda PC con un tag nuevo (también escribe el `kit-pc.md` que el `--urgentes` necesita: en esta PC hoy dice
-  "no sé dónde está la flota"); "poné al día la flota" en una pestaña en `auto` (con los repos de prueba);
-- lo de antes: `/estado` y "me voy" en `alfa`, la pestaña del obrero sin pop-ups, el Arquitecto en un proyecto v2, los hooks por PC,
-  borrar 4 transcripts de D3.3.
+**Para Guido, cuando pueda** (detalle en Pendientes del tracker): lo de antes (las ⚠️ de D2-D7, "preparame esta PC" en la segunda PC, la
+pestaña real en `alfa`, borrar 4 transcripts de D3.3) y de D8.1: mirar el mapeo alias → repo en `vibe-research/mediciones/2026-11-03/`
+("Bot personal" quedó asignado por fecha).
 
 ## Cosas que muerden y no están en ningún otro doc
 
+- 🔐 **En `Guido-PC-eQ` el administrador de credenciales de git pide una ventana** para pushear y para clonar el privado (a la mañana no;
+  desde ~09:50 sí): sin nadie, falla con "User cancelled dialog" o se cuelga. Se pushea con
+  `git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push …`. `gh auth setup-git` lo deja fijo (es de Guido).
+- 🔑 **Identidad de git**: `guido.camera.eq@gmail.com` (en esta PC estaba la `noreply` de GitHub: quedó fija en el `.git/config` local de
+  vibe-kit; un commit del 03-11, `b10739c`, salió con la `noreply`). Nunca `eq.chatgpt`.
 - 🔒 **El clasificador del modo `auto` frena lanzar `claude.exe -p` en bypass**; con `acceptEdits` + `--allowedTools` pasa. También frena
   `kit-sync sync` a mitad de sesión: va como primer paso del `/cierre`.
-- 🔴 **gitleaks antes de cada push, sin tubería** (`gitleaks … ; echo $?`, push solo con 0). vibe-kit es PÚBLICO y no tiene `.githooks/`
-  propios: el gitleaks del director es la única red.
-- 🧪 **Probar la flota**: copias de `../vibe-kit-pruebas/remotos/*.git` a un temporal, un canónico `bare` clonado de este árbol con
-  `kit/VERSION` 3.0.0 y un tag **anotado** `v3.0.0-rc.1`, y `actualizar.cjs flota … --canon <bare> --proyectos <temporal> --claude no`
-  (con `--molde-viejo <este árbol>` para `alfa`/`beta`). `gama` puro tarda ~18 min (la línea 7).
-- 🧪 **Hermes**: se clona `https://github.com/guidocameraeq/hermes-desktop.git` al scratchpad y la migración corre sobre un `git clone` local
-  de ese clon (`migrar-cambios.cjs --repo <copia>` y después `node kit/molde/scripts/cambios.cjs verificar` con cwd en la copia).
+- 🔴 **gitleaks antes de cada push, sin tubería** (`gitleaks … ; echo $?`, push solo con 0). vibe-kit es PÚBLICO: es la única red.
+- 🐍 **Python**: `py -3` (no `python3`, que es el atajo de la Store). La corrida mensual: `METODO.md`, con `diff.renames false` en cada clon
+  `blob:none` (si no, `repos.py` cuelga).
+- 🧪 **Probar la flota**: copias de `../vibe-kit-pruebas/remotos/*.git` a un temporal, un canónico `bare` con `kit/VERSION` 3.0.0 y un tag
+  **anotado** `v3.0.0-rc.1`, y `actualizar.cjs flota … --canon <bare> --proyectos <temporal> --claude no`. `gama` puro tarda ~18 min.
 - 🧪 **La suite entera tarda ~17-20 min** (`node --test "kit/**/*.test.cjs"`): en segundo plano, una vez, al final.
-- 🧩 **Copias byte a byte**: `pc/lib/*.cjs` del Equipador (ahora también `cambios.cjs` y `cambios-ruta.cjs`) **y
-  `arquitecto/scripts/lib/ficha.cjs`** copian `molde/hooks/lib/`. Dos encargos que crean la misma copia chocan al mergear: quedarse con
-  la nueva y `cmp` contra el molde.
-- 🗂️ **Cada encargo, su worktree en `scratchpad/<x>/wt`**. Los repos de prueba se miran con Bash, nunca con Read.
-- 💻 **En `Draco-PC`**: `python` es el atajo de la Store; gitleaks en `~/AppData/Local/Microsoft/WinGet/Links/` (`--no-banner`). Heredocs
-  largos con backticks se rompen: script a un archivo y correrlo. La herramienta para titular la sesión no está en esta app.
-- 🔑 **Identidad de git**: `guido.camera.eq@gmail.com`. Nunca `eq.chatgpt`.
+- 🧩 **Copias byte a byte**: `pc/lib/*.cjs` del Equipador y `arquitecto/scripts/lib/ficha.cjs` copian `molde/hooks/lib/`: `cmp` contra el molde.
+- 🗂️ **Cada encargo, su worktree en `scratchpad/<x>/wt`**; un encargo puede commitear archivos de trabajo sueltos: mirar el `--stat` antes del merge.
 - 📬 **El Hub pushea a este repo desde otra sesión**: `git fetch` antes de cerrar.
 
 ## Bloqueos
 
-Ninguno.
+Ninguno técnico. **Lo que sigue espera a Guido** (la sesión de repaso y la elección del proyecto).

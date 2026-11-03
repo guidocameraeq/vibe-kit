@@ -81,7 +81,7 @@ sesión sigue con lo que no depende de eso. Lo que sí se decide y es grande se 
 | 5 | Director/obrero, `/estado`, resumen del día, la mesa, subagentes | 3 | ✅ 2026-11-02 (D5.1 el día · D5.2 la noche, las vistas, `/tramo`, los subagentes, la mesa · D5.3 el corrector de afirmaciones, que avisa; **te espera**: las pestañas reales y repasar las ⚠️: Pendientes) ([`SPEC-paquete-5.md`](SPEC-paquete-5.md)) |
 | 6 | Equipador v3, actualizador, adoptador, `doctor` completo | 2 | ✅ 2026-11-02 (D6.1 la PC, el `doctor`, `aplicar` y `chequear` · D6.2 la flota, la fusión `adaptada`, el adoptador; **te espera**: "preparame esta PC" en la segunda PC, la fusión con un `claude` real, repasar las ⚠️: Pendientes) ([`SPEC-paquete-6.md`](SPEC-paquete-6.md)) |
 | 7 | El ciclo de `cambios` (flota, migración de Hermes) y la portada | 1 | ✅ 2026-11-02 (D7.1; **te espera**: repasar las ⚠️; el `D-n` de Mobile y la portada en GitHub, al piloto: Pendientes) ([`SPEC-paquete-7.md`](SPEC-paquete-7.md)) |
-| 8 | El observatorio mide la línea base; playbook, guía y manuales al día | 1 | ⬜ |
+| 8 | El observatorio mide la línea base; playbook, guía y manuales al día | 1 | ✅ 2026-11-03 (D8.1; **te espera**: repasar las ⚠️ y las decisiones sin vos en criollo, y decidir el proyecto de la prueba real: "Cambios al plan") ([`SPEC-paquete-8.md`](SPEC-paquete-8.md)) |
 | 8½ | Deptos prepara sus credenciales (**lo hace Guido**, sin director) | 0 | ⬜ |
 | 9 | Piloto en Deptos, un mes; después Hub y Portal | 2 en la madre | ⬜ |
 | 10 | Tag `v3.0` y nota de migración | 1 | ⬜ |
@@ -111,7 +111,7 @@ cuántos lanzó y en qué modelo (por ejemplo `4 Sonnet · 2 Opus`): es la medid
 | D6.1 | Paquete 6, primera mitad: delta + red team, "preparame esta PC", el `doctor` completo, P2.4, el núcleo del actualizador (`aplicar`, `chequear`) | 2026-11-02 (sin Guido, PC `Draco-PC`; **~3 h de reloj, ~1,77 M de tokens de subagentes**) | `vibe-kit M5 · D6.1 · Paquete 6: Equipador v3, actualizador, adoptador y doctor completo` | 1 Sonnet (E2) · 7 Opus (redactor del delta, red team ×1, E1, E3, E4, revisor frío ×1, RF-fix) = **8** (ADR-029: ~8) | `25a151e`…`2ecd550` y el cierre | ✅ **La PC y el núcleo del actualizador en `main`; la flota y el adoptador, a D6.2** (el delta ya lo partía). Delta **sellado sin Guido por script** (red team 1 ronda, 6 ALTOS integrados; el peor: un bloque `autoMode` sin `"$defaults"` le sacaba al clasificador la confianza en los repos de toda la PC). **E1** `preparar-pc.cjs` (una pregunta, `--plan`, `--flota`, lo editado no se pisa, `autoMode` y `crossSessionInbound` contra la doc, capa privada, `kit-pc.md`; mutación 23/25) · **E2** `doctor` de 14 a 26 chequeos con el inventario de frenos, `skill.test.cjs` (P2.4), el `SKILL.md` del Equipador por `preparar-pc` (10,2 → 9,1 KB) · **E3** `actualizar.cjs aplicar` con el catálogo y los moldes (mutación 24/25) · **E4** `chequear`, nueve líneas (mutación 25/25). Revisor frío 1 vuelta, 11 hallazgos (1 ALTO: el clon `--depth 1`), todos con RF-9 a RF-11 del director en un encargo. Pruebas **156/156** corridas por el director. **Prueba viva del crit. 9** (clon de `gama`, 2.4.2 → 2.4.3): `aplicar` bien y la segunda corrida "sin cambios"; `chequear` 8 ✅ y la línea 7 NO VERIFICADO por el plazo (→ RF-9, y 2 casos de `candado.test.cjs` que dan rojo fuera del repo: Pendientes). Suite: la cifra en el CHANGELOG. `settings.json` real con la huella de la apertura. **Decisiones sin Guido**: arriba |
 | D6.2 | Paquete 6, cierre: la flota de punta a punta (`flota`, githooks en el clon, la fusión `adaptada`), el adoptador, `cargar-secreto` en un worktree, "toda la flota" en los repos de prueba | 2026-11-02 (sin Guido, PC `Draco-PC`; **~3,1 h de reloj (16:51-19:55), ~1,80 M de tokens de subagentes**) | `vibe-kit M5 · D6.2 · Paquete 6, cierre: la flota de punta a punta y el adoptador` | 2 Sonnet (F0, F5) · 6 Opus (F1, F2, F3, F4, revisor frío ×1, RF-fix) = **8** (ADR-029: ~8) | `b377e68`…`44e9575` y el cierre | ✅ **Paquete 6 cerrado, el adoptador incluido (no hizo falta D6.3).** **F0** la línea 7 de `chequear` copia el molde **crudo** (el instanciado rompía 2 casos de `candado.test` en toda actualización sana: causa raíz, 2 de 2, no era intermitente; la línea tarda ~13,5 min de 30) · **F1** `actualizar.cjs flota` (canónico por tag anotado, un repo detrás del otro en un clon de su `origin`, saltear, ROTA sin `--force`, protegido → te espera, la tabla; mutación 19/19) · **F2** los githooks del clon con `KIT_MOLDE` solo con `.kit-rol` = `actualizador` (mutación 19/21, 2 equivalentes) · **F3** la fusión `adaptada` (D6-19, opción C de Guido: `merge-file` a tres vías, con porqué sola, conflictos a `claude -p` en `acceptEdits`, sin porqué a `.claude/fusiones/` y una pregunta en `/inicio`; `piezas.<id>.por`; el runner del molde juzga el clon; mutación 23/24) · **F4** el adoptador (`adoptar --mirar`/`--aplicar`, dos commits; mutación 21/22) · **F5** `cargar-secreto` en un worktree, `flota.md`, el Equipador, la nota de 3.0.0. Revisor frío 1 vuelta, 10 hallazgos (1 ALTO: la base de una pieza que quedó en te espera), todos en un encargo (476/476). **Prueba viva** (crit. 15): `flota alfa beta gama` sobre copias de los remotos y un canónico `bare` con `v3.0.0-rc.1` → `alfa` y `beta` mezclados en un commit, `gama` salteado por `modulo/x`, ninguna `kit/*` viva, los checkouts intactos; y **`gama` v2.4.2 puro → 3.0.0 por `flota`: las nueve ✅ y mezclado** (17,6 min, la línea 7 entera: crit. 9 cerrado). Pruebas de cada encargo corridas por el director; suite: la cifra en el CHANGELOG. **Decisiones sin Guido**: arriba |
 | D7.1 | Paquete 7: el ciclo de `cambios` y la portada | 2026-11-02 (sin Guido, PC `Draco-PC`; **~3 h de reloj (19:45-22:45), ~1,45 M de tokens de subagentes**) | `vibe-kit M5 · D7.1 · Paquete 7: el ciclo de cambios y la portada` | 3 Sonnet (B, D, el banner) · 6 Opus (red team ×1, A, C, revisor frío ×1, RF-fix, E8) = **9** (ADR-029: ~8; el noveno, pedido de Guido al cierre: **el banner siempre**) | `a61e648`…`511ec24` y el cierre | ✅ **Paquete 7 cerrado.** Delta **sellado sin Guido por script** (red team 1 ronda acotada, 4 ALTOS integrados: el retiro vaciaba zonas ajenas, un `3-barrera` subido quedaba rojo para siempre, la regla que no llegó, el candado de portada prendido en toda la flota). **A** `subio-al-kit` (lib pura + CLI + `verificar` + `barreras`), `kit/cubiertos.md` y `aplicar` cierra el ciclo con cinco condiciones (mutación 27/27) · **B** `cambios-flota.cjs` y `--urgentes` en el `/inicio` de vibe-kit (10 repos en 1,7 s; los de prueba, 0,9 s) · **C** `migrar-cambios.cjs`: **Hermes, 103 CM → 102 `aplicado` + 1 `propuesto`, 0 SHA sin resolver, `verificar` verde, `CAMBIOS.md` intacto** (corrido por el director sobre una copia del clon) · **D** la portada: `portada.cjs`, `candado:portada`, plantillas (README de `alfa` armado desde su NORTE). Revisor frío 1 vuelta, 7 hallazgos (1 ALTO: la línea para pegar sin `pieza:` mataba el ciclo de la flota), todos en un encargo (mutación 12/13, el vivo explicado); **E8** (lo encontró RF-fix): las zonas del molde traen texto de fábrica y el retiro no andaba nunca (mutación 5/5). Pruebas de cada encargo corridas por el director; suite entera **2.737 de 2.737** verde (17,5 min, una vez, al final). **Decisiones sin Guido**: arriba |
-| D8.1 | Paquete 8: medir la línea base; playbook, guía, manuales | | | | | |
+| D8.1 | Paquete 8: medir la línea base; playbook, guía, manuales | 2026-11-03 (casi todo sin Guido, PC `Guido-PC-eQ`; **~1,4 h de reloj (09:05-10:30), ~1,37 M de tokens de subagentes** más ~0,17 M del pedido aparte) | `vibe-kit M5 · D8.1 · Paquete 8: la línea base y la documentación al día` | 4 Sonnet (E1, E2, E4b, RF-fix) · 4 Opus (redactor del delta, E3, E4a, revisor frío ×1) = **8** (ADR-029: ~8) · más 1 Opus pedido por Guido (las decisiones sin él en criollo) | `6694244`…el cierre | ✅ **Paquete 8 cerrado.** Delta **sellado sin Guido por script, sin red team** (D8-1). **E1** `flota.py` lee la ficha con el parser del kit, ramas `kit/*`, copias, "aparece en N", specs con sello, portada, `--hook` en un clon, frases viejas y rutas absolutas (P8.3, 0 y 0 sobre el molde v3); `huella.py` con las dos historias del molde · **E2** la corrida del 2026-11-03 sobre clones de los 10 (`mediciones/2026-11-03.md` público en cifras agregadas, el detalle en `vibe-research`; las filas de lector quedan con octubre, D8-4) y la receta en `METODO.md` · **E3** PLAYBOOK §1.5 con los dos ejes, 25 notas en los diseños, ADR-033 · **E4a/E4b** la guía v3 y cinco manuales nuevos o reescritos (Arquitecto, Equipador, roles, molde, scripts) más el runbook; el manual v2 a `legacy/`. Revisor frío 1 vuelta, 6 hallazgos (1 ALTO: el hook con `args`), todos en un encargo. Pruebas del observatorio **42/42** corridas por el director; la suite del kit no se corrió (no se tocó `kit/`). **Decisiones sin Guido**: arriba |
 | D9.1 | Arrancar el piloto en Deptos | | | | | |
 | D9.2 | Medir el mes del piloto contra TABLERO §1 | | | | | |
 | D10.1 | Tag `v3.0` y nota de migración | | | | | |
@@ -783,6 +783,40 @@ D7.1 corrió sin Guido, con su autorización previa (su prompt, abajo) y la vara
 - *No se cierra* (trampas, sin arreglo): editar `aplico.hash` o escribir `subio-al-kit` a mano; un `cubiertos.md` con una entrada falsa
   (queda en git; la zona solo se retira si está intacta); un README editado que conserva la marca `kit:portada` con el hash recalculado.
 
+### D8.1 · Decisiones sin Guido
+
+D8.1 corrió casi toda sin Guido (estuvo al principio: el `/inicio`, el cambio del piloto y el pedido de las decisiones en criollo), con su
+autorización previa (su prompt, abajo) y la vara del ADR-030, el 2026-11-03 en `Guido-PC-eQ` desde las 09:05. **Las ⚠️ arriba**; todas
+son texto o scripts del observatorio y se deshacen con un revert. El detalle, en el delta (`SPEC-paquete-8.md`, "Riesgos y decisiones").
+
+- ⚠️ **D8-4 · Los lectores no corrieron**: las filas "Lector (muestra)" de TABLERO §1 (turnos sin novedad, CORREGIR, comandos por apertura,
+  duración del `/cierre`, "¿cómo vamos?", pegados) y las del SPEC-0 que piden lector quedan con el número de octubre, marcadas. Un lector
+  cuesta ~250 mil tokens y la flota sigue en v2: el "antes" de octubre es el antes. Se miden en la prueba en el proyecto real. `[workflow · acordarse de menos]`
+- ⚠️ **D8-6 · Lo público en cifras agregadas**; el detalle por repo, el mapeo alias → repo y los costos por chat, a `vibe-research`
+  (`mediciones/2026-11-03/`). `[mejor código · consistencia]`
+- ⚠️ **D8-9 · ADR-033: la credencial del Hub no pasa por el kit, sin excepción.** El SPEC-0 pedía un ADR con "la excepción del Equipador";
+  D6.1 construyó lo contrario (la credencial va a la capa privada). El ADR escribe lo construido; si querés la excepción, se reabre. `[consistencia · acordarse de menos]`
+- ⚠️ **D8-2 · `flota.py` sigue por `gh`** (ve los 10 desde cualquier PC) y la ficha la parsea el parser del kit en node, no uno en Python. `[consistencia · mejor código]`
+- **D8-1 · Sin red team**: P8.3 es una columna del observatorio que mide, no un id del candado. `[workflow · mejor código]`
+- **D8-3 y D8-7 · Todo sobre clones `blob:none` de GitHub**; el hook de arranque se corre solo en el clon, nunca en tus carpetas de `D:\`. `[mejor código · consistencia]`
+- **D8-5 · Cada medida con el script que la mide de verdad**: los specs con sello los cuenta `flota.py` (el SPEC-0 decía `lotes.py`, que no
+  mide); `costos.py` no gana `--desde` (el corte es de `condensar.py`). Corregido en el SPEC-0. `[consistencia]`
+- **D8-8 · `huella.py` compara contra las dos historias del molde** (v2 y v3). `[consistencia]`
+- **D8-10 · Una página de manual por pieza, no por script**, y `SCRIPTS.md` como referencia; el manual v2 del Arquitecto a `legacy/`. `[acordarse de menos · consistencia]`
+- **D8-11 y D8-12**: las notas en los diseños sin duplicar (25 notas para 19 filas; 2 ya estaban; C no se toca); ningún Pendiente ni NO
+  VERIFICADO se tachó leyendo (todos piden una pestaña, otra PC o la prueba real). `[consistencia · acordarse de menos]`
+- **D8.1-a · El mapeo alias → repo lo armó E2 por fecha y descripción**: "Bot personal" = el repo del bot de Perseo, sin otra evidencia
+  (en el privado, para que lo mires). El bot con base open source (12.000 commits ajenos) queda fuera de las medianas de la historia entera.
+- **D8.1-b · Lo que dio la medición y conviene que sepas** (`observatorio/investigacion/mediciones/2026-11-03.md`): la flota sigue en v2
+  (0 de 10 con versión, 2 de 10 con `deny`); **el hook de arranque pasa el tope en 6 de 10** (octubre decía 2, pero medido con `wc -c`;
+  ahora se corre de verdad: es otro método, no un empeoramiento probado); el handoff más grande ronda los 600 KB; rutas absolutas en 6 de
+  10; lo reciente trae más pruebas con los arreglos (mediana 60%) y menos arreglo del arreglo (15%).
+- **Revisor frío** (Opus, una vuelta): 6 hallazgos, 1 ALTO (`flota.py` perdía los `args` del hook del molde v3: la corrida del "después"
+  habría dado 0 caracteres en todos, una mejora falsa; la de hoy no se afectaba porque la flota v2 usa el comando en texto). Los 6 en un
+  encargo (RF-fix, Sonnet) y el de la ruta de una carpeta tuya en el delta, el director. *No se cierra*: `huella_hook` suma todos los
+  `SessionStart` sin mirar el `matcher`; los hooks en sintaxis bash corren en `cmd` y dan `null`; un alias repetido entre dos dueños.
+- **D8.1-c · Fuera del paquete, pedido tuyo**: `docs/kit-v3/DECISIONES-SIN-GUIDO-en-criollo.md` (un Opus aparte, no cuenta en los encargos).
+
 ## Abrir D5.2 sin Guido (el prompt)
 
 *(Armado en el cierre de D5.1, 2026-10-31.)* ~~En la PC `Usuario`~~ **En la PC `Draco-PC`** (preparada el 2026-11-02: kit, repos de prueba,
@@ -956,6 +990,21 @@ corpus del observatorio), en Opus, chat nuevo en vibe-kit.
 >    **horas, encargos y tokens**, el prompt de la sesión siguiente armado como este, y /cierre completo con el "Próximo paso" y su título.
 >    En el resumen final, primero "Decisiones sin Guido" y después lo que me espera a mí.
 
+## Después de D8.1: una sesión CON Guido (el prompt)
+
+*(Armado en el cierre de D8.1, 2026-11-03.)* No hay un director sin Guido que siga: por el cambio del 2026-11-03 ("Cambios al plan"),
+lo que viene lo decide él. Chat nuevo en vibe-kit, en Opus, con Guido presente (cualquier PC con el kit):
+
+> inicio — misión 5, después de D8.1: repaso y decisión de la prueba real, conmigo.
+>
+> 1. **Las decisiones sin mí**: abrí `docs/kit-v3/DECISIONES-SIN-GUIDO-en-criollo.md` y repasemos las "5 para mirar primero" y las 4
+>    preguntas abiertas (la del "porqué" de una pieza adaptada, la firma en bypass, el 3.0.0 después de un `-rc`, el banner sin enlazar), más
+>    las ⚠️ de D8.1. Lo que corrija va a "Cambios al plan" o a un delta chico; lo que apruebe se marca en la página.
+> 2. **La prueba real**: qué proyecto (recomendado Hermes Desktop, con un módulo nuevo), si el tag (`v3.0.0-rc.N` o el `v3.0`) va antes
+>    o después del primer módulo, y cómo queda el 8½ (las llaves de ese proyecto). Con eso, reescribí el orden 9 del SPEC-0, las filas
+>    D9.x del tracker y el prompt de la sesión siguiente.
+> 3. Nada de código en esta sesión; `/cierre` al terminar.
+
 ## Paralelizar: decidido que no (DP, 2026-10-29)
 
 **La misión 5 sigue en secuencia: un director por vez, en el orden de la tabla de arriba.** Guido: "Prefiero hacerlo bien y que tarde
@@ -1031,6 +1080,17 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
      para git, `encargo.cjs` y el test**, y la ventana sí para una de las 5 de A. Es la mitad VS Code de D5-19.
   2. Repasar las ⚠️ de D5.1 (arriba) y el delta sellado sin vos: lo que más pesa es D5-2 (nadie en bypass), D5-19 (tu pestaña en tu modo) y
      D5-3 (`integrar` sin `/cierre`).
+- **Paquete 8 · para después** (de D8.1; nada traba lo que sigue):
+  1. **Dos NO VERIFICADO que E3 encontró al anotar los diseños** (no están en lo construido): el "rojo si se borran líneas" de `frenos.log`
+     (fila 21 de "Lo que este spec corrige") y que el adoptador marque las reglas con cicatriz para correr en chico en el mismo OK (fila 18,
+     RF-27). Se miran al adoptar el proyecto real: si faltan, son un delta chico.
+  2. **Lo que §1.5 le pedía a producción quedó como reparto en la ficha y los frenos, pero ningún script obliga** a declarar respaldo, rutas
+     protegidas y crons cuando hay un entorno `clase: real`. Es diseño (H → F §9); si el proyecto real lo extraña, va al Arquitecto.
+  3. **Las filas de lector y los costos de las otras PCs** (D8-4): se miden en la prueba real con la receta de `METODO.md` ("La corrida mensual").
+  4. **El mapeo alias → repo** (privado, `vibe-research/mediciones/2026-11-03/mapeo.md`): "Bot personal" quedó asignado por fecha; miralo.
+  5. **En `Guido-PC-eQ`, el administrador de credenciales de git pide una ventana** para pushear (a la mañana andaba; desde ~09:50 no):
+     sin nadie, el push falla con "User cancelled dialog". D8.1 pusheó con `git -c credential.helper= -c 'credential.helper=!gh auth
+     git-credential' push`. Si te molesta, `gh auth setup-git` lo deja fijo (es tu configuración: decidilo vos).
 - **Paquete 7 · para después** (de D7.1; nada traba a D8.1):
   1. **El `D-n` de Mobile** (SPEC-0 6.8b): `migrar-cambios.cjs` lee el formato `CM-N` de Hermes; el de Mobile no se exploró (D7-5). Se
      mira al adoptar Mobile: si es parecido, una bandera; si no, un lector más.

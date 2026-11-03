@@ -2,11 +2,12 @@
 Antes del piloto hace falta el "antes" medido con los mismos scripts que van a medir el "después": `flota.py` aprende a leer la ficha del
 kit, la corrida mensual repite las líneas base del TABLERO y queda escrita como receta. Y el que llega a la guía, a los manuales o al
 playbook encuentra el kit v3, no el v2: los dos ejes de tamaño, las recetas nuevas, una página por pieza y las notas en los diseños.
-- Estado: READY — sellado sin Guido (provisorio), 2026-11-03, por el director D8.1, sin red team (D8-1). Guido lo repasa al volver; todo
+- Estado: **✅ IMPLEMENTADO 2026-11-03** (D8.1: E1-E4b, el revisor frío y RF-fix; la corrida en `observatorio/investigacion/mediciones/2026-11-03.md`)
+  · READY — sellado sin Guido (provisorio), 2026-11-03, por el director D8.1, sin red team (D8-1). Guido lo repasa al volver; todo
   se deshace antes del tag
 - Fecha: 2026-11-03 · Misión: 5, director **D8.1**, sin Guido, PC `Guido-PC-eQ` (tracker, "Abrir D8.1 sin Guido"; la vara: ADR-030; el
   presupuesto: ADR-029)
-- Sello del Arquitecto: `arquitecto: 2026-11-03 · kit 2.4.3 · chequeos: tamaño — (paquete del método) · entorno — (sin ficha del kit) · tope ✅ · hash 55e763f81745`
+- Sello del Arquitecto: `arquitecto: 2026-11-03 · kit 2.4.3 · chequeos: tamaño — (paquete del método) · entorno — (sin ficha del kit) · tope ✅ · hash 00ce70b1912e`
 - Plano: [`SPEC-0-kit-v3.md`](SPEC-0-kit-v3.md), orden 8 = **P8 y P9**; "Medición" del SPEC-0; TABLERO §1. Diseño: H §4 y §22 · B §15 y §18
   · E §3 y §13. De Pendientes y NO VERIFICADO del tracker: **ninguno se tacha leyendo** (todos piden una pestaña real, una PC o el piloto;
   ver "Lo que esto no cierra"). **El piloto cambió** (Guido, 2026-11-03, tracker "Cambios al plan"): no hay piloto de prueba en Deptos,
@@ -185,7 +186,7 @@ director: `docs/README.md` (la fila de este delta), el SPEC-0 (los `✅` de P8 y
 ## NO SE TOCA
 
 - **`kit/`** entero (este paquete no cambia el kit: nada de `kit-sync` más allá del LIMPIO del `/cierre`), `~/.claude/`, y los checkouts
-  de Guido (`D:\Hermes\…`, `D:\Hub - Implementaciones`, etc.): se mide sobre clones temporales.
+  de Guido en su PC: se mide sobre clones temporales.
 - `condensar.py`, `costos.py`, `lotes.py`, `recortar.py`, `repos.py` (se usan como están).
 - `docs/mision-4/TABLERO.md`, `REPOS.md`, `FLOTA.md` (son la foto de octubre: la nueva va en `mediciones/`), los `tips/` (actas).
 - El resto del PLAYBOOK, `README.md` (portada), `docs/MISION-Y-VISION.md`.
@@ -288,6 +289,23 @@ prueba de que la receta alcanza), las filas de lector, los costos de las otras P
 - **Las frases viejas son una lista**: una contradicción que no está en la lista no se cuenta (el "≥ 8 contradicciones" de octubre fue
   lectura). Es un piso, no un conteo completo.
 - **Un hook que hace algo raro en el clon** (red, un proceso que queda): plazo de 20 s y temporal; sin más arreglo.
+- (del revisor frío) `huella_hook` suma todos los `SessionStart` sin mirar el `matcher`; un hook en sintaxis bash corre en `cmd` y da
+  `null`; un alias repetido entre dos dueños recibe el mismo `--hook`.
+
+## Revisor frío (Opus, una vuelta)
+
+6 hallazgos, 1 ALTO, todos arreglados en un encargo (RF-fix, Sonnet) salvo el 6, que arregló el director (texto del delta):
+1. **ALTO** · `flota.py` corría solo el `command` del hook y perdía sus `args`: con el molde v3 (`"command": "node", "args": […]`) la
+   corrida del "después" habría dado 0 caracteres en todos. Ahora arma `[command, *args]` sin shell; prueba `HookConArgs` (antes 0, después 12.000).
+2. `MOLDE.md` decía `hasta: vigente`; el candado pide `id: candado:<id>` y `hasta: siempre` o una fecha.
+3. La receta "Actualizate" de la guía no avisaba que llega con el tag del kit v3.
+4. El tamaño de las skills sale de `huella.json`, no de `flota.json` (`METODO.md` y la fila de `mediciones/`); la receta suma el paso 0
+   (`gh auth status`, `node -v`).
+5. `flota.py` se tragaba un `gh repo list` que falla: ahora corta con un mensaje (prueba `GhFalla`).
+6. El delta nombraba una carpeta de la PC de Guido: sacada.
+
+Pruebas del observatorio: **42/42** (`py -3 -m unittest test_flota test_huella`), corridas por el director; `flota.py --carpeta kit/molde`
+da 0 y 0.
 
 ## Ejecución
 
