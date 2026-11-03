@@ -59,6 +59,8 @@ existir.
 3. **El que molesta más de lo que salva, se saca.** Lo mismo con el que lleva 3 meses sin frenar nada:
    o era de adorno, o el problema ya no existe.
 
+*Corregido por el SPEC-0 del kit v3 (nota del 2026-11-03, D8.1): `frenos.log` lleva `merge=union` (`gitattributes.snippet` del molde); un `frenos.log` sucio no traba el candado; el commit antes de cerrar un worktree lo hace el gate y los githooks escriben en `<git-common-dir>/kit-frenos.log` ([SPEC-paquete-2](../kit-v3/SPEC-paquete-2.md), [SPEC-paquete-4](../kit-v3/SPEC-paquete-4.md) D4-3). El "rojo si se borran líneas" de la fila no lo encontré construido: NO VERIFICADO (RT1-14, RT2-12).*
+
 ## 5. Cómo se construye un corrector (la receta, para el obrero)
 
 Sale del piloto de Desktop (A.4 y A.5 de la radiografía) y de lo que se vio en Mobile (H-161).
@@ -80,6 +82,8 @@ Sale del piloto de Desktop (A.4 y A.5 de la radiografía) y de lo que se vio en 
 **El trinquete** es un corrector de otro tipo: un número que solo puede bajar, como "atribuciones en el
 código: 12". Si un cambio lo sube, la prueba falla y el agente lo arregla solo. Sirve para lo que se
 cuenta. Se construye con la misma receta.
+
+*Corregido por el SPEC-0 del kit v3 (nota del 2026-11-03, D8.1): todo hook de Claude que niega se registra con `"onFailure": "block"` y `"timeout": 20`, y ante cualquier error propio devuelve `deny` "freno roto: corré doctor"; la única excepción es el `UserPromptSubmit` de `secretos` ([SPEC-paquete-3](../kit-v3/SPEC-paquete-3.md), P4.7) (RT1-1).*
 
 ## 6. Qué trae el molde de fábrica y qué es opcional
 
@@ -105,6 +109,8 @@ cuenta. Se construye con la misma receta.
 (seguridad), junto con el `deny`.
 
 *Nota de H (2026-10-25): dos cosas para el registro de A. (1) **El arreglo del arreglo** (26% de los arreglos de la flota) sigue siendo chico, pero el mismo chequeo `gate:fix-sin-prueba` de D §10.5 agrega: si el arreglo toca un archivo de un fix de los últimos N días, revisor Opus congelado en el commit antes del push (por archivo, no por función). (2) `git worktree remove --force` entra al corrector "git que borra trabajo" de esta tabla: el script `worktree cerrar` de H se niega si hay cambios sin commitear ([DISENO-H](DISENO-H-niveles-y-puertas.md) §5.6, §10.2).*
+
+*Corregido por el SPEC-0 del kit v3 (nota del 2026-11-03, D8.1): los hooks leen `frenos.quitados` (y `sensible:`) de la ficha de la rama por defecto del remoto (`origin/HEAD`); sin remoto, de la rama local por defecto; sin ficha, los de fábrica sin nada quitado; ficha rota, fábrica y el motivo lo dice ([SPEC-paquete-2](../kit-v3/SPEC-paquete-2.md) §4.7, [SPEC-paquete-3](../kit-v3/SPEC-paquete-3.md) P4.7) (RT1-2, RT2-3).*
 
 ## 7. La verificación: que el director no revise todo a mano
 

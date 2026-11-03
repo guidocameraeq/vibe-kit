@@ -98,6 +98,8 @@ Las cuentas de Claude Code no importan: los pushes salen con el GitHub logueado 
 con `gh` si esta PC puede pushear antes de tocar un repo; si no, lo informa y sigue. Los proyectos sin repo están en
 el Hub y aparecen en el mapa del ecosistema, pero no se mantienen.
 
+*Nota del 2026-11-03 (D8.1): el "ADR nuevo al construir" quedó en dos. La puerta única es el ADR-031. La excepción a "el Equipador jamás maneja tokens" **no se construyó**: D6.1 hizo que la credencial del Hub nunca pase por el kit (va por la capa privada), y el [ADR-033](../DECISIONS.md) lo escribe así, sin excepciones; si Guido quiere la excepción, se reabre ese ADR.*
+
 ## 4. La ficha del kit (decisión 1)
 
 **Dónde**: `.claude/kit.md` en cada repo, al lado de lo que describe. Una fila en el mapa de documentación del
@@ -229,6 +231,10 @@ no se construye**: la rama ya es la vista previa cuando algo falla, y git es el 
 > `.kit-rol` = `actualizador`); el commit y el push del clon los juzga el runner **del molde nuevo**, desde una carpeta fuera del clon,
 > no el `.githooks/` del proyecto (que puede estar adaptado y no conocer `KIT_MOLDE`). El chequeo mecánico tiene nueve líneas (P7.1).
 
+*Corregido por el SPEC-0 del kit v3 (nota del 2026-11-03, D8.1): "actualizate" y el actualizador trabajan desde un **tag anotado `v*`** del canónico, nunca desde la punta de `main`: `--kit` fuera de un tag anotado sale 1 ([SPEC-paquete-6](../kit-v3/SPEC-paquete-6.md)) (RT1-6).*
+
+*Corregido por el SPEC-0 del kit v3 (nota del 2026-11-03, D8.1): el chequeo de la flota es completo (barreras, casos de los hooks, `comando-test`, gitleaks); saltea los repos con `modulo/*` vivas o un módulo con director en obra; con `main` protegido queda la rama `kit/v<versión>` y una línea en "te espera"; la zona propia está exenta ([SPEC-paquete-6](../kit-v3/SPEC-paquete-6.md), P7.1) (RT1-6, RT3-3).*
+
 ## 7. Adoptar un proyecto que ya anda (decisión 4)
 
 Para Portal, el Bot, y cualquier repo que nunca pasó por el Arquitecto.
@@ -250,6 +256,8 @@ Para Portal, el Bot, y cualquier repo que nunca pasó por el Arquitecto.
 - **Copias del kit adentro del proyecto** (Portal): las lista y propone sacarlas.
 - **Cierra como el actualizador**: clon temporal, chequeo, mezcla a `main`, tabla. **El alta en el Hub no la hace**
   (el Arquitecto solo lee el Hub, §9): queda como una línea pendiente para el ritual del viernes, con los datos listos.
+
+*Corregido por el SPEC-0 del kit v3 (nota del 2026-11-03, D8.1): el adoptador es un script (`adoptar --mirar` no cambia nada; `--aplicar` deja la ficha por defecto del nivel con el candado apagado salvo `barreras`); sin ficha ni `CLAUDE.md` la propuesta sale igual, con todo en `no`; la pantalla la arma la sesión del Arquitecto con Guido, y la migración del registro de cambios queda en "te espera" ([SPEC-paquete-6](../kit-v3/SPEC-paquete-6.md), D6-12; [SPEC-paquete-7](../kit-v3/SPEC-paquete-7.md), P6.8b-3). Que el inventario marque las reglas con cicatriz para chico en ese mismo OK: NO VERIFICADO en un repo real (RT1-13, RT1-10, RT3-3).*
 
 ## 8. La versión del kit (decisión 5)
 
@@ -290,6 +298,8 @@ mira**: el Arquitecto, en Modo A, **antes de entrevistar** por un proyecto nuevo
 feature de otro?": el kit consulta; quien responde con datos es el Hub); el actualizador de §6 y `flota.py`, para saber qué repos existen.
 **Qué no hace el kit**: escribir en el registro, ni guardar una copia. El agente de ecosistema que lo alimenta vive en el Hub.
 
+*Nota del 2026-11-03 (D8.1): la credencial del Hub **no** es una excepción del Equipador: "preparame esta PC" la deja a la capa privada (SPEC-paquete-6, paso 5; `preparar-pc.cjs`) y `doctor` solo mira el nombre de la variable. Lo escribe el [ADR-033](../DECISIONS.md): el Equipador no maneja tokens, sin excepciones.*
+
 ## 10. El Equipador atrás de la puerta (decisión 7)
 
 - **"Preparame esta PC"**, en un pedido y **una sola pregunta** (la segunda pregunta nueva del racimo): chequea node,
@@ -313,6 +323,8 @@ escribe ahí `autoMode.environment` / `autoMode.allow` generado desde las fichas
 ([DISENO-F](DISENO-F-seguridad.md) §14).
 
 *Nota de G (2026-10-24): "preparame esta PC" suma cuatro cosas: versión ≥ 2.1.234 en Windows nativo · `crossSessionInbound: accept` en los settings de usuario (en el proyecto la plataforma lo ignora) · que `gh` lea cada repo de la `mesa:` · "reiniciá después de instalar". El archivo local por PC guarda el entorno (nativo o WSL), la cuenta de `gh` y la carpeta de proyectos ([DISENO-G](DISENO-G-mesa-y-pcs.md) §10, §15).*
+
+*Corregido por el SPEC-0 del kit v3 (nota del 2026-11-03, D8.1): la versión mínima de Claude Code es la que soporta `onFailure`: **2.1.295** (`MIN_CLAUDE`, la mira `doctor`); "preparame esta PC" **chequea** gitleaks (≥ 8.19) y da la línea para instalarlo, no instala programas ([SPEC-paquete-6](../kit-v3/SPEC-paquete-6.md), D6-17); "instalar hooks por PC" es un modo del Equipador (`instalar-hooks-pc.cjs`, [SPEC-paquete-3](../kit-v3/SPEC-paquete-3.md)) (RT1-1, RT1-7, RT2-11).*
 
 ## 11. `/smoke` y `/release` al molde, y `AGENTS.md` (decisiones 8 y la cerrada por extensión)
 

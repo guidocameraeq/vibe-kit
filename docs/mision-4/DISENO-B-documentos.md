@@ -439,6 +439,8 @@ poder quitarlo por proyecto en `frenos.quitados` con razón y `hasta:` (F §14):
 
 *Qué cambia para Guido*: nada que hacer. El desorden se frena solo.
 
+*Corregido por el SPEC-0 del kit v3 (nota del 2026-11-03, D8.1): el candado no tiene siete chequeos sino **nueve**: suma `barreras` (no se puede quitar) y `datos` (RF-6); el "ocho" del SPEC-0 lo corrigió el [SPEC-paquete-2](../kit-v3/SPEC-paquete-2.md), Cruce 15 (RT2-4).*
+
 ## 15. El `CLAUDE.md` del molde, por los 11 criterios (decisión 13, pedido de Guido)
 
 El rol que carga cada chat se reordena alrededor de los 11 criterios del PLAN: **cada criterio pasa a ser 1-3 líneas operativas, en

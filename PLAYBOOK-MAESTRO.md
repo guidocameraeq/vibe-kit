@@ -124,17 +124,36 @@ proyecto/
 **Regla general:** si la información va a servir en una sesión futura Y no se deriva del código o
 de git, va a un MD. Si es derivable, no se escribe.
 
-## 1.5 Adaptación por tamaño de proyecto
+## 1.5 Tamaño del pedido y nivel del proyecto
 
-- **Chico** (script, herramienta de una tarde): nada, o solo `TODO.md` + `SESSION_HANDOFF.md` si lo retomás.
-- **Mediano** (app standalone, bot, módulo): el core de 6 — `CLAUDE.md`, `SESSION_HANDOFF`, `TODO`,
-  `CHANGELOG`, `DECISIONS`, `REJECTED`. `STATUS` y `ARCHITECTURE` recién cuando duela no tenerlos.
-- **Grande / en producción**: todo lo anterior + `RECOVERY.md` (plan de restauración **probado**,
-  no supuesto), `PROTECTED_PATHS.md` (qué no se toca jamás), `CRONS.md` (fuente única de crons +
-  matriz de vencimientos).
-- **Con framework upstream** (bot sobre OpenClaw, fork): un doc de referencia del framework con
-  URLs/versiones validadas + el **pin de versión documentado con su porqué** (en Perseo: "pineado
-  a 2026.5.27, la 6.8 rompe el provider" — eso evitó dos roturas).
+Son **dos ejes**, no una escala: el proyecto tiene un nivel y cada pedido tiene su tamaño (Hermes, un
+proyecto largo, recibe pedidos chicos todos los días).
+
+| Eje | Valores | Quién lo pone | Dónde vive |
+|---|---|---|---|
+| **Tamaño del pedido** | **chico** · **módulo solo** · **módulo con director** | La sesión dice chico o más que chico; solo o con director lo decide el Arquitecto al listar las tareas | En la ficha del módulo (`director: sí/no`); lo chico no deja rastro propio |
+| **Nivel del proyecto** | **`liviano`** (sin código) · **`estandar`** (con código) | Vos con el Arquitecto, al montar o adoptar | `nivel:` en `.claude/kit.md`, sin tilde |
+
+- **La prueba de tamaño son dos preguntas**: ¿hace falta algo más que el pedido y el `git diff` para retomarlo? ¿lleva más
+  de una sesión? Ninguna sí → *"chico, lo hago acá"*. Alguna sí → *"esto es más que chico: llamo al Arquitecto"*.
+- La sesión lo dice en la primera línea, **sin preguntar**. Contar archivos no decide, y **tocar plata, permisos o datos no
+  agranda el pedido**: eso lo cuidan los frenos, no un spec. Lo que sale de una charla con el dueño es más que chico aunque
+  termine en un documento.
+- **"Largo" no se escribe: se calcula.** Un proyecto es largo cuando su ficha tiene instalada la pieza `director-obrero`
+  (la pone el Arquitecto al abrir el primer módulo con director). Un proyecto personal con código es `estandar`, con toda la red.
+- **Lo que antes se le pedía "al proyecto grande" no se pierde, se reparte.** El respaldo probado, las rutas que no se tocan
+  y los crons van con la ficha: cada base o servicio en `entornos:` con su `clase:` (`real` · `prueba` · `dummy`), lo que no
+  es pregunta en `autorizado:`, lo que duele en `sensible:`, y los frenos del molde (DISENO-F §9). Los documentos de
+  referencia (arquitectura, framework, datos de prueba) viven en `docs/referencia/` (DISENO-B §4).
+- **Con framework upstream** (bot sobre OpenClaw, fork): el doc del framework en `docs/referencia/`, con URLs y versiones
+  validadas, y el **pin de versión documentado con su porqué** (en Perseo: "pineado a 2026.5.27, la 6.8 rompe el provider"
+  — eso evitó dos roturas).
+
+*Cicatriz*: el 2026-10-24 había **cuatro vocabularios de tamaño** sin reconciliar (esta sección con su escala por proyecto,
+los módulos de B, el `nivel:` de la ficha y el handoff) y la vieja regla rápida de "una tarde, sin plata ni permisos"
+repetida en cinco lugares sin que ningún paso la aplicara: un hotfix de 15 líneas pasó por 3 auditores (DISENO-H §3). La
+revisión de H agregó que "largo" se calcula para no tener dos verdades (R-40) y que lo exigido a producción no se pierde (R-19).
+Diseño: DISENO-H §4-§5; lo construido: el `CLAUDE.md` del molde y el `SKILL.md` del Arquitecto (kit v3).
 
 ## 1.6 El protocolo de cierre (la mecánica que mantiene todo vivo)
 
@@ -379,7 +398,7 @@ régimen. Los pasos de abajo quedan como referencia y para montarlo a mano.
 1. Definir la **raíz** (donde abrís los chats = donde viven `.claude/` y `CLAUDE.md`).
 2. `CLAUDE.md` mínimo viable (§2.2, 30 min) — instanciar `CLAUDE.template.md`.
 3. Docs de estado mínimos: `SESSION_HANDOFF` + `TODO` + `CHANGELOG` (el resto cuando el proyecto
-   los pida — §1.5).
+   los pida; en el kit v3 los trae el molde).
 4. Skills que apliquen según la regla de 3+ (§2.3) — `/inicio` y `/cierre` van siempre; `/smoke`
    y `/deploy` recién cuando el ritual real exista (sus contratos esperan en los templates).
 5. Hooks (§2.4) + permisos (§2.5).
