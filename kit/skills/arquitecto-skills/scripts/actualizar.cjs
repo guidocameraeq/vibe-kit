@@ -583,7 +583,9 @@ function armar(plan, carpeta, { textoFicha, datos, nuevo, viejo, opciones = {} }
     const a = p && p.archivos.find((x) => mismaRel(x.proyecto, archivo));
     return a && aN.has(a.molde) ? aN.get(a.molde) : null;
   };
-  cerrarCiclo(plan, carpeta, { opciones, llegadas, moldeNuevoDe, leerP, escribir });
+  // las zonas de fábrica de <archivo> en el molde viejo y en el nuevo de esta corrida (E8: (d) y el retiro las miran)
+  const fabricaDe = (archivo) => ({ vieja: zonasDeFabrica(repV, aV, archivo), nueva: zonasDeFabrica(repN, aN, archivo) });
+  cerrarCiclo(plan, carpeta, { opciones, llegadas, moldeNuevoDe, fabricaDe, leerP, escribir });
 
   // (7) la ficha y el CHANGELOG
   const cambiaVersion = plan.vViejo !== plan.vNuevo;
@@ -614,11 +616,31 @@ function armar(plan, carpeta, { textoFicha, datos, nuevo, viejo, opciones = {} }
 // ---------------------------------------------------------------- (6bis) el cierre del ciclo: subio-al-kit (SPEC-paquete-7 P6.8b-1)
 
 
-// El texto con lo de ADENTRO de cada zona propia vaciado (las marcas quedan), con LF. Solo se llama con zonas sanas.
-function vaciarZonas(texto) {
+// Los contenidos de las zonas propias de <archivo> en un molde (rep: el reparto del catálogo; a: sus archivos), por orden (las
+// zonas no tienen nombre, como en mezclarTexto). null si <archivo> no es de ese molde o sus marcas están rotas.
+function zonasDeFabrica(rep, a, archivo) {
+  for (const p of rep.values()) {
+    const x = p.archivos.find((y) => mismaRel(y.proyecto, archivo));
+    if (!x || !a.has(x.molde)) continue;
+    const z = Z.zonas(a.get(x.molde));
+    return z.ok ? z.zonas.map((q) => q.contenido) : null;
+  }
+  return null;
+}
+
+// Una zona para comparar con la de fábrica: LF y sin espacios al final de cada renglón.
+const zonaNormal = (t) => lf(t).split('\n').map((l) => l.trimEnd()).join('\n');
+
+// El texto con cada zona propia devuelta a como viene de fábrica en el molde nuevo (fabrica: sus contenidos, por orden; una zona
+// que el molde nuevo no trae, o un archivo que no es de un molde, queda vacía). Las marcas quedan; sale con LF. Solo con zonas sanas.
+function zonasAFabrica(texto, fabrica) {
   const lineas = lf(texto).split('\n');
   const z = Z.zonas(texto);
-  for (const x of [...z.zonas].reverse()) lineas.splice(x.desde, x.hasta - x.desde - 1); // desde/hasta: los renglones de las marcas
+  z.zonas.forEach((x, i) => (x.i = i));
+  for (const x of [...z.zonas].reverse()) {
+    const f = fabrica && typeof fabrica[x.i] === 'string' && fabrica[x.i] !== '' ? fabrica[x.i].split('\n') : [];
+    lineas.splice(x.desde, x.hasta - x.desde - 1, ...f); // desde/hasta: los renglones de las marcas
+  }
   return lineas.join('\n');
 }
 
@@ -628,9 +650,12 @@ function hashZonas(texto) {
   return z.ok && z.zonas.length ? F.hash(z.zonas.map((x) => x.contenido).join('\n')) : null;
 }
 
-// (d), primera mitad: ¿la zona de <archivo> estaba vacía en <sha>^? Sin padre (el primer commit) o sin el archivo ahí, cuenta como
-// vacía (el cambio lo escribió entero); una marca rota ahí, no (ante la duda, queda).
-function zonaVaciaAntes(carpeta, sha, archivo) {
+// (d), primera mitad: ¿la zona de <archivo> no tenía nada propio en <sha>^? Cada zona cuenta como sin nada propio si está vacía o
+// es igual (zonaNormal) a la zona del mismo número de fábrica, en el molde viejo o en el nuevo (fabricas: listas de contenidos;
+// E8: las zonas del molde real traen texto de fábrica, y sin esto (d) no se cumplía nunca en un proyecto nacido del molde). Sin
+// padre (el primer commit) o sin el archivo ahí, cuenta como vacía (el cambio lo escribió entero); una marca rota ahí, no (ante la
+// duda, queda).
+function zonaVaciaAntes(carpeta, sha, archivo, fabricas = []) {
   const padre = gitEn(carpeta, ['rev-parse', '-q', '--verify', `${sha}^1^{commit}`]);
   if (!padre.ok) return true;
   const p = padre.out.trim();
@@ -640,7 +665,8 @@ function zonaVaciaAntes(carpeta, sha, archivo) {
   const antes = gitEn(carpeta, ['show', `${p}:${archivo}`]);
   if (!antes.ok) return false;
   const z = Z.zonas(antes.out);
-  return z.ok && z.zonas.every((x) => x.contenido === '');
+  const deFabrica = (x, i) => fabricas.some((f) => f && typeof f[i] === 'string' && zonaNormal(f[i]) === zonaNormal(x.contenido));
+  return z.ok && z.zonas.every((x, i) => x.contenido === '' || deFabrica(x, i));
 }
 
 const mismaRel = (a, b) => String(a).replace(/\\/g, '/') === String(b).replace(/\\/g, '/');
@@ -648,8 +674,8 @@ const mismaRel = (a, b) => String(a).replace(/\\/g, '/') === String(b).replace(/
 // Por qué la zona propia de un cambio que sube NO se retira (D7-7, las cinco condiciones; ante cualquier duda, queda), o null si
 // se retira. c: el cambio cargado; entrada: la suya de cubiertos.md; todos: los cambios del proyecto; llegadas: pieza → rutas de
 // lo que se reemplazó o se mezcló en esta corrida; moldeNuevoDe(pieza, archivo): el texto del molde nuevo de ese archivo si es de
-// esa pieza (si no, null); texto: el archivo ya mezclado.
-function porQueQueda(carpeta, { c, entrada, todos, llegadas, moldeNuevoDe, texto }) {
+// esa pieza (si no, null); fab: las zonas de fábrica del archivo, {vieja, nueva} (fabricaDe); texto: el archivo ya mezclado.
+function porQueQueda(carpeta, { c, entrada, todos, llegadas, moldeNuevoDe, fab = {}, texto }) {
   const archivo = c.datos.aplico.archivo;
   // (a) clase 2 y (b) no es un archivo de frenos (la vara del candado, r1-9): un freno nunca se retira solo (D7-3)
   if (c.datos.clase !== '2' || CA.categoriaDe(archivo) !== null) return 'te espera (freno)';
@@ -661,9 +687,9 @@ function porQueQueda(carpeta, { c, entrada, todos, llegadas, moldeNuevoDe, texto
   const molde = ahora ? null : moldeNuevoDe(entrada.pieza, archivo);
   const yaLlego = molde !== null && texto !== null && iguales(archivo, texto, molde);
   if (!ahora && !yaLlego) return 'te espera (la regla no llegó por el actualizador)';
-  // (d) la zona era toda del cambio (vacía en <sha>^) y ningún otro cambio vivo la usa (r1-1)
+  // (d) la zona era toda del cambio (vacía o de fábrica en <sha>^) y ningún otro cambio vivo la usa (r1-1)
   const otro = todos.some((o) => o !== c && !o.error && !['rechazado', 'subio-al-kit'].includes(o.datos.estado) && esMapa(o.datos.aplico) && mismaRel(o.datos.aplico.archivo, archivo));
-  if (otro || !zonaVaciaAntes(carpeta, c.datos.sha, archivo)) return 'zona compartida, queda';
+  if (otro || !zonaVaciaAntes(carpeta, c.datos.sha, archivo, [fab.vieja, fab.nueva])) return 'zona compartida, queda';
   // (e) la zona, en el texto ya mezclado, es la que anotó el cambio
   if (hashZonas(texto) !== c.datos.aplico.hash) return 'zona editada, queda';
   return null;
@@ -671,10 +697,10 @@ function porQueQueda(carpeta, { c, entrada, todos, llegadas, moldeNuevoDe, texto
 
 // Cierra el ciclo después de llevar las piezas al molde nuevo, como plan.ops (no commitea; --plan no escribe): cada cambio
 // `aplicado` del proyecto cuyo id (<vars.proyecto> <id>) o cita: está en kit/cubiertos.md con version ≤ la del kit nuevo y cuyo
-// verificar da verde pasa a subio-al-kit con la versión del kit nuevo, y su zona propia se retira si se cumplen las cinco
-// condiciones. Con un tag -rc, nada: "subiría al kit" (r1-6). Sin aplicados no mira cubiertos.md; sin cubiertos.md, una línea.
+// verificar da verde pasa a subio-al-kit con la versión del kit nuevo, y su zona propia se retira (vuelve a como viene de fábrica en el
+// molde nuevo) si se cumplen las cinco condiciones. Con un tag -rc, nada: "subiría al kit" (r1-6). Sin aplicados no mira cubiertos.md; sin cubiertos.md, una línea.
 // Lo lee lib/cubiertos.cjs: una entrada mala se saltea y se dice en una línea; las demás valen (RF-fix rf-1).
-function cerrarCiclo(plan, carpeta, { opciones, llegadas, moldeNuevoDe, leerP, escribir }) {
+function cerrarCiclo(plan, carpeta, { opciones, llegadas, moldeNuevoDe, fabricaDe = () => ({}), leerP, escribir }) {
   const todos = CA.listarArchivos(carpeta).filter((a) => a.id).map((a) => CA.cargar(a));
   const aplicados = todos.filter((c) => !c.error && c.datos.estado === 'aplicado');
   if (!aplicados.length) return;
@@ -706,8 +732,9 @@ function cerrarCiclo(plan, carpeta, { opciones, llegadas, moldeNuevoDe, leerP, e
     }
     const archivo = c.datos.aplico.archivo;
     const texto = leerP(archivo);
-    const queda = porQueQueda(carpeta, { c, entrada, todos, llegadas, moldeNuevoDe, texto });
-    if (queda === null) escribir(archivo, vaciarZonas(texto));
+    const fab = fabricaDe(archivo);
+    const queda = porQueQueda(carpeta, { c, entrada, todos, llegadas, moldeNuevoDe, fab, texto });
+    if (queda === null) escribir(archivo, zonasAFabrica(texto, fab.nueva)); // retirar = la zona como viene de fábrica (E8)
     plan.lineas.push(`subió al kit · ${c.id} · ${queda === null ? 'zona retirada' : queda}`);
   }
 }

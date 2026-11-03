@@ -732,14 +732,11 @@ test('RF-fix rf-4: pendienteDeSubir — un aplicado nombrado por id o cita con v
 });
 
 test('RF-fix rf-4: rc → final — el rc solo "subiría"; el final no saltea por la ficha, el cambio sube con 3.0.0 y la zona se retira', async () => {
-  // moldes con la zona del cierre vacía (la del molde real trae texto: ahí (d) diría "zona compartida")
-  const vaciar = (dir) => {
-    const p = path.join(dir, 'skills', 'cierre', 'SKILL.md');
-    fs.writeFileSync(p, fs.readFileSync(p, 'utf8').replace(ZONA, '<!-- kit:propio -->\n<!-- /kit:propio -->'));
-    return dir;
-  };
-  const viejo = vaciar(conCierre(''));
-  const nuevo = vaciar(conCierre('- Un paso más del molde 3.0.0: mirá que el handoff diga la versión del kit.'));
+  // los moldes con la zona del cierre como viene de fábrica en el molde real (E8: con su texto, no vaciada a mano)
+  const viejo = conCierre('');
+  const nuevo = conCierre('- Un paso más del molde 3.0.0: mirá que el handoff diga la versión del kit.');
+  const fabrica = ZONA.exec(fs.readFileSync(path.join(nuevo, 'skills', 'cierre', 'SKILL.md'), 'utf8'))[0];
+  assert.match(fabrica, /Lo propio de este proyecto/, 'la zona del molde real trae su texto de fábrica');
   let id;
   const P = nuevaCarpeta('proyectos');
   const REL = '.claude/skills/cierre/SKILL.md';
@@ -754,7 +751,7 @@ test('RF-fix rf-4: rc → final — el rc solo "subiría"; el final no saltea po
       };
       id = /propuesto (\S+)/.exec(cli('nuevo', '--slug', 'relee-handoff', '--clase', '2', '--toca', 'cierre', '--origen', 'lo vio el director'))[1];
       const p = path.join(d, ...REL.split('/'));
-      fs.writeFileSync(p, fs.readFileSync(p, 'utf8').replace(ZONA, '<!-- kit:propio -->\nreleer el handoff antes de cerrar\n<!-- /kit:propio -->'));
+      fs.writeFileSync(p, fs.readFileSync(p, 'utf8').replace(ZONA, (z) => z.replace('<!-- /kit:propio -->', 'releer el handoff antes de cerrar\n<!-- /kit:propio -->')));
       git(d, 'add', '-A');
       git(d, 'commit', '-q', '-m', `aplica ${id}`);
       cli('anotar-sha', id, git(d, 'rev-parse', 'HEAD'), '--aplico', REL);
@@ -798,7 +795,7 @@ test('RF-fix rf-4: rc → final — el rc solo "subiría"; el final no saltea po
   assert.equal(e.version, '3.0.0');
   const final = git(x.bare, 'show', `main:${REL}`);
   assert.doesNotMatch(final, /releer el handoff/, 'la zona se retiró');
-  assert.match(final, /<!-- kit:propio -->\n<!-- \/kit:propio -->/);
+  assert.equal(ZONA.exec(final)[0], fabrica, 'la zona vuelve a como viene de fábrica en el molde nuevo');
   // la tercera: ya subió, nada pendiente → al día por la ficha
   const r3 = await correr({ repos: ['alfa'], canon, tag: 'v3.0.0', proyectos: P });
   assert.equal(fila(r3, 'alfa').resultado, 'al día', r3.lineas.join('\n'));

@@ -731,8 +731,8 @@ function aplicarCambio(d, o = {}) {
   return id;
 }
 // Un kit (el molde nuevo de siempre, 3.0.0) con su kit/cubiertos.md: entradas [{cita, version, pieza}], o null = sin el archivo.
-function kitConCubiertos(entradas, version = '3.0.0') {
-  const k = armarKit(MOLDE_N, version);
+function kitConCubiertos(entradas, version = '3.0.0', molde = MOLDE_N) {
+  const k = armarKit(molde, version);
   if (entradas !== null) {
     const l = entradas.length ? ['cubiertos:', ...entradas.map((e) => `  - {cita: "${e.cita}", version: ${e.version || '3.0.0'}, pieza: ${e.pieza || 'inicio'}}`)] : ['cubiertos: []'];
     escribirArbol(k, { 'kit/cubiertos.md': ['---', '# lo que el kit cubre', ...l, '---', ''].join('\n') });
@@ -827,6 +827,50 @@ test('(d): otro cambio del mismo archivo que ya subió al kit (o rechazado) no l
   const r = queda(d, id, 'zona retirada');
   assert.equal(leer(d, INICIO), INICIO_V2_VACIO);
   assert.equal(lineaCiclo(r, viejo), undefined, 'el que ya subió no se toca');
+});
+
+// E8: las zonas del molde real traen texto de fábrica (kit/molde/skills/cierre/SKILL.md: "## Lo propio de este proyecto" y una
+// línea). Moldes con la zona del inicio así, distinta en el viejo y en el nuevo.
+const FAB_V = '## Lo propio de este proyecto\n\n*Los pasos que agrega este proyecto a su inicio (v1).*';
+const FAB_N = '## Lo propio de este proyecto\n\n*Los pasos que agrega este proyecto a su inicio (v2).*';
+const MOLDE_V_FAB = { ...MOLDE_V, 'skills/inicio/SKILL.md': conZona(MOLDE_V['skills/inicio/SKILL.md'], FAB_V) };
+const MOLDE_N_FAB = { ...MOLDE_N, 'skills/inicio/SKILL.md': conZona(MOLDE_N['skills/inicio/SKILL.md'], FAB_N) };
+const VIEJO_FAB = armarKit(MOLDE_V_FAB, '2.9.0');
+const INICIO_V2_FAB = conZona(INICIO_V2_VACIO, FAB_N);
+// El proyecto nace del molde viejo de fábrica; `zonaAntes` (si viene) es la zona que ya tenía antes del cambio.
+function proyectoFab(zonaAntes) {
+  const p = (x) => path.join(x, ...INICIO.split('/'));
+  return armarProyecto({ molde: MOLDE_V_FAB, antes: zonaAntes === undefined ? undefined : (x) => fs.writeFileSync(p(x), conZona(fs.readFileSync(p(x), 'utf8'), zonaAntes)) });
+}
+const aplicarFab = (d, id) => aplicar(d, { kit: kitConCubiertos([{ cita: `demo ${id}` }], '3.0.0', MOLDE_N_FAB), moldeViejo: VIEJO_FAB });
+
+test('E8 (d): la zona con su texto de fábrica (molde viejo) en <sha>^ → se retira y queda con el texto de fábrica del molde nuevo', () => {
+  const d = proyectoFab();
+  assert.match(leer(d, INICIO), /\(v1\)/, 'nació con la zona de fábrica del molde viejo');
+  const id = aplicarCambio(d, { propio: `${FAB_V}\nreleer el handoff antes de tocar nada` });
+  const r = aplicarFab(d, id);
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  assert.equal(lineaCiclo(r, id), `subió al kit · ${id} · zona retirada`, r.lineas.join('\n'));
+  assert.equal(estadoDe(d, id).estado, 'subio-al-kit');
+  assert.equal(leer(d, INICIO), INICIO_V2_FAB, 'la zona como viene de fábrica en el molde nuevo, no vacía');
+});
+
+test('E8 (d): la zona igual a la de fábrica del molde NUEVO (con espacios al final y CRLF) en <sha>^ también cuenta como sin nada propio', () => {
+  const d = proyectoFab(FAB_N.replace('proyecto', 'proyecto  ').split('\n').join('\r\n') + '   ');
+  const id = aplicarCambio(d, { propio: `${FAB_N}\nreleer el handoff antes de tocar nada` });
+  const r = aplicarFab(d, id);
+  assert.equal(lineaCiclo(r, id), `subió al kit · ${id} · zona retirada`, r.lineas.join('\n'));
+  assert.equal(leer(d, INICIO), INICIO_V2_FAB);
+});
+
+test('E8 (d): la zona con texto de fábrica + algo propio en <sha>^ → "zona compartida, queda"', () => {
+  const d = proyectoFab(`${FAB_V}\nlo de antes`);
+  const id = aplicarCambio(d, { propio: `${FAB_V}\nlo de antes\nreleer el handoff` });
+  const r = aplicarFab(d, id);
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  assert.equal(lineaCiclo(r, id), `subió al kit · ${id} · zona compartida, queda`, r.lineas.join('\n'));
+  assert.equal(estadoDe(d, id).estado, 'subio-al-kit');
+  assert.match(leer(d, INICIO), /lo de antes\nreleer el handoff/);
 });
 
 test('crit. 2, queda (c): la pieza de cubiertos.md no se reemplazó ni se mezcló en la corrida → "te espera (la regla no llegó por el actualizador)"', () => {
