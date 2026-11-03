@@ -4,7 +4,7 @@ Hermes (T1-T4), los ocho que le cambian algo a Guido, lo de taller y las dos pre
 entre sí (ADR-034). Cierra con la beta `v3.0.0-rc.2`.
 - Estado: READY
 - Fecha: 2026-11-03 · Misión: 5, director **D8r.1** (tracker, "Después de la rc.1", fila 2b; la vara: ADR-030 y ADR-034; el presupuesto: ADR-029)
-- Sello del Arquitecto: `arquitecto: 2026-11-03 · kit 3.0.0-rc.1 · chequeos: tamaño — (paquete del método) · entorno — (sin ficha del kit) · tope ✅ · hash b26e76092b13`
+- Sello del Arquitecto: `arquitecto: 2026-11-03 · kit 3.0.0-rc.1 · chequeos: tamaño — (paquete del método) · entorno — (sin ficha del kit) · tope ✅ · hash 6836231ae338`
 - Plano: [`SPEC-0-kit-v3.md`](SPEC-0-kit-v3.md); la fuente: [`REVISION-INTEGRAL-rc1.md`](REVISION-INTEGRAL-rc1.md) (las citas `R:<n>` de
   abajo son sus renglones). El obrero de cierre de tramo (renglón 11 del repaso) y los experimentos **no entran**: son la `rc.3` (D8c.1).
 - Red team: **sí, una ronda** (toca frenos: el sello, `adoptar`, la mezcla, el `/inicio`): 2 ALTOS (rt-1 la tarea 0 solo en texto y con
@@ -113,7 +113,7 @@ La línea, igual en `/cierre` (paso 4), `MOLDE.md` §7, `ROLES.md`, `SCRIPTS.md`
 corre la sesión cuando el dueño lo pide, y su clic en la ventana es la firma; nunca por su cuenta"*.
 - **crit. 6**: `grep -rn "jamás lo corras" kit manuales GUIA-DE-USO.md` vacío; la línea está en los seis lugares.
 
-### 3 · Pregunta 2, opción A: la mezcla que choca te pregunta (R:36, R:70-74) ⚠️
+### 3 · Pregunta 2, opción A: la mezcla que choca te pregunta (R:36, R:70-74) — confirmada por Guido 2026-11-03
 `fusionar`: con conflictos, el `claude` acotado (si está) **arma la propuesta y no se aplica**: `resultado: 'espera'`, motivo `la mezcla
 chocó: la propuesta la armó claude, elegí vos`, y su texto validado va al informe como "La fusión propuesta" (así `resolver … mezclar` la
 toma). Sin claude o si falla: motivo `la mezcla chocó (<por qué>)`, sin propuesta, como hoy. **Todo** motivo de una mezcla con conflicto
@@ -121,7 +121,16 @@ empieza con `la mezcla chocó` (rt-6): los `choque`, el "no pasó chequear (lo d
 (`la mezcla chocó (todavía espera tu respuesta desde …)`); como claude ya nunca aplica, el forzado lo lanza igual y deja la propuesta
 nueva. Desaparece `'claude'` de los resultados. El `/inicio` paso 6: **preguntá siempre** si el motivo empieza con `la mezcla chocó`. Los textos que dicen que la resuelve sola (SCRIPTS,
 EQUIPADOR, la cabecera de `fusion.cjs`) cambian igual.
-- **crit. 7**: `fusion.test`: con conflicto y un claude falso que resuelve bien → `espera`, motivo `la mezcla chocó: …`, el informe trae su
+Cómo lo quiere vivir Guido (2026-11-03: *"si algo choca, que me pregunte… mirá, esta skill es diferente y la cambiaste por algo en
+específico. ¿Qué hacemos con esto?"*): (1) **nunca se resuelve sola**: queda en "te espera"; (2) al abrir la pregunta (el `/inicio` o el
+Arquitecto) se le muestra en criollo **qué skill es**, **por qué la había adaptado** (su `por:`), **qué trae la versión nueva** (la nota
+del kit y el cambio del molde) y **dónde chocan**; (3) con una **recomendación con criterio** (la vara del ADR-030: si lo nuevo vale la
+pena frente a su porqué); (4) con las cuatro salidas (mezclar · quedarse con la suya · tomar la nueva · congelar), la recomendada
+primero, y lo que elija se decide en el ida y vuelta con él. Para eso el informe de un choque trae una sección **`## Dónde chocan`** (los
+pedazos en conflicto de cada archivo, con lo tuyo y lo nuevo lado a lado) además de `## Qué dice el kit` y el `por:`; y `flota.md`, el
+`/inicio` y la línea que imprime el script dicen esto mismo.
+- **crit. 7**: `fusion.test`: un choque **nunca** termina en `sola` ni escribe destinos (con claude falso que resuelve bien, sin claude, y
+  forzado); el informe trae `## Dónde chocan` y el `por:`. Con conflicto y un claude falso que resuelve bien → `espera`, motivo `la mezcla chocó: …`, el informe trae su
   propuesta y `leerInforme` la lee; `resolver … mezclar` la escribe; una segunda corrida con el informe pendiente → sigue `la mezcla
   chocó` y con propuesta. `grep -rn "fusionada (claude)" kit` vacío.
 
@@ -200,11 +209,11 @@ Los crit. 1 a 11 de arriba, y además:
 
 ## Decisiones (la vara)
 
-- ⚠️ **D8r-1 · Pregunta 1, opción A, sin Guido** (la recomendada de R1): el sello acepta la tarea 0 con solo la base real. *Qué cambia en
-  tu día*: si Hermes solo tiene la base de producción, el módulo arranca con un paso más (el primer obrero monta la base de prueba) y los
-  obreros nunca prueban contra producción. `[workflow · mejor código · coherencia]`
-- ⚠️ **D8r-2 · Pregunta 2, opción A, sin Guido** (lo que dijiste en el repaso): la mezcla que choca queda en "te espera" con la propuesta de
-  claude armada, y el `/inicio` te pregunta. *Qué cambia en tu día*: una pregunta por skill adaptada que choque. `[workflow · coherencia]`
+- **D8r-1 · Pregunta 1, opción A: confirmada para Hermes; la A queda para otros proyectos** (Guido, 2026-11-03: Hermes **sí** tiene base
+  de prueba; mañana se declara en `entornos:` de su ficha y el sello anda sin tarea 0). La tarea 0 queda construida para el proyecto que
+  solo tenga la base real. `[workflow · mejor código · coherencia]`
+- **D8r-2 · Pregunta 2, opción A: confirmada por Guido 2026-11-03**, con su detalle (sección 3): la mezcla que choca queda en "te espera"
+  con la propuesta armada y la recomendación con criterio, y se decide con él. `[workflow · coherencia]`
 - **D8r-3 · `director-obrero` y `estado` en `sí` en `estandar`, no en `liviano`**: un repo sin código no arma módulos con obreros que
   codean. Si ya tiene su propia `skills/director/`, `propia` (no se pisa lo de Guido). `[workflow · acordarse de menos]`
 - **D8r-4 · El rol lo decide el `/inicio` leyendo `.kit-rol`**, y además la línea de apertura dice el primer mensaje: lo que Guido pegue
