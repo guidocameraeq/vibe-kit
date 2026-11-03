@@ -30,8 +30,12 @@ const SECCIONES = ['Caso de origen', 'Regla', 'Dónde vive', 'Medición'];
 // En el orden en que los escribe el script (los de después del clic, al final).
 const CAMPOS = ['estado', 'clase', 'toca', 'ids', 'origen', 'cita', 'cicatriz', 'chico', 'chico-por', 'urgente', 'motivo', 'version', 'sha', 'aplico', 'aprobo'];
 const CAMPOS_SELLO = ['sesion', 'fecha', 'carpeta', 'rol', 'hash', 'freno'];
-// Lo que cambia después del clic y por eso no entra al hash del sello (RT-p2 r2-4): todo lo demás, sí.
-const FUERA_DEL_HASH = ['estado', 'aprobo', 'sha', 'aplico'];
+// Lo que cambia después del clic y por eso no entra al hash del sello (RT-p2 r2-4): todo lo demás, sí. `version` la pone
+// subio-al-kit (SPEC-paquete-7 r1-2: si no, un 3-barrera subido daría "el sello no coincide" para siempre); no mueve ningún hash
+// de antes, porque `version` va solo con subio-al-kit.
+const FUERA_DEL_HASH = ['estado', 'aprobo', 'sha', 'aplico', 'version'];
+// Los estados que llevan el commit que aplicó el cambio: subio-al-kit es un aplicado que además cubre el kit (P6.8b-1, r1-5).
+const CON_SHA = ['aplicado', 'subio-al-kit'];
 // El renglón que escribe `aprobar` en frenos.log.
 const ID_APROBAR = 'cambios:aprobar';
 const HERRAMIENTA_APROBAR = 'cambios.cjs';
@@ -166,6 +170,16 @@ function textoSello(s) {
   return `{sesion: ${s.sesion}, fecha: ${comillas(s.fecha)}, carpeta: ${s.carpeta}, rol: ${s.rol}, hash: ${s.hash}, freno: ${comillas(s.freno)}}`;
 }
 
+// aSubioAlKit(texto, version) → el texto nuevo (SPEC-paquete-7 P6.8b-1, r1-8): pura, sin git ni disco. Solo desde `aplicado`:
+// pone `estado: subio-al-kit` y `version`, y conserva sha, aplico y aprobo byte a byte (el sello sigue valiendo: estado y version
+// están fuera del hash). Tira con otro estado o una versión que no es N.N.N: quien llama lo mira antes.
+function aSubioAlKit(texto, version) {
+  if (typeof version !== 'string' || !RE_VERSION.test(version)) throw new Error('la versión del kit tiene que ser N.N.N');
+  const { datos } = leer(texto);
+  if (datos.estado !== 'aplicado') throw new Error(`es ${datos.estado}: sube al kit solo un aplicado`);
+  return ponerCampos(texto, { estado: 'subio-al-kit', version });
+}
+
 // ---------------------------------------------------------------- el cuerpo
 
 // Las secciones del cuerpo: { títulos: Set, regla: la primera línea no vacía de ## Regla (o null) }.
@@ -250,7 +264,7 @@ function validar(datos, cuerpo) {
   soloCon('motivo', ['rechazado']);
   soloCon('version', ['subio-al-kit']);
   soloCon('aprobo', ['aprobado', 'aplicado', 'rechazado', 'subio-al-kit']);
-  if (estado === 'aplicado' && !tiene(d, 'sha')) mal('sha', 'aplicado sin "sha"', 'anotá el commit que lo aplicó: cambios anotar-sha <id> <sha>');
+  if (CON_SHA.includes(estado) && !tiene(d, 'sha')) mal('sha', `${estado} sin "sha"`, 'anotá el commit que lo aplicó: cambios anotar-sha <id> <sha>');
   if (tiene(d, 'sha') && (!esTexto(d.sha) || !RE_SHA.test(d.sha))) mal('sha', '"sha" no es un SHA completo', 'anotalo con cambios anotar-sha (lo completa solo)');
   if (estado === 'rechazado') {
     if (!tiene(d, 'motivo')) mal('motivo', 'rechazado sin "motivo"', 'cambios rechazar <id> "<motivo>"');
@@ -266,7 +280,7 @@ function validar(datos, cuerpo) {
 
   // El sello: su forma (lo de git y frenos.log lo mira validarSello).
   if (estado === 'aprobado' && clase === '2') mal('estado', 'aprobado en un cambio de clase 2', 'aprobado es solo para 3-barrera: un clase 2 pasa de propuesto a aplicado');
-  if (barrera && (estado === 'aprobado' || estado === 'aplicado') && !tiene(d, 'aprobo')) {
+  if (barrera && (estado === 'aprobado' || CON_SHA.includes(estado)) && !tiene(d, 'aprobo')) {
     mal('aprobo', `3-barrera ${estado} sin sello`, 'el único camino a aprobado es cambios aprobar <id>, desde tu checkout principal');
   }
   if (tiene(d, 'aprobo') && formaSello(d.aprobo)) mal('aprobo', `el sello está mal formado (${formaSello(d.aprobo)})`, 'el sello lo escribe solo cambios aprobar: no se arregla a mano');
@@ -820,88 +834,104 @@ function cargar(a) {
 
 const COMANDO = 'node .claude/scripts/cambios.cjs';
 
-// verificar(raiz) → [{ id, que, hacer }]. Vacía = en orden. Lo de "D2.2 — AGREGA" y F3: forma, estados, sello (carpeta,
-// rol, frenos.log, hash, --first-parent, solo esos dos archivos), sha que existe, aplicado = el primer commit tras el sello que
-// toca su `toca` (r5-1), y "consumido sin anotar" con el comando listo.
-function verificar(raiz) {
-  const fallas = [];
+// Lo que verificar lee una sola vez por corrida: HEAD y la rama por defecto local (perezosa: solo si hay un sello que mirar).
+function contextoVerificar(raiz) {
   let rama;
   let ramaLeida = false;
-  const laRama = () => {
-    if (!ramaLeida) {
-      rama = ramaLocal(raiz);
-      ramaLeida = true;
-    }
-    return rama;
-  };
-  const head = shaDe(raiz, 'HEAD');
-  for (const a of listarArchivos(raiz)) {
-    const id = a.id || a.nombre;
-    const mal = (que, hacer) => fallas.push({ id, que, hacer });
-    if (!a.id) {
-      mal('el nombre no es <AAAA-MM-DD>-<slug>.md', 'los cambios los crea solo cambios nuevo');
-      continue;
-    }
-    const c = cargar(a);
-    if (c.error) {
-      mal(`la cabecera no se lee (línea ${c.error.linea}: ${c.error.mensaje})`, 'los cambios los escribe solo el script: si alguien lo tocó a mano, volvelo atrás con git');
-      continue;
-    }
-    for (const f of validar(c.datos, c.cuerpo)) mal(f.que, f.hacer);
-    const d = c.datos;
-    const barrera = d.clase === '3-barrera';
-    const conSello = barrera && (d.estado === 'aprobado' || d.estado === 'aplicado') && tiene(d, 'aprobo') && !formaSello(d.aprobo);
-    let sello = null;
-    if (conSello) {
-      const r = validarSello(raiz, c, laRama());
-      r.fallas.forEach((f) => mal(f.que, f.hacer));
-      sello = r.sello;
-    }
-    if (d.estado === 'aplicado' && esTexto(d.sha) && RE_SHA.test(d.sha)) {
-      const existe = shaDe(raiz, d.sha) === d.sha;
-      // rf-2: un pull --rebase reescribe el commit y el sha anotado queda viejo (no está, o ya no es de la historia de HEAD).
-      // Con el sello en orden, el comando listo para reapuntarlo al primer commit de ahora (anotar-sha lo acepta solo así).
-      const reescrito = sello && head && (!existe || !esAncestro(raiz, d.sha, head));
-      if (reescrito) {
-        try {
-          const primero = esAncestro(raiz, sello, head) ? primerQueToca(raiz, sello, head, Array.isArray(d.toca) ? d.toca : []) : null;
-          mal(
-            `${existe ? 'el sha de aplicado ya no está en la historia de HEAD' : 'el sha de aplicado no existe en este repo'} (¿un pull --rebase lo reescribió?)`,
-            primero ? `${COMANDO} anotar-sha ${id} ${primero}` : `anotá el commit que lo aplicó: ${COMANDO} anotar-sha ${id} <sha>`,
-          );
-        } catch (e) {
-          mal('no se pudo leer la historia de git', 'corré doctor');
-        }
-      } else if (!existe) {
-        mal('el sha de aplicado no existe en este repo', `anotá el commit que lo aplicó: ${COMANDO} anotar-sha ${id} <sha>`);
-      } else if (sello) {
-        try {
-          if (d.sha === sello || !esAncestro(raiz, sello, d.sha)) mal('el sha de aplicado no viene después del sello', 'anotá el primer commit después del sello que toca lo de "toca"');
-          else {
-            const primero = primerQueToca(raiz, sello, d.sha, d.toca);
-            if (primero !== d.sha) {
-              mal(
-                primero ? 'el sha de aplicado no es el primer commit que toca lo de "toca" después del sello' : 'el commit de aplicado no toca nada de lo de "toca"',
-                primero ? `${COMANDO} anotar-sha ${id} ${primero}` : 'anotá el commit que aplicó el cambio',
-              );
-            }
-          }
-        } catch (e) {
-          mal('no se pudo leer la historia de git', 'corré doctor');
-        }
+  return {
+    head: shaDe(raiz, 'HEAD'),
+    laRama: () => {
+      if (!ramaLeida) {
+        rama = ramaLocal(raiz);
+        ramaLeida = true;
       }
-    }
-    if (d.estado === 'aprobado' && sello && head) {
+      return rama;
+    },
+  };
+}
+
+// verificarCambio(raiz, archivo, ctx) → [{ id, que, hacer }] de UN cambio (un { id, nombre, rel, abs } de listarArchivos). Lo usan
+// verificar, por cada archivo, y el actualizador (SPEC-paquete-7 P6.8b-1: sube al kit solo lo que da verde). ctx: contextoVerificar.
+function verificarCambio(raiz, a, ctx = contextoVerificar(raiz)) {
+  const fallas = [];
+  const { head, laRama } = ctx;
+  const id = a.id || a.nombre;
+  const mal = (que, hacer) => fallas.push({ id, que, hacer });
+  if (!a.id) {
+    mal('el nombre no es <AAAA-MM-DD>-<slug>.md', 'los cambios los crea solo cambios nuevo');
+    return fallas;
+  }
+  const c = cargar(a);
+  if (c.error) {
+    mal(`la cabecera no se lee (línea ${c.error.linea}: ${c.error.mensaje})`, 'los cambios los escribe solo el script: si alguien lo tocó a mano, volvelo atrás con git');
+    return fallas;
+  }
+  for (const f of validar(c.datos, c.cuerpo)) mal(f.que, f.hacer);
+  const d = c.datos;
+  const barrera = d.clase === '3-barrera';
+  // subio-al-kit, con las mismas reglas que aplicado (P6.8b-1.3, crit. 3): el sello, el sha que existe y el primero tras el sello.
+  const conSha = CON_SHA.includes(d.estado);
+  const conSello = barrera && (d.estado === 'aprobado' || conSha) && tiene(d, 'aprobo') && !formaSello(d.aprobo);
+  let sello = null;
+  if (conSello) {
+    const r = validarSello(raiz, c, laRama());
+    r.fallas.forEach((f) => mal(f.que, f.hacer));
+    sello = r.sello;
+  }
+  if (conSha && esTexto(d.sha) && RE_SHA.test(d.sha)) {
+    const existe = shaDe(raiz, d.sha) === d.sha;
+    // rf-2: un pull --rebase reescribe el commit y el sha anotado queda viejo (no está, o ya no es de la historia de HEAD).
+    // Con el sello en orden, el comando listo para reapuntarlo al primer commit de ahora (anotar-sha lo acepta solo así).
+    const reescrito = sello && head && (!existe || !esAncestro(raiz, d.sha, head));
+    if (reescrito) {
       try {
-        if (esAncestro(raiz, sello, head)) {
-          const primero = primerQueToca(raiz, sello, head, Array.isArray(d.toca) ? d.toca : []);
-          if (primero) mal('consumido sin anotar: ya hay un commit después del sello que toca lo de "toca"', `${COMANDO} anotar-sha ${id} ${primero}`);
+        const primero = esAncestro(raiz, sello, head) ? primerQueToca(raiz, sello, head, Array.isArray(d.toca) ? d.toca : []) : null;
+        mal(
+          `${existe ? 'el sha de aplicado ya no está en la historia de HEAD' : 'el sha de aplicado no existe en este repo'} (¿un pull --rebase lo reescribió?)`,
+          primero ? `${COMANDO} anotar-sha ${id} ${primero}` : `anotá el commit que lo aplicó: ${COMANDO} anotar-sha ${id} <sha>`,
+        );
+      } catch (e) {
+        mal('no se pudo leer la historia de git', 'corré doctor');
+      }
+    } else if (!existe) {
+      mal('el sha de aplicado no existe en este repo', `anotá el commit que lo aplicó: ${COMANDO} anotar-sha ${id} <sha>`);
+    } else if (sello) {
+      try {
+        if (d.sha === sello || !esAncestro(raiz, sello, d.sha)) mal('el sha de aplicado no viene después del sello', 'anotá el primer commit después del sello que toca lo de "toca"');
+        else {
+          const primero = primerQueToca(raiz, sello, d.sha, d.toca);
+          if (primero !== d.sha) {
+            mal(
+              primero ? 'el sha de aplicado no es el primer commit que toca lo de "toca" después del sello' : 'el commit de aplicado no toca nada de lo de "toca"',
+              primero ? `${COMANDO} anotar-sha ${id} ${primero}` : 'anotá el commit que aplicó el cambio',
+            );
+          }
         }
       } catch (e) {
         mal('no se pudo leer la historia de git', 'corré doctor');
       }
     }
   }
+  if (d.estado === 'aprobado' && sello && head) {
+    try {
+      if (esAncestro(raiz, sello, head)) {
+        const primero = primerQueToca(raiz, sello, head, Array.isArray(d.toca) ? d.toca : []);
+        if (primero) mal('consumido sin anotar: ya hay un commit después del sello que toca lo de "toca"', `${COMANDO} anotar-sha ${id} ${primero}`);
+      }
+    } catch (e) {
+      mal('no se pudo leer la historia de git', 'corré doctor');
+    }
+  }
+  return fallas;
+}
+
+// verificar(raiz) → [{ id, que, hacer }]. Vacía = en orden. Lo de "D2.2 — AGREGA" y F3: forma, estados, sello (carpeta,
+// rol, frenos.log, hash, --first-parent, solo esos dos archivos), sha que existe, aplicado (y subio-al-kit) = el primer commit
+// tras el sello que toca su `toca` (r5-1), y "consumido sin anotar" con el comando listo. Cada archivo, con verificarCambio.
+function verificar(raiz) {
+  const ctx = contextoVerificar(raiz);
+  const fallas = [];
+  for (const a of listarArchivos(raiz)) fallas.push(...verificarCambio(raiz, a, ctx));
   return fallas;
 }
 
@@ -914,6 +944,7 @@ module.exports = {
   CAMPOS,
   CAMPOS_SELLO,
   FUERA_DEL_HASH,
+  CON_SHA,
   ID_APROBAR,
   HERRAMIENTA_APROBAR,
   COMANDO,
@@ -926,6 +957,7 @@ module.exports = {
   ponerCampos,
   armar,
   textoSello,
+  aSubioAlKit,
   secciones,
   faltanSecciones,
   reglaEnUnaLinea,
@@ -953,5 +985,7 @@ module.exports = {
   validarSello,
   listarArchivos,
   cargar,
+  contextoVerificar,
+  verificarCambio,
   verificar,
 };

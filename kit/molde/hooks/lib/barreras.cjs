@@ -11,7 +11,7 @@
 // menos lo que cubre una exención; lo que queda lo tiene que cubrir la unión de los cambios válidos (toca ⊇ categorías, ids ⊇ ids).
 // Cambio válido para un commit X: 3-barrera con el sello en orden (cambios.validar + cambios.validarSello, las reglas de verificar),
 // sello anterior a X, y X es el PRIMER commit después del sello que toca su `toca` (un aprobado = un commit); con `aplicado`, además,
-// su `sha` es X (r5-1: reapuntar el sha no tapa otro commit).
+// su `sha` es X (r5-1: reapuntar el sha no tapa otro commit). Un `subio-al-kit` cuenta igual que un `aplicado` (SPEC-paquete-7 r1-7).
 // Exenciones, solo dos: (a) con --molde, el archivo sin su zona propia es igual al del molde (el settings, regla por regla); con
 // --molde-viejo, además, lo que el molde nuevo retira puede irse si el proyecto lo tenía igual al molde viejo; (b) el commit que
 // crea la ficha por primera vez, con frenos, sensible y autorizado iguales a la fábrica del nivel EN EL ÁRBOL DEL PADRE.
@@ -552,6 +552,7 @@ function exencionA(raiz, f, cual, molde, memo, viejo) {
 // ---------------------------------------------------------------- los cambios válidos y a qué commit cubren
 
 // Los 3-barrera aprobados o aplicados con el sello en orden (las reglas de verificar: validar y validarSello). Una vez por corrida.
+// Un subio-al-kit entra como aplicado (r1-7): cubre su commit y solo ese, y el arreglo del rebase (rebaseados) lo ve igual.
 function cambiosValidos(raiz, memo) {
   if (!memo.validos) {
     const rama = C.ramaLocal(raiz);
@@ -561,13 +562,13 @@ function cambiosValidos(raiz, memo) {
       const c = C.cargar(a);
       if (c.error) continue;
       const d = c.datos;
-      if (d.clase !== '3-barrera' || (d.estado !== 'aprobado' && d.estado !== 'aplicado')) continue;
+      if (d.clase !== '3-barrera' || (d.estado !== 'aprobado' && !C.CON_SHA.includes(d.estado))) continue;
       if (C.validar(d, c.cuerpo).length) continue;
       const v = C.validarSello(raiz, c, rama);
       if (v.fallas.length || !v.sello) continue;
       memo.validos.push({
         id: c.id,
-        estado: d.estado,
+        estado: C.CON_SHA.includes(d.estado) ? 'aplicado' : d.estado,
         sha: d.sha || null,
         sello: v.sello,
         toca: d.toca.slice(),

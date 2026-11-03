@@ -353,10 +353,110 @@ test('rechazar: desde propuesto, aprobado o aplicado (rf-1: el sha y el aplico s
   assert.doesNotMatch(t3, /^(sha|aplico):/m);
   assert.match(t3, /^aprobo: \{/m, 'el sello queda como rastro');
   assert.deepEqual(C.verificar(d).filter((f) => f.id === id3), []);
-  // subio-al-kit no se rechaza
+  // subio-al-kit también se rechaza (SPEC-paquete-7 r1-5: no es callejón): sha, aplico y version salen, el sello queda
   const id4 = proponer(d, 'e');
-  escribir(d, rel(id4), C.ponerCampos(leer(d, rel(id4)), { estado: 'subio-al-kit', version: '3.0.0' }));
-  assert.match(cli(d, ['rechazar', id4, 'x']).out, /es subio-al-kit: se rechaza un propuesto, un aprobado o un aplicado/);
+  assert.equal(cli(d, ['aprobar', id4]).codigo, 0);
+  const x4 = commit(d, { '.claude/kit.md': FICHA.replace('quitados: []', 'quitados:\n    - {id: deny:Bash(git stash:*), por: "y", hasta: siempre}'), 'docs/y.md': 'a\n<!-- kit:propio -->\nm\n<!-- /kit:propio -->\n' });
+  assert.equal(cli(d, ['anotar-sha', id4, x4, '--aplico', 'docs/y.md']).codigo, 0);
+  commit(d, { [rel(id4)]: leer(d, rel(id4)) }, 'anota');
+  assert.equal(cli(d, ['subio-al-kit', id4, '3.0.0']).codigo, 0);
+  assert.deepEqual(cli(d, ['rechazar', id4, 'el kit lo sacó']), { codigo: 0, out: `cambios: rechazado ${id4}\n`, err: '' });
+  const t4 = leer(d, rel(id4));
+  assert.match(t4, /^estado: rechazado$/m);
+  assert.doesNotMatch(t4, /^(sha|aplico|version):/m);
+  assert.match(t4, /^aprobo: \{/m);
+  assert.deepEqual(C.verificar(d).filter((f) => f.id === id4), []);
+  assert.match(cli(d, ['rechazar', id4, 'otra vez']).out, /es rechazado: se rechaza un propuesto, un aprobado, un aplicado o un subio-al-kit/);
+});
+
+// ---------------------------------------------------------------- subio-al-kit (SPEC-paquete-7 P6.8b-1, criterios 1 y 3)
+
+test('subio-al-kit: un aplicado pasa con version, conserva sha/aplico/aprobo byte a byte y hace SU commit por rutas', () => {
+  const d = repo({ '.claude/kit.md': FICHA });
+  const id = proponer(d, 'a');
+  assert.equal(cli(d, ['aprobar', id]).codigo, 0);
+  const x = commit(d, { '.claude/kit.md': FICHA.replace('quitados: []', 'quitados:\n    - {id: deny:Bash(git stash:*), por: "x", hasta: siempre}'), 'docs/x.md': 'a\n<!-- kit:propio -->\nla regla\n<!-- /kit:propio -->\n' });
+  assert.equal(cli(d, ['anotar-sha', id, x, '--aplico', 'docs/x.md']).codigo, 0);
+  commit(d, { [rel(id)]: leer(d, rel(id)) }, 'anota');
+  const antes = leer(d, rel(id));
+  escribir(d, 'otro.txt', 'en el índice');
+  g(d, 'add', 'otro.txt');
+  const r = cli(d, ['subio-al-kit', id, '3.0.0']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(r.out, new RegExp(`^cambios: subio-al-kit ${id} · kit 3\\.0\\.0 · commit [0-9a-f]+\n$`));
+  assert.equal(g(d, 'log', '-1', '--format=%s'), `cambios: subio-al-kit ${id} (kit 3.0.0)`);
+  assert.deepEqual(g(d, 'show', '--name-only', '--format=', 'HEAD').split('\n'), [rel(id)]);
+  assert.equal(g(d, 'diff', '--cached', '--name-only'), 'otro.txt', 'lo demás del índice queda en el índice');
+  const t = leer(d, rel(id));
+  const dA = C.leer(antes).datos;
+  const dD = C.leer(t).datos;
+  assert.equal(dD.estado, 'subio-al-kit');
+  assert.equal(dD.version, '3.0.0');
+  for (const k of ['sha', 'aplico', 'aprobo']) assert.deepEqual(dD[k], dA[k], k);
+  for (const k of ['sha', 'aplico', 'aprobo']) assert.equal(t.split('\n').find((l) => l.startsWith(`${k}:`)), antes.split('\n').find((l) => l.startsWith(`${k}:`)), `${k}, byte a byte`);
+  assert.equal(C.hashSello(t), C.hashSello(antes), 'version y estado, fuera del hash (r1-2)');
+  assert.deepEqual(C.verificar(d), [], 'un 3-barrera sellado y subido sigue verde');
+});
+
+test('subio-al-kit: desde propuesto, aprobado, rechazado o subio-al-kit → 1 sin escribir; versión que no es N.N.N → 2', () => {
+  const d = repo({ '.claude/kit.md': FICHA });
+  const prop = proponer(d, 'a');
+  const apro = proponer(d, 'b');
+  assert.equal(cli(d, ['aprobar', apro]).codigo, 0);
+  const rech = proponer(d, 'c');
+  assert.equal(cli(d, ['rechazar', rech, 'no']).codigo, 0);
+  commit(d, { [rel(rech)]: leer(d, rel(rech)) }, 'rechaza');
+  const clase2 = /propuesto (\S+)/.exec(cli(d, ['nuevo', '--slug', 'e', '--clase', '2', '--toca', 'inicio', '--origen', 'o']).out)[1];
+  const s = commit(d, { 'docs/x.md': 'x\n' });
+  assert.equal(cli(d, ['anotar-sha', clase2, s]).codigo, 0);
+  assert.equal(cli(d, ['subio-al-kit', clase2, '3.0.0']).codigo, 0);
+  for (const [id, estado] of [[prop, 'propuesto'], [apro, 'aprobado'], [rech, 'rechazado'], [clase2, 'subio-al-kit']]) {
+    const antes = { head: g(d, 'rev-parse', 'HEAD'), texto: leer(d, rel(id)), status: g(d, 'status', '--porcelain') };
+    const r = cli(d, ['subio-al-kit', id, '3.1.0']);
+    assert.equal(r.codigo, 1, estado);
+    assert.equal(r.out, `cambios subio-al-kit: no — es ${estado}: sube al kit solo un aplicado\n`);
+    assert.deepEqual({ head: g(d, 'rev-parse', 'HEAD'), texto: leer(d, rel(id)), status: g(d, 'status', '--porcelain') }, antes, 'no escribió nada');
+  }
+  for (const v of ['3.0', '03.0.0', 'v3.0.0', '3.0.0-rc.1']) assert.equal(cli(d, ['subio-al-kit', prop, v]).codigo, 2, v);
+  assert.equal(cli(d, ['subio-al-kit', prop]).codigo, 2);
+  assert.match(cli(d, ['subio-al-kit', '2026-01-01-no-hay', '3.0.0']).out, /no existe/);
+});
+
+test('subio-al-kit: si git no puede commitear, vuelve el archivo como estaba', () => {
+  const d = repo();
+  const id = /propuesto (\S+)/.exec(cli(d, ['nuevo', '--slug', 'e', '--clase', '2', '--toca', 'inicio', '--origen', 'o']).out)[1];
+  assert.equal(cli(d, ['anotar-sha', id, 'HEAD']).codigo, 0);
+  commit(d, { [rel(id)]: leer(d, rel(id)) }, 'anota');
+  const antes = leer(d, rel(id));
+  escribir(d, '.git/hooks/pre-commit', '#!/bin/sh\nexit 1\n');
+  fs.chmodSync(path.join(d, '.git', 'hooks', 'pre-commit'), 0o755);
+  const r = cli(d, ['subio-al-kit', id, '3.0.0']);
+  assert.equal(r.codigo, 1, r.out);
+  assert.match(r.out, /git no pudo commitear .*quedó como estaba/);
+  assert.equal(leer(d, rel(id)), antes);
+  assert.equal(g(d, 'status', '--porcelain'), '');
+});
+
+test('anotar-sha sobre un subio-al-kit (r1-5): se reapunta como un aplicado (solo si un rebase lo reescribió) y sigue subio-al-kit', () => {
+  const d = repo();
+  const id = /propuesto (\S+)/.exec(cli(d, ['nuevo', '--slug', 'c', '--clase', '2', '--toca', 'inicio', '--origen', 'o']).out)[1];
+  const sha = commit(d, { 'docs/x.md': 'arriba\n<!-- kit:propio -->\nlo mío\n<!-- /kit:propio -->\n' });
+  assert.equal(cli(d, ['anotar-sha', id, sha, '--aplico', 'docs/x.md']).codigo, 0);
+  commit(d, { [rel(id)]: leer(d, rel(id)) }, 'anota');
+  assert.equal(cli(d, ['subio-al-kit', id, '3.0.0']).codigo, 0);
+  assert.match(cli(d, ['anotar-sha', id, sha]).out, /es subio-al-kit y su sha \([0-9a-f]{12}\) sigue en la historia/);
+  const huerfano = g(d, 'commit-tree', 'HEAD^{tree}', '-m', 'fuera de la historia');
+  escribir(d, rel(id), C.ponerCampos(leer(d, rel(id)), { sha: huerfano }));
+  assert.match(cli(d, ['anotar-sha', id, huerfano]).out, /no está en la historia de HEAD/);
+  const r = cli(d, ['anotar-sha', id, sha]);
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(r.out, new RegExp(`^cambios: subio-al-kit ${id} · sha `));
+  const t = leer(d, rel(id));
+  assert.match(t, /^estado: subio-al-kit$/m);
+  assert.match(t, /^version: 3\.0\.0$/m);
+  assert.match(t, new RegExp(`^sha: ${sha}$`, 'm'));
+  assert.match(t, /^aplico: \{archivo: "docs\/x\.md"/m);
+  assert.deepEqual(C.verificar(d), []);
 });
 
 // ---------------------------------------------------------------- aprobar: el sí

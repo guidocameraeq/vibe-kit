@@ -686,3 +686,268 @@ test('la CLI: sin subcomando, sin --kit, banderas desconocidas o --base en aplic
 test('sin bypass: el actualizador no nombra bypassPermissions', () => {
   for (const f of ['actualizar.cjs', 'lib/catalogo.cjs', 'lib/molde.cjs']) assert.ok(!fs.readFileSync(path.join(__dirname, f), 'utf8').includes('bypassPermissions'), f);
 });
+
+// ---------------------------------------------------------------- el cierre del ciclo: subio-al-kit (SPEC-paquete-7 P6.8b-1, crit. 2)
+
+const CA = require('../pc/lib/cambios.cjs');
+const CLI_CAMBIOS = require(path.join(RAIZ_KIT, 'kit', 'molde', 'scripts', 'cambios.cjs'));
+const INICIO = '.claude/skills/inicio/SKILL.md';
+const INICIO_V2_VACIO = '# inicio de demo v2\n<!-- kit:propio -->\n<!-- /kit:propio -->\nfin v2\n';
+const CUERPO_CAMBIO = '## Caso de origen\nel cierre se olvidaba del handoff (2026-10)\n\n## Regla\nel inicio relee el handoff\n\n## Dónde vive\n.claude/skills/inicio/SKILL.md\n\n## Medición\n| antes | después |\n';
+const STASH = '{id: deny:Bash(git stash:*), por: "el release lo usa", hasta: siempre}';
+
+// El CLI de cambios del molde, en proceso, sobre el proyecto d. → la salida (falla si no sale 0).
+function cambios(d, ...args) {
+  let out = '';
+  const codigo = CLI_CAMBIOS.main(args, { cwd: d, salida: (s) => (out += s), error: (s) => (out += s), entradaEstandar: () => CUERPO_CAMBIO });
+  assert.equal(codigo, 0, `cambios ${args.join(' ')}: ${out}`);
+  return out;
+}
+function commitear(d, archivos, mensaje = 'c') {
+  escribirArbol(d, archivos);
+  git(d, 'add', '-A');
+  git(d, 'commit', '-q', '-m', mensaje);
+  return git(d, 'rev-parse', 'HEAD').trim();
+}
+const conZona = (texto, propio) => texto.replace(/<!-- kit:propio -->\n[\s\S]*?<!-- \/kit:propio -->/, `<!-- kit:propio -->\n${propio}\n<!-- /kit:propio -->`);
+const relCambio = (id) => `.claude/cambios/${id}.md`;
+
+// Un cambio aplicado sobre el proyecto d: lo propone (clase 2, o 3-barrera de frenos con su sello), lo aplica en un commit que
+// escribe `propio` en la zona de `archivo` y lo anota con --aplico. → id. o: { slug, cita, barrera, archivo, propio }
+function aplicarCambio(d, o = {}) {
+  const archivo = o.archivo || INICIO;
+  fs.rmSync(path.join(d, '.kit-rol'), { force: true }); // aprobar se niega con el rol del actualizador
+  const args = ['nuevo', '--slug', o.slug || 'relee-handoff', '--clase', o.barrera ? '3-barrera' : '2', '--toca', o.barrera ? 'frenos' : 'inicio'];
+  if (o.barrera) args.push('--id', 'deny:Bash(git stash:*)');
+  args.push(...(o.cita ? ['--cita', o.cita] : ['--origen', 'lo vio el director']));
+  const id = /propuesto (\S+)/.exec(cambios(d, ...args))[1];
+  if (o.barrera) cambios(d, 'aprobar', id);
+  const actual = leer(d, archivo) || '# notas\n<!-- kit:propio -->\n<!-- /kit:propio -->\n';
+  const extra = o.barrera ? { '.claude/kit.md': leer(d, '.claude/kit.md').replace('  quitados: []', `  quitados:\n    - ${STASH}`) } : {};
+  const sha = commitear(d, { [archivo]: conZona(actual, o.propio || 'releer el handoff antes de tocar nada'), ...extra }, `aplica ${id}`);
+  cambios(d, 'anotar-sha', id, sha, '--aplico', archivo);
+  commitear(d, {}, `cambios: aplicado ${id}`);
+  fs.writeFileSync(path.join(d, '.kit-rol'), 'actualizador\n');
+  return id;
+}
+// Un kit (el molde nuevo de siempre, 3.0.0) con su kit/cubiertos.md: entradas [{cita, version, pieza}], o null = sin el archivo.
+function kitConCubiertos(entradas, version = '3.0.0') {
+  const k = armarKit(MOLDE_N, version);
+  if (entradas !== null) {
+    const l = entradas.length ? ['cubiertos:', ...entradas.map((e) => `  - {cita: "${e.cita}", version: ${e.version || '3.0.0'}, pieza: ${e.pieza || 'inicio'}}`)] : ['cubiertos: []'];
+    escribirArbol(k, { 'kit/cubiertos.md': ['---', '# lo que el kit cubre', ...l, '---', ''].join('\n') });
+  }
+  return k;
+}
+const estadoDe = (d, id) => CA.leer(leer(d, relCambio(id))).datos;
+const lineaCiclo = (r, id) => r.lineas.find((l) => l.includes(` · ${id}`));
+
+test('crit. 2: cubiertos.md nombra un cambio clase 2 por su id → subio-al-kit con la versión del kit nuevo y su zona vacía; verificar verde', () => {
+  const d = armarProyecto();
+  const id = aplicarCambio(d);
+  const antes = leer(d, relCambio(id));
+  const r = aplicar(d, { kit: kitConCubiertos([{ cita: `demo ${id}`, version: '2.10.0' }]) }); // 2.10.0 ≤ 3.0.0, numérico
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  assert.equal(lineaDe(r, 'inicio'), 'inicio · molde+propio · mezclada (zona intacta)');
+  assert.equal(lineaCiclo(r, id), `subió al kit · ${id} · zona retirada`);
+  const dd = estadoDe(d, id);
+  assert.equal(dd.estado, 'subio-al-kit');
+  assert.equal(dd.version, '3.0.0', 'la del kit nuevo, no la de cubiertos.md');
+  const da = CA.leer(antes).datos;
+  for (const k of ['sha', 'aplico', 'origen', 'clase']) assert.deepEqual(dd[k], da[k], k);
+  assert.equal(leer(d, INICIO), INICIO_V2_VACIO, 'la zona vacía, las marcas quedan');
+  commitear(d, {}, 'kit');
+  assert.deepEqual(CA.verificar(d), []);
+  // la segunda corrida: ya es subio-al-kit, nada que decir
+  const r2 = aplicar(d, { kit: kitConCubiertos([{ cita: `demo ${id}` }]) });
+  assert.equal(lineaCiclo(r2, id), undefined, r2.lineas.join('\n'));
+});
+
+test('crit. 2: por la cita del cambio (no por su id) también sube; una versión de cubiertos.md mayor que la del kit (numérica) no', () => {
+  const d = armarProyecto();
+  const id = aplicarCambio(d, { cita: 'hub 2026-09-01-relee-handoff' });
+  const r = aplicar(d, { kit: kitConCubiertos([{ cita: 'hub 2026-09-01-relee-handoff' }]) });
+  assert.equal(lineaCiclo(r, id), `subió al kit · ${id} · zona retirada`, r.lineas.join('\n'));
+  assert.equal(estadoDe(d, id).estado, 'subio-al-kit');
+  assert.equal(leer(d, INICIO), INICIO_V2_VACIO);
+  const e = armarProyecto();
+  const id2 = aplicarCambio(e);
+  const r2 = aplicar(e, { kit: kitConCubiertos([{ cita: `demo ${id2}`, version: '10.0.0' }]) }); // como texto, '10.0.0' < '3.0.0'
+  assert.equal(lineaCiclo(r2, id2), undefined);
+  assert.equal(estadoDe(e, id2).estado, 'aplicado');
+  // el cruce es por id o cita, nunca por texto: otro alias no casa
+  const r3 = aplicar(e, { kit: kitConCubiertos([{ cita: `otro ${id2}` }]) });
+  assert.equal(lineaCiclo(r3, id2), undefined);
+});
+
+// Cada razón para que la zona quede: el cambio sube igual (salvo verificar rojo), la zona no se toca y la línea lo dice.
+function queda(d, id, razon, entrada = {}) {
+  const r = aplicar(d, { kit: kitConCubiertos([{ cita: `demo ${id}`, ...entrada }]) });
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  assert.equal(lineaCiclo(r, id), `subió al kit · ${id} · ${razon}`, r.lineas.join('\n'));
+  assert.equal(estadoDe(d, id).estado, 'subio-al-kit');
+  return r;
+}
+
+test('crit. 2, queda (e): la zona editada después del cambio → "zona editada, queda"', () => {
+  const d = armarProyecto();
+  const id = aplicarCambio(d);
+  commitear(d, { [INICIO]: conZona(leer(d, INICIO), 'releer el handoff antes de tocar nada\ny algo que agregué después') });
+  queda(d, id, 'zona editada, queda');
+  assert.match(leer(d, INICIO), /y algo que agregué después/);
+});
+
+test('crit. 2, queda (d): la zona ya traía algo propio antes del cambio → "zona compartida, queda"', () => {
+  const d = armarProyecto({ antes: (x) => fs.writeFileSync(path.join(x, ...INICIO.split('/')), conZona(fs.readFileSync(path.join(x, ...INICIO.split('/')), 'utf8'), 'lo de antes')) });
+  const id = aplicarCambio(d, { propio: 'lo de antes\nreleer el handoff' });
+  queda(d, id, 'zona compartida, queda');
+  assert.match(leer(d, INICIO), /lo de antes\nreleer el handoff/);
+});
+
+test('crit. 2, queda (d): dos cambios vivos en el mismo archivo → "zona compartida, queda"', () => {
+  const d = armarProyecto();
+  const id = aplicarCambio(d);
+  aplicarCambio(d, { slug: 'otra-regla', propio: 'releer el handoff antes de tocar nada\notra regla' });
+  queda(d, id, 'zona compartida, queda');
+  assert.match(leer(d, INICIO), /otra regla/);
+});
+
+test('(d): otro cambio del mismo archivo que ya subió al kit (o rechazado) no la comparte → se retira', () => {
+  const d = armarProyecto();
+  const viejo = aplicarCambio(d, { slug: 'regla-vieja', propio: 'la regla vieja' });
+  const rechazado = aplicarCambio(d, { slug: 'regla-rechazada', propio: 'la regla rechazada' });
+  fs.rmSync(path.join(d, '.kit-rol'));
+  cambios(d, 'subio-al-kit', viejo, '2.9.0');
+  // un rechazado escrito a mano que conserva su aplico (el script lo saca): igual no cuenta
+  commitear(d, {
+    [relCambio(rechazado)]: CA.ponerCampos(leer(d, relCambio(rechazado)), { estado: 'rechazado', motivo: '"no va"' }),
+    [INICIO]: conZona(leer(d, INICIO), '').replace('<!-- kit:propio -->\n\n', '<!-- kit:propio -->\n'), // la zona ya retirada
+  }, 'la vieja subió y se retiró; la otra se rechazó');
+  const id = aplicarCambio(d);
+  const r = queda(d, id, 'zona retirada');
+  assert.equal(leer(d, INICIO), INICIO_V2_VACIO);
+  assert.equal(lineaCiclo(r, viejo), undefined, 'el que ya subió no se toca');
+});
+
+test('crit. 2, queda (c): la pieza de cubiertos.md no se reemplazó ni se mezcló en la corrida → "te espera (la regla no llegó por el actualizador)"', () => {
+  const d = armarProyecto();
+  const id = aplicarCambio(d);
+  queda(d, id, 'te espera (la regla no llegó por el actualizador)', { pieza: 'cierre' }); // cierre se reemplazó, pero el archivo no es suyo
+  assert.match(leer(d, INICIO), /releer el handoff/);
+  const e = armarProyecto();
+  const id2 = aplicarCambio(e);
+  queda(e, id2, 'te espera (la regla no llegó por el actualizador)', { pieza: 'no-existe' });
+  // inicio igual al molde nuevo (sin cambios en la corrida): tampoco llegó por el actualizador
+  const f = armarProyecto();
+  const id3 = aplicarCambio(f);
+  const k = kitConCubiertos([{ cita: `demo ${id3}` }]);
+  escribirArbol(k, { 'kit/molde/skills/inicio/SKILL.md': MOLDE_V['skills/inicio/SKILL.md'] });
+  const r = aplicar(f, { kit: k });
+  assert.match(lineaDe(r, 'inicio'), /sin cambios$/);
+  assert.equal(lineaCiclo(r, id3), `subió al kit · ${id3} · te espera (la regla no llegó por el actualizador)`);
+});
+
+test('crit. 2, queda (a): un 3-barrera, aunque todo lo demás cumpla → "te espera (freno)" (D7-3)', () => {
+  const d = armarProyecto();
+  const id = aplicarCambio(d, { barrera: true });
+  assert.deepEqual(CA.verificar(d), [], 'el 3-barrera está sellado y en orden');
+  queda(d, id, 'te espera (freno)');
+  assert.match(leer(d, INICIO), /releer el handoff/);
+  assert.ok(estadoDe(d, id).aprobo, 'el sello queda');
+  commitear(d, {}, 'kit');
+  assert.deepEqual(CA.verificar(d), [], 'subido, sigue verde (r1-2)');
+});
+
+test('crit. 2, queda (b): un clase 2 cuyo aplico es un archivo de frenos (la vara del candado) → "te espera (freno)"', () => {
+  const d = armarProyecto();
+  const id = aplicarCambio(d, { archivo: '.claude/hooks/notas.md' });
+  queda(d, id, 'te espera (freno)', { pieza: 'hooks-lib' });
+  assert.match(leer(d, '.claude/hooks/notas.md'), /releer el handoff/);
+});
+
+test('crit. 2: verificar en rojo → sigue aplicado, la zona queda y la línea lo dice', () => {
+  const d = armarProyecto();
+  const id = aplicarCambio(d);
+  commitear(d, { [relCambio(id)]: CA.ponerCampos(leer(d, relCambio(id)), { sha: 'e'.repeat(40) }) }, 'sha roto');
+  const r = aplicar(d, { kit: kitConCubiertos([{ cita: `demo ${id}` }]) });
+  assert.equal(r.codigo, 0);
+  assert.match(lineaCiclo(r, id), new RegExp(`^no subió al kit · ${id} · verificar en rojo \\(el sha de aplicado no existe en este repo\\): sigue aplicado$`));
+  assert.equal(estadoDe(d, id).estado, 'aplicado');
+  assert.match(leer(d, INICIO), /releer el handoff/);
+});
+
+test('crit. 2: con un tag -rc (opciones.rc), nada: solo "subiría al kit"; --plan muestra el cierre sin escribir', () => {
+  const d = armarProyecto();
+  const id = aplicarCambio(d);
+  const antes = leer(d, relCambio(id));
+  const k = kitConCubiertos([{ cita: `demo ${id}` }]);
+  const r = aplicar(d, { kit: k, rc: true });
+  assert.equal(lineaCiclo(r, id), `subiría al kit · ${id}`);
+  assert.equal(leer(d, relCambio(id)), antes);
+  assert.match(leer(d, INICIO), /releer el handoff/, 'la zona mezclada, no retirada');
+  const e = armarProyecto();
+  const id2 = aplicarCambio(e);
+  const foto0 = foto(e);
+  const r2 = aplicar(e, { kit: kitConCubiertos([{ cita: `demo ${id2}` }]), plan: true });
+  assert.equal(lineaCiclo(r2, id2), `subió al kit · ${id2} · zona retirada`);
+  assert.deepEqual(foto(e), foto0, '--plan no escribe');
+});
+
+test('crit. 2: sin cubiertos.md (o uno que no se lee) → nada cambia y una línea; sin aplicados, ni la mira', () => {
+  for (const [k, re] of [[kitConCubiertos(null), /no está/], [(() => {
+    const x = kitConCubiertos([]);
+    escribirArbol(x, { 'kit/cubiertos.md': '---\ncubiertos:\n  - {cita: "demo x", version: 3.0}\n---\n' });
+    return x;
+  })(), /la entrada 1 no es/]]) {
+    const d = armarProyecto();
+    const id = aplicarCambio(d);
+    const antes = leer(d, relCambio(id));
+    const r = aplicar(d, { kit: k });
+    assert.equal(r.codigo, 0, r.lineas.join('\n'));
+    const l = r.lineas.find((x) => x.startsWith('kit/cubiertos.md · '));
+    assert.match(l, re);
+    assert.match(l, /no marqué nada: los cambios siguen aplicado$/);
+    assert.equal(leer(d, relCambio(id)), antes);
+    assert.match(leer(d, INICIO), /releer el handoff/);
+  }
+  const r = aplicar(armarProyecto(), { kit: kitConCubiertos(null) });
+  assert.ok(!r.lineas.some((x) => x.startsWith('kit/cubiertos.md')), 'un proyecto sin cambios aplicados no la menciona');
+});
+
+test('kit/cubiertos.md del kit real: nace vacía y se lee con la gramática de la ficha', () => {
+  const t = fs.readFileSync(path.join(RAIZ_KIT, 'kit', 'cubiertos.md'), 'utf8');
+  assert.deepEqual(F.leerCabecera(t).datos, { cubiertos: [] });
+  assert.match(t, /- \{cita: "<alias> <id>", version: N\.N\.N, pieza: <id>\}/);
+});
+
+test('(d): un archivo que no estaba en <sha>^ (el cambio lo escribió entero) cuenta como zona vacía → se retira', () => {
+  const d = armarProyecto();
+  const v1 = leer(d, INICIO);
+  fs.rmSync(path.join(d, '.kit-rol')); // aprobar no corre acá, pero el CLI de cambios se arma sin el rol del actualizador
+  git(d, 'rm', '-q', '--', INICIO);
+  git(d, 'commit', '-q', '-m', 'se fue el inicio');
+  const id = /propuesto (\S+)/.exec(cambios(d, 'nuevo', '--slug', 'vuelve-inicio', '--clase', '2', '--toca', 'inicio', '--origen', 'o'))[1];
+  const sha = commitear(d, { [INICIO]: conZona(v1, 'releer el handoff') }, 'vuelve, con la regla en su zona');
+  assert.equal(git(d, 'ls-tree', '--name-only', `${sha}^`, '--', INICIO).trim(), '', 'no estaba en sha^');
+  cambios(d, 'anotar-sha', id, sha, '--aplico', INICIO);
+  commitear(d, {}, 'anota');
+  fs.writeFileSync(path.join(d, '.kit-rol'), 'actualizador\n');
+  queda(d, id, 'zona retirada');
+  assert.equal(leer(d, INICIO), INICIO_V2_VACIO);
+});
+
+test('(d): un cambio aplicado en el primer commit del repo (sin <sha>^) cuenta como zona vacía → se retira', () => {
+  const regla = 'releer el handoff';
+  const d = armarProyecto({ antes: (x) => fs.writeFileSync(path.join(x, ...INICIO.split('/')), conZona(fs.readFileSync(path.join(x, ...INICIO.split('/')), 'utf8'), regla)) });
+  const raiz = git(d, 'rev-list', '--max-parents=0', 'HEAD').trim();
+  const texto = CA.ponerCampos(CA.armar({ clase: '2', toca: ['inicio'], origen: 'nació con el repo', cicatriz: 'no', chico: 'sí', urgente: 'no', cuerpo: CUERPO_CAMBIO }), {
+    estado: 'aplicado',
+    sha: raiz,
+    aplico: `{archivo: "${INICIO}", hash: ${F.hash(regla)}}`,
+  });
+  const id = '2026-01-01-nacio-con-el-repo';
+  commitear(d, { [relCambio(id)]: texto }, 'el cambio, anotado a mano');
+  assert.deepEqual(CA.verificar(d), []);
+  queda(d, id, 'zona retirada');
+  assert.equal(leer(d, INICIO), INICIO_V2_VACIO);
+});

@@ -1635,3 +1635,42 @@ test('rf2-5: el proyecto nuevo sigue verde — git init, molde, primer commit, p
   g(d, 'push', '-q', '-u', 'origin', 'main');
   verde(d);
 });
+
+// ---------------------------------------------------------------- subio-al-kit (SPEC-paquete-7 r1-7, criterio 3)
+
+test('r1-7: un 3-barrera aplicado que sube al kit sigue cubriendo su commit (y solo ese); sin la regla, sería rojo', () => {
+  const d = repo({ remoto: false });
+  const { id, x } = aplicado(d);
+  verde(d, RG(d, `${x}^`, 'HEAD'));
+  const r = cli(d, 'subio-al-kit', id, '3.0.0');
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(leerArchivo(d, rel(id)), /^estado: subio-al-kit$/m);
+  assert.deepEqual(C.verificar(d), []);
+  verde(d, RG(d, `${x}^`, 'HEAD'));
+  // como aplicado: no cubre lo pendiente ni otro commit que toque lo mismo
+  escribir(d, '.claude/kit.md', FICHA({ quitados: [STASH, OTRO] }));
+  rojo(d, null);
+  const y = commit(d, { '.claude/kit.md': FICHA({ quitados: [STASH, OTRO] }) });
+  rojo(d, null, RG(d, `${y}^`, y));
+});
+
+test('r1-7: el arreglo del rebase (rf3-8) ve un subio-al-kit igual que un aplicado', () => {
+  const d = repo();
+  const pc2 = otraPC(d);
+  commit(pc2, { 'c.txt': 'c\n' }, 'la otra PC avanza origin');
+  g(pc2, 'push', '-q', 'origin', 'HEAD');
+  const { id, x } = aplicado(d);
+  assert.equal(cli(d, 'subio-al-kit', id, '3.0.0').codigo, 0);
+  g(d, 'pull', '-q', '--rebase', 'origin', 'main');
+  const nuevo = g(d, 'rev-parse', 'HEAD~2');
+  assert.notEqual(nuevo, x);
+  const f8 = rojo(d, /apunta al sha de antes de un rebase/);
+  assert.equal(f8[0].commit, nuevo);
+  assert.match(f8[0].hacer, new RegExp(`anotar-sha ${id} ${nuevo}`));
+  const r = cli(d, 'anotar-sha', id, nuevo);
+  assert.equal(r.codigo, 0, r.out);
+  commit(d, { [rel(id)]: leerArchivo(d, rel(id)) }, 'reapunta');
+  assert.match(leerArchivo(d, rel(id)), /^estado: subio-al-kit$/m);
+  assert.deepEqual(C.verificar(d), []);
+  verde(d);
+});

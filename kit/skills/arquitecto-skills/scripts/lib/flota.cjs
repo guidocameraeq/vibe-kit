@@ -312,7 +312,8 @@ async function actualizarRepo(nombre, url, ctx) {
   let noFusionar;
   let ch;
   for (let vuelta = 0; ; vuelta++) {
-    const a = ctx.aplicar(clon, { kit: ctx.kit, moldeViejo, fecha: ctx.fecha, claude: ctx.claude, noFusionar });
+    // rc: con un tag -rc, aplicar no sube nada al kit (SPEC-paquete-7 r1-6: solo "subiría al kit")
+    const a = ctx.aplicar(clon, { kit: ctx.kit, moldeViejo, fecha: ctx.fecha, claude: ctx.claude, noFusionar, rc: esRc });
     fus = fusionDe(a.lineas);
     if (a.codigo !== 0) {
       const msg = String([...a.lineas].reverse().find((l) => /^aplicar: /.test(l)) || a.lineas[a.lineas.length - 1] || '').replace(/^aplicar: /, '');

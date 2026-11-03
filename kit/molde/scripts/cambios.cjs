@@ -7,10 +7,14 @@
 //   node .claude/scripts/cambios.cjs anotar-sha <id> <sha> [--aplico <archivo>]
 //   node .claude/scripts/cambios.cjs rechazar <id> "<motivo>"
 //   node .claude/scripts/cambios.cjs aprobar <id>
+//   node .claude/scripts/cambios.cjs subio-al-kit <id> <N.N.N>
 // `aprobar` es EL ÚNICO camino a `aprobado` (el OK de Guido para tocar un freno): pasa por la ventana de permiso (la `ask` del
 // settings.json y el hook niega-aprobar.cjs) y además se niega solo, sin escribir nada, desde una carpeta de agente, fuera del
-// checkout principal o de la rama por defecto, con el archivo sin commitear o con la ficha rota. `nuevo` y `aprobar` hacen su
-// propio commit por rutas. La lógica (formato, sello, verificar, toca) vive en .claude/hooks/lib/cambios.cjs: es barrera.
+// checkout principal o de la rama por defecto, con el archivo sin commitear o con la ficha rota. `nuevo`, `aprobar` y
+// `subio-al-kit` hacen su propio commit por rutas. `subio-al-kit` (SPEC-paquete-7 P6.8b-1): un aplicado que el kit ya cubre pasa a
+// subio-al-kit con la versión del kit que lo trajo (lo corre el actualizador; a mano, solo si sabés que subió). anotar-sha y
+// rechazar también lo aceptan (r1-5: no es callejón). La lógica (formato, sello, verificar, toca) vive en
+// .claude/hooks/lib/cambios.cjs: es barrera.
 // Salidas: 0 anduvo · 1 negado o con fallas (una línea por qué) · 2 mal llamado. Un error propio: "cambios roto: corré doctor", 1.
 // Node estándar, cero dependencias. Es .cjs a propósito: corre igual en proyectos con "type": "module".
 
@@ -27,6 +31,7 @@ const USO = [
   '  anotar-sha <id> <sha> [--aplico <archivo>]',
   '  rechazar <id> "<motivo>"',
   '  aprobar <id>',
+  '  subio-al-kit <id> <N.N.N>   (un aplicado que el kit ya cubre; N.N.N = la versión del kit que lo trajo)',
 ].join('\n');
 
 const ROTO = 'cambios roto: corré doctor';
@@ -46,9 +51,10 @@ const BANDERAS = {
   'anotar-sha': ['--aplico'],
   rechazar: [],
   aprobar: [],
+  'subio-al-kit': [],
 };
 const SUELTAS = { listar: ['--te-espera', '--aprobados-nuevos'] };
-const POSICIONALES = { nuevo: 0, listar: 0, verificar: 0, 'anotar-sha': 2, rechazar: 2, aprobar: 1 };
+const POSICIONALES = { nuevo: 0, listar: 0, verificar: 0, 'anotar-sha': 2, rechazar: 2, aprobar: 1, 'subio-al-kit': 2 };
 
 function leerArgumentos(argv) {
   const [comando, ...resto] = argv;
@@ -277,8 +283,9 @@ function anotarSha(L, raiz, id, shaArg, archivoAplico) {
   const d = c.datos;
   const barrera = d.clase === '3-barrera';
   // rf-2: un aplicado se reapunta SOLO si su sha ya no es de la historia de HEAD (un pull --rebase lo reescribió); si sigue ahí,
-  // reapuntarlo taparía otro commit (r5-1). El sha nuevo cumple lo mismo que con un aprobado.
-  const reapuntar = d.estado === 'aplicado';
+  // reapuntarlo taparía otro commit (r5-1). El sha nuevo cumple lo mismo que con un aprobado. Un subio-al-kit, igual (r1-5), y
+  // sigue subio-al-kit.
+  const reapuntar = C.CON_SHA.includes(d.estado);
   if (!reapuntar && (barrera ? d.estado !== 'aprobado' : d.estado !== 'propuesto')) {
     return no(barrera ? `es ${d.estado}: anotar-sha va sobre un 3-barrera aprobado` : `es ${d.estado}: anotar-sha va sobre un clase 2 propuesto`);
   }
@@ -289,7 +296,7 @@ function anotarSha(L, raiz, id, shaArg, archivoAplico) {
     const head = L.git.texto(['rev-parse', '--verify', '-q', 'HEAD^{commit}'], { cwd: raiz });
     const viejo = L.git.texto(['rev-parse', '--verify', '-q', `${d.sha}^{commit}`], { cwd: raiz });
     if (viejo && head && L.git.correr(['merge-base', '--is-ancestor', viejo, head], { cwd: raiz }).ok) {
-      return no(`es aplicado y su sha (${d.sha.slice(0, 12)}) sigue en la historia: se reapunta solo si un rebase lo reescribió`);
+      return no(`es ${d.estado} y su sha (${d.sha.slice(0, 12)}) sigue en la historia: se reapunta solo si un rebase lo reescribió`);
     }
     if (!head || !L.git.correr(['merge-base', '--is-ancestor', sha, head], { cwd: raiz }).ok) return no('ese commit no está en la historia de HEAD');
   }
@@ -302,7 +309,7 @@ function anotarSha(L, raiz, id, shaArg, archivoAplico) {
       return no(primero ? `el primer commit después del sello que toca lo de "toca" es ${primero.slice(0, 12)}: un aprobado sirve para ese, no para otro` : 'ese commit no toca nada de lo de "toca"');
     }
   }
-  const campos = { estado: 'aplicado', sha };
+  const campos = { estado: reapuntar ? d.estado : 'aplicado', sha };
   if (archivoAplico != null) {
     if (!C.textoValido(archivoAplico)) return no('--aplico: una ruta relativa sin ", \\ ni saltos de línea');
     const b = L.git.correr(['cat-file', 'blob', `${sha}:${archivoAplico}`], { cwd: raiz });
@@ -317,7 +324,7 @@ function anotarSha(L, raiz, id, shaArg, archivoAplico) {
   const f2 = C.validar(leido.datos, leido.cuerpo);
   if (f2.length) return no(`quedaría mal: ${f2[0].que}`);
   escribirAtomico(c.abs, nuevoTexto);
-  return { codigo: 0, lineas: [`cambios: aplicado ${id} · sha ${sha.slice(0, 12)}${campos.aplico ? ` · aplico ${archivoAplico}` : ''}`] };
+  return { codigo: 0, lineas: [`cambios: ${campos.estado} ${id} · sha ${sha.slice(0, 12)}${campos.aplico ? ` · aplico ${archivoAplico}` : ''}`] };
 }
 
 function rechazar(L, raiz, id, motivo) {
@@ -327,12 +334,50 @@ function rechazar(L, raiz, id, motivo) {
   const r = cambio(L, raiz, id);
   if (r.problema) return no(r.problema);
   const d = r.c.datos;
-  // rf-1: también un aplicado (un sello que un merge sacó de la historia de primer padre queda trabado si no). Es seguro:
-  // rechazado le quita cobertura a lo que cubría, nunca la da. sha y aplico van solo con aplicado: salen (quedan en git).
-  if (!['propuesto', 'aprobado', 'aplicado'].includes(d.estado)) return no(`es ${d.estado}: se rechaza un propuesto, un aprobado o un aplicado`);
-  const nuevoTexto = C.ponerCampos(r.c.texto, { estado: 'rechazado', motivo: C.comillas(motivo), sha: null, aplico: null });
+  // rf-1: también un aplicado (un sello que un merge sacó de la historia de primer padre queda trabado si no), y un subio-al-kit
+  // (r1-5). Es seguro: rechazado le quita cobertura a lo que cubría, nunca la da. sha, aplico y version van solo con aplicado o
+  // subio-al-kit: salen (quedan en git).
+  if (!['propuesto', 'aprobado', 'aplicado', 'subio-al-kit'].includes(d.estado)) return no(`es ${d.estado}: se rechaza un propuesto, un aprobado, un aplicado o un subio-al-kit`);
+  const nuevoTexto = C.ponerCampos(r.c.texto, { estado: 'rechazado', motivo: C.comillas(motivo), sha: null, aplico: null, version: null });
   escribirAtomico(r.c.abs, nuevoTexto);
   return { codigo: 0, lineas: [`cambios: rechazado ${id}`] };
+}
+
+// ---------------------------------------------------------------- subio-al-kit (SPEC-paquete-7 P6.8b-1)
+
+// Un aplicado → subio-al-kit con <version> (la transición pura de la lib, aSubioAlKit) y SU commit por rutas, como nuevo. Desde
+// otro estado, con un cambio que no valida o un merge a medias → 1 sin escribir. El sello de un 3-barrera no se toca (version y
+// estado están fuera de su hash).
+function subioAlKit(L, raiz, id, version) {
+  const C = L.cambios;
+  if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version)) malLlamado('subio-al-kit: la versión del kit es N.N.N (sin ceros a la izquierda).');
+  const no = (m) => ({ codigo: 1, lineas: [`cambios subio-al-kit: no — ${m}`] });
+  const r = cambio(L, raiz, id);
+  if (r.problema) return no(r.problema);
+  const c = r.c;
+  const fallas = C.validar(c.datos, c.cuerpo);
+  if (fallas.length) return no(`${fallas[0].que} — corré verificar`);
+  if (c.datos.estado !== 'aplicado') return no(`es ${c.datos.estado}: sube al kit solo un aplicado`);
+  if (mergeAMedias(L, raiz)) return no('hay un merge a medio hacer: terminá el merge primero');
+  const nuevoTexto = C.aSubioAlKit(c.texto, version);
+  const leido = C.leer(nuevoTexto);
+  const f2 = C.validar(leido.datos, leido.cuerpo);
+  if (f2.length) return no(`quedaría mal: ${f2[0].que}`);
+  escribirAtomico(c.abs, nuevoTexto);
+  const g = (args) => L.git.correr(args, { cwd: raiz, tiempo: 30000 });
+  let res = g(['add', '--', c.rel]);
+  if (res.ok) res = g(['commit', '-q', '-m', `cambios: subio-al-kit ${id} (kit ${version})`, '--', c.rel]);
+  if (!res.ok) {
+    g(['reset', '-q', '--', c.rel]);
+    try {
+      escribirAtomico(c.abs, c.texto);
+    } catch (e) {
+      /* lo dice el mensaje */
+    }
+    return no(`git no pudo commitear (${primeraLinea(res.stderr || res.error)}); quedó como estaba`);
+  }
+  const sha = L.git.texto(['rev-parse', '--short', 'HEAD'], { cwd: raiz }) || '?';
+  return { codigo: 0, lineas: [`cambios: subio-al-kit ${id} · kit ${version} · commit ${sha}`] };
 }
 
 // ---------------------------------------------------------------- aprobar (el OK de Guido; RF-3)
@@ -490,6 +535,9 @@ function main(argv, opciones = {}) {
           break;
         case 'aprobar':
           r = aprobar(L, raiz, p1, opciones.ahora);
+          break;
+        case 'subio-al-kit':
+          r = subioAlKit(L, raiz, p1, p2);
           break;
         default:
           malLlamado(`Comando desconocido: ${a.comando}`);
