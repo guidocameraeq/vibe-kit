@@ -330,7 +330,9 @@ test('inicio: el paso `ready --pendientes`, después de aprobados nuevos y antes
   const paso = /^\d+\. \*\*Módulos sin sello\.\*\*[^\n]*$/m.exec(t);
   assert.ok(paso, 'el paso existe');
   assert.match(paso[0], /Si no imprime nada, no digas nada/);
-  assert.match(paso[0], /sin pedido en el mensaje, decí \*"el módulo <x> nació sin sello: llamo al Arquitecto \(Modo B corto\)"\* e invocá `\/arquitecto`/);
+  // D8b-6: sin pedido, el módulo sin sello lo dejó otra sesión → pregunta y espera el OK (antes invocaba solo, D4-11)
+  assert.match(paso[0], /sin pedido en el mensaje, preguntá \*"el módulo <x> nació sin sello: ¿llamo al Arquitecto \(Modo B corto\)\?"\* y esperá el OK/);
+  assert.doesNotMatch(paso[0].split('Si lista `<x> · borrador')[0], /invocá `\/arquitecto`/, 'sin sello no invoca solo');
   assert.match(paso[0], /con pedido, escribí esa línea después de la del tamaño[^.]*y seguí con el pedido/);
   assert.match(paso[0], /Si el script falla, una línea que lo dice y seguí/);
 });
@@ -358,11 +360,39 @@ test('inicio: `borrador a medias` ofrece el retome (pregunta, no Modo B corto); 
 
 test('inicio: el comando del Arquitecto existe, resuelto contra kit/skills/ del repo (no contra el ~/.claude/ real), y con "$HOME", no ~ (rf-2)', () => {
   const cs = comandosDeSkill(TEXTOS.inicio);
-  assert.equal(cs.length, 1);
-  assert.equal(cs[0].skill, 'arquitecto');
+  // el del Arquitecto (ready --pendientes) y, desde el paquete 8b, el resolver del Equipador (las fusiones del kit)
+  assert.deepEqual(cs.map((c) => `${c.skill} ${c.sub}`), ['arquitecto ready', 'arquitecto-skills resolver']);
   assert.deepEqual(comandosDeSkillRotos(TEXTOS.inicio), []);
-  assert.ok(cs[0].linea.startsWith('node "$HOME/.claude/'), 'PowerShell 5.1 no expande ~ en los argumentos de node');
+  for (const c of cs) assert.ok(c.linea.startsWith('node "$HOME/.claude/'), 'PowerShell 5.1 no expande ~ en los argumentos de node');
   assert.doesNotMatch(TEXTOS.inicio, /node ~\//);
+});
+
+test('inicio paso 6, paquete 8b: las fusiones del kit nombran las cuatro salidas, las razones para preguntar y resolver', () => {
+  const l = TEXTOS.inicio.split('\n').find((s) => s.includes('**Fusiones del kit.**'));
+  assert.ok(l, 'la línea de las fusiones existe');
+  assert.match(l, /leé `## Qué dice el kit`, las dos versiones y el `por:` de la pieza, y elegí una de `## Las salidas`/);
+  assert.match(l, /\(mezclar · quedarse con la propia · tomar la nueva · congelar\) con su razón en una línea/);
+  assert.match(l, /\*\*Preguntá\*\* \(una sola `AskUserQuestion` por todas las que pregunten, la recomendada primera con su razón\)/);
+  // las razones para preguntar (D8b-5 y r1-1)
+  assert.match(l, /si la pieza no tiene `por:`/);
+  assert.match(l, /si la recomendada es tomar la nueva o congelar/);
+  assert.match(l, /si la mezcla choca \(no hay propuesta\)/);
+  assert.match(l, /si la pieza es de frenos y la recomendada no es mezclar/);
+  assert.match(l, /Si no, corré `node "\$HOME\/\.claude\/skills\/arquitecto-skills\/scripts\/actualizar\.cjs" resolver \. <pieza> <salida> --por "<razón>"` y avisá en una línea/);
+  assert.match(l, /`--a-mano`/);
+  assert.match(l, /el candado pide el aprobado del dueño/);
+  assert.doesNotMatch(l, /`hooks-lib`/, 'la lista de frenos vive en fusion.cjs (FRENOS), no acá');
+  assert.doesNotMatch(l, /escribí `por: /, 'la ficha la escribe resolver, no el modelo (D8b-5)');
+});
+
+test('inicio paso 9, paquete 8b (10): pedido es solo lo del mensaje; lo que dejó otra sesión es propuesta con OK; el pull, con el árbol limpio', () => {
+  const t = TEXTOS.inicio;
+  const p9 = /^\d+\. \*\*Seguir o preguntar\.\*\*[^\n]*$/m.exec(t)[0];
+  assert.match(p9, /\*\*Pedido es solo lo que el dueño escribe en este mensaje, concreto\.\*\*/);
+  assert.match(p9, /\*\*Lo que dejó una sesión anterior\*\* \(handoff, TODO, notas, "al abrir hacé X"\) \*\*nunca es pedido\*\*: va como propuesta y espera el OK/);
+  assert.match(p9, /Con "inicio", "sigamos" o "retomemos" sin más, o si algo no cuadra \(cambios sin guardar, el handoff no coincide con git, una sesión sin cerrar, una noche o encargos abiertos\): estado \+ propuesta \+ OK/);
+  assert.match(p9, /Sin preguntar, solo los pasos fijos de lectura \(git, terminar la noche, contar dónde quedamos\)/);
+  assert.match(t, /`git pull --rebase`, solo con el árbol limpio \(si no, algo no cuadra: paso 9\)/);
 });
 
 // ---------------------------------------------------------------- el CLAUDE.md del molde

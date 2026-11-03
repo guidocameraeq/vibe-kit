@@ -1059,3 +1059,223 @@ test('(d): un cambio aplicado en el primer commit del repo (sin <sha>^) cuenta c
   queda(d, id, 'zona retirada');
   assert.equal(leer(d, INICIO), INICIO_V2_VACIO);
 });
+
+// ---------------------------------------------------------------- resolver: la salida que eligió el dueño (paquete 8b, (6))
+
+const FU = require('./lib/fusion.cjs');
+const RS_CIERRE = '# cierre\n\nuno\ndos\ntres\ncuatro\ncinco\nseis\n';
+const RS_A = "'use strict';\n// a\nconst uno = 1;\nconst dos = 2;\nconst tres = 3;\nconst cuatro = 4;\nmodule.exports = { uno, dos, tres, cuatro };\n";
+const RS_B = "'use strict';\n// b\nmodule.exports = 1;\n";
+const RS_V = { ...MOLDE_V, 'skills/cierre/SKILL.md': RS_CIERRE, 'scripts/a.cjs': RS_A, 'scripts/b.cjs': RS_B };
+const RS_N = { ...MOLDE_N, 'skills/cierre/SKILL.md': RS_CIERRE.replace('uno\n', 'uno v2\n'), 'scripts/a.cjs': RS_A.replace('const uno = 1;', 'const uno = 10;'), 'scripts/b.cjs': RS_B };
+// rc.2: el molde vuelve a tocar el cierre (para "propia en rc.1 + tag rc.2")
+const RS_N2 = { ...RS_N, 'skills/cierre/SKILL.md': RS_N['skills/cierre/SKILL.md'].replace('tres\n', 'tres rc2\n') };
+const RS_KIT_V = armarKit(RS_V, '2.9.0');
+const RS_KIT_N = armarKit(RS_N, '3.0.0');
+const CIERRE = '.claude/skills/cierre/SKILL.md';
+const SCR_A = '.claude/scripts/a.cjs';
+const SCR_B = '.claude/scripts/b.cjs';
+const CIERRE_NUESTRO = RS_CIERRE.replace('seis\n', 'seis (a nuestra manera)\n'); // no pisa lo del molde: hay propuesta
+const CIERRE_CHOCA = RS_CIERRE.replace('uno\n', 'uno (nuestro)\n'); // pisa lo del molde: sin propuesta
+const A_NUESTRO = RS_A.replace('const cuatro = 4;', 'const cuatro = 44;');
+const B_NUESTRO = "'use strict';\n// b\nmodule.exports = 2;\n";
+
+const fichaDe = (d) => F.leer(leer(d, '.claude/kit.md')).datos;
+const commitTodo = (d, m, autor = 'kit-actualizador <k@kit.invalid>') => {
+  git(d, 'add', '-A');
+  git(d, 'commit', '-q', '-m', m, '--author', autor);
+};
+// Un proyecto con cierre y scripts adaptadas sin por:, después de la flota (el informe ya commiteado) y en el checkout del dueño (sin .kit-rol).
+function esperando({ cierre = CIERRE_NUESTRO, kit = RS_KIT_N, moldeViejo = RS_KIT_V } = {}) {
+  const d = armarProyecto({
+    molde: RS_V, estados: { cierre: 'adaptada', scripts: 'adaptada' },
+    antes: (x) => escribirArbol(x, { [CIERRE]: cierre, [SCR_A]: A_NUESTRO, [SCR_B]: B_NUESTRO }),
+  });
+  const r = A.aplicar(d, { kit, moldeViejo, fecha: '2026-11-02', claude: 'no' });
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  assert.match(lineaDe(r, 'cierre'), /te espera: sin porqué/);
+  assert.match(lineaDe(r, 'scripts'), /te espera: sin porqué/);
+  commitTodo(d, 'kit 2.9.0 → 3.0.0');
+  fs.rmSync(path.join(d, '.kit-rol'));
+  return d;
+}
+const resolver = (d, pieza, salida, o = {}) => A.resolver(d, pieza, salida, { por: 'lo decidió el dueño', ...o });
+
+test('resolver mezclar: escribe la propuesta, adaptada con por: y el hash del molde nuevo, borra el informe e imprime el commit por rutas', () => {
+  const d = esperando();
+  const r = resolver(d, 'cierre', 'mezclar', { por: 'el paso seis es "nuestro"' });
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  assert.equal(leer(d, CIERRE), RS_CIERRE.replace('uno\n', 'uno v2\n').replace('seis\n', 'seis (a nuestra manera)\n'));
+  assert.deepEqual(fichaDe(d).piezas.cierre, { estado: 'adaptada', hash: Z.hashPieza(RS_N['skills/cierre/SKILL.md']), por: "el paso seis es 'nuestro'" });
+  assert.equal(leer(d, '.claude/fusiones/cierre.md'), null);
+  assert.match(r.lineas.at(-1), /^commit por rutas: git add -A -- \.claude\/skills\/cierre\/SKILL\.md \.claude\/kit\.md \.claude\/fusiones\/cierre\.md && git commit -m "inicio: cierre, mezclar/);
+  // no commitea; lo de las otras piezas no se tocó
+  assert.deepEqual(git(d, 'status', '--porcelain').split('\n').filter(Boolean).map((l) => l.slice(3)).sort(), ['.claude/fusiones/cierre.md', '.claude/kit.md', CIERRE].sort());
+  assert.equal(leer(d, SCR_A), A_NUESTRO);
+  // la próxima flota: con por: y sin informe, sin cambios
+  commitTodo(d, 'inicio: cierre, mezclar', 'Dueño <d@kit.invalid>');
+  fs.writeFileSync(path.join(d, '.kit-rol'), 'actualizador\n');
+  const r2 = A.aplicar(d, { kit: RS_KIT_N, fecha: '2026-11-02', claude: 'no' });
+  assert.equal(lineaDe(r2, 'cierre'), 'cierre · adaptada · sin cambios');
+});
+
+test('resolver nueva: la versión nueva entera en TODO archivo distinto (también los igual), la pieza pasa a molde y la flota siguiente no ve desvío', () => {
+  const d = esperando();
+  const inf = leer(d, '.claude/fusiones/scripts.md');
+  assert.match(inf, /Lo que perdés \(lo tuyo fuera de la zona propia\): \.claude\/scripts\/a\.cjs, \.claude\/scripts\/b\.cjs\./, 'el igual también va en "lo que perdés" (r1-4)');
+  const r = resolver(d, 'scripts', 'nueva');
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  assert.equal(leer(d, SCR_A), RS_N['scripts/a.cjs']);
+  assert.equal(leer(d, SCR_B), RS_B, 'b: el molde no lo cambió pero lo nuestro era distinto');
+  assert.equal(fichaDe(d).piezas.scripts, 'molde');
+  assert.match(r.lineas.join('\n'), /scripts es de frenos: el candado pide el aprobado del dueño al commitear; si no aprueba, `git checkout -- \.claude\/scripts\/a\.cjs \.claude\/scripts\/b\.cjs`/);
+  // una pieza de un archivo: nueva deja el hash del molde
+  const r2 = resolver(d, 'cierre', 'nueva');
+  assert.equal(r2.codigo, 0, r2.lineas.join('\n'));
+  assert.equal(leer(d, CIERRE), RS_N['skills/cierre/SKILL.md']);
+  assert.deepEqual(fichaDe(d).piezas.cierre, { estado: 'molde', hash: Z.hashPieza(RS_N['skills/cierre/SKILL.md']) });
+  commitTodo(d, 'inicio: scripts y cierre, la nueva', 'Dueño <d@kit.invalid>');
+  fs.writeFileSync(path.join(d, '.kit-rol'), 'actualizador\n');
+  const r3 = A.aplicar(d, { kit: RS_KIT_N, fecha: '2026-11-02', claude: 'no' });
+  assert.equal(lineaDe(r3, 'scripts'), 'scripts · molde · sin cambios', r3.lineas.join('\n'));
+  assert.equal(lineaDe(r3, 'cierre'), 'cierre · molde · sin cambios');
+});
+
+test('resolver congelar: propia con por:; en cada pieza de FRENOS → 1 sin escribir nada', () => {
+  const d = esperando();
+  const antes = foto(d);
+  for (const id of ['hook-arranque', 'hook-git-seguro', 'settings', 'candado', 'githooks', 'hooks-lib', 'cambios-metodo', 'scripts']) {
+    const r = resolver(d, id, 'congelar');
+    assert.equal(r.codigo, 1, id);
+    assert.match(r.lineas[0], new RegExp(`^resolver: congelar no va en ${id}: es una pieza de frenos \\(`), id);
+  }
+  assert.deepEqual(foto(d), antes, 'no escribió nada');
+  const r = resolver(d, 'cierre', 'congelar', { por: 'no la toques nunca más' });
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  assert.deepEqual(fichaDe(d).piezas.cierre, { estado: 'propia', hash: Z.hashPieza(RS_CIERRE), por: 'no la toques nunca más' });
+  assert.equal(leer(d, CIERRE), CIERRE_NUESTRO);
+  assert.equal(leer(d, '.claude/fusiones/cierre.md'), null);
+});
+
+test('resolver mezclar sin propuesta → 1 ("armala a mano"); --a-mano con marcadores → 1; --a-mano bien armada → 0 sin tocar el archivo', () => {
+  const d = esperando({ cierre: CIERRE_CHOCA });
+  const antes = foto(d);
+  const r = resolver(d, 'cierre', 'mezclar');
+  assert.equal(r.codigo, 1);
+  assert.match(r.lineas[0], /^resolver: \.claude\/skills\/cierre\/SKILL\.md no tiene fusión propuesta: armala a mano y corré con --a-mano; no toqué nada$/);
+  assert.deepEqual(foto(d), antes);
+  fs.writeFileSync(path.join(d, ...CIERRE.split('/')), RS_CIERRE.replace('uno\n', '<<<<<<< proyecto\nuno (nuestro)\n=======\nuno v2\n>>>>>>> molde nuevo\n'));
+  const r2 = resolver(d, 'cierre', 'mezclar', { aMano: true });
+  assert.equal(r2.codigo, 1);
+  assert.match(r2.lineas[0], /^resolver: --a-mano: .*quedaron marcadores de conflicto/);
+  assert.deepEqual(fichaDe(d).piezas.cierre, { estado: 'adaptada', hash: Z.hashPieza(RS_CIERRE) }, 'la ficha no cambió');
+  const armada = RS_CIERRE.replace('uno\n', 'uno v2 (nuestro)\n');
+  fs.writeFileSync(path.join(d, ...CIERRE.split('/')), armada);
+  const r3 = resolver(d, 'cierre', 'mezclar', { aMano: true, por: 'uno es nuestro' });
+  assert.equal(r3.codigo, 0, r3.lineas.join('\n'));
+  assert.equal(leer(d, CIERRE), armada);
+  assert.equal(fichaDe(d).piezas.cierre.por, 'uno es nuestro');
+  assert.equal(leer(d, '.claude/fusiones/cierre.md'), null);
+});
+
+test('resolver no pisa trabajo (r1-2): un archivo tocado después del informe (commiteado o no) → 1 sin escribir; un informe que nombra una ruta ajena → 1', () => {
+  // commiteado después del informe: la huella no coincide
+  const d = esperando();
+  escribirArbol(d, { [CIERRE]: CIERRE_NUESTRO.replace('dos\n', 'dos (después)\n') });
+  commitTodo(d, 'cierre: otro cambio', 'Dueño <d@kit.invalid>');
+  const antes = foto(d);
+  for (const salida of ['mezclar', 'nueva', 'propia', 'congelar']) {
+    const r = resolver(d, 'cierre', salida);
+    assert.equal(r.codigo, 1, salida);
+    assert.match(r.lineas[0], /^resolver: \.claude\/skills\/cierre\/SKILL\.md cambió desde el informe: corré la flota de nuevo o `--a-mano`; no toqué nada$/, salida);
+  }
+  assert.deepEqual(foto(d), antes);
+  // sin commitear, en un archivo de la pieza que el informe no nombra (las rutas salen del catálogo)
+  const d2 = esperando();
+  escribirArbol(d2, { '.claude/skills/cierre/otro.md': 'algo nuevo\n' });
+  const r2 = resolver(d2, 'cierre', 'mezclar');
+  assert.equal(r2.codigo, 1);
+  assert.match(r2.lineas[0], /^resolver: \.claude\/skills\/cierre\/otro\.md tiene cambios sin commitear: cambió desde el informe/);
+  // un informe que nombra una ruta que no es de la pieza (aunque su huella coincida)
+  const d3 = esperando();
+  const rInf = '.claude/fusiones/cierre.md';
+  const hook = '.claude/hooks/session-start.cjs';
+  escribirArbol(d3, { [rInf]: leer(d3, rInf).replace(/^(tuyo: .*)$/m, (l) => `${l}\ntuyo: ${F.hash(leer(d3, hook))} tres ${hook}`) });
+  commitTodo(d3, 'informe tocado', 'Dueño <d@kit.invalid>');
+  const r3 = resolver(d3, 'cierre', 'mezclar');
+  assert.equal(r3.codigo, 1);
+  assert.match(r3.lineas[0], /nombra \.claude\/hooks\/session-start\.cjs, que no es de la pieza cierre: no toqué nada/);
+  assert.equal(A.piezaDeRutaProyecto('.claude/skills/cierre/../../hooks/x.cjs'), null, 'con .. no es de nadie');
+  assert.equal(A.piezaDeRutaProyecto('.claude/scripts/cambios.cjs'), 'cambios-metodo');
+  assert.equal(A.piezaDeRutaProyecto('.claude/scripts/encargo.cjs'), 'scripts');
+  assert.equal(A.piezaDeRutaProyecto('.claude/hooks/lib/ficha.cjs'), 'hooks-lib');
+});
+
+test('resolver propia en rc.1 + tag rc.2 → desde: en la ficha y la fusión de rc.2 trae lo de rc.1 y lo de rc.2 (r1-1); mezclar borra desde:', () => {
+  const kit = nuevaCarpeta('kit-rc');
+  git(kit, 'init', '-q', '-b', 'main');
+  git(kit, 'config', 'core.autocrlf', 'false');
+  for (const [molde, v] of [[RS_V, '2.9.0'], [RS_N, '3.0.0-rc.1'], [RS_N2, '3.0.0-rc.2']]) {
+    fs.rmSync(path.join(kit, 'kit'), { recursive: true, force: true });
+    escribirArbol(path.join(kit, 'kit', 'molde'), molde);
+    fs.writeFileSync(path.join(kit, 'kit', 'VERSION'), `${v}\n`);
+    fs.writeFileSync(path.join(kit, 'kit', 'CHANGELOG.md'), `# Changelog del kit\n\n## ${v}\n\n- lo de ${v}\n`);
+    git(kit, 'add', '-A');
+    git(kit, 'commit', '-q', '-m', `kit ${v}`);
+    git(kit, 'tag', '-a', `v${v}`, '-m', `v${v}`);
+  }
+  git(kit, 'checkout', '-q', 'v3.0.0-rc.1');
+  const d = esperando({ kit, moldeViejo: undefined });
+  const r = resolver(d, 'cierre', 'propia', { por: 'el paso seis es nuestro' });
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  assert.deepEqual(fichaDe(d).piezas.cierre, { estado: 'adaptada', hash: Z.hashPieza(RS_CIERRE), por: 'el paso seis es nuestro', desde: '2.9.0' });
+  assert.equal(leer(d, CIERRE), CIERRE_NUESTRO, 'sin cambios');
+  commitTodo(d, 'inicio: cierre, me quedo con la mía', 'Dueño <d@kit.invalid>');
+  fs.writeFileSync(path.join(d, '.kit-rol'), 'actualizador\n');
+  git(kit, 'checkout', '-q', 'v3.0.0-rc.2');
+  const r2 = A.aplicar(d, { kit, fecha: '2026-11-02', claude: 'no' });
+  assert.equal(r2.codigo, 0, r2.lineas.join('\n'));
+  assert.equal(lineaDe(r2, 'cierre'), 'cierre · adaptada · te espera: te quedaste con la tuya en el kit 2.9.0: se te vuelve a ofrecer desde ahí, no se fusiona sola');
+  assert.equal(leer(d, CIERRE), CIERRE_NUESTRO);
+  const inf = leer(d, '.claude/fusiones/cierre.md');
+  assert.equal(FU.baseDeInforme(inf), '2.9.0');
+  assert.match(inf, /kit 2\.9\.0 → 3\.0\.0-rc\.2/);
+  assert.match(inf, /molde viejo → molde nuevo[\s\S]*^-uno$\n^\+uno v2$[\s\S]*^-tres$\n^\+tres rc2$/m, 'lo de rc.1 y lo de rc.2');
+  assert.match(inf, /^> - lo de 3\.0\.0-rc\.2$/m, 'la nota del kit');
+  assert.equal(fichaDe(d).piezas.cierre.desde, '2.9.0', 'desde: queda mientras espera');
+  commitTodo(d, 'kit 3.0.0-rc.1 → 3.0.0-rc.2');
+  fs.rmSync(path.join(d, '.kit-rol'));
+  const r3 = resolver(d, 'cierre', 'mezclar');
+  assert.equal(r3.codigo, 0, r3.lineas.join('\n'));
+  assert.equal(leer(d, CIERRE), RS_N2['skills/cierre/SKILL.md'].replace('seis\n', 'seis (a nuestra manera)\n'));
+  assert.equal(fichaDe(d).piezas.cierre.desde, undefined, 'mezclar borra desde:');
+});
+
+test('resolver por la CLI: sin --por, salida rara, --a-mano sin mezclar o de más argumentos → 2 con el USO; con otro rol → 1', () => {
+  const s = copiaScripts(null);
+  for (const args of [['resolver', 'x', 'cierre', 'mezclar'], ['resolver', 'x', 'cierre', 'mezclar', '--por'], ['resolver', 'x', 'cierre', 'mezclar', '--por', ' '], ['resolver', 'x', 'cierre', 'tirar', '--por', 'p'], ['resolver', 'x', 'cierre', 'nueva', '--por', 'p', '--a-mano'], ['resolver', 'x', 'cierre', 'mezclar', 'y', '--por', 'p'], ['resolver', 'x', 'cierre', 'mezclar', '--por', 'p', '--raro']]) {
+    const r = correr(s, args);
+    assert.equal(r.status, 2, args.join(' '));
+    assert.match(r.stderr, /^uso: node actualizar\.cjs aplicar/);
+    assert.match(r.stderr, /resolver <carpeta> <pieza> mezclar\|propia\|nueva\|congelar --por "<texto>" \[--a-mano\]/);
+  }
+  const d = esperando();
+  fs.writeFileSync(path.join(d, '.kit-rol'), 'obrero\n');
+  const r = correr(s, ['resolver', d, 'cierre', 'mezclar', '--por', 'p']);
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /^resolver: esta carpeta es de un agente \(\.kit-rol: obrero\)/);
+  fs.rmSync(path.join(d, '.kit-rol'));
+  const ok = correr(s, ['resolver', d, 'cierre', 'mezclar', '--por', 'p']);
+  assert.equal(ok.status, 0, ok.stdout + ok.stderr);
+  assert.match(ok.stdout, /commit por rutas: /);
+});
+
+test('notaDelKit: las secciones > vieja y ≤ nueva (rc incluida), sin archivo o sin sección → null', () => {
+  const kit = nuevaCarpeta('kit-nota');
+  fs.mkdirSync(path.join(kit, 'kit'));
+  assert.equal(A.notaDelKit(kit, '2.9.0', '3.0.0'), null, 'sin CHANGELOG.md');
+  fs.writeFileSync(path.join(kit, 'kit', 'CHANGELOG.md'), '# Changelog\n\nintro\n\n## 3.1.0\n\n- no\n\n## 3.0.0\n\n- sí final\n\n## 3.0.0-rc.2\n\n- sí rc2\n\n## Notas\n\n- no es versión\n\n## 2.9.0\n\n- no, es la vieja\n');
+  assert.equal(A.notaDelKit(kit, '2.9.0', '3.0.0'), '## 3.0.0\n\n- sí final\n\n## 3.0.0-rc.2\n\n- sí rc2\n');
+  assert.equal(A.notaDelKit(kit, '3.0.0', '3.0.0'), null, 'sin sección para estas versiones');
+  assert.equal(A.notaDelKit(kit, '3.0.0-rc.2', '3.0.0'), '## 3.0.0\n\n- sí final\n');
+});

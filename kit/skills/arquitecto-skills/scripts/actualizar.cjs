@@ -14,6 +14,7 @@ const USO = [
   '     node actualizar.cjs adoptar <carpeta> --kit <raíz del kit> --mirar [--nivel liviano|estandar] [--propuesta <archivo>] [--nuevo]',
   '     node actualizar.cjs adoptar <carpeta> --kit <raíz del kit> --aplicar <archivo de propuesta> [--fecha <AAAA-MM-DD>]',
   '                               [--principal <carpeta principal>]',
+  '     node actualizar.cjs resolver <carpeta> <pieza> mezclar|propia|nueva|congelar --por "<texto>" [--a-mano]',
   '  aplicar   pone al día <carpeta> pieza por pieza según su ficha (.claude/kit.md), contra el molde del --kit. Escribe solo en',
   '            <carpeta>; no commitea, no pushea, no pone core.hooksPath (eso es de flota). Se niega (1) si <carpeta> no es un repo',
   '            con ficha que se lee, si no está limpia (salvo .kit-rol) o si .kit-rol no dice actualizador.',
@@ -27,6 +28,11 @@ const USO = [
   '            ficha con lo que vio arriba, en comentarios) y con --propuesta la escribe ahí, fuera de <carpeta>. --aplicar escribe la',
   '            ficha y trae las piezas en molde; se niega (1) como aplicar (sucia salvo .kit-rol, .kit-rol ≠ actualizador) o si ya',
   '            tiene ficha. No commitea: la última línea dice los dos commits que van.',
+  '  resolver  la salida que eligió el dueño para una pieza que espera (.claude/fusiones/<pieza>.md), en SU checkout (rol humano):',
+  '            mezclar (la fusión propuesta) · propia (sigue adaptada; la próxima versión se ofrece desde la misma base) · nueva',
+  '            (la del kit entera: pasa a molde) · congelar (propia; no en una pieza de frenos). Escribe lo del informe, la ficha',
+  '            (estado y por:) y borra el informe; no commitea: la última línea dice el commit. Se niega (1) sin escribir si algo',
+  '            de la pieza cambió desde el informe. --a-mano (con mezclar): la armaste vos; valida lo del disco.',
   '  --nuevo        (con --mirar) un repo recién nacido: las bases van en molde, el candado va (sí) y el director-obrero y el estado también.',
   '  --principal    (con --aplicar) la carpeta principal: ahí se prende core.hooksPath (los githooks del molde).',
   '  --nivel        el nivel de la propuesta (sin él: con código → estandar, sin código → liviano).',
@@ -158,6 +164,28 @@ function versionDelKit(kit) {
   return v;
 }
 
+// La nota de migración del kit (paquete 8b, (6)): las secciones "## N.N.N[-rc.N]" de kit/CHANGELOG.md del --kit con versión > viejo
+// y ≤ nuevo, la más nueva arriba como están. → el texto o null (sin archivo, sin sección o un viejo que no es versión). La lee la
+// fusión para el informe; una sección con un título que no es versión no cuenta.
+function notaDelKit(kit, viejo, nuevo) {
+  let t;
+  try {
+    t = lf(fs.readFileSync(path.join(kit, 'kit', 'CHANGELOG.md'), 'utf8'));
+  } catch {
+    return null;
+  }
+  if (!RE_VERSION.test(String(viejo)) || !RE_VERSION.test(String(nuevo))) return null;
+  const out = [];
+  let dentro = false;
+  for (const l of t.split('\n')) {
+    const m = /^## (\S+)\s*$/.exec(l);
+    if (m || /^# /.test(l)) dentro = !!m && RE_VERSION.test(m[1]) && F.compararVersiones(m[1], viejo) > 0 && F.compararVersiones(m[1], nuevo) <= 0;
+    if (dentro) out.push(l);
+  }
+  const s = out.join('\n').trim();
+  return s ? `${s}\n` : null;
+}
+
 // RF-1: sin --molde-viejo, el molde viejo sale del tag v<ficha> del --kit. Si falta ese tag o el clon es sin historia (--depth 1),
 // es un clon incompleto, no un actualizador roto: se dice cómo completarlo. → null si está, o el mensaje.
 function faltaTagViejo(kit, version) {
@@ -178,11 +206,13 @@ const estadoDe = (v) => (esMapa(v) ? v.estado : v);
 const hashDe = (v) => (esMapa(v) ? v.hash : undefined);
 
 const porDe = (v) => (esMapa(v) && typeof v.por === 'string' ? v.por : undefined);
+const desdeDe = (v) => (esMapa(v) && typeof v.desde === 'string' ? v.desde : undefined);
 
-// El valor de una pieza en la ficha. `por` (el porqué de Guido, D6-19) viaja siempre que la pieza lo tenía.
-function valorPieza(estado, hash, por) {
+// El valor de una pieza en la ficha. `por` (el porqué de Guido, D6-19) viaja siempre que la pieza lo tenía. `desde` (paquete 8b,
+// r1-1) solo lo escribe resolver ("quedarse con la propia") y se va cuando la pieza se mezcla o toma la nueva.
+function valorPieza(estado, hash, por, desde) {
   const e = /[\s()]/.test(estado) ? `"${estado}"` : estado;
-  const extra = [hash ? `hash: ${hash}` : '', por ? `por: "${por}"` : ''].filter(Boolean);
+  const extra = [hash ? `hash: ${hash}` : '', por ? `por: "${por}"` : '', desde ? `desde: ${desde}` : ''].filter(Boolean);
   return extra.length ? `{estado: ${e}, ${extra.join(', ')}}` : e;
 }
 
@@ -334,29 +364,41 @@ function armar(plan, carpeta, { textoFicha, datos, nuevo, viejo, opciones = {} }
     }
     return bases.get(base);
   };
+  // `desde:` en la pieza (resolver, "quedarse con la propia"; r1-1): lo mismo que la base de un informe — desde esa versión y sin
+  // fusionarse sola (el dueño ya dijo que no a lo de ahí en adelante; se le vuelve a ofrecer con lo nuevo encima).
+  const notas = new Map();
+  const notaDe = (vBase) => {
+    if (!notas.has(vBase)) notas.set(vBase, notaDelKit(opciones.kit, vBase, plan.vNuevo));
+    return notas.get(vBase);
+  };
   const fusionarPieza = (id, actual, mapV0, mapN, hFicha, desvio) => {
     const informe = FU.rutaInforme(id);
     const previo = leerP(informe);
+    const desde = desdeDe(piezas[id]);
     let mapV = mapV0;
     let vBase = plan.vViejo;
     let forzado = noFusionar[id];
-    if (previo !== null) {
-      vBase = FU.baseDeInforme(previo) || plan.vViejo;
+    if (previo !== null || desde) {
+      vBase = (previo !== null ? FU.baseDeInforme(previo) : desde) || plan.vViejo;
       if (vBase !== plan.vViejo) {
         const b = moldeDeBase(vBase);
         if (!b) {
           const ya = actual === 'adaptada' || actual === ADAPTADA;
           if (!ya) cambiosFicha.set(id, valorPieza(ADAPTADA, hFicha, porDe(piezas[id])));
-          linea(id, ya ? actual : ADAPTADA, `te espera: todavía espera tu respuesta (desde el kit ${vBase}); el --kit no tiene el tag v${vBase}: el informe queda como estaba`);
+          linea(id, ya ? actual : ADAPTADA, previo !== null
+            ? `te espera: todavía espera tu respuesta (desde el kit ${vBase}); el --kit no tiene el tag v${vBase}: el informe queda como estaba`
+            : `te espera: te quedaste con la tuya (desde el kit ${vBase}); el --kit no tiene el tag v${vBase}: no la toqué`);
           return;
         }
         mapV = new Map((b.rep.has(id) ? b.rep.get(id).archivos : []).map((a) => [a.proyecto, b.a.get(a.molde)]));
       }
-      forzado = forzado || `todavía espera tu respuesta (desde el kit ${vBase}): no se fusiona sola`;
+      forzado = forzado || (previo !== null
+        ? `todavía espera tu respuesta (desde el kit ${vBase}): no se fusiona sola`
+        : `te quedaste con la tuya en el kit ${vBase}: se te vuelve a ofrecer desde ahí, no se fusiona sola`);
     }
     const rels = [...new Set([...mapV.keys(), ...mapN.keys()])];
     const r = FU.fusionar({
-      carpeta, id, valorFicha: piezas[id], claude, plan: opciones.plan, forzado,
+      carpeta, id, valorFicha: piezas[id], claude, plan: opciones.plan, forzado, nota: notaDe(vBase),
       versiones: { viejo: vBase, nuevo: plan.vNuevo },
       archivos: rels.map((rel) => ({ rel, v: mapV.has(rel) ? mapV.get(rel) : null, n: mapN.has(rel) ? mapN.get(rel) : null, p: leerP(rel) })),
     });
@@ -861,6 +903,173 @@ async function chequear(carpeta, opciones) {
   }
 }
 
+// ---------------------------------------------------------------- resolver (paquete 8b, (6)): la salida que eligió el dueño
+
+// La pieza del catálogo v3 de una ruta del PROYECTO, o null (al revés de rutaEnProyecto: se prueba cada entrada `en` de cada pieza y
+// la ruta del molde que sale la reparte piezaDeRuta, con su orden). Una ruta con . o .. de segmento, absoluta o con \ → null (r1-2).
+function piezaDeRutaProyecto(rel) {
+  const r = String(rel);
+  if (!r || /\\|^\/|:|(^|\/)\.\.?(\/|$)/.test(r)) return null;
+  for (const p of C.piezasDe('3')) {
+    for (const en of p.en) {
+      const enP = C.rutaEnProyecto(en);
+      if (enP === null) continue;
+      const molde = en.endsWith('/') ? (r.startsWith(enP) && r.length > enP.length ? en + r.slice(enP.length) : null) : r === enP ? en : null;
+      if (molde !== null) {
+        const q = C.piezaDeRuta('3', molde);
+        return q ? q.id : null;
+      }
+    }
+  }
+  return null;
+}
+
+// Un porqué que entra entre comillas en la ficha: sin comillas dobles ni saltos de línea.
+const porLimpio = (s) => String(s).replace(/"/g, "'").replace(/\s+/g, ' ').trim();
+
+// resolver(carpeta, pieza, salida, {por, aMano}) → { codigo, lineas }. En el checkout del proyecto (rol humano), con un
+// .claude/fusiones/<pieza>.md: escribe lo que dice el informe para la salida, pone estado y `por:` en la ficha, borra el informe e
+// imprime el commit por rutas. No commitea. Se niega (1) sin escribir nada: congelar en una pieza de FRENOS, mezclar sin propuesta
+// (salvo --a-mano, que valida lo del disco), un archivo que cambió desde el informe (su huella) o una ruta de la pieza con cambios sin
+// commitear (r1-2), o un informe que nombra una ruta que no es de la pieza según el catálogo.
+function resolver(carpeta, id, salida, { por, aMano = false } = {}) {
+  const raiz = path.resolve(carpeta);
+  const no = (m) => ({ codigo: 1, lineas: [`resolver: ${m}`] });
+  const top = gitEn(raiz, ['rev-parse', '--show-toplevel']);
+  if (!top.ok || !mismaRuta(top.out.trim(), raiz)) return no(`${carpeta} no es la raíz de un repo git — no toco nada`);
+  let rol = 'humano';
+  try { rol = fs.readFileSync(path.join(raiz, KIT_ROL), 'utf8').trim(); } catch { /* sin .kit-rol: el dueño */ }
+  if (rol !== 'humano') return no(`esta carpeta es de un agente (.kit-rol: ${rol}): resolver lo corre el dueño, en su checkout`);
+  const def = C.piezasDe('3').find((p) => p.id === id && p.trato === 'pieza');
+  if (!def) return no(`"${id}" no es una pieza del kit que se actualice`);
+  if (salida === 'congelar' && FU.esFreno(id)) {
+    const f = FU.FRENOS.find((x) => (x.id.endsWith('*') ? id.startsWith(x.id.slice(0, -1)) : x.id === id));
+    return no(`congelar no va en ${id}: es una pieza de frenos (${f.por}) — elegí mezclar, quedarte con la tuya o tomar la nueva; no toqué nada`);
+  }
+  const leerD = (rel) => {
+    const p = path.join(raiz, ...rel.split('/'));
+    return fs.existsSync(p) && fs.statSync(p).isFile() ? fs.readFileSync(p, 'utf8') : null;
+  };
+  const textoFicha = leerD(RUTA_FICHA);
+  if (textoFicha === null) return no(`no hay ficha (${RUTA_FICHA})`);
+  let datos;
+  try {
+    datos = F.leer(textoFicha).datos;
+  } catch (e) {
+    return no(`la ficha no se lee (${e.message}) — no toqué nada`);
+  }
+  const piezas = esMapa(datos.piezas) ? datos.piezas : {};
+  if (!Object.prototype.hasOwnProperty.call(piezas, id)) return no(`la ficha no tiene la pieza ${id}`);
+  const rInforme = FU.rutaInforme(id);
+  const textoInforme = leerD(rInforme);
+  if (textoInforme === null) return no(`no hay ${rInforme}: no hay nada que resolver`);
+  const inf = FU.leerInforme(textoInforme);
+  if (!inf.base || !RE_VERSION.test(inf.base)) return no(`${rInforme} no tiene la línea base: — corré la flota de nuevo`);
+  if (!inf.tuyos.length) return no(`${rInforme} no trae la huella de lo tuyo (es de un kit anterior): corré la flota de nuevo`);
+  // las rutas: solo las del catálogo de la pieza (nunca lo que diga un título del informe)
+  const ajena = inf.tuyos.find((t) => piezaDeRutaProyecto(t.rel) !== id);
+  if (ajena) return no(`${rInforme} nombra ${ajena.rel}, que no es de la pieza ${id}: no toqué nada`);
+  const CAMBIO = 'cambió desde el informe: corré la flota de nuevo o `--a-mano`';
+  if (!aMano) {
+    for (const t of inf.tuyos) {
+      const d = leerD(t.rel);
+      if ((d === null ? null : F.hash(d)) !== t.hash) return no(`${t.rel} ${CAMBIO}; no toqué nada`);
+    }
+    const st = gitEn(raiz, ['status', '--porcelain=v1', '-z', '--untracked-files=all']);
+    if (!st.ok) return no(`git status falló: ${st.err.trim()}`);
+    const partes = st.out.split('\0');
+    for (let i = 0; i < partes.length; i++) {
+      const e = partes[i];
+      if (!e) continue;
+      const rutas = [e.slice(3)];
+      if (e[0] === 'R' || e[0] === 'C') rutas.push(partes[++i]);
+      const sucia = rutas.find((r) => r === rInforme || piezaDeRutaProyecto(r) === id); // la ficha no: varias piezas se resuelven antes de un commit
+      if (sucia) return no(`${sucia} tiene cambios sin commitear: ${CAMBIO}; no toqué nada`);
+    }
+  }
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'kit-resolver-'));
+  const ops = new Map();
+  const lineas = [];
+  try {
+    for (const t of inf.tuyos) {
+      const sec = inf.archivos.get(t.rel) || {};
+      const disco = leerD(t.rel);
+      if (salida === 'mezclar' && t.tipo !== 'igual') {
+        if (aMano) {
+          // lo armó el dueño: se valida lo del disco contra lo commiteado (sin marcadores, la zona como estaba, node --check)
+          const h = gitEn(raiz, ['show', `HEAD:${t.rel}`]);
+          const val = FU.validar(t.rel, disco, h.ok ? lf(h.out) : null, tmp);
+          if (!val.ok) return no(`--a-mano: ${val.problema}; no toqué nada`);
+          if (disco !== null && val.texto !== lf(disco)) return no(`--a-mano: ${t.rel}: la zona propia no quedó como estaba; no toqué nada`);
+          continue;
+        }
+        const texto = t.tipo === 'molde' ? sec.nueva : sec.propuesta;
+        if (!texto) return no(`${t.rel} no tiene fusión propuesta: armala a mano y corré con --a-mano; no toqué nada`);
+        const val = FU.validar(t.rel, texto, disco === null ? null : lf(disco), tmp);
+        if (!val.ok) return no(`${val.problema}; no toqué nada`);
+        if (disco === null || lf(disco) !== val.texto) ops.set(t.rel, val.texto);
+      } else if (salida === 'nueva' && sec.nueva) {
+        // todo archivo de la pieza distinto del molde nuevo, también los "igual" (r1-4)
+        const val = FU.validar(t.rel, sec.nueva, disco === null ? null : lf(disco), tmp);
+        if (!val.ok) return no(`${val.problema}; no toqué nada`);
+        if (disco === null || lf(disco) !== val.texto) ops.set(t.rel, val.texto);
+      }
+    }
+  } finally {
+    M.borrar(tmp);
+  }
+  // la ficha: estado y por: (y desde: al quedarse con la propia; r1-1)
+  const viejo = piezas[id];
+  const p = porLimpio(por);
+  const unico = inf.tuyos.length === 1 ? inf.tuyos[0] : null;
+  const hNuevo = unico && (inf.archivos.get(unico.rel) || {}).nueva ? huella(unico.rel, inf.archivos.get(unico.rel).nueva) : hashDe(viejo);
+  const valor = {
+    mezclar: () => valorPieza('adaptada', hNuevo, p),
+    propia: () => valorPieza('adaptada', hashDe(viejo), p, inf.base),
+    nueva: () => valorPieza('molde', hNuevo), // molde no lleva por: (la gramática); el porqué va en el commit
+    congelar: () => valorPieza('propia', hashDe(viejo), p),
+  }[salida]();
+  const fichaNueva = reescribirFicha(textoFicha, null, new Map([[id, valor]]));
+  try {
+    F.leer(fichaNueva);
+  } catch (e) {
+    return no(`la ficha reescrita no se lee (${e.message}) — no toqué nada`);
+  }
+  const escritos = [...ops.keys()];
+  ops.set(RUTA_FICHA, fichaNueva);
+  ops.set(rInforme, null);
+  try {
+    ejecutar(raiz, ops);
+  } catch (e) {
+    return no(`no pude escribir ${e.ruta || '?'} (${e.code || e.message}): mirá \`git status\``);
+  }
+  for (const r of escritos) lineas.push(`${r} · escrito (${salida})`);
+  lineas.push(`${RUTA_FICHA} · ${id}: ${valor}`, `${rInforme} · borrado`);
+  if (FU.esFreno(id) && escritos.length) {
+    lineas.push(`${id} es de frenos: el candado pide el aprobado del dueño al commitear; si no aprueba, \`git checkout -- ${escritos.join(' ')}\``);
+  }
+  lineas.push(`commit por rutas: git add -A -- ${[...escritos, RUTA_FICHA, rInforme].join(' ')} && git commit -m "inicio: ${id}, ${salida} (${p.replace(/[`$\\]/g, '')})"`);
+  return { codigo: 0, lineas };
+}
+
+// resolver <carpeta> <pieza> <salida> --por "<texto>" [--a-mano] → {carpeta, pieza, salida, por, aMano} o null (uso).
+function leerResolver(resto) {
+  const pos = [];
+  const o = { aMano: false };
+  for (let i = 0; i < resto.length; i++) {
+    const a = resto[i];
+    if (a === '--por') {
+      if (i + 1 >= resto.length) return null;
+      o.por = resto[++i];
+    } else if (a === '--a-mano') o.aMano = true;
+    else if (a.startsWith('--')) return null;
+    else pos.push(a);
+  }
+  if (pos.length !== 3 || !FU.SALIDAS.includes(pos[2]) || typeof o.por !== 'string' || !o.por.trim()) return null;
+  if (o.aMano && pos[2] !== 'mezclar') return null;
+  return { carpeta: pos[0], pieza: pos[1], salida: pos[2], por: o.por, aMano: o.aMano };
+}
+
 // ---------------------------------------------------------------- línea de comandos
 
 function leerArgs(argv) {
@@ -892,6 +1101,10 @@ async function main(argv) {
     const r = await require(argv[0] === 'flota' ? './lib/flota.cjs' : './lib/adoptar.cjs').main(argv.slice(1));
     return r ? { codigo: r.codigo, lineas: r.lineas } : { codigo: 2, lineas: [USO] };
   }
+  if (argv[0] === 'resolver') {
+    const r = leerResolver(argv.slice(1));
+    return r ? resolver(r.carpeta, r.pieza, r.salida, { por: r.por, aMano: r.aMano }) : { codigo: 2, lineas: [USO] };
+  }
   const o = leerArgs(argv);
   if (!o) return { codigo: 2, lineas: [USO] };
   const kit = path.resolve(o.kit);
@@ -902,7 +1115,7 @@ async function main(argv) {
 }
 
 // Antes de correr: lib/adoptar.cjs (que se carga desde main) lee estos exports.
-module.exports = { aplicar, planear, chequear, main, reescribirFicha, ejecutar, versionDelKit, Negativa, USO };
+module.exports = { aplicar, planear, chequear, resolver, main, reescribirFicha, ejecutar, versionDelKit, notaDelKit, piezaDeRutaProyecto, Negativa, USO };
 
 if (require.main === module) {
   main(process.argv.slice(2))

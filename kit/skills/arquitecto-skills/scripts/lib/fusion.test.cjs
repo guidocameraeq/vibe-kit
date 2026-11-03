@@ -173,26 +173,91 @@ test('con por: en la ficha y cambios que no se pisan → fusionada sola, la adap
   assert.deepEqual(limpioSalvo(d), []);
 });
 
-test('con el porqué solo en el git log → fusiona; la ficha no copia el porqué del log', () => {
-  const d = armarProyecto({ piezas: { cierre: 'adaptada' }, cambio: { '.claude/skills/cierre/SKILL.md': SEIS }, mensaje: 'cierre: el paso seis es nuestro' });
-  const r = aplicar(d);
-  assert.equal(lineaDe(r, 'cierre'), 'cierre · adaptada · fusionada (sola, cierre: el paso seis es nuestro)');
-  assert.match(leer(d, '.claude/skills/cierre/SKILL.md'), /^uno v2$/m);
-  assert.deepEqual(piezaDe(d, 'cierre'), { estado: 'adaptada', hash: Z.hashPieza(MOLDE_N['skills/cierre/SKILL.md']) });
-});
-
-test('un asunto que solo EMPIEZA con las letras kit (kitchen:, kits) sí es un porqué', () => {
-  for (const mensaje of ['kitchen: el paso seis es nuestro', 'kits: el paso seis']) {
+test('D8b-4: sin por: y con commits propios (el git log ya no cuenta) → te espera, aunque la mezcla salga limpia', () => {
+  for (const mensaje of ['cierre: el paso seis es nuestro', 'kitchen: el paso seis es nuestro']) {
     const d = armarProyecto({ piezas: { cierre: 'adaptada' }, cambio: { '.claude/skills/cierre/SKILL.md': SEIS }, mensaje });
-    assert.equal(lineaDe(aplicar(d), 'cierre'), `cierre · adaptada · fusionada (sola, ${mensaje})`);
+    const r = aplicar(d);
+    assert.equal(lineaDe(r, 'cierre'), 'cierre · adaptada · te espera: sin porqué (la pieza no tiene `por:` en la ficha)', mensaje);
+    assert.equal(leer(d, '.claude/skills/cierre/SKILL.md'), SEIS, `${mensaje}: la pieza queda vieja`);
+    const inf = leer(d, '.claude/fusiones/cierre.md');
+    assert.match(inf, /\*\*El porqué que encontré:\*\* ninguno \(la pieza no tiene `por:` en la ficha\)/);
+    assert.match(inf, /La fusión propuesta\n\n```md\n# cierre\n\nuno v2\n/, 'la mezcla limpia va como propuesta');
+    assert.equal(r.claude, null);
   }
+  assert.equal(FU.porqueDe({ estado: 'adaptada' }), null);
+  assert.equal(FU.porqueDe('adaptada'), null);
+  assert.deepEqual(FU.porqueDe({ estado: 'adaptada', por: `  ${POR} ` }), { de: 'ficha', texto: POR });
 });
 
-test('el guardia ve un desvío en esta corrida (estaba molde) y hay porqué en el git log → se fusiona igual, no queda vieja', () => {
+test('el guardia ve un desvío en esta corrida (estaba molde), sin por: → te espera como "adaptada (desvío detectado)", la pieza vieja', () => {
   const d = armarProyecto({ cambio: { '.claude/skills/cierre/SKILL.md': SEIS } });
   const r = aplicar(d);
-  assert.equal(lineaDe(r, 'cierre'), 'cierre · adaptada · fusionada (sola, cierre: el paso seis es nuestro)');
-  assert.equal(piezaDe(d, 'cierre').estado, 'adaptada');
+  assert.match(lineaDe(r, 'cierre'), /^cierre · adaptada \(desvío detectado\) · te espera: sin porqué/);
+  assert.equal(piezaDe(d, 'cierre').estado, 'adaptada (desvío detectado)');
+  assert.equal(leer(d, '.claude/skills/cierre/SKILL.md'), SEIS);
+});
+
+// ---------------------------------------------------------------- el informe: la nota del kit, la nueva entera, las salidas (paquete 8b)
+
+const CHANGELOG_KIT = [
+  '# Changelog del kit', '', 'Una sección por versión.', '',
+  '## 3.1.0', '', '- **Qué piezas cambiaron**: lo de después (no va: es mayor que la nueva).', '',
+  '## 3.0.0', '', '- **Qué piezas cambiaron**: el cierre, el paso uno.', '- **Qué chequear después**: el cierre.', '',
+  '## 3.0.0-rc.1', '', '- **Qué piezas cambiaron**: la beta.', '',
+  '## 2.9.0', '', '- lo de la versión vieja (no va: no es mayor que la vieja).', '',
+].join('\n');
+
+test('el informe trae lo que dice el kit (las versiones > vieja y ≤ nueva, rc incluida), la nueva entera y las cuatro salidas', () => {
+  const kit = armarKit(MOLDE_N, '3.0.0');
+  fs.writeFileSync(path.join(kit, 'kit', 'CHANGELOG.md'), CHANGELOG_KIT);
+  const d = armarProyecto({ piezas: { cierre: 'adaptada' }, cambio: { '.claude/skills/cierre/SKILL.md': SEIS } });
+  const r = aplicar(d, { kit });
+  assert.match(lineaDe(r, 'cierre'), /te espera: sin porqué/);
+  const inf = leer(d, '.claude/fusiones/cierre.md');
+  // en este orden: los motivos, Qué dice el kit, el archivo (diffs, propuesta, la nueva entera), Las salidas
+  const pos = ['**Por qué no se fusionó sola:**', '## Qué dice el kit', '## `.claude/skills/cierre/SKILL.md`', '### La fusión propuesta', '### La versión nueva, entera', '## Las salidas'].map((s) => inf.indexOf(s));
+  assert.ok(pos.every((p) => p >= 0), JSON.stringify(pos));
+  assert.deepEqual([...pos].sort((a, b) => a - b), pos);
+  const nota = inf.slice(pos[1], pos[2]);
+  assert.match(nota, /^> ## 3\.0\.0$/m);
+  assert.match(nota, /^> - \*\*Qué piezas cambiaron\*\*: el cierre, el paso uno\.$/m);
+  assert.match(nota, /^> ## 3\.0\.0-rc\.1$/m);
+  assert.doesNotMatch(nota, /3\.1\.0|lo de la versión vieja|Una sección por versión/);
+  assert.match(inf, /### La versión nueva, entera\n\n```md\n# cierre\n\nuno v2\n[\s\S]*\nseis\n```/, 'la nueva entera: el molde nuevo, sin lo nuestro');
+  const salidas = inf.slice(pos[5]);
+  assert.match(salidas, /¿la mejoramos con esto\?/);
+  for (const s of ['mezclar', 'quedarse con la propia', 'tomar la nueva del kit', 'congelar']) assert.match(salidas, new RegExp(`^- \\*\\*${s}\\*\\*: `, 'm'), s);
+  assert.match(salidas, /se te vuelve a ofrecer desde el kit 2\.9\.0/);
+  assert.match(salidas, /Lo que perdés \(lo tuyo fuera de la zona propia\): \.claude\/skills\/cierre\/SKILL\.md\./);
+  assert.match(salidas, /resolver \. cierre mezclar\|propia\|nueva\|congelar --por "<por qué>"/);
+  // la huella de lo tuyo, por archivo, antes del primer ## (r1-2)
+  assert.match(inf, new RegExp(`^tuyo: ${F.hash(SEIS)} tres \\.claude/skills/cierre/SKILL\\.md$`, 'm'));
+  const li = FU.leerInforme(inf);
+  assert.equal(li.base, '2.9.0');
+  assert.deepEqual(li.tuyos, [{ rel: '.claude/skills/cierre/SKILL.md', hash: F.hash(SEIS), tipo: 'tres' }]);
+  assert.equal(li.archivos.get('.claude/skills/cierre/SKILL.md').nueva, MOLDE_N['skills/cierre/SKILL.md']);
+  assert.equal(li.archivos.get('.claude/skills/cierre/SKILL.md').propuesta, CIERRE_V.replace('uno\n', 'uno v2\n').replace('seis\n', 'seis (a nuestra manera)\n'));
+  // sin CHANGELOG.md en el kit: la línea fija
+  const d2 = armarProyecto({ piezas: { cierre: 'adaptada' }, cambio: { '.claude/skills/cierre/SKILL.md': SEIS } });
+  aplicar(d2);
+  assert.match(leer(d2, '.claude/fusiones/cierre.md'), /## Qué dice el kit\n\nel kit no dejó nota para estas versiones\n/);
+});
+
+test('el informe de una pieza de frenos no ofrece congelar (FRENOS, r1-5); de una que no es freno, sí', () => {
+  const tmp = nuevaCarpeta('inf');
+  const archivos = [{ rel: '.claude/hooks/lib/x.cjs', tipo: 'tres', v: 'a\n', n: 'b\n', p: 'c\n', conflictos: 1 }];
+  for (const id of ['hooks-lib', 'hook-git-seguro', 'settings', 'candado', 'githooks', 'cambios-metodo', 'scripts']) {
+    const inf = FU.informe({ id, versiones: { viejo: '2.9.0', nuevo: '3.0.0' }, motivo: 'x', porque: null, archivos, tmp });
+    assert.doesNotMatch(inf, /\*\*congelar\*\*/, id);
+    assert.match(inf, new RegExp(`congelar no va: \`${id}\` es una pieza de frenos`), id);
+    assert.ok(FU.esFreno(id), id);
+  }
+  for (const id of ['cierre', 'inicio', 'estado', 'director-obrero']) {
+    assert.ok(!FU.esFreno(id), id);
+    assert.match(FU.informe({ id, versiones: { viejo: '2.9.0', nuevo: '3.0.0' }, motivo: 'x', porque: null, archivos, tmp }), /^- \*\*congelar\*\*: `propia`/m, id);
+  }
+  assert.deepEqual(FU.FRENOS.map((f) => f.id), ['hook-*', 'settings', 'candado', 'githooks', 'hooks-lib', 'cambios-metodo', 'scripts']);
+  for (const f of FU.FRENOS) assert.ok(f.por.length > 10, `${f.id}: con su porqué`);
 });
 
 test('sin porqué: no fusiona; .claude/fusiones/<pieza>.md con los dos diffs, la propuesta y la pregunta; la pieza vieja', () => {
@@ -383,15 +448,13 @@ test('noFusionar (lo usa flota al rehacer): la pieza va a te espera con el motiv
 
 // ---------------------------------------------------------------- piezas sueltas
 
-test('"No" en /inicio: la pieza sigue adaptada (D6-19 descartó la opción A); propia solo explícito y nunca en un freno', () => {
+test('/inicio: la lista de frenos ya no vive en el texto (es FRENOS de fusion.cjs); quedarse con la propia sigue adaptada', () => {
   const inicio = fs.readFileSync(path.resolve(__dirname, '..', '..', '..', '..', 'molde', 'skills', 'inicio', 'SKILL.md'), 'utf8');
   const paso = inicio.split('\n').find((l) => /Fusiones del kit/.test(l));
-  assert.match(paso, /No: la pieza \*\*sigue `adaptada`\*\* con el `por:` que dé el dueño y el archivo se borra/);
-  assert.match(paso, /`propia` solo si el dueño lo pide explícito/);
-  assert.match(paso, /\*\*nunca\*\* en una pieza de frenos \(`hook-\*`, `settings`, `candado`, `githooks`, `hooks-lib`\)/);
+  assert.doesNotMatch(paso, /`hooks-lib`/, 'la lista está en FRENOS');
   assert.doesNotMatch(paso, /No: la pieza pasa a `propia`/);
   const inf = FU.informe({ id: 'cierre', versiones: { viejo: '2.9.0', nuevo: '3.0.0' }, motivo: 'x', porque: null, archivos: [], tmp: nuevaCarpeta('inf') });
-  assert.match(inf, /la pieza sigue adaptada/);
+  assert.match(inf, /\*\*quedarse con la propia\*\*: sigue `adaptada`, sin cambios/);
   assert.doesNotMatch(inf, /pasa a `propia`/);
 });
 
