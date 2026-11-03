@@ -979,6 +979,21 @@ test('crit. 2: con un tag -rc (opciones.rc), nada: solo "subiría al kit"; --pla
   assert.deepEqual(foto(e), foto0, '--plan no escribe');
 });
 
+test('RF-fix (6) ultimo-tag: el v* anotado mayor (v3.0.0 le gana a v3.0.0-rc.2, el liviano no cuenta); sin ninguno → 1; mal llamado → 2', async () => {
+  const k = nuevaCarpeta('tags');
+  git(k, 'init', '-q');
+  escribirArbol(k, { 'a.txt': 'a\n' });
+  commitTodo(k, 'uno');
+  const r0 = await A.main(['ultimo-tag', k]);
+  assert.equal(r0.codigo, 1);
+  assert.match(r0.lineas[0], /^ultimo-tag: el canónico no tiene ningún tag v\* anotado/);
+  for (const t of ['v3.0.0-rc.1', 'v3.0.0', 'v3.0.0-rc.2']) git(k, 'tag', '-a', t, '-m', t);
+  git(k, 'tag', 'v3.0.1'); // liviano: no se reparte
+  const r = await A.main(['ultimo-tag', k]);
+  assert.deepEqual(r, { codigo: 0, lineas: ['v3.0.0'] });
+  for (const args of [['ultimo-tag'], ['ultimo-tag', k, 'otro'], ['ultimo-tag', '--raro']]) assert.equal((await A.main(args)).codigo, 2, args.join(' '));
+});
+
 test('RF-fix (7): un aplicar suelto (sin --rc) con un kit -rc y un cubiertos.md que lo cubre → "subiría al kit", sin tocar el cambio', () => {
   const d = armarProyecto();
   const id = aplicarCambio(d);

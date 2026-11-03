@@ -63,4 +63,4 @@ De día, 30 min sin respuesta a un OK: PARADA al director. De noche no se espera
 Un encargo no comparte archivos ni recursos exclusivos (la suite, un puerto, el navegador) con otro abierto.
 
 ## 11. Permisos
-Nadie lanza ni se lanza saltando permisos. La apertura de fondo es la línea que imprime `node .claude/scripts/encargo.cjs autorizado <x>--<ID>`, tal cual. Si un encargo necesita más, se suma a `## AUTORIZADO`; si aun así falta, lo tipea el dueño en su terminal.
+Nadie lanza ni se lanza saltando permisos. La apertura de fondo es una de las dos líneas de fondo que imprime `node .claude/scripts/encargo.cjs autorizado <x>--<ID>`, tal cual. Si un encargo necesita más, se suma a `## AUTORIZADO`; si aun así falta, lo tipea el dueño en su terminal.

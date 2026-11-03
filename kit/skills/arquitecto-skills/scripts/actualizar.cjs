@@ -15,6 +15,7 @@ const USO = [
   '     node actualizar.cjs adoptar <carpeta> --kit <raíz del kit> --aplicar <archivo de propuesta> [--fecha <AAAA-MM-DD>]',
   '                               [--principal <carpeta principal>]',
   '     node actualizar.cjs resolver <carpeta> <pieza> mezclar|propia|nueva|congelar --por "<texto>" [--a-mano]',
+  '     node actualizar.cjs ultimo-tag <clon del kit>',
   '  aplicar   pone al día <carpeta> pieza por pieza según su ficha (.claude/kit.md), contra el molde del --kit. Escribe solo en',
   '            <carpeta>; no commitea, no pushea, no pone core.hooksPath (eso es de flota). Se niega (1) si <carpeta> no es un repo',
   '            con ficha que se lee, si no está limpia (salvo .kit-rol) o si .kit-rol no dice actualizador.',
@@ -34,6 +35,7 @@ const USO = [
   '            (estado y por:) y borra el informe; no commitea: la última línea dice el commit. mezclar y nueva se niegan (1) sin',
   '            escribir si algo de la pieza cambió desde el informe (propia y congelar pueden igual). --a-mano (con mezclar):',
   '            lo que cambió lo armaste vos y se valida del disco; lo que sigue igual va con lo del informe.',
+  '  ultimo-tag imprime el tag v* anotado que va (el de la flota sin --tag: v3.0.0 después de v3.0.0-rc.N); sin ninguno → 1.',
   '  --nuevo        (con --mirar) un repo recién nacido: las bases van en molde, el candado va (sí) y el director-obrero y el estado también.',
   '  --principal    (con --aplicar) la carpeta principal: ahí se prende core.hooksPath (los githooks del molde).',
   '  --nivel        el nivel de la propuesta (sin él: con código → estandar, sin código → liviano).',
@@ -1117,6 +1119,17 @@ async function main(argv) {
   if (argv[0] === 'flota' || argv[0] === 'adoptar') {
     const r = await require(argv[0] === 'flota' ? './lib/flota.cjs' : './lib/adoptar.cjs').main(argv.slice(1));
     return r ? { codigo: r.codigo, lineas: r.lineas } : { codigo: 2, lineas: [USO] };
+  }
+  if (argv[0] === 'ultimo-tag') {
+    // el tag v* anotado que reparte la flota (lib/flota.cjs elegirTag): v3.0.0 va después de v3.0.0-rc.N (git tag --sort no)
+    if (argv.length !== 2 || argv[1].startsWith('--')) return { codigo: 2, lineas: [USO] };
+    const FL = require('./lib/flota.cjs');
+    try {
+      return { codigo: 0, lineas: [FL.elegirTag(FL.tagsDe(path.resolve(argv[1])))] };
+    } catch (e) {
+      if (e instanceof FL.Negativa) return { codigo: 1, lineas: [`ultimo-tag: ${e.message}`] };
+      throw e;
+    }
   }
   if (argv[0] === 'resolver') {
     const r = leerResolver(argv.slice(1));

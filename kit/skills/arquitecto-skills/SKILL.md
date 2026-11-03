@@ -35,8 +35,9 @@ del Arquitecto: él monta proyectos; vos equipás máquinas.
 
 **"Preparame esta máquina"** (kit, hooks, settings, `kit-pc.md`: todo lo hace `preparar-pc.cjs`; no lo repitas a mano):
 1. Clon **completo, con tags** del canónico `guidocameraeq/vibe-kit` a un temporal (nunca `--depth 1`: sin historia todo archivo
-   viejo parece "editado a mano"), parado en el último **tag anotado** `v*` — nunca la punta de `main`. Es público; si `git`
-   pide credenciales, son del usuario.
+   viejo parece "editado a mano"), parado en el tag anotado que imprime `node <clon>/kit/skills/arquitecto-skills/scripts/actualizar.cjs
+   ultimo-tag <clon>` — nunca la punta de `main` ni `git tag --sort` (pone el rc arriba). Es público; si `git` pide
+   credenciales, son del usuario.
 2. Corré el script **del clon nuevo**, nunca el instalado en `~/.claude/`:
    `node <clon>/kit/skills/arquitecto-skills/scripts/preparar-pc.cjs --kit <clon> --plan` (no escribe nada).
 3. **UNA pregunta** (`AskUserQuestion`): el plan, lo editado a mano con su diff y la carpeta de proyectos detectada
@@ -63,7 +64,7 @@ del Arquitecto: él monta proyectos; vos equipás máquinas.
 
 ## Modo AUTO-ACTUALIZAR EL KIT — "actualizá el kit" / "actualizate" / "traé lo último del Arquitecto"
 
-Es el mismo camino que **preparame** (arriba): clon completo con tags, último tag anotado, el `preparar-pc.cjs` **del clon nuevo**,
+Es el mismo camino que **preparame** (arriba): clon completo con tags, el tag de `ultimo-tag`, el `preparar-pc.cjs` **del clon nuevo**,
 `--plan` y la **una** pregunta. Actualiza las kit-owned (`arquitecto`, `arquitecto-skills` —vos mismo—, `docs-fyd`, `relevamiento`),
 `agents/redteam-spec.md` y `VERSION`; conserva la carpeta de proyectos de la PC; un archivo editado a mano no se pisa sin
 `--pisar-editados`. La versión nueva de vos carga al reiniciar Claude Code.

@@ -655,8 +655,10 @@ test('director: la apertura es del dueño por defecto y el director lanza solo c
   const t = TEXTOS.director;
   assert.match(t, /Por defecto la hace el dueño/);
   assert.match(t, /Apertura: director/);
-  assert.match(t, /línea de fondo que imprimió `autorizado`, nunca otra/);
+  // 8b (1): la primera línea de fondo (auto); la de respaldo solo si auto no se deja lanzar; nunca otra
+  assert.match(t, /primera línea de fondo que imprimió `autorizado`\*\*; si `auto` no se deja lanzar[^\n]*la de \*\*respaldo\*\*; nunca otra/);
   assert.match(t, /su pestaña abre en su modo/);
+  assert.match(NUCLEO, /una de las dos líneas de fondo que imprime `node \.claude\/scripts\/encargo\.cjs autorizado <x>--<ID>`, tal cual/);
 });
 
 test('director: cancelar deja el SHA en la ficha, manda la CORRECCION con su forma y borra todo con cerrar --cancelado, no a mano (r1-6, rf-1)', () => {

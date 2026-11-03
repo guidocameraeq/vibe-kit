@@ -113,16 +113,20 @@ function elegirTag(tags, pedido) {
 // D8b-3 (cambia D6-15): la versión = kit/VERSION = el tag sin la v, ENTERO (v3.0.0-rc.1 ↔ 3.0.0-rc.1).
 const versionDeTag = (tag) => tag.slice(1);
 
-function prepararCanon(canon, tagPedido, dir) {
-  const c = git(path.dirname(dir), ['clone', '-q', '--no-checkout', canon, dir], { plazo: PLAZO_RED });
-  if (!c.ok) throw new Negativa(`no pude clonar el canónico ${canon}: ${c.colgado ? `no respondió en ${minutos(PLAZO_RED)}` : primera(c.err)}`);
+// Los tags de un clon → [{nombre, tipo}] (tipo: tag = anotado, commit = liviano).
+function tagsDe(dir) {
   const r = git(dir, ['for-each-ref', '--format=%(refname:short)%09%(objecttype)', 'refs/tags']);
   if (!r.ok) throw new Error(`no leo los tags del canónico: ${primera(r.err)}`);
-  const tags = r.out.split(/\r?\n/).filter(Boolean).map((l) => {
+  return r.out.split(/\r?\n/).filter(Boolean).map((l) => {
     const [nombre, tipo] = l.split('\t');
     return { nombre, tipo };
   });
-  const tag = elegirTag(tags, tagPedido);
+}
+
+function prepararCanon(canon, tagPedido, dir) {
+  const c = git(path.dirname(dir), ['clone', '-q', '--no-checkout', canon, dir], { plazo: PLAZO_RED });
+  if (!c.ok) throw new Negativa(`no pude clonar el canónico ${canon}: ${c.colgado ? `no respondió en ${minutos(PLAZO_RED)}` : primera(c.err)}`);
+  const tag = elegirTag(tagsDe(dir), tagPedido);
   const k = git(dir, ['-c', 'advice.detachedHead=false', 'checkout', '-q', '--detach', `refs/tags/${tag}`]);
   if (!k.ok) throw new Error(`no pude pararme en ${tag}: ${primera(k.err)}`);
   const rv = path.join(dir, 'kit', 'VERSION');
@@ -494,4 +498,4 @@ async function main(argv) {
   });
 }
 
-module.exports = { flota, main, leerArgs, entorno, porqueNoSubio, actualizarRepo, pendienteDeSubir, hooksDelMolde, prepararCanon, elegirTag, compararTags, versionDeTag, origenDe, resolverOrigen, todosLosRepos, fusionDe, primeraRoja, porqueRechazo, tabla, Negativa, RE_ROTA };
+module.exports = { flota, main, leerArgs, entorno, porqueNoSubio, actualizarRepo, pendienteDeSubir, hooksDelMolde, prepararCanon, tagsDe, elegirTag, compararTags, versionDeTag, origenDe, resolverOrigen, todosLosRepos, fusionDe, primeraRoja, porqueRechazo, tabla, Negativa, RE_ROTA };

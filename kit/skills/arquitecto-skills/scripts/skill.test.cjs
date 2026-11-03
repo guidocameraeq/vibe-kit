@@ -85,6 +85,7 @@ test('cada comando de script que el SKILL.md cita existe, y cada --opción citad
 test('INSTALAR y AUTO-ACTUALIZAR pasan por preparar-pc: desde un tag anotado, una sola pregunta, nunca la punta de main', () => {
   assert.match(TEXTO, /preparar-pc\.cjs/);
   assert.match(TEXTO, /tag anotado/);
+  assert.match(TEXTO, /actualizar\.cjs\n?\s*ultimo-tag <clon>/,'el tag lo elige un comando (git tag --sort pone el rc arriba de la versión)');
   assert.match(TEXTO, /AskUserQuestion/);
   assert.match(TEXTO, /nunca (?:la punta de )?`?main/i);
   assert.match(TEXTO, /--plan/);
