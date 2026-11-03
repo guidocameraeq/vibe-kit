@@ -71,6 +71,12 @@ Cerrada el 2026-10-27. Se queda acá porque el spec del kit v3 la cita como fuen
 | [`mision-4/DISENO-H-niveles-y-puertas.md`](mision-4/DISENO-H-niveles-y-puertas.md) | Tramo 4, racimo H: lo chico se hace en el chat sin spec ni chat nuevo (una sola regla de tamaño, dicha por la sesión), lo que es más que chico entra por el Arquitecto, que termina armando el módulo y dando la línea de apertura; subproyecto = módulo con nombre; director solo si se escribe a la vez; entorno de prueba declarado y verificado por script; ramas y worktrees por script; tope del spec; prototipo antes del spec. Decisiones 7-14 provisorias; revisado (45 hallazgos) y contrastado con otros métodos |
 | [`mision-4/REFERENCIAS-EXTERNAS.md`](mision-4/REFERENCIAS-EXTERNAS.md) | Tramo 4: qué hacen otros métodos agénticos (gentle-ai, agency-agents, MetaGPT), qué idea sirve a qué racimo y qué se descarta con su razón |
 
+## La misión 6, el ciclo de mejora — [`mision-6/`](mision-6/)
+
+| Archivo | Qué es |
+|---|---|
+| [`mision-6/PLAN-6a.md`](mision-6/PLAN-6a.md) | La 6a, fase 1: el inventario de los chats de las misiones 1-5, lo que costó cada misión y cada paso, el costo de leer los chats en tres opciones y el índice del documento del ciclo |
+
 ## De consulta — [`consulta/`](consulta/)
 
 Material de referencia que no cambia con el trabajo diario.
