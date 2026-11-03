@@ -962,6 +962,31 @@ revisiones que Hermes guarda en su repo.
 >    **horas, encargos y tokens**, el prompt de la sesión siguiente armado como este, y /cierre completo con el "Próximo paso" y su título.
 >    En el resumen final, primero "Decisiones sin Guido" y después lo que me espera a mí.
 
+### D8b.1 · Decisiones sin Guido
+
+D8b.1 corrió sin Guido, con su autorización previa (el prompt de la sesión madre, en nombre de Guido) y la vara del ADR-030, el
+2026-11-03 en `Guido-PC-eQ` desde las ~11:50. **Las ⚠️ arriba**. El detalle, en el delta (`SPEC-paquete-8b.md`, "Decisiones (la vara)").
+Red team 1 ronda sobre (1), (6) y (14): 3 ALTOS (r1-1 `propia` sin base, r1-2 `resolver` pisaba trabajo, r1-3 `auto` sin medir con los
+porteros), 4 MEDIOS, 1 BAJO; todos integrados, r1-3 cerrado midiendo.
+
+- ⚠️ **D8b-1 · El obrero de fondo en `auto`, con la lista; el respaldo en `acceptEdits`, impreso siempre.** Medido (delta, "Medición del
+  director"): `auto` anda sin pestaña, se combina con `--allowedTools` y el `ask` de los porteros es un no adentro de `-p`. **No medido**:
+  un "no" del propio clasificador adentro del `-p`. `[workflow · consistencia]`
+- ⚠️ **D8b-5 · `congelar` y `tomar la nueva` siempre te preguntan**; `resolver` es un script (la zona propia y la ficha no las escribe el
+  modelo). `[mejor código · acordarse de menos]`
+- ⚠️ **D8b-6 · El módulo sin sello del `/inicio` pasa a propuesta con tu OK** (antes llamaba solo al Arquitecto): sale de tu regla del
+  renglón 10. `[workflow · consistencia]`
+- ⚠️ **D8b-8 · El Modo A reusa el adoptador (`--nuevo`) y el SPEC-0 vive en `docs/modulos/v1/SPEC.md`**, para que `/inicio`, `/estado` y
+  `ready --pendientes` lo vean como a cualquier módulo. `[consistencia · mejor código]`
+- **D8b-2 · La fusión sigue en `acceptEdits`** (no es un obrero). **D8b-3 · `-rc` entero en la ficha, `VERSION`, tags, sello y `doctor`**,
+  no en `subio-al-kit` ni `cubiertos.md` (un rc nunca sube reglas al kit). **D8b-4 · El porqué es solo el `por:`** (lo decidiste vos):
+  cada adaptada pregunta una vez. **D8b-7 · La línea del módulo en los 300 caracteres de hoy.** **D8b-9 · Los githooks en la carpeta
+  principal, nunca en el clon**; con un `hooksPath` ajeno (husky) y sin `.githooks/` en el disco, no se tocan.
+- **D8b.1-a · `sello.cjs` repite la gramática de la versión** (usa solo node: se copia al molde); `copias.test.cjs` la compara con la de
+  `ficha.cjs`, así que no pueden separarse sin que una prueba se ponga roja. `[mejor código]`
+- **D8b.1-b · Un tag raro (`v3.0.0-beta.1`) el `doctor` lo ignora** (antes lo leía como 3.0.0); y **un rc nunca cuenta como "pendiente de
+  subir al kit"** en la flota (sale de D8b-3). `[consistencia]`
+
 ## Abrir D8.1 sin Guido (el prompt)
 
 *(Armado en el cierre de D7.1, 2026-11-02.)* En cualquier PC con el kit (`Draco-PC` está lista) y acceso a `vibe-research` (los chats y el
@@ -1006,6 +1031,25 @@ lo que viene lo decide él. Chat nuevo en vibe-kit, en Opus, con Guido presente 
 >    o después del primer módulo, y cómo queda el 8½ (las llaves de ese proyecto). Con eso, reescribí el orden 9 del SPEC-0, las filas
 >    D9.x del tracker y el prompt de la sesión siguiente.
 > 3. Nada de código en esta sesión; `/cierre` al terminar.
+
+## Mañana con Guido: preparar la PC y adoptar Hermes (8½)
+
+*(Armado en D8b.1, 2026-11-03.)* La mañana del 2026-11-04, con Guido, en Opus. **La red** ("Cambios al plan", 2026-11-03): si algo de
+esto muestra algo raro, Guido arranca el módulo igual, como hoy, y Hermes se adopta al cierre del primer tramo; la beta nunca frena su
+trabajo. Cada paso, con quién lo hace:
+
+| # | Paso | La sesión | Guido |
+|---|---|---|---|
+| 1 | **"preparame esta PC"** con la beta (`v3.0.0-rc.1`), en cada PC (`Guido-PC-eQ` y la otra) | corre el Equipador, muestra el plan (`--plan`) y lo que cambia en `settings.json` | dice sí a la pregunta; en la segunda PC, la abre él |
+| 2 | **El corrector viejo**: cruzar los cinco regex de `~/.claude/hooks/block_secrets.ps1` (está en `Guido-PC-eQ`) con los de `secretos.cjs` (pendiente (e) de D3.2) | lee los dos y dice qué frena el viejo que el nuevo no; si falta alguno, delta chico como G5b | decide si se saca el viejo (`--sacar-viejo`) |
+| 3 | **`adoptar --mirar`** sobre Hermes Desktop (en un clon, como dice `anexos/flota.md`) | muestra la propuesta: bases, piezas adaptadas, qué herramienta de hooks usa | la lee |
+| 4 | **`entornos:`** en la propuesta: cada base de Hermes con su clase | la escribe con lo que diga Guido | dice cuáles son y de qué clase (la de producción, la de prueba) |
+| 5 | **`cargar-secreto`**: la credencial de escritura al almacén, por base | le da el comando | **la tipea él** (la sesión nunca la ve) |
+| 6 | **`adoptar --aplicar … --principal <la carpeta de Hermes>`** | lo corre con el OK; los dos commits, el pull, los githooks (o "queda para el arranque") | da el OK |
+| 7 | **El módulo nuevo** con `/arquitecto` en Hermes (Modo B) | la entrevista corta, el delta sellado, el módulo con director | cuenta qué quiere |
+
+Lo que se mira y se anota en "Pendientes" para D9.1: cuánto tardó cada paso, qué preguntó de más, y todo lo que haya que arreglar (sale
+como `rc.2` y le llega a Hermes por la flota).
 
 ## Paralelizar: decidido que no (DP, 2026-10-29)
 
