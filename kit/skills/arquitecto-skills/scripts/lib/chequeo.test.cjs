@@ -155,6 +155,19 @@ test('sin la versión en las opciones: la ficha de HEAD mayor que la de base →
   rojo(correr(q, { version: undefined }), 'ficha', /igual o anterior/);
 });
 
+test('D8b-3 ficha (sin la versión en las opciones): rc.1 → rc.2 es mayor ✅; rc.1 → rc.1 ❌; rc.1 → el final ✅; el final → rc.2 ❌', () => {
+  const caso = (de, a) => armar({
+    antes: (d) => escribir(path.join(d, '.claude', 'kit.md'), fichaCon({ kit: de })),
+    cambio: (d) => escribir(path.join(d, '.claude', 'kit.md'), fichaCon({ kit: a })),
+  });
+  verde(correr(caso('3.0.0-rc.1', '3.0.0-rc.2'), { version: undefined }), 'ficha');
+  verde(correr(caso('3.0.0-rc.1', '3.0.0'), { version: undefined }), 'ficha');
+  rojo(correr(caso('3.0.0-rc.1', '3.0.0-rc.1'), { version: undefined }), 'ficha', /igual o anterior/);
+  rojo(correr(caso('3.0.0', '3.0.0-rc.2'), { version: undefined }), 'ficha', /igual o anterior/);
+  // con la versión en las opciones: la ficha de HEAD tiene que decir exactamente esa, también con -rc
+  verde(correr(caso('2.4.3', '3.0.0-rc.2'), { version: '3.0.0-rc.2' }), 'ficha');
+});
+
 // ---------------------------------------------------------------- un ❌ por línea
 
 test('1 llaves: un {{X}} suelto en lo que trajo → ❌ con archivo:línea; {{LINEAS:N}} y _fuente/ no cuentan', () => {

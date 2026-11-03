@@ -500,10 +500,12 @@ const recorte = (t, n = 80) => (t.length > n ? `${t.slice(0, n - 1)}…` : t);
 // Por qué no se pudo correr un externo (o null si corrió)
 const noCorrio = (x) => (x === 'sin-git' ? 'no hay git en el PATH' : x && x.plazo ? 'no respondió a tiempo (¿sin red?)' : x && x.error ? `no se pudo ejecutar (${recorte(x.error)})` : null);
 
-// "3.0", "v3.0.1", "2.4.3" → [a, b, c] (lo que falta es 0) o null
+// "3.0", "v3.0.1", "2.4.3", "v3.0.0-rc.1" → la versión entera "N.N.N[-rc.N]" (lo que falta es 0: v3.0 = 3.0.0) o null
 function verKit(t) {
-  const m = /^v?(\d+)\.(\d+)(?:\.(\d+))?/.exec(String(t).trim());
-  return m ? [Number(m[1]), Number(m[2]), Number(m[3] || 0)] : null;
+  const m = /^v?(\d+)\.(\d+)(?:\.(\d+))?(?:-rc\.(\d+))?(?![\w.-])/.exec(String(t).trim());
+  if (!m) return null;
+  const v = `${m[1]}.${m[2]}.${m[3] || 0}${m[4] === undefined ? '' : `-rc.${m[4]}`}`;
+  return ficha.RE_VERSION.test(v) ? v : null;
 }
 // El último tag v* ANOTADO de un `git ls-remote --tags` (un anotado trae además su línea "^{}"): { tag, v } o null.
 function ultimoTagAnotado(salida) {
@@ -515,7 +517,7 @@ function ultimoTagAnotado(salida) {
   let mejor = null;
   for (const tag of anotados) {
     const v = verKit(tag);
-    if (v && (!mejor || comparar(v, mejor.v) > 0)) mejor = { tag, v };
+    if (v && (!mejor || ficha.compararVersiones(v, mejor.v) > 0)) mejor = { tag, v };
   }
   return mejor;
 }
@@ -528,9 +530,10 @@ function chVersionKit(r, ls) {
   if (ls.codigo !== 0) return nv(`git ls-remote falló (${recorte(unaLinea(ls.salida)) || `código ${ls.codigo}`})`, 'revisá la red y que git tenga acceso al repo canónico, y volvé a correr doctor');
   const ult = ultimoTagAnotado(ls.salida);
   if (!ult) return nv('el canónico no trae ningún tag anotado v*', 'volvé a correr doctor cuando el canónico tenga su tag');
-  const iv = inst.join('.');
-  if (comparar(inst, ult.v) < 0) return res('⚠', `el kit instalado es ${iv} y el último tag del canónico es ${ult.tag}`, 'atrás: decile al Equipador "actualizate"');
-  return res('✓', comparar(inst, ult.v) === 0 ? `el kit instalado (${iv}) es el del último tag (${ult.tag})` : `el kit instalado (${iv}) es más nuevo que el último tag (${ult.tag})`);
+  const iv = inst;
+  const cmp = ficha.compararVersiones(inst, ult.v);
+  if (cmp < 0) return res('⚠', `el kit instalado es ${iv} y el último tag del canónico es ${ult.tag}`, 'atrás: decile al Equipador "actualizate"');
+  return res('✓', cmp === 0 ? `el kit instalado (${iv}) es el del último tag (${ult.tag})` : `el kit instalado (${iv}) es más nuevo que el último tag (${ult.tag})`);
 }
 
 const esVibeKit = (raiz) => !!raiz && existe(path.join(raiz, '.claude', 'scripts', 'kit-sync.sh')) && existe(path.join(raiz, 'kit', 'VERSION'));

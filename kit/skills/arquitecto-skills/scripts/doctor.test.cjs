@@ -541,6 +541,37 @@ test('version-kit: igual al último tag ✓ (el liviano v9.0.0 no cuenta); atrá
   assert.equal(r.codigo, 1);
 });
 
+test('D8b-3: los tags con -rc: v3.0.0-rc.2 > rc.1 y el final gana; un tag corto v3.0 sigue valiendo 3.0.0; uno raro no cuenta', () => {
+  const anot = (...ts) => ts.flatMap((t, i) => [`a${i}\trefs/tags/${t}`, `b${i}\trefs/tags/${t}^{}`]).join('\n');
+  assert.equal(D.ultimoTagAnotado(anot('v3.0.0-rc.1', 'v3.0.0-rc.2')).tag, 'v3.0.0-rc.2');
+  assert.equal(D.ultimoTagAnotado(anot('v3.0.0-rc.2', 'v3.0.0', 'v2.9.0')).tag, 'v3.0.0');
+  assert.equal(D.ultimoTagAnotado(anot('v3.0.0', 'v3.0.1-rc.1')).tag, 'v3.0.1-rc.1');
+  assert.equal(D.ultimoTagAnotado(anot('v3.0')).v, '3.0.0');
+  assert.equal(D.ultimoTagAnotado(anot('v3.0.0-beta.1', 'v2.4.3')).tag, 'v2.4.3');
+});
+
+test('D8b-3 version-kit: instalada 3.0.0-rc.1 con el último tag v3.0.0 → ⚠ atrás; con el tag rc.1 → ✓; rc.2 instalada y tag rc.1 → más nueva', () => {
+  const canon = (...tags) => {
+    const bare = nuevaCarpeta('canon-rc');
+    const trab = nuevaCarpeta('canon-rc-trab');
+    const c = ['-c', 'user.name=t', '-c', 'user.email=t@t'];
+    for (const a of [['init', '-q', '--bare', bare], ['init', '-q', trab]]) assert.equal(git(RAIZ_TMP, ...a).status, 0);
+    fs.writeFileSync(path.join(trab, 'x'), 'x');
+    const pasos = [['add', '.'], [...c, 'commit', '-q', '-m', 'x'], ...tags.map((t) => [...c, 'tag', '-a', t, '-m', t]), ['push', '-q', bare, 'HEAD:refs/heads/main', '--tags']];
+    for (const a of pasos) assert.equal(git(trab, ...a).status, 0);
+    return bare;
+  };
+  const e = escenario();
+  fs.writeFileSync(path.join(e.home, '.claude', 'VERSION'), '3.0.0-rc.1\n');
+  let r = correr(e, { extraEnv: { KIT_REPO_CANONICO: canon('v3.0.0') } });
+  assert.match(linea(r, 'version-kit'), /^⚠ version-kit · el kit instalado es 3\.0\.0-rc\.1 y el último tag del canónico es v3\.0\.0 · atrás/);
+  r = correr(e, { extraEnv: { KIT_REPO_CANONICO: canon('v3.0.0-rc.1') } });
+  assert.match(linea(r, 'version-kit'), /^✓ version-kit · el kit instalado \(3\.0\.0-rc\.1\) es el del último tag \(v3\.0\.0-rc\.1\)$/);
+  fs.writeFileSync(path.join(e.home, '.claude', 'VERSION'), '3.0.0-rc.2\n');
+  r = correr(e, { extraEnv: { KIT_REPO_CANONICO: canon('v3.0.0-rc.1') } });
+  assert.match(linea(r, 'version-kit'), /^✓ .* más nuevo que el último tag/);
+});
+
 test('sin red (git y gh falsos que fallan): version-kit, gh-push y mesa-gh dan ⚠ NO VERIFICADO, nunca ✓, y la salida sigue en 0', () => {
   const e = escenario();
   const real = D.buscarEnPath('git', process.env);

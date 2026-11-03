@@ -98,7 +98,7 @@ function versionKit() {
   } catch (e) {
     throw new Roto(`no encuentro la versión del kit (${ruta})`);
   }
-  if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(t)) throw new Roto(`la versión del kit no es X.Y.Z (${ruta})`);
+  if (!ficha.RE_VERSION.test(t)) throw new Roto(`la versión del kit no es N.N.N o N.N.N-rc.N (${ruta})`);
   return t;
 }
 

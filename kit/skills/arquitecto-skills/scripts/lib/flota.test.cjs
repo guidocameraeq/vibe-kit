@@ -93,8 +93,8 @@ function kitEnDisco(molde, version) {
 }
 
 // El canónico: v2.9.0 (molde viejo) y después `tag` con el molde nuevo y kit/VERSION = `version`. Devuelve la ruta del bare.
-// `despues`: más [molde, tag] encima (anotados, kit/VERSION = el tag sin -rc).
-function armarCanon({ molde = MOLDE_NUEVO, version = '3.0.0', tag = 'v3.0.0-rc.1', anotado = true, viejo = MOLDE_VIEJO, despues = [] } = {}) {
+// `despues`: más [molde, tag] encima (anotados, kit/VERSION = el tag sin la v, entero).
+function armarCanon({ molde = MOLDE_NUEVO, version = '3.0.0-rc.1', tag = 'v3.0.0-rc.1', anotado = true, viejo = MOLDE_VIEJO, despues = [] } = {}) {
   const src = nuevaCarpeta('canon-src');
   git(src, 'init', '-q', '-b', 'main');
   copiar(viejo, path.join(src, 'kit', 'molde'));
@@ -214,11 +214,11 @@ test('crit. 15: alfa y beta se mezclan en un commit a main; gama con modulo/x se
   for (const x of [alfa, beta]) {
     const nombre = path.basename(x.d);
     assert.equal(fila(r, nombre).resultado, 'mezclado', texto);
-    assert.equal(`${fila(r, nombre).antes} → ${fila(r, nombre).despues}`, '2.9.0 → 3.0.0');
+    assert.equal(`${fila(r, nombre).antes} → ${fila(r, nombre).despues}`, '2.9.0 → 3.0.0-rc.1');
     assert.equal(git(x.bare, 'rev-list', '--count', `${x.base}..main`), '1', 'un commit a main');
     assert.equal(git(x.bare, 'rev-parse', 'main^'), x.base, 'ff: el padre es el main de antes');
-    assert.match(git(x.bare, 'log', '-1', '--format=%s|%an', 'main'), /^kit 2\.9\.0 → 3\.0\.0\|kit-actualizador$/);
-    assert.match(fichaEn(x.bare, 'main'), /^kit: 3\.0\.0$/m);
+    assert.match(git(x.bare, 'log', '-1', '--format=%s|%an', 'main'), /^kit 2\.9\.0 → 3\.0\.0-rc\.1\|kit-actualizador$/);
+    assert.match(fichaEn(x.bare, 'main'), /^kit: 3\.0\.0-rc\.1$/m, 'la ficha guarda la versión entera, con el -rc');
     assert.match(git(x.bare, 'show', 'main:.claude/skills/cierre/SKILL.md'), /Un paso más del molde 3\.0\.0/);
     assert.deepEqual(ramasKit(x.bare), [], 'ninguna kit/* viva');
   }
@@ -350,6 +350,9 @@ test('el canónico: tag no anotado → 1; tag que no coincide con kit/VERSION �
   const distinto = await correr({ repos: ['alfa'], canon: armarCanon({ version: '3.1.0' }), tag: 'v3.0.0-rc.1', proyectos: P });
   assert.equal(distinto.codigo, 1);
   assert.match(distinto.lineas.join('\n'), /no coincide con kit\/VERSION \(3\.1\.0\)/);
+  const sinRc = await correr({ repos: ['alfa'], canon: armarCanon({ version: '3.0.0' }), tag: 'v3.0.0-rc.1', proyectos: P });
+  assert.equal(sinRc.codigo, 1, 'D8b-3: VERSION 3.0.0 con el tag rc.1 ya no coincide');
+  assert.match(sinRc.lineas.join('\n'), /no coincide con kit\/VERSION \(3\.0\.0\)/);
   const falta = await correr({ repos: ['alfa'], canon: armarCanon(), tag: 'v9.9.9', proyectos: P });
   assert.equal(falta.codigo, 1);
   assert.match(falta.lineas.join('\n'), /no tiene el tag v9\.9\.9/);
@@ -361,7 +364,7 @@ test('el canónico: tag no anotado → 1; tag que no coincide con kit/VERSION �
 
 const RC2 = '- Un paso más del molde 3.0.0: mirá que el handoff diga la versión del kit.\n- Y uno del rc.2: mirá también el TODO.';
 
-test('-rc: la rama lleva el tag; el rc.2 entrega aunque la ficha ya diga 3.0.0 y una kit/v3.0.0-rc.1 espere; sin cambios → al día; el final sin -rc saltea por la ficha', async () => {
+test('-rc: la rama lleva el tag; la ficha guarda el rc entero; rc.2 entrega sobre la ficha rc.1 (molde viejo v3.0.0-rc.1); mismo tag → al día; el final entrega sobre el rc', async () => {
   const canon = armarCanon({ despues: [[conCierre(RC2), 'v3.0.0-rc.2'], [conCierre(RC2), 'v3.0.0']] });
   const P = nuevaCarpeta('proyectos');
   const x = armarRepo(P, 'alfa', {
@@ -378,17 +381,25 @@ test('-rc: la rama lleva el tag; el rc.2 entrega aunque la ficha ya diga 3.0.0 y
   // Guido mezcla el rc.1 a mano y deja la rama; main ya no está protegida
   git(x.bare, 'update-ref', 'refs/heads/main', 'refs/heads/kit/v3.0.0-rc.1');
   fs.rmSync(path.join(x.bare, 'protegida'));
+  assert.match(fichaEn(x.bare, 'main'), /^kit: 3\.0\.0-rc\.1$/m);
+  // el mismo tag otra vez: la ficha dice exactamente esa versión → al día (también con -rc)
+  const r1b = await correr({ repos: ['alfa'], canon, tag: 'v3.0.0-rc.1', proyectos: P });
+  assert.equal(fila(r1b, 'alfa').resultado, 'al día', r1b.lineas.join('\n'));
+  assert.match(fila(r1b, 'alfa').porque, /la ficha ya dice 3\.0\.0-rc\.1/);
   const r2 = await correr({ repos: ['alfa'], canon, tag: 'v3.0.0-rc.2', proyectos: P });
   const t2 = r2.lineas.join('\n');
   assert.equal(fila(r2, 'alfa').resultado, 'mezclado', t2);
+  assert.equal(`${fila(r2, 'alfa').antes} → ${fila(r2, 'alfa').despues}`, '3.0.0-rc.1 → 3.0.0-rc.2', t2);
   assert.match(git(x.bare, 'show', 'main:.claude/skills/cierre/SKILL.md'), /Y uno del rc\.2/, 'el rc.2 llegó');
-  assert.match(fichaEn(x.bare, 'main'), /^kit: 3\.0\.0$/m);
+  assert.match(fichaEn(x.bare, 'main'), /^kit: 3\.0\.0-rc\.2$/m);
   const r3 = await correr({ repos: ['alfa'], canon, tag: 'v3.0.0-rc.2', proyectos: P });
   assert.equal(fila(r3, 'alfa').resultado, 'al día', r3.lineas.join('\n'));
-  assert.match(fila(r3, 'alfa').porque, /aplicar no cambió nada/);
+  assert.match(fila(r3, 'alfa').porque, /la ficha ya dice 3\.0\.0-rc\.2/);
   const r4 = await correr({ repos: ['alfa'], canon, tag: 'v3.0.0', proyectos: P });
-  assert.equal(fila(r4, 'alfa').resultado, 'al día');
-  assert.match(fila(r4, 'alfa').porque, /la ficha ya dice 3\.0\.0/, 'sin -rc, la ficha alcanza');
+  assert.equal(fila(r4, 'alfa').resultado, 'mezclado', r4.lineas.join('\n'));
+  assert.match(fichaEn(x.bare, 'main'), /^kit: 3\.0\.0$/m, 'el final también entra');
+  const r5 = await correr({ repos: ['alfa'], canon, tag: 'v3.0.0', proyectos: P });
+  assert.match(fila(r5, 'alfa').porque, /la ficha ya dice 3\.0\.0$/, 'sin cambios, la ficha alcanza');
 });
 
 // Un aplicar que, además, le cambia algo al clon (la red del push, un pre-push).
@@ -622,7 +633,8 @@ test('el orden de los tags: -rc.N antes que la versión; el último anotado; uno
   assert.equal(FL.elegirTag([t('v2.9.0'), t('v3.0.0', 'commit'), t('otro')]), 'v2.9.0');
   assert.throws(() => FL.elegirTag([t('v3.0.0', 'commit')]), /ningún tag v\* anotado/);
   assert.throws(() => FL.elegirTag([t('v3.0.0', 'commit')], 'v3.0.0'), /no es anotado/);
-  assert.equal(FL.versionDeTag('v3.0.0-rc.4'), '3.0.0');
+  assert.equal(FL.versionDeTag('v3.0.0-rc.4'), '3.0.0-rc.4');
+  assert.equal(FL.versionDeTag('v3.0.0'), '3.0.0');
 });
 
 test('fusionDe, primeraRoja, porqueRechazo, resolverOrigen', () => {
@@ -662,7 +674,7 @@ test('sin bypass: flota no nombra bypassPermissions', () => {
 
 test('SPEC-paquete-7 r1-6: flota le dice a aplicar si el tag es -rc (con -rc, aplicar no sube nada al kit)', async () => {
   for (const [tag, rc] of [['v3.0.0-rc.1', true], ['v3.0.0', false]]) {
-    const canon = armarCanon({ tag });
+    const canon = armarCanon({ tag, version: tag.slice(1) });
     const P = nuevaCarpeta('proyectos');
     armarRepo(P, 'alfa');
     const vistos = [];
@@ -769,12 +781,13 @@ test('RF-fix rf-4: rc → final — el rc solo "subiría"; el final no saltea po
   git(src, 'tag', '-a', 'v2.9.0', '-m', 'v2.9.0');
   fs.rmSync(path.join(src, 'kit', 'molde'), { recursive: true, force: true });
   copiar(nuevo, path.join(src, 'kit', 'molde'));
-  fs.writeFileSync(path.join(src, 'kit', 'VERSION'), '3.0.0\n');
+  fs.writeFileSync(path.join(src, 'kit', 'VERSION'), '3.0.0-rc.1\n');
   fs.writeFileSync(path.join(src, 'kit', 'cubiertos.md'), `---\ncubiertos:\n  - {cita: "demo ${id}", version: 3.0.0, pieza: cierre}\n---\n`);
   git(src, 'add', '-A');
   git(src, 'commit', '-q', '-m', 'kit 3.0.0-rc.1');
   git(src, 'tag', '-a', 'v3.0.0-rc.1', '-m', 'v3.0.0-rc.1');
-  git(src, 'commit', '-q', '--allow-empty', '-m', 'kit 3.0.0');
+  fs.writeFileSync(path.join(src, 'kit', 'VERSION'), '3.0.0\n');
+  git(src, 'commit', '-q', '-a', '--allow-empty', '-m', 'kit 3.0.0');
   git(src, 'tag', '-a', 'v3.0.0', '-m', 'v3.0.0');
   const canon = path.join(nuevaCarpeta('canon'), 'canon.git');
   git(T, 'clone', '-q', '--bare', src, canon);
@@ -784,7 +797,7 @@ test('RF-fix rf-4: rc → final — el rc solo "subiría"; el final no saltea po
   assert.equal(fila(r1, 'alfa').resultado, 'mezclado', r1.lineas.join('\n'));
   assert.equal(estado().estado, 'aplicado', 'con el rc, solo "subiría"');
   assert.match(git(x.bare, 'show', `main:${REL}`), /releer el handoff antes de cerrar/);
-  assert.match(fichaEn(x.bare, 'main'), /^kit: 3\.0\.0$/m);
+  assert.match(fichaEn(x.bare, 'main'), /^kit: 3\.0\.0-rc\.1$/m);
 
   const r2 = await correr({ repos: ['alfa'], canon, tag: 'v3.0.0', proyectos: P });
   const t2 = r2.lineas.join('\n');

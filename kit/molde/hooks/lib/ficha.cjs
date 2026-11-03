@@ -31,7 +31,8 @@ function E(linea, mensaje) {
 // ---------------------------------------------------------------- utilidades
 
 const RE_CLAVE = /^[a-z0-9][a-z0-9_-]*$/;
-const RE_VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
+// La versión del kit: N.N.N o N.N.N-rc.N (D8b-3). Una sola gramática; sello, actualizar, flota y doctor usan esta.
+const RE_VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-rc\.(0|[1-9]\d*))?$/;
 const MAX_PROFUNDIDAD = 3;
 
 const tiene = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
@@ -280,7 +281,7 @@ function validar(datos, st, cierre, avisos) {
 
   // kit, nivel, vars: obligatorios
   if (!tiene(datos, 'kit')) E(cierre, 'falta "kit" — poné la versión del kit, por ejemplo "kit: 2.4.3"');
-  patron('kit', datos.kit, RE_VERSION, 'tienen que ser tres números con puntos (N.N.N), sin ceros a la izquierda, por ejemplo 2.4.3');
+  patron('kit', datos.kit, RE_VERSION, 'tienen que ser N.N.N o N.N.N-rc.N, sin ceros a la izquierda, por ejemplo 2.4.3 o 3.0.0-rc.1');
   if (!tiene(datos, 'nivel')) E(cierre, 'falta "nivel" — poné "nivel: liviano" o "nivel: estandar"');
   uno('nivel', datos.nivel, ['liviano', 'estandar']);
   if (!tiene(datos, 'vars')) E(cierre, 'falta "vars" — poné el mapa con al menos "proyecto"');
@@ -497,14 +498,15 @@ function hash(contenido) {
   return crypto.createHash('sha256').update(buf).digest('hex').slice(0, 12);
 }
 
+// Orden: por los tres números; con los mismos, -rc.N antes que el final, y entre rc por N (3.0.0-rc.1 < 3.0.0-rc.2 < 3.0.0 < 3.0.1-rc.1).
 function compararVersiones(a, b) {
-  for (const v of [a, b]) {
-    if (typeof v !== 'string' || !RE_VERSION.test(v)) throw new Error('versión inválida — tiene que ser N.N.N (sin ceros a la izquierda)');
-  }
-  const x = a.split('.').map(Number);
-  const y = b.split('.').map(Number);
-  for (let i = 0; i < 3; i++) {
-    if (x[i] !== y[i]) return x[i] < y[i] ? -1 : 1;
+  const p = [a, b].map((v) => {
+    const m = typeof v === 'string' ? RE_VERSION.exec(v) : null;
+    if (!m) throw new Error('versión inválida — tiene que ser N.N.N o N.N.N-rc.N (sin ceros a la izquierda)');
+    return [Number(m[1]), Number(m[2]), Number(m[3]), m[4] === undefined ? Infinity : Number(m[4])];
+  });
+  for (let i = 0; i < 4; i++) {
+    if (p[0][i] !== p[1][i]) return p[0][i] < p[1][i] ? -1 : 1;
   }
   return 0;
 }
@@ -562,7 +564,7 @@ function versionDeArchivo(ruta) {
     return { falta: e && e.code === 'ENOENT' ? `no existe ${ruta}` : `no se pudo leer ${ruta}` };
   }
   const primera = t.replace(/^﻿/, '').split(/\r?\n/)[0].trim();
-  if (!RE_VERSION.test(primera)) return { falta: `${ruta} no tiene el formato N.N.N` };
+  if (!RE_VERSION.test(primera)) return { falta: `${ruta} no tiene el formato N.N.N o N.N.N-rc.N` };
   return { valor: primera };
 }
 
@@ -662,7 +664,7 @@ function cli(argv) {
   }
 }
 
-module.exports = { leer, leerCabecera, leerArchivo, hash, compararVersiones, ErrorFicha };
+module.exports = { leer, leerCabecera, leerArchivo, hash, compararVersiones, RE_VERSION, ErrorFicha };
 
 if (require.main === module) {
   process.exitCode = cli(process.argv.slice(2));

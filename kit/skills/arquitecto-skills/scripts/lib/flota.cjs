@@ -6,12 +6,12 @@
 //
 // Un script determinista (D6-1): nadie lo corre en bypass; el único agente es el de la fusión (aplicar → lib/fusion.cjs). En orden:
 //   (0) el canónico: git clone de --canon a un temporal, con tags, parado en --tag (sin él, el último tag v* ANOTADO por versión).
-//       Tag no anotado → 1. D6-15: kit/VERSION de ese árbol = el tag sin el -rc.N; si no → 1. Ese árbol es el --kit de aplicar.
+//       Tag no anotado → 1. D6-15: kit/VERSION de ese árbol = el tag sin la v, ENTERO (D8b-3: v3.0.0-rc.1 ↔ 3.0.0-rc.1); si no → 1. Ese árbol es el --kit de aplicar.
 //   (1) por repo, UNO DETRÁS DEL OTRO (D6-11), y uno que falla no frena a los demás: del checkout de Guido se lee SOLO el origin
 //       (git remote get-url): su árbol de trabajo nunca se toca ni se lee. Sin origin → "sin remoto: no se toca".
 //   (2) git clone completo (nunca --depth) del origin a un temporal; sin red o colgado → "sin tocar: <por qué>", con plazo.
-//   (3) saltear con su porqué: ramas modulo/* vivas en el remoto (obra en curso) · la ficha ya dice la versión y el tag no es -rc
-//       (al día; con un -rc siempre se aplica, y aplicar sin cambios = al día; tampoco es "al día" si el repo tiene un cambio
+//   (3) saltear con su porqué: ramas modulo/* vivas en el remoto (obra en curso) · la ficha dice exactamente esa versión
+//       (al día, también con un -rc; la ficha guarda la versión entera; tampoco es "al día" si el repo tiene un cambio
 //       aplicado que el kit/cubiertos.md nuevo nombra: el final tiene que cerrarle el ciclo, RF-fix rf-4) · kit/<tag> (kit/v3.0.0-rc.1: la rama lleva el tag)
 //       ya en el remoto (está o espera a Guido), SALVO que su último commit diga "kit: ROTA — …" (D6-16): esa se borra del remoto
 //       (git push --delete, nunca --force) y se rehace.
@@ -110,8 +110,8 @@ function elegirTag(tags, pedido) {
   if (!v.length) throw new Negativa('el canónico no tiene ningún tag v* anotado: no hay versión para repartir');
   return v[v.length - 1];
 }
-// D6-15: la versión = kit/VERSION; el tag sin el -rc.N tiene que decir lo mismo.
-const versionDeTag = (tag) => tag.slice(1).replace(/-rc\.\d+$/, '');
+// D8b-3 (cambia D6-15): la versión = kit/VERSION = el tag sin la v, ENTERO (v3.0.0-rc.1 ↔ 3.0.0-rc.1).
+const versionDeTag = (tag) => tag.slice(1);
 
 function prepararCanon(canon, tagPedido, dir) {
   const c = git(path.dirname(dir), ['clone', '-q', '--no-checkout', canon, dir], { plazo: PLAZO_RED });
@@ -123,16 +123,13 @@ function prepararCanon(canon, tagPedido, dir) {
     return { nombre, tipo };
   });
   const tag = elegirTag(tags, tagPedido);
-  // el -rc anterior de la misma versión (anotado): el molde viejo de un repo cuya ficha ya dice esa versión (vino de un -rc)
-  const rcs = tags.filter((x) => x.tipo === 'tag' && claveTag(x.nombre) && versionDeTag(x.nombre) === versionDeTag(tag) && /-rc\./.test(x.nombre)
-    && compararTags(x.nombre, tag) < 0).map((x) => x.nombre).sort(compararTags);
   const k = git(dir, ['-c', 'advice.detachedHead=false', 'checkout', '-q', '--detach', `refs/tags/${tag}`]);
   if (!k.ok) throw new Error(`no pude pararme en ${tag}: ${primera(k.err)}`);
   const rv = path.join(dir, 'kit', 'VERSION');
   if (!fs.existsSync(rv)) throw new Negativa(`el canónico en ${tag} no tiene kit/VERSION: no es un kit`);
   const version = fs.readFileSync(rv, 'utf8').trim();
   if (versionDeTag(tag) !== version) throw new Negativa(`el tag ${tag} no coincide con kit/VERSION (${version}): no reparto (D6-15)`);
-  return { dir, tag, version, rcAnterior: rcs.length ? rcs[rcs.length - 1] : null };
+  return { dir, tag, version };
 }
 
 // ---------------------------------------------------------------- de dónde sale cada repo
@@ -272,11 +269,11 @@ async function actualizarRepo(nombre, url, ctx) {
   }
   fila.antes = String(datos.kit || '?');
   fila.despues = fila.antes;
-  // la ficha guarda la versión sin el -rc: con un -rc siempre se aplica (y "al día" sale de aplicar sin cambios, abajo)
+  // la ficha guarda la versión entera (también con -rc): "al día" = la ficha dice exactamente esa versión
   const tag = ctx.tag || `v${ctx.version}`;
   const esRc = /-rc\.\d+$/.test(tag);
-  // …salvo que tenga algo que subir al kit (RF-fix rf-4): si el rc ya trajo la versión, sin esto el final nunca cerraba el ciclo
-  if (datos.kit === ctx.version && !esRc && !pendienteDeSubir(clon, ctx.kit, ctx.version, datos)) return fin('al día', `la ficha ya dice ${ctx.version}`);
+  // …salvo que tenga algo que subir al kit (RF-fix rf-4; con un -rc no se sube nada: r1-6)
+  if (datos.kit === ctx.version && (esRc || !pendienteDeSubir(clon, ctx.kit, ctx.version, datos))) return fin('al día', `la ficha ya dice ${ctx.version}`);
   const rama = `kit/${tag}`;
   let rehecha = false;
   if (ramas.includes(rama)) {
@@ -298,11 +295,8 @@ async function actualizarRepo(nombre, url, ctx) {
   const vars = datos.vars && typeof datos.vars === 'object' && !Array.isArray(datos.vars) ? datos.vars : {};
   const opM = { vars, fecha: ctx.fecha };
   const nuevo = M.materializarNuevo(ctx.kit, opM, path.join(ctx.tmp, `molde-nuevo-${ctx.n}`));
-  // la ficha ya dice esta versión (vino de un -rc): el molde viejo es el -rc anterior; sin él, el nuevo (como aplicar)
-  let moldeViejo = ctx.moldeViejo;
-  if (!moldeViejo && datos.kit === ctx.version && ctx.rcAnterior) {
-    moldeViejo = M.materializarViejo(ctx.kit, ctx.rcAnterior.slice(1), opM, path.join(ctx.tmp, `molde-rc-${ctx.n}`)).dir;
-  }
+  // el molde viejo, si no vino dado, es siempre el tag v<ficha.kit> (también si la ficha dice un -rc)
+  const moldeViejo = ctx.moldeViejo;
   let viejo = nuevo;
   if (moldeViejo) viejo = M.materializarDir(moldeViejo, opM, path.join(ctx.tmp, `molde-viejo-${ctx.n}`));
   else if (datos.kit !== ctx.version) viejo = M.materializarViejo(ctx.kit, datos.kit, opM, path.join(ctx.tmp, `molde-viejo-${ctx.n}`));
@@ -451,7 +445,7 @@ async function flota(o) {
         continue;
       }
       try {
-        filas.push(await actualizarRepo(etiqueta, og.url, { ...o, aplicar, chequear, kit: canon.dir, version: canon.version, tag: canon.tag, rcAnterior: canon.rcAnterior, tmp, n: n++ }));
+        filas.push(await actualizarRepo(etiqueta, og.url, { ...o, aplicar, chequear, kit: canon.dir, version: canon.version, tag: canon.tag, tmp, n: n++ }));
       } catch (e) {
         filas.push({ repo: etiqueta, antes: '?', despues: '?', resultado: 'error', porque: `${ROTO} (${e && e.message ? e.message : e})`, espera: [], falla: true });
       }

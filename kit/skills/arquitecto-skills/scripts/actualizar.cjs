@@ -11,24 +11,27 @@ const USO = [
   '     node actualizar.cjs chequear <carpeta> --kit <raíz del kit> --base <sha> [--molde-viejo <dir>] [--plazo <min>]',
   '     node actualizar.cjs flota <repo>… | todo --canon <url o dir del canónico> [--tag <vX.Y.Z[-rc.N]>] [--proyectos <carpeta>]',
   '                               [--plazo <min>] [--fecha <AAAA-MM-DD>] [--molde-viejo <dir>] [--claude <exe> | --claude no]',
-  '     node actualizar.cjs adoptar <carpeta> --kit <raíz del kit> --mirar [--nivel liviano|estandar] [--propuesta <archivo>]',
+  '     node actualizar.cjs adoptar <carpeta> --kit <raíz del kit> --mirar [--nivel liviano|estandar] [--propuesta <archivo>] [--nuevo]',
   '     node actualizar.cjs adoptar <carpeta> --kit <raíz del kit> --aplicar <archivo de propuesta> [--fecha <AAAA-MM-DD>]',
+  '                               [--principal <carpeta principal>]',
   '  aplicar   pone al día <carpeta> pieza por pieza según su ficha (.claude/kit.md), contra el molde del --kit. Escribe solo en',
   '            <carpeta>; no commitea, no pushea, no pone core.hooksPath (eso es de flota). Se niega (1) si <carpeta> no es un repo',
   '            con ficha que se lee, si no está limpia (salvo .kit-rol) o si .kit-rol no dice actualizador.',
   '  chequear  las nueve líneas del chequeo mecánico sobre lo aplicado y ya commiteado (<base>..HEAD); lo hace lib/chequeo.cjs.',
   '  flota     pone al día cada <repo> (una carpeta de --proyectos o la ruta de un checkout; todo = los de --proyectos con ficha u origin),',
   '            uno detrás del otro, en un clon temporal de su origin (tu checkout nunca se toca): saltea los que tienen modulo/*',
-  '            vivas, kit/<tag> ya subida (salvo ROTA: se rehace) o la ficha al día (sin -rc); rama kit/<tag>, aplicar, commit,',
+  '            vivas, kit/<tag> ya subida (salvo ROTA: se rehace) o la ficha al día (la versión entera, también con -rc); rama kit/<tag>, aplicar, commit,',
   '            chequear; verde → un commit a la rama por defecto; rojo → kit/<tag> ROTA; protegida → kit/<tag> te espera.',
   '            Al final, la tabla y "te espera:". Lo hace lib/flota.cjs.',
   '  adoptar   un proyecto sin ficha pasa al kit (P7.2; lo hace lib/adoptar.cjs). --mirar no cambia nada: imprime la propuesta (una',
   '            ficha con lo que vio arriba, en comentarios) y con --propuesta la escribe ahí, fuera de <carpeta>. --aplicar escribe la',
   '            ficha y trae las piezas en molde; se niega (1) como aplicar (sucia salvo .kit-rol, .kit-rol ≠ actualizador) o si ya',
   '            tiene ficha. No commitea: la última línea dice los dos commits que van.',
+  '  --nuevo        (con --mirar) un repo recién nacido: las bases van en molde, el candado va (sí) y el director-obrero y el estado también.',
+  '  --principal    (con --aplicar) la carpeta principal: ahí se prende core.hooksPath (los githooks del molde).',
   '  --nivel        el nivel de la propuesta (sin él: con código → estandar, sin código → liviano).',
   '  --canon        el repo canónico del kit (URL o carpeta): se clona con sus tags.',
-  '  --tag          el tag anotado a repartir (sin él, el último v* anotado); su versión sin -rc.N = kit/VERSION, o 1.',
+  '  --tag          el tag anotado a repartir (sin él, el último v* anotado); su versión sin la v = kit/VERSION entero, o 1.',
   '  --proyectos    la carpeta de proyectos (para nombrar un repo por su carpeta, y para todo).',
   '  --kit          la raíz de un clon del kit: el molde nuevo es su kit/molde/ y la versión nueva su kit/VERSION.',
   '  --molde-viejo  el molde del que viene el proyecto (sin él: git archive v<kit de la ficha> del --kit; con la misma',
@@ -77,7 +80,7 @@ const RUTA_FICHA = '.claude/kit.md';
 const RUTA_SETTINGS = '.claude/settings.json';
 const RUTA_CHANGELOG = 'docs/CHANGELOG.md';
 const KIT_ROL = '.kit-rol';
-const RE_VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
+const RE_VERSION = F.RE_VERSION; // N.N.N o N.N.N-rc.N: una sola gramática, la de la ficha (D8b-3)
 const SNIPPETS = [['gitignore.snippet', '.gitignore'], ['gitattributes.snippet', '.gitattributes']];
 const ADAPTADA = 'adaptada (desvío detectado)';
 const RUTA_CUBIERTOS = CU.RUTA; // en la raíz del --kit (D7-2); el lector es lib/cubiertos.cjs, el mismo de flota y cambios-flota
@@ -139,16 +142,16 @@ function revisarCarpeta(carpeta, fichaDada) {
   return { textoFicha, ficha };
 }
 
-// D6-15: la versión nueva = kit/VERSION; si el --kit está parado en un tag v*, tiene que decir lo mismo (sin el -rc.N).
+// D8b-3 (cambia D6-15): la versión nueva = kit/VERSION = el tag sin la v, ENTERO; si el --kit está parado en un tag v*, tiene que decir lo mismo.
 function versionDelKit(kit) {
   const rv = path.join(kit, 'kit', 'VERSION');
   if (!fs.existsSync(rv)) throw new Negativa(`${kit} no es la raíz de un kit (falta kit/VERSION)`);
   const v = fs.readFileSync(rv, 'utf8').trim();
-  if (!RE_VERSION.test(v)) throw new Negativa(`kit/VERSION dice "${v}": no es N.N.N`);
+  if (!RE_VERSION.test(v)) throw new Negativa(`kit/VERSION dice "${v}": no es N.N.N ni N.N.N-rc.N`);
   const t = gitEn(kit, ['tag', '--points-at', 'HEAD']);
   if (t.ok) {
     for (const tag of t.out.split(/\r?\n/).map((x) => x.trim()).filter((x) => /^v\d/.test(x))) {
-      const delTag = tag.slice(1).replace(/-rc\.\d+$/, '');
+      const delTag = tag.slice(1);
       if (delTag !== v) throw new Negativa(`el --kit está en el tag ${tag} pero kit/VERSION dice ${v}: no coinciden (D6-15)`);
     }
   }

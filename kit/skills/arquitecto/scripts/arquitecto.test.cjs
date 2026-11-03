@@ -231,6 +231,14 @@ test('parsear: gramática rota → error', () => {
   assert.match(S.parsear(malas['⚠️ sin no partir']).error, /no partir/);
 });
 
+test('D8b-3 parsear: "kit 3.0.0-rc.1" vale (el sello acepta el -rc); -rc.01, -beta.1 y 03.0.0 no', () => {
+  const c = S.parsear(valido({ kit: '3.0.0-rc.1' }));
+  assert.ok(c.ok, c.error);
+  assert.equal(c.campos.kit, '3.0.0-rc.1');
+  assert.ok(S.parsear(valido({ kit: '3.0.0-rc.0' })).ok);
+  for (const k of ['3.0.0-rc.01', '3.0.0-beta.1', '03.0.0', '3.0.0-rc', '3.0.0-rc.1.2', '3.0']) assert.equal(S.parsear(valido({ kit: k })).ok, false, k);
+});
+
 test('validar: — vale solo sin ficha; con ficha, entorno — (quitado: …) solo con el gate quitado', () => {
   const p = (c) => S.parsear(valido(c)).campos;
   assert.equal(S.validar(p({ tamano: '— (x)', entorno: '— (y)', tope: '— (z)' }), { hayFicha: false }), null);
