@@ -17,6 +17,7 @@ Qué hay en esta carpeta, qué es cada cosa y cuándo leerla. El repo en general
 | Archivo | Qué es | Cuándo leerlo |
 |---|---|---|
 | [`MISION-Y-VISION.md`](MISION-Y-VISION.md) | Para qué existe el repo, para quién, qué NO hace | La primera vez, o si se duda del rumbo |
+| [`CICLO-DE-MEJORA.md`](CICLO-DE-MEJORA.md) | El ciclo de mejora del método: cuándo arranca una vuelta, sus 5 pasos, qué sale y cuánto cuesta cada uno, cómo trabajamos de verdad en la vuelta 1, las lecciones por paso y las plantillas | Al arrancar una vuelta (cada 3-4 meses) o al planear un paso grande |
 
 ## Los planos (SPEC)
 
