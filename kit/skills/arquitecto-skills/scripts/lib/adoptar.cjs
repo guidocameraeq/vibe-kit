@@ -658,13 +658,21 @@ const origenDe = (d) => {
   const r = gitEn(d, ['config', '--get', 'remote.origin.url']);
   return r.ok ? r.out.trim() : '';
 };
+// Una URL de remoto comparable: sin barras ni .git al final, el host en minúsculas (https://, ssh://, git@host:…). `…/hermes`,
+// `…/hermes.git` y `…/Hermes.git/` en GitHub son el mismo repo; el camino no se toca (en otros hosts las mayúsculas cuentan).
+function normalizarOrigen(u) {
+  let s = String(u).trim().replace(/\/+$/, '').replace(/\.git$/i, '').replace(/\/+$/, '');
+  s = s.replace(/^([a-z][a-z0-9+.-]*:\/\/)([^@/]*@)?([^/:]+)/i, (_, esq, usr, host) => `${esq.toLowerCase()}${usr || ''}${host.toLowerCase()}`);
+  s = s.replace(/^([^@/:]+@)([^/:]+):/, (_, usr, host) => `${usr}${host.toLowerCase()}:`);
+  return s;
+}
 // r1-7: ¿el origin del clon es la carpeta principal (el Modo A clona la carpeta) o el mismo origin que el de ella (la flota clona
-// el remoto)? Una ruta local se compara resuelta; file:// también.
+// el remoto)? Una URL se compara normalizada; una ruta local, resuelta; file:// también.
 function mismoRepo(clon, principal) {
   const oc = origenDe(clon);
   if (!oc) return false;
   const op = origenDe(principal);
-  if (op && oc === op) return true;
+  if (op && normalizarOrigen(oc) === normalizarOrigen(op)) return true;
   const ruta = oc.replace(/^file:\/\//, '').replace(/^\/(?=[A-Za-z]:)/, '');
   return esCarpeta(ruta) && comparable(ruta) === comparable(principal);
 }
@@ -761,4 +769,4 @@ async function main(argv) {
   }
 }
 
-module.exports = { mirar, aplicarPropuesta, main, prenderGithooks, casaPlantilla, contenidoPropio, sinObservaciones, MARCA_INI, MARCA_FIN };
+module.exports = { mirar, aplicarPropuesta, main, prenderGithooks, normalizarOrigen, casaPlantilla, contenidoPropio, sinObservaciones, MARCA_INI, MARCA_FIN };

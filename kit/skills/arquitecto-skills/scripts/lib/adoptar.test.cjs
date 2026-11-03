@@ -489,6 +489,28 @@ test('prenderGithooks (8b, 14; r1-6, r1-7): .git/hooks real sin .githooks/ → i
   assert.equal(hooksPath(c), null, 'el clon, nunca');
 });
 
+test('prenderGithooks (RF-fix 5): el mismo origin escrito distinto (.git final, barra final, host en mayúsculas) es el mismo repo; otro camino, no', () => {
+  for (const [a, b] of [
+    ['https://github.com/guido/hermes', 'https://github.com/guido/hermes.git'],
+    ['https://github.com/guido/hermes/', 'https://GitHub.com/guido/hermes.git'],
+    ['git@github.com:guido/hermes.git', 'git@GITHUB.COM:guido/hermes'],
+    ['ssh://git@GitHub.com/guido/hermes.git/', 'ssh://git@github.com/guido/hermes'],
+  ]) assert.equal(AD.normalizarOrigen(a), AD.normalizarOrigen(b), `${a} = ${b}`);
+  assert.notEqual(AD.normalizarOrigen('https://github.com/guido/hermes'), AD.normalizarOrigen('https://github.com/guido/hermes-desktop'));
+  assert.notEqual(AD.normalizarOrigen('https://github.com/guido/hermes'), AD.normalizarOrigen('https://github.com/otro/hermes'));
+  // de punta a punta: la principal con …/hermes y el clon de la flota con …/hermes.git/ → puesto
+  const { p, c } = principalYClon('h6');
+  git(p, 'remote', 'add', 'origin', 'https://github.com/guido/hermes');
+  git(c, 'remote', 'set-url', 'origin', 'https://GitHub.com/guido/hermes.git/');
+  escribir(p, { '.githooks/pre-commit': '#!/bin/sh\n' });
+  assert.equal(AD.prenderGithooks(c, p), `githooks · ${p} · puesto`);
+  // y otro repo con el mismo host sigue sin valer
+  const otro = principalYClon('h7');
+  git(otro.p, 'remote', 'add', 'origin', 'https://github.com/guido/otro');
+  git(otro.c, 'remote', 'set-url', 'origin', 'https://github.com/guido/hermes.git');
+  assert.match(AD.prenderGithooks(otro.c, otro.p), /no pude: no es el mismo repo/);
+});
+
 test('la CLI: adoptar mal llamado → 2 con el USO (que nombra adoptar)', () => {
   for (const args of [['adoptar'], ['adoptar', 'x'], ['adoptar', 'x', '--kit', 'k'], ['adoptar', 'x', '--kit', 'k', '--mirar', '--aplicar', 'p'], ['adoptar', 'x', '--kit', 'k', '--mirar', '--nivel', 'mediano'], ['adoptar', 'x', '--kit', 'k', '--aplicar', 'p', '--nivel', 'liviano'], ['adoptar', 'x', '--kit', 'k', '--aplicar', 'p', '--propuesta', 'q'], ['adoptar', 'x', '--kit', 'k', '--mirar', '--raro'], ['adoptar', 'x', '--kit', 'k', '--aplicar']]) {
     const r = spawnSync(process.execPath, [path.join(SCRIPTS, 'actualizar.cjs'), ...args], { cwd: T, encoding: 'utf8' });
