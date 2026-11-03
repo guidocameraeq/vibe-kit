@@ -38,6 +38,7 @@
 - ADR-030 · Las sesiones que deciden sin Guido usan su vara: las cuatro cosas, el filtro pragmático y los 11 criterios; si no alcanza, preguntan (2026-10-30)
 - ADR-031 · El Arquitecto es la puerta única con cinco entradas; la PC y la flota derivan, no ejecutan (2026-10-30)
 - ADR-032 · El actualizador es un script de node; el único agente es el de la fusión con conflictos, y el clon lo juzga el runner del molde nuevo (2026-11-02)
+- ADR-033 · La credencial del Hub no pasa por el kit: el Equipador no maneja tokens, sin excepciones (2026-11-03)
 
 *Cada ADR nuevo suma su línea acá (lo pide `/cierre`).*
 
@@ -712,3 +713,21 @@ D6-6) y D6.2 lo construyó y lo probó con la flota de prueba (`alfa` y `beta` m
 - **Descartado:** *un `claude -p` por proyecto en bypass* (lo frena el clasificador; corre sin red de seguridad) · *no poner
   `core.hooksPath` en el clon y confiar solo en `chequear`* (la alternativa de D6-6: F2 midió que no hacía falta) · *el `.githooks/`
   del clon* (un proyecto con los githooks adaptados quedaba trabado para siempre: lo midió F2 en `alfa`).
+
+## ADR-033 · La credencial del Hub no pasa por el kit: el Equipador no maneja tokens, sin excepciones (2026-11-03)
+El diseño E pedía, al construir, un ADR con dos cosas: **la puerta única** (E §3) y **la única excepción** a "el Equipador jamás maneja
+tokens": la credencial de solo lectura del Hub, que el Equipador iba a instalar en una variable de entorno de cada PC (E §9). La puerta ya
+es el ADR-031. La excepción **no se construyó**: D6.1 hizo lo contrario. En "preparame esta PC" (SPEC-paquete-6, paso 5) lo de la empresa
+va por **la capa privada** (`privada: <carpeta>` en `kit-pc.md`, que corre su propio `instalar.cjs`), y la credencial del Hub **nunca
+pasa por el kit** (lo dice el paso 5 y la cabecera de `kit/skills/arquitecto-skills/scripts/preparar-pc.cjs`); `doctor` solo mira el
+**nombre** de la variable, nunca su valor. `cargar-secreto` tampoco escribe variables del sistema (SPEC-paquete-3, P6.6).
+- **Decisión (D8.1, sin Guido, con la vara del ADR-030; Guido la repasa):** el ADR escribe lo construido, no lo diseñado. **El Equipador no
+  maneja tokens, sin excepciones**: ni el del Hub. La credencial del Hub la pone la capa privada o la persona (como variable de entorno del
+  sistema, E §9), fuera de `~/.claude/` y de todo repo; el kit público solo conoce su nombre. `[consistencia · acordarse de menos]`
+- **Por qué:** vibe-kit es público (ADR-021): si el Equipador manejara la llave del registro de la empresa, el código que la toca viviría
+  en el repo público y una regla con excepción es una regla que se olvida. La capa privada ya existe para lo de la empresa, y el hueco que
+  la excepción tapaba ("qué proyectos opera esta persona") lo cubre el adaptador del registro sin que el kit vea la llave.
+- **Descartado:** *la excepción como la escribió E §3 y §9* (el kit público instalaría y manejaría la llave del registro de la empresa: más
+  superficie para una filtración y una regla con agujero) · *no escribir ADR* (E §3 lo pedía, y un chat futuro re-diseñaría la excepción).
+- **Reversible** (es texto y un paso del Equipador): si Guido quiere la excepción, se reabre este ADR y se construye como un paso de
+  "preparame esta PC" con su red team (toca credenciales).

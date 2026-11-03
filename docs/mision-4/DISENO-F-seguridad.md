@@ -120,6 +120,8 @@ para las 5 cosas del [racimo A](DISENO-A-frenos.md) §2) y sin reglas `Bash(...)
 *Qué cambia para Guido*: Claude no puede leer ni pegar un `.env` ni una clave aunque esté en bypass, y el "ya la
 tenés" se contesta leyendo el archivo público.
 
+*Corregido por el SPEC-0 del kit v3 (nota del 2026-11-03, D8.1): el `deny` de fábrica suma `Read(~/.config/kit-secretos/**)` en la PC (lo registra `instalar-hooks-pc`, [SPEC-paquete-3](../kit-v3/SPEC-paquete-3.md)) y, en el worktree del obrero, un `deny` de `Read`, `Edit` y `Write` por ruta absoluta al `.env` y `.env.*` del checkout principal (`worktree.cjs`, [SPEC-paquete-4](../kit-v3/SPEC-paquete-4.md), P6.2) (RT2-5).*
+
 ## 6. Git que borra trabajo: el hook de Desktop (decisión 2)
 
 Ya es corrector de fábrica por el racimo A (§6). F elige la forma: **el hook de Desktop (CM-65: stash, `reset
@@ -142,6 +144,8 @@ contra ~36.000 comandos)**, con `push --force` sumado a su lista. Entra como pie
   L52, L63). Era prosa en G §22 y TABLERO §6; se repitió, así que se vuelve mecánica. Se mide contra el historial antes de instalar (A §5.2).
 
 *Qué cambia*: nada visible; lo que vivía en un solo proyecto viaja con el molde.
+
+*Corregido por el SPEC-0 del kit v3 (nota del 2026-11-03, D8.1): el hook de git suma `update-ref`, `replace`, `symbolic-ref`, `branch -f`, `fetch` a `refs/remotes/*`, `push .`, `--no-verify`/`commit -n` y `core.hooksPath` por `-c` o `config`, y más casos (variables de git peligrosas, `config` y plomería en sesión de agente, salir del worktree); la tabla entera es `git-seguro.cjs` ([SPEC-paquete-3](../kit-v3/SPEC-paquete-3.md), P4.4) (RT2-2, RT3-1).*
 
 ## 7. Un solo corrector de secretos por PC (decisión 3)
 
@@ -174,6 +178,8 @@ registro de frenos (A §4). Su prueba de casos incluye, por regla, que el mensaj
 (idea de gentle-ai: un rechazo que no dice la salida lleva al agente a rodearlo).
 
 *Qué cambia*: las 3 PCs con el mismo freno sin que Guido lo arme.
+
+*Corregido por el SPEC-0 del kit v3 (nota del 2026-11-03, D8.1): el corrector suma los comandos que imprimen variables (`printenv`, `env` sin argumentos, un impresor con un nombre de `secretos:`) y credenciales guardadas (`gh auth token`, `git credential fill`), y en sesión de agente frena la escritura de `.claude/hooks/**`, `.claude/settings*.json`, `.githooks/**` y `.kit-rol` (`secretos.cjs`, [SPEC-paquete-3](../kit-v3/SPEC-paquete-3.md), P4.3) (RT1-4, RT2-2).*
 
 ## 8. Usar sin ver (decisión 4, corrección de Guido)
 
@@ -252,6 +258,8 @@ que escribe.
 
 *Nota de H (2026-10-25): tres cosas para esta ficha. (1) El `nivel:` de cada entorno pasa a **`clase:`** (`real · prueba · dummy`), para que `.claude/kit.md` no tenga dos campos `nivel:` con sentidos distintos (el del proyecto es `liviano | estandar`). (2) El `gitignore.snippet` suma **`.claude/worktrees/`**. (3) Lo que PLAYBOOK §1.5 exigía a lo grande o en producción (`RECOVERY.md` probado, `PROTECTED_PATHS.md`, `CRONS.md`) **no se pierde**: un entorno `clase: real` obliga a declararlos (la línea base "backups vacíos en verde" del criterio 4); dónde viven (`referencia/` de B §4) lo cierra la revisión integral. Y `cargar-secreto` que llega después de crear un worktree no lo alcanza: `worktree sync-env` vuelve a copiar `.worktreeinclude` ([DISENO-H](DISENO-H-niveles-y-puertas.md) §4, §10).*
 
+*Corregido por el SPEC-0 del kit v3 (nota del 2026-11-03, D8.1): `cargar-secreto` escribe por defecto en el almacén `~/.config/kit-secretos/<proyecto>.env`, bajo un `deny` de lectura que suma el instalador de la PC; al `.env` del proyecto solo con `--al-env` (lo `dummy`, `prueba` o de solo lectura); y **nunca toca una variable del sistema ni de usuario** ([SPEC-paquete-3](../kit-v3/SPEC-paquete-3.md), P6.6) (RT2-5).*
+
 ## 10. El escáner antes del commit (decisión 6)
 
 - **gitleaks sobre lo que se va a commitear** (`gitleaks git --staged --redact --no-banner`): mira solo lo agregado,
@@ -274,6 +282,8 @@ que escribe.
 - Cubre también P14 (una skill nunca guarda credenciales): las skills viven en el repo y pasan por el mismo escáner.
 
 *Qué cambia*: el cierre deja de gritar por nada; lo que grita es un secreto real, con archivo y línea.
+
+*Corregido por el SPEC-0 del kit v3 (nota del 2026-11-03, D8.1): sin gitleaks (o colgado dos veces), el commit pasa **en rojo** con humano, director u obrero, y **falla** con `.kit-rol` `nocturno`, `actualizador` o `desconocido` ([SPEC-paquete-3](../kit-v3/SPEC-paquete-3.md), P4.6) (RT1-7, RT2-9, RF-11).*
 
 ## 11. Dos lenguas (decisión 7)
 
@@ -328,6 +338,8 @@ El "sí" de Guido saca la pregunta, no la red. Y si una de las 5 preguntas de A 
 forma permanente ("en Hub, borrar datos reales no se pregunta"), queda en la ficha (§14) y entra por acá.
 
 *Qué cambia*: Guido da el permiso una vez y duerme igual.
+
+*Corregido por el SPEC-0 del kit v3 (nota del 2026-11-03, D8.1): `db migrar` contra un entorno `real` (o no declarado) se niega sin `.claude/revisiones/<hash>.md` commiteado con `veredicto: aprobado` para ese plan; `DELETE`/`DROP`/`TRUNCATE` sobre una `tabla:` de `sensible.datos-reales` → PARADA de noche y, de día, solo con `--borra-datos-reales` después del clic de `sensible` (`db-guardia.cjs`, [SPEC-paquete-3](../kit-v3/SPEC-paquete-3.md), P6.6) (RT3-4).*
 
 ## 14. Las barreras son del proyecto (decisión 10, corrección de Guido)
 
@@ -394,6 +406,10 @@ de noche por una `ask`.
 
 *Nota de H (2026-10-25): `sensible:` pasa a reglas concretas **por script**: cada entrada nombra el comando del proyecto que la toca (§13) y `doctor` o el actualizador regenera en la zona propia de `settings` la regla `ask` sobre ese comando contra los entornos `clase: real` (y `deny` fuera del comando donde se pueda), así el guardia de E no lo marca como desvío. **NO VERIFICADO** qué patrones distingue `settings` dentro de un mismo comando (`--env real` vs `dummy`): para la revisión integral. También nace `gate:entorno-prueba`, quitable acá con rastro como toda barrera ([DISENO-H](DISENO-H-niveles-y-puertas.md) §9, §15).*
 
+*Corregido por el SPEC-0 del kit v3 (nota del 2026-11-03, D8.1): los hooks leen `frenos.quitados` (y `sensible:`) de la ficha de la rama por defecto del remoto (`origin/HEAD`); sin remoto, de la rama local por defecto; sin ficha, los de fábrica sin nada quitado; ficha rota, fábrica y el motivo lo dice ([SPEC-paquete-2](../kit-v3/SPEC-paquete-2.md) §4.7, [SPEC-paquete-3](../kit-v3/SPEC-paquete-3.md) P4.7) (RT1-2, RT2-3).*
+
+*Corregido por el SPEC-0 del kit v3 (nota del 2026-11-03, D8.1): las barreras no las cambia el Arquitecto: las cambia **`cambios aprobar <id>`**, que corre el humano en su ventana; `candado:barreras` lo exige en todo commit que toque `frenos:`, `sensible:`, `autorizado:`, los settings, los hooks o los githooks ([SPEC-paquete-2](../kit-v3/SPEC-paquete-2.md)) (RT2-1, RT2-4, RT3-2).*
+
 ## 15. El arranque verifica y declara (decisión 11)
 
 En el hook de arranque del molde, **por script en node** (ya es dependencia por `check-code.js`; parsear JSON y YAML
@@ -426,6 +442,8 @@ el bypass esquivó en un proyecto (radiografía §6.6) era "preguntar": pasa a `
 (el de esta PC) sigue: con `deny` y hooks debajo, el clasificador decide sobre lo demás. *Revisión integral (2026-10-26)*: "lo demás" era
 el agujero; §14 dice ahora qué se hace con el clasificador, y **de noche el obrero nunca corre en `auto`** (tres negaciones seguidas lo apagan
 y la sesión vuelve a preguntar a alguien que no está).
+
+*Corregido por el SPEC-0 del kit v3 (nota del 2026-11-03, D8.1): todo hook de Claude que niega se registra con `"onFailure": "block"` y `"timeout": 20`, y ante cualquier error propio devuelve `deny` "freno roto: corré doctor"; la única excepción es el `UserPromptSubmit` de `secretos` ([SPEC-paquete-3](../kit-v3/SPEC-paquete-3.md), P4.7) (RT1-1).*
 
 ## 17. Las alertas y el runbook (decisión 13)
 

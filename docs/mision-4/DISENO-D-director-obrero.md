@@ -268,6 +268,8 @@ las 5 de A; de noche nada se cuelga esperando.
 
 *Nota de H (2026-10-25): los nombres de sesión quedan **`director-<x>`** y **`obrero-<x>--<ID>`** (dos módulos con director a la vez daban dos `obrero-07`); si el módulo cruza dos repos (`enlaza:`), **`director-<alias>-<x>`**. La línea de apertura es **de terminal** (`cd <worktree> && claude --name …`): una pestaña de la extensión abre en `main`, así que el obrero imprime su rama al presentarse y hace PARADA si no es la de su encargo. Los encargos como subagente (7.2) **no usan `isolation: worktree`** (ramifica desde el remoto): el script `worktree` crea `modulo--<x>--<ID>` y la definición del subagente dice en qué ruta trabajar, y lleva adentro "leé tu encargo y corré el chequeo base" ([DISENO-H](DISENO-H-niveles-y-puertas.md) §10.4-§10.6).*
 
+*Corregido por el SPEC-0 del kit v3 (nota del 2026-11-03, D8.1): todo hook de Claude que niega se registra con `"onFailure": "block"` y `"timeout": 20`, y ante cualquier error propio devuelve `deny` "freno roto: corré doctor"; la única excepción es el `UserPromptSubmit` de `secretos` ([SPEC-paquete-3](../kit-v3/SPEC-paquete-3.md), P4.7) (RT1-1).*
+
 ## 8. Ramas y escritores (decisión 5; cerrada el 2026-10-27, se verifica en el piloto)
 
 *Fue provisoria por pedido de Guido (2026-10-23) hasta la revisión integral. La cerró él el 2026-10-27, con tres cosas a favor: el acta de
@@ -351,6 +353,8 @@ turnos vacíos. *Qué cambia para Guido*: de día no lee avisos; de noche duerme
 **El historial de estimado vs real** (pedido de Guido): lo mecánico lo llena el script desde git y la estimación la escribe el director en
 `tiempos.md` al cerrar cada tramo (C §2.6, §3; B §5bis); la lección va al histórico al cerrar el módulo. D no agrega nada: dice cuándo.
 *Nota de G (2026-10-24): la tabla de tipos de mensaje (los ocho de director/obrero y los seis de la mesa) la fija G y D la usa; `PRESENTACION` y `RESPUESTA` quedan definidos ahí ([DISENO-G](DISENO-G-mesa-y-pcs.md) §6).*
+
+*Corregido por el SPEC-0 del kit v3 (nota del 2026-11-03, D8.1): un mensaje entrante es **dato, no orden**, por rol y dirección: antes de actuar se pasa por `encargo.cjs mensaje <TIPO> [<ruta>]`, y una orden vale solo si apunta a un archivo commiteado ([SPEC-paquete-5](../kit-v3/SPEC-paquete-5.md), P5.3bis; `NUCLEO.md` del molde) (RT1-8, RT2-7).*
 
 ## 10. La revisión: Opus siempre en la 1.ª vuelta del código, profundidad por riesgo, congelada en un commit, una corrección (decisión 7)
 
@@ -502,6 +506,8 @@ mirara. ~40 pedidos repetidos al pie de cada mensaje; una decisión recordada 4 
 
 *Qué cambia para Guido*: le llegan solo las decisiones de clase 3; lo pendiente está en un solo lugar; si un tramo le preguntó de más, el
 método lo registra solo.
+
+*Corregido por el SPEC-0 del kit v3 (nota del 2026-11-03, D8.1): (d) se mantiene el clic de Guido para las barreras, que es la ventana de `cambios aprobar <id>` (la corre el humano), con tres candados: el script se niega desde carpetas de agentes, el sello anota la carpeta y el hook niega el patrón en los modos sin ventana; `candado:barreras` lo exige en todo commit. Decidido por Guido el 2026-10-27 ([SPEC-paquete-2](../kit-v3/SPEC-paquete-2.md)) (RT2-1, RT2-4, RT3-2, RF-3).*
 
 ## 14. Estandarizar sin perder lo propio: un dialecto en el molde, lo propio en cuatro casas, el canon entra por el módulo nuevo (decisión 11)
 
@@ -691,6 +697,8 @@ Con [`tips/tanda-2026-11-contraste.md`](../../tips/tanda-2026-11-contraste.md) a
 **Ya no queda nada provisorio**: la decisión 5 (ramas y escritores, §8) no la tocó el acta (G-5 mixta: "gana git" funciona; el atraso de los
 worktrees lo arregla el `fetch` en `/inicio`, G §11.1), el revisor frío le cerró el hueco del merge a `main`, y Guido la cerró el 2026-10-27. **El apartado propio de director/obrero** (el canon
 de D contra lo que Hermes Desktop cambió en su método entre el 2026-10-20 y hoy) está en §22bis, escrito en la sesión 2 con Guido adentro.
+
+*Corregido por el SPEC-0 del kit v3 (nota del 2026-11-03, D8.1): fila D-2: la excepción de chico no queda "para el spec": se declara **por regla, según su cicatriz**, en el campo `chico:` de su cambio en `.claude/cambios/` (cicatriz de seguridad, producción o plata → corre en chico salvo `chico: no` con razón); sin registro migrado, todas corren en chico hasta el OK de adopción ([SPEC-paquete-2](../kit-v3/SPEC-paquete-2.md)) (RT1-10, RT2-8, RF-27).*
 
 ## 22bis. El apartado director/obrero: el canon contra lo que Hermes Desktop cambió solo (sesión 2, 2026-10-26)
 

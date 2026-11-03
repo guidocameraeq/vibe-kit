@@ -301,6 +301,8 @@ vivos y foto antes de borrar (Codex: el script se niega a borrar lo no mergeado 
 HEAD desacoplado (Codex: queremos la rama con nombre en el historial). *Qué cambia para Guido*: no inventa nombres ni corre `git worktree`;
 pega la línea que le da el director; si hace `claude -w` a mano, no rompe nada: es una misión plana.
 
+*Corregido por el SPEC-0 del kit v3 (nota del 2026-11-03, D8.1): `worktree.cjs` no copia al worktree los nombres que viven en el almacén (la credencial de escritura de un `real` no llega), le niega al obrero el `.env` del checkout principal y escribe `.kit-rol`; `cerrar` muda los renglones de `frenos.log` al registro común de la PC, y el commit de `frenos.log` antes del merge lo hace el gate (`integrar` pasó al orden 5) ([SPEC-paquete-4](../kit-v3/SPEC-paquete-4.md), P6.2, D4-2, D4-3) (RT1-3, RT2-12, RT2-9, RF-11).*
+
 ## 11. `/inicio` propone worktree solo si hay otra sesión viva en el mismo checkout (decisión 8) `[acordarse de menos]`
 
 Es la pregunta de G §11.4, y **la única de worktree que Guido va a ver**. Dos precisiones (R-8): **se cuentan solo las sesiones vivas en el
