@@ -7,24 +7,28 @@
 //   node .claude/scripts/worktree.cjs cerrar <x>[--<ID>]
 //   node .claude/scripts/worktree.cjs cerrar <x>--<ID> --cancelado
 //   node .claude/scripts/worktree.cjs integrar <x> [--ok-de-guido]
+//   node .claude/scripts/worktree.cjs integrados
 // Rama modulo/<x> → carpeta .claude/worktrees/modulo--<x> (director); modulo/<x>--<ID> → .claude/worktrees/modulo--<x>--<ID> (obrero).
 // Las carpetas van SIEMPRE bajo el checkout principal (el padre del git-common-dir), también corrido desde el worktree del director.
 // `crear`/`abrir` escriben .kit-rol (ASCII, sin BOM, LF: los mismos bytes desde PowerShell o Bash), copian lo que lista
 // .worktreeinclude (sin él: los .env y .env.* ignorados) SACANDO todo renglón cuyo nombre esté en el almacén del proyecto
 // (~/.config/kit-secretos/<proyecto>.env: de ahí se leen solo los NOMBRES; ningún valor sale por pantalla), suman al
 // .claude/settings.local.json del worktree un deny absoluto al .env del principal, corren vars.comando-setup e imprimen la
-// apertura: primero `code "<ruta>"` y la pestaña de Claude (VS Code), la línea de terminal solo si `claude` está en el PATH (rf-1).
+// apertura: primero `code "<ruta>"` y la pestaña de Claude (VS Code), la línea de terminal solo si `claude` está en el PATH (rf-1),
+// y al final `primer mensaje: /director` (módulo, también con --noche) o `primer mensaje: /obrero <x>--<ID>` (encargo; 8r T2).
 // El filtro falla cerrado: almacén ilegible, o un .env* trackeado con un nombre del almacén → 1 sin crear nada.
 // `cerrar`: fetch de origin (rf-5), todos los chequeos primero (desde adentro, sin mergear en su madre local u origin, sucio;
 // frenos.log mudado al <git-common-dir>/kit-frenos.log), después `git worktree remove` sin --force, y solo si anduvo,
-// `git branch -D`. Una carpeta sin registro con solo lo ignorado se borra y sigue (rf-6). Con `--cancelado` (rf-1 del revisor frío
+// `git branch -D`; la de origin, solo si el fetch anduvo y está en origin/<madre> (8r, rt-2). Una carpeta sin registro con solo lo
+// ignorado se borra y sigue (rf-6). Con `--cancelado` (rf-1 del revisor frío
 // de D5.1): sin mergear, con el renglón "cancelado <ID> @<sha7>" commiteado en la ficha; borra worktree (--force), rama y la de origin.
 // `integrar` (SPEC-paquete-5; D4-2, D4-3, D5-3, D5-11, D5-14, r1-1): el módulo terminado a la rama por defecto de origin. Todos los
 // chequeos primero (origin, encargo abierto, la ficha vigente, el temporal, el worktree del director); después el commit de su
 // frenos.log y modulo/<x> igual a la de origin; un temporal desprendido en origin/<defecto>, equipado como `equipar`, con el merge
 // --no-ff, el gate (barreras del rango, el candado, comando-test) y el push sin --force. Nada sube si algo falla; el temporal se
-// borra siempre (con --force: es suyo). Si el push anduvo, sale 0 aunque el temporal no se borre (un aviso). Sin /cierre: los docs,
-// en el próximo /cierre de main (D5-3).
+// borra siempre (con --force: es suyo). Si el push anduvo, sale 0 aunque el temporal no se borre (un aviso). Sin /cierre: termina en
+// "después: /cierre en tu carpeta principal …" (D5-3; 8r, 5). `integrados` (8r, 5): los merges "integrar: módulo <x>" de la rama por
+// defecto local posteriores al último commit que tocó docs/SESSION_HANDOFF.md, una línea cada uno; sale 0 siempre.
 // Salidas: 0 anduvo · 1 negado o con fallas (una línea por qué) · 2 mal llamado. Un error propio: "worktree roto: corré doctor", 1.
 // Node estándar, cero dependencias. Es .cjs a propósito: corre igual en proyectos con "type": "module".
 
@@ -41,6 +45,7 @@ const USO = [
   '  cerrar <x>[--<ID>]                            borra carpeta y rama, solo si está mergeada y limpia',
   '  cerrar <x>--<ID> --cancelado                  cancela el encargo: con "cancelado <ID> @<sha7>" commiteado en la ficha',
   '  integrar <x> [--ok-de-guido]                  merge --no-ff de modulo/<x> en la rama por defecto de origin, con el gate',
+  '  integrados                                    los módulos integrados después del último handoff (para el /inicio; sale 0)',
 ].join('\n');
 
 const ROTO = 'worktree roto: corré doctor';
@@ -77,7 +82,7 @@ function nombreDe(token) {
 function leerArgumentos(argv) {
   const [comando, ...resto] = argv;
   if (!comando) malLlamado('Falta el comando.');
-  if (!['crear', 'abrir', 'sync-env', 'cerrar', 'integrar'].includes(comando)) malLlamado(`Comando desconocido: ${comando}`);
+  if (!['crear', 'abrir', 'sync-env', 'cerrar', 'integrar', 'integrados'].includes(comando)) malLlamado(`Comando desconocido: ${comando}`);
   const conOpciones = comando === 'crear' || comando === 'abrir';
   const a = { comando, nombre: null, noche: false, modelo: null, okDeGuido: false, cancelado: false };
   const pos = [];
@@ -103,7 +108,7 @@ function leerArgumentos(argv) {
       pos.push(v);
     }
   }
-  const cuantos = comando === 'sync-env' ? 0 : 1;
+  const cuantos = comando === 'sync-env' || comando === 'integrados' ? 0 : 1;
   if (pos.length !== cuantos) malLlamado(`${comando} lleva ${cuantos} argumento(s) además de las banderas.`);
   if (cuantos) a.nombre = nombreDe(pos[0]);
   if (comando === 'integrar' && a.nombre.id !== null) malLlamado('integrar va con el módulo (<x>), no con un encargo: el encargo se mergea en modulo/<x>.');
@@ -459,6 +464,8 @@ function lineasApertura(wt, n, modelo, opciones) {
   const claude = comandoClaude(opciones);
   if (claude === 'claude') lineas.push(`o en una terminal: cd "${barras(wt)}"; claude --name ${sesion} --model ${m}`);
   else if (claude) lineas.push(`o en una terminal de Git Bash: cd "${barras(wt)}" && ${claude} --name ${sesion} --model ${m}`);
+  // SPEC-paquete-8r T2 (rt-5): qué escribir en la pestaña nueva, según el nombre (no el rol: `crear x --noche` es el director de noche).
+  lineas.push(n.id === null ? 'primer mensaje: /director' : `primer mensaje: /obrero ${n.x}--${n.id}`);
   return lineas;
 }
 
@@ -821,8 +828,10 @@ function cerrar(L, u, n, cancelado = false) {
   // origin desde la otra PC deja de verse. Sin remoto, o si falla, se sigue con lo que hay.
   const remotos = (G(L, ['remote'], P).stdout || '').split('\n').map((s) => s.trim());
   const conOrigin = remotos.includes('origin');
+  let fetchOk = false;
   if (conOrigin) {
     const f = G(L, ['fetch', '-q', '--prune', 'origin'], P);
+    fetchOk = f.ok;
     if (!f.ok) lineas.push(`no pude hacer fetch de origin (${primeraLinea(f.stderr) || f.error}): sigo con lo que hay en esta PC`);
   }
   if (cancelado) return cancelar(L, u, n, lineas, conOrigin);
@@ -887,8 +896,26 @@ function cerrar(L, u, n, cancelado = false) {
   }
   const b = G(L, ['branch', '-D', n.rama], P);
   if (!b.ok) return { codigo: 1, lineas: [...lineas, `worktree cerrar: no pude borrar la rama ${n.rama}: ${primeraLinea(b.stderr) || b.error}`] };
+  if (conOrigin) lineas.push(...cerrarEnOrigin(L, P, n, madre, fetchOk));
   lineas.push(`worktree cerrar: ${n.rama} cerrada (estaba mergeada en ${madre})`);
   return { codigo: 0, lineas };
+}
+
+// SPEC-paquete-8r (1; rt-2, D8r-7): después de la rama local, la de origin. Se borra (`push origin --delete`) solo si el fetch de
+// esta corrida anduvo y la punta de origin/<rama> es ancestro de origin/<madre> (no de la local: puede no estar pusheada); si no,
+// queda con una línea. Que no se pueda borrar no cambia la salida (la local ya se cerró). → las líneas.
+function cerrarEnOrigin(L, P, n, madre, fetchOk) {
+  const remota = sha(L, P, `refs/remotes/origin/${n.rama}`);
+  if (!remota) return [];
+  if (!fetchOk) return ['la de origin queda: no la borré: el fetch falló'];
+  const def = L.contexto.ramaPorDefecto(P) || madre;
+  const enMadre = existeRef(L, P, `refs/remotes/origin/${madre}`) && G(L, ['merge-base', '--is-ancestor', remota, `refs/remotes/origin/${madre}`], P).ok;
+  if (!enMadre) {
+    return [madre === def ? `la de origin queda: la flota la ignora cuando ${def} llegue a origin` : `la de origin queda: la flota la ignora cuando ${madre} llegue a ${def}`];
+  }
+  const d = G(L, ['push', '-q', 'origin', '--delete', n.rama], P, { tiempo: 120000 });
+  if (!d.ok) return [`la de origin queda: no pude borrarla (${primeraLinea(d.stderr) || d.error})`];
+  return [`borré ${n.rama} de origin (estaba en origin/${madre})`];
 }
 
 // ---------------------------------------------------------------- integrar (SPEC-paquete-5; D4-2, D4-3, D5-3, D5-11, D5-14, r1-1)
@@ -995,7 +1022,36 @@ function enElTemporal(L, P, tmp, n, def, base, punta, okLinea, opciones) {
     return no(`git push falló (${primeraLinea(push.stderr) || push.error}): nada subió`);
   }
   lineas.push(`worktree integrar: módulo ${n.x} en origin/${def} — merge ${merge}`);
-  lineas.push(`los docs del proyecto, en el próximo /cierre de ${def}`);
+  // SPEC-paquete-8r (5, R:39): los papeles de <def> quedaron atrás; los pone al día el /cierre de la carpeta principal.
+  lineas.push(`después: /cierre en tu carpeta principal (los papeles de ${def} quedaron atrás del módulo ${n.x})`);
+  return { codigo: 0, lineas };
+}
+
+// ---------------------------------------------------------------- integrados (SPEC-paquete-8r 5; D8r-5)
+
+const HANDOFF = 'docs/SESSION_HANDOFF.md';
+const RE_INTEGRAR = /^integrar: módulo (\S+)$/;
+
+// Los merges `integrar: módulo <x>` del primer padre de la rama por defecto LOCAL posteriores al último commit que tocó
+// docs/SESSION_HANDOFF.md: una línea por módulo (del más viejo al más nuevo); nada si no hay. Sale 0 siempre: si algo falla, una
+// línea y 0 (lo corre el /inicio después del pull; no frena nada).
+function integrados(L, u) {
+  const no = (m) => ({ codigo: 0, lineas: [`worktree integrados: no pude mirar (${m})`] });
+  const P = u.principal;
+  const def = porDefectoLocal(L, P);
+  if (!def) return no('no hay rama por defecto local');
+  const ult = G(L, ['log', '-1', '--format=%H', `refs/heads/${def}`, '--', HANDOFF], P);
+  if (!ult.ok) return no(primeraLinea(ult.stderr) || ult.error || 'git log falló');
+  const desde = ult.stdout.trim();
+  const rango = desde ? `${desde}..refs/heads/${def}` : `refs/heads/${def}`;
+  const r = G(L, ['log', '--first-parent', '--merges', '--reverse', '--format=%H%x09%s', rango], P);
+  if (!r.ok) return no(primeraLinea(r.stderr) || r.error || 'git log falló');
+  const lineas = [];
+  for (const l of r.stdout.split('\n').map((s) => s.replace(/\r$/, '')).filter(Boolean)) {
+    const tab = l.indexOf('\t');
+    const m = RE_INTEGRAR.exec(l.slice(tab + 1));
+    if (m) lineas.push(`módulo ${m[1]} integrado después del último handoff (@${l.slice(0, 7)}): corré /cierre para poner los papeles al día`);
+  }
   return { codigo: 0, lineas };
 }
 
@@ -1113,7 +1169,13 @@ function main(argv, opciones = {}) {
     const L = libs();
     const u = ubicar(L, opciones.cwd || process.cwd());
     if (!u) {
-      r = { codigo: 1, lineas: ['worktree: no estás dentro de un repo git'] };
+      r = { codigo: a.comando === 'integrados' ? 0 : 1, lineas: ['worktree: no estás dentro de un repo git'] };
+    } else if (a.comando === 'integrados') {
+      try {
+        r = integrados(L, u);
+      } catch (e) {
+        r = { codigo: 0, lineas: ['worktree integrados: no pude mirar (error inesperado)'] };
+      }
     } else if (a.comando === 'crear') {
       r = crear(L, u, a.nombre, a, opciones);
     } else if (a.comando === 'abrir') {

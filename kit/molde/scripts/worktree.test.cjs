@@ -110,9 +110,11 @@ function cli(cwd, args, extra = {}) {
   return { codigo, out, err };
 }
 const re = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-// La apertura sin `claude` en el PATH: las dos líneas de VS Code, al final de la salida.
-const apertura = (wt, modelo, sesion) =>
+// La apertura sin `claude` en el PATH: las dos líneas de VS Code y el primer mensaje (8r T2), al final de la salida.
+const primerMensaje = (sesion) => `primer mensaje: ${sesion.startsWith('director-') ? '/director' : `/obrero ${sesion.slice('obrero-'.length)}`}\n`;
+const vscode = (wt, modelo, sesion) =>
   `abrilo en VS Code: code "${barras(wt)}"\nen esa ventana, abrí la pestaña de Claude y elegí ${modelo} (nombre sugerido para la sesión: ${sesion})\n`;
+const apertura = (wt, modelo, sesion) => vscode(wt, modelo, sesion) + primerMensaje(sesion);
 const existeRama = (P, r) => gOk(P, 'rev-parse', '--verify', '-q', `refs/heads/${r}`);
 const barras = (p) => path.resolve(p).split(path.sep).join('/');
 const sinValores = (r, ...valores) => {
@@ -228,7 +230,7 @@ test('H §19bis: crear x y x--01 — nombres, base del encargo en la punta del m
   const w1 = p.wt('modulo--x--01');
   assert.equal(g(w1, 'rev-parse', 'HEAD'), punta);
   assert.deepEqual(fs.readFileSync(path.join(w1, '.kit-rol')), Buffer.from('obrero\n'));
-  assert.match(r1.out, new RegExp(`${re(apertura(w1, 'Sonnet', 'obrero-x--01'))}o en una terminal: cd "${re(barras(w1))}"; claude --name obrero-x--01 --model sonnet\\n$`));
+  assert.match(r1.out, new RegExp(`${re(vscode(w1, 'Sonnet', 'obrero-x--01'))}o en una terminal: cd "${re(barras(w1))}"; claude --name obrero-x--01 --model sonnet\\nprimer mensaje: /obrero x--01\\n$`));
   // --noche y --model.
   const r2 = cli(p.P, ['crear', 'x--02', '--noche', '--model', 'haiku']);
   assert.equal(r2.codigo, 0, r2.out);
@@ -811,7 +813,7 @@ test('integrar verde: frenos.log del director commiteado antes, merge --no-ff en
   assert.match(r.out, new RegExp(`^worktree integrar: módulo x en origin/main — merge ${merge}$`, 'm'));
   assert.match(r.out, /comando-setup anduvo: node setup\.cjs/);
   assert.match(r.out, /comando-test en verde: node test\.cjs/);
-  assert.ok(r.out.endsWith('los docs del proyecto, en el próximo /cierre de main\n'), r.out);
+  assert.ok(r.out.endsWith('después: /cierre en tu carpeta principal (los papeles de main quedaron atrás del módulo x)\n'), r.out);
   assert.ok(existeRama(p.P, 'modulo/x') && fs.existsSync(wx), 'integrar no cierra el módulo: eso es cerrar');
   // La segunda: nada que integrar, nada cambia.
   const r2 = cli(p.P, ['integrar', 'x']);
@@ -1027,7 +1029,7 @@ test('rf-1: cerrar x--02 --cancelado — sin el renglón (o sin el SHA de la pun
   const c = cli(p.P, ['crear', 'x--02'], { claudeEnPath: false, dirExtensiones: ext });
   assert.equal(c.codigo, 0, c.out);
   const P = require('../hooks/lib/proceso.cjs');
-  assert.ok(c.out.endsWith(`o en una terminal de Git Bash: cd "${barras(w2)}" && "${P.rutaGitBash(bin)}" --name obrero-x--02 --model sonnet\n`), c.out);
+  assert.ok(c.out.endsWith(`o en una terminal de Git Bash: cd "${barras(w2)}" && "${P.rutaGitBash(bin)}" --name obrero-x--02 --model sonnet\nprimer mensaje: /obrero x--02\n`), c.out);
   assert.ok(cli(p.P, ['crear', 'y'], { claudeEnPath: false }).out.endsWith(apertura(p.wt('modulo--y'), 'Opus', 'director-y')), 'sin ninguno, solo VS Code');
   const punta = commit(w2, { 'e.txt': 'a medias\n' }, 'trabajo a medias');
   g(w2, 'push', '-q', 'origin', 'modulo/x--02');
@@ -1128,4 +1130,123 @@ test('rf-6: integrar y cerrar hacen fetch --prune — el encargo borrado de orig
   g(otra, 'push', '-q', 'origin', '--delete', 'modulo/x--05');
   assert.equal(cli(p.P, ['cerrar', 'x--09']).codigo, 1);
   assert.ok(!gOk(p.P, 'rev-parse', '--verify', '-q', 'refs/remotes/origin/modulo/x--05'), 'cerrar podó');
+});
+
+// ---------------------------------------------------------------- SPEC-paquete-8r: T2 (primer mensaje), 1 (cerrar y origin), 5 (integrados)
+
+test('8r T2: crear x y crear x --noche terminan en "primer mensaje: /director"; crear x--01, en "primer mensaje: /obrero x--01"', () => {
+  const p = proyecto();
+  const rx = cli(p.P, ['crear', 'x']);
+  assert.equal(rx.codigo, 0, rx.out);
+  assert.ok(rx.out.endsWith('primer mensaje: /director\n'), rx.out);
+  const ry = cli(p.P, ['crear', 'y', '--noche']);
+  assert.equal(ry.codigo, 0, ry.out);
+  assert.deepEqual(fs.readFileSync(path.join(p.wt('modulo--y'), '.kit-rol')), Buffer.from('nocturno\n'));
+  assert.ok(ry.out.endsWith('primer mensaje: /director\n'), 'el director de noche también arranca con /director (rt-5)');
+  const r1 = cli(p.P, ['crear', 'x--01']);
+  assert.equal(r1.codigo, 0, r1.out);
+  assert.ok(r1.out.endsWith('primer mensaje: /obrero x--01\n'), r1.out);
+  assert.doesNotMatch(r1.out, /primer mensaje: \/director/);
+});
+
+const enRemoto = (p, rama) => gOk(p.remoto, 'rev-parse', '--verify', '-q', `refs/heads/${rama}`);
+
+test('8r 1: cerrar x borra la de origin solo si está en origin/main — mezclada → la borra; solo en la main local o adelantada → queda y lo dice; fetch fallado → queda', () => {
+  const p = proyecto({ archivos: { 'docs/modulos/z/README.md': '# z\nEstado: en curso\n', 'docs/modulos/w/README.md': '# w\nEstado: en curso\n' } });
+  // Sí: mezclada en origin/main.
+  assert.equal(cli(p.P, ['crear', 'x']).codigo, 0);
+  commit(p.wt('modulo--x'), { 'x.txt': '1\n' });
+  g(p.wt('modulo--x'), 'push', '-q', 'origin', 'modulo/x', 'modulo/x:main');
+  let r = cli(p.P, ['cerrar', 'x']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(r.out, /^borré modulo\/x de origin \(estaba en origin\/main\)$/m);
+  assert.ok(!enRemoto(p, 'modulo/x') && !existeRama(p.P, 'modulo/x'));
+  g(p.P, 'pull', '-q', 'origin', 'main');
+  // No: mezclada solo en la main LOCAL (sin push): la local se cierra, la de origin queda.
+  assert.equal(cli(p.P, ['crear', 'y']).codigo, 0);
+  commit(p.wt('modulo--y'), { 'y.txt': '1\n' });
+  g(p.wt('modulo--y'), 'push', '-q', 'origin', 'modulo/y');
+  g(p.P, 'merge', '-q', '--no-ff', '-m', 'y local', 'modulo/y');
+  r = cli(p.P, ['cerrar', 'y']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(r.out, /^la de origin queda: la flota la ignora cuando main llegue a origin$/m);
+  assert.ok(enRemoto(p, 'modulo/y') && !existeRama(p.P, 'modulo/y'));
+  g(p.P, 'push', '-q', 'origin', 'main');
+  // No: adelantada en origin (la otra PC le sumó un commit que no está en main).
+  assert.equal(cli(p.P, ['crear', 'z']).codigo, 0);
+  commit(p.wt('modulo--z'), { 'z.txt': '1\n' });
+  g(p.wt('modulo--z'), 'push', '-q', 'origin', 'modulo/z', 'modulo/z:main');
+  const otra = path.join(p.base, 'otra');
+  g(p.base, 'clone', '-q', '-b', 'modulo/z', p.remoto, otra);
+  commit(otra, { 'z2.txt': '2\n' });
+  g(otra, 'push', '-q', 'origin', 'modulo/z');
+  r = cli(p.P, ['cerrar', 'z']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(r.out, /^la de origin queda: la flota la ignora cuando main llegue a origin$/m);
+  assert.ok(enRemoto(p, 'modulo/z'));
+  // No: el fetch de esta corrida falló (aunque la ref vieja diga mezclada).
+  g(p.P, 'pull', '-q', 'origin', 'main');
+  assert.equal(cli(p.P, ['crear', 'w']).codigo, 0);
+  commit(p.wt('modulo--w'), { 'w.txt': '1\n' });
+  g(p.wt('modulo--w'), 'push', '-q', 'origin', 'modulo/w', 'modulo/w:main');
+  g(p.P, 'fetch', '-q', 'origin');
+  const url = g(p.P, 'remote', 'get-url', 'origin');
+  g(p.P, 'remote', 'set-url', 'origin', path.join(p.base, 'no-existe.git'));
+  r = cli(p.P, ['cerrar', 'w']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(r.out, /^la de origin queda: no la borré: el fetch falló$/m);
+  g(p.P, 'remote', 'set-url', 'origin', url);
+  assert.ok(enRemoto(p, 'modulo/w'));
+});
+
+test('8r 1: cerrar x--01 borra la de origin si está en origin/modulo/x; mezclada solo en la modulo/x local → queda y lo dice', () => {
+  const p = proyecto();
+  assert.equal(cli(p.P, ['crear', 'x']).codigo, 0);
+  const wx = p.wt('modulo--x');
+  for (const id of ['01', '02']) {
+    assert.equal(cli(p.P, ['crear', `x--${id}`]).codigo, 0);
+    commit(p.wt(`modulo--x--${id}`), { [`e${id}.txt`]: `${id}\n` });
+    g(p.wt(`modulo--x--${id}`), 'push', '-q', 'origin', `modulo/x--${id}`);
+  }
+  g(wx, 'merge', '-q', '--no-ff', '-m', 'encargo 01', 'modulo/x--01');
+  g(wx, 'push', '-q', 'origin', 'modulo/x');
+  let r = cli(p.P, ['cerrar', 'x--01']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(r.out, /^borré modulo\/x--01 de origin \(estaba en origin\/modulo\/x\)$/m);
+  assert.ok(!enRemoto(p, 'modulo/x--01'));
+  g(wx, 'merge', '-q', '--no-ff', '-m', 'encargo 02', 'modulo/x--02');
+  r = cli(p.P, ['cerrar', 'x--02']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(r.out, /^la de origin queda: la flota la ignora cuando modulo\/x llegue a main$/m);
+  assert.ok(enRemoto(p, 'modulo/x--02') && !existeRama(p.P, 'modulo/x--02'));
+});
+
+test('8r 5: integrar termina en "después: /cierre …"; integrados — el merge después del handoff → la línea; con el handoff después → nada; sale 0 siempre', () => {
+  const p = proyectoI({ archivos: { 'docs/SESSION_HANDOFF.md': '# handoff\n' } });
+  assert.match(W.USO, /integrados/);
+  for (const args of [['integrados', 'x'], ['integrados', '--noche']]) assert.equal(cli(p.P, args).codigo, 2, JSON.stringify(args));
+  let r = cli(p.P, ['integrados']);
+  assert.deepEqual([r.codigo, r.out], [0, ''], 'sin merges de módulo: nada');
+  moduloX(p);
+  const i = cli(p.P, ['integrar', 'x']);
+  assert.equal(i.codigo, 0, i.out);
+  assert.ok(i.out.endsWith('después: /cierre en tu carpeta principal (los papeles de main quedaron atrás del módulo x)\n'), i.out);
+  // Antes del pull, la main local no lo tiene: nada.
+  assert.deepEqual([cli(p.P, ['integrados']).codigo, cli(p.P, ['integrados']).out], [0, '']);
+  g(p.P, 'pull', '-q', 'origin', 'main');
+  const merge = g(p.P, 'rev-parse', 'main');
+  r = cli(p.P, ['integrados']);
+  assert.equal(r.codigo, 0);
+  assert.equal(r.out, `módulo x integrado después del último handoff (@${merge.slice(0, 7)}): corré /cierre para poner los papeles al día\n`);
+  // Desde el worktree del director: lo mismo (mira la main local del repo).
+  assert.equal(cli(p.wt('modulo--x'), ['integrados']).out, r.out);
+  // Un merge que no es de integrar no cuenta; el handoff commiteado después → nada.
+  commit(p.P, { 'docs/SESSION_HANDOFF.md': '# handoff\nal día\n' }, 'cierre');
+  r = cli(p.P, ['integrados']);
+  assert.deepEqual([r.codigo, r.out], [0, '']);
+  // Fuera de un repo: una línea y 0.
+  const fuera = path.join(p.base, 'fuera');
+  fs.mkdirSync(fuera);
+  r = cli(fuera, ['integrados']);
+  assert.equal(r.codigo, 0, r.out);
 });

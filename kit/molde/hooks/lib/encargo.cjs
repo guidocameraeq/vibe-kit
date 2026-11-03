@@ -8,6 +8,7 @@
 const path = require('path');
 const git = require('./git.cjs');
 const sello = require('./sello.cjs');
+const ficha = require('./ficha.cjs');
 
 const RE_X = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const RE_ID = /^[0-9]{2}$/;
@@ -462,6 +463,42 @@ function juzgarSpec(buf, { hayFicha, datosFicha }) {
   return { ok: true };
 }
 
+// ---------------------------------------------------------------- la tarea 0 (SPEC-paquete-8r T3, el freno en script; rt-1)
+
+const RUTA_FICHA = '.claude/kit.md';
+
+// ¿El sello del spec dice `entorno — (tarea 0: montar el entorno de prueba)`? (sin sello o uno que no se lee: no).
+function selloConTareaCero(buf) {
+  const lineas = sello.renglones(buf);
+  const u = sello.ubicar(lineas);
+  if (u.sello < 0) return false;
+  const p = sello.parsear(lineas[u.sello]);
+  return p.ok && p.campos.entorno.tipo === 'no' && p.campos.entorno.razon === sello.RAZON_TAREA_CERO;
+}
+
+// ¿La ficha (.claude/kit.md) del commit `sha` declara un entorno clase dummy o prueba? Sin ficha, o una que no se lee: no.
+function fichaConEntornoDePrueba(cwd, sha) {
+  const buf = leerEn(cwd, sha, RUTA_FICHA);
+  if (!buf) return false;
+  let datos;
+  try {
+    datos = ficha.leer(buf.toString('utf8')).datos;
+  } catch (e) {
+    return false;
+  }
+  const entornos = datos && datos.entornos && typeof datos.entornos === 'object' ? Object.values(datos.entornos) : [];
+  return entornos.some((v) => v && (v.clase === 'dummy' || v.clase === 'prueba'));
+}
+
+// tareaCeroPendiente(cwd, n, ref, specBuf) → null (sigue) o el por de la negativa: con el sello de tarea 0 en el spec del módulo,
+// todo encargo con ID distinto de 00 espera a que la ficha de la PUNTA de modulo/<x> (`ref`: la más nueva entre local y origin; la
+// vigente de origin/<def> no la ve hasta integrar) tenga un entorno dummy o prueba. El 00 es la tarea 0: monta el entorno y lo suma.
+function tareaCeroPendiente(cwd, n, ref, specBuf) {
+  if (n.id === '00' || !specBuf || !selloConTareaCero(specBuf)) return null;
+  if (fichaConEntornoDePrueba(cwd, ref.sha)) return null;
+  return `la tarea 0 (encargo 00) va primero: el entorno de prueba no está en la ficha de ${n.madre}`;
+}
+
 // ---------------------------------------------------------------- un mensaje (P5.3bis; r1-11)
 
 const NO_RECIBE = 'esta sesión no recibe órdenes por mensaje';
@@ -537,6 +574,6 @@ function juzgarMensaje({ texto, rol, pestana, rutaEnModulo: enModulo, citaDeMesa
 module.exports = {
   RE_X, RE_ID, VOCABULARIO, CAMPOS, SECCIONES, HERRAMIENTAS, INTERPRETES, SCRIPT_ENCARGO, SIN_SELLO, NO_RECIBE, DEVUELTO, ErrorGit,
   nombreEncargo, sinTilde, tipoDe, leerEncargo, interprete, interpreteAbierto, validarRegla, validarAutorizado, aPermiso, base,
-  shaDe, esAncestro, refMasNueva, tipoEn, leerEn, ubicarEncargo, specVigente, gateQuitadoEl, juzgarSpec, limpiarPalabra, rutaYSha,
+  shaDe, esAncestro, refMasNueva, tipoEn, leerEn, ubicarEncargo, specVigente, gateQuitadoEl, juzgarSpec, selloConTareaCero, fichaConEntornoDePrueba, tareaCeroPendiente, limpiarPalabra, rutaYSha,
   rutaEnModulo, juzgarMensaje, citaMesa, RE_CITA_MESA,
 };

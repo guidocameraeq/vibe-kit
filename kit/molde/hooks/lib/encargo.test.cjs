@@ -574,3 +574,51 @@ test('juzgarMensaje (mesa): sin la cita, o con una que git no respalda → devue
   assert.deepEqual(juzgar('RESPUESTA el tema'), { codigo: 0, linea: 'vale: dato' }, 'la RESPUESTA del director al obrero no cambió');
   assert.deepEqual(juzgar(AVISO('PRESENTACIÓN'), { pestana: DIRECTOR, citaDeMesa: citaOk }).codigo, 0, 'la tilde es alias también en la mesa');
 });
+
+// ---------------------------------------------------------------- SPEC-paquete-8r T3: la tarea 0 (crit. 3; rt-1)
+
+// Un spec sellado con `entorno — (tarea 0: …)`; `renglon`: el de la tarea 0 en ## Entorno de prueba (null: sin él); `ejecucion`.
+function specT0({ renglon = '- **Tarea 0**: montar la base de prueba', ejecucion = 'módulo con director' } = {}) {
+  const texto = ['# SPEC: x', '- Estado: READY', '- Fecha: 2026-10-30', '', '## Pedido original, textual', 'algo', '', '## Ejecución', ejecucion, '',
+    '## Entorno de prueba', renglon === null ? 'la base real' : renglon, ''].join('\n');
+  const linea = S.armar({ fecha: '2026-10-30', kit: '3.0.0-rc.2', tamano: '✅', entorno: `— (${S.RAZON_TAREA_CERO})`, tope: '✅', hash: S.hash(texto) });
+  return Buffer.from(texto.replace('- Fecha: 2026-10-30\n', `- Fecha: 2026-10-30\n${linea}\n`));
+}
+const fichaT0 = (clase) => ['---', 'kit: 3.0.0-rc.2', 'nivel: estandar', 'vars:', '  proyecto: prueba', 'entornos:', '  base-real:', '    clase: real',
+  ...(clase ? ['  otra:', `    clase: ${clase}`] : []), '---', ''].join('\n');
+
+test('8r juzgarSpec: el sello de tarea 0 con ficha vale con el renglón y módulo con director; sin el renglón (hash rehecho) o módulo solo → inválido', () => {
+  assert.deepEqual(E.juzgarSpec(specT0(), { hayFicha: true }), { ok: true });
+  assert.deepEqual(E.juzgarSpec(specT0({ renglon: 'Tarea 0: sin guion ni negrita' }), { hayFicha: true }), { ok: true });
+  assert.match(E.juzgarSpec(specT0({ renglon: null }), { hayFicha: true }).por, /^sello inválido: entorno dice tarea 0, pero el spec no trae el renglón/);
+  assert.match(E.juzgarSpec(specT0({ ejecucion: 'módulo solo' }), { hayFicha: true }).por, /^sello inválido: .*vale solo en un módulo con director/);
+  assert.equal(E.selloConTareaCero(specT0()), true);
+  assert.equal(E.selloConTareaCero(spec()), false);
+  assert.equal(E.selloConTareaCero(spec({ sellar: false })), false);
+  assert.equal(E.selloConTareaCero(spec({ entorno: '— (quitado: sin base)' })), false);
+});
+
+test('8r tareaCeroPendiente: con el sello de tarea 0, un ID ≠ 00 espera al dummy o prueba en la ficha de la punta de modulo/x; el 00 nunca', () => {
+  const r = repo({ '.claude/kit.md': fichaT0(null) });
+  const ref = E.refMasNueva(r.P, 'modulo/x');
+  const n01 = E.nombreEncargo('x--01');
+  const MSJ = 'la tarea 0 (encargo 00) va primero: el entorno de prueba no está en la ficha de modulo/x';
+  assert.equal(E.tareaCeroPendiente(r.P, n01, ref, specT0()), MSJ);
+  assert.equal(E.tareaCeroPendiente(r.P, E.nombreEncargo('x--00'), ref, specT0()), null, 'el 00 es la tarea 0');
+  assert.equal(E.tareaCeroPendiente(r.P, n01, ref, spec()), null, 'sin el sello de tarea 0, nada');
+  assert.equal(E.tareaCeroPendiente(r.P, n01, ref, null), null, 'sin spec, lo frena presentar');
+  // Una ficha que no se lee, o sin ficha en modulo/x: sigue pendiente.
+  const rota = E.refMasNueva(r.P, 'modulo/x');
+  commitLocal(r, { '.claude/kit.md': '---\nkit: dos\n---\n' });
+  assert.equal(E.tareaCeroPendiente(r.P, n01, E.refMasNueva(r.P, 'modulo/x'), specT0()), MSJ);
+  assert.equal(E.fichaConEntornoDePrueba(r.P, E.shaDe(r.P, 'main')), false, 'main no tiene ficha');
+  // dummy o prueba en la punta de modulo/x (también solo en origin, más nuevo) → sigue.
+  commitLocal(r, { '.claude/kit.md': fichaT0('dummy') });
+  assert.equal(E.tareaCeroPendiente(r.P, n01, E.refMasNueva(r.P, 'modulo/x'), specT0()), null);
+  assert.equal(E.tareaCeroPendiente(r.P, n01, rota, specT0()), MSJ, 'la ref vieja, sin el entorno');
+  const r2 = repo({ '.claude/kit.md': fichaT0(null) });
+  empujarDesdeOtra(r2, { '.claude/kit.md': fichaT0('prueba') });
+  const ref2 = E.refMasNueva(r2.P, 'modulo/x');
+  assert.equal(ref2.nombre, 'origin/modulo/x');
+  assert.equal(E.tareaCeroPendiente(r2.P, n01, ref2, specT0()), null);
+});
