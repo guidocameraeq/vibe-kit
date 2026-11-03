@@ -54,18 +54,19 @@ test('el banner no usa fuentes ni imágenes de afuera y no lleva el nombre de ni
 
 // ---------------------------------------------------------------- armar
 
-test('armar: README desde el NORTE (3 líneas) y la ficha, con título, cómo correrlo, los tres enlaces y la marca al pie; sin banner', () => {
+test('armar: README desde el NORTE (3 líneas) y la ficha, con título, cómo correrlo, los tres enlaces y la marca al pie; con banner (siempre)', () => {
   const d = carpeta({ norte: NORTE('Una.\nDos.\nTres.\nCuatro.') });
   const r = correr(d, ['armar']);
   assert.equal(r.codigo, 0, r.out + r.err);
-  assert.match(r.out, /^README\.md: creado\n\(nota\) .* más de 3 líneas/);
+  assert.match(r.out, /^assets\/banner\.svg: creado\nREADME\.md: creado\n\(nota\) .* más de 3 líneas/);
   const t = leer(d, 'README.md');
-  assert.match(t, /^# Caja Chica\n\nUna\.\nDos\.\nTres\.\n\n## Cómo correrlo\n\n- Preparar: `npm install`\n- Probar: `node --test`\n\n## Más\n/);
+  assert.match(t, /^# Caja Chica\n\n!\[Caja Chica\]\(assets\/banner\.svg\)\n\nUna\.\nDos\.\nTres\.\n\n## Cómo correrlo\n\n- Preparar: `npm install`\n- Probar: `node --test`\n\n## Más\n/);
   assert.doesNotMatch(t, /Cuatro/);
   for (const e of ['(docs/NORTE.md)', '(docs/MAPA.md)', '(docs/README.md)']) assert.ok(t.includes(e), e);
-  assert.doesNotMatch(t, /banner|\{\{/);
+  assert.doesNotMatch(t, /\{\{/);
+  assert.match(t, /^# Caja Chica\n\n!\[Caja Chica\]\(assets\/banner\.svg\)\n\n/);
   assert.match(t, /\n<!-- kit:portada [0-9a-f]{12} -->\n$/);
-  assert.ok(!hay(d, 'assets/banner.svg'));
+  assert.ok(hay(d, 'assets/banner.svg'));
 });
 
 test('armar: repetido da "sin cambios"; si cambia el NORTE y nadie tocó el README, lo actualiza', () => {
@@ -74,12 +75,12 @@ test('armar: repetido da "sin cambios"; si cambia el NORTE y nadie tocó el READ
   const antes = leer(d, 'README.md');
   const r = correr(d, ['armar']);
   assert.equal(r.codigo, 0);
-  assert.equal(r.out, 'README.md: sin cambios\n');
+  assert.equal(r.out, 'assets/banner.svg: sin cambios\nREADME.md: sin cambios\n');
   assert.equal(leer(d, 'README.md'), antes);
   fs.writeFileSync(path.join(d, 'docs', 'NORTE.md'), NORTE('Otra cosa distinta.'));
   const a = correr(d, ['armar']);
   assert.equal(a.codigo, 0);
-  assert.match(a.out, /^README\.md: actualizado/);
+  assert.match(a.out, /^assets\/banner\.svg: actualizado.*\nREADME\.md: actualizado/);
   assert.match(leer(d, 'README.md'), /Otra cosa distinta\./);
 });
 
@@ -109,13 +110,13 @@ test('armar: respeta el nombre con que ya está el README (Readme.md) y no crea 
   fs.writeFileSync(path.join(d, 'Readme.md'), '# Propio\n');
   const r = correr(d, ['armar']);
   assert.equal(r.codigo, 1);
-  assert.match(r.out, /^Readme\.md: NO lo pisé/);
+  assert.match(r.out, /^assets\/banner\.svg: creado\nReadme\.md: NO lo pisé/);
   assert.equal(fs.readdirSync(d).filter((x) => /^readme\.md$/i.test(x)).length, 1);
 });
 
-test('armar --banner: escribe assets/banner.svg con el nombre y el README lo muestra; repetir sin --banner lo conserva', () => {
+test('armar (sin --banner): escribe assets/banner.svg con el nombre y el README lo muestra; repetir, con o sin --banner, no cambia nada', () => {
   const d = carpeta({ ficha: FICHA('Caja <Chica> & Cía') });
-  const r = correr(d, ['armar', '--banner']);
+  const r = correr(d, ['armar']);
   assert.equal(r.codigo, 0, r.out);
   assert.match(r.out, /^assets\/banner\.svg: creado\nREADME\.md: creado\n$/);
   const svg = leer(d, 'assets/banner.svg');
@@ -125,18 +126,19 @@ test('armar --banner: escribe assets/banner.svg con el nombre y el README lo mue
   assert.match(svg, /\n<!-- kit:portada [0-9a-f]{12} -->\n$/);
   assert.match(leer(d, 'README.md'), /^# Caja <Chica> & Cía\n\n!\[Caja <Chica> & Cía\]\(assets\/banner\.svg\)\n\n/);
   const otra = correr(d, ['armar']);
-  assert.equal(otra.out, 'README.md: sin cambios\n');
+  assert.equal(otra.out, 'assets/banner.svg: sin cambios\nREADME.md: sin cambios\n');
   assert.equal(correr(d, ['armar', '--banner']).out, 'assets/banner.svg: sin cambios\nREADME.md: sin cambios\n');
 });
 
-test('armar --banner: un banner propio no se pisa; un nombre largo achica la letra', () => {
+test('armar: un banner propio no se pisa (el README igual lo enlaza); un nombre largo achica la letra', () => {
   const d = carpeta();
   fs.mkdirSync(path.join(d, 'assets'));
   fs.writeFileSync(path.join(d, 'assets', 'banner.svg'), '<svg/>\n');
-  const r = correr(d, ['armar', '--banner']);
+  const r = correr(d, ['armar']);
   assert.equal(r.codigo, 1);
   assert.match(r.out, /assets\/banner\.svg: NO lo pisé/);
   assert.equal(leer(d, 'assets/banner.svg'), '<svg/>\n');
+  assert.match(leer(d, 'README.md'), /\]\(assets\/banner\.svg\)/);
   const corto = P.armarBanner({ proyecto: 'abc', linea: 'x' }).match(/font-size="(\d+)" font-weight="700" letter-spacing="-2"/)[1];
   const largo = P.armarBanner({ proyecto: 'un-proyecto-con-un-nombre-larguisimo', linea: 'x' }).match(/font-size="(\d+)" font-weight="700" letter-spacing="-2"/)[1];
   assert.equal(corto, '108');
@@ -145,7 +147,7 @@ test('armar --banner: un banner propio no se pisa; un nombre largo achica la let
 
 test('armar --plan: dice qué haría y no escribe nada', () => {
   const d = carpeta();
-  const r = correr(d, ['armar', '--banner', '--plan']);
+  const r = correr(d, ['armar', '--plan']);
   assert.equal(r.codigo, 0);
   assert.equal(r.out, '(plan) assets/banner.svg: lo crearía\n(plan) README.md: lo crearía\n');
   assert.ok(!hay(d, 'README.md') && !hay(d, 'assets'));

@@ -1,12 +1,13 @@
 'use strict';
 // portada.cjs — la portada del repo: el README.md de la raíz, armado por un script y no por el modelo (SPEC-paquete-7 P3.8; B §12bis; D7-6).
-//   node .claude/scripts/portada.cjs armar [--banner] [--plan] [--raiz <dir>]
+//   node .claude/scripts/portada.cjs armar [--plan] [--raiz <dir>]
 //   node .claude/scripts/portada.cjs chequear [--raiz <dir>]
 // `armar` escribe README.md desde docs/NORTE.md ("## Qué es", hasta 3 líneas) y la ficha .claude/kit.md (vars.proyecto,
-// vars.comando-setup, vars.comando-test): título, banner opcional, qué es, cómo correrlo y los enlaces al NORTE, al MAPA y al índice
+// vars.comando-setup, vars.comando-test): título, banner, qué es, cómo correrlo y los enlaces al NORTE, al MAPA y al índice
 // de docs/. Sin pendientes, historial ni versión (ADR-023): eso vive en el TODO, el CHANGELOG y la ficha. Si "## Qué es" sigue con el
-// marcador {{…}} de la plantilla, lo dice y no escribe nada: el texto no se inventa. --banner escribe además assets/banner.svg con el
-// nombre; sin --banner no hay banner (lo decide el Arquitecto: un proyecto `liviano` o personal no lo paga). --plan dice qué haría.
+// marcador {{…}} de la plantilla, lo dice y no escribe nada: el texto no se inventa. escribe además assets/banner.svg con el
+// nombre: el banner va siempre (decisión de Guido, 2026-11-02). Si ya hay un assets/banner.svg que no armó este script, no lo pisa y lo dice;
+// el README igual lo enlaza. --banner se sigue aceptando y no cambia nada (compatibilidad con lo que ya está escrito). --plan dice qué haría.
 // Lo que escribe lleva al pie `<!-- kit:portada <hash> -->` (hash de lo generado, ficha.hash). Con esa marca y el hash igual al contenido,
 // el archivo es del script y se puede rehacer; sin marca, o con el hash distinto (lo tocaron a mano), NO se pisa y se dice. Repetir
 // con todo igual da "sin cambios". El actualizador nunca crea un README (r1-4): solo este comando.
@@ -21,9 +22,9 @@ const path = require('path');
 const ficha = require('../hooks/lib/ficha.cjs');
 
 const USO = [
-  'Uso: node .claude/scripts/portada.cjs armar [--banner] [--plan] [--raiz <dir>]   (desde la raíz del repo)',
+  'Uso: node .claude/scripts/portada.cjs armar [--plan] [--raiz <dir>]   (desde la raíz del repo)',
   '     node .claude/scripts/portada.cjs chequear [--raiz <dir>]',
-  '  armar     arma README.md desde docs/NORTE.md y la ficha; --banner suma assets/banner.svg; --plan solo dice qué haría',
+  '  armar     arma README.md desde docs/NORTE.md y la ficha  y assets/banner.svg; --plan solo dice qué haría',
   '  chequear  0 si hay README en la raíz que enlaza a docs/NORTE.md (y ese archivo existe); 1 con qué falta',
 ].join('\n');
 
@@ -189,7 +190,7 @@ function nombreReadme(raiz) {
 
 // ---------------------------------------------------------------- comandos
 
-function armar(raiz, { banner, plan }, salida) {
+function armar(raiz, { plan }, salida) {
   let datos;
   try {
     datos = ficha.leerArchivo(path.join(raiz, ...RUTA_FICHA.split('/'))).datos;
@@ -219,14 +220,9 @@ function armar(raiz, { banner, plan }, salida) {
     return 1;
   }
   const nombre = nombreReadme(raiz);
-  // Sin --banner no hay banner nuevo; pero rehacer una portada que ya lo tenía no se lo saca.
-  const abs = path.join(raiz, nombre);
-  const traia = fs.existsSync(abs) && duenio(fs.readFileSync(abs, 'utf8')) === 'mio' && fs.readFileSync(abs, 'utf8').includes(`](${RUTA_BANNER})`);
-  const conBanner = !!banner || traia;
-
   const res = [];
-  if (conBanner && banner) res.push(poner(raiz, RUTA_BANNER, armarBanner({ proyecto, linea: q.lineas[0] }), plan));
-  res.push(poner(raiz, nombre, armarReadme({ proyecto, queEs: q.lineas, datos, banner: conBanner }), plan));
+  res.push(poner(raiz, RUTA_BANNER, armarBanner({ proyecto, linea: q.lineas[0] }), plan));
+  res.push(poner(raiz, nombre, armarReadme({ proyecto, queEs: q.lineas, datos, banner: true }), plan));
   for (const x of res) salida(plan ? `(plan) ${x.linea}` : x.linea);
   if (q.recortado) salida(`(nota) "## Qué es" tiene más de ${MAX_LINEAS} líneas: la portada lleva las primeras ${MAX_LINEAS}`);
   return res.every((r) => r.ok) ? 0 : 1;
@@ -261,7 +257,7 @@ function leerArgumentos(argv) {
   const o = { cmd: null, banner: false, plan: false, raiz: process.cwd() };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === '--banner') o.banner = true;
+    if (a === '--banner') o.banner = true; // compatibilidad: el banner va siempre, esto ya no cambia nada
     else if (a === '--plan') o.plan = true;
     else if (a === '--raiz') {
       if (i + 1 >= argv.length || argv[i + 1].startsWith('-')) return { error: '--raiz pide una carpeta.' };
