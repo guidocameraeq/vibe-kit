@@ -659,3 +659,20 @@ test('la CLI de punta a punta: un canónico que no existe → 1 con su porqué',
 test('sin bypass: flota no nombra bypassPermissions', () => {
   assert.ok(!fs.readFileSync(path.join(__dirname, 'flota.cjs'), 'utf8').includes('bypassPermissions'));
 });
+
+test('SPEC-paquete-7 r1-6: flota le dice a aplicar si el tag es -rc (con -rc, aplicar no sube nada al kit)', async () => {
+  for (const [tag, rc] of [['v3.0.0-rc.1', true], ['v3.0.0', false]]) {
+    const canon = armarCanon({ tag });
+    const P = nuevaCarpeta('proyectos');
+    armarRepo(P, 'alfa');
+    const vistos = [];
+    const aplicar = (c, o) => {
+      vistos.push(o.rc);
+      return A.aplicar(c, o);
+    };
+    const r = await correr({ repos: ['alfa'], canon, tag, proyectos: P, aplicar });
+    assert.equal(fila(r, 'alfa').resultado, 'mezclado', r.lineas.join('\n'));
+    assert.ok(vistos.length >= 1);
+    assert.ok(vistos.every((v) => v === rc), `${tag}: ${JSON.stringify(vistos)}`);
+  }
+});

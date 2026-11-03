@@ -53,6 +53,10 @@ const USO = [
 // (5) los .snippet renglón por renglón. (6) core.hooksPath NO (r1-5). (7) la ficha: kit y los hashes de lo reemplazado, el
 // estado de lo marcado, todo lo demás byte a byte; un renglón al tope de docs/CHANGELOG.md. Nunca CLAUDE.md ni otro de docs/
 // (docs solo nace: crea lo que falta; r1-2). (8) todo el plan antes de escribir; cada archivo temporal + renombre.
+// (6bis, antes de la ficha; SPEC-paquete-7 P6.8b-1) el cierre del ciclo: cada cambio aplicado del proyecto que kit/cubiertos.md
+// del --kit nombra (por id o por cita, nunca por texto) y cuyo verificar da verde pasa a subio-al-kit, y su zona propia se retira
+// solo con las cinco condiciones de D7-7 (si no, la línea dice por qué queda). Con opciones.rc (lo pasa flota con un tag -rc):
+// solo "subiría al kit". Es parte del plan: --plan lo muestra sin escribir.
 //
 // Vive en eq/scripts/ y se instala en ~/.claude/skills/arquitecto-skills/scripts/: hace require de ../pc/lib/ (copia del molde).
 
@@ -65,6 +69,7 @@ const Z = require('../pc/lib/zona-propia.cjs');
 const C = require('./lib/catalogo.cjs');
 const M = require('./lib/molde.cjs');
 const FU = require('./lib/fusion.cjs');
+const CA = require('../pc/lib/cambios.cjs');
 
 const ROTO = 'actualizador roto: corré doctor';
 const RUTA_FICHA = '.claude/kit.md';
@@ -74,6 +79,11 @@ const KIT_ROL = '.kit-rol';
 const RE_VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 const SNIPPETS = [['gitignore.snippet', '.gitignore'], ['gitattributes.snippet', '.gitattributes']];
 const ADAPTADA = 'adaptada (desvío detectado)';
+const RUTA_CUBIERTOS = 'kit/cubiertos.md'; // en la raíz del --kit (D7-2)
+const RE_CITA = /^[a-z0-9-]+ \S+$/; // la de cambios.cjs
+const RE_PIEZA = /^[a-z0-9][a-z0-9-]*$/;
+// Lo que cuenta como "la pieza se reemplazó o se mezcló en esta corrida" (P6.8b-1, condición c).
+const LLEGARON = ['reemplazada', 'mezclada (zona intacta)'];
 
 // Una negativa: sale 1 con su mensaje, sin escribir nada.
 class Negativa extends Error {}
@@ -299,6 +309,7 @@ function armar(plan, carpeta, { textoFicha, datos, nuevo, viejo, opciones = {} }
   const borrar = (rel) => plan.ops.set(rel, null);
   const cambiosFicha = new Map();
   const tocadas = [];
+  const llegadas = new Map(); // pieza → rutas del proyecto, de las que se reemplazaron o se mezclaron ahora (para cerrarCiclo)
   const linea = (id, estado, que) => plan.lineas.push(`${id} · ${estado} · ${que}`);
   const claude = opciones.plan ? null : FU.buscarClaude(opciones.claude);
   const noFusionar = opciones.noFusionar || {};
@@ -549,6 +560,7 @@ function armar(plan, carpeta, { textoFicha, datos, nuevo, viejo, opciones = {} }
       else if (escritos || nacidos) que = 'reemplazada';
       else que = 'retirada';
     }
+    if (LLEGARON.includes(que)) llegadas.set(id, new Set(archivosN.map((a) => a.proyecto)));
     linea(id, nuevoEstado, que);
   }
 
@@ -564,6 +576,9 @@ function armar(plan, carpeta, { textoFicha, datos, nuevo, viejo, opciones = {} }
       plan.lineas.push(`${destino} · snippet · ${faltan.length} renglón(es) sumado(s)`);
     } else plan.lineas.push(`${destino} · snippet · sin cambios`);
   }
+
+  // (6bis) el cierre del ciclo (P6.8b-1): después de las piezas, antes de la ficha
+  cerrarCiclo(plan, carpeta, { opciones, llegadas, leerP, escribir });
 
   // (7) la ficha y el CHANGELOG
   const cambiaVersion = plan.vViejo !== plan.vNuevo;
@@ -589,6 +604,121 @@ function armar(plan, carpeta, { textoFicha, datos, nuevo, viejo, opciones = {} }
     plan.lineas.push(`${RUTA_CHANGELOG} · un renglón · ${renglon}`);
   }
   if (plan.fichaNueva) plan.ops.set(RUTA_FICHA, plan.fichaNueva); // la ficha, la última
+}
+
+// ---------------------------------------------------------------- (6bis) el cierre del ciclo: subio-al-kit (SPEC-paquete-7 P6.8b-1)
+
+// kit/cubiertos.md del kit nuevo (D7-2) → { entradas: [{cita, version, pieza}] } o { problema }. Una entrada que no tiene
+// exactamente esas tres claves, con su forma, hace que el archivo entero no valga: ante la duda no se marca nada.
+function leerCubiertos(kit) {
+  let texto;
+  try {
+    texto = fs.readFileSync(path.join(kit, ...RUTA_CUBIERTOS.split('/')), 'utf8');
+  } catch {
+    return { problema: 'no está' };
+  }
+  let datos;
+  try {
+    datos = F.leerCabecera(texto).datos;
+  } catch (e) {
+    return { problema: `no se lee (${e.message})` };
+  }
+  if (!Array.isArray(datos.cubiertos)) return { problema: 'no tiene la lista cubiertos:' };
+  for (const [i, x] of datos.cubiertos.entries()) {
+    const bien = esMapa(x) && Object.keys(x).sort().join() === 'cita,pieza,version' && RE_CITA.test(x.cita) && RE_VERSION.test(x.version) && RE_PIEZA.test(x.pieza);
+    if (!bien) return { problema: `la entrada ${i + 1} no es {cita: "<alias> <id>", version: N.N.N, pieza: <id>}` };
+  }
+  return { entradas: datos.cubiertos };
+}
+
+// El texto con lo de ADENTRO de cada zona propia vaciado (las marcas quedan), con LF. Solo se llama con zonas sanas.
+function vaciarZonas(texto) {
+  const lineas = lf(texto).split('\n');
+  const z = Z.zonas(texto);
+  for (const x of [...z.zonas].reverse()) lineas.splice(x.desde, x.hasta - x.desde - 1); // desde/hasta: los renglones de las marcas
+  return lineas.join('\n');
+}
+
+// El hash de aplico (el que escribe anotar-sha --aplico): ficha.hash de todas las zonas juntas. null si no hay zonas sanas.
+function hashZonas(texto) {
+  const z = texto === null ? { ok: false } : Z.zonas(texto);
+  return z.ok && z.zonas.length ? F.hash(z.zonas.map((x) => x.contenido).join('\n')) : null;
+}
+
+// (d), primera mitad: ¿la zona de <archivo> estaba vacía en <sha>^? Sin padre (el primer commit) o sin el archivo ahí, cuenta como
+// vacía (el cambio lo escribió entero); una marca rota ahí, no (ante la duda, queda).
+function zonaVaciaAntes(carpeta, sha, archivo) {
+  const padre = gitEn(carpeta, ['rev-parse', '-q', '--verify', `${sha}^1^{commit}`]);
+  if (!padre.ok) return true;
+  const p = padre.out.trim();
+  const ls = gitEn(carpeta, ['ls-tree', '--name-only', p, '--', archivo]);
+  if (!ls.ok) return false;
+  if (ls.out.trim() === '') return true;
+  const antes = gitEn(carpeta, ['show', `${p}:${archivo}`]);
+  if (!antes.ok) return false;
+  const z = Z.zonas(antes.out);
+  return z.ok && z.zonas.every((x) => x.contenido === '');
+}
+
+const mismaRel = (a, b) => String(a).replace(/\\/g, '/') === String(b).replace(/\\/g, '/');
+
+// Por qué la zona propia de un cambio que sube NO se retira (D7-7, las cinco condiciones; ante cualquier duda, queda), o null si
+// se retira. c: el cambio cargado; entrada: la suya de cubiertos.md; todos: los cambios del proyecto; llegadas: pieza → rutas de
+// lo que se reemplazó o se mezcló en esta corrida; texto: el archivo ya mezclado.
+function porQueQueda(carpeta, { c, entrada, todos, llegadas, texto }) {
+  const archivo = c.datos.aplico.archivo;
+  // (a) clase 2 y (b) no es un archivo de frenos (la vara del candado, r1-9): un freno nunca se retira solo (D7-3)
+  if (c.datos.clase !== '2' || CA.categoriaDe(archivo) !== null) return 'te espera (freno)';
+  // (c) la regla llegó por el actualizador: su pieza se reemplazó o se mezcló ahora, y el archivo es de esa pieza (r1-3)
+  const llego = llegadas.get(entrada.pieza);
+  if (!llego || ![...llego].some((r) => mismaRel(r, archivo))) return 'te espera (la regla no llegó por el actualizador)';
+  // (d) la zona era toda del cambio (vacía en <sha>^) y ningún otro cambio vivo la usa (r1-1)
+  const otro = todos.some((o) => o !== c && !o.error && !['rechazado', 'subio-al-kit'].includes(o.datos.estado) && esMapa(o.datos.aplico) && mismaRel(o.datos.aplico.archivo, archivo));
+  if (otro || !zonaVaciaAntes(carpeta, c.datos.sha, archivo)) return 'zona compartida, queda';
+  // (e) la zona, en el texto ya mezclado, es la que anotó el cambio
+  if (hashZonas(texto) !== c.datos.aplico.hash) return 'zona editada, queda';
+  return null;
+}
+
+// Cierra el ciclo después de llevar las piezas al molde nuevo, como plan.ops (no commitea; --plan no escribe): cada cambio
+// `aplicado` del proyecto cuyo id (<vars.proyecto> <id>) o cita: está en kit/cubiertos.md con version ≤ la del kit nuevo y cuyo
+// verificar da verde pasa a subio-al-kit con la versión del kit nuevo, y su zona propia se retira si se cumplen las cinco
+// condiciones. Con un tag -rc, nada: "subiría al kit" (r1-6). Sin aplicados no mira cubiertos.md; sin cubiertos.md, una línea.
+function cerrarCiclo(plan, carpeta, { opciones, llegadas, leerP, escribir }) {
+  const todos = CA.listarArchivos(carpeta).filter((a) => a.id).map((a) => CA.cargar(a));
+  const aplicados = todos.filter((c) => !c.error && c.datos.estado === 'aplicado');
+  if (!aplicados.length) return;
+  const cub = leerCubiertos(opciones.kit);
+  if (cub.problema) {
+    plan.lineas.push(`${RUTA_CUBIERTOS} · ${cub.problema} · no marqué nada: los cambios siguen aplicado`);
+    return;
+  }
+  const alias = typeof plan.vars.proyecto === 'string' ? plan.vars.proyecto : null;
+  const ctx = CA.contextoVerificar(carpeta);
+  for (const c of aplicados) {
+    const claves = [alias === null ? null : `${alias} ${c.id}`, typeof c.datos.cita === 'string' ? c.datos.cita : null].filter(Boolean);
+    const entrada = cub.entradas.find((x) => claves.includes(x.cita) && F.compararVersiones(x.version, plan.vNuevo) <= 0);
+    if (!entrada) continue;
+    const fallas = CA.verificarCambio(carpeta, c, ctx);
+    if (fallas.length) {
+      plan.lineas.push(`no subió al kit · ${c.id} · verificar en rojo (${fallas[0].que}): sigue aplicado`);
+      continue;
+    }
+    if (opciones.rc) {
+      plan.lineas.push(`subiría al kit · ${c.id}`);
+      continue;
+    }
+    escribir(c.rel, CA.aSubioAlKit(c.texto, plan.vNuevo));
+    if (!esMapa(c.datos.aplico)) {
+      plan.lineas.push(`subió al kit · ${c.id} · sin aplico: no hay zona que retirar`);
+      continue;
+    }
+    const archivo = c.datos.aplico.archivo;
+    const texto = leerP(archivo);
+    const queda = porQueQueda(carpeta, { c, entrada, todos, llegadas, texto });
+    if (queda === null) escribir(archivo, vaciarZonas(texto));
+    plan.lineas.push(`subió al kit · ${c.id} · ${queda === null ? 'zona retirada' : queda}`);
+  }
 }
 
 // ---------------------------------------------------------------- (8) la escritura atómica
@@ -631,7 +761,7 @@ function ejecutar(carpeta, ops, io = FS_REAL) {
   }
 }
 
-// aplicar(carpeta, {kit, moldeViejo, plan, fecha, io}) → { codigo, lineas }
+// aplicar(carpeta, {kit, moldeViejo, plan, fecha, io, rc}) → { codigo, lineas }
 function aplicar(carpeta, opciones) {
   let plan;
   try {

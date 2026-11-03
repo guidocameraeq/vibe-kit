@@ -672,3 +672,118 @@ test('toca de un merge (rf-13): igual a un padre que NO lo cambió (deshace lo d
   assert.deepEqual(C.descontarMerge(new Set(['p', 'q']), [{ distinto: new Set(['q']), cambio: new Set(['p', 'q']) }]), new Set(['q']));
   assert.deepEqual(C.basesDeMerge(d, 'HEAD^1', 'HEAD^2').length, 1);
 });
+
+// ---------------------------------------------------------------- subio-al-kit (SPEC-paquete-7 P6.8b-1, criterio 3)
+
+test('aSubioAlKit: pura; solo desde aplicado; pone estado y version, conserva sha, aplico y aprobo byte a byte; el sello no se mueve', () => {
+  const t = C.ponerCampos(C.armar({ clase: '3-barrera', toca: ['hooks'], ids: ['hooks:x'], origen: 'o', cicatriz: 'no', chico: 'sí', urgente: 'no', cuerpo: CUERPO }), {
+    estado: 'aplicado',
+    sha: 'c'.repeat(40),
+    aplico: '{archivo: "docs/x.md", hash: abcdefabcdef}',
+    aprobo: '{sesion: s, fecha: "2026-10-28T10:00:00-03:00", carpeta: ., rol: humano, hash: abcdefabcdef, freno: "r"}',
+  });
+  const u = C.aSubioAlKit(t, '3.1.0');
+  assert.equal(u, t.replace('estado: aplicado', 'estado: subio-al-kit').replace('\n---\n', '\nversion: 3.1.0\n---\n'));
+  assert.equal(C.hashSello(u), C.hashSello(t), 'r1-2: version fuera del hash');
+  assert.ok(C.FUERA_DEL_HASH.includes('version'));
+  assert.deepEqual(C.validar(C.leer(u).datos, C.leer(u).cuerpo), []);
+  for (const e of ['propuesto', 'aprobado', 'rechazado', 'subio-al-kit']) {
+    assert.throws(() => C.aSubioAlKit(C.ponerCampos(t, { estado: e }), '3.1.0'), new RegExp(`es ${e}: sube al kit solo un aplicado`));
+  }
+  for (const v of ['3.1', '03.1.0', '', null, '3.1.0-rc.1']) assert.throws(() => C.aSubioAlKit(t, v), /N\.N\.N/, String(v));
+  // un archivo de antes (sin version) da el mismo hash que antes: version no estaba, no cambia nada
+  const sinVersion = C.armar({ clase: '2', toca: ['inicio'], origen: 'o', cicatriz: 'no', chico: 'sí', urgente: 'no', cuerpo: CUERPO });
+  assert.equal(C.hashSello(sinVersion), ficha.hash(sinVersion.replace('estado: propuesto\n', '')));
+});
+
+test('validar: subio-al-kit sin sha, sin version o 3-barrera sin sello → falla, igual que aplicado', () => {
+  const base = () => C.leer(C.ponerCampos(C.armar({ clase: '3-barrera', toca: ['hooks'], ids: ['hooks:x'], origen: 'o', cicatriz: 'no', chico: 'sí', urgente: 'no', cuerpo: CUERPO }), { estado: 'subio-al-kit', version: '3.0.0', sha: 'a'.repeat(40) }));
+  const fallas = (cambiar) => {
+    const { datos, cuerpo } = base();
+    cambiar(datos);
+    return C.validar(datos, cuerpo);
+  };
+  assert.ok(fallas(() => {}).some((f) => f.campo === 'aprobo' && /3-barrera subio-al-kit sin sello/.test(f.que)));
+  assert.ok(fallas((d) => delete d.sha).some((f) => f.campo === 'sha' && /subio-al-kit sin "sha"/.test(f.que)));
+  assert.ok(fallas((d) => delete d.version).some((f) => f.campo === 'version'));
+  assert.ok(fallas((d) => (d.version = '3.0')).some((f) => f.campo === 'version'));
+  const ok = fallas((d) => {
+    d.clase = '2';
+    d.toca = ['inicio'];
+    delete d.ids;
+  });
+  assert.deepEqual(ok, [], 'un clase 2 subio-al-kit con sha y version está en orden');
+});
+
+// Un 3-barrera recorrido entero: aprobado → el commit que aplica → anotar-sha (con su commit). → { id, sello, aplica, texto }
+function aplicadoSellado(d) {
+  const id = proponer(d);
+  const sello = aprobar(d, id);
+  const aplica = commit(d, { '.claude/hooks/x.cjs': '// x' }, 'aplica');
+  assert.equal(cli(d, 'anotar-sha', id, aplica).codigo, 0);
+  commit(d, { [rel(id)]: leerArchivo(d, rel(id)) }, 'anota');
+  return { id, sello, aplica, texto: leerArchivo(d, rel(id)) };
+}
+
+test('verificar: un 3-barrera sellado y llevado a subio-al-kit sigue verde (crit. 3; r1-2: version fuera del hash)', () => {
+  const d = repo();
+  const { id } = aplicadoSellado(d);
+  verde(d);
+  assert.equal(cli(d, 'subio-al-kit', id, '3.0.0').codigo, 0);
+  verde(d);
+  assert.match(leerArchivo(d, rel(id)), /^estado: subio-al-kit$[\s\S]*^version: 3\.0\.0$/m);
+});
+
+test('verificar: subio-al-kit sin sha, con un sha inexistente, reapuntado, antes del sello, sin version o con el sello roto → rojo, igual que aplicado', () => {
+  const d = repo();
+  const { id, aplica } = aplicadoSellado(d);
+  const segundo = commit(d, { '.claude/hooks/y.cjs': '2' });
+  const subido = C.aSubioAlKit(leerArchivo(d, rel(id)), '3.0.0');
+  escribir(d, rel(id), subido);
+  verde(d);
+  const conCampos = (campos) => escribir(d, rel(id), C.ponerCampos(subido, campos));
+  conCampos({ sha: null });
+  rojo(d, /subio-al-kit sin "sha"/);
+  conCampos({ sha: 'e'.repeat(40) });
+  rojo(d, /no existe en este repo/);
+  conCampos({ sha: segundo });
+  const f = rojo(d, /no es el primer commit/);
+  assert.match(f.find((x) => /primer commit/.test(x.que)).hacer, new RegExp(`anotar-sha ${id} ${aplica}`));
+  conCampos({ sha: g(d, 'rev-list', '--max-parents=0', 'HEAD') });
+  rojo(d, /no viene después del sello/);
+  conCampos({ version: null });
+  rojo(d, /subio-al-kit sin "version"/);
+  conCampos({ aprobo: null });
+  rojo(d, /3-barrera subio-al-kit sin sello/);
+  escribir(d, rel(id), subido.replace('quitar el freno del stash', 'quitar todos los frenos'));
+  rojo(d, /el hash del sello no coincide/);
+  // un sello hecho en otra carpeta (el de un worktree) tampoco vale con subio-al-kit
+  const e = repo();
+  const id2 = proponer(e);
+  sellarAMano(e, id2, { carpeta: '.claude/worktrees/w1' });
+  const x = commit(e, { '.claude/hooks/x.cjs': '// x' });
+  commit(e, { [rel(id2)]: C.ponerCampos(leerArchivo(e, rel(id2)), { estado: 'subio-al-kit', sha: x, version: '3.0.0' }) });
+  rojo(e, /otra carpeta/);
+});
+
+test('verificar: subio-al-kit con sha reescrito por un rebase → el anotar-sha listo, como aplicado (rf-2)', () => {
+  const d = repo();
+  const { id, sello } = aplicadoSellado(d);
+  assert.equal(cli(d, 'subio-al-kit', id, '3.0.0').codigo, 0);
+  const huerfano = g(d, 'commit-tree', 'HEAD^{tree}', '-p', sello, '-m', 'fuera de la historia');
+  commit(d, { [rel(id)]: C.ponerCampos(leerArchivo(d, rel(id)), { sha: huerfano }) });
+  const f = rojo(d, /ya no está en la historia de HEAD/);
+  assert.match(f[0].hacer, new RegExp(`anotar-sha ${id} [0-9a-f]{40}$`));
+});
+
+test('verificarCambio: lo mismo que verificar, archivo por archivo (lo usa el actualizador)', () => {
+  const d = repo();
+  const { id } = aplicadoSellado(d);
+  const otro = proponer(d, { slug: 'otro' });
+  commit(d, { [rel(otro)]: C.ponerCampos(leerArchivo(d, rel(otro)), { estado: 'aprobado' }) });
+  const ctx = C.contextoVerificar(d);
+  const porArchivo = C.listarArchivos(d).flatMap((a) => C.verificarCambio(d, a, ctx));
+  assert.deepEqual(porArchivo, C.verificar(d));
+  assert.deepEqual(C.verificarCambio(d, C.listarArchivos(d).find((a) => a.id === id)), [], 'sin ctx, lo arma solo');
+  assert.ok(C.verificarCambio(d, C.listarArchivos(d).find((a) => a.id === otro)).length);
+});
