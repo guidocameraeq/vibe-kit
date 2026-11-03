@@ -17,7 +17,9 @@
 ## 2. El reloj: cuándo arranca una vuelta
 
 - **Cada 3-4 meses**, y recién cuando la versión nueva lleva **un mes andando en un proyecto real** (si no, no hay uso que leer).
-- **Antes también** si pasa mucho uso sin volver al kit, o si los registros de cambios de la flota muestran la misma regla en 3+ proyectos.
+- **Antes también** si pasa mucho uso sin volver al kit, si los registros de cambios de la flota muestran la misma regla en 3+ proyectos,
+  o si **sale algo grande de afuera**: una función nueva de Claude Code que reemplaza algo que el kit hace a mano (verificada en la doc
+  oficial), o una tanda del Extractor que trae varias ideas que pasan la vara.
 - **Lo urgente no espera la vuelta**: una cicatriz de seguridad, producción o plata sale como parche (`vX.Y.Z`; ADR-026; el antecedente es
   el tope del hook en `v2.4.3`).
 - **Cada vuelta lee desde el corte anterior**, nunca todo de nuevo (§8).
@@ -27,7 +29,7 @@
 
 | # | Paso | Entra | Sale | Quién y en qué modelo | Lo que costó en la vuelta 1 |
 |---|---|---|---|---|---|
-| 1 | **Investigar** | chats desde el corte, registros de cambios de la flota, scripts sobre git/`gh` | un acta en `tips/` + líneas base medidas | observatorio; lectores Sonnet, síntesis Opus; scripts | ~69 M tokens (66 M en leer chats); 2 lecturas grandes |
+| 1 | **Investigar** | **adentro**: chats desde el corte, registros de cambios de la flota, scripts sobre git/`gh` · **afuera**: actas del Extractor de tips, novedades de Claude Code desde el corte, métodos y herramientas de otros | un acta en `tips/` + líneas base medidas + las ideas de afuera con su veredicto | observatorio; lectores Sonnet, síntesis Opus; scripts | ~69 M tokens (66 M en leer chats); 2 lecturas grandes |
 | 2 | **Ordenar la casa** | el repo como quedó | repo prolijo, docs en su lugar, lo crudo al privado, el diario | una sesión Opus | ~1,9 M; 3 sesiones |
 | 3 | **Diseñar con Guido** | el acta, las líneas base | un diseño por racimo con su tabla de criterios → SPEC-0 READY | Guido + sesión en Fable (criterio) | ~14 M; 13 sesiones en 14 días |
 | 4 | **Construir** | el SPEC-0 | la versión nueva en `main`, con pruebas, como beta `-rc` | un director Opus por paquete + encargos | ~34 M; 19 sesiones; ~32 h de reloj medidas |
@@ -40,7 +42,10 @@ encargos por modelo, nuevos, caché, commit).
 
 ### 3.1 Investigar
 
-El detalle es [`observatorio/investigacion/METODO.md`](../observatorio/investigacion/METODO.md); acá, el orden y lo que no se negocia:
+Mira para **dos lados con el mismo peso**: hacia adentro (cómo se usó el método: pruebas) y hacia afuera (qué hacen otros y qué trae la
+plataforma: ideas). Lo de adentro dice dónde duele; lo de afuera, con qué se puede curar sin inventarlo.
+
+**Hacia adentro.** El detalle es [`observatorio/investigacion/METODO.md`](../observatorio/investigacion/METODO.md); acá, el orden y lo que no se negocia:
 1. **Primero lo gratis**: la corrida mensual (`flota.py`, `huella.py`, `repos.py`, `costos.py`; ~25 min, casi cero tokens) y **los registros
    de cambios de método de cada proyecto** (`cambios-flota`): son más baratos y más precisos que los chats (32 fichas de Hermes, 90 KB,
    confirmaron el canon mejor que cualquier acta).
@@ -49,6 +54,21 @@ El detalle es [`observatorio/investigacion/METODO.md`](../observatorio/investiga
    pregunta mira a Guido o al proceso; enteros solo los ★ que un hallazgo pida.
 4. **Un `ya-sabido`** para los lectores: sin él, redescubren lo escrito.
 5. **Verificar en disco** lo fuerte antes de escribirlo; el acta pasa por gitleaks, búsqueda de nombres y el ojo de Guido.
+
+**Hacia afuera.** Es barato (leer docs y actas, no chats: en la vuelta 1, la consulta a la doc de la plataforma costó ~0,1-0,3 M por tanda y
+la lectura de otros métodos entró en una sesión de diseño), así que va siempre:
+1. **El Extractor de tips** ([`observatorio/extractor/`](../observatorio/extractor/COMO-USAR-EL-EXTRACTOR.md)): las actas `tips/tanda-*`
+   desde el corte, con sus propuestas `- [ ]` todavía abiertas.
+2. **Las novedades de Claude Code** desde el corte: funciones nuevas que reemplacen algo que el kit hace a mano (en la vuelta 1: abrir
+   sesiones, avisos, estado y mensajes entre PCs ya eran nativos: [`mision-4/PLATAFORMA.md`](mision-4/PLATAFORMA.md)). Se verifican contra
+   la doc oficial, con **techo de búsqueda** (§6).
+3. **Métodos y herramientas de otros**: el precedente es [`mision-4/REFERENCIAS-EXTERNAS.md`](mision-4/REFERENCIAS-EXTERNAS.md) (qué idea
+   sirve a qué parte del método y qué se descarta, con su razón).
+
+**Cada idea de afuera pasa dos filtros** antes de llegar a Guido: **la vara** (ADR-030: ¿mejora el workflow, el código, la consistencia, o
+hace que haya que acordarse de menos? ¿corrige algo que dolió de verdad, o es por las dudas?) y **la curaduría del menú** (restricción 2 del
+`CLAUDE.md`: verificada contra la fuente oficial, todo descarte escrito con su razón, nada se instala sin la regla de 3+). Lo que pasa los
+dos entra al acta al lado de las pruebas de adentro; si además coincide con un dolor medido adentro, va primero.
 
 ### 3.2 Ordenar la casa
 
@@ -109,15 +129,13 @@ Sale de leer los 42 chats recortados (`recortar.py --modo contraste`: los 420 me
 273 mensajes entre director y encargos), con 4 lectores Sonnet, el 2026-11-03. Costó ~0,64 M (se presupuestó ~1,1-1,3 M). Los hallazgos
 crudos van al privado (`mision-6/`), nunca acá.
 
-**Lo que más le costó a Guido no fue diseñar: fue la logística.** Tres PCs y dos cuentas de GitHub, Remote Control para que una sesión le
-pida algo a otra, un repo temporal improvisado para pasar chats, comandos que tuvo que correr él porque el clasificador o una ruta protegida
-los frenaba, renombrar pestañas a mano, preparar una PC nueva (30 min), y **pegar un prompt largo al abrir cada sesión** (8 directores
-seguidos). → En el ciclo: **una PC por paso cuando se pueda**, la PC escrita en el prompt de arranque, y "preparame esta PC" antes de abrir.
+**Lo que más le costó a Guido fue no saber cómo iba el trabajo.** Preguntó "¿cuánto falta?" más de 15 veces en la M5, porque el director
+no sabe cuánto lleva ni cuánto le queda y lo estima. Peor: un encargo quedó **19 horas parado esperando un OK de presupuesto** y Guido
+creía que se había corrido. → **Un contador visible** (horas, encargos hechos y por hacer, "esperando tu OK") que el director actualiza
+solo en el tracker; es lo que el `/estado` del kit v3 tiene que dar.
 
-**La pregunta que más se repitió fue "¿cuánto falta?"**: más de 15 veces en la M5, porque el director no sabe cuánto lleva ni cuánto le
-queda y lo estima. Peor: un encargo quedó **19 horas parado esperando un OK de presupuesto** y Guido creía que se había corrido. → **Un
-contador visible** (horas, encargos hechos y por hacer, "esperando tu OK") que el director actualiza solo en el tracker; es lo que el
-`/estado` del kit v3 tiene que dar.
+*(Las semanas de la vuelta 1 tuvieron mucho ir y venir entre PCs, que no es lo normal. La regla que queda: si hay que moverse de PC,
+prepararla antes con "preparame esta PC" y escribir la PC en el prompt de arranque.)*
 
 **Donde se dio vueltas fue en el alcance y en las explicaciones, no en los detalles.** Unas diez veces "no entendí" o "en criollo", y la
 segunda explicación siempre resolvió; la que más costó fue una decisión dicha en técnico ("aprobar desde la terminal") que tres rondas de
@@ -173,6 +191,7 @@ Una línea cada una; la fuente tiene el detalle (M4 = [`mision-4/PLAN.md`](misio
 - **Un filtro que falla no avisa**: probar el condensado con 3 chats contando a mano (METODO, paso 1).
 - Verificar en disco lo fuerte antes de escribirlo; mirar en qué rama vive cada documento (M4, tramo 1).
 - Respaldo de lo hallado en el privado desde el día uno (M3); los chats los sube cada `/cierre` (6a).
+- **Las ideas de afuera con el mismo peso que las pruebas de adentro**, cada una con la vara y la curaduría; lo que coincide con un dolor medido, primero (6a).
 
 **Ordenar la casa**
 - Los objetivos escritos de entrada (sin ellos el plan cambió tres veces) y el inventario de proyectos como paso 0 (M3).
@@ -201,7 +220,9 @@ Una línea cada una; la fuente tiene el detalle (M4 = [`mision-4/PLAN.md`](misio
 - **La sesión real ve lo que ninguna prueba ve**: leer su log entero (M5, D5.1). Un pedido de prueba también tiene que pasar la regla que prueba (M5, D4.1).
 - Una pausa avisada no cuesta nada si cada encargo está en su worktree con WIP commiteado (M5, D5.1).
 - Revisor sin piso de severidad → ADR-029 (M5, D3.3).
-- Las decisiones sin Guido, en criollo desde el director que las toma; el contador de avance, visible (6a).
+- **El contador de avance, visible** (horas, encargos, "esperando tu OK"): sin él, "¿cuánto falta?" es la pregunta más repetida (6a).
+- Las decisiones sin Guido, en criollo desde el director que las toma (6a).
+- Si hay que moverse de PC: prepararla antes con "preparame esta PC" y escribir la PC en el prompt de arranque (6a).
 
 **Medir**
 - Un pedido con formato fijo a cada director (número · qué cambió · freno o regla blanda · SHA · dato medido) y verificar cada línea en su git (M4, checkpoint).
@@ -214,7 +235,8 @@ Esqueletos para la vuelta siguiente; el ejemplo lleno de cada uno es el de la vu
 
 **SPEC de investigación** (ejemplo: [`SPEC-investigacion-chats.md`](SPEC-investigacion-chats.md)) — Estado y origen (la frase de Guido) ·
 Por qué (el dolor, con su número) · Alcance IN/OUT con razón (OUT siempre: aplicar, contenido de negocio, mover crudos) · Las preguntas y a
-quién le sirve cada una · Cómo se hace (condensar → recortar → lectores → síntesis, con el corte `--desde`) · **Presupuesto con tres opciones
+quién le sirve cada una · **Las fuentes, adentro y afuera** (chats, registros de cambios y scripts · actas del Extractor, novedades de la
+plataforma, métodos de otros, cada idea con la vara y la curaduría) · Cómo se hace (condensar → recortar → lectores → síntesis, con el corte `--desde`) · **Presupuesto con tres opciones
 y lo que contesta cada una** (el modelo: [`mision-6/PLAN-6a.md`](mision-6/PLAN-6a.md) §3) · Salida (acta en `tips/`, crudo al privado) ·
 Criterios de aceptación · Riesgos (secretos, nombres, un filtro que falla callado).
 
