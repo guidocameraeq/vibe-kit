@@ -359,6 +359,136 @@ test('--aplicar se niega (1) sin escribir: ya con ficha, sucia, sin .kit-rol act
   })();
 });
 
+// ---------------------------------------------------------------- --nuevo (SPEC-paquete-8b (15), D8b-8)
+
+test('--mirar --nuevo (8b, 15): sin CLAUDE.md y con él, lo base en molde, el candado, director-obrero y estado en sí; las otras opcionales en no', deKit, () => {
+  for (const archivos of [{ 'notas.txt': 'recién nacido\n' }, { 'CLAUDE.md': '# nuevo\n', 'notas.txt': 'recién nacido\n' }]) {
+    const d = repoPelado('nuevo', archivos);
+    const r = mirar(d, { nuevo: true });
+    const p = piezas(r.texto);
+    for (const id of BASE) assert.equal(p[id], 'molde', id);
+    for (const id of ['candado', 'director-obrero', 'estado']) assert.equal(p[id], 'sí', id);
+    for (const id of ['smoke', 'release', 'docs-fyd']) assert.equal(p[id], 'no', id);
+    assert.doesNotMatch(r.texto, /todo en no/);
+    assert.match(r.texto, /^# proyecto nuevo \(--nuevo\)/m);
+    assert.ok(deFabrica(F.leer(r.texto).datos, 'liviano'));
+  }
+  // sin --nuevo, el mismo repo sin CLAUDE.md sigue en todo no (criterio 19)
+  assert.ok(Object.values(piezas(mirar(repoPelado('viejo', { 'notas.txt': 'x\n' })).texto)).every((e) => e === 'no'));
+});
+
+test('--aplicar de una propuesta --nuevo: vienen el candado, el director y el estado; la ficha los dice en sí; los dos commits → barreras verde', { ...deKit, timeout: 180000 }, async () => {
+  const d = repoPelado('nuevo', { 'notas.txt': 'recién nacido\n' });
+  const prop = path.join(nuevaCarpeta('prop'), 'propuesta.md');
+  fs.writeFileSync(prop, mirar(d, { nuevo: true }).texto);
+  rol(d);
+  const antes = git(d, 'rev-parse', 'HEAD').trim();
+  const r = await aplicar(d, prop);
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  const f = F.leer(leer(d, '.claude/kit.md')).datos;
+  for (const id of ['candado', 'director-obrero', 'estado']) assert.equal(f.piezas[id].estado || f.piezas[id], 'sí', id);
+  for (const rel of ['.claude/scripts/estructura.cjs', '.claude/skills/director/SKILL.md', '.claude/skills/obrero/SKILL.md', '.claude/skills/estado/SKILL.md', 'CLAUDE.md']) assert.ok(leer(d, rel), rel);
+  assert.equal(leer(d, '.claude/skills/smoke/SKILL.md'), null);
+  // lo del v2 que un repo nuevo nunca tuvo no es un desvío: /inicio y /cierre nacen del molde, sin pasar por la fusión
+  for (const id of ['inicio', 'cierre']) {
+    assert.match(String(f.piezas[id].estado || f.piezas[id]), /^molde/, id);
+    assert.ok(leer(d, `.claude/skills/${id}/SKILL.md`), id);
+    assert.equal(leer(d, `.claude/fusiones/${id}.md`), null, `${id} no queda en te espera`);
+  }
+  assert.doesNotMatch(r.lineas.join('\n'), /te espera|\(falta\)/);
+  assert.match(r.lineas.join('\n'), /^githooks · sin --principal · /m);
+  assert.equal(commitsDeLaLinea(d, r.lineas), 2);
+  assert.equal(git(d, 'status', '--porcelain'), '');
+  const b = barreras(d, antes);
+  assert.equal(b.status, 0, b.stdout + b.stderr);
+});
+
+// ---------------------------------------------------------------- --principal: los githooks (SPEC-paquete-8b (14), D8b-9)
+
+const hooksPath = (d, ...donde) => {
+  const r = spawnSync('git', ['config', ...donde, '--get', 'core.hooksPath'], { cwd: d, encoding: 'utf8', windowsHide: true });
+  return r.status === 0 ? r.stdout.trim() : null;
+};
+// Una carpeta principal (un repo con un commit) y su clon (git clone de ella, como el Modo A), con .kit-rol en el clon.
+function principalYClon(nombre, o = {}) {
+  const p = repoPelado(nombre, { 'notas.txt': 'la carpeta de Guido\n' });
+  if (o.origin) git(p, 'remote', 'add', 'origin', o.origin);
+  const c = path.join(nuevaCarpeta('clon'), nombre);
+  git(path.dirname(c), 'clone', '-q', o.origin || p, c);
+  rol(c);
+  return { p, c };
+}
+const ponerHook = (d) => escribir(d, { '.git/hooks/pre-commit': '#!/bin/sh\necho husky v4\n' });
+
+test('--aplicar --principal (8b, 14): vacío → .githooks en la principal y la línea "puesto"; el clon sin core.hooksPath; la global igual', { ...deKit, timeout: 180000 }, async () => {
+  const { p, c } = principalYClon('omega');
+  const prop = path.join(nuevaCarpeta('prop'), 'propuesta.md');
+  fs.writeFileSync(prop, mirar(c, { nuevo: true }).texto);
+  const global = fs.readFileSync(process.env.GIT_CONFIG_GLOBAL);
+  const gAntes = hooksPath(p, '--global');
+  const r = await AD.main([c, '--kit', RAIZ_KIT, '--aplicar', prop, '--fecha', FECHA, '--principal', p]);
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  assert.ok(r.lineas.includes(`githooks · ${p} · puesto`), r.lineas.join('\n'));
+  assert.equal(hooksPath(p, '--local'), '.githooks');
+  assert.equal(hooksPath(c), null, 'en el clon no se prende (r1-5)');
+  assert.equal(hooksPath(p, '--global'), gAntes);
+  assert.deepEqual(fs.readFileSync(process.env.GIT_CONFIG_GLOBAL), global, 'la global, byte a byte');
+  // los commits del clon pasan (el pre-commit no corre en el clon) y la principal los trae con el pull
+  assert.equal(commitsDeLaLinea(c, r.lineas), 2);
+  git(p, 'pull', '-q', '--ff-only', c, 'HEAD');
+  assert.ok(leer(p, '.githooks/pre-commit') && leer(p, '.claude/kit.md'));
+  // la CLI: --principal solo con --aplicar; --nuevo solo con --mirar
+  for (const args of [[c, '--kit', RAIZ_KIT, '--mirar', '--principal', p], [c, '--kit', RAIZ_KIT, '--aplicar', prop, '--nuevo'], [c, '--kit', RAIZ_KIT, '--aplicar', prop, '--principal']]) assert.equal(await AD.main(args), null, args.join(' '));
+});
+
+test('prenderGithooks (8b, 14; r1-6, r1-7): .git/hooks real sin .githooks/ → intacto; otro repo o subcarpeta → no pude, sin escribir; husky con .githooks/ → previo y .githooks; husky sin .githooks/ → intacto; ya → ya estaba', () => {
+  const conf = (d) => fs.readFileSync(path.join(d, '.git', 'config'), 'utf8');
+  // vacío con un hook real en .git/hooks y sin .githooks/ en el disco: apagaría el hook hasta el pull
+  let { p, c } = principalYClon('h1');
+  ponerHook(p);
+  let antes = conf(p);
+  assert.match(AD.prenderGithooks(c, p), /^githooks · .* · queda para el arranque — \.git\/hooks tiene pre-commit/);
+  assert.equal(conf(p), antes);
+  // …el mismo con .githooks/ en el disco → puesto
+  escribir(p, { '.githooks/pre-commit': '#!/bin/sh\n' });
+  assert.equal(AD.prenderGithooks(c, p), `githooks · ${p} · puesto`);
+  assert.equal(hooksPath(p), '.githooks');
+  assert.equal(AD.prenderGithooks(c, p), `githooks · ${p} · ya estaba`);
+  // otro repo, una subcarpeta, una carpeta con .kit-rol, el clon mismo: no pude, sin escribir
+  const otro = principalYClon('h2');
+  const sub = path.join(otro.p, 'sub');
+  fs.mkdirSync(sub);
+  for (const [cl, pr] of [[c, otro.p], [otro.c, sub], [otro.c, otro.c], [otro.c, path.join(T, 'no-existe')]]) {
+    const a = fs.existsSync(path.join(pr, '.git', 'config')) ? conf(pr) : null;
+    assert.match(AD.prenderGithooks(cl, pr), /^githooks · .* · no pude: no es el mismo repo/, `${cl} → ${pr}`);
+    if (a !== null) assert.equal(conf(pr), a, pr);
+  }
+  assert.equal(hooksPath(otro.p), null);
+  rol(otro.p);
+  assert.match(AD.prenderGithooks(otro.c, otro.p), /no pude: no es el mismo repo/, 'la principal nunca lleva .kit-rol');
+  // el mismo origin (la flota clona el remoto): vale
+  const remoto = repoPelado('remoto', { 'notas.txt': 'r\n' });
+  ({ p, c } = principalYClon('h3', { origin: remoto }));
+  fs.mkdirSync(path.join(p, 'sub'));
+  assert.match(AD.prenderGithooks(c, path.join(p, 'sub')), /no pude: no es el mismo repo/, 'una subcarpeta del mismo repo tampoco');
+  assert.equal(hooksPath(p), null);
+  assert.equal(AD.prenderGithooks(c, p), `githooks · ${p} · puesto`);
+  // husky con .githooks/ en el disco → el previo a kit.hooksPathPrevio y .githooks
+  ({ p, c } = principalYClon('h4'));
+  git(p, 'config', 'core.hooksPath', '.husky');
+  escribir(p, { '.githooks/pre-commit': '#!/bin/sh\n' });
+  assert.equal(AD.prenderGithooks(c, p), `githooks · ${p} · puesto (el anterior, .husky, quedó en kit.hooksPathPrevio: el runner lo encadena)`);
+  assert.equal(hooksPath(p, '--local'), '.githooks');
+  assert.equal(git(p, 'config', '--local', '--get', 'kit.hooksPathPrevio').trim(), '.husky');
+  // husky sin .githooks/ → intacto
+  ({ p, c } = principalYClon('h5'));
+  git(p, 'config', 'core.hooksPath', '.husky');
+  antes = conf(p);
+  assert.match(AD.prenderGithooks(c, p), /^githooks · .* · queda para el arranque — hoy apunta a \.husky/);
+  assert.equal(conf(p), antes);
+  assert.equal(hooksPath(c), null, 'el clon, nunca');
+});
+
 test('la CLI: adoptar mal llamado → 2 con el USO (que nombra adoptar)', () => {
   for (const args of [['adoptar'], ['adoptar', 'x'], ['adoptar', 'x', '--kit', 'k'], ['adoptar', 'x', '--kit', 'k', '--mirar', '--aplicar', 'p'], ['adoptar', 'x', '--kit', 'k', '--mirar', '--nivel', 'mediano'], ['adoptar', 'x', '--kit', 'k', '--aplicar', 'p', '--nivel', 'liviano'], ['adoptar', 'x', '--kit', 'k', '--aplicar', 'p', '--propuesta', 'q'], ['adoptar', 'x', '--kit', 'k', '--mirar', '--raro'], ['adoptar', 'x', '--kit', 'k', '--aplicar']]) {
     const r = spawnSync(process.execPath, [path.join(SCRIPTS, 'actualizar.cjs'), ...args], { cwd: T, encoding: 'utf8' });
@@ -400,7 +530,7 @@ test('--mirar: /cierre del v2 con {{BUGS_HISTORICOS}} lleno → propia, "trae co
   assert.doesNotMatch(r2.texto, /contenido propio/);
 });
 
-test('los docs dicen lo que hace el script: los dos commits de --aplicar, barreras --rango y chequear desde la primera flota', () => {
+test('los docs dicen lo que hace el script: los dos commits de --aplicar, el --principal (8b, 14), barreras --rango y chequear desde la primera flota', () => {
   const kit = path.resolve(__dirname, '..', '..', '..');
   for (const rel of [['arquitecto', 'anexos', 'flota.md'], ['arquitecto-skills', 'SKILL.md']]) {
     const t = fs.readFileSync(path.join(kit, ...rel), 'utf8');
@@ -408,6 +538,7 @@ test('los docs dicen lo que hace el script: los dos commits de --aplicar, barrer
     assert.match(l, /los \*\*dos\*\* commits que imprime \(piezas, ficha\)/, rel.join('/'));
     assert.match(l, /barreras --rango <antes>\.\.HEAD`/, rel.join('/'));
     assert.match(l, /estructura/, rel.join('/'));
+    assert.match(l, /--aplicar <archivo> --principal <la carpeta de Guido>`/, rel.join('/'));
     assert.match(l, /`chequear`: desde la primera flota/, rel.join('/'));
     assert.doesNotMatch(l, /commit, `chequear`/, rel.join('/'));
   }

@@ -2,7 +2,7 @@
 
 Un spec es **UN solo archivo**: el puente entre la charla y la ejecución. Lo va a leer una **sesión fresca que no vio la charla**. Regla de oro: **si una decisión no quedó escrita, la sesión fresca la improvisa.**
 
-Dos formatos según la puerta: **SPEC-0** para proyecto nuevo (`SPEC-0.md` en la raíz del proyecto — Modo A) y **SPEC delta** para una feature sobre una app que ya anda (Modo B): con ficha del kit (`.claude/kit.md`), `docs/modulos/<x>/SPEC.md` al lado de la ficha del módulo (`docs/modulos/<x>/README.md`, esqueleto al final); sin ficha (proyectos v2), `docs/SPEC-<x>.md`.
+Dos formatos según la puerta: **SPEC-0** para proyecto nuevo (Modo A: el primer módulo, `docs/modulos/v1/SPEC.md`, con su ficha `docs/modulos/v1/README.md`; los de antes del molde v3 lo tienen en `SPEC-0.md`, en la raíz) y **SPEC delta** para una feature sobre una app que ya anda (Modo B): con ficha del kit (`.claude/kit.md`), `docs/modulos/<x>/SPEC.md` al lado de la ficha del módulo (`docs/modulos/<x>/README.md`, esqueleto al final); sin ficha (proyectos v2), `docs/SPEC-<x>.md`.
 
 Se escribe en español claro (vos), para que el dueño lo lea y apruebe sin saber código. **No se archiva**: implementado, su línea de Estado pasa a `COMPLETO <fecha>` y el archivo se queda donde está (con su módulo, si lo tiene).
 
@@ -101,7 +101,7 @@ Tamaño: módulo solo
 
 - **Su primera línea con texto dice `módulo solo` o `módulo con director`**, una sola de las dos (la lee `sello`). Con ficha, coincide con la ficha del módulo: `módulo solo` ↔ `director: no`; `módulo con director` ↔ `director: sí` y `rama: modulo/<x>`.
 - **Director, solo** con dos o más tareas que se escriben a la vez o noche sin Guido; varias sesiones seguidas son módulo solo.
-- **La línea para abrir**: módulo solo, `inicio — ejecutá docs/modulos/<x>/SPEC.md (está READY)` en un chat nuevo en la raíz del proyecto; con director, lo que imprime `worktree.cjs`: primero la vía de VS Code (`code "<ruta del worktree>"` y, en esa ventana, la pestaña de Claude con Opus, sesión `director-<x>`) y, solo si `claude` está en el PATH, la de terminal (`cd "<ruta>"; claude --name director-<x> --model opus`, con `;` y no `&&`: PowerShell 5.1 no tiene `&&`); adentro, la misma línea de `inicio`; SPEC-0, `inicio — ejecutá el SPEC-0 (SPEC-0.md, está READY)`; sin ficha, `inicio — ejecutá el spec docs/SPEC-<x>.md (está READY)`.
+- **La línea para abrir**: módulo solo, `inicio — ejecutá docs/modulos/<x>/SPEC.md (está READY)` en un chat nuevo en la raíz del proyecto; con director, lo que imprime `worktree.cjs`: primero la vía de VS Code (`code "<ruta del worktree>"` y, en esa ventana, la pestaña de Claude con Opus, sesión `director-<x>`) y, solo si `claude` está en el PATH, la de terminal (`cd "<ruta>"; claude --name director-<x> --model opus`, con `;` y no `&&`: PowerShell 5.1 no tiene `&&`); adentro, la misma línea de `inicio`; SPEC-0, la de módulo solo con `v1`: `inicio — ejecutá docs/modulos/v1/SPEC.md (está READY)`; sin ficha, `inicio — ejecutá el spec docs/SPEC-<x>.md (está READY)`.
 
 ## La sección Entorno de prueba (todo spec READY la lleva)
 

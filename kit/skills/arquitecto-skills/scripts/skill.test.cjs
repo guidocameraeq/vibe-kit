@@ -120,6 +120,26 @@ test('flota.md (adoptar) y modo-a.md: piezas.portada: sí SOLO si portada.cjs ar
   }
 });
 
+// SPEC-paquete-8b (15), D8b-8: el Modo A monta el molde v3 con el adoptador sobre un clon (--nuevo, --principal), no templates/;
+// el SPEC-0 vive en docs/modulos/v1/SPEC.md y el Paso 0 busca también los SPEC-0.md de antes.
+test('modo-a.md (8b, 15): el Paso 5 nombra adoptar --nuevo y --principal, el pull --ff-only antes del sello; no templates/; el SPEC-0 en docs/modulos/v1/', () => {
+  const t = leer(path.join(SCRIPTS, '..', '..', 'arquitecto', 'anexos', 'modo-a.md'));
+  assert.doesNotMatch(t, /templates\//);
+  assert.doesNotMatch(t, /molde v2/);
+  const p5 = /## Paso 5[\s\S]*?(?=\n## )/.exec(t)[0];
+  for (const x of ['--mirar --nuevo', '--principal "<carpeta>"', 'pull --ff-only', '.kit-rol', 'docs/modulos/v1/SPEC.md', 'docs/modulos/v1/README.md']) assert.ok(p5.includes(x), `el Paso 5 no nombra ${x}`);
+  // el orden: el adoptador, el pull y recién ahí el sello y ready; después la portada
+  const pos = ['--mirar --nuevo', '--aplicar', 'pull --ff-only', '<arq> sello', '<arq> ready', 'portada.cjs armar'].map((x) => p5.indexOf(x));
+  assert.ok(pos.every((v, i) => v >= 0 && (i === 0 || v > pos[i - 1])), `el orden del Paso 5: ${pos.join(' ')}`);
+  assert.match(t, /\*\*nunca lleva `\.kit-rol`\*\*/);
+  const p0 = /## Paso 0[\s\S]*?(?=\n## )/.exec(t)[0];
+  assert.ok(p0.includes('*/docs/modulos/v1/SPEC.md') && p0.includes('*/SPEC-0.md'), 'el Paso 0 busca los dos');
+  assert.ok(t.includes('`inicio — ejecutá docs/modulos/v1/SPEC.md (está READY)`'), 'la línea para abrir');
+  // formato-spec.md dice lo mismo (renglones 5 y 104)
+  const fs0 = leer(path.join(SCRIPTS, '..', '..', 'arquitecto', 'anexos', 'formato-spec.md'));
+  assert.ok(fs0.includes('`docs/modulos/v1/SPEC.md`') && !fs0.includes('(SPEC-0.md, está READY)'), 'formato-spec.md');
+});
+
 // RF-fix rf-7: la nota de 3.0.0 de kit/CHANGELOG.md (la que lee la fusión al actualizar) nombra lo nuevo del paquete 7.
 const CHANGELOG_KIT = path.join(SCRIPTS, '..', '..', '..', 'CHANGELOG.md'); // kit/CHANGELOG.md (solo en el kit, no instalado)
 test('kit/CHANGELOG.md, la nota de 3.0.0: subio-al-kit y cubiertos.md, portada.cjs armar y piezas.portada, cambios-flota, migrar-cambios', { skip: !fs.existsSync(CHANGELOG_KIT) && 'sin kit/CHANGELOG.md' }, () => {

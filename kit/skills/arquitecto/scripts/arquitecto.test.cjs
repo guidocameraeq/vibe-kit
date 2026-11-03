@@ -367,8 +367,11 @@ test('ready: secciones que faltan → 1 con cuáles', () => {
   assert.match(x.out, /Pedido original, textual tiene que ser la primera sección/);
   // Un delta por la ruta (docs/modulos/<x>/SPEC.md) aunque su H1 no diga # SPEC:.
   const m = repo();
-  sellado(m, 'docs/modulos/pagos/SPEC.md', spec());
+  sellado(m, 'docs/modulos/pagos/SPEC.md', spec({ h1: '# Pagos' }));
   assert.match(correr(['ready', 'docs/modulos/pagos/SPEC.md'], m).out, /faltan secciones: ## Pedido original, textual, ## NO SE TOCA/);
+  // …salvo el SPEC-0 del Modo A (8b, 15; D8b-8): en docs/modulos/v1/SPEC.md, su H1 # SPEC-0: manda.
+  sellado(m, 'docs/modulos/v1/SPEC.md', spec());
+  assert.equal(correr(['ready', 'docs/modulos/v1/SPEC.md'], m).codigo, 0);
   // Un SPEC-0 (no delta) no las pide; un delta con las dos, con "(no quedó registrado)", pasa.
   const ok = repo();
   sellado(ok, 'a.md', spec({ h1: '# SPEC-0: algo' }));
