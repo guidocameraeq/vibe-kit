@@ -2,6 +2,32 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-11-02 — Misión 5, paquete 7 (D7.1): el ciclo del registro de cambios y la portada
+
+PC `Draco-PC`, chat `vibe-kit M5 · D7.1 · Paquete 7: el ciclo de cambios y la portada`, en Opus, sin Guido, con el presupuesto del
+ADR-029: **~3 h de reloj (19:45-22:45), 8 encargos (6 Opus: red team, A, C, revisor frío, RF-fix, E8 · 2 Sonnet: B, D), ~1,45 M de tokens
+de subagentes**. Sin tag. **El paquete 7 queda ✅.** Decisiones sin Guido: tracker, "D7.1 · Decisiones sin Guido"; ninguna pregunta nueva.
+
+**Added**
+- `docs/kit-v3/SPEC-paquete-7.md`, sellado sin Guido por script (red team 1 ronda acotada, 4 ALTOS integrados).
+- `subio-al-kit`: la transición pura en `molde/hooks/lib/cambios.cjs` (`version` fuera del hash del sello), el comando `cambios subio-al-kit`,
+  `verificar` y `barreras` lo tratan como `aplicado`; `kit/cubiertos.md` (lo que entró al kit: `cita`, `version`, `pieza`) con un solo lector
+  (`scripts/lib/cubiertos.cjs`); `aplicar` cierra el ciclo y retira la zona propia solo con cinco condiciones (vuelve al texto de fábrica). Mutación 27/27 + 12/13 + 5/5.
+- `cambios-flota.cjs`: la tabla del ciclo (3+ o cicatriz) y `--urgentes`, sin red, sobre lo commiteado; un renglón en el `/inicio` de vibe-kit.
+- `migrar-cambios.cjs`: un `CAMBIOS.md` único a archivos chicos. **Hermes (clon): 103 CM → 102 `aplicado` + 1 `propuesto`, `verificar` verde.**
+- La portada: `molde/scripts/portada.cjs` (`armar [--banner]`, `chequear`), `candado:portada` (el décimo, solo con `piezas.portada`), las
+  plantillas `molde/README.md` y `molde/assets/banner.svg`; el Arquitecto la arma al montar o adoptar.
+
+**Changed**
+- `lib/flota.cjs`: con un `-rc` nada sube ("subiría al kit") y no da "al día" un repo con un cambio pendiente de subir. `catalogo.cjs`: las
+  plantillas de la portada no viajan. `pc/lib/` suma las copias de `cambios.cjs` y `cambios-ruta.cjs`. La nota de 3.0.0 en `kit/CHANGELOG.md`.
+- SPEC-0 P3.8 y P6.8b ✅; el delta ✅ IMPLEMENTADO; el NO VERIFICADO "migración de Hermes" tachado (sobre un clon).
+
+**Fixed** (revisor frío, 7 hallazgos, un encargo): la línea "para pegar" sin `pieza:` mataba el ciclo de toda la flota; `--kit` con la raíz;
+el `/inicio` con ⚠ por repos sin rama; rc → final; SHA colgados en la migración; `piezas.portada` con un README propio.
+
+Suite entera **2.737 de 2.737** verde (17,5 min). `kit-sync` LIMPIO.
+
 ## 2026-11-02 — Misión 5, paquete 6, cierre (D6.2): la flota de punta a punta, la fusión de piezas adaptadas y el adoptador
 
 PC `Draco-PC`, chat `vibe-kit M5 · D6.2 · Paquete 6, cierre: la flota de punta a punta y el adoptador`, en Opus, sin Guido, con el

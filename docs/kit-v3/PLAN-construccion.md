@@ -80,7 +80,7 @@ sesión sigue con lo que no depende de eso. Lo que sí se decide y es grande se 
 | 4 | El Arquitecto v3, el script `worktree`, el sello, `formato-spec.md` | 2 | ✅ 2026-10-30 (D4.1 y D4.2; **te espera**: el Arquitecto en un proyecto v2 de verdad, la pestaña en un worktree: Pendientes) ([`SPEC-paquete-4.md`](SPEC-paquete-4.md)) |
 | 5 | Director/obrero, `/estado`, resumen del día, la mesa, subagentes | 3 | ✅ 2026-11-02 (D5.1 el día · D5.2 la noche, las vistas, `/tramo`, los subagentes, la mesa · D5.3 el corrector de afirmaciones, que avisa; **te espera**: las pestañas reales y repasar las ⚠️: Pendientes) ([`SPEC-paquete-5.md`](SPEC-paquete-5.md)) |
 | 6 | Equipador v3, actualizador, adoptador, `doctor` completo | 2 | ✅ 2026-11-02 (D6.1 la PC, el `doctor`, `aplicar` y `chequear` · D6.2 la flota, la fusión `adaptada`, el adoptador; **te espera**: "preparame esta PC" en la segunda PC, la fusión con un `claude` real, repasar las ⚠️: Pendientes) ([`SPEC-paquete-6.md`](SPEC-paquete-6.md)) |
-| 7 | El ciclo de `cambios` (flota, migración de Hermes) y la portada | 1 | ⬜ |
+| 7 | El ciclo de `cambios` (flota, migración de Hermes) y la portada | 1 | ✅ 2026-11-02 (D7.1; **te espera**: repasar las ⚠️; el `D-n` de Mobile y la portada en GitHub, al piloto: Pendientes) ([`SPEC-paquete-7.md`](SPEC-paquete-7.md)) |
 | 8 | El observatorio mide la línea base; playbook, guía y manuales al día | 1 | ⬜ |
 | 8½ | Deptos prepara sus credenciales (**lo hace Guido**, sin director) | 0 | ⬜ |
 | 9 | Piloto en Deptos, un mes; después Hub y Portal | 2 en la madre | ⬜ |
@@ -110,7 +110,7 @@ cuántos lanzó y en qué modelo (por ejemplo `4 Sonnet · 2 Opus`): es la medid
 | D5.3 | Paquete 5, cierre: el corrector de afirmaciones (P6.10, A §5) medido contra el historial de git de Hermes | 2026-11-02 (sin Guido, PC `Draco-PC`; **~1,2 h de reloj, ~0,50 M de tokens de subagentes**) | `vibe-kit M5 · D5.3 · Paquete 5, cierre: el corrector de afirmaciones medido contra Hermes` | 3 Opus (K5, revisor frío ×1, RF-fix) = **3** (ADR-029: ~4) | `b10ed73`…`f849c0d` y el cierre | ✅ **Paquete 5 cerrado.** `afirmaciones.cjs` (lib con las reglas + CLI sobre las líneas agregadas de `git diff <base>..HEAD`), la sección `## Afirmaciones` del paquete del revisor, una línea en el obrero, `/tramo` y `revisor.md`. **Medido contra el git de Hermes** (unos 30 commits de solo prosa; reglas afinadas con la mitad vieja, medidas en la nueva): caza **27 de 504** líneas que se corrigieron (**5 de 9** sobre-afirmaciones de una muestra a mano; 1 de 41 obsoletas, fuera de alcance), marca **34 de 1.386** líneas vivas buenas (2,5%) y **17 de 1.552** de las aprobadas (1,1%) → **avisa, no frena** (D5.3-1). Revisor frío 1 vuelta, 8 hallazgos (1 ALTO: un archivo con espacio en la ruta daba "limpio"), todos en un encargo. Pruebas **148/148** y **mutación 49/49**, corridas por el director. Suite entera **2.454 de 2.454** verde (16 min, una vez, al final). **Decisiones sin Guido**: abajo |
 | D6.1 | Paquete 6, primera mitad: delta + red team, "preparame esta PC", el `doctor` completo, P2.4, el núcleo del actualizador (`aplicar`, `chequear`) | 2026-11-02 (sin Guido, PC `Draco-PC`; **~3 h de reloj, ~1,77 M de tokens de subagentes**) | `vibe-kit M5 · D6.1 · Paquete 6: Equipador v3, actualizador, adoptador y doctor completo` | 1 Sonnet (E2) · 7 Opus (redactor del delta, red team ×1, E1, E3, E4, revisor frío ×1, RF-fix) = **8** (ADR-029: ~8) | `25a151e`…`2ecd550` y el cierre | ✅ **La PC y el núcleo del actualizador en `main`; la flota y el adoptador, a D6.2** (el delta ya lo partía). Delta **sellado sin Guido por script** (red team 1 ronda, 6 ALTOS integrados; el peor: un bloque `autoMode` sin `"$defaults"` le sacaba al clasificador la confianza en los repos de toda la PC). **E1** `preparar-pc.cjs` (una pregunta, `--plan`, `--flota`, lo editado no se pisa, `autoMode` y `crossSessionInbound` contra la doc, capa privada, `kit-pc.md`; mutación 23/25) · **E2** `doctor` de 14 a 26 chequeos con el inventario de frenos, `skill.test.cjs` (P2.4), el `SKILL.md` del Equipador por `preparar-pc` (10,2 → 9,1 KB) · **E3** `actualizar.cjs aplicar` con el catálogo y los moldes (mutación 24/25) · **E4** `chequear`, nueve líneas (mutación 25/25). Revisor frío 1 vuelta, 11 hallazgos (1 ALTO: el clon `--depth 1`), todos con RF-9 a RF-11 del director en un encargo. Pruebas **156/156** corridas por el director. **Prueba viva del crit. 9** (clon de `gama`, 2.4.2 → 2.4.3): `aplicar` bien y la segunda corrida "sin cambios"; `chequear` 8 ✅ y la línea 7 NO VERIFICADO por el plazo (→ RF-9, y 2 casos de `candado.test.cjs` que dan rojo fuera del repo: Pendientes). Suite: la cifra en el CHANGELOG. `settings.json` real con la huella de la apertura. **Decisiones sin Guido**: arriba |
 | D6.2 | Paquete 6, cierre: la flota de punta a punta (`flota`, githooks en el clon, la fusión `adaptada`), el adoptador, `cargar-secreto` en un worktree, "toda la flota" en los repos de prueba | 2026-11-02 (sin Guido, PC `Draco-PC`; **~3,1 h de reloj (16:51-19:55), ~1,80 M de tokens de subagentes**) | `vibe-kit M5 · D6.2 · Paquete 6, cierre: la flota de punta a punta y el adoptador` | 2 Sonnet (F0, F5) · 6 Opus (F1, F2, F3, F4, revisor frío ×1, RF-fix) = **8** (ADR-029: ~8) | `b377e68`…`44e9575` y el cierre | ✅ **Paquete 6 cerrado, el adoptador incluido (no hizo falta D6.3).** **F0** la línea 7 de `chequear` copia el molde **crudo** (el instanciado rompía 2 casos de `candado.test` en toda actualización sana: causa raíz, 2 de 2, no era intermitente; la línea tarda ~13,5 min de 30) · **F1** `actualizar.cjs flota` (canónico por tag anotado, un repo detrás del otro en un clon de su `origin`, saltear, ROTA sin `--force`, protegido → te espera, la tabla; mutación 19/19) · **F2** los githooks del clon con `KIT_MOLDE` solo con `.kit-rol` = `actualizador` (mutación 19/21, 2 equivalentes) · **F3** la fusión `adaptada` (D6-19, opción C de Guido: `merge-file` a tres vías, con porqué sola, conflictos a `claude -p` en `acceptEdits`, sin porqué a `.claude/fusiones/` y una pregunta en `/inicio`; `piezas.<id>.por`; el runner del molde juzga el clon; mutación 23/24) · **F4** el adoptador (`adoptar --mirar`/`--aplicar`, dos commits; mutación 21/22) · **F5** `cargar-secreto` en un worktree, `flota.md`, el Equipador, la nota de 3.0.0. Revisor frío 1 vuelta, 10 hallazgos (1 ALTO: la base de una pieza que quedó en te espera), todos en un encargo (476/476). **Prueba viva** (crit. 15): `flota alfa beta gama` sobre copias de los remotos y un canónico `bare` con `v3.0.0-rc.1` → `alfa` y `beta` mezclados en un commit, `gama` salteado por `modulo/x`, ninguna `kit/*` viva, los checkouts intactos; y **`gama` v2.4.2 puro → 3.0.0 por `flota`: las nueve ✅ y mezclado** (17,6 min, la línea 7 entera: crit. 9 cerrado). Pruebas de cada encargo corridas por el director; suite: la cifra en el CHANGELOG. **Decisiones sin Guido**: arriba |
-| D7.1 | Paquete 7: el ciclo de `cambios` y la portada | | | | | |
+| D7.1 | Paquete 7: el ciclo de `cambios` y la portada | 2026-11-02 (sin Guido, PC `Draco-PC`; **~3 h de reloj (19:45-22:45), ~1,45 M de tokens de subagentes**) | `vibe-kit M5 · D7.1 · Paquete 7: el ciclo de cambios y la portada` | 2 Sonnet (B, D) · 6 Opus (red team ×1, A, C, revisor frío ×1, RF-fix, E8) = **8** (ADR-029: ~8) | `a61e648`…`511ec24` y el cierre | ✅ **Paquete 7 cerrado.** Delta **sellado sin Guido por script** (red team 1 ronda acotada, 4 ALTOS integrados: el retiro vaciaba zonas ajenas, un `3-barrera` subido quedaba rojo para siempre, la regla que no llegó, el candado de portada prendido en toda la flota). **A** `subio-al-kit` (lib pura + CLI + `verificar` + `barreras`), `kit/cubiertos.md` y `aplicar` cierra el ciclo con cinco condiciones (mutación 27/27) · **B** `cambios-flota.cjs` y `--urgentes` en el `/inicio` de vibe-kit (10 repos en 1,7 s; los de prueba, 0,9 s) · **C** `migrar-cambios.cjs`: **Hermes, 103 CM → 102 `aplicado` + 1 `propuesto`, 0 SHA sin resolver, `verificar` verde, `CAMBIOS.md` intacto** (corrido por el director sobre una copia del clon) · **D** la portada: `portada.cjs`, `candado:portada`, plantillas (README de `alfa` armado desde su NORTE). Revisor frío 1 vuelta, 7 hallazgos (1 ALTO: la línea para pegar sin `pieza:` mataba el ciclo de la flota), todos en un encargo (mutación 12/13, el vivo explicado); **E8** (lo encontró RF-fix): las zonas del molde traen texto de fábrica y el retiro no andaba nunca (mutación 5/5). Pruebas de cada encargo corridas por el director; suite entera **2.737 de 2.737** verde (17,5 min, una vez, al final). **Decisiones sin Guido**: arriba |
 | D8.1 | Paquete 8: medir la línea base; playbook, guía, manuales | | | | | |
 | D9.1 | Arrancar el piloto en Deptos | | | | | |
 | D9.2 | Medir el mes del piloto contra TABLERO §1 | | | | | |
@@ -749,6 +749,40 @@ D6.2 corrió sin Guido, con su autorización previa (su prompt, abajo) y la vara
   ediciones fuera de `.kit-fusion/` (lo frena la validación después, no antes); los hooks del proyecto corren en el clon cuando arranca
   la fusión; un `estructura.cjs` malicioso en `origin/main` corre en los githooks del clon.
 
+### D7.1 · Decisiones sin Guido
+
+D7.1 corrió sin Guido, con su autorización previa (su prompt, abajo) y la vara del ADR-030, el 2026-11-02 en `Draco-PC` desde las 19:45.
+**Las ⚠️ arriba**; todas se deshacen antes del tag. No hay preguntas nuevas arriba de Pendientes. El detalle, en el delta
+(`SPEC-paquete-7.md`, "Riesgos y decisiones" y la tabla del red team).
+
+- ⚠️ **D7-1 · Red team sí, una ronda acotada**: `subio-al-kit` cambia lo que acepta `cambios verificar` (el candado de estados del
+  pre-commit) y el actualizador pasa a retirar zona propia. Trajo 4 ALTOS del día normal; los 10 integrados. `[mejor código]`
+- ⚠️ **D7-2 · Lo que el kit cubre vive en `kit/cubiertos.md`** (`cita`, `version`, `pieza`), escrito por la sesión madre; el cruce es
+  por id o por cita, nunca por texto. **Un solo lector** (`scripts/lib/cubiertos.cjs`) para `aplicar`, `flota` y `cambios-flota`; una
+  entrada mala se saltea sola y se dice (RF-fix rf-1). `[consistencia · acordarse de menos]`
+- ⚠️ **D7-3 · Un freno nunca se retira solo**: ni `3-barrera` ni un archivo que `categoriaDe` cuenta como barrera, aunque el hash
+  coincida; va a "te espera". `[mejor código]`
+- ⚠️ **D7-7 · El retiro automático, con cinco condiciones** (clase 2 · no es freno · su pieza llegó · la zona era solo del cambio · el
+  hash coincide); ante cualquier duda la zona queda y se dice por qué. **E8**: "solo del cambio" acepta la zona con su texto de fábrica,
+  y retirar = volver al texto de fábrica del molde nuevo (sin eso no se retiraba nunca: todas las zonas del molde traen texto).
+  `[mejor código · acordarse de menos]`
+- ⚠️ **D7-4 · `cambios flota` lee la rama por defecto local, sin red**: un módulo sin mergear no se ve; un repo sin `pull` se ve viejo.
+  Lo descubierto por carpeta, solo con `.claude/cambios/` (el `/inicio` callado; rf-3). `[workflow]`
+- ⚠️ **D7-5 · La migración: todo clase 2, `toca: [metodo]`, sin `cita:`**; solo `aplicado` con un SHA que es ancestro de la rama por
+  defecto (rf-5: un SHA colgado daba rojo en la otra PC). `CAMBIOS.md` y su test no se tocan. **El `D-n` de Mobile, fuera** (el prompt
+  pedía Hermes; su formato no se exploró). `[mejor código · consistencia]`
+- ⚠️ **D7-6 · La portada la arma un script** (`portada.cjs`), no el modelo; el banner solo con `--banner`; `candado:portada` solo con
+  `piezas.portada` en la ficha, y esa línea la pone el Arquitecto **solo si** la portada quedó armada (con un README propio, apagada;
+  rf-6). About y etiquetas por `gh`, fuera (acción hacia afuera). `[acordarse de menos · consistencia]`
+- **Con un `-rc`, nada sube** ("subiría al kit"), y la flota no da "al día" un repo con un cambio pendiente de subir (rf-4: sin eso, el
+  rc dejaba la regla duplicada para siempre). `[mejor código]`
+- **Del revisor frío** (Opus, una vuelta, 7 hallazgos: 1 ALTO, 5 MEDIOS, 1 BAJO, todos del día normal; los arreglos en **un** encargo,
+  RF-fix, Opus): la línea "para pegar" salía sin `pieza:` y una entrada mala anulaba el ciclo de toda la flota · `--kit` con la raíz del
+  repo · el `/inicio` con ⚠ por repos sin rama · rc → final · SHA colgados · la portada con README propio · la nota de 3.0.0. Nada borraba
+  trabajo (lo dijo él).
+- *No se cierra* (trampas, sin arreglo): editar `aplico.hash` o escribir `subio-al-kit` a mano; un `cubiertos.md` con una entrada falsa
+  (queda en git; la zona solo se retira si está intacta); un README editado que conserva la marca `kit:portada` con el hash recalculado.
+
 ## Abrir D5.2 sin Guido (el prompt)
 
 *(Armado en el cierre de D5.1, 2026-10-31.)* ~~En la PC `Usuario`~~ **En la PC `Draco-PC`** (preparada el 2026-11-02: kit, repos de prueba,
@@ -892,6 +926,36 @@ revisiones que Hermes guarda en su repo.
 >    **horas, encargos y tokens**, el prompt de la sesión siguiente armado como este, y /cierre completo con el "Próximo paso" y su título.
 >    En el resumen final, primero "Decisiones sin Guido" y después lo que me espera a mí.
 
+## Abrir D8.1 sin Guido (el prompt)
+
+*(Armado en el cierre de D7.1, 2026-11-02.)* En cualquier PC con el kit (`Draco-PC` está lista) y acceso a `vibe-research` (los chats y el
+corpus del observatorio), en Opus, chat nuevo en vibe-kit.
+
+> inicio — misión 5, D8.1: el paquete 8 (el observatorio mide la línea base; playbook, guía y manuales al día), sin mí, con el presupuesto
+> del ADR-029.
+>
+> Me voy y te dejo trabajando solo. Te autorizo por adelantado a lo mismo que a D7.1 (su prompt, en el tracker, "Abrir D7.1 sin Guido"):
+> después del /inicio no esperás mi OK, decidís con la vara (ADR-030) y anotás en "Decisiones sin Guido" de una sección D8.1 nueva (las ⚠️
+> arriba), no tocás el `~/.claude/` real salvo el `kit-sync` del `/cierre`, y lo que necesita una persona va a Pendientes. Lo que cambia:
+>
+> 1. **Alcance: el paquete 8** del SPEC-0 (orden 8: **P8 y P9**: el observatorio mide la línea base de nuevo, con los scripts, contra
+>    TABLERO §1; PLAYBOOK, guía, manuales y las notas en los diseños, para que la documentación diga lo que el kit v3 hace). **Spec delta
+>    nuevo** (`docs/kit-v3/SPEC-paquete-8.md`); **sin red team** salvo que toque un freno o un permiso (lo decidís con la vara y lo anotás);
+>    lo sellás vos, por el script, provisorio. Lo de "Pendientes" que sea de documentación (los NO VERIFICADO que el paquete 8 pueda tachar
+>    leyendo, no probando) entra si cabe.
+> 2. **El presupuesto manda (ADR-029)**: **~4 h de reloj y ~8 encargos**. Si no entra, cerrás limpio: lo hecho en `main`, lo que falta en
+>    Pendientes con su porqué. No estires.
+> 3. **El observatorio jamás toca el sistema** (CLAUDE.md, restricción 4): mide y propone; la sesión madre aplica. **Anti-espejo**: la guía
+>    apunta a los manuales, no repite procedimientos; el playbook se toca solo con evidencia (cada cambio cita su cicatriz).
+> 4. **Contra accidentes, no contra trampas.** Revisor frío: una vuelta, hasta 10 hallazgos con su escenario del día normal (acá: un lector
+>    que sigue la guía y se equivoca), los arreglos en un encargo. La suite entera una vez, al final, en segundo plano, si se tocó código.
+>    De a dos Opus como máximo; cada encargo en su worktree en `scratchpad/<x>/wt`.
+> 5. Leés cada diff y corrés las pruebas de cada encargo. Aceptado → merge a `main`, **gitleaks sin tubería (si sale distinto de 0, no se
+>    pushea)**, commit y push.
+> 6. Al terminar: el paquete 8 en ✅ si cerró, los `✅ <fecha>` de P8 y P9 en el SPEC-0, el delta en `✅ IMPLEMENTADO`, la fila D8.1 con
+>    **horas, encargos y tokens**, el prompt de la sesión siguiente armado como este, y /cierre completo con el "Próximo paso" y su título.
+>    En el resumen final, primero "Decisiones sin Guido" y después lo que me espera a mí.
+
 ## Paralelizar: decidido que no (DP, 2026-10-29)
 
 **La misión 5 sigue en secuencia: un director por vez, en el orden de la tabla de arriba.** Guido: "Prefiero hacerlo bien y que tarde
@@ -967,6 +1031,17 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
      para git, `encargo.cjs` y el test**, y la ventana sí para una de las 5 de A. Es la mitad VS Code de D5-19.
   2. Repasar las ⚠️ de D5.1 (arriba) y el delta sellado sin vos: lo que más pesa es D5-2 (nadie en bypass), D5-19 (tu pestaña en tu modo) y
      D5-3 (`integrar` sin `/cierre`).
+- **Paquete 7 · para después** (de D7.1; nada traba a D8.1):
+  1. **El `D-n` de Mobile** (SPEC-0 6.8b): `migrar-cambios.cjs` lee el formato `CM-N` de Hermes; el de Mobile no se exploró (D7-5). Se
+     mira al adoptar Mobile: si es parecido, una bandera; si no, un lector más.
+  2. **`vars.proyecto` con forma de alias** (`[a-z0-9-]+`): si no la tiene, el cruce por id no casa (`cambios-flota` lo marca con ⚠).
+     El parser de la ficha no lo valida; se ve en el piloto.
+  3. **Una pieza de varios archivos con zona**: el mutante vivo de RF-fix (`moldeNuevoDe` toma cualquier archivo de la pieza) no se
+     distingue hasta que exista una; hoy las piezas con zona tienen un archivo.
+  4. **Esta PC no tiene `~/.claude/kit-pc.md`**: el renglón `--urgentes` del `/inicio` de vibe-kit dice "no sé dónde está la flota" hasta
+     que "preparame esta PC" lo escriba (o se le pase `--proyectos`). Va con lo de "preparame esta PC" de Paquete 6.
+  5. **La portada vista en GitHub** (cómo se ve el banner renderizado) y el Modo A con el molde v3 (el renglón de `modo-a.md` está
+     condicionado a que el proyecto traiga `portada.cjs`): NO VERIFICADO, al piloto.
 - **Paquete 6 · para después** (de D6.2; nada traba a D7.1):
   1. **La fusión con un `claude` real** (fila 3 de "Lo prueba una sesión real" del delta; NO VERIFICADO): todas las pruebas usan un
      `claude` falso. Falta ver que el clasificador deje lanzar el `claude -p` de `lib/fusion.cjs` (`acceptEdits`, `Read`/`Edit` de
@@ -1042,7 +1117,7 @@ si falla, se anota qué pasó y va a "Pendientes".
 - [ ] `core.longpaths` y `comando-test` en Windows
 - [ ] El modo `integrar` del script de worktrees en Windows
 - [ ] El `/cierre` fuera del checkout principal
-- [ ] La migración del `CAMBIOS.md` de Hermes (al adoptar Desktop)
+- [x] La migración del `CAMBIOS.md` de Hermes (al adoptar Desktop) — **D7.1, sobre un clon**: 103 CM, `verificar` verde; en el repo real, al adoptarlo
 - [ ] Que las `allow` estrechas se resuelvan antes del clasificador del modo `auto`
 - [ ] Que la skill del Arquitecto sostenga la entrevista sin perder el hilo del director
 - [ ] Que no aparezca el pop-up en VS Code ante lo AUTORIZADO

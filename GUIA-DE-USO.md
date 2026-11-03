@@ -128,6 +128,13 @@ Lo que vos adaptaste en un proyecto no se pisa: si tiene su porqué se fusiona s
 `/inicio` te hace **una** pregunta con el diff. Un repo que todavía no tiene el kit v3: *"adoptá X"* (te muestra la propuesta sin tocar
 nada; con tu OK la aplica). Si la pestaña no te deja pushear, la línea la corrés vos. El detalle: `kit/skills/arquitecto/anexos/flota.md`.
 
+### 📈 "¿Qué aprendieron mis proyectos que debería subir al kit?" (kit v3)
+*"¿Cómo está la flota?"* o *"qué se repite en la flota"*: un script cuenta los cambios de método de todos los proyectos y te dice qué
+regla está en 3 o más, o tiene cicatriz de producción, seguridad o plata. Lo que sube se anota en `kit/cubiertos.md` y, al poner al día
+la flota, cada proyecto lo marca solo como "subió al kit". Las urgentes te aparecen en el `/inicio` de este repo. Un proyecto con un
+`CAMBIOS.md` gigante (Hermes) se pasa a archivos chicos con un comando al adoptarlo. Y cada repo nuevo o adoptado sale con su
+**portada** (el README que se ve en GitHub), armada sola desde el `NORTE.md`.
+
 ### 🔧 "Quiero cambiar algo del método / del Arquitecto / del menú"
 Chat nuevo **en la raíz de este repo** → pedilo. La regla la sabe Claude: se edita en `kit/`,
 se sincroniza a `~/.claude/`, y `cierre` deja todo commiteado y pusheado.

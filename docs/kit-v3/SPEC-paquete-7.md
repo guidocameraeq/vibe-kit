@@ -2,7 +2,8 @@
 Lo que un proyecto aprende de su método vuelve al kit por un script, no por memoria: `cambios flota` cuenta qué regla se repite en la
 flota, el `/inicio` de vibe-kit lista las urgentes, el actualizador retira lo que el kit ya cubre, y Hermes pasa su `CAMBIOS.md` de 230 KB a
 archivos chicos con un comando. Y cada repo abre en GitHub con una portada que dice qué es en diez segundos.
-- Estado: READY — lo escribe el director D7.1 sin Guido (provisorio, por la vara del ADR-030)
+- Estado: **✅ IMPLEMENTADO 2026-11-02** (D7.1: las cuatro piezas, el revisor frío y E8) · READY — sellado sin Guido (provisorio), 2026-11-02, por el director D7.1,
+  después de la ronda única del red team con sus 4 ALTOS integrados. Guido lo repasa al volver; todo se deshace antes del tag
 - Fecha: 2026-11-02 · Misión: 5, director **D7.1**, sin Guido (tracker, "Abrir D7.1 sin Guido"; la vara: ADR-030; el presupuesto: ADR-029)
 - Sello del Arquitecto: `arquitecto: 2026-11-02 · kit 2.4.3 · chequeos: tamaño — (paquete del método) · entorno — (sin ficha del kit) · tope ✅ · hash 7679ee32ed7f`
 - Plano: [`SPEC-0-kit-v3.md`](SPEC-0-kit-v3.md), orden 7 = **P6.8b, P3.8**; criterio 3 del TABLERO (la portada); el NO VERIFICADO "la
@@ -255,6 +256,17 @@ un `cubiertos.md` falso) va a "Lo que esto no cierra".
 
 **Abierto, al piloto**: que `vars.proyecto` tenga forma de alias (`[a-z0-9-]+`); si no, el cruce por id no casa. `cambios-flota` y `aplicar`
 usan el mismo alias, así que se ve en la tabla.
+
+## Revisor frío (Opus, una vuelta) y E8
+
+7 hallazgos (1 ALTO, 5 MEDIOS, 1 BAJO), todos del día normal, arreglados en un encargo (RF-fix): **rf-1** un solo lector de
+`cubiertos.md` (`scripts/lib/cubiertos.cjs`), una entrada mala se saltea sola, la línea para pegar con `pieza:` · **rf-2** `--kit` con la raíz
+del repo · **rf-3** lo descubierto por carpeta, solo con `.claude/cambios/` · **rf-4** con un `-rc` la flota no da "al día" un repo con un
+cambio pendiente de subir, y (c) vale si el archivo ya es el del molde nuevo · **rf-5** la migración pide un SHA ancestro de la rama por
+defecto · **rf-6** `piezas.portada: sí` solo con la portada armada · **rf-7** la nota de 3.0.0.
+
+**E8** (lo encontró RF-fix): todas las zonas del molde traen texto de fábrica, así que (d) no se cumplía nunca. Ahora (d) acepta la zona
+vacía o igual a la de fábrica (molde viejo o nuevo), y retirar = volver a la de fábrica del molde nuevo.
 
 ## Ejecución
 
