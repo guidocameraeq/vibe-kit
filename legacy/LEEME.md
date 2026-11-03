@@ -21,6 +21,7 @@ tabla de ADR-023.
 | [`PROMPT-construir-relevamiento.md`](PROMPT-construir-relevamiento.md) | El arranque de la sesión que construyó `/relevamiento` | 2026-08-03 | `kit/skills/relevamiento/` |
 | [`RECORRIDO-relevamiento.md`](RECORRIDO-relevamiento.md) | El relato de uso que le pasó el tono al chat constructor | 2026-08-03 | La skill ya construida |
 | [`PRESUPUESTO-relevamiento.md`](PRESUPUESTO-relevamiento.md) | El contrato de líneas del build de `/relevamiento` | 2026-10-13 (ADR-023) | La skill ya construida |
+| [`COMO-USAR-EL-ARQUITECTO-v2.md`](COMO-USAR-EL-ARQUITECTO-v2.md) | El manual del Arquitecto v2 (tres puertas, el Equipador adentro) | 2026-11-03 (v3) | `manuales/COMO-USAR-EL-ARQUITECTO.md`, `EQUIPADOR.md` y `ROLES.md` |
 
 **Lo que no está acá**: lo crudo de las investigaciones (chats condensados, hallazgos, informes de revisión) no se archiva en este
 repo público. Vive en el repo privado de investigación (ADR-025).

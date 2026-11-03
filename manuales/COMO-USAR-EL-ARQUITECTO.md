@@ -1,233 +1,198 @@
-# Cómo usar el Arquitecto (y el proyecto que te deja montado)
+# Cómo usar el Arquitecto (kit v3)
 
-> Guía de uso completa. El instalador está en `INSTALAR.md`. Si este documento y los archivos
-> del sistema alguna vez difieren, **ganan los archivos** (`~/.claude/skills/arquitecto/`).
-> Versión 2026-07-06.
-
----
-
-## 1. Qué es, en una frase
-
-El Arquitecto es el interlocutor con el que **pensás antes de hacer**, con tres puertas en la
-misma conversación: **proyecto nuevo** (te entrevista, piensa lo que no ves venir — roles,
-listas configurables, multi-tenant ⚠️, i18n ⚠️ —, escribe el plano SPEC-0 y te deja el
-proyecto montado y en régimen), **feature grande sobre una app que ya anda** (explora tu
-código real y arma el spec delta con su seguro de no romper), y **consultorio** (cuando no
-sabés cómo pedirle algo a Claude). Él detecta la puerta por contexto; si duda, pregunta.
-
-**Qué NO es**: no construye la app (eso lo hace otra sesión, con contexto limpio), no es para
-features chicas ni para el trabajo del día a día.
+> **Para qué sirve**: el Arquitecto es la puerta para **pensar antes de hacer**. Le decís qué querés y él decide por dónde
+> entra: un proyecto nuevo, algo más que chico sobre una app que ya anda, una duda de cómo pedirle algo a Claude, la PC o la flota.
+> Deja un plano **sellado por un script**, y construye otra sesión. Si este manual y el kit difieren, manda el kit
+> (`kit/skills/arquitecto/SKILL.md` y sus `anexos/`). La versión v2 de este manual está en `legacy/COMO-USAR-EL-ARQUITECTO-v2.md`.
 
 ---
 
-## 2. Los 3 momentos — cuándo sí, cuándo no
+## 1. Las cinco entradas
 
-| Momento | ¿Arquitecto? | Qué hacés |
+Se llama con **`/arquitecto`** y lo que querés, en una frase. Lo primero que contesta, siempre, antes de tocar nada, es **una línea
+que dice por qué entrada fue** (ADR-031):
+
+| Decís algo como… | Entrada | Su primera línea | Qué pasa |
+|---|---|---|---|
+| "quiero una app para…" (no existe todavía) | **proyecto nuevo** | `más que chico: proyecto nuevo (Modo A)` | Entrevista → `SPEC-0.md` sellado → monta el proyecto (§3) |
+| "agregale X a esta app" (estás parado en ella) | **feature** | `más que chico: feature (Modo B)` | Explora el código → spec delta sellado → arma el módulo (§4) |
+| "¿cómo le pido esto a Claude?", "armame el prompt" | **consultorio** | `consultorio` | Sale con un prompt pegable, un veredicto o el brief de una skill (§5) |
+| "preparame esta máquina", "actualizate", "corré el doctor" | **la PC** | `la PC: te paso al Equipador` | Lo hace el Equipador (§6) |
+| "¿cómo está la flota?", "poné al día X", "adoptá X" | **la flota** | `la flota: …` | La tabla la arma él; poner al día y adoptar, el Equipador (§6) |
+
+Si el pedido es **chico**, contesta `esto es chico: hacelo en el chat del proyecto` y se apaga. Si no se da cuenta de qué entrada es,
+te hace **una** pregunta con las opciones: nunca adivina.
+
+Antes de elegir mira dos cosas: si quedó un spec a medias (`Estado: BORRADOR`; te ofrece retomarlo) y dónde estás parado (si es
+un proyecto con código y el pedido es sobre él, es feature).
+
+**Lo que no entra por esta puerta**: el ecosistema ("¿qué tenemos y cómo se cruza?") es del Hub; un pedido que vino de otra persona
+y hay que relevar es `/relevamiento` (`manuales/HOJA-DE-MANO-relevamiento.md`). En los dos casos te lo dice en una línea.
+
+---
+
+## 2. La regla del tamaño
+
+Dos preguntas: **¿hace falta algo más que el pedido y el `git diff` para retomarlo? ¿lleva más de una sesión?**
+
+- **Ninguna sí → chico.** Se hace directo en el chat del proyecto, sin spec. Un arreglo puntual, una consulta, un hotfix.
+- **Alguna sí → más que chico.** Va con el Arquitecto. Lo que sale de una charla con el dueño (una guía, un procedimiento) es más
+  que chico aunque termine en un documento.
+- **Tocar plata, permisos o datos reales no lo agranda**: eso lo cuidan los frenos, no un spec.
+
+En un proyecto con el kit v3, **la sesión del proyecto mide sola**: la primera línea de su respuesta es *"chico, lo hago acá"* o
+*"esto es más que chico: llamo al Arquitecto"*, y lo invoca ella (lo dicen el `CLAUDE.md` del molde y `/inicio`). En un proyecto v2
+esa regla no está: al Arquitecto lo llamás vos.
+
+Lo más que chico tiene **dos formas** (las elige el Arquitecto en Modo B, y queda en la primera línea de "Ejecución" del spec):
+
+| Forma | Cuándo | Tope del spec |
 |---|---|---|
-| **Proyecto nuevo de cero** | ✅ SÍ — Modo A | `/arquitecto` en cualquier chat (caso A, abajo) |
-| **Feature más que chica en una app que ya anda** | ✅ SÍ — Modo B | `/arquitecto <la feature>` en un chat abierto EN la carpeta del proyecto (caso B, abajo) |
-| **Trabajo del día a día** (fix, ajuste, feature chica) | ❌ NO | El ciclo de siempre: `inicio` → pedís → verificás → `cierre` |
+| **módulo solo** | Lo normal: una sesión fresca lo construye | ≤ 10 KB y ≤ 8 criterios |
+| **módulo con director** | Hay dos o más tareas que se escriben **a la vez** (carriles en paralelo), o pedís **noche sin vos** | ≤ 30 KB |
 
-Y hay un cuarto momento que no es de construir nada: **no sabés cómo pedirle algo a
-Claude** → también es `/arquitecto` (Modo C, el consultorio — caso C, abajo).
-
-Prueba de tamaño, dos preguntas: ¿hace falta algo más que el pedido y el `git diff` para
-retomarlo? ¿lleva más de una sesión? Si ninguna es sí, **no hace falta spec** — pedila
-directo. Si alguna es sí, va con spec. Tocar plata, permisos o datos no la agranda.
+Varias sesiones seguidas no lo hacen director. Si decís "quiero director igual" o "bajá", manda lo que dijiste. Cómo trabajan el
+director y sus obreros: `manuales/ROLES.md`. Si el spec pasa el tope, el Arquitecto propone dónde cortar y lo que sobra es un
+módulo **hermano**; vos decidís con un clic.
 
 ---
 
-## 3. Caso A — Proyecto nuevo de cero (la película completa)
+## 3. Modo A — proyecto nuevo
 
-Ejemplo: se te ocurre *"una app para llevar los gastos de la casa"*.
+1. **El registro primero**: antes de preguntar nada, lee las fichas de los proyectos de tu carpeta de proyectos y te dice en una línea
+   cuántos hay, por si lo que pedís es un módulo de otro (entonces no es Modo A: te pide abrir el chat en esa carpeta).
+2. **Dos preguntas de arranque**: qué es (nombre, qué hace, para quién) y **¿lleva código?** (`estandar` con código, `liviano` sin
+   código: documentos, relevamientos, estudio). Dónde vive no lo pregunta: si la carpeta donde corre la sesión está vacía, ahí; si
+   no, `<carpeta de proyectos>/<nombre>`.
+3. **La entrevista**: una pregunta por vez, con opciones y una "(Recomendado)", en criollo. Cada tanda queda escrita en el borrador
+   (`SPEC-0.md`, `Estado: BORRADOR`): si te vas a la mitad, no se pierde nada. Atajo: **"dale con los defaults"** → solo confirma
+   las dos ⚠️ y el tipo de app; lo demás va a "Supuestos".
+4. **Las dos ⚠️, siempre y por separado**: ¿lo van a usar varias empresas separadas algún día (multi-tenant)? ¿va a existir en más de
+   un idioma (i18n)? Cambiarlas después es rehacer media app. Después, la checklist de *concerns* (roles, listas configurables,
+   errores, auditoría…).
+5. **El gate**: te muestra 2-3 enfoques con pros y contras y uno recomendado, en Plan Mode. Si toca plata, permisos o datos de
+   terceros, antes pasa el red team. **Tu aprobación es la puerta**: sin ella no escribe nada más que el borrador.
+6. **El montaje**: sella el SPEC-0 (§7), lo pasa a READY, corre el scaffolding del stack, `git init`, el sistema del proyecto
+   (`CLAUDE.md`, `docs/`, `/inicio`, `/cierre`, hooks) y, si es `estandar`, te pregunta si lleva también `docs-fyd`. Primer commit y
+   una tabla con lo montado.
+7. **La línea**: te da la ruta y la frase para pegar en un chat nuevo ahí (`inicio — ejecutá el SPEC-0 …`). Y se apaga.
 
-1. **Abrís un chat nuevo** (en cualquier carpeta) y decís:
-   `/arquitecto quiero una app para llevar los gastos de casa`
-2. **Crea la carpeta y el borrador.** `<carpeta de proyectos>/GastosCasa/SPEC-0.md` en estado
-   BORRADOR. Desde ahí, cada respuesta tuya queda grabada en disco: si te vas a mitad de
-   charla, no se pierde nada.
-3. **Te entrevista** — una pregunta por vez, opciones con "(Recomendado)", en criollo:
-   ¿web o celular? ¿quién la usa? ¿login? Y las dos ⚠️ que SIEMPRE pregunta porque
-   cambiar de opinión después es carísimo: ¿multi-idioma algún día? ¿clientes externos
-   separados (multi-tenant)? Mientras charlan, manda ayudantes a investigar en paralelo
-   (librerías vigentes del stack, apps parecidas).
-   - **Atajo**: decí *"dale con los defaults"* y salta directo a confirmar solo las dos ⚠️
-     y el tipo de app. Todo lo demás lo asume razonable y lo anota en **Supuestos** (lo
-     corregís de un vistazo en el spec).
-4. **Concerns**: te muestra la checklist con todo prendido por default — roles/permisos,
-   listas configurables desde panel, manejo de errores, logging, auditoría (obligatoria si
-   toca plata). Vos apagás lo que no aplique. *Tu dolor #1 — "me doy cuenta tarde de lo que
-   la app necesitaba" — resuelto el día cero.*
-5. **El plano y la puerta**: entra en modo solo-lectura (el sistema le IMPIDE escribir), te
-   presenta 2-3 enfoques con pros/contras y su recomendación, y arma el SPEC-0: qué entra,
-   **qué NO entra**, criterios verificables, supuestos, riesgos ⚠️. Si el proyecto toca
-   plata, permisos o datos de terceros, primero lo ataca el agente **red-team** y te trae lo
-   que sobrevivió. Aprobás como un presupuesto — tu OK es una puerta real del sistema.
-6. **Montaje** (solo con tu OK): SPEC-0 pasa a READY → scaffolding oficial del stack →
-   git init + .gitignore correcto → CLAUDE.md lleno con lo que charlaron → docs (handoff,
-   TODO con las primeras tareas, changelog) → skills `/inicio` y `/cierre` → hooks →
-   primer commit. Te muestra la checklist con evidencia (✅ por ítem).
-7. **El handoff** — te da el prompt exacto, listo para copiar:
-   > Abrí un chat nuevo en `<carpeta del proyecto>` y pegá:
-   > `inicio — ejecutá el SPEC-0 (SPEC-0.md, está READY)`
-8. **Y se apaga.** El chat nuevo construye la app siguiendo el plano; vos verificás y cerrás
-   con `cierre`. De ahí en más, el ciclo de siempre.
+**Ojo, lo construido hoy**: el Modo A **todavía monta el molde v2** (`kit/skills/arquitecto/templates/`). El molde v3 con
+`docs/modulos/` llega con el instanciador (D4-6); el Modo A con el molde v3 está **NO VERIFICADO** (va al piloto).
 
-**Duración típica**: 15-30 min de charla + el montaje.
+**Si venís de un relevamiento** (la invocación nombra un `HANDOFF.md`): honra lo ya contestado, arranca en las preguntas de
+solución y **no monta**: devuelve el plano a `/relevamiento` para la propuesta de valor. Monta recién con la propuesta aprobada.
 
 ---
 
-## 4. Caso B — Feature grande en una app que YA anda ⭐
+## 4. Modo B — algo más que chico sobre una app que ya anda
 
-Ejemplo: la app de gastos ya funciona y querés agregarle *"presupuestos mensuales por
-categoría"*. Eso toca datos que ya existen — va con Arquitecto.
+**Corre en la carpeta del proyecto.** Si lo llamás desde otro lado, te pide abrir el chat ahí.
 
-1. **Abrís un chat EN la carpeta del proyecto** y decís:
-   `/arquitecto quiero agregarle presupuestos mensuales por categoría`
-   (Si lo invocás desde otra carpeta, te va a pedir que abras el chat ahí — no diseña a ciegas.)
-2. **Primero explora TU código.** Antes de opinar, manda ayudantes de solo-lectura a mirar
-   la app real: qué tablas existen (con sus nombres de verdad), cómo se corre, qué
-   decidiste antes en `docs/`. Lo decidido no te lo re-pregunta.
-3. **Te entrevista anclado a lo real.** No son preguntas genéricas: son sobre tu app —
-   *"tu tabla `gastos` ya tiene categoría — ¿el presupuesto se calcula sobre eso o es
-   aparte?"*. Es más corta que la del caso A (no hay stack que elegir), y *"dale con los
-   defaults"* funciona igual.
-4. **El spec delta** — en vez de un plano entero, el plano del CAMBIO, en tres bloques:
-   **AGREGA** (lo nuevo), **MODIFICA** (lo existente que se toca, cada ítem con el efecto
-   colateral a cuidar) y **NO SE TOCA** — la lista explícita de lo que tiene que seguir
-   andando igual que hoy. Esa última es **el seguro de no romper**: tu miedo real de
-   "arreglando esto se me rompe aquello", escrito y aprobado antes de tocar nada. Y es el
-   criterio #1 de la verificación posterior.
-5. **La puerta**: igual que en el caso A — entra en solo-lectura, te presenta el plano,
-   aprobás como un presupuesto. Si toca plata/permisos/datos de terceros, red-team antes.
-6. **Handoff y se apaga.** El spec queda READY en `docs/SPEC-<nombre>.md`. **No monta
-   nada** — el proyecto ya tiene su sistema. Te da el prompt exacto:
-   > Abrí un chat NUEVO en la misma carpeta y pegá:
-   > `inicio — ejecutá el spec docs/SPEC-<nombre>.md (está READY)`
+- **Con ficha** (el proyecto tiene `.claude/kit.md`, el kit v3): el módulo vive en `docs/modulos/<x>/` (su `README.md`, la ficha, y su
+  `SPEC.md`, el delta). Nace en la rama por defecto: si estás en otra rama, te lo dice y se apaga.
+- **Sin ficha** (proyecto v2): deja `docs/SPEC-<x>.md`, siempre `módulo solo`, **sin commit, sin push y sin worktree**: lo guarda el
+  `/cierre` del proyecto.
 
-   La sesión fresca construye, verificás con `/smoke` (primero: lo de NO SE TOCA sigue
-   andando) y `cierre` — que archiva el spec solo cuando está implementado.
+Los pasos:
 
-**¿Por qué construir en un chat nuevo y no en el que pensaste?** Dos razones medidas:
-(a) el chat de diseño está lleno de ideas descartadas y callejones — la sesión fresca lee
-SOLO el plano aprobado y no se confunde; (b) es la puerta de control: entre pensar y
-construir estás VOS aprobando un archivo.
+1. **`docs/NORTE.md` primero** (con ficha, si falta, lo arma y te lo muestra junto con el spec). Después explora el código con hasta
+   tres ayudantes de solo lectura: estructura, modelo de datos, convenciones. El resumen va al spec con `archivo:línea`.
+2. **Pantalla → prototipo**: si lo que pedís se ve (una pantalla, un formulario), arma un prototipo HTML estático con una pregunta
+   escrita **antes** del spec, siempre (también con "dale con los defaults"). Lo aprobás vos o la usuaria; el spec sale de lo aprobado.
+3. **Largo o corto**:
+   - **Largo** (no hay plan charlado): una entrevista corta anclada al código ("tu tabla X ya tiene tal campo: ¿esto lo reemplaza o
+     conviven?"), los concerns solo del cambio y, si sirve, un investigador de "¿cómo lo resuelven otros?".
+   - **Corto / B corto** (el pedido ya trae un plan charlado, con vos o con el director): **sin entrevista**. Hace solo lo que el plan
+     no trae: explorar, el NO SE TOCA, los chequeos, director sí/no y "Ejecución". También es el que toma un módulo que **nació sin
+     sello** (te lo avisa `/inicio`: *"el módulo <x> nació sin sello: llamo al Arquitecto (Modo B corto)"*) y el que llama el
+     director cuando su spec no tiene sello.
+4. **El spec delta**: "Pedido original, textual" (nunca inventado), AGREGA / MODIFICA / **NO SE TOCA** (obligatoria), "Ejecución" y
+   "Entorno de prueba". Con ficha corre el chequeo del entorno: si da rojo, montarlo es la tarea 0.
+5. **Termina armando**: sello → tu OK (si cambiás algo, sella de nuevo) → READY. Con ficha: un commit en la rama por defecto **solo
+   con lo del módulo** (nunca `git add -A`), push si hay remoto y, si es con director, `worktree.cjs crear <x>` (la rama
+   `modulo/<x>` y su carpeta aparte). Si el proyecto no tiene `worktree.cjs`, lo dice y no arma el worktree a mano.
+6. **La línea**: módulo solo → chat nuevo en la carpeta, `inicio — ejecutá docs/modulos/<x>/SPEC.md (está READY)`; con director → la
+   línea `code "<worktree>"` que imprimió el script y, en esa ventana, la pestaña de Claude con Opus; sin ficha → `inicio — ejecutá el
+   spec docs/SPEC-<x>.md (está READY)`.
 
-*Nota: si preferís hacerlo a mano o el Arquitecto no está instalado en esa máquina, el
-patrón manual sigue válido: charlás la feature en un chat del proyecto → "cristalizá esto
-en un spec formato SPEC-0 en `docs/`, con qué NO se toca explícito" → READY → chat nuevo lo ejecuta.*
+Implementado, el spec no se archiva: su estado pasa a `COMPLETO <fecha>`.
 
 ---
 
-## 4b. Caso C — El consultorio (cómo pedirle cosas a Claude)
+## 5. El consultorio
 
-El modo liviano: acá no hay spec ni puerta de aprobación — hay una duda de **cómo dirigir
-a Claude**, y salís con algo concreto en la mano. Cuándo va:
+Para cuando **sabés qué querés pero no cómo pedírselo a Claude**, o dudás de la mecánica. Hace 2-3 preguntas y te clasifica la duda:
 
-- *"No sé cómo pedirle esto"* → te devuelve **el prompt listo para pegar**, con 2 líneas
-  de por qué está armado así.
-- *"¿Esto va con subagentes, en background, con spec o directo?"* → **el veredicto**, con
-  la regla que lo respalda.
-- *"Quiero una skill para…"* → **el brief listo** para armarla con `writing-skills` en el
-  proyecto (si el ritual de verdad se repitió 3+ veces; si no, te lo dice).
+- **Problema de prompt** ("lo pido y hace otra cosa") → **un prompt listo para pegar**, con resultado esperado, contexto mínimo,
+  límites (qué NO tocar), evidencia pedida y prioridad. La regla: *especificá el resultado, no la receta*.
+- **Problema de orquestación** ("¿subagentes?", "¿background?", "¿spec o directo?") → **un veredicto** con la regla que lo respalda.
+  Si el veredicto es "spec", te ofrece pasar a Modo B ahí mismo.
+- **Problema de ritual** (algo que ya pediste 3+ veces igual) → **el brief para crear la skill** (con `writing-skills`, en un chat del
+  proyecto). El consultorio no crea la skill: arma el pedido.
 
-La regla del consultorio: **siempre salís con algo accionable** — nunca solo teoría.
-
-Dos consultas reales de ejemplo:
-- *"/arquitecto — cada vez que le pido que revise el Excel de ventas me tira cualquier
-  cosa. ¿Cómo se lo pido bien?"* → te pregunta qué esperabas y qué probaste, y te arma el
-  prompt con lo que le faltaba al tuyo: el archivo exacto, qué columnas, qué significa "bien".
-- *"/arquitecto — el informe semanal se lo vengo pidiendo a mano todas las semanas,
-  ¿conviene una skill?"* → veredicto: sí (ritual repetido 3+), y te da el brief para crearla.
-
-**Cuándo NO es Modo C**: si lo que tenés es una feature ("quiero que la app haga X") →
-eso es el caso B. Si es laburo normal (un fix, un ajuste chico) → pedilo directo en el
-chat del proyecto, sin Arquitecto. Y si la consulta crece a diseño en serio, él mismo te
-avisa *"esto ya es Modo B/A"* y cambia de puerta con lo charlado.
+Nunca te deja con pura teoría. Si lo que traés es una feature o un proyecto, te lo dice y cambia de puerta.
 
 ---
 
-## 5. El proyecto que te deja montado — cómo se usa después
+## 6. La PC y la flota (derivan)
 
-El Arquitecto te entrega un proyecto **en régimen**: el mismo sistema que corre en Perseo y
-Hermes. Tu día a día ahí:
+Estas dos entradas **derivan, no ejecutan**: el Arquitecto no instala nada ni toca ningún repo.
 
-- **Abrís chat en la carpeta del proyecto** → decís `inicio` → Claude ya sabe dónde
-  están parados (el hook le inyectó el estado) → te confirma en 3 líneas → le das la misión.
-  El hook tiene tope: si el handoff crece de más, avisa **CORTADO** y Claude lee el resto.
-- **Trabajás.** Las reglas del CLAUDE.md operan solas: evidencia real o "NO VERIFICADO",
-  tus datos son intocables sin tabla "cambio/preservo", tareas largas en background.
-- **Terminás** → `cierre` → docs al día, commit, push, y el chat se descarta.
-  **Cambió la misión → cambiá el chat.**
-- **`/smoke` y `/deploy` no existen todavía** en un proyecto recién nacido — a propósito
-  (regla de 3+: una skill nace de un ritual repetido, no "por las dudas"). El día que
-  repetiste 3 veces el mismo ritual de probar o deployar, pedile a Claude que la cree — los
-  contratos ya están esperando en los templates del Arquitecto.
+- **La PC** ("preparame esta máquina", "actualizate", "corré el doctor", "instalame skills") → invoca al Equipador
+  (`/arquitecto-skills`) con tu pedido tal cual. Todo eso está en `manuales/EQUIPADOR.md`.
+- **"¿Cómo está la flota?"** → corre `arquitecto.cjs registro` sobre tu carpeta de proyectos y te muestra **una tabla**: alias · con o
+  sin código · versión del kit · repo · con qué se conecta. Una ficha rota sale debajo, una línea por cada una. Solo lee las fichas
+  `.claude/kit.md` de los repos clonados en esa carpeta; el registro de la empresa es capa privada y no entra.
+- **"Poné al día X"**, **"poné al día la flota"**, **"adoptá X"**, **"qué se repite en la flota"** → `la flota: te paso al Equipador`.
+  El detalle: `manuales/EQUIPADOR.md` §4 y §5.
 
 ---
 
-## 5b. El Equipador (`/arquitecto-skills`) — la skill hermana
+## 7. El sello y `arquitecto.cjs`
 
-El Arquitecto monta **proyectos**; el Equipador equipa **máquinas**. Gestiona las skills
-globales según un **menú curado** (con orígenes y razones, incluso de lo descartado):
+**El sello lo escribe un script, nunca el modelo.** Un spec sin sello no puede pasar a READY, y una sesión constructora solo ejecuta
+specs READY. El obrero de un módulo con director también frena si el spec no tiene sello.
 
-- **"preparame esta máquina"** → censa qué falta del menú, te ofrece el Tier 1 con
-  multiSelect, clona fresco de los repos oficiales e instala. Los plugins que necesitan
-  comandos tuyos (`/plugin`, tokens) te los deja listos para pegar.
-- **"actualizá las skills"** → re-clona y compara; si vos editaste algo local, te muestra
-  el diff y pregunta — nunca pisa a ciegas.
-- **"qué skills tengo"** → auditoría + propuesta de poda (lo que no se usa, afuera).
-- **"agregá/investigá tal skill"** → investiga (repo vivo, licencia, colisiones), y si pasa
-  la curaduría entra AL MENÚ primero, con razón escrita. El menú evoluciona; nada entra
-  "por las dudas".
+Qué mira `sello` antes de escribir la línea:
+- **tamaño**: que "Ejecución" diga `módulo solo` o `módulo con director` en su primera línea, y que coincida con la ficha del módulo.
+- **entorno** (solo con ficha): que haya dónde probar. Si la ficha declara un entorno real, tiene que haber uno de prueba al lado; si
+  no, `comando-test` tiene que dar verde. Y las herramientas que nombra la ficha tienen que andar.
+- **tope**: el tamaño del spec contra su límite (avisa; si decidiste seguir entero, va `--no-partir "Guido"`).
 
-## 6. Qué hace bien y qué no (los límites, honestos)
+Si niega, dice qué falta en una línea; se arregla y se vuelve a correr. Si después del sello alguien toca el spec, el sello deja de
+valer: `/inicio` te avisa *"el spec de <x> cambió después del sello"* y hay que sellar de nuevo.
 
-**Hace bien**: pensar los concerns que olvidarías · elegir stack con evidencia del día
-(lo que puede envejecer está marcado `[VERIFICAR]` y lo re-chequea al usarlo) · el gate de
-aprobación · el montaje completo · explorar tu código real antes de opinar (Modo B) ·
-retomar borradores abandonados · el red-team de specs sensibles · el consultorio (Modo C).
+Los comandos (los corre el Arquitecto; vos casi nunca): `node "$HOME/.claude/skills/arquitecto/scripts/arquitecto.cjs" <comando>`
 
-**Estado honesto**: los 3 modos están construidos. Validados: el Modo A parcialmente
-(tests adversariales + uso real inicial); los Modos B y C **sin prueba de fuego todavía**
-— la prueba integral de los tres está pendiente. Usalos, pero con el ojo un poco más
-abierto que de costumbre.
+| Comando | Qué hace |
+|---|---|
+| `sello <spec> [--no-partir "<quién>"] [--no-aplica tamaño\|entorno "<razón>"]` | Corre los chequeos y escribe la línea del sello con el hash del spec |
+| `ready <spec>` | Pasa `BORRADOR` a `READY`, y nada más; se niega sin sello válido |
+| `ready --pendientes` | Lista los módulos sin sello, a medias o con el sello roto (lo corre `/inicio`) |
+| `tope <spec>` | Cuánto pesa el spec contra su límite, y dónde cortar |
+| `entorno` | Si el entorno de prueba del proyecto está listo |
+| `registro <carpeta de proyectos>` | La tabla de la flota |
 
-**No hace (nunca)**:
-- ❌ Construir la app ni la feature — es el diseño; eso lo hace otra sesión con el spec.
-- ❌ Deployar.
-- ⚠️ Si le pedís que "ya que está, programe algo": se va a negar y explicarte por qué.
+Sale 0 si anduvo, 1 si niega (con qué hacer), 2 si lo llamaron mal. Con `arquitecto roto: …`, la sesión lo dice y frena: nunca sella
+ni marca READY a mano. El detalle de cada script del kit: `manuales/SCRIPTS.md`.
 
----
-
-## 7. Trucos y preguntas frecuentes
-
-- **"¿Mismo chat o chat nuevo?"** — Para PENSAR: donde corresponde al modo (proyecto
-  nuevo: cualquier chat; feature: chat en la carpeta del proyecto). Para CONSTRUIR:
-  SIEMPRE chat nuevo con el spec como única fuente.
-- **"¿Cómo sabe en qué modo estar?"** — Por dos señales: dónde estás parado (chat en una
-  carpeta con proyecto real → huele a B) y qué pedís ("app nueva" → A; "agregale algo a
-  esta app" → B; "¿cómo le pido…?" → C). Si duda, te pregunta antes de arrancar — nunca
-  adivina. Y podés forzarlo directo: *"modo B: quiero agregarle tal cosa"*.
-- **"¿El Modo B monta el sistema del playbook (inicio/cierre, hooks)?"** — No: el proyecto
-  ya lo tiene. Si detecta que NO lo tiene, te ofrece montarlo primero como paso aparte,
-  con su propio OK — recién después diseña la feature.
-- **"Me fui a mitad de entrevista"** — Nada se perdió: `/arquitecto` de nuevo y te ofrece
-  retomar donde quedaron (el borrador vive en disco).
-- **"Quiero ir rápido"** — *"dale con los defaults"*: solo confirma las 2 ⚠️ y asume el
-  resto en Supuestos.
-- **"¿Y si me arrepiento del stack a mitad de entrevista?"** — Decilo nomás: el borrador se
-  actualiza; nada está construido hasta que aprobás el plano.
-- **"¿Dónde quedó el spec?"** — Proyecto nuevo: `SPEC-0.md` en la raíz del proyecto.
-  Feature: `docs/SPEC-<nombre>.md`. Implementado → `docs/archive/` (lo archiva `/cierre`).
-- **"El Arquitecto se equivocó en algo"** — Se edita como cualquier skill: chat nuevo,
-  *"con writing-skills, corregí tal cosa en ~/.claude/skills/arquitecto"*. Y al cerrar una
-  mejora grande: snapshot a `legacy/snapshots/` (regla del LEEME).
-- **"¿Sirve en la otra PC?"** — Sí: `arquitecto-portable.zip` → `INSTALAR.md` → pegar el
-  prompt. Una sola línea se adapta por máquina (la carpeta de proyectos).
+**La carpeta de proyectos** de cada PC la escribe el instalador en el `SKILL.md` instalado y `actualizate` la conserva. Si todavía no
+está, el Arquitecto te pregunta dónde viven tus proyectos y la anota.
 
 ---
 
-*Qué está probado y qué falta de cada modo: `docs/TODO.md` (los estrenos pendientes) y
-`docs/CHANGELOG.md`. El diseño original vive en `legacy/PROPUESTA-VIBE-KIT-V2.md`; el método madre,
-en `PLAYBOOK-MAESTRO.md`.*
+## 8. Las reglas que no cambian
+
+- **El que piensa no construye**: el Arquitecto nunca escribe código de la app. "Ya que estás, hacelo": no, y te explica por qué.
+- **Una pregunta por vez**, en criollo, con una recomendada.
+- **Lo que decidiste es la autoridad**: marca el riesgo una vez y sigue.
+- **Evidencia, no vibras**: una librería sale de la matriz o verificada ese día; lo demás va como NO VERIFICADO.
+- **Termina armando** y se apaga: vos pegás una sola línea.
+
+## Dónde seguir
+
+- El Equipador (la PC, poner al día, adoptar): `manuales/EQUIPADOR.md`
+- Director, obrero, tramo, la noche y la mesa: `manuales/ROLES.md`
+- Lo que trae un proyecto con el kit v3 (la ficha, los frenos, `docs/`): `manuales/MOLDE.md`
+- El por qué: ADR-031 (las cinco entradas) en `docs/DECISIONS.md`; el diseño, `docs/kit-v3/SPEC-paquete-4.md`
