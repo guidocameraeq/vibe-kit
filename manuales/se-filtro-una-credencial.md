@@ -9,13 +9,13 @@
 ## 1. Los pasos, en este orden
 
 1. **Rotá primero, limpiá después.** Entrá al servicio dueño de la credencial (la base, la API, GitHub), generá una nueva y **anulá la vieja**. Mientras la vieja siga viva, todo lo demás es maquillaje.
-2. **Cargá la nueva sin verla.** Que la ponga una persona con `cargar-secreto <NOMBRE>`: pide el valor con entrada oculta y lo guarda en el almacén de esa PC, **fuera de todo repo** (`~/.config/kit-secretos/<proyecto>.env`). Al `.env` del proyecto van solo las de prueba y la de solo lectura; **la de escritura de una base real nunca va al `.env` ni a una variable del sistema**, porque las dos le llegan al proceso del obrero (SPEC-0 6.6). Nunca la pegues en el chat para "que Claude la ponga".
+2. **Cargá la nueva sin verla.** Que la ponga una persona, en su terminal, con `cargar-secreto` (`bash ~/.claude/hooks/kit/cargar-secreto.sh NOMBRE`, o en PowerShell `powershell -File $env:USERPROFILE\.claude\hooks\kit\cargar-secreto.ps1 NOMBRE`): pide el valor con entrada oculta y lo guarda en el almacén de esa PC, **fuera de todo repo** (`~/.config/kit-secretos/<proyecto>.env`). Al `.env` del proyecto (con `--al-env`) van solo las de prueba y la de solo lectura; **la de escritura de una base real nunca va al `.env` ni a una variable del sistema**, porque las dos le llegan al proceso del obrero (SPEC-0 6.6). Nunca la pegues en el chat para "que Claude la ponga".
 3. **Mirá si la usaron.** En el panel del servicio, revisá los accesos desde que se filtró (logs, últimas conexiones, facturación rara). Si hubo uso que no reconocés, avisá a quien corresponda en la empresa antes de seguir.
 4. **Sacala del historial de git, solo si llegó a un commit.**
    - Si el commit **no se pushó**: se reescribe el historial local y listo.
    - Si **se pushó**: hay que reescribir el historial con una herramienta (por ejemplo `git filter-repo`), forzar el push y avisar a todos los que clonaron para que clonen de nuevo. Los forks, los PR abiertos y los clones viejos conservan el valor: por eso el paso 1 va primero.
    - Pedile a Claude que lo haga y te muestre antes qué commits toca; el `push --force` lo aprobás vos.
-5. **Verificá que la vieja ya no sirve.** Probá la credencial vieja contra el servicio: tiene que responder que no (error de autenticación). Después corré el escáner sobre todo el historial (`gitleaks git --redact --no-banner`): tiene que dar cero hallazgos.
+5. **Verificá que la vieja ya no sirve.** Probá la credencial vieja contra el servicio: tiene que responder que no (error de autenticación). Después corré el escáner sobre todo el historial (`gitleaks git --redact --no-banner`): tiene que dar cero hallazgos. Y corré `doctor` (pedíselo al Equipador): confirma que el escáner, el corrector de secretos de la PC y el bloqueo de lectura del almacén están en su lugar.
 6. **Dejá la línea.** Una entrada en el `CHANGELOG.md` del proyecto: qué credencial (el **nombre** de la variable, nunca el valor), por dónde se filtró, cuándo se rotó y cómo se verificó. Si fue por un hueco del método (una regla que faltaba), eso va también a `referencia/trampas.md`.
 
 ---
