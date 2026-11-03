@@ -25,6 +25,18 @@
 - **Cada vuelta lee desde el corte anterior**, nunca todo de nuevo (§8).
 - *La fecha de la próxima vuelta: 6b.*
 
+## 2½. Cómo se decide en todo el ciclo
+
+Una sola vara para los cinco pasos, con Guido o sin él (ADR-030 y ADR-034; acá se apunta, no se copia):
+- **La vara del ADR-030**: (1) las cuatro cosas de Guido (workflow · mejor código · consistencia · acordarse de menos), con la etiqueta en
+  la decisión, y si no mueve ninguna, sobra; (2) el filtro pragmático (¿error real o por las dudas?, ¿el costo se paga?); (3) los 11
+  criterios de [`mision-4/PLAN.md`](mision-4/PLAN.md) como desempate; (4) el ADR-029: **contra accidentes, no contra trampas**.
+- **La coherencia entre piezas es criterio** (ADR-034): toda decisión se mira contra cómo interactúa con las otras partes del kit (que
+  concuerden, no se contradigan, sean cohesivas), no solo contra la pieza que se toca.
+- **Lo técnico que no le cambia el día a Guido lo decide la sesión** (ADR-034), con la vara y mirando el sistema entero, y lo anota. A
+  Guido le llega solo lo que le cambia algo, y cada sesión que decide sin él deja sus decisiones **en criollo**, las que le afectan arriba (§3.4).
+- **Si con eso no alcanza, no se decide**: va como pregunta arriba de Pendientes, con opciones y la recomendada, y la sesión sigue con lo demás.
+
 ## 3. Los cinco pasos
 
 | # | Paso | Entra | Sale | Quién y en qué modelo | Lo que costó en la vuelta 1 |
@@ -32,8 +44,9 @@
 | 1 | **Investigar** | **adentro**: chats desde el corte, registros de cambios de la flota, scripts sobre git/`gh` · **afuera**: actas del Extractor de tips, novedades de Claude Code desde el corte, métodos y herramientas de otros | un acta en `tips/` + líneas base medidas + las ideas de afuera con su veredicto | observatorio; lectores Sonnet, síntesis Opus; scripts | ~69 M tokens (66 M en leer chats); 2 lecturas grandes |
 | 2 | **Ordenar la casa** | el repo como quedó | repo prolijo, docs en su lugar, lo crudo al privado, el diario | una sesión Opus | ~1,9 M; 3 sesiones |
 | 3 | **Diseñar con Guido** | el acta, las líneas base | un diseño por racimo con su tabla de criterios → SPEC-0 READY | Guido + sesión en Fable (criterio) | ~14 M; 13 sesiones en 14 días |
-| 4 | **Construir** | el SPEC-0 | la versión nueva en `main`, con pruebas, como beta `-rc` | un director Opus por paquete + encargos | ~34 M; 19 sesiones; ~32 h de reloj medidas |
-| 5 | **Probar en un proyecto real y medir** | la beta | los `rc.N`, la versión final, la medición contra la línea base | *6b* | *6b* |
+| 4 | **Construir** | el SPEC-0 | la versión nueva en `main`, con pruebas | un director Opus por paquete + encargos | ~34 M; 19 sesiones; ~32 h de reloj medidas |
+| 4½ | **Revisión integral** (cierre de construir) | el kit entero en `main` | un informe en criollo, "te afecta" y "de taller"; lo que rompe se arregla → la beta `-rc` | una sesión, solo lectura, con lectores por mirada | *vuelta 1: se agregó al final (2026-11-03)* |
+| 5 | **Probar en un proyecto real y medir** | la beta | los `rc.N`, **otra revisión integral**, la versión final, la medición contra la línea base | *6b* | *6b* |
 
 **Los costos son tokens "nuevos"**: entrada + escritura de caché + salida, del chat principal **más** sus subagentes (la caché leída se
 anota aparte). En la vuelta 1 se anotó con dos definiciones distintas (D3.3 figura con 21 M y con 2,5 M): desde la vuelta 2, **esta**, y
@@ -46,7 +59,9 @@ Mira para **dos lados con el mismo peso**: hacia adentro (cómo se usó el méto
 plataforma: ideas). Lo de adentro dice dónde duele; lo de afuera, con qué se puede curar sin inventarlo.
 
 **Hacia adentro.** El detalle es [`observatorio/investigacion/METODO.md`](../observatorio/investigacion/METODO.md); acá, el orden y lo que no se negocia:
-1. **Primero lo gratis**: la corrida mensual (`flota.py`, `huella.py`, `repos.py`, `costos.py`; ~25 min, casi cero tokens) y **los registros
+0. **Los experimentos de método de la flota, primero**: una idea probada a propósito en un proyecto, con su bitácora y su veredicto, es la
+   prueba más directa que hay. *El formato llega con la rc.2 (diseño con Guido).*
+1. **Después, lo gratis**: la corrida mensual (`flota.py`, `huella.py`, `repos.py`, `costos.py`; ~25 min, casi cero tokens) y **los registros
    de cambios de método de cada proyecto** (`cambios-flota`): son más baratos y más precisos que los chats (32 fichas de Hermes, 90 KB,
    confirmaron el canon mejor que cualquier acta).
 2. **Cruzar dos fuentes baratas** antes de leer nada caro (el tope del hook de la doc contra lo que inyecta cada proyecto: ninguna sola lo mostraba).
@@ -117,6 +132,16 @@ que **deja armado el prompt del director siguiente**.
 - **Lo que no vio ningún revisor lo encontró Guido con una pregunta de usuario**: el freno que no tenía que molestar en `auto` (él
   trabaja así), las skills que él ya adaptó y el actualizador no fusionaba, el banner siempre. **El revisor frío recorre el día de Guido**
   (modo `auto`, sus adaptaciones, sus PCs), no solo el día del código.
+
+**La revisión integral, paso fijo** (pedido de Guido, 2026-11-03). Cada revisor frío mira su paquete; nadie miraba el kit entero. Va **al
+final de construir y antes de la beta** (si la beta ya salió, antes de usarla en el proyecto real), y **otra vez al cerrar la vuelta**, antes
+de la versión final. Solo lectura, con tres miradas:
+1. **El día de Guido de punta a punta**: abrir, pedir, dejar trabajando, volver, cerrar, en sus PCs y en su modo, pieza tras pieza.
+2. **La coherencia**: las decisiones contra el código, y los paquetes entre sí (que concuerden, no se contradigan: §2½).
+3. **La documentación contra el código**: lo que dicen la guía, los manuales y el playbook es lo que hace el kit.
+
+Cada hallazgo trae su escenario (sin escenario no se reporta). El informe va **en criollo**, separado en **"te afecta"** (lo que Guido
+tiene que saber o decidir) y **"de taller"** (lo técnico, que la sesión arregla con la vara). Lo que rompe se arregla antes de seguir.
 
 ### 3.5 Probar en un proyecto real y medir
 
@@ -222,6 +247,8 @@ Una línea cada una; la fuente tiene el detalle (M4 = [`mision-4/PLAN.md`](misio
 - Revisor sin piso de severidad → ADR-029 (M5, D3.3).
 - **El contador de avance, visible** (horas, encargos, "esperando tu OK"): sin él, "¿cuánto falta?" es la pregunta más repetida (6a).
 - Las decisiones sin Guido, en criollo desde el director que las toma (6a).
+- **Una revisión integral del kit entero antes de la beta y otra antes de la versión final**: los revisores de cada paquete no ven la
+  coherencia entre paquetes ni el día de Guido de punta a punta (6a, pedido de Guido; §3.4).
 - Si hay que moverse de PC: prepararla antes con "preparame esta PC" y escribir la PC en el prompt de arranque (6a).
 
 **Medir**
@@ -245,10 +272,11 @@ cada pieza (la vara, con su tabla al cierre) · Modelos y tokens por rol, con "d
 (tabla: qué, sale con, costo real) · El brief del tramo siguiente · Lecciones para el ciclo (una línea con fecha).
 
 **Tracker de construcción** (ejemplo: [`kit-v3/PLAN-construccion.md`](kit-v3/PLAN-construccion.md)) — Cómo se trabaja (director por
-paquete, presupuesto, límites) · La vara para decidir sin Guido · **El estado de un vistazo, con el contador** (paquete · directores · horas
+paquete, presupuesto, límites) · La vara para decidir sin Guido (§2½) · **El estado de un vistazo, con el contador** (paquete · directores · horas
 y encargos hechos/por hacer · esperando a Guido) · Los directores (fila: fecha, PC, horas de reloj, encargos por modelo, tokens nuevos,
 commit, resultado) · Decisiones sin Guido, **en criollo**, las que le afectan arriba · Pendientes · NO VERIFICADO · Criterios del producto ·
-Cambios al plan (fecha, qué, por qué) · Lecciones.
+**La revisión integral** como último paquete antes de la beta y otra antes de la versión final (las tres miradas de §3.4, informe en
+criollo "te afecta" / "de taller") · Cambios al plan (fecha, qué, por qué) · Lecciones.
 
 **Prompt de arranque "sin mí"** (lo arma el `/cierre` anterior) — 1. alcance numerado y la PC donde corre · 2. presupuesto (horas,
 encargos) y qué hacer si no alcanza · 3. revisión con tope (una vuelta, hasta 10 hallazgos con escenario) · 4. qué no se toca · 5. qué
