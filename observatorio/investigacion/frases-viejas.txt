@@ -1,0 +1,13 @@
+# Frases del kit v2 que el kit v3 retiró. Una por renglón: frase<TAB># fuente. Sin fuente no entra.
+# flota.py las busca (sin mirar mayúsculas) en .claude/skills/** y CLAUDE.md. Es un piso, no un conteo completo.
+# Verificado el 2026-11-03: ninguna aparece en kit/molde/ (0 archivos).
+regla de bolsillo	# H §3 y §22 (la regla repetida en cinco lugares; retirada por el kit v3)
+no toca permisos/datos/plata	# H §3 (la regla de bolsillo: "sale en una tarde y no toca permisos/datos/plata")
+no sale en una tarde	# H §3 (uno de los cuatro criterios de "cuándo spec", CLAUDE.template v2 regla 7)
+herramienta de una tarde	# H §3 (PLAYBOOK §1.5 v2, el "chico" por proyecto, uno de los cuatro vocabularios)
+Grande / en producción	# H §3 (PLAYBOOK §1.5 v2: chico · mediano · grande/producción · con framework)
+Adaptación por tamaño de proyecto	# H §3 (título de PLAYBOOK §1.5 v2; v3 lo reemplaza por los dos ejes, H §4)
+nivel: largo	# H §4 y §22 (el nivel largo no se escribe: lo calcula el script de piezas.director-obrero)
+estándar · largo	# H §3 (la ficha de E §4 con tres niveles: liviano · estándar · largo)
+estandar | largo	# H §22 y E §4 (nivel: liviano | estandar | largo, antes de la nota de H)
+cada base o servicio, con su nivel	# H §22 y F §9 (el nivel: de cada entorno pasó a clase:)
