@@ -8,16 +8,17 @@
 //   - si no, TRES VÍAS: git merge-file -p --diff3 <p> <v> <n>, con la zona propia vaciada en los tres (se fusiona solo lo de afuera;
 //     después mezclarTexto vuelve a poner la del proyecto, byte a byte).
 // Si ningún archivo necesita tres vías, se aplica sin más (el molde no tocó lo adaptado). Si alguno la necesita, EL GATE DEL PORQUÉ:
-// `por:` de la pieza en la ficha, o los asuntos de los commits que MODIFICARON sus archivos y no son del actualizador (autor
-// kit-actualizador o asunto "kit …" / "kit: …"); el commit que los creó no cuenta (--diff-filter=M: nacer del molde no es adaptar).
+// SOLO `por:` de la pieza en la ficha (D8b-4: el git log ya no cuenta; cada adaptada pregunta una vez).
 //   - sin porqué → "te espera" (no se fusiona aunque salga limpio: lo decide el dueño);
 //   - con porqué y merge-file limpio → esa es la fusión; con conflictos → un `claude -p` en el clon, que resuelve sobre una copia en
 //     .kit-fusion/<archivo> (acceptEdits, --allowedTools Read y Edit de .kit-fusion/**, las mismas allow en .claude/settings.local.json
 //     del clon, deny Bash; nunca el modo que saltea permisos). Sin claude, si falla, si se pasa de 5 min o si toca otra ruta → "te espera".
 // Todo lo que sale (limpio o de claude) se valida: sin marcadores de conflicto, la zona propia intacta y los .js/.cjs/.mjs con
 // node --check; si no → "te espera". "Te espera" = .claude/fusiones/<pieza>.md (viaja en el commit del kit): el motivo, los dos
-// diffs por archivo (molde viejo → nuevo; molde viejo → lo del proyecto), la fusión propuesta si merge-file dio una, y la pregunta.
-// La pieza queda como estaba. /inicio la ofrece en una sola pregunta; con la respuesta, `por:` queda en la ficha.
+// diffs por archivo (molde viejo → nuevo; molde viejo → lo del proyecto), la fusión propuesta si merge-file dio una, la versión
+// nueva entera, lo que dice kit/CHANGELOG.md de las versiones del medio (`nota`) y las cuatro salidas (paquete 8b: mezclar, quedarse
+// con la propia, tomar la nueva, congelar — esta no en una pieza de FRENOS). La pieza queda como estaba. /inicio elige o pregunta y
+// lo escribe `actualizar.cjs resolver` (no el modelo); para no pisar trabajo, el informe guarda la huella de lo tuyo por archivo.
 // El informe guarda en una línea fija (`base: <versión>`) la versión del molde del que viene la pieza. Mientras exista, la pieza
 // NUNCA se fusiona sola: la flota siguiente lo rehace contra el molde nuevo DESDE ESA BASE (aplicar lo fuerza), así no se pierde
 // lo que trajo la versión intermedia. Cuando el dueño contesta y el archivo se borra, la base vuelve a ser `kit:` de la ficha.
@@ -113,18 +114,29 @@ function clasificar({ rel, v, n, p }, tmp) {
 
 // ---------------------------------------------------------------- el porqué
 
-// → {de: 'ficha' | 'git', texto} o null. valorFicha = el valor de la pieza en la ficha; rutas = las del proyecto.
-function porqueDe(carpeta, valorFicha, rutas) {
+// → {de: 'ficha', texto} o null. valorFicha = el valor de la pieza en la ficha. Solo `por:` (D8b-4, renglón 3 del repaso): sin
+// él, la adaptada llega a "te espera" la primera vez aunque la mezcla salga limpia.
+function porqueDe(valorFicha) {
   if (valorFicha && typeof valorFicha === 'object' && typeof valorFicha.por === 'string' && valorFicha.por.trim()) {
     return { de: 'ficha', texto: valorFicha.por.trim() };
   }
-  if (!rutas.length) return null;
-  const r = git(carpeta, ['log', '--no-renames', '--diff-filter=M', '--format=%an%x1f%s%x1e', '--', ...rutas]);
-  if (!r.ok) return null;
-  const asuntos = r.out.split('\x1e').map((x) => x.trim()).filter(Boolean).map((x) => x.split('\x1f'))
-    .filter(([autor, asunto]) => autor !== 'kit-actualizador' && !/^kit[: ]/.test(asunto || '')).map(([, asunto]) => (asunto || '').trim()).filter(Boolean);
-  return asuntos.length ? { de: 'git', texto: [...new Set(asuntos)].join('; ') } : null;
+  return null;
 }
+
+// ---------------------------------------------------------------- las piezas de frenos (congelar no va: r1-5)
+
+// Congelar (`propia`) una de estas deja el proyecto sin los arreglos de seguridad del kit para siempre. Cada una, con su porqué.
+const FRENOS = [
+  { id: 'hook-*', por: 'los porteros de cada herramienta (git-seguro, sensible, escritura, arranque)' },
+  { id: 'settings', por: 'las deny y los hooks que se enchufan' },
+  { id: 'candado', por: 'estructura.cjs: el candado del commit' },
+  { id: 'githooks', por: 'el pre-commit y el pre-push (gitleaks, el rol)' },
+  { id: 'hooks-lib', por: 'lo que leen todos los porteros (la ficha, el contexto, los frenos)' },
+  { id: 'cambios-metodo', por: 'niega-aprobar: un agente no aprueba sus propios cambios' },
+  { id: 'scripts', por: 'encargo.cjs: la línea de permisos del obrero' },
+];
+const esFreno = (id) => FRENOS.some((f) => (f.id.endsWith('*') ? String(id).startsWith(f.id.slice(0, -1)) : id === f.id));
+const SALIDAS = ['mezclar', 'propia', 'nueva', 'congelar'];
 
 // ---------------------------------------------------------------- validar lo que sale
 
@@ -288,8 +300,22 @@ const bloque = (lang, t) => {
   return `${c}${lang}\n${String(t).replace(/\n*$/, '')}\n${c}`;
 };
 
-// La pregunta, textual (D6-19): la lee /inicio.
-const pregunta = (id) => `Actualicé ${id}; acá la tenías distinta así; ¿la mejoramos con esto?`;
+// La pregunta, textual (D6-19): la lee /inicio. Abre "## Las salidas".
+const pregunta = (id) => `Actualicé ${id}; acá la tenías distinta así; ¿la mejoramos con esto? Elegí una de estas salidas.`;
+// El comando que escribe la salida elegida (lo corre /inicio, en el checkout del proyecto).
+const RESOLVER = 'node "$HOME/.claude/skills/arquitecto-skills/scripts/actualizar.cjs" resolver .';
+// La huella de lo tuyo por archivo (r1-2): ficha.hash del texto entero (con la zona), o - si no lo tenés.
+const huellaTuya = (p) => (p === null ? '-' : F.hash(p));
+// La versión nueva entera de un archivo: el molde nuevo con la zona propia del proyecto puesta. null si el molde no lo trae o la
+// zona no entra.
+function nuevaEntera(a) {
+  if (a.n === null) return null;
+  const z = conZona(a.rel, a.n, a.p);
+  return z.ok ? z.texto : null;
+}
+// Los archivos que van al informe: los que el molde cambió, y los "igual" que el proyecto tiene distintos del molde nuevo (tomar la
+// nueva también los escribe, r1-4).
+const alInforme = (a) => a.tipo !== 'igual' || (nuevaEntera(a) !== null && nuevaEntera(a) !== a.p);
 // La base de la pieza que espera: la línea fija `base: <versión>` del informe (antes del primer "## "). → la versión o null.
 function baseDeInforme(texto) {
   const ls = String(texto || '').replace(/\r\n/g, '\n').split('\n');
@@ -298,25 +324,34 @@ function baseDeInforme(texto) {
   return m ? m[1] : null;
 }
 
-function informe({ id, versiones, motivo, porque, archivos, tmp }) {
+// nota: lo que dice kit/CHANGELOG.md del --kit para las versiones > viejo y ≤ nuevo (lo lee actualizar.cjs), o null.
+function informe({ id, versiones, motivo, porque, archivos, tmp, nota = null }) {
   const out = [
     `# Te espera: la pieza \`${id}\` (kit ${versiones.viejo} → ${versiones.nuevo})`,
     '',
     `base: ${versiones.viejo}`,
+    ...archivos.map((a) => `tuyo: ${huellaTuya(a.p)} ${a.tipo} ${a.rel}`),
     '',
-    '> La dejó el actualizador del kit. La próxima sesión (`/inicio`) te lo pregunta una vez, junto con las otras; con tu respuesta',
-    '> se aplica o la pieza sigue adaptada (la próxima versión se te vuelve a ofrecer), el porqué queda en `por:` de la ficha y',
-    '> este archivo se borra. Mientras esté, la pieza no se fusiona sola: la próxima versión lo rehace desde la misma base.',
+    '> La dejó el actualizador del kit. La próxima sesión (`/inicio`) elige una de las salidas de abajo o te la pregunta, junto con',
+    '> las otras; la escribe `resolver` (el porqué queda en `por:` de la ficha) y este archivo se borra. Si la pieza sigue adaptada',
+    '> sin mezclar, la próxima versión se te vuelve a ofrecer. Mientras esté, la pieza no se fusiona sola: la próxima versión lo',
+    '> rehace desde la misma base.',
     '',
     `- **Por qué no se fusionó sola:** ${motivo}`,
-    `- **El porqué que encontré:** ${porque ? `${porque.texto} (${porque.de === 'ficha' ? 'la ficha' : 'el git log'})` : 'ninguno (ni `por:` en la ficha ni un commit que la haya cambiado)'}`,
+    `- **El porqué que encontré:** ${porque ? `${porque.texto} (la ficha)` : 'ninguno (la pieza no tiene `por:` en la ficha)'}`,
     '',
-    '## La pregunta',
+    '## Qué dice el kit',
     '',
-    pregunta(id),
+    ...(nota ? lf(nota).replace(/\n+$/, '').split('\n').map((l) => (l ? `> ${l}` : '>')) : ['el kit no dejó nota para estas versiones']),
   ];
   for (const a of archivos) {
-    if (a.tipo === 'igual') continue;
+    if (!alInforme(a)) continue;
+    const entera = nuevaEntera(a);
+    if (a.tipo === 'igual') {
+      out.push('', `## \`${a.rel}\``, '', 'El molde no lo cambió, pero lo tuyo es distinto: solo cambia si tomás la nueva (y ahí lo perdés).');
+      out.push('', '### La versión nueva, entera', '', bloque(path.extname(a.rel).slice(1), entera));
+      continue;
+    }
     out.push('', `## \`${a.rel}\``, '', '### Qué cambió el molde (molde viejo → molde nuevo)', '');
     const dm = diff(a.v, a.n, 'molde viejo', 'molde nuevo', tmp);
     out.push(dm ? bloque('diff', dm) : '(el archivo es nuevo en el molde)');
@@ -328,15 +363,61 @@ function informe({ id, versiones, motivo, porque, archivos, tmp }) {
     else if (a.tipo === 'tres' && a.propuesta) out.push(bloque(path.extname(a.rel).slice(1), a.propuesta));
     else if (a.tipo === 'tres') out.push(`git merge-file no dio una fusión limpia (${a.conflictos} conflicto(s)): armala con los dos diffs de arriba.`);
     else out.push(`No hay: ${a.problema}.`);
+    out.push('', '### La versión nueva, entera', '');
+    out.push(entera !== null ? bloque(path.extname(a.rel).slice(1), entera) : a.n === null ? '(el molde ya no lo trae)' : '(no entra tu zona propia: mirá el diff del molde)');
   }
+  const sinPropuesta = archivos.filter((a) => (a.tipo === 'tres' && !a.propuesta) || a.tipo === 'choque').map((a) => a.rel);
+  const perdes = archivos.filter((a) => alInforme(a) && a.p !== null && a.tipo !== 'molde' && nuevaEntera(a) !== null).map((a) => a.rel);
+  out.push('', '## Las salidas', '', pregunta(id), '');
+  out.push(`- **mezclar**: lo tuyo encima de lo nuevo (la fusión propuesta de cada archivo)${sinPropuesta.length ? `; falta la de ${sinPropuesta.join(', ')}: armala a mano y corré con --a-mano` : ''}.`);
+  out.push(`- **quedarse con la propia**: sigue \`adaptada\`, sin cambios; la próxima versión se te vuelve a ofrecer desde el kit ${versiones.viejo}.`);
+  out.push(`- **tomar la nueva del kit**: la versión nueva entera; la pieza pasa a \`molde\` y se actualiza sola de ahí en más. Lo que perdés (lo tuyo fuera de la zona propia): ${perdes.length ? perdes.join(', ') : 'nada'}.`);
+  if (esFreno(id)) out.push(`- (congelar no va: \`${id}\` es una pieza de frenos)`);
+  else out.push('- **congelar**: `propia`, el kit no la toca más.');
+  out.push('', `Con la elegida: \`${RESOLVER} ${id} mezclar|propia|nueva|congelar --por "<por qué>"\`.`);
   return `${out.join('\n')}\n`;
+}
+
+// Lo que resolver lee del informe → { base, tuyos: [{rel, hash (null = no lo tenías), tipo}], archivos: Map(rel → {propuesta, nueva}) }.
+// Los textos salen de los bloques de "### La fusión propuesta" y "### La versión nueva, entera" (con un fin de línea al final). Las
+// RUTAS que valen no salen de acá: resolver las cruza con el catálogo de la pieza (r1-2).
+function leerInforme(texto) {
+  const ls = lf(String(texto || '')).split('\n');
+  const fin = ls.findIndex((l) => /^## /.test(l));
+  const tuyos = (fin < 0 ? ls : ls.slice(0, fin)).map((l) => /^tuyo: ([0-9a-f]{12}|-) (igual|molde|tres|choque) (\S+)$/.exec(l)).filter(Boolean)
+    .map((m) => ({ rel: m[3], hash: m[1] === '-' ? null : m[1], tipo: m[2] }));
+  const archivos = new Map();
+  let actual = null;
+  let sub = null;
+  for (let i = 0; i < ls.length; i++) {
+    const l = ls[i];
+    const f = /^(`{3,})[^`]*$/.exec(l);
+    if (f) {
+      // un bloque: hasta su cerco exacto (cerco() lo hace más largo que cualquier tira de ` de adentro)
+      let j = i + 1;
+      while (j < ls.length && ls[j] !== f[1]) j++;
+      if (actual && sub && !(sub in actual)) actual[sub] = `${ls.slice(i + 1, j).join('\n')}\n`;
+      i = j;
+      continue;
+    }
+    const m = /^## `([^`]+)`$/.exec(l);
+    if (m) {
+      actual = {};
+      archivos.set(m[1], actual);
+      sub = null;
+    } else if (/^## /.test(l)) actual = sub = null;
+    else if (l === '### La fusión propuesta') sub = 'propuesta';
+    else if (l === '### La versión nueva, entera') sub = 'nueva';
+    else if (/^### /.test(l)) sub = null;
+  }
+  return { base: baseDeInforme(texto), tuyos, archivos };
 }
 
 // ---------------------------------------------------------------- la pieza entera
 
 // fusionar(o) → { resultado: 'sin cambios' | 'sola' | 'claude' | 'espera', destinos: Map(rel → texto), motivo, porque, informe }
 // o = { carpeta, id, archivos: [{rel, v, n, p}] (textos en LF o null), valorFicha, claude (ruta o null), plan, forzado (motivo),
-//       versiones: {viejo, nuevo}, plazo }
+//       versiones: {viejo, nuevo}, plazo, nota (lo que dice kit/CHANGELOG.md de las versiones del medio, o null) }
 function fusionar(o) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'kit-fusion-'));
   try {
@@ -354,15 +435,15 @@ function fusionar(o) {
       if (val.ok) a.propuesta = val.texto;
       else a.invalida = val.problema;
     }
-    const porque = tres.length || choques.length ? porqueDe(o.carpeta, o.valorFicha, archivos.map((a) => a.rel)) : null;
+    const porque = tres.length || choques.length ? porqueDe(o.valorFicha) : null;
     const espera = (motivo) => ({
       resultado: 'espera', destinos: new Map(), motivo, porque,
-      informe: informe({ id: o.id, versiones: o.versiones, motivo, porque, archivos, tmp }),
+      informe: informe({ id: o.id, versiones: o.versiones, motivo, porque, archivos, tmp, nota: o.nota }),
     });
     if (o.forzado) return espera(o.forzado);
     if (!tres.length && !choques.length) return { resultado: 'sola', destinos, porque: { de: 'molde', texto: 'el molde no tocó lo adaptado' } };
     // EL GATE: sin porqué no se fusiona, ni limpio
-    if (!porque) return espera('sin porqué (ni `por:` en la ficha ni un commit tuyo que la haya cambiado)');
+    if (!porque) return espera('sin porqué (la pieza no tiene `por:` en la ficha)');
     if (choques.length) return espera(`conflicto sin resolver (${choques[0].problema})`);
     const invalida = tres.find((a) => a.invalida);
     if (invalida) return espera(`no pasó chequear (${invalida.invalida})`);
@@ -396,5 +477,6 @@ const rutaInforme = (id) => `${RUTA_FUSIONES}/${id}.md`;
 
 module.exports = {
   fusionar, que, porqueDe, validar, clasificar, mergeFile, vaciarZonas, buscarClaude, lanzador, conClaude, informe, pregunta, baseDeInforme,
-  rutaInforme, RUTA_FUSIONES, CARPETA_FUSION, ARGS_CLAUDE, PERMITIDAS, PLAZO_CLAUDE, ADAPTADA,
+  leerInforme, esFreno, huellaTuya, rutaInforme, RUTA_FUSIONES, CARPETA_FUSION, ARGS_CLAUDE, PERMITIDAS, PLAZO_CLAUDE, ADAPTADA, FRENOS,
+  SALIDAS, RESOLVER,
 };

@@ -219,6 +219,12 @@ const CASOS = [
   ['por como lista', ficha('piezas:\n  inicio:\n    estado: adaptada\n    por: [a]\n'), 9,/"piezas.<nombre>.por" tiene que ser un texto/],
   ['por en una pieza molde (lugar raro)', ficha('piezas:\n  inicio: {estado: molde, por: x}\n'), 7, /"piezas.<nombre>.por" va solo en una pieza adaptada, adaptada \(desvío detectado\), propia/],
   ['por en una pieza no (lugar raro, en bloque)', ficha('piezas:\n  inicio:\n    estado: no\n    por: x\n'), 9, /"piezas.<nombre>.por" va solo/],
+  // desde: la base de la próxima oferta de una adaptada que se quedó con la suya (paquete 8b, r1-1)
+  ['desde que no es versión', ficha('piezas:\n  inicio: {estado: adaptada, desde: 3.0}\n'), 7, /"piezas.<nombre>.desde" tiene un valor que no se acepta — tiene que ser N.N.N o N.N.N-rc.N/],
+  ['desde con -beta', ficha('piezas:\n  inicio: {estado: adaptada, desde: 3.0.0-beta.1}\n'), 7, /"piezas.<nombre>.desde" tiene un valor que no se acepta/],
+  ['desde como lista', ficha('piezas:\n  inicio:\n    estado: adaptada\n    desde: [3.0.0]\n'), 9, /"piezas.<nombre>.desde" tiene que ser un texto/],
+  ['desde en una pieza propia (congelada: no se vuelve a ofrecer)', ficha('piezas:\n  inicio: {estado: propia, desde: 3.0.0}\n'), 7, /"piezas.<nombre>.desde" va solo en una pieza adaptada, adaptada \(desvío detectado\) —/],
+  ['desde en una pieza molde (en bloque)', ficha('piezas:\n  inicio:\n    estado: molde\n    desde: 3.0.0\n'), 9, /"piezas.<nombre>.desde" va solo/],
   // --- frenos
   ['frenos no es un mapa', ficha('frenos: x\n'), 6, /"frenos" tiene que ser un mapa/],
   ['opcionales no es lista', ficha('frenos:\n  opcionales: x\n'), 7, /"frenos.opcionales" tiene que ser una lista/],
@@ -460,6 +466,16 @@ test('herramientas: forma válida en línea y en bloque; los entornos nombran la
 test('herramientas sin entornos, y entornos que no nombran herramientas, valen', () => {
   assert.deepStrictEqual(leer(ficha(HERR)).avisos, []);
   assert.deepStrictEqual(leer(ficha('entornos:\n  a:\n    clase: real\n')).avisos, []);
+});
+
+test('paquete 8b: piezas.<id>.desde vale en una adaptada, con N.N.N o N.N.N-rc.N, sin avisos', () => {
+  for (const v of ['2.9.0', '3.0.0-rc.1']) {
+    for (const est of ['adaptada', '"adaptada (desvío detectado)"']) {
+      const r = leer(ficha(`piezas:\n  inicio: {estado: ${est}, por: "lo nuestro", desde: ${v}}\n`));
+      assert.deepEqual(r.datos.piezas.inicio, { estado: est.replace(/"/g, ''), por: 'lo nuestro', desde: v });
+      assert.deepEqual(r.avisos, []);
+    }
+  }
 });
 
 test('versiones: 0.0.0 vale; con ceros a la izquierda no', () => {

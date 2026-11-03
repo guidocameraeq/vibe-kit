@@ -226,6 +226,7 @@ function prepararItems(cabecera, primeraLinea) {
 
 const ESTADOS = ['molde', 'molde+propio', 'adaptada', 'adaptada (desvío detectado)', 'propia', 'sí', 'no'];
 const CON_POR = ['adaptada', 'adaptada (desvío detectado)', 'propia']; // los estados que llevan su porqué (piezas.<id>.por)
+const CON_DESDE = ['adaptada', 'adaptada (desvío detectado)']; // los que llevan la base de la próxima oferta (piezas.<id>.desde)
 const CLASES = ['real', 'prueba', 'dummy'];
 const SENSIBLES = ['datos-reales', 'plata', 'sale-afuera', 'claves', 'release'];
 const CONOCIDOS = ['kit', 'nivel', 'vars', 'piezas', 'frenos', 'autorizado', 'sensible', 'secretos', 'publicas',
@@ -301,7 +302,7 @@ function validar(datos, st, cierre, avisos) {
       const r = `piezas.${k}`;
       if (esTexto(v)) uno(r, v, ESTADOS);
       else if (esMapa(v)) {
-        soloClaves(r, v, ['estado', 'hash', 'por'], false);
+        soloClaves(r, v, ['estado', 'hash', 'por', 'desde'], false);
         requerido(r, v, 'estado');
         uno(`${r}.estado`, v.estado, ESTADOS);
         if (tiene(v, 'hash')) patron(`${r}.hash`, v.hash, /^[0-9a-f]{12}$/, 'tiene que tener 12 caracteres hexa en minúscula (0-9, a-f)');
@@ -310,6 +311,11 @@ function validar(datos, st, cierre, avisos) {
           texto(`${r}.por`, v.por);
           noVacio(`${r}.por`, v.por);
           if (!CON_POR.includes(v.estado)) E(L(`${r}.por`), `"${nom(r)}.por" va solo en una pieza ${CON_POR.join(', ')} — sacalo o cambiá el estado`);
+        }
+        // desde: la versión del molde desde la que se vuelve a ofrecer una adaptada que se quedó con la suya (D8b, r1-1; lo escribe resolver)
+        if (tiene(v, 'desde')) {
+          patron(`${r}.desde`, v.desde, RE_VERSION, 'tiene que ser N.N.N o N.N.N-rc.N, por ejemplo 3.0.0-rc.1');
+          if (!CON_DESDE.includes(v.estado)) E(L(`${r}.desde`), `"${nom(r)}.desde" va solo en una pieza ${CON_DESDE.join(', ')} — sacalo o cambiá el estado`);
         }
       } else E(L(r), `"${nom(r)}" tiene que ser un estado o {estado: …, hash: …}, no una lista — corregilo`);
     }
