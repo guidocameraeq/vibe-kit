@@ -17,6 +17,7 @@ Qué hay en esta carpeta, qué es cada cosa y cuándo leerla. El repo en general
 | Archivo | Qué es | Cuándo leerlo |
 |---|---|---|
 | [`MISION-Y-VISION.md`](MISION-Y-VISION.md) | Para qué existe el repo, para quién, qué NO hace | La primera vez, o si se duda del rumbo |
+| [`CICLO-DE-MEJORA.md`](CICLO-DE-MEJORA.md) | El ciclo de mejora del método: cuándo arranca una vuelta, sus 5 pasos, qué sale y cuánto cuesta cada uno, cómo trabajamos de verdad en la vuelta 1, las lecciones por paso y las plantillas | Al arrancar una vuelta (cada 3-4 meses) o al planear un paso grande |
 
 ## Los planos (SPEC)
 
@@ -70,6 +71,12 @@ Cerrada el 2026-10-27. Se queda acá porque el spec del kit v3 la cita como fuen
 | [`mision-4/DISENO-G-mesa-y-pcs.md`](mision-4/DISENO-G-mesa-y-pcs.md) | Tramo 4, racimo G: la mesa entre directores de proyectos que comparten algo. El contenido va siempre por git (un archivo por mensaje dentro del módulo, que nunca se edita y cuyo estado calcula un script) y el aviso por mensaje es opcional; seis tipos de mesa en una tabla única; acuerdos que viven una vez y van al PO solo si cambian el alcance; recursos compartidos con dueño; `crossSessionInbound: accept` por el Equipador; dos personas con `fetch`, aviso de commits ajenos y commit por rutas; números de decisión por módulo; lecciones al repo; `aprueba:` por alias. Trae el brief del racimo **G.1** (el buzón multiagente, opt-in). Verificado contra la doc oficial y revisado (34 hallazgos) |
 | [`mision-4/DISENO-H-niveles-y-puertas.md`](mision-4/DISENO-H-niveles-y-puertas.md) | Tramo 4, racimo H: lo chico se hace en el chat sin spec ni chat nuevo (una sola regla de tamaño, dicha por la sesión), lo que es más que chico entra por el Arquitecto, que termina armando el módulo y dando la línea de apertura; subproyecto = módulo con nombre; director solo si se escribe a la vez; entorno de prueba declarado y verificado por script; ramas y worktrees por script; tope del spec; prototipo antes del spec. Decisiones 7-14 provisorias; revisado (45 hallazgos) y contrastado con otros métodos |
 | [`mision-4/REFERENCIAS-EXTERNAS.md`](mision-4/REFERENCIAS-EXTERNAS.md) | Tramo 4: qué hacen otros métodos agénticos (gentle-ai, agency-agents, MetaGPT), qué idea sirve a qué racimo y qué se descarta con su razón |
+
+## La misión 6, el ciclo de mejora — [`mision-6/`](mision-6/)
+
+| Archivo | Qué es |
+|---|---|
+| [`mision-6/PLAN-6a.md`](mision-6/PLAN-6a.md) | La 6a, fase 1: el inventario de los chats de las misiones 1-5, lo que costó cada misión y cada paso, el costo de leer los chats en tres opciones y el índice del documento del ciclo |
 
 ## De consulta — [`consulta/`](consulta/)
 
