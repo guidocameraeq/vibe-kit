@@ -173,4 +173,4 @@ function archivosDe(dir) {
   return m;
 }
 
-module.exports = { instanciar, formaDe, materializarDir, materializarNuevo, materializarViejo, archivosDe, borrar, lf, conBarras };
+module.exports = { seInstancia, instanciar, formaDe, materializarDir, materializarNuevo, materializarViejo, archivosDe, borrar, lf, conBarras };
