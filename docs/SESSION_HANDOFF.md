@@ -3,7 +3,7 @@
 > **Save game** del proyecto madre. `/cierre` lo sobreescribe entero; el hook SessionStart lo inyecta en cada chat
 > nuevo de esta carpeta. **Tope 5.500 bytes**; el hook corta y avisa "CORTADO" si se pasa, y termina con la huella.
 
-**Última sesión cerrada:** 2026-11-02, **D7.1** (Opus, sin Guido, PC `Draco-PC`, ~3 h, 8 encargos): el ciclo del registro de cambios
+**Última sesión cerrada:** 2026-11-02, **D7.1** (Opus, sin Guido, PC `Draco-PC`, ~3 h, 9 encargos; el noveno, al cierre: **todo repo lleva banner, siempre**, decisión de Guido): el ciclo del registro de cambios
 (`subio-al-kit`, `cubiertos.md`, `cambios-flota`, la migración de Hermes) y la portada en `main`. **Paquete 7 ✅.** Suite 2.737/2.737.
 `kit-sync` LIMPIO.
 
@@ -15,6 +15,10 @@
 - Hoja de ruta ADR-025: 5 construir v3.0 (1-7 ✅; siguen 8, 8½, piloto, tag) → 6 el ciclo → 7 mensajería v3.1.
 
 ## Próximo paso
+
+**Guido sigue en otra PC**: `git pull` en vibe-kit y en `vibe-research` (los chats de `Draco-PC` están subidos hasta este cierre). En esa
+PC: `/inicio` (que `kit-sync` dé LIMPIO; si no, `kit-sync sync` trae lo del paquete 7 a su `~/.claude/`), `bash pruebas/rehacer.sh` para los
+repos de prueba, y el clon de Hermes se vuelve a bajar al scratchpad cuando haga falta.
 
 **D8.1**, en Opus, sin Guido: **`vibe-kit M5 · D8.1 · Paquete 8: la línea base y la documentación al día`**. Guido pega el prompt de
 "Abrir D8.1 sin Guido (el prompt)" del tracker (`docs/kit-v3/PLAN-construccion.md`) y se va. Delta nuevo (`SPEC-paquete-8.md`), sin red

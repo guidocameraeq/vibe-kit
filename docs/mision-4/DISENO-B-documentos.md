@@ -376,14 +376,15 @@ diagramas, readmes, que si alguien tiene que agarrar ese repositorio se entienda
 vibe-kit (misión 3, 2026-10-13: banner y diagrama estilo plano de arquitecto en `assets/`, insignias que se actualizan solas, About y
 etiquetas en GitHub; ADR-023 "README 100% portada") y el README raíz que escribe `docs-fyd`, que es de auditoría y no sirve de portada.
 
-1. **El `README.md` de la raíz es portada y nada más**: banner (opcional), qué es en tres líneas, cómo correrlo, y enlaces a `NORTE.md`,
+1. **El `README.md` de la raíz es portada y nada más**: banner (**siempre**; ver 3), qué es en tres líneas, cómo correrlo, y enlaces a `NORTE.md`,
    `MAPA.md` y `docs/README.md`. **Sin pendientes, sin historial, sin versión** (ADR-023 vale para todos los repos): eso vive en el TODO,
    el CHANGELOG y la ficha del kit. **Anti-espejo**: la portada resume, el `NORTE.md` manda; si cambian, cambia el NORTE y la portada se
    rehace desde él.
 2. **La arma el Arquitecto desde el `NORTE.md` y el `MAPA.md`**, al montar (Modo A) o al adoptar (E §7), **dentro del mismo OK de adopción**
    que §12 ya cuenta. Cero preguntas nuevas (§19 no cambia).
-3. **Lo chico no paga lo grande** (criterio 9): un proyecto `liviano` (H §14) o personal no paga banner ni diagrama; tiene las tres líneas y
-   los enlaces. El banner y el estilo visual común de la flota son para los repos de la empresa.
+3. ~~**Lo chico no paga lo grande** (criterio 9): un proyecto `liviano` (H §14) o personal no paga banner ni diagrama; tiene las tres líneas y
+   los enlaces. El banner y el estilo visual común de la flota son para los repos de la empresa.~~ **Todo repo lleva banner** *(corregido el 2026-11-02 por Guido: "yo siempre quiero tener banner, es parte de tener el repo lindo")*; lo
+   arma un script (`portada.cjs`), así que no cuesta. El diagrama sigue siendo de los repos de la empresa.
 4. **Vestirla es una pieza del kit, misión 5**: el molde de la portada de vibe-kit (`assets/banner.svg` como plantilla con el nombre del
    proyecto, insignias, imagen para compartir, About y etiquetas por `gh`). Dónde vive (un modo del Arquitecto o una skill chica `portada`)
    se decide en el spec; pasa la regla de 3+ de sobra (10 repos). El candado de §14 suma un chequeo barato: que el README raíz exista y

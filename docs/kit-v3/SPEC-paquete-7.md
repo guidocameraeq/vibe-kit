@@ -127,15 +127,15 @@ un archivo por `## CM-N · <título>` en `.claude/cambios/`:
 
 ### P3.8 · La portada (B §12bis)
 
-1. **`molde/README.md`** (plantilla): `# {{PROYECTO}}`, el banner opcional (`![{{PROYECTO}}](assets/banner.svg)`), "qué es" en hasta 3
+1. **`molde/README.md`** (plantilla): `# {{PROYECTO}}`, el banner (`![{{PROYECTO}}](assets/banner.svg)`, siempre), "qué es" en hasta 3
    líneas, "Cómo correrlo" (`comando-setup` y `comando-test` de la ficha) y los enlaces a `docs/NORTE.md`, `docs/MAPA.md` y
    `docs/README.md`. Sin pendientes, historial ni versión (ADR-023).
 2. **`molde/assets/banner.svg`** (plantilla): el estilo de `assets/banner.svg` de vibe-kit, plano, con `{{PROYECTO}}` y una línea, legible en
    claro y oscuro.
-3. **`molde/scripts/portada.cjs armar [--banner] [--plan]`**: arma el `README.md` raíz desde `docs/NORTE.md` ("## Qué es") y la ficha
+3. **`molde/scripts/portada.cjs armar [--plan]`**: arma el `README.md` raíz desde `docs/NORTE.md` ("## Qué es") y la ficha
    (`vars.proyecto`, `comando-setup`, `comando-test`). Si el README existe y **no** es el que armó el script (marca `<!-- kit:portada -->` al
-   pie con el hash de lo generado), no lo pisa: lo informa. `--banner` escribe `assets/banner.svg` con el nombre; **sin `--banner` no hay
-   banner** (lo decide el Arquitecto: `liviano` o personal, sin). `chequear`: 0 si cumple, 1 con qué falta.
+   pie con el hash de lo generado), no lo pisa: lo informa. Escribe también `assets/banner.svg` con el nombre, **siempre** *(corregido el 2026-11-02 por Guido: "yo siempre quiero tener banner, es parte de tener el repo lindo")*; un
+   banner propio no se pisa. `chequear`: 0 si cumple, 1 con qué falta.
 4. **`candado:portada`** (id nuevo, el décimo; quitable): **corre solo si la ficha tiene `piezas.portada` y no es `no`** (r1-4: el apagado
    del candado es por repo, no por id; así ningún repo existente se pone rojo al actualizarse). Rojo si no hay README en la raíz (sin mirar
    mayúsculas, como `entradasRaiz`) o si no enlaza a `docs/NORTE.md` (resuelto con `citas` + `aRuta` del mismo candado: vale `./docs/NORTE.md`,
@@ -143,8 +143,7 @@ un archivo por `## CM-N · <título>` en `.claude/cambios/`:
 5. **El catálogo no reparte la portada** (r1-4): `molde/README.md` y `molde/assets/banner.svg` van a `SUELTOS` de `catalogo.cjs` (plantillas
    sin pieza: el actualizador nunca hace nacer un README); el README lo crea solo `portada.cjs armar`. `portada.cjs` va en la pieza
    `scripts`. `piezas.portada: sí` la escribe el Arquitecto en la ficha al montar o adoptar (dentro del mismo OK), y lo admite el parser.
-6. **El Arquitecto** (Modo A y adoptar): un renglón: "al montar o adoptar, `portada.cjs armar` (con `--banner` si es de la empresa y
-   `estandar`)", dentro del mismo OK, cero preguntas nuevas (B §12bis.2). About y etiquetas por `gh`: fuera (D7-6).
+6. **El Arquitecto** (Modo A y adoptar): un renglón: "al montar o adoptar, `portada.cjs armar`", dentro del mismo OK, cero preguntas nuevas (B §12bis.2). About y etiquetas por `gh`: fuera (D7-6).
 
 ## MODIFICA
 
@@ -186,7 +185,7 @@ Hermes en el scratchpad, **solo lectura** (la migración corre sobre una copia);
    **0 `aplicado` sin SHA resolvible**, CM-103 en `propuesto`, `--plan` repetido → "sin cambios", `CAMBIOS.md` intacto. *Verifica: corrida del
    director, con las cifras.*
 7. **La portada**: `portada.cjs armar` en una copia de `alfa` arma el README desde su NORTE (3 líneas, cómo correrlo, los tres enlaces);
-   repetido → "sin cambios"; con un README propio → no lo pisa; `--banner` → `assets/banner.svg` con el nombre; `candado:portada` rojo sin
+   repetido → "sin cambios"; con un README propio → no lo pisa; `assets/banner.svg` con el nombre, siempre; `candado:portada` rojo sin
    README o sin el enlace, verde con él (también con `./docs/NORTE.md`, con ancla y con `Readme.md`), y **callado sin `piezas.portada`**; y
    `aplicar` no hace nacer ningún README. *Verifica: prueba + una corrida del director.*
 8. **Nada se rompe**: las pruebas de lo tocado (cambios, actualizar, candado, catálogo, copias `pc/lib`) verdes corridas por el director; la
@@ -224,8 +223,8 @@ la portada en GitHub (cómo se ve renderizada en un repo de la empresa).
 - ⚠️ **D7-5 · La migración: todo clase 2, `toca: [metodo]`, sin `cita:`**: Hermes no distingue barreras ni guarda las citas a Mobile en
   forma de id; inventarlas sería un dato falso. El caso entero queda citado en el cuerpo. **Mobile (`D-n`) queda fuera**: el prompt de D7.1
   pide Hermes, y el formato de Mobile no se exploró. `[mejor código · consistencia]`
-- ⚠️ **D7-6 · La portada la arma un script, no el modelo** (criterio 6: lo que puede calcular un programa); el banner, solo con
-  `--banner`; About y etiquetas por `gh` quedan fuera (son una acción hacia afuera sobre GitHub: el Arquitecto la propone, no la hace sola).
+- ⚠️ **D7-6 · La portada la arma un script, no el modelo** (criterio 6: lo que puede calcular un programa); el banner, siempre
+  *(corregido el 2026-11-02 por Guido: "yo siempre quiero tener banner, es parte de tener el repo lindo")*; About y etiquetas por `gh` quedan fuera (son una acción hacia afuera sobre GitHub: el Arquitecto la propone, no la hace sola).
   `[acordarse de menos · consistencia]`
 - ⚠️ **D7-7 · El retiro automático, con cinco condiciones** (red team r1-1, r1-3, r1-9): ante cualquier duda la zona queda y se informa. Se
   prefirió a "nunca retirar solo" (más simple, pero deja a mano lo que D §22ter.4 pide automático). `[mejor código · acordarse de menos]`

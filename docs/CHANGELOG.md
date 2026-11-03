@@ -5,7 +5,7 @@
 ## 2026-11-02 — Misión 5, paquete 7 (D7.1): el ciclo del registro de cambios y la portada
 
 PC `Draco-PC`, chat `vibe-kit M5 · D7.1 · Paquete 7: el ciclo de cambios y la portada`, en Opus, sin Guido, con el presupuesto del
-ADR-029: **~3 h de reloj (19:45-22:45), 8 encargos (6 Opus: red team, A, C, revisor frío, RF-fix, E8 · 2 Sonnet: B, D), ~1,45 M de tokens
+ADR-029: **~3 h de reloj (19:45-22:45), 9 encargos (6 Opus: red team, A, C, revisor frío, RF-fix, E8 · 3 Sonnet: B, D y el banner), ~1,45 M de tokens
 de subagentes**. Sin tag. **El paquete 7 queda ✅.** Decisiones sin Guido: tracker, "D7.1 · Decisiones sin Guido"; ninguna pregunta nueva.
 
 **Added**
@@ -15,7 +15,7 @@ de subagentes**. Sin tag. **El paquete 7 queda ✅.** Decisiones sin Guido: trac
   (`scripts/lib/cubiertos.cjs`); `aplicar` cierra el ciclo y retira la zona propia solo con cinco condiciones (vuelve al texto de fábrica). Mutación 27/27 + 12/13 + 5/5.
 - `cambios-flota.cjs`: la tabla del ciclo (3+ o cicatriz) y `--urgentes`, sin red, sobre lo commiteado; un renglón en el `/inicio` de vibe-kit.
 - `migrar-cambios.cjs`: un `CAMBIOS.md` único a archivos chicos. **Hermes (clon): 103 CM → 102 `aplicado` + 1 `propuesto`, `verificar` verde.**
-- La portada: `molde/scripts/portada.cjs` (`armar [--banner]`, `chequear`), `candado:portada` (el décimo, solo con `piezas.portada`), las
+- La portada: `molde/scripts/portada.cjs` (`armar`, `chequear`; **siempre con banner**, decisión de Guido al cierre), `candado:portada` (el décimo, solo con `piezas.portada`), las
   plantillas `molde/README.md` y `molde/assets/banner.svg`; el Arquitecto la arma al montar o adoptar.
 
 **Changed**
@@ -26,7 +26,9 @@ de subagentes**. Sin tag. **El paquete 7 queda ✅.** Decisiones sin Guido: trac
 **Fixed** (revisor frío, 7 hallazgos, un encargo): la línea "para pegar" sin `pieza:` mataba el ciclo de toda la flota; `--kit` con la raíz;
 el `/inicio` con ⚠ por repos sin rama; rc → final; SHA colgados en la migración; `piezas.portada` con un README propio.
 
-Suite entera **2.737 de 2.737** verde (17,5 min). `kit-sync` LIMPIO.
+Suite entera **2.737 de 2.737** verde (17,5 min). Al cierre, **Guido decidió que todo repo lleva banner, siempre**: `portada.cjs armar`
+lo escribe sin preguntar (147/147); corregidos el SPEC-0, B §12bis y el delta. Los chats de vibe-kit de `Draco-PC` re-condensados al privado.
+`kit-sync` LIMPIO.
 
 ## 2026-11-02 — Misión 5, paquete 6, cierre (D6.2): la flota de punta a punta, la fusión de piezas adaptadas y el adoptador
 
