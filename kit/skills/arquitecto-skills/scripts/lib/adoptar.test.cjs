@@ -141,7 +141,7 @@ test('--mirar sobre un v2.4.2 sin ficha: el árbol y el .git quedan byte a byte;
   assert.ok(!('claude-md' in p) && !('snippets' in p) && !('ficha-ejemplo' in p));
   assert.match(r.texto, /^# {3}inicio · molde · \.claude\/skills\/inicio\/SKILL\.md: el molde v2 sin editar/m);
   assert.match(r.texto, /^# v2: \.claude\/hooks\/check-code\.js — el del molde v2 sin editar: se retira/m);
-  assert.match(r.texto, /^# CLAUDE\.md: hay — no se toca/m);
+  assert.match(r.texto, /^# CLAUDE\.md: (hay — no se toca \(ya trae "El tamaño del pedido"\)|le falta "El tamaño del pedido" — con tu OK, --aplicar <propuesta> --claude-md la suma al final \(la del molde\))$/m);
   assert.match(r.texto, /^# docs-fyd: se ofrece/m);
   assert.match(r.texto, /^# nivel: liviano \(inferido: no hay código/m);
   assert.match(r.texto, /^# reglas propias candidatas: ninguna$/m);
@@ -206,7 +206,8 @@ test('--mirar: copias del kit adentro, reglas propias, AGENTS.md y el registro d
   assert.match(r.texto, /^# {3}cierre · propia · \.claude\/skills\/cierre\/SKILL\.md ya está y es distinto del molde: no se pisa$/m);
   assert.match(r.texto, /^# copias del kit adentro: \.claude\/skills\/arquitecto — /m);
   assert.match(r.texto, /^# AGENTS\.md: hay — aviso/m);
-  assert.match(r.texto, /^# registro de cambios de método: docs\/cambios-de-metodo\.md → migración: P6\.8b, orden 7, queda en te espera$/m);
+  assert.match(r.texto, /^# registro de cambios de método: docs\/cambios-de-metodo\.md → migración, dentro del OK de la adopción: node "\$HOME\/\.claude\/skills\/arquitecto-skills\/scripts\/migrar-cambios\.cjs" --repo <clon> --fuente docs\/cambios-de-metodo\.md --plan, después lo mismo con --commit$/m);
+  assert.doesNotMatch(r.texto, /P6\.8b|orden 7/);
   assert.match(r.texto, /^# {3}deny Bash\(rm -rf:\*\)$/m);
   assert.match(r.texto, /^# {3}ask Bash\(git push --force:\*\)$/m);
   assert.match(r.texto, /^# {3}hook PreToolUse Bash: bash \.claude\/hooks\/mio\.sh$/m);
@@ -418,6 +419,121 @@ test('--aplicar de una propuesta --nuevo: vienen el candado, el director y el es
   assert.equal(git(d, 'status', '--porcelain'), '');
   const b = barreras(d, antes);
   assert.equal(b.status, 0, b.stdout + b.stderr);
+});
+
+// ---------------------------------------------------------------- SPEC-paquete-8r: T1 (crit. 1), 4 (crit. 8), t2
+
+// Un repo con código, sin ficha (rt-8: los repos de prueba nacen con ficha; este no): package.json con scripts.test y un CLAUDE.md.
+const PKG = '{"name":"app","scripts":{"test":"node --test"}}\n';
+const conCodigo = (nombre, extra = {}) => repoPelado(nombre, { 'package.json': PKG, 'CLAUDE.md': `# ${nombre}\n`, ...extra });
+const lineaPieza = (texto, id) => (texto.split('\n').find((l) => l.startsWith(`#   ${id} · `)) || '');
+
+test('crit. 1 (8r, T1): con código y CLAUDE.md, sin ficha → director-obrero y estado en sí; --aplicar trae /director, /obrero y /estado del molde', { ...deKit, timeout: 180000 }, async () => {
+  const d = conCodigo('app');
+  const r = mirar(d);
+  const p = piezas(r.texto);
+  assert.equal(F.leer(r.texto).datos.nivel, 'estandar');
+  assert.equal(p['director-obrero'], 'sí');
+  assert.equal(p.estado, 'sí');
+  assert.equal(p.candado, 'no', 'el candado, como siempre sin --nuevo');
+  for (const id of ['smoke', 'release', 'docs-fyd']) assert.equal(p[id], 'no', id);
+  assert.equal(lineaPieza(r.texto, 'director-obrero'), '#   director-obrero · sí · repo con código: el módulo con director necesita /director y /obrero');
+  assert.match(r.texto, /^# {3}usan todos los hooks; scripts: estructura, cambios, todo\)\. No trae smoke, release ni docs-fyd\.$/m, 'la línea dice la verdad');
+  assert.match(r.texto, /^# repo con código \(estandar\): trae director-obrero y estado \(sí: el módulo con director necesita \/director y \/obrero\)$/m);
+  const prop = propuestaDe(d);
+  rol(d);
+  const antes = git(d, 'rev-parse', 'HEAD').trim();
+  const a = await aplicar(d, prop);
+  assert.equal(a.codigo, 0, a.lineas.join('\n'));
+  const mN = M.materializarNuevo(RAIZ_KIT, { vars: { proyecto: 'app', 'comando-test': 'npm test', 'comando-setup': 'npm install' }, fecha: FECHA });
+  try {
+    for (const [rel, enProy] of [['skills/director/SKILL.md', '.claude/skills/director/SKILL.md'], ['skills/obrero/SKILL.md', '.claude/skills/obrero/SKILL.md'], ['skills/estado/SKILL.md', '.claude/skills/estado/SKILL.md'], ['agents/revisor.md', '.claude/agents/revisor.md']]) {
+      assert.equal(leer(d, enProy), fs.readFileSync(path.join(mN.dir, ...rel.split('/')), 'utf8'), enProy);
+    }
+  } finally {
+    M.borrar(mN.dir);
+  }
+  const f = F.leer(leer(d, '.claude/kit.md')).datos;
+  for (const id of ['director-obrero', 'estado']) assert.equal(f.piezas[id].estado || f.piezas[id], 'sí', id);
+  assert.equal(leer(d, 'CLAUDE.md'), '# app\n', 'sin --claude-md, el CLAUDE.md intacto');
+  assert.equal(commitsDeLaLinea(d, a.lineas), 2);
+  assert.equal(git(d, 'status', '--porcelain'), '');
+  const b = barreras(d, antes);
+  assert.equal(b.status, 0, b.stdout + b.stderr);
+});
+
+test('crit. 1 (8r, T1; rt-4): un /director propio distinto → propia con el ⚠; solo un agente propio → propia y lo nombra; sin código (liviano) → no', deKit, () => {
+  const conDir = mirar(conCodigo('dir', { '.claude/skills/director/SKILL.md': '# el director de hermes\n' }));
+  assert.equal(piezas(conDir.texto)['director-obrero'], 'propia');
+  assert.equal(piezas(conDir.texto).estado, 'sí', 'el estado no tiene nada propio');
+  assert.equal(lineaPieza(conDir.texto, 'director-obrero'), '#   director-obrero · propia · ⚠ .claude/skills/director/SKILL.md ya está y es distinto: /director del kit no queda hasta resolverlo con Guido');
+  assert.match(conDir.texto, /^# repo con código \(estandar\): trae estado \(sí: .*\); director-obrero en propia \(ya hay uno distinto: lo resuelve la sesión con Guido\)$/m);
+  assert.match(conDir.texto, /No trae smoke, release ni docs-fyd\./);
+  const conAgente = mirar(conCodigo('ag', { '.claude/agents/revisor.md': '---\nname: revisor\n---\nel revisor de hermes\n' }));
+  assert.equal(piezas(conAgente.texto)['director-obrero'], 'propia');
+  assert.equal(lineaPieza(conAgente.texto, 'director-obrero'), '#   director-obrero · propia · ⚠ .claude/agents/revisor.md ya está y es distinto: /director del kit no queda hasta resolverlo con Guido — solo agentes propios (revisor): la sesión le propone a Guido renombrar los suyos (p. ej. <nombre>-propio.md) y la pieza pasa a sí');
+  // un agente propio con OTRO nombre (que el kit no trae) no choca
+  assert.equal(piezas(mirar(conCodigo('ag2', { '.claude/agents/mio.md': 'mío\n' })).texto)['director-obrero'], 'sí');
+  // sin código: liviano, como antes
+  const liv = mirar(repoPelado('notas', { 'CLAUDE.md': '# notas\n', 'docs/apuntes.md': '# apuntes\n' }));
+  assert.equal(F.leer(liv.texto).datos.nivel, 'liviano');
+  for (const id of ['director-obrero', 'estado']) assert.equal(piezas(liv.texto)[id], 'no', id);
+  assert.match(liv.texto, /No trae smoke, release, director-obrero, estado ni docs-fyd\./);
+  assert.doesNotMatch(liv.texto, /repo con código/);
+  // con código pero sin CLAUDE.md: el corte del criterio 19 va primero
+  for (const e of Object.values(piezas(mirar(repoPelado('sinclaude', { 'package.json': PKG })).texto))) assert.equal(e, 'no');
+});
+
+test('crit. 8 (8r, 4): CLAUDE.md sin la sección y con un director propio → las dos líneas; --aplicar --claude-md la suma una vez en el commit de las piezas; sin la bandera, intacto', { ...deKit, timeout: 240000 }, async () => {
+  const claude = '# hermes\n\nReglas.\n\n## Cómo trabajamos\n\nEl director reparte los encargos.\nCada obrero toca su carpeta.\nPara empezar, /director.\n';
+  const d = conCodigo('hermes', { 'CLAUDE.md': claude });
+  const r = mirar(d);
+  assert.match(r.texto, /^# CLAUDE\.md: le falta "El tamaño del pedido" — con tu OK, --aplicar <propuesta> --claude-md la suma al final \(la del molde\)$/m);
+  assert.match(r.texto, /^# CLAUDE\.md: tiene su director\/obrero propio \(renglones 7, 8\): choca con \/director — la sesión le propone a Guido cambiarlo por un puntero a \/director y \/obrero \(a mano, con su OK\)$/m);
+  // hasta 5 números y "…"
+  const muchos = mirar(conCodigo('muchos', { 'CLAUDE.md': `# m\n${'el director manda\n'.repeat(7)}` }));
+  assert.match(muchos.texto, /\(renglones 2, 3, 4, 5, 6, …\)/);
+  // con la sección y sin director propio: una línea, sin la segunda
+  const molde = fs.readFileSync(path.join(RAIZ_KIT, 'kit', 'molde', 'CLAUDE.md'), 'utf8');
+  const bien = mirar(conCodigo('bien', { 'CLAUDE.md': '# bien\n\n## El tamaño del pedido\n\nchico o no.\n' }));
+  assert.match(bien.texto, /^# CLAUDE\.md: hay — no se toca \(ya trae "El tamaño del pedido"\)$/m);
+  assert.doesNotMatch(bien.texto, /director\/obrero propio/);
+  // --aplicar --claude-md
+  const prop = propuestaDe(d);
+  rol(d);
+  const a = await AD.main([d, '--kit', RAIZ_KIT, '--aplicar', prop, '--fecha', FECHA, '--claude-md']);
+  assert.equal(a.codigo, 0, a.lineas.join('\n'));
+  assert.ok(a.lineas.includes('CLAUDE.md · le sumé al final "El tamaño del pedido" (la del molde): va en el commit de las piezas'), a.lineas.join('\n'));
+  commitsDeLaLinea(d, a.lineas);
+  const commiteado = git(d, 'show', 'HEAD~1:CLAUDE.md');
+  assert.equal(commiteado.match(/^## El tamaño del pedido$/gm).length, 1);
+  assert.ok(commiteado.startsWith(claude), 'lo de Hermes queda tal cual, arriba');
+  const i = molde.indexOf('## El tamaño del pedido');
+  const sec = molde.slice(i, molde.indexOf('\n## ', i)).replace(/\s+$/, '');
+  assert.ok(commiteado.endsWith(`\n\n${sec}\n`), 'la del molde, al final');
+  assert.deepEqual(git(d, 'show', '--name-only', '--format=', 'HEAD').trim().split('\n'), ['.claude/kit.md'], 'el CLAUDE.md va en el commit de las piezas');
+  // si ya está: una línea y nada
+  const ya = conCodigo('ya', { 'CLAUDE.md': '# ya\n\n## El tamaño del pedido\n\nlo propio.\n' });
+  const pYa = propuestaDe(ya);
+  rol(ya);
+  const aYa = await AD.main([ya, '--kit', RAIZ_KIT, '--aplicar', pYa, '--fecha', FECHA, '--claude-md']);
+  assert.equal(aYa.codigo, 0, aYa.lineas.join('\n'));
+  assert.ok(aYa.lineas.includes('CLAUDE.md · ya trae "El tamaño del pedido": no se toca (--claude-md no suma nada)'));
+  assert.equal(leer(ya, 'CLAUDE.md'), '# ya\n\n## El tamaño del pedido\n\nlo propio.\n');
+  // sin --claude-md: intacto
+  const sin = conCodigo('sin', { 'CLAUDE.md': claude });
+  const pSin = propuestaDe(sin);
+  rol(sin);
+  const aSin = await aplicar(sin, pSin);
+  assert.equal(aSin.codigo, 0, aSin.lineas.join('\n'));
+  assert.equal(leer(sin, 'CLAUDE.md'), claude);
+  // la CLI: --claude-md solo con --aplicar, una vez
+  for (const args of [[d, '--kit', RAIZ_KIT, '--mirar', '--claude-md'], [d, '--kit', RAIZ_KIT, '--aplicar', prop, '--claude-md', '--claude-md']]) assert.equal(await AD.main(args), null, args.join(' '));
+});
+
+test('t2 (8r): el registro de cambios en docs/metodo/CAMBIOS.md → la receta de migrar-cambios sin --fuente', deKit, () => {
+  const r = mirar(repoV2('hermes2', { archivos: { 'docs/metodo/CAMBIOS.md': '# CAMBIOS\n' } }));
+  assert.match(r.texto, /^# registro de cambios de método: docs\/metodo\/CAMBIOS\.md → migración, dentro del OK de la adopción: node "\$HOME\/\.claude\/skills\/arquitecto-skills\/scripts\/migrar-cambios\.cjs" --repo <clon> --plan, después lo mismo con --commit$/m);
 });
 
 // ---------------------------------------------------------------- --principal: los githooks (SPEC-paquete-8b (14), D8b-9)

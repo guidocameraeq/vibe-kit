@@ -4,7 +4,7 @@
 //   node actualizar.cjs adoptar <carpeta> --kit <raíz del kit> --mirar [--nivel liviano|estandar] [--propuesta <archivo>] [--nuevo]
 //                               [--comando-test "<comando>"]
 //   node actualizar.cjs adoptar <carpeta> --kit <raíz del kit> --aplicar <archivo de propuesta> [--fecha <AAAA-MM-DD>]
-//                               [--principal <carpeta principal>]
+//                               [--principal <carpeta principal>] [--claude-md]
 //
 // Un script determinista (D6-1): MIRA y APLICA. La pantalla (NORTE, MAPA, el plano de docs/, las reglas propias como cambios) la
 // arma la sesión del Arquitecto con Guido delante, leyendo la propuesta (D6-12): eso necesita leer el código y no es de un script.
@@ -19,6 +19,9 @@
 //     para andar (hooks-lib: la usan todos los hooks; scripts: cambios.cjs, todo.cjs y los que llaman /inicio y /cierre);
 //   - candado → no (apagado hasta migrar), pero su archivo (scripts/estructura.cjs) viene igual: barreras corre desde ahí;
 //   - opcionales (smoke, release, director-obrero, estado, docs-fyd) → no; docs-fyd se ofrece en el comentario;
+//   - salvo en estandar (un repo con código; SPEC-paquete-8r T1, D8r-3): director-obrero y estado → sí (el módulo con director
+//     necesita /director y /obrero), o propia si alguno de sus archivos ya está y es distinto (si es solo en agents/, los nombra);
+//     va después del corte del criterio 19 (sin CLAUDE.md ni --nuevo, igual todo en no);
 //   - una base con un archivo del proyecto en su ruta, distinto del molde → propia (no se pisa), y el comentario lo dice;
 //   - sin ficha ni CLAUDE.md → todo en no (criterio 19, caso de falla): la propuesta sale igual y la sesión decide.
 //   - --nuevo (el Modo A: un repo que acaba de nacer, con o sin CLAUDE.md; SPEC-paquete-8b (15), D8b-8): las bases → molde (no el
@@ -33,7 +36,8 @@
 // --aplicar: se niega (1) si ya hay ficha ("eso es actualizarlo: flota"), si la propuesta no se lee o es de otro kit, y como
 // aplicar (sucia salvo .kit-rol, .kit-rol ≠ actualizador). Reusa el planificador de aplicar (planear con la ficha propuesta) y de
 // su plan se queda con lo de las piezas molde: lo de una no o una propia no se escribe. CLAUDE.md: si no hay, nace el del molde; si
-// hay, no se toca. Escritura atómica (ejecutar de aplicar). No commitea: van DOS commits, las piezas y después la ficha sola,
+// hay, no se toca, salvo --claude-md (8r, 4): le suma al final la sección "El tamaño del pedido" del molde (si no la trae), en el
+// commit de las piezas. Escritura atómica (ejecutar de aplicar). No commitea: van DOS commits, las piezas y después la ficha sola,
 // porque la exención (b) compara contra la ficha de fábrica DEL ÁRBOL DEL PADRE (barreras.cjs, exencionB) y la fábrica llega con
 // las piezas. La ficha con frenos, sensible o autorizado distintos de fábrica da rojo en barreras: lo aprueba Guido después.
 // Después va barreras --rango <antes>..HEAD; chequear no, porque pide la ficha en la base (corre desde la primera puesta al día).
@@ -66,6 +70,12 @@ const DE_FABRICA = ['frenos', 'sensible', 'autorizado'];
 const TRAE = ['molde', 'molde+propio', 'sí'];
 // --nuevo: las opcionales que nacen prendidas (D8b-8: todo proyecto nuevo nace con módulos) y el candado, prendido.
 const NUEVO_SI = ['candado', 'director-obrero', 'estado'];
+// estandar (un repo con código, sin --nuevo): las del módulo con director, en sí salvo lo propio (SPEC-paquete-8r, T1; D8r-3).
+const MODULOS = ['director-obrero', 'estado'];
+// La sección del CLAUDE.md que pide doctor (chReglaTamano: la misma regla) y que --claude-md suma del molde (8r, 4).
+const RE_TAMANO = /^#{1,6}[ \t]+El tamaño del pedido[ \t]*$/m;
+const MIGRAR = 'node "$HOME/.claude/skills/arquitecto-skills/scripts/migrar-cambios.cjs"';
+const FUENTE_CAMBIOS = 'docs/metodo/CAMBIOS.md'; // la de fábrica de migrar-cambios.cjs (sin --fuente)
 // Las skills del kit que viven en ~/.claude: una copia adentro del repo se queda vieja sola.
 const COPIAS_KIT = ['.claude/skills/arquitecto', '.claude/skills/arquitecto-skills', '.claude/skills/docs-fyd', '.claude/skills/relevamiento'];
 const V2 = ['.claude/hooks/session-start.sh', '.claude/hooks/check-code.js'];
@@ -408,7 +418,9 @@ function mirar(carpeta, opciones) {
         pone('sí', 'proyecto nuevo (--nuevo): nace con módulos');
         continue;
       }
-      if (pieza.clase === C.OPCIONAL) {
+      // un repo con código (estandar): el módulo con director necesita /director y /obrero (8r, T1; D8r-3) — salvo lo propio, abajo
+      const conModulos = nivel === 'estandar' && MODULOS.includes(id);
+      if (pieza.clase === C.OPCIONAL && !conModulos) {
         pone('no', id === 'docs-fyd' ? 'opcional: se ofrece (si va, docs-fyd: sí; la skill es global y corre en la carpeta)' : 'opcional: no se trae');
         continue;
       }
@@ -435,7 +447,16 @@ function mirar(carpeta, opciones) {
         else distintos.push(rel);
       }
       const ocupada = distintos.length ? `${listaCorta(distintos)} ya está y es distinto del molde` : '';
-      if (id === 'candado' && nuevoRepo) {
+      if (conModulos) {
+        if (!distintos.length) pone('sí', 'repo con código: el módulo con director necesita /director y /obrero');
+        else {
+          const skill = id === 'estado' ? '/estado' : '/director';
+          const agentes = distintos.every((r) => r.startsWith('.claude/agents/'))
+            ? ` — solo agentes propios (${distintos.map((r) => r.slice('.claude/agents/'.length).replace(/\.md$/i, '')).join(', ')}): la sesión le propone a Guido renombrar los suyos (p. ej. <nombre>-propio.md) y la pieza pasa a sí`
+            : '';
+          pone('propia', `⚠ ${listaCorta(distintos)} ya está y es distinto: ${skill} del kit no queda hasta resolverlo con Guido${agentes}`);
+        }
+      } else if (id === 'candado' && nuevoRepo) {
         pone('sí', `proyecto nuevo (--nuevo): prendido desde el primer commit${ocupada ? ` — ⚠ ${ocupada}: barreras no anda hasta resolverlo` : ''}`);
       } else if (id === 'candado') {
         pone('no', `apagado hasta migrar; .claude/scripts/estructura.cjs viene igual: barreras corre desde ahí${ocupada ? ` — ⚠ ${ocupada}: barreras no anda hasta resolverlo` : ''}`);
@@ -459,12 +480,28 @@ function mirar(carpeta, opciones) {
     for (const p of piezas) o(`  ${p.id} · ${p.estado} · ${p.que}`);
     if (nuevoRepo) o('proyecto nuevo (--nuevo): lo base en molde, el candado prendido y director-obrero y estado en sí (nace con módulos)');
     if (base) {
+      const estadoDeId = (id) => (piezas.find((p) => p.id === id) || {}).estado;
+      const modSi = MODULOS.filter((id) => estadoDeId(id) === 'sí');
+      const modPropia = MODULOS.filter((id) => estadoDeId(id) === 'propia');
+      const noTrae = ['smoke', 'release', ...MODULOS.filter((id) => estadoDeId(id) === 'no')];
       o('trae (molde) lo base del catálogo: la ficha, inicio, cierre, el hook con tope, las barreras (settings, los hooks de escritura,');
       o('  git-seguro y sensible, cambios-metodo, githooks), docs (solo lo que falta) y lo que eso necesita para andar (hooks-lib: la');
-      o(`  usan todos los hooks; scripts: estructura, cambios, todo). No trae smoke, release${nuevoRepo ? '' : ', director-obrero, estado'} ni docs-fyd.`);
+      o(`  usan todos los hooks; scripts: estructura, cambios, todo). No trae ${noTrae.join(', ')} ni docs-fyd.`);
+      if (!nuevoRepo && (modSi.length || modPropia.length)) {
+        o(`repo con código (estandar): ${[modSi.length ? `trae ${modSi.join(' y ')} (sí: el módulo con director necesita /director y /obrero)` : '', modPropia.length ? `${modPropia.join(' y ')} en propia (ya hay uno distinto: lo resuelve la sesión con Guido)` : ''].filter(Boolean).join('; ')}`);
+      }
       o(`frenos, sensible y autorizado: los de fábrica del nivel ${nivel} (así el commit de la ficha pasa barreras: exención b)`);
     }
-    o(`CLAUDE.md: ${conClaude ? 'hay — no se toca (la regla del tamaño la marca doctor)' : 'no hay — si la sesión prende alguna pieza, nace el del molde'}`);
+    if (!conClaude) o('CLAUDE.md: no hay — si la sesión prende alguna pieza, nace el del molde');
+    else {
+      const tc = lf(leerP(carpeta, 'CLAUDE.md') || '');
+      o(RE_TAMANO.test(tc)
+        ? 'CLAUDE.md: hay — no se toca (ya trae "El tamaño del pedido")'
+        : 'CLAUDE.md: le falta "El tamaño del pedido" — con tu OK, --aplicar <propuesta> --claude-md la suma al final (la del molde)');
+      // un director u obrero propio: renglones que lo nombran, sin contar los que ya nombran /director o /obrero (8r, 4; D8r-6)
+      const nros = tc.split('\n').map((l, i) => (/director|obrero/i.test(l) && !/\/(director|obrero)\b/i.test(l) ? i + 1 : 0)).filter(Boolean);
+      if (nros.length) o(`CLAUDE.md: tiene su director/obrero propio (renglones ${nros.slice(0, 5).join(', ')}${nros.length > 5 ? ', …' : ''}): choca con /director — la sesión le propone a Guido cambiarlo por un puntero a /director y /obrero (a mano, con su OK)`);
+    }
     if (hay(carpeta, 'AGENTS.md')) o('AGENTS.md: hay — aviso: con otro contenido que el del kit no se toca');
     const copias = COPIAS_KIT.filter((c) => hay(carpeta, c));
     o(`copias del kit adentro: ${copias.length ? `${copias.join(', ')} — el kit vive en ~/.claude; la sesión propone sacarlas` : 'ninguna'}`);
@@ -479,7 +516,13 @@ function mirar(carpeta, opciones) {
       for (const r of reglas) o(`  ${r}`);
     } else o('reglas propias candidatas: ninguna');
     const reg = registroDeCambios(carpeta);
-    o(reg.length ? `registro de cambios de método: ${listaCorta(reg)} → migración: P6.8b, orden 7, queda en te espera` : 'registro de cambios de método: no hay');
+    if (!reg.length) o('registro de cambios de método: no hay');
+    else {
+      // la receta, dentro del OK de la adopción (8r, t2): --plan para ver, después --commit; --fuente si no es la de fábrica
+      const md = reg.find((r) => /\.md$/i.test(r));
+      const fuente = md && md !== FUENTE_CAMBIOS ? ` --fuente ${md}` : '';
+      o(`registro de cambios de método: ${listaCorta(reg)} → migración, dentro del OK de la adopción: ${MIGRAR} --repo <clon>${fuente} --plan, después lo mismo con --commit`);
+    }
     o('docs-fyd: se ofrece — la documentación de auditoría FyD (si va, piezas.docs-fyd: sí)');
     o(`al aplicar: dos commits (las piezas, después la ficha sola: la exención b mira la fábrica en el árbol del padre)`);
 
@@ -526,7 +569,17 @@ function sinObservaciones(texto) {
   return [...ls.slice(0, i), ...ls.slice(j + 1)].join('\n');
 }
 
-// aplicarPropuesta(carpeta, {kit, propuesta, fecha, io}) → { codigo, lineas }
+// La sección "## El tamaño del pedido" de un CLAUDE.md (LF): desde su título hasta el próximo "## ", sin los blancos del final; o null.
+function seccionTamano(texto) {
+  const ls = lf(texto).split('\n');
+  const i = ls.findIndex((l) => /^## /.test(l) && RE_TAMANO.test(l));
+  if (i < 0) return null;
+  let j = ls.findIndex((l, k) => k > i && /^## /.test(l));
+  if (j < 0) j = ls.length;
+  return ls.slice(i, j).join('\n').replace(/\s+$/, '');
+}
+
+// aplicarPropuesta(carpeta, {kit, propuesta, fecha, io, principal, claudeMd}) → { codigo, lineas }
 function aplicarPropuesta(carpeta, opciones) {
   revisarRaiz(carpeta);
   let crudo;
@@ -589,6 +642,21 @@ function aplicarPropuesta(carpeta, opciones) {
     // CLAUDE.md: si no hay, nace el del molde (si viene algo); si hay, no se toca
     const naceClaude = algo && !hay(carpeta, 'CLAUDE.md');
     if (naceClaude) ops.set('CLAUDE.md', fs.readFileSync(path.join(plan.moldeNuevo, 'CLAUDE.md'), 'utf8'));
+    // --claude-md (8r, 4): la sección "El tamaño del pedido" del molde al final del CLAUDE.md que hay, en el commit de las piezas
+    let lineaClaude = naceClaude ? 'nace del molde' : hay(carpeta, 'CLAUDE.md') ? 'ya hay: no se toca (la regla del tamaño la marca doctor)' : 'no hay y no nace (no viene ninguna pieza)';
+    if (opciones.claudeMd && !naceClaude) {
+      const actual = leerP(carpeta, 'CLAUDE.md');
+      if (actual === null) lineaClaude = 'no hay y no nace (no viene ninguna pieza): --claude-md no tiene dónde sumar la sección';
+      else if (RE_TAMANO.test(lf(actual))) lineaClaude = 'ya trae "El tamaño del pedido": no se toca (--claude-md no suma nada)';
+      else if (!algo) lineaClaude = 'ya hay: no se toca — --claude-md va en el commit de las piezas y no viene ninguna';
+      else {
+        const sec = seccionTamano(fs.readFileSync(path.join(plan.moldeNuevo, 'CLAUDE.md'), 'utf8'));
+        if (sec === null) throw new Error('el CLAUDE.md del molde no trae la sección "El tamaño del pedido"');
+        const cuerpo = `${lf(actual).replace(/\n*$/, '')}\n\n${sec}\n`;
+        ops.set('CLAUDE.md', actual.includes('\r\n') ? cuerpo.replace(/\n/g, '\r\n') : cuerpo);
+        lineaClaude = 'le sumé al final "El tamaño del pedido" (la del molde): va en el commit de las piezas';
+      }
+    }
 
     // el renglón del CHANGELOG: "kit v → v" de aplicar dice adopción
     const lc = plan.lineas.find((l) => l.startsWith(`${RUTA_CHANGELOG} · un renglón · `));
@@ -615,7 +683,7 @@ function aplicarPropuesta(carpeta, opciones) {
         if (algo) lineas.push(l);
       } else lineas.push(trae('settings') ? `${l} (del molde v2)` : `${id} · no se toca`);
     }
-    lineas.push(`CLAUDE.md · ${naceClaude ? 'nace del molde' : hay(carpeta, 'CLAUDE.md') ? 'ya hay: no se toca (la regla del tamaño la marca doctor)' : 'no hay y no nace (no viene ninguna pieza)'}`);
+    lineas.push(`CLAUDE.md · ${lineaClaude}`);
     if (renglon) lineas.push(`${RUTA_CHANGELOG} · un renglón · ${renglon}`);
     const fab = F.leer(fs.readFileSync(path.join(plan.moldeNuevo, 'hooks', 'lib', 'fabrica', `ficha.${final.nivel}.md`), 'utf8')).datos;
     const distintas = distintasDeFabrica(final, fab);
@@ -725,12 +793,16 @@ function prenderGithooks(clon, principal) {
 // ---------------------------------------------------------------- línea de comandos
 
 function leerArgs(argv) {
-  const o = { mirar: false, nuevo: false };
+  const o = { mirar: false, nuevo: false, claudeMd: false };
   const conValor = { '--kit': 'kit', '--nivel': 'nivel', '--propuesta': 'propuesta', '--aplicar': 'aplicar', '--fecha': 'fecha', '--principal': 'principal', '--comando-test': 'comandoTest' };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--mirar') o.mirar = true;
     else if (a === '--nuevo') o.nuevo = true;
+    else if (a === '--claude-md') {
+      if (o.claudeMd) return null;
+      o.claudeMd = true;
+    }
     else if (Object.prototype.hasOwnProperty.call(conValor, a)) {
       if (i + 1 >= argv.length || !argv[i + 1] || o[conValor[a]] !== undefined) return null;
       o[conValor[a]] = argv[++i];
@@ -740,7 +812,7 @@ function leerArgs(argv) {
   if (!o.carpeta || !o.kit || o.mirar === (o.aplicar !== undefined)) return null;
   if (!o.mirar && (o.nivel !== undefined || o.propuesta !== undefined || o.nuevo || o.comandoTest !== undefined)) return null;
   if (o.comandoTest !== undefined && !escribible(o.comandoTest)) return null; // va entre comillas en la ficha: sin comillas dobles, barras invertidas ni saltos
-  if (o.mirar && o.principal !== undefined) return null;
+  if (o.mirar && (o.principal !== undefined || o.claudeMd)) return null;
   if (o.nivel !== undefined && !NIVELES.includes(o.nivel)) return null;
   if (o.fecha !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(o.fecha)) return null;
   return o;
@@ -771,7 +843,7 @@ async function main(argv) {
       }
       return { codigo: 0, lineas };
     }
-    return aplicarPropuesta(carpeta, { kit, propuesta: path.resolve(o.aplicar), fecha: o.fecha, principal: o.principal === undefined ? undefined : path.resolve(o.principal) });
+    return aplicarPropuesta(carpeta, { kit, propuesta: path.resolve(o.aplicar), fecha: o.fecha, principal: o.principal === undefined ? undefined : path.resolve(o.principal), claudeMd: o.claudeMd });
   } catch (e) {
     if (e instanceof Negativa) return { codigo: 1, lineas: [`adoptar: ${e.message}`] };
     throw e;
