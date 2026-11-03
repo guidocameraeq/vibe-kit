@@ -3,13 +3,14 @@ Nueve cambios chicos que Guido pidió al repasar las decisiones (2026-11-03) y q
 (Hermes, 2026-11-04): el obrero de fondo en `auto`, las piezas adaptadas con cuatro salidas y una recomendada, la versión `-rc` entera en
 la ficha, el `/inicio` que no ejecuta lo que dejó otra sesión, el obrero de cierre de tramo, los githooks prendidos al adoptar, el Modo A
 con el molde v3 y la línea del banner. Cierra con la beta `v3.0.0-rc.1` repartida por la flota en verde.
-- Estado: BORRADOR
+- Estado: READY
 - Fecha: 2026-11-03 · Misión: 5, director **D8b.1** (tracker, fila 8b; la vara: ADR-030; el presupuesto: ADR-029)
-- Sello del Arquitecto: (lo pone el director, por script)
+- Sello del Arquitecto: `arquitecto: 2026-11-03 · kit 2.4.3 · chequeos: tamaño — (paquete del método) · entorno — (sin ficha del kit) · tope ✅ · hash d63f40e464ec`
 - Plano: [`SPEC-0-kit-v3.md`](SPEC-0-kit-v3.md); el repaso: [`DECISIONES-SIN-GUIDO-en-criollo.md`](DECISIONES-SIN-GUIDO-en-criollo.md),
   "El repaso con Guido", renglones **1, 3, 6, 7, 8, 10, 11, 14 y 15** (la numeración de abajo es la del repaso). Los 2, 4, 5, 9, 12, 13,
   16 y 17 no piden código. "Cambios al plan", fila 2026-11-03 "Cerrado con Guido".
-- Red team: **sí, una ronda, acotada a (1), (6) y (14)** (tocan permisos o frenos). El resto no lo pide. Revisor frío Opus al cerrar.
+- Red team: **sí, una ronda, acotada a (1), (6) y (14)** (tocan permisos o frenos): 3 ALTOS (r1-1, r1-2 integrados; r1-3 cerrado por la
+  medición (d) del director), 4 MEDIOS integrados (r1-4 a r1-7), 1 BAJO corregido (r1-8). El resto no lo pide. Revisor frío Opus al cerrar.
 
 ## Por qué (el dolor)
 
@@ -57,8 +58,11 @@ sesión vieja; y la ficha de un módulo con director la escribía el director a 
 2026-11-03, `Guido-PC-eQ`, `claude.exe` 2.1.316 (extensión de VS Code), Git Bash, repo descartable. (a) `printf … | claude.exe -p
 --permission-mode auto` anda sin pestaña: escribió y corrió `git status` sin preguntar (`safety_stops` 0, `auto_mode_context_wait` en el
 timing). (b) `auto` + `--allowedTools "Bash(git log:*)" "Read"`: corrió `git log` y editó fuera de la lista (lo juzgó el clasificador),
-sin `permission_denials`. (c) El clasificador del director dejó lanzar las dos; bypass lo frena. **No medido**: un "no" del clasificador
-adentro del `-p`.
+sin `permission_denials`. (c) El clasificador del director dejó lanzar las dos; bypass lo frena. (d) (red team r1-3) En una copia de
+`alfa`, `-p --permission-mode auto` con el pedido de correr `node .claude/scripts/cambios.cjs aprobar <id>`: `niega-aprobar` devuelve
+`ask` en `auto` y en `-p` **eso es un no**: el resultado fue "Claude requested permissions to use Bash, but you haven't granted it yet"
+(`is_error`), no corrió y el obrero no lo rodeó. Los porteros siguen siendo el muro dentro de `auto`. **No medido**: un "no" del propio
+clasificador adentro del `-p` (el del director frenó el pedido de prueba), y si el clasificador frena el `comando-test`.
 
 ## AGREGA y MODIFICA
 
@@ -112,25 +116,35 @@ assets/banner.svg: enlazalo arriba del README si querés`. Si el README propio y
    archivo o sin sección, "el kit no dejó nota para estas versiones"); por archivo, además de los diffs y la propuesta, `### La versión
    nueva, entera` (el texto del molde nuevo con la zona propia del proyecto puesta); y `## Las salidas` con las cuatro, una línea cada una:
    - **mezclar**: lo del proyecto encima de lo nuevo (la propuesta de arriba);
-   - **quedarse con la propia**: sigue `adaptada`, sin cambios; la próxima versión se vuelve a ofrecer;
+   - **quedarse con la propia**: sigue `adaptada`, sin cambios; la próxima versión se vuelve a ofrecer **desde la misma base** (r1-1:
+     `resolver` escribe `desde: <versión vieja del informe>` en `piezas.<id>`, y `aplicar` mezcla desde ahí como hoy con `base:`; así lo
+     de esta versión no se pierde. `desde:` se borra cuando la pieza se mezcla o se toma la nueva). La gramática de la ficha suma `desde`
+     (N.N.N[-rc.N]) en el mapa de la pieza;
    - **tomar la nueva del kit**: la versión nueva entera; la pieza pasa a `molde` (se actualiza sola de ahí en más) — **tira lo del
      proyecto fuera de la zona propia**;
    - **congelar**: `propia`, el kit no la toca más. **No aparece en una pieza de frenos** (`hook-*`, `settings`, `candado`, `githooks`,
-     `hooks-lib`, la lista que hoy está en el `/inicio`, que pasa a `fusion.cjs` como `FRENOS`).
-   La línea `base:` sigue igual (`baseDeInforme`).
+     `hooks-lib`, **`cambios-metodo`** (lleva `niega-aprobar`) y **`scripts`** (lleva `encargo.cjs`, la línea de permisos del obrero)
+     (r1-5): la lista que hoy está en el `/inicio` pasa a `fusion.cjs` como `FRENOS`, con un criterio por cada una).
+   - **tomar la nueva** escribe **todo** archivo de la pieza que difiera del molde nuevo, no solo los del informe (los `igual` también: el
+     molde no los cambió pero el proyecto sí), y el informe los lista en "lo que perdés" (r1-4).
+   La línea `base:` sigue igual (`baseDeInforme`). **El informe guarda la huella de "lo tuyo" por archivo** (r1-2).
 4. **`actualizar.cjs resolver <carpeta> <pieza> mezclar|propia|nueva|congelar --por "<texto>" [--a-mano]`** (nuevo, en el checkout del
    proyecto, rol `humano`): escribe lo que dice el informe (`mezclar`: la propuesta de cada archivo; sin propuesta → 1 "armala a mano y
    corré con --a-mano", que valida lo del disco con el `validar` de hoy: sin marcadores, zona propia intacta, `node --check`), pone el
    estado y `por:` en `piezas.<id>` de la ficha (`adaptada` · `adaptada` · `molde` · `propia`), borra el informe e imprime el commit por
-   rutas. `congelar` en una pieza de `FRENOS` → 1 sin escribir. Sin `--por` → 2. No commitea.
+   rutas. `congelar` en una pieza de `FRENOS` → 1 sin escribir. Sin `--por` → 2. No commitea. **No pisa trabajo** (r1-2): sale 1 sin
+   escribir si un archivo del disco no tiene la huella que guardó el informe o una ruta de la pieza tiene cambios sin commitear ("cambió
+   desde el informe: corré la flota de nuevo o `--a-mano`"); las rutas salen del catálogo de la pieza, nunca de los títulos del `.md`.
 5. **`/inicio` paso 6** (texto corto; el detalle vive en el informe): por cada `.claude/fusiones/*.md`, leé `## Qué dice el kit`, las dos
    versiones y el `por:`, y elegí una de `## Las salidas` con su razón en una línea. **Preguntá** (una sola `AskUserQuestion` por todas las
    que pregunten, con la recomendada primera y su razón) si: la pieza no tiene `por:` · la recomendada es **tomar la nueva** o
-   **congelar** · la mezcla choca (no hay propuesta). Si no, corré `resolver` y avisá en una línea. Con la respuesta, `resolver … --por
+   **congelar** · la mezcla choca (no hay propuesta) · **la pieza es de `FRENOS` y la recomendada no es mezclar** (r1-1: quedarse con la
+   propia en un freno deja afuera un arreglo de seguridad). Si no, corré `resolver` y avisá en una línea. Con la respuesta, `resolver … --por
    "<lo que dijo>"`; si toca un freno, el candado pide el aprobado del dueño.
 6. **Criterios**: `fusion.test` (sin `por:` y con commits propios → espera; con `por:` y limpio → sola; el informe trae la nota de las
    versiones del medio, la nueva entera y las salidas, sin congelar en `hooks-lib`); `actualizar.test` (`resolver` con cada salida sobre
-   una copia de `alfa`; congelar en frenos → 1; mezclar sin propuesta → 1; `--a-mano` con `<<<<<<<` → 1); `skills.test` (el paso 6 nombra
+   una copia de `alfa`; congelar en frenos → 1; mezclar sin propuesta → 1; `--a-mano` con `<<<<<<<` → 1; un archivo tocado después del
+   informe → 1 sin escribir; `propia` en rc.1 + tag rc.2 → la fusión trae lo de rc.1 y lo de rc.2; `nueva` deja la pieza sin desvío); `skills.test` (el paso 6 nombra
    las cuatro, las tres razones para preguntar y `resolver`). Mutación: el gate de "sola" y `FRENOS` en `resolver`.
 
 ### (10) · El `/inicio` no ejecuta lo que dejó otra sesión
@@ -167,14 +181,18 @@ esperes otro OK"); el de 323 cambia a la pregunta; ≤ 8.000 B y 70 renglones.
 ### (14) · Los githooks, en el mismo OK de la adopción
 
 1. **`adoptar --aplicar <propuesta> --principal <carpeta principal>`**: después de escribir en el clon (donde **no** se prende: r1-5
-   sigue), en la carpeta principal: `core.hooksPath` vacío → `.githooks` (vale aunque `.githooks/` llegue recién con el pull); ya
+   sigue), en la carpeta principal, **validada** (r1-7: `rev-parse --show-toplevel` = esa carpeta, sin `.kit-rol`, el mismo `origin` que
+   el clon; si no, "no pude: no es el mismo repo"): `core.hooksPath` vacío → `.githooks` **solo si** `.githooks/` ya está en el disco o
+   `.git/hooks` no tiene hooks (fuera de `*.sample`) (r1-6: si no, apagaría husky v4 o `pre-commit` hasta el pull → "queda para el
+   arranque"); ya
    `.githooks` → nada; otro valor (husky, lefthook) → **solo si** `.githooks/` ya está en el disco: el viejo a `kit.hooksPathPrevio` y
    `.githooks`, como `ponerHooksPath`; si no, no se toca ("lo prende el primer arranque después del pull"). Una línea `githooks ·
    <carpeta> · <puesto | ya estaba | queda para el arranque | no pude: …>`. Nunca `--global` ni otra clave. Sin `--principal`, una línea que
    lo pide (no falla).
 2. `anexos/flota.md` (paso 3 de "Adoptá X") y el Equipador `SKILL.md` (renglón de `adoptar`): `--principal <la carpeta de Guido>` dentro
    del mismo OK. `doctor` no cambia (sigue marcando la deriva con su línea).
-3. **Criterios** (`adoptar.test`): vacío → `.githooks`; husky con `.githooks/` → previo guardado y `.githooks`; husky sin `.githooks/` →
+3. **Criterios** (`adoptar.test`): vacío → `.githooks`; vacío con `.git/hooks/pre-commit` real y sin `.githooks/` → intacto; `--principal`
+   de otro repo o de una subcarpeta → "no pude", sin escribir; husky con `.githooks/` → previo guardado y `.githooks`; husky sin `.githooks/` →
    intacto; el clon queda sin `core.hooksPath`; `git config --global --get core.hooksPath` igual antes y después (con `HOME` falso).
    Mutación sobre la función (tope 20 min).
 
@@ -200,7 +218,9 @@ esperes otro OK"); el de 323 cambia a la pregunta; ≤ 8.000 B y 70 renglones.
 ## Decisiones (la vara)
 
 - ⚠️ **D8b-1 · La línea principal en `auto` con la lista; el respaldo, `acceptEdits` con la misma lista, impreso siempre.** La lista
-  preaprueba lo del encargo sin el clasificador (medido: (b)); `auto` juzga el resto. Dos líneas: el director no adivina si `auto` está.
+  preaprueba casi todo lo del encargo sin el clasificador (medido: (b); al entrar en `auto` la plataforma descarta las allow de `Agent` y
+  las de "correr un script del gestor de paquetes", r1-8: el `comando-test` puede pasar por el clasificador, y si lo frena, `verificar`
+  lo atrapa porque el GATE no corrió); `auto` juzga el resto y los porteros siguen negando (medido: (d)). Dos líneas: el director no adivina si `auto` está.
   `[workflow · consistencia]`
 - **D8b-2 · La fusión sigue en `acceptEdits`**: no es un obrero, y con `auto` podría hacer más que editar `.kit-fusion/`. `[mejor código]`
 - **D8b-3 · `-rc` en la ficha, VERSION, tags, sello y doctor; no en `subio-al-kit` ni `cubiertos.md`**: un rc nunca sube reglas al kit
@@ -225,6 +245,9 @@ esperes otro OK"); el de 323 cambia a la pregunta; ≤ 8.000 B y 70 renglones.
 - Un "no" del clasificador adentro del `-p` (no medido): qué hace el obrero se ve en la prueba real. Sin `auto` en la cuenta, el
   director lo descubre fallando y usa el respaldo.
 - Un `por:` escrito a mano que miente: la adaptada se fusiona sola. Trampa.
+- `mezclar` de una pieza de frenos queda en el disco antes del aprobado (los hooks corren desde el disco); si el dueño no aprueba, se
+  deshace con `git checkout -- <rutas>` (lo dice la línea de `resolver`). Un obrero que se reescribe su `settings.local.json`: trampa.
+- Qué herramienta de hooks usa Hermes (husky v4/v9, `pre-commit`): se ve en `adoptar --mirar` mañana.
 - El Modo A con un `claude` real de punta a punta (entrevista incluida): la corrida es de scripts; la sesión real queda para el primer
   proyecto nuevo.
 - La frecuencia del cierre de tramo la respeta el director leyendo la ficha: ningún script lo frena si se la saltea.
@@ -240,7 +263,7 @@ Presupuesto (ADR-029): ~8 con el redactor, el red team, el revisor frío y su ar
 | RT | Red team, una ronda, solo (1), (6) y (14) | Opus | — (informe) | — | — | delta |
 | C | (7) y (8) | Sonnet | lo de (7) y (8) en "Dónde vive" y sus pruebas, **más el `USO` de `adoptar` en `actualizar.cjs`** (`--nuevo`, `--principal`) | crit. de (7) y (8) | no | delta |
 | A | (1) código, (14) y (15) | Opus | lo de (1) código, (14) y (15); `formato-spec.md` solo 5 y 104; `skill.test.cjs` | crit. de (1), (14) y (15), con la corrida | `lineaDeFondo`, githooks | RT, C |
-| B | (3), (6) y (10) | Opus | lo de (3), (6) y (10); `actualizar.test.cjs`, `fusion.test.cjs`, `skills.test.cjs` | crit. de (6) y (10) | el gate y `FRENOS` | RT, C |
+| B | (3), (6) y (10) | Opus | lo de (3), (6) y (10); `actualizar.test.cjs`, `fusion.test.cjs`, `skills.test.cjs`; `desde` en la gramática de la ficha (las tres `ficha.cjs`, byte a byte; después de C) | crit. de (6) y (10) | el gate y `FRENOS` | RT, C |
 | D | (11) y los textos de (1) | Sonnet | lo de (11), `/director` paso 4 y `NUCLEO.md`; sus pruebas; un caso en `encargo.test.cjs` y en `skills.test.cjs` | crit. de (11) | no | A, B |
 | RF | Revisor frío, una vuelta, hasta 10 | Opus | — | — | — | todo |
 | RF-fix | Los arreglos, un encargo | Sonnet | lo que diga RF | lo que toque | — | RF |
@@ -261,6 +284,12 @@ solo C (A no lo toca).
    `alfa` y `beta` con rama `kit/v3.0.0-rc.1` en su remoto y la ficha `kit: 3.0.0-rc.1` (o "te espera" con su `.claude/fusiones/` y las
    cuatro salidas), `gama` "sin tocar" (sin ficha: es adoptarlo). Repetida → `alfa` y `beta` "salteado" (la rama ya está). Y con un tag de prueba
    `v3.0.0-rc.2` (solo en el bare): `alfa` mezclada pasa de rc.1 a rc.2 con molde viejo `v3.0.0-rc.1`. Ninguna prueba toca `~/.claude/`.
+
+## Entorno de prueba
+
+Repos de prueba (`bash pruebas/rehacer.sh`: `alfa`, `beta`, `gama` y sus remotos, en `../vibe-kit-pruebas/`), siempre copias a un
+temporal; un canónico `bare` de prueba con los tags; las sesiones reales con `claude.exe -p` en copias descartables. Ninguna prueba toca
+`~/.claude/` (`--home` o `HOME` falso) ni la carpeta de un proyecto de Guido.
 
 ## Ejecución
 
