@@ -106,6 +106,7 @@ de la Store); los scripts que leen datos ajenos, con `-I`. Estas carpetas están
 alias solo si ya están en `FLOTA.md`/`REPOS.md`, y **sin** nombres de repo nuevos, dueños, rutas de PC ni texto de chats. Privado (va a
 `vibe-research`, `mediciones/<fecha>/`): `mapeo.md`, los JSON por repo, los costos por chat y los condensados no se suben a ningún lado.
 
+0. **Antes de correr**: `gh auth status` y `node -v` (sin `gh` logueado o sin node, `flota.py` corta o mide a medias).
 1. **Mapeo alias → repo** (privado). `gh repo list <dueño> --limit 100 --json name,description,createdAt` por cada dueño (`gh api
    user/orgs` los lista), cruzado con las descripciones y fechas de `FLOTA.md`. Se escribe en `<M>/privado/mapeo.md`. Lo ambiguo se marca
    "ambiguo, para Guido": se mide con el más probable y se dice.
@@ -124,7 +125,7 @@ alias solo si ya están en `FLOTA.md`/`REPOS.md`, y **sin** nombres de repo nuev
    `py -3 -I costos.py <M>/condensados/costos.csv > <M>/privado/costos-tabla.md`. Cache leída por respuesta = lectura de caché ÷ respuestas
    de cada rol. Los condensados **no se suben**. Las otras PCs corren lo mismo allá (Remote Control).
 7. **Lo que no es script.** Alertas de seguridad: contar las entradas de `ALERTAS-SEGURIDAD.md` de la biblioteca (solo el número). Tamaño
-   de skills: `director` y `obrero` por repo, de `flota.json` (`huella.json`, `propias`).
+   de skills: `director` y `obrero` por repo, de `huella.json` (`propias.<skill>.kb`, que sale de `huella.py`: solo el `SKILL.md`, sin anexos).
 8. **gitleaks, sin tubería**, sobre lo público y sobre lo privado, mirando el código de salida: `gitleaks dir <carpeta> --no-banner`. Si
    da distinto de 0, no se escribe al repo hasta revisarlo sin imprimir el valor (paso 2 de "Los pasos").
 9. **El documento** (público): `mediciones/<fecha>.md` con la tabla de TABLERO §1 en tres columnas, **octubre · hoy · cómo se midió**, y

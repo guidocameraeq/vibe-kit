@@ -56,6 +56,9 @@ def repos(owners):
         r = subprocess.run(["gh", "repo", "list", o, "--limit", "100", "--json",
                             "name,isPrivate,pushedAt,createdAt,defaultBranchRef,isFork,diskUsage"],
                            capture_output=True, text=True, encoding="utf-8")
+        if r.returncode != 0:
+            sys.stderr.write(f"gh repo list {o} falló: corré gh auth status\n")
+            sys.exit(2)
         for x in json.loads(r.stdout or "[]"):
             x["owner"] = o
             out.append(x)
@@ -212,6 +215,11 @@ def expandir_proyecto(cmd, clon):
     return re.sub(r"\$\{CLAUDE_PROJECT_DIR\}|\$CLAUDE_PROJECT_DIR\b", sub, cmd)
 
 
+def expandir_arg(arg, clon):
+    """Para un argumento suelto (sin shell): reemplaza las variables por la ruta del clon, sin comillas."""
+    return re.sub(r"\$\{CLAUDE_PROJECT_DIR\}|\$CLAUDE_PROJECT_DIR\b", lambda m: os.path.abspath(clon), arg)
+
+
 def huella_hook(clon, plazo=HOOK_PLAZO):
     """Corre el SessionStart del settings.json DEL CLON (cwd = clon, stdin {}). -> {hook_chars, hook_motivo}.
     Nunca toca otra cosa que la carpeta que le pasan."""
@@ -220,7 +228,7 @@ def huella_hook(clon, plazo=HOOK_PLAZO):
         return {"hook_chars": None, "hook_motivo": "sin clon o sin settings.json"}
     try:
         cfg = json.loads(leer(sj))
-        cmds = [h["command"] for g in (cfg.get("hooks") or {}).get("SessionStart", [])
+        cmds = [(h["command"], h.get("args")) for g in (cfg.get("hooks") or {}).get("SessionStart", [])
                 for h in g.get("hooks", []) if h.get("command")]
     except Exception:
         return {"hook_chars": None, "hook_motivo": "settings.json ilegible"}
@@ -228,10 +236,15 @@ def huella_hook(clon, plazo=HOOK_PLAZO):
         return {"hook_chars": None, "hook_motivo": "sin hook SessionStart"}
     env = dict(os.environ, CLAUDE_PROJECT_DIR=os.path.abspath(clon))
     total = 0
-    for cmd in cmds:
+    for cmd, args in cmds:
         with tempfile.TemporaryFile() as salida:
             kw = {"start_new_session": True} if os.name != "nt" else {}
-            p = subprocess.Popen(expandir_proyecto(cmd, clon), shell=True, cwd=clon, env=env, stdin=subprocess.PIPE,
+            if args:
+                orden = [expandir_arg(str(e), clon) for e in [cmd, *args]]
+                shell = False
+            else:
+                orden, shell = expandir_proyecto(cmd, clon), True
+            p = subprocess.Popen(orden, shell=shell, cwd=clon, env=env, stdin=subprocess.PIPE,
                                  stdout=salida, stderr=subprocess.DEVNULL, **kw)
             try:
                 p.stdin.write(b"{}")

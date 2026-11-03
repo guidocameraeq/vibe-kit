@@ -271,6 +271,31 @@ class Hook(unittest.TestCase):
         self.assertNotIn("hooks_sin_fila", out)
 
 
+class HookConArgs(unittest.TestCase):
+    def test_command_con_args_corre_sin_shell_y_expande(self):
+        d = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, d, True)
+        os.makedirs(os.path.join(d, ".claude"))
+        with open(os.path.join(d, "h.py"), "w") as f:
+            f.write("import sys\nsys.stdout.write('x' * 12000)\n")
+        hook = {"type": "command", "command": sys.executable, "args": ["${CLAUDE_PROJECT_DIR}/h.py"]}
+        with open(os.path.join(d, ".claude", "settings.json"), "w") as f:
+            f.write(json.dumps({"hooks": {"SessionStart": [{"hooks": [hook]}]}}))
+        self.assertEqual(flota.huella_hook(d)["hook_chars"], 12000)
+
+
+class GhFalla(unittest.TestCase):
+    def test_gh_repo_list_con_error_corta_con_mensaje(self):
+        from unittest import mock
+        r = subprocess.CompletedProcess([], 1, "", "boom")
+        err = io.StringIO()
+        with mock.patch.object(flota.subprocess, "run", return_value=r), \
+                contextlib.redirect_stderr(err), self.assertRaises(SystemExit) as cm:
+            flota.repos(["mal-tipeado"])
+        self.assertNotEqual(cm.exception.code, 0)
+        self.assertIn("gh auth status", err.getvalue())
+
+
 class Cli(unittest.TestCase):
     def test_help_anda(self):
         buf = io.StringIO()

@@ -124,7 +124,7 @@ de Claude Code, y cierra con "reiniciá Claude Code". **Llega con el tag del kit
 → [`manuales/EQUIPADOR.md`](manuales/EQUIPADOR.md) §1
 
 ### 🔄 "Actualizate" (traer lo último del kit a esta PC)
-**`actualizate`**: el mismo camino que "preparame esta PC", y reiniciás Claude Code. → [`manuales/EQUIPADOR.md`](manuales/EQUIPADOR.md) §2
+**`actualizate`**: el mismo camino que "preparame esta PC", y reiniciás Claude Code. **Llega con el tag del kit v3** (el último tag hoy, `v2.4.3`, no trae `preparar-pc`). → [`manuales/EQUIPADOR.md`](manuales/EQUIPADOR.md) §2
 
 ### 🧰 "Quiero instalar una skill nueva / ver qué skills tengo"
 **`/arquitecto-skills`**: *"instalame skills"*, *"qué skills tengo"*, *"actualizá las skills"*, *"agregá tal skill al menú"* (nada
