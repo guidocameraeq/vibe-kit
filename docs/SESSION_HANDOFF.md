@@ -16,9 +16,11 @@ ya tiene la beta en `~/.claude/`** (skills y `VERSION`; los settings y hooks los
 ## Próximo paso
 
 **El orden de las sesiones que siguen está en el tracker, "Después de la rc.1: las sesiones que siguen"** (asentado con Guido el 03-11;
-**la sesión madre las orquesta y lanza las que no piden a Guido**, con su visto bueno). Primero **R1, la revisión integral de la rc.1**,
-sin Guido, la noche del 03-11 (`docs/kit-v3/REVISION-INTEGRAL-rc1.md`); después la mañana con Guido, que **abre con el informe de R1**
-(sus decisiones de negocio y lo que traba la adopción); después el diseño de los experimentos con Guido y D8c.1 (la `rc.2`). Criterio
+**la sesión madre las orquesta y lanza las que no piden a Guido**, con su visto bueno). **R1 ✅** (la revisión integral, la noche del 03-11:
+`docs/kit-v3/REVISION-INTEGRAL-rc1.md`): **adoptar Hermes anda, arrancar el módulo con director no** (T1: la adopción no trae las skills
+de director/obrero; T2: la pestaña nueva no sabe su rol; T3: el sello con solo la base real; T4: la guía dice que "preparame esta PC" no
+existe). La mañana con Guido **abre con ese informe**: sus 2 preguntas y la tanda de correcciones (T1-T4 antes de adoptar, o el módulo
+arranca sin director); después el diseño de los experimentos con Guido y D8c.1 (la `rc.2`). Criterio
 nuevo para todas: ADR-034 (la coherencia entre piezas; lo técnico lo decide la sesión).
 
 **La mañana: una sesión CON Guido**, en Opus: **`vibe-kit M5 · Mañana: preparar la PC y adoptar Hermes`**. Los pasos, con qué hace la sesión y qué
