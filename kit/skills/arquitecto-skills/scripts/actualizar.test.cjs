@@ -1178,18 +1178,38 @@ test('resolver mezclar sin propuesta → 1 ("armala a mano"); --a-mano con marca
   assert.equal(leer(d, '.claude/fusiones/cierre.md'), null);
 });
 
-test('resolver no pisa trabajo (r1-2): un archivo tocado después del informe (commiteado o no) → 1 sin escribir; un informe que nombra una ruta ajena → 1', () => {
-  // commiteado después del informe: la huella no coincide
-  const d = esperando();
-  escribirArbol(d, { [CIERRE]: CIERRE_NUESTRO.replace('dos\n', 'dos (después)\n') });
-  commitTodo(d, 'cierre: otro cambio', 'Dueño <d@kit.invalid>');
+test('resolver no pisa trabajo (r1-2): un archivo tocado después del informe (commiteado o no) → mezclar y nueva 1 sin escribir, propia y congelar 0; un informe que nombra una ruta ajena → 1', () => {
+  // commiteado después del informe: la huella no coincide → las que escriben se niegan y dicen la verdad (la flota no lo destraba)
+  const despues = CIERRE_NUESTRO.replace('dos\n', 'dos (después)\n');
+  const tocado = () => {
+    const x = esperando();
+    escribirArbol(x, { [CIERRE]: despues });
+    commitTodo(x, 'cierre: otro cambio', 'Dueño <d@kit.invalid>');
+    return x;
+  };
+  const d = tocado();
   const antes = foto(d);
-  for (const salida of ['mezclar', 'nueva', 'propia', 'congelar']) {
+  for (const salida of ['mezclar', 'nueva']) {
     const r = resolver(d, 'cierre', salida);
     assert.equal(r.codigo, 1, salida);
-    assert.match(r.lineas[0], /^resolver: \.claude\/skills\/cierre\/SKILL\.md cambió desde el informe: corré la flota de nuevo o `--a-mano`; no toqué nada$/, salida);
+    assert.match(r.lineas[0], /^resolver: \.claude\/skills\/cierre\/SKILL\.md cambió desde el informe: elegí propia o congelar, o mezclar --a-mano; no toqué nada$/, salida);
   }
   assert.deepEqual(foto(d), antes);
+  // en una pieza de frenos no ofrece congelar
+  escribirArbol(d, { [SCR_B]: B_NUESTRO.replace('= 2', '= 22') });
+  commitTodo(d, 'scripts: otro cambio', 'Dueño <d@kit.invalid>');
+  const rf = resolver(d, 'scripts', 'mezclar');
+  assert.equal(rf.codigo, 1);
+  assert.match(rf.lineas[0], /^resolver: \.claude\/scripts\/b\.cjs cambió desde el informe: elegí propia, o mezclar --a-mano; no toqué nada$/);
+  // propia y congelar no escriben archivos: pueden igual, y lo commiteado después queda
+  for (const salida of ['propia', 'congelar']) {
+    const x = tocado();
+    const r = resolver(x, 'cierre', salida);
+    assert.equal(r.codigo, 0, `${salida}: ${r.lineas.join('\n')}`);
+    assert.equal(leer(x, CIERRE), despues, salida);
+    assert.equal(leer(x, '.claude/fusiones/cierre.md'), null, salida);
+    assert.equal(fichaDe(x).piezas.cierre.estado, salida === 'propia' ? 'adaptada' : 'propia', salida);
+  }
   // sin commitear, en un archivo de la pieza que el informe no nombra (las rutas salen del catálogo)
   const d2 = esperando();
   escribirArbol(d2, { '.claude/skills/cierre/otro.md': 'algo nuevo\n' });
@@ -1209,6 +1229,42 @@ test('resolver no pisa trabajo (r1-2): un archivo tocado después del informe (c
   assert.equal(A.piezaDeRutaProyecto('.claude/scripts/cambios.cjs'), 'cambios-metodo');
   assert.equal(A.piezaDeRutaProyecto('.claude/scripts/encargo.cjs'), 'scripts');
   assert.equal(A.piezaDeRutaProyecto('.claude/hooks/lib/ficha.cjs'), 'hooks-lib');
+});
+
+test('resolver mezclar --a-mano: lo que el dueño no tocó va con lo del informe (molde → la nueva, tres limpio → la propuesta); lo que armó, del disco', () => {
+  // scripts: a.cjs igual al molde viejo (molde), b.cjs choca (lo arma el dueño), c.cjs se fusiona limpio (tres con propuesta)
+  const C_V = "'use strict';\n// c\nconst uno = 1;\nconst dos = 2;\nconst tres = 3;\nconst cuatro = 4;\nmodule.exports = { uno, dos, tres, cuatro };\n";
+  const V = { ...RS_V, 'scripts/c.cjs': C_V };
+  const N = { ...RS_N, 'scripts/b.cjs': RS_B.replace('= 1', '= 3'), 'scripts/c.cjs': C_V.replace('const uno = 1;', 'const uno = 100;') };
+  const SCR_C = '.claude/scripts/c.cjs';
+  const preparar = (c) => {
+    const x = armarProyecto({
+      molde: V, estados: { scripts: 'adaptada' },
+      antes: (y) => escribirArbol(y, { [SCR_A]: RS_A, [SCR_B]: B_NUESTRO, [SCR_C]: c }),
+    });
+    const r = A.aplicar(x, { kit: armarKit(N, '3.0.0'), moldeViejo: armarKit(V, '2.9.0'), fecha: '2026-11-02', claude: 'no' });
+    assert.equal(r.codigo, 0, r.lineas.join('\n'));
+    assert.match(lineaDe(r, 'scripts'), /te espera/);
+    commitTodo(x, 'kit 2.9.0 → 3.0.0');
+    fs.rmSync(path.join(x, '.kit-rol'));
+    return x;
+  };
+  const d = preparar(C_V.replace('const cuatro = 4;', 'const cuatro = 44;'));
+  const armada = "'use strict';\n// b\nmodule.exports = 23;\n";
+  fs.writeFileSync(path.join(d, ...SCR_B.split('/')), armada);
+  const r = resolver(d, 'scripts', 'mezclar', { aMano: true, por: 'b es nuestro' });
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  assert.equal(leer(d, SCR_A), N['scripts/a.cjs'], 'a: el kit cambió y vos no → la nueva (si quedara la vieja, la flota siguiente revierte el arreglo)');
+  assert.equal(leer(d, SCR_C), N['scripts/c.cjs'].replace('const cuatro = 4;', 'const cuatro = 44;'), 'c: la propuesta');
+  assert.equal(leer(d, SCR_B), armada, 'b: lo armado, tal cual');
+  assert.match(r.lineas.join('\n'), /\.claude\/scripts\/a\.cjs · escrito \(mezclar\)[\s\S]*\.claude\/scripts\/c\.cjs · escrito \(mezclar\)/);
+  // sin armar b (choca y sigue como en el informe) → 1, sin escribir nada
+  const d2 = preparar(C_V);
+  const antes = foto(d2);
+  const r2 = resolver(d2, 'scripts', 'mezclar', { aMano: true });
+  assert.equal(r2.codigo, 1);
+  assert.match(r2.lineas[0], /^resolver: --a-mano: \.claude\/scripts\/b\.cjs sigue como en el informe y no tiene fusión propuesta/);
+  assert.deepEqual(foto(d2), antes);
 });
 
 test('resolver propia en rc.1 + tag rc.2 → desde: en la ficha y la fusión de rc.2 trae lo de rc.1 y lo de rc.2 (r1-1); mezclar borra desde:', () => {

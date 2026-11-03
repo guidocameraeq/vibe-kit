@@ -191,6 +191,13 @@ test('1 llaves: un .cjs con {{X}} (las plantillas de portada.cjs; el molde no lo
   verde(correr(p), 'llaves');
 });
 
+test('1 llaves: un informe .claude/fusiones/<pieza>.md con {{ (cita la versión nueva entera) → ✅ (si no, el tag queda ROTA para siempre)', () => {
+  const p = armar({
+    cambio: (d) => escribir(path.join(d, '.claude', 'fusiones', 'portada.md'), "# portada te espera\n\n```js\nconst t = '{{PROYECTO}}';\n```\n"),
+  });
+  verde(correr(p), 'llaves');
+});
+
 test('2 arranque: un hook de arranque que inyecta 9.800 → ❌; uno que no deja huella → ❌', () => {
   const p = armar({ cambio: (d) => escribir(path.join(d, '.claude', 'hooks', 'session-start.cjs'), "process.stdout.write('hola\\ninyectado: 9.800 de 9.700\\n');\n") });
   const r = correr(p);

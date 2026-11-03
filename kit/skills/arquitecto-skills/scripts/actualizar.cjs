@@ -930,8 +930,12 @@ const porLimpio = (s) => String(s).replace(/"/g, "'").replace(/\s+/g, ' ').trim(
 // resolver(carpeta, pieza, salida, {por, aMano}) → { codigo, lineas }. En el checkout del proyecto (rol humano), con un
 // .claude/fusiones/<pieza>.md: escribe lo que dice el informe para la salida, pone estado y `por:` en la ficha, borra el informe e
 // imprime el commit por rutas. No commitea. Se niega (1) sin escribir nada: congelar en una pieza de FRENOS, mezclar sin propuesta
-// (salvo --a-mano, que valida lo del disco), un archivo que cambió desde el informe (su huella) o una ruta de la pieza con cambios sin
-// commitear (r1-2), o un informe que nombra una ruta que no es de la pieza según el catálogo.
+// (salvo --a-mano), un informe que nombra una ruta que no es de la pieza según el catálogo y, solo en las salidas que escriben
+// archivos (mezclar y nueva), un archivo que cambió desde el informe (su huella) o una ruta de la pieza con cambios sin commitear
+// (r1-2). propia y congelar no escriben archivos: siempre pueden (si no, un commit entre la flota y el /inicio traba el informe hasta
+// el próximo rc: la flota dice "al día" o "salteado"). --a-mano: lo que cambió desde el informe se valida del disco (lo armó el
+// dueño); lo que sigue igual se escribe con lo del informe (la nueva en un molde, la propuesta en un tres limpio), así la próxima
+// flota no revierte el arreglo.
 function resolver(carpeta, id, salida, { por, aMano = false } = {}) {
   const raiz = path.resolve(carpeta);
   const no = (m) => ({ codigo: 1, lineas: [`resolver: ${m}`] });
@@ -969,12 +973,15 @@ function resolver(carpeta, id, salida, { por, aMano = false } = {}) {
   // las rutas: solo las del catálogo de la pieza (nunca lo que diga un título del informe)
   const ajena = inf.tuyos.find((t) => piezaDeRutaProyecto(t.rel) !== id);
   if (ajena) return no(`${rInforme} nombra ${ajena.rel}, que no es de la pieza ${id}: no toqué nada`);
-  const CAMBIO = 'cambió desde el informe: corré la flota de nuevo o `--a-mano`';
-  if (!aMano) {
-    for (const t of inf.tuyos) {
-      const d = leerD(t.rel);
-      if ((d === null ? null : F.hash(d)) !== t.hash) return no(`${t.rel} ${CAMBIO}; no toqué nada`);
-    }
+  const CAMBIO = `cambió desde el informe: elegí ${FU.esFreno(id) ? 'propia' : 'propia o congelar'}, o mezclar --a-mano`;
+  const igualQueElInforme = (t) => {
+    const d = leerD(t.rel);
+    return (d === null ? null : F.hash(d)) === t.hash;
+  };
+  const escribe = salida === 'mezclar' || salida === 'nueva';
+  if (escribe && !aMano) {
+    const cambiado = inf.tuyos.find((t) => !igualQueElInforme(t));
+    if (cambiado) return no(`${cambiado.rel} ${CAMBIO}; no toqué nada`);
     const st = gitEn(raiz, ['status', '--porcelain=v1', '-z', '--untracked-files=all']);
     if (!st.ok) return no(`git status falló: ${st.err.trim()}`);
     const partes = st.out.split('\0');
@@ -995,6 +1002,15 @@ function resolver(carpeta, id, salida, { por, aMano = false } = {}) {
       const sec = inf.archivos.get(t.rel) || {};
       const disco = leerD(t.rel);
       if (salida === 'mezclar' && t.tipo !== 'igual') {
+        if (aMano && igualQueElInforme(t)) {
+          // no lo tocó: va lo del informe, como sin --a-mano (si quedara lo viejo, la próxima flota revierte el arreglo sin aviso)
+          const texto = t.tipo === 'molde' ? sec.nueva : sec.propuesta;
+          if (!texto) return no(`--a-mano: ${t.rel} sigue como en el informe y no tiene fusión propuesta: armala a mano (o elegí propia); no toqué nada`);
+          const val = FU.validar(t.rel, texto, disco === null ? null : lf(disco), tmp);
+          if (!val.ok) return no(`--a-mano: ${val.problema}; no toqué nada`);
+          if (disco === null || lf(disco) !== val.texto) ops.set(t.rel, val.texto);
+          continue;
+        }
         if (aMano) {
           // lo armó el dueño: se valida lo del disco contra lo commiteado (sin marcadores, la zona como estaba, node --check)
           const h = gitEn(raiz, ['show', `HEAD:${t.rel}`]);
