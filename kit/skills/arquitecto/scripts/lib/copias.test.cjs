@@ -52,3 +52,10 @@ test('lib/ se alcanza sola, y sello.cjs usa solo node estándar', () => {
   const deSello = requiresDe(path.join(LIB, 'sello.cjs'));
   assert.deepEqual(deSello.filter((r) => !/^(node:)?[a-z_]+$/.test(r)), [], 'sello.cjs tiene que usar solo módulos de node');
 });
+
+test('D8b-3: la regex de versión de sello.cjs es la misma que ficha.RE_VERSION (sello solo usa node estándar, por eso la repite)', () => {
+  const F = require('./ficha.cjs');
+  const m = /^const RE_VERSION = (\/.*\/);$/m.exec(fs.readFileSync(path.join(LIB, 'sello.cjs'), 'utf8'));
+  assert.ok(m, 'sello.cjs no define RE_VERSION en una línea');
+  assert.equal(m[1], String(F.RE_VERSION));
+});

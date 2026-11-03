@@ -10,7 +10,7 @@ const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
 const { spawnSync } = require('child_process');
-const { leer, leerCabecera, leerArchivo, hash, compararVersiones, ErrorFicha } = require('./ficha.cjs');
+const { leer, leerCabecera, leerArchivo, hash, compararVersiones, RE_VERSION, ErrorFicha } = require('./ficha.cjs');
 
 const SCRIPT = path.join(__dirname, 'ficha.cjs');
 const EJEMPLO = path.join(__dirname, '..', '..', 'kit.ejemplo.md');
@@ -467,6 +467,25 @@ test('versiones: 0.0.0 vale; con ceros a la izquierda no', () => {
   assert.equal(leer(fichaSolo('10.20.30', 'liviano', 'x')).datos.kit, '10.20.30');
 });
 
+test('D8b-3 versiones con -rc: 3.0.0-rc.1 vale; -rc.01, -beta.1, 03.0.0, -rc, -rc.1.2 no; rc.0 vale', () => {
+  assert.equal(leer(fichaSolo('3.0.0-rc.1', 'liviano', 'x')).datos.kit, '3.0.0-rc.1');
+  assert.equal(leer(fichaSolo('3.0.0-rc.0', 'liviano', 'x')).datos.kit, '3.0.0-rc.0');
+  for (const malo of ['3.0.0-rc.01', '3.0.0-beta.1', '03.0.0', '3.0.0-rc', '3.0.0-rc.1.2', '3.0.0-RC.1', 'v3.0.0-rc.1']) {
+    assert.throws(() => leer(fichaSolo(malo, 'liviano', 'x')), (e) => e instanceof ErrorFicha && /N\.N\.N o N\.N\.N-rc\.N/.test(e.mensaje), malo);
+  }
+  assert.ok(RE_VERSION.test('3.0.0-rc.1') && !RE_VERSION.test('3.0.0-rc.01'));
+});
+
+test('D8b-3 compararVersiones: rc.1 < rc.2 < final < siguiente-rc; rc.10 > rc.2; los números mandan primero', () => {
+  const orden = ['2.9.9', '3.0.0-rc.0', '3.0.0-rc.1', '3.0.0-rc.2', '3.0.0-rc.10', '3.0.0', '3.0.1-rc.1', '3.0.1', '3.1.0-rc.1', '10.0.0'];
+  for (let i = 0; i < orden.length; i++) {
+    for (let j = 0; j < orden.length; j++) assert.equal(compararVersiones(orden[i], orden[j]), Math.sign(i - j), `${orden[i]} vs ${orden[j]}`);
+  }
+  assert.throws(() => compararVersiones('3.0.0-rc.01', '3.0.0'), /N\.N\.N o N\.N\.N-rc\.N/);
+  assert.throws(() => compararVersiones('3.0.0', '3.0.0-beta.1'));
+  assert.throws(() => compararVersiones('3.0.0-rc.1', 'v3.0.0'));
+});
+
 test('textos con corchetes entre comillas o dentro de una palabra con comillas valen', () => {
   const r = leer(ficha('datos-de-prueba: "db [todo]"\nautorizado:\n  a: "x {y}"\n'));
   assert.equal(r.datos['datos-de-prueba'], 'db [todo]');
@@ -773,7 +792,7 @@ test('CLI version: un VERSION con ceros a la izquierda no es una versión', () =
   fs.mkdirSync(path.join(repo, '.git'));
   const r = correr(['version'], { cwd: repo, env: conHome(home) });
   assert.equal(r.status, 0, r.stderr);
-  assert.match(r.stdout, /instalada: — \(.* no tiene el formato N\.N\.N\)/);
+  assert.match(r.stdout, /instalada: — \(.* no tiene el formato N\.N\.N o N\.N\.N-rc\.N\)/);
 });
 
 test('CLI version con la ficha del repo rota: 1', () => {

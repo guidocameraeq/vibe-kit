@@ -262,17 +262,32 @@ test('se niega: settings con JSON roto o con una clave repetida → 1 sin escrib
   }
 });
 
-test('D6-15: el --kit parado en un tag que no dice lo mismo que kit/VERSION → 1; con -rc.N, vale', () => {
-  const k = armarKit(MOLDE_N, '3.0.0');
+test('D8b-3 (cambia D6-15): el --kit parado en un tag que no dice lo mismo que kit/VERSION → 1; VERSION = el tag entero (con -rc.N), vale', () => {
+  const k = armarKit(MOLDE_N, '3.0.0-rc.1');
   git(k, 'init', '-q', '-b', 'main');
   git(k, 'add', '-A');
   git(k, 'commit', '-q', '-m', 'kit');
   git(k, 'tag', '-a', 'v3.0.0-rc.1', '-m', 'rc');
-  assert.equal(A.aplicar(armarProyecto(), { kit: k, moldeViejo: VIEJO, fecha: '2026-11-02', claude: 'no' }).codigo, 0);
+  const pr = armarProyecto();
+  const ok = A.aplicar(pr, { kit: k, moldeViejo: VIEJO, fecha: '2026-11-02', claude: 'no' });
+  assert.equal(ok.codigo, 0, ok.lineas.join('\n'));
+  assert.equal(F.leer(leer(pr, '.claude/kit.md')).datos.kit, '3.0.0-rc.1');
   git(k, 'tag', '-a', 'v3.1.0', '-m', 'otro');
   const r = A.aplicar(armarProyecto(), { kit: k, moldeViejo: VIEJO, fecha: '2026-11-02', claude: 'no' });
   assert.equal(r.codigo, 1);
   assert.match(r.lineas[0], /no coinciden/);
+  // VERSION 3.0.0 (sin el -rc) con el tag rc.1: ya no vale
+  const k2 = armarKit(MOLDE_N, '3.0.0');
+  git(k2, 'init', '-q', '-b', 'main');
+  git(k2, 'add', '-A');
+  git(k2, 'commit', '-q', '-m', 'kit');
+  git(k2, 'tag', '-a', 'v3.0.0-rc.1', '-m', 'rc');
+  const r2 = A.aplicar(armarProyecto(), { kit: k2, moldeViejo: VIEJO, fecha: '2026-11-02', claude: 'no' });
+  assert.equal(r2.codigo, 1);
+  assert.match(r2.lineas[0], /no coinciden/);
+  // una VERSION que no es N.N.N ni N.N.N-rc.N
+  const k3 = armarKit(MOLDE_N, '3.0.0-beta.1');
+  assert.equal(A.aplicar(armarProyecto(), { kit: k3, moldeViejo: VIEJO, fecha: '2026-11-02', claude: 'no' }).codigo, 1);
 });
 
 // ---------------------------------------------------------------- el guardia (D6-7) y r1-3

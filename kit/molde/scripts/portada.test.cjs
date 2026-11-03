@@ -105,6 +105,32 @@ test('armar: un README propio (sin marca) o editado a mano (hash distinto) no se
   assert.equal(correr(f, ['armar']).codigo, 1);
 });
 
+test('armar: README propio sin enlace al banner → un renglón que lo dice; con enlace → ninguno; README del script → ninguno (D8b-8)', () => {
+  const linea = /el banner quedó en assets\/banner\.svg: enlazalo arriba del README si querés/;
+  const d = carpeta();
+  fs.writeFileSync(path.join(d, 'README.md'), '# Mío\nlo escribí yo\n');
+  const r = correr(d, ['armar']);
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, linea);
+  assert.equal(r.out.split('\n').filter((l) => /enlazalo/.test(l)).length, 1);
+  // con banner propio ya puesto, también
+  const p = carpeta();
+  fs.mkdirSync(path.join(p, 'assets'));
+  fs.writeFileSync(path.join(p, 'assets', 'banner.svg'), '<svg/>');
+  fs.writeFileSync(path.join(p, 'README.md'), '# Mío\n');
+  assert.match(correr(p, ['armar']).out, linea);
+  // el README propio ya lo enlaza
+  const e = carpeta();
+  fs.writeFileSync(path.join(e, 'README.md'), '# Mío\n\n![x](assets/banner.svg)\n');
+  const re = correr(e, ['armar']);
+  assert.equal(re.codigo, 1);
+  assert.doesNotMatch(re.out, /enlazalo/);
+  // README armado por el script: nada
+  const f = carpeta();
+  assert.doesNotMatch(correr(f, ['armar']).out, /enlazalo/);
+  assert.doesNotMatch(correr(f, ['armar']).out, /enlazalo/);
+});
+
 test('armar: respeta el nombre con que ya está el README (Readme.md) y no crea un segundo', () => {
   const d = carpeta();
   fs.writeFileSync(path.join(d, 'Readme.md'), '# Propio\n');

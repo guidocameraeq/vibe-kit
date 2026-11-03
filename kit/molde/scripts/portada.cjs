@@ -224,6 +224,14 @@ function armar(raiz, { plan }, salida) {
   res.push(poner(raiz, RUTA_BANNER, armarBanner({ proyecto, linea: q.lineas[0] }), plan));
   res.push(poner(raiz, nombre, armarReadme({ proyecto, queEs: q.lineas, datos, banner: true }), plan));
   for (const x of res) salida(plan ? `(plan) ${x.linea}` : x.linea);
+  // (8) D8b: un README propio que no se pisó y no enlaza el banner (que quedó: creado, igual o propio): un renglón, para que Guido lo enlace
+  if (!res[1].ok) {
+    let enlaza = false;
+    try {
+      enlaza = fs.readFileSync(path.join(raiz, nombre), 'utf8').includes(RUTA_BANNER);
+    } catch (e) { /* si no se lee, el renglón sobra poco: se da */ }
+    if (!enlaza) salida(`${plan ? '(plan) ' : ''}el banner quedó en ${RUTA_BANNER}: enlazalo arriba del README si querés`);
+  }
   if (q.recortado) salida(`(nota) "## Qué es" tiene más de ${MAX_LINEAS} líneas: la portada lleva las primeras ${MAX_LINEAS}`);
   return res.every((r) => r.ok) ? 0 : 1;
 }

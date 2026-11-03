@@ -18,7 +18,8 @@ const SEP = ' · ';
 const OK = '✅';
 const NO = '—';
 const AVISO = '⚠️';
-const RE_VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
+// Misma gramática que ficha.cjs (D8b-3: N.N.N o N.N.N-rc.N); sello.cjs usa solo node estándar, así que la repite: copias.test.cjs las compara.
+const RE_VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-rc\.(0|[1-9]\d*))?$/;
 const RE_DIA = /^(\d{4})-(\d{2})-(\d{2})$/;
 const RE_FENCE = /^\s*(```|~~~)/;
 const KB = 1024;
