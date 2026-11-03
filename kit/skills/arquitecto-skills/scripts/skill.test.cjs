@@ -107,3 +107,27 @@ test('flota.md (la puerta nueva, /arquitecto) deriva la PC a /arquitecto-skills'
   assert.match(pc[1], /`\/arquitecto-skills`/);
   assert.match(pc[1], /Equipador/);
 });
+
+// RF-fix rf-6: con un README propio, `portada.cjs armar` no lo pisa y sale 1; si los docs mandaran `piezas.portada: sí` igual, el
+// candado:portada quedaría rojo para siempre. Los dos lugares que mandan prenderla la condicionan a armar 0 o chequear 0.
+test('flota.md (adoptar) y modo-a.md: piezas.portada: sí SOLO si portada.cjs armar salió 0 o chequear da 0; si no, apagada y una línea', () => {
+  for (const f of [FLOTA, path.join(SCRIPTS, '..', '..', 'arquitecto', 'anexos', 'modo-a.md')]) {
+    const lineas = leer(f).split('\n').filter((l) => /piezas\.portada: sí/.test(l));
+    assert.equal(lineas.length, 1, `${path.basename(f)}: una sola línea manda prender la portada`);
+    const l = lineas[0];
+    assert.match(l, /`piezas\.portada: sí` en la ficha \*\*solo si\*\* `armar` salió 0 o `node \.claude\/scripts\/portada\.cjs chequear` da 0/, path.basename(f));
+    assert.match(l, /"portada: README propio, queda apagada"/, path.basename(f));
+  }
+});
+
+// RF-fix rf-7: la nota de 3.0.0 de kit/CHANGELOG.md (la que lee la fusión al actualizar) nombra lo nuevo del paquete 7.
+const CHANGELOG_KIT = path.join(SCRIPTS, '..', '..', '..', 'CHANGELOG.md'); // kit/CHANGELOG.md (solo en el kit, no instalado)
+test('kit/CHANGELOG.md, la nota de 3.0.0: subio-al-kit y cubiertos.md, portada.cjs armar y piezas.portada, cambios-flota, migrar-cambios', { skip: !fs.existsSync(CHANGELOG_KIT) && 'sin kit/CHANGELOG.md' }, () => {
+  const m = /^## 3\.0\.0\n([\s\S]*?)(?=\n## )/m.exec(leer(CHANGELOG_KIT));
+  assert.ok(m, 'trae la sección 3.0.0');
+  const piezas = /- \*\*Qué piezas cambiaron\*\*:([\s\S]*?)\n- \*\*/.exec(m[1]);
+  assert.ok(piezas, 'con su "Qué piezas cambiaron"');
+  for (const x of ['`subio-al-kit`', '`kit/cubiertos.md`', '`portada.cjs armar`', '`piezas.portada`', '`cambios-flota.cjs`', '`migrar-cambios.cjs`', '`CAMBIOS.md` único']) {
+    assert.ok(piezas[1].includes(x), `la nota de 3.0.0 no nombra ${x}`);
+  }
+});

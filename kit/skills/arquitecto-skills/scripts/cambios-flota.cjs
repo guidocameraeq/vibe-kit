@@ -15,6 +15,7 @@ const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
 const ficha = require('../pc/lib/ficha.cjs');
+const CU = require('./lib/cubiertos.cjs');
 
 const USO = 'uso: cambios-flota.cjs [<repo>…] [--proyectos <carpeta>] [--urgentes] [--kit <raíz del kit>] [--home <dir>]';
 const RE_CAMBIO = /^\d{4}-\d{2}-\d{2}-.+\.md$/;
@@ -114,32 +115,38 @@ function leerCambio(nombre, texto) {
   };
 }
 
+// El alias del repo: vars.proyecto de su ficha; sin eso, el nombre de la carpeta EN MINÚSCULAS (la cita es "<alias> <id>" con el
+// alias en [a-z0-9-]+, RF-fix rf-1). → { alias, malo }: malo si igual no tiene esa forma (la fila lo marca y no va a "para pegar").
 function aliasDe(repo, textoFicha) {
-  const carpeta = path.basename(path.resolve(repo));
-  if (!textoFicha) return carpeta;
-  try {
-    const v = ficha.leerCabecera(normalizar(textoFicha)).datos.vars;
-    const p = v && typeof v === 'object' && !Array.isArray(v) ? v.proyecto : null;
-    return typeof p === 'string' && p.trim() ? p.trim() : carpeta;
-  } catch (e) {
-    return carpeta;
+  const carpeta = path.basename(path.resolve(repo)).toLowerCase();
+  let alias = carpeta;
+  if (textoFicha) {
+    try {
+      const v = ficha.leerCabecera(normalizar(textoFicha)).datos.vars;
+      const p = v && typeof v === 'object' && !Array.isArray(v) ? v.proyecto : null;
+      if (typeof p === 'string' && p.trim()) alias = p.trim();
+    } catch (e) { /* la ficha rota: el de la carpeta */ }
   }
+  return { alias, malo: !CU.RE_ALIAS.test(alias) };
 }
 
 // ---------------------------------------------------------------- cubiertos.md y kit-pc.md
 
+// Las citas que el kit ya cubre, con el lector de siempre (lib/cubiertos.cjs, el mismo de aplicar): una entrada mala se saltea y
+// se dice; las demás valen. --kit puede ser la raíz del repo (<x>/kit/cubiertos.md) o la carpeta kit/ (<x>/cubiertos.md).
 function leerCubiertos(kit, log) {
-  const f = path.join(kit, 'cubiertos.md');
-  if (!fs.existsSync(f)) return new Set();
-  try {
-    const c = ficha.leerCabecera(normalizar(fs.readFileSync(f, 'utf8'))).datos.cubiertos;
-    const s = new Set();
-    for (const x of Array.isArray(c) ? c : []) if (x && typeof x.cita === 'string') s.add(x.cita);
-    return s;
-  } catch (e) {
-    log(`⚠ no pude leer ${f} (${e.message}): sigo sin saber qué cubre el kit`);
+  const f = CU.buscar(kit);
+  if (!f) {
+    log(`⚠ no encuentro cubiertos.md en ${kit} (ni kit/cubiertos.md ni cubiertos.md): sigo sin saber qué cubre el kit`);
     return new Set();
   }
+  const r = CU.leer(f);
+  if (r.problema) {
+    log(`⚠ ${f} ${r.problema}: sigo sin saber qué cubre el kit`);
+    return new Set();
+  }
+  for (const m of r.malas) log(`⚠ ${f}: ${CU.lineaMala(m)}`);
+  return new Set(r.entradas.map((x) => x.cita));
 }
 
 function proyectosDeKitPc(home) {
@@ -153,11 +160,21 @@ function proyectosDeKitPc(home) {
   }
 }
 
+// Lo descubierto por carpeta: solo los repos que tienen registro de cambios en el disco (.claude/cambios/); los demás, en silencio
+// (RF-fix rf-3: un repo sin rama por defecto daba "⚠ no se lee" en cada /inicio). Los nombrados a mano siguen avisando.
 const reposDe = (carpeta) =>
   fs.readdirSync(carpeta, { withFileTypes: true })
-    .filter((d) => d.isDirectory() && fs.existsSync(path.join(carpeta, d.name, '.git')))
+    .filter((d) => d.isDirectory() && fs.existsSync(path.join(carpeta, d.name, '.git')) && esCarpeta(path.join(carpeta, d.name, '.claude', 'cambios')))
     .map((d) => path.join(carpeta, d.name))
     .sort();
+
+function esCarpeta(p) {
+  try {
+    return fs.statSync(p).isDirectory();
+  } catch (e) {
+    return false;
+  }
+}
 
 // ---------------------------------------------------------------- el informe
 
@@ -168,8 +185,9 @@ function tabla(proyectos, cubiertos) {
       if (c.estado === 'rechazado') continue;
       const clave = c.cita || `${p.alias} ${c.id}`;
       let r = reglas.get(clave);
-      if (!r) reglas.set(clave, (r = { clave, proyectos: new Set(), cicatriz: 'no', estados: new Set(), kit: cubiertos.has(clave) }));
+      if (!r) reglas.set(clave, (r = { clave, proyectos: new Set(), cicatriz: 'no', estados: new Set(), kit: cubiertos.has(clave), aliasMalo: null }));
       r.proyectos.add(p.alias);
+      if (p.aliasMalo && !c.cita) r.aliasMalo = p.alias;
       r.estados.add(c.estado);
       if (c.estado === 'subio-al-kit') r.kit = true;
       const g = GRAVES.indexOf(c.cicatriz);
@@ -189,18 +207,19 @@ function informe(proyectos, cubiertos, log) {
   if (!vivas.length && !enKit.length) return log('ningún cambio en la flota.');
   if (vivas.length) {
     log('regla | proyectos | cicatriz | estados | entra');
-    for (const r of vivas) log(`${r.clave} | ${[...r.proyectos].sort().join(', ')} (${r.proyectos.size}) | ${r.cicatriz} | ${[...r.estados].sort().join(', ')} | ${r.entra}`);
+    for (const r of vivas) log(`${r.clave} | ${[...r.proyectos].sort().join(', ')} (${r.proyectos.size}) | ${r.cicatriz} | ${[...r.estados].sort().join(', ')} | ${r.entra}${r.aliasMalo ? ` | ⚠ alias "${r.aliasMalo}" sin forma [a-z0-9-]+: poné vars.proyecto en su ficha` : ''}`);
   }
   if (enKit.length) {
     log('');
     log('ya en el kit:');
     for (const r of enKit) log(`  ${r.clave} | ${[...r.proyectos].sort().join(', ')}`);
   }
-  const entran = vivas.filter((r) => r.entra !== 'no');
+  // la línea sale con la forma de lib/cubiertos.cjs y DOS huecos explícitos: pegada sin llenar, el lector la saltea y lo dice
+  const entran = vivas.filter((r) => r.entra !== 'no' && !r.aliasMalo);
   if (entran.length) {
     log('');
-    log('para pegar en kit/cubiertos.md (cambiá N.N.N por la versión del kit en que entra):');
-    for (const r of entran) log(`  - {cita: "${r.clave}", version: N.N.N}`);
+    log('para pegar en kit/cubiertos.md (llená los huecos: N.N.N = la versión del kit en que entra; <id de la pieza> = la pieza del catálogo donde quedó la regla):');
+    for (const r of entran) log(`  - {cita: "${r.clave}", version: N.N.N, pieza: <id de la pieza>}`);
   }
 }
 
@@ -254,7 +273,7 @@ function main(argv, salida) {
       return 0;
     }
     if (!repos.length) {
-      log(`no hay repos git en ${abs}.`);
+      log(`no hay repos con registro de cambios (.claude/cambios/) en ${abs}.`);
       return 0;
     }
   }
@@ -263,7 +282,7 @@ function main(argv, salida) {
   for (const repo of repos) {
     try {
       const { cambios, ficha: f } = leerCommiteado(repo);
-      const alias = aliasDe(repo, f);
+      const { alias, malo } = aliasDe(repo, f);
       const lista = [];
       for (const c of cambios) {
         try {
@@ -272,7 +291,7 @@ function main(argv, salida) {
           log(`⚠ ${alias}: no leí ${c.nombre} (${e.message})`);
         }
       }
-      proyectos.push({ alias, cambios: lista });
+      proyectos.push({ alias, aliasMalo: malo, cambios: lista });
     } catch (e) {
       log(`⚠ ${path.basename(repo)}: no se lee (${e.message})`);
     }

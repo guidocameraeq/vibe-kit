@@ -11,6 +11,8 @@ Es lo que lee el agente de la fusión al actualizar un proyecto. La historia de 
   candado y barreras; `/inicio` y `/cierre` v3; director/obrero (worktrees por módulo); `/estado`; la mesa; los githooks del clon.
   Se retiran `check-code` y `session-start.sh`, y las `deny` con `Write(...)` de los settings. Del lado de la PC: `actualizar.cjs`
   (`aplicar`, `chequear`, `flota`, `adoptar`) y `cargar-secreto`, que ahora calcula el `<proyecto>` desde el checkout principal.
+  Lo nuevo del paquete 7: el estado `subio-al-kit` de los cambios y `kit/cubiertos.md` (aplicar cierra el ciclo); `portada.cjs armar`
+  y la pieza `piezas.portada`; `cambios-flota.cjs` (la tabla del ciclo y las urgencias); `migrar-cambios.cjs` para un `CAMBIOS.md` único.
 - **Automático o pide revisión**: pide revisión, porque casi todo es pieza que los proyectos adaptan. Un repo v2 **sin ficha se adopta,
   no se actualiza**: `adoptar` (con Guido delante, la pantalla). Uno **con ficha** se pone al día con `flota`. Las piezas adaptadas se
   fusionan solas si traen su porqué; sin porqué quedan en `.claude/fusiones/` del proyecto, y el `/inicio` de la próxima sesión le hace

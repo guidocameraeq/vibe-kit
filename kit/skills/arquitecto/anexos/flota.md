@@ -26,7 +26,7 @@ Estas dos entradas **derivan, no ejecutan** (E §3): el Arquitecto reconoce el p
 1. `… actualizar.cjs adoptar <carpeta> --kit <raíz de un clon del kit> --mirar --propuesta <archivo fuera del repo>` — no cambia nada.
 2. A partir del comentario de la propuesta, la sesión arma con Guido delante **la pantalla** (D6-12): NORTE, MAPA, el plano de `docs/` y las reglas propias como cambios, cada uno con su `chico:`.
 3. Con el OK, en un clon con `.kit-rol` = `actualizador`: `… adoptar <clon> --kit <…> --aplicar <archivo>`, los **dos** commits que imprime (piezas, ficha), `node .claude/scripts/estructura.cjs barreras --rango <antes>..HEAD` verde y push (`chequear`: desde la primera flota).
-4. Dentro de ese mismo OK, ya con los scripts y la ficha puestos, la portada (cero preguntas nuevas): `node .claude/scripts/portada.cjs armar` (con `--banner` si es de la empresa y `estandar`), `piezas.portada: sí` en la ficha y un commit más.
+4. Dentro de ese mismo OK, ya con los scripts y la ficha puestos, la portada (cero preguntas nuevas): `node .claude/scripts/portada.cjs armar` (con `--banner` si es de la empresa y `estandar`); `piezas.portada: sí` en la ficha **solo si** `armar` salió 0 o `node .claude/scripts/portada.cjs chequear` da 0, y un commit más. Si no (un README propio que `armar` no pisa), la portada queda apagada y al dueño una línea: "portada: README propio, queda apagada".
 
 ## Lo que no entra por esta puerta
 
