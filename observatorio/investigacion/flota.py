@@ -201,6 +201,17 @@ def _matar(p):
         p.kill()
 
 
+def expandir_proyecto(cmd, clon):
+    """Claude Code expande ${CLAUDE_PROJECT_DIR} y $CLAUDE_PROJECT_DIR; cmd.exe no. Las reemplaza por la ruta
+    absoluta del clon, entre comillas si la original no estaba ya dentro de unas."""
+    ruta = os.path.abspath(clon)
+
+    def sub(m):
+        adentro = cmd.count('"', 0, m.start()) % 2 == 1
+        return ruta if adentro else '"' + ruta + '"'
+    return re.sub(r"\$\{CLAUDE_PROJECT_DIR\}|\$CLAUDE_PROJECT_DIR\b", sub, cmd)
+
+
 def huella_hook(clon, plazo=HOOK_PLAZO):
     """Corre el SessionStart del settings.json DEL CLON (cwd = clon, stdin {}). -> {hook_chars, hook_motivo}.
     Nunca toca otra cosa que la carpeta que le pasan."""
@@ -220,7 +231,7 @@ def huella_hook(clon, plazo=HOOK_PLAZO):
     for cmd in cmds:
         with tempfile.TemporaryFile() as salida:
             kw = {"start_new_session": True} if os.name != "nt" else {}
-            p = subprocess.Popen(cmd, shell=True, cwd=clon, env=env, stdin=subprocess.PIPE,
+            p = subprocess.Popen(expandir_proyecto(cmd, clon), shell=True, cwd=clon, env=env, stdin=subprocess.PIPE,
                                  stdout=salida, stderr=subprocess.DEVNULL, **kw)
             try:
                 p.stdin.write(b"{}")

@@ -95,6 +95,46 @@ aunque se lea todo.** El resumen lo aprueba esa persona antes de mandarlo; sus h
 quedan en su PC salvo que diga lo contrario. Ojo al leerlo: el script rotula "GUIDO" a toda voz
 humana.
 
+## La corrida mensual
+
+Repite las líneas base de `TABLERO.md` §1 con los scripts (sin lectores, que cuestan tokens: esos van al piloto). Primera vez: 2026-11-03,
+resultado en `mediciones/2026-11-03.md`. Costo: casi cero tokens; ~25 minutos en total. Siempre `py -3` (no `python3`, que es el atajo
+de la Store); los scripts que leen datos ajenos, con `-I`. Estas carpetas están **fuera de todo repo**: `<M>` = `scratchpad/medicion/`
+(o `C:\vibe-medicion\` si no hay scratchpad), con `clones/`, `privado/` y `condensados/`.
+
+**Qué es público y qué privado.** Público (va a vibe-kit): `mediciones/<fecha>.md`, con cifras agregadas ("N de 10", rangos, medianas),
+alias solo si ya están en `FLOTA.md`/`REPOS.md`, y **sin** nombres de repo nuevos, dueños, rutas de PC ni texto de chats. Privado (va a
+`vibe-research`, `mediciones/<fecha>/`): `mapeo.md`, los JSON por repo, los costos por chat y los condensados no se suben a ningún lado.
+
+1. **Mapeo alias → repo** (privado). `gh repo list <dueño> --limit 100 --json name,description,createdAt` por cada dueño (`gh api
+   user/orgs` los lista), cruzado con las descripciones y fechas de `FLOTA.md`. Se escribe en `<M>/privado/mapeo.md`. Lo ambiguo se marca
+   "ambiguo, para Guido": se mide con el más probable y se dice.
+2. **Clones** (D8-7, nunca el checkout de nadie): `git clone --filter=blob:none https://github.com/<dueño>/<repo>.git <M>/clones/<alias>`,
+   uno por proyecto. Después, en cada clon: `git -C <M>/clones/<alias> config diff.renames false`. Sin esto, `git log --name-only` baja
+   blobs de a uno para detectar renombres y `repos.py` no termina.
+3. **Flota** (privado): `py -3 -I flota.py <dueño1> <dueño2> --kit <raíz de vibe-kit> --hook <alias>=<M>/clones/<alias> … > <M>/privado/flota.json`.
+   Lee GitHub por `gh`; con `--hook` corre el `SessionStart` del clon (plazo 20 s; expande `$CLAUDE_PROJECT_DIR` por la ruta del clon). Lee
+   todos los repos de los dueños: al agregar, filtrar a los de la flota. Los resultados del hook quedan en `hooks_sin_fila`, por alias.
+4. **Huella** (privado): `py -3 -I huella.py <M>/privado/flota.json <raíz de vibe-kit> > <M>/privado/huella.json`. ~2 minutos.
+5. **Historial** (privado): `py -3 -I repos.py <alias>=<M>/clones/<alias> … > <M>/privado/repos-total.json`, y otra con `@desde=<fecha de la
+   última corrida>` pegado a cada ruta, a `repos-desde.json`. ~1 minuto. Un repo con una base ajena (un fork) mezcla sus commits: sacarlo de
+   la mediana del total.
+6. **Costos** (privado, solo de esta PC): `py -3 -I condensar.py --pc <nombre de la PC> --desde <corte de CORTE.md> --salida <M>/condensados`
+   (lee `~/.claude/projects`; ~900 MB crudos tardaron 3 minutos; si pasan de 30 min, cortar y anotar "no re-medido: corrida en curso"), y
+   `py -3 -I costos.py <M>/condensados/costos.csv > <M>/privado/costos-tabla.md`. Cache leída por respuesta = lectura de caché ÷ respuestas
+   de cada rol. Los condensados **no se suben**. Las otras PCs corren lo mismo allá (Remote Control).
+7. **Lo que no es script.** Alertas de seguridad: contar las entradas de `ALERTAS-SEGURIDAD.md` de la biblioteca (solo el número). Tamaño
+   de skills: `director` y `obrero` por repo, de `flota.json` (`huella.json`, `propias`).
+8. **gitleaks, sin tubería**, sobre lo público y sobre lo privado, mirando el código de salida: `gitleaks dir <carpeta> --no-banner`. Si
+   da distinto de 0, no se escribe al repo hasta revisarlo sin imprimir el valor (paso 2 de "Los pasos").
+9. **El documento** (público): `mediciones/<fecha>.md` con la tabla de TABLERO §1 en tres columnas, **octubre · hoy · cómo se midió**, y
+   las filas con script del SPEC-0 "Medición". Cada fila que no se re-midió dice por qué: "no re-medido: lector, al piloto", "otra PC" o
+   "corrida en curso". Arriba, 3-5 renglones de lectura. Abajo, un renglón que apunta al detalle privado.
+10. **Subir lo privado** (lo hace el director): `mapeo.md`, `flota.json`, `huella.json`, `repos-*.json` y `costos-tabla.md` a
+    `vibe-research`, `mediciones/<fecha>/`, con gitleaks antes de cada push. Los condensados, no.
+
+No corren acá: `lotes.py` y los lectores (filas "Lector (muestra)"), que se repiten en el piloto con el número de octubre como antes.
+
 ## La fecha de corte
 
 Es el último `timestamp` leído de cada PC (la columna `hasta` del costos.csv, el máximo). Se anota en
