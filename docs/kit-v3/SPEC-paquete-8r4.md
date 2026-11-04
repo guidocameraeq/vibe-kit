@@ -153,6 +153,34 @@ Rutas: `molde` = `kit/molde/`, `lib` = `kit/molde/hooks/lib/`, `wt` = `kit/molde
   Solo esas dos. **crit. 3**: `gitleaks detect` sobre toda la historia sale 0; con una clave de mentira nueva en un archivo de prueba
   (sin commitear, `gitleaks protect`), sale 1.
 
+#### u9 · El pre-commit de un merge de `main` en una rama vieja (lo trajo la madre, 2026-11-04)
+
+- **El dolor** (tracker, "lo que cuenta Guido" 9): en Hermes, `ui/cc-seguimiento-circuitos` (304 commits atrás de `main`, de antes de la
+  adopción) mergea `origin/main` con conflictos; al commitear, el candado da 36 rutas de barrera "sin un aprobado sellado" que llegaron
+  iguales desde `main`, y gitleaks marca líneas viejas de `main`. La salida que da (`cambios aprobar`) pide estar en `main` y sin merge a
+  medias. Es el mismo camino de `traer-main` (u2) y de "llevar `main` a una rama".
+- **Lo medido en el código**: gitleaks del pre-commit es `escanear(['diff', '--cached', …])` (`kit-githook.cjs` ~782): contra HEAD
+  siempre, también con MERGE_HEAD. El candado `--indice` sí junta MERGE_HEAD (`barreras.cjs` ~303-307) y descuenta por padre
+  (`tocaArchivo` ~347): **supuesto** de por qué falla igual: el descuento queda "sin saber" (`sinSaber`, no descuenta) cuando un padre o
+  la base del merge no tiene ficha legible (`imposible`): la rama vieja es de antes de la ficha. **Primero se reproduce** (una prueba en
+  rojo) y recién ahí se arregla lo que muestre.
+- **El arreglo esperado (se ajusta a lo que muestre la prueba)**:
+  - **Candado**: con MERGE_HEAD, una ruta de barrera cuyo blob en el índice es **igual al de MERGE_HEAD** y MERGE_HEAD está contenido en
+    la ref vigente (`origin/<def>`, o la rama por defecto local sin remoto: lo ya juzgado al subir allá) no pide aprobado. Todo lo demás,
+    como hoy: lo que el índice tiene distinto de los dos padres (la resolución del conflicto) o igual al lado de la rama (lo de la rama,
+    que ya juzgó su push) sigue por el descuento de siempre.
+  - **gitleaks**: con MERGE_HEAD, solo las líneas que el índice agrega **contra los dos padres** (un hallazgo de `diff --cached HEAD`
+    que no aparece en `diff --cached MERGE_HEAD` es una línea de `main`: no se reporta). Sin MERGE_HEAD, como hoy.
+  - **El texto del rojo** en un merge en curso: no manda a `cambios aprobar` (que pide `main`): dice *"esto vino distinto de los dos lados:
+    resolvelo igual a uno, o abortá (git merge --abort) y pedí el aprobado en main"*.
+- **crit. 9**: `kit-githook.test`/`barreras.test` — una rama de antes de la ficha, `main` con la ficha, un hook y el `settings.json`
+  cambiados con su aprobado, un conflicto en un archivo común: el pre-commit del merge resuelto **da verde** (hoy, el supuesto: rojo) y
+  una clave de mentira vieja de `main` no sale; la misma con la resolución del conflicto en `settings.json` distinta de los dos lados →
+  rojo con el texto nuevo; una clave de mentira nueva en la resolución → gitleaks rojo; un MERGE_HEAD que **no** está en la vigente (una
+  rama cualquiera) → como hoy. Mutación: sacar la condición "contenido en la vigente" o la de "igual al blob" deja un caso en rojo.
+- **Red team**: una ronda más, solo de u9 (toca un freno), antes de codearlo. Chequeo frío: un clon de Hermes con una rama vieja y el
+  merge de `main` con un conflicto (crit. 8 suma).
+
 ### Vuelta 2 — el resto de lo que dolió
 
 #### u4 · Lo que queda fuera del repo: `--mirar` y el `doctor` lo avisan
@@ -373,12 +401,14 @@ Presupuesto (ADR-029): RT, **cuatro de trabajo en la vuelta 1 y 2**, el chequeo 
 |---|---|---|---|
 | RT | Red team, una ronda (sobre todo u1, u2 y `traer-main`) | — | — |
 | W | u1 y `traer-main` (u2), rt-1/2/4/6/7 | `kit/molde/scripts/worktree.cjs`, el texto `MOTIVO_ASK` de `niega-aprobar.cjs` (solo el texto), sus pruebas | crit. 1, la mitad de crit. 2 |
+| M | u9 (con su red team antes) | `kit/molde/githooks/kit-githook.cjs`, `kit/molde/hooks/lib/barreras.cjs` (y su copia si la hay), sus pruebas | crit. 9 |
 | F | u2 en la flota | `flota.cjs`, `actualizar.cjs` (USO), sus pruebas | la otra mitad de crit. 2 |
 | A | u4, u6 (vuelta 2) | `adoptar.cjs`, `actualizar.cjs` (el renglón), `lib/vecinos.cjs`, `doctor.cjs`, sus pruebas | crit. 4 y los de u6 |
 | K | u7 en código (`andamiaje:`) y u8 (`plazo-test`) | `ficha.cjs` y sus copias, `arquitecto.cjs`, sus pruebas | `ficha.test`, `arquitecto.test`, copias iguales |
 | CF | Chequeo frío (crit. 8) | — | — |
 
-**Orden**: RT → (vuelta 1) W ∥ F → textos de u1-u2 → u3 → (vuelta 2) A ∥ K → textos de u5-u7 → CF → suite → la flota → tag.
+**Orden**: RT → RT de u9 → (vuelta 1) W ∥ F ∥ M (W y M no comparten archivos; F usa `barreras --indice`, que M cambia: se mergea M
+antes que F, y F mergea `main` y vuelve a correr sus pruebas) → textos de u1-u2 → u3 → (vuelta 2) A ∥ K → textos de u5-u7 → CF → suite → la flota → tag.
 
 ## Ejecución
 

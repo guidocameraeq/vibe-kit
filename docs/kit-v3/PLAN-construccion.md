@@ -1191,7 +1191,8 @@ entre piezas, lo técnico lo decide la sesión, la revisión integral como paso 
 | 2d ✅ | **D8r.2 · La tanda de taller de R1b = la `rc.3`** (`vibe-kit M5 · D8r.2`; la lanzó la sesión madre) | no | ✅ 2026-11-04 | `SPEC-paquete-8r2.md`: t1-t12 y la mecánica de D1-D4; la beta `v3.0.0-rc.3` taggeada. Sigue **la mañana con Guido**, que abre con D1-D4 |
 | 3 | **Diseño: los experimentos de método** (`vibe-kit M5 · Diseño: probar una idea nueva (experimentos)`) | **sí** | cuando Guido pueda, 2026-11-04 o 05 | el Arquitecto (Modo B sobre vibe-kit) charla con Guido y deja el spec sellado de la pieza nueva |
 | 2e ✅ | **D8r.3 · La `rc.4` exprés: el bot de Arti y los `.pyc`** (`vibe-kit M5 · D8r.3`; la lanzó la sesión madre de la recta final) | no | ✅ 2026-11-04 | `SPEC-paquete-8r3.md`: `carpeta-docs:` en la ficha, el arranque con el mismo nombre, `barreras` borra el caché de Python, la línea `después:` que dice la verdad y `resolver … nueva` sin informe; la beta `v3.0.0-rc.4` taggeada. La flota a los repos de Guido y la adopción del bot, las propone la sesión madre |
-| 4 | **D8c.1 · La rc.5** (`vibe-kit M5 · D8c.1 · La rc.5: cierre de tramo y experimentos`) | no | después de la 3 | el obrero de cierre de tramo (renglón 11), los experimentos (el spec de la 3) y lo de Pendientes "De D8r.2"; `v3.0.0-rc.4` y "poné al día la flota" en Hermes (los de R1 y R1b ya salieron en la `rc.2` y la `rc.3`) |
+| 2f | **D8r.4 · La `rc.5`: las correcciones del uso real** (`vibe-kit M5 · D8r.4`; la lanzó la sesión madre de la recta final) | no | en curso, 2026-11-04 | `SPEC-paquete-8r4.md` (READY, con red team): una sola ventana (`worktree.cjs donde`, `/obrero` y `/director` entran con EnterWorktree), la flota con obra (`--con-obra`, `worktree.cjs traer-main`), el merge de `main` en una rama vieja (u9), y lo de Pendientes que dolió en Hermes y el analytics; la beta `v3.0.0-rc.5`. Desde el tag `v3.0.0-rc.4` |
+| 4 | **D8c.1 · La rc.6** (`vibe-kit M5 · D8c.1 · La rc.6: cierre de tramo y experimentos`; era la rc.5 hasta el 2026-11-04) | no | después de la 3 y de la 2f | el obrero de cierre de tramo (renglón 11), los experimentos (el spec de la 3) y lo de Pendientes "De D8r.2"; `v3.0.0-rc.4` y "poné al día la flota" en Hermes (los de R1 y R1b ya salieron en la `rc.2` y la `rc.3`) |
 | 5 | **D9.x · Acompañar la prueba real** | a ratos | mientras dure el primer módulo de Hermes | cada arreglo del uso como `rc.N` |
 | 6 | **M6b · El ciclo, segunda parte** | sí, corta | cuando cierre el primer módulo de Hermes | §3.5 y §8 del ciclo con lo vivido; la fecha de la próxima vuelta |
 | 7 | **R2 · Revisión integral final + D10.1 · `v3.0`** | no / OK de Guido para publicar | después de la 6 | la tercera revisión integral (ADR-034; R1 y R1b fueron las dos primeras), **con lo que haya mostrado el uso de Hermes y contra un clon suyo**, la medición contra `mediciones/2026-11-03.md`, el tag `v3.0` idéntico al último rc |
@@ -1376,6 +1377,12 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
      que avisa y recomienda no hacerlo, actualiza `main` y ofrece llevarlo a cada rama de módulo viva, con lo rojo de los frenos para
      que lo apruebe Guido.
   7. **2026-11-04 · `docs/NORTE.md` queda con `[completar]` después de la adopción** (Hermes): la adopción tendría que avisarlo.
+  9. **2026-11-04 · El pre-commit de un merge de `main` en una rama vieja** (Hermes, `ui/cc-seguimiento-circuitos`, 304 commits atrás,
+     con conflictos; lo trajo la sesión madre): el candado (`barreras --indice`) da 36 rutas "sin un aprobado sellado" que son de `main`
+     (ya juzgadas allá) y gitleaks (`diff --cached`, contra HEAD: `kit-githook.cjs` ~782) marca líneas viejas de `main`. El pre-push sí
+     juzga contra el otro padre. La salida que da el kit (`cambios aprobar`) pide `main` y sin merge a medias: no sirve. Medido en el
+     código (D8r.4): `--indice` ya junta MERGE_HEAD y descuenta por padre, pero el descuento se cae ("sin saber") cuando un padre o la
+     base no tienen la ficha (la rama es de antes de la adopción) — supuesto, a reproducir. **Para la rc.5** (D8r.4, u9, vuelta 1).
   8. **Dato, no pendiente**: los módulos de Hermes en curso: `lector` solo (rol de lectura en Supabase y `scripts/consultar.py`; sello
      y ready ✅, `2a708a4b`) y `cashflow` con director (spec en BORRADOR, `30427858`; `worktree crear cashflow` con salida 0).
 
