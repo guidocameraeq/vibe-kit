@@ -142,7 +142,10 @@ Rutas: `molde` = `kit/molde/`, `lib` = `kit/molde/hooks/lib/`, `wt` = `kit/molde
   traer-main <x>` entre dos encargos, nunca con un obrero a mitad de un sub-paso que toque lo mismo"*.
 - **crit. 2**: `flota.test` — un remoto con `modulo/a` viva: sin `--con-obra` sale `salteado` y el porqué nombra la bandera; con ella,
   `main` avanza un commit, `modulo/a` en el remoto queda **igual** (mismo sha) y "te espera" trae la línea de `modulo/a` (verde); un
-  `modulo/b` que cambió `.claude/settings.json` sin aprobado → la línea dice rojo con sus ids; uno que choca con el kit → "choca".
+  módulo que tocó **el mismo freno que el kit** sin chocar (lo que el merge deja distinto de los dos padres) → la línea dice rojo con sus
+  ids; uno que choca con el kit → "choca". *(Corregido por D8r.4 con lo que midió F: un `modulo/b` que cambió `.claude/settings.json` sin
+  aprobado da **verde** en el merge, y está bien: `descontarMerge` descuenta lo que quedó igual a un padre que lo cambió, y eso lo juzga
+  el push del propio módulo, no el merge. `[coherencia]`)*
   `worktree.test` — `traer-main` verde (commit con dos padres, push al bare), choca (aborta, el árbol y HEAD como antes, 1), rojo
   (aborta, 1, imprime el `cambios nuevo`), árbol sucio (1 sin tocar), parado en `main` (1). Mutación de `traer-main`: sacar el
   `--abort` del rojo, o el chequeo de rama, deja una prueba en rojo.
