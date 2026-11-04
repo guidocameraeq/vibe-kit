@@ -131,7 +131,7 @@ Rutas: `molde` = `kit/molde/`, `dir` = `kit/molde/skills/director/`, `lib` = `ki
   refspec con destino explícito fuera de `modulo/*` (`main`, `HEAD:main`, `x:refs/heads/main`, un tag) o `--all`/`--branches`/`--tags` →
   deny con el mismo texto. `git push` a secas no se adivina acá: lo ataja el pre-push.
 - **El caso de Hermes** (rt-4): si el obrero que pusheó a `main` estaba en el principal o sin `.kit-rol`, h11 no lo hubiera visto: lo cubre
-  el paso 0 del `/obrero` de la `rc.5` (ningún comando antes de `adentro:`). Se le pregunta a la madre desde dónde fue (no se lee `D:\Hermes`).
+  el paso 0 del `/obrero` de la `rc.5` (ningún comando antes de `adentro:`). Desde dónde fue: **NO VERIFICADO** (la madre no tiene el dato; no se lee `D:\Hermes`).
 - **Textos**: `/obrero` `:24` *"nunca push a otra rama: a `main` sube solo el director, y el pre-push lo frena"*; el manual del director.
 - **crit. h11**: `kit-githook.test`, con el remoto en `main` y otro en `trunk`: `obrero` → `refs/heads/main`, `refs/heads/trunk`,
   `refs/heads/modulo/x` y `refs/tags/v1` → 1 con el texto; → su `modulo/x--01` → como hoy; obrero **sin `.kit-rol`** en `modulo/x--01` → a
