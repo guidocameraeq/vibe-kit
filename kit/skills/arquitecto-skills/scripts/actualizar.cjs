@@ -16,7 +16,7 @@ const USO = [
   '                               [--comando-test "<comando>"]',
   '     node actualizar.cjs adoptar <carpeta> --kit <raíz del kit> --aplicar <archivo de propuesta> [--fecha <AAAA-MM-DD>]',
   '                               [--principal <carpeta principal>] [--claude-md]',
-  '     node actualizar.cjs resolver <carpeta> <pieza> mezclar|propia|nueva|congelar --por "<texto>" [--a-mano]',
+  '     node actualizar.cjs resolver <carpeta> <pieza> mezclar|quedarse|nueva|congelar --por "<texto>" [--a-mano]',
   '     node actualizar.cjs ultimo-tag <clon del kit>',
   '  aplicar   pone al día <carpeta> pieza por pieza según su ficha (.claude/kit.md), contra el molde del --kit. Escribe solo en',
   '            <carpeta>; no commitea, no pushea, no pone core.hooksPath (eso es de flota). Se niega (1) si <carpeta> no es un repo',
@@ -32,10 +32,11 @@ const USO = [
   '            ficha y trae las piezas en molde; se niega (1) como aplicar (sucia salvo .kit-rol, .kit-rol ≠ actualizador) o si ya',
   '            tiene ficha. No commitea: la última línea dice los dos commits que van.',
   '  resolver  la salida que eligió el dueño para una pieza que espera (.claude/fusiones/<pieza>.md), en SU checkout (rol humano):',
-  '            mezclar (la fusión propuesta) · propia (sigue adaptada; la próxima versión se ofrece desde la misma base) · nueva',
-  '            (la del kit entera: pasa a molde) · congelar (propia; no en una pieza de frenos). Escribe lo del informe, la ficha',
-  '            (estado y por:) y borra el informe; no commitea: la última línea dice el commit. mezclar y nueva se niegan (1) sin',
-  '            escribir si algo de la pieza cambió desde el informe (propia y congelar pueden igual). --a-mano (con mezclar):',
+  '            mezclar (la fusión propuesta) · quedarse (con la tuya: sigue adaptada; la próxima versión se ofrece desde la misma',
+  '            base; `propia` es su nombre viejo y hace lo mismo) · nueva (la del kit entera: pasa a molde) · congelar (la ficha',
+  '            la pone en propia; no en una pieza de frenos). Escribe lo del informe, la ficha (estado y por:) y borra el informe;',
+  '            no commitea: la última línea dice el commit. mezclar y nueva se niegan (1) sin escribir si algo de la pieza cambió',
+  '            desde el informe (quedarse y congelar pueden igual). --a-mano (con mezclar):',
   '            lo que cambió lo armaste vos y se valida del disco; lo que sigue igual va con lo del informe.',
   '  ultimo-tag imprime el tag v* anotado que va (el de la flota sin --tag: v3.0.0 después de v3.0.0-rc.N); sin ninguno → 1.',
   '  --nuevo        (con --mirar) un repo recién nacido: las bases van en molde, el candado va (sí) y el director-obrero y el estado también.',
@@ -218,7 +219,7 @@ const porDe = (v) => (esMapa(v) && typeof v.por === 'string' ? v.por : undefined
 const desdeDe = (v) => (esMapa(v) && typeof v.desde === 'string' ? v.desde : undefined);
 
 // El valor de una pieza en la ficha. `por` (el porqué de Guido, D6-19) viaja siempre que la pieza lo tenía. `desde` (paquete 8b,
-// r1-1) solo lo escribe resolver ("quedarse con la propia") y se va cuando la pieza se mezcla o toma la nueva.
+// r1-1) solo lo escribe resolver ("quedarse" con la tuya) y se va cuando la pieza se mezcla o toma la nueva.
 function valorPieza(estado, hash, por, desde) {
   const e = /[\s()]/.test(estado) ? `"${estado}"` : estado;
   const extra = [hash ? `hash: ${hash}` : '', por ? `por: "${por}"` : '', desde ? `desde: ${desde}` : ''].filter(Boolean);
@@ -294,7 +295,7 @@ function hoy() {
   return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
 }
 
-// planear(carpeta, {kit, moldeViejo, fecha, ficha}) → { lineas, ops: Map(ruta → texto | null), ... }. No escribe en <carpeta>.
+// planear(carpeta, {kit, moldeViejo, fecha, ficha}) → { lineas, ops: Map(ruta → texto | null), adopcion, ... }. No escribe en <carpeta>.
 // Materializa los moldes en un temporal: quien llama lo borra (M.borrar(plan.tmp)). ficha: el texto de la ficha que propone el
 // adoptador (todavía no está en el disco); sin ella, la de <carpeta>.
 function planear(carpeta, opciones) {
@@ -322,6 +323,9 @@ function planear(carpeta, opciones) {
     }
     plan.moldeNuevo = nuevo.dir;
     plan.moldeViejo = viejo.dir;
+    // una adopción (la ficha la propone el adoptador, con el molde viejo que eligió): la ficha ya dice la versión del kit, así que el
+    // informe de una fusión no es "kit <v> → <v>" sino ese molde contra el del kit (SPEC-paquete-8r2 t12 b)
+    if (opciones.ficha && opciones.moldeViejo) plan.adopcion = viejo.forma === '2.4' ? 'el molde v2' : 'el molde que ya tenía';
     armar(plan, carpeta, { textoFicha, datos, nuevo, viejo, opciones });
     return plan;
   } catch (e) {
@@ -373,7 +377,7 @@ function armar(plan, carpeta, { textoFicha, datos, nuevo, viejo, opciones = {} }
     }
     return bases.get(base);
   };
-  // `desde:` en la pieza (resolver, "quedarse con la propia"; r1-1): lo mismo que la base de un informe — desde esa versión y sin
+  // `desde:` en la pieza (resolver, "quedarse" con la tuya; r1-1): lo mismo que la base de un informe — desde esa versión y sin
   // fusionarse sola (el dueño ya dijo que no a lo de ahí en adelante; se le vuelve a ofrecer con lo nuevo encima).
   const notas = new Map();
   const notaDe = (vBase) => {
@@ -414,7 +418,7 @@ function armar(plan, carpeta, { textoFicha, datos, nuevo, viejo, opciones = {} }
     const rels = [...new Set([...mapV.keys(), ...mapN.keys()])];
     const r = FU.fusionar({
       carpeta, id, valorFicha: piezas[id], claude, plan: opciones.plan, forzado, nota: notaDe(vBase),
-      versiones: { viejo: vBase, nuevo: plan.vNuevo },
+      versiones: { viejo: vBase, nuevo: plan.vNuevo, ...(plan.adopcion && vBase === plan.vViejo ? { adopcion: plan.adopcion } : {}) },
       archivos: rels.map((rel) => ({ rel, v: mapV.has(rel) ? mapV.get(rel) : null, n: mapN.has(rel) ? mapN.get(rel) : null, p: leerP(rel) })),
     });
     const por = porDe(piezas[id]);
@@ -947,13 +951,16 @@ const porLimpio = (s) => String(s).replace(/"/g, "'").replace(/\s+/g, ' ').trim(
 // imprime el commit por rutas. No commitea. Se niega (1) sin escribir nada: congelar en una pieza de FRENOS, mezclar sin propuesta
 // (salvo --a-mano), un informe que nombra una ruta que no es de la pieza según el catálogo y, solo en las salidas que escriben
 // archivos (mezclar y nueva), un archivo que cambió desde el informe (su huella) o una ruta de la pieza con cambios sin commitear
-// (r1-2). propia y congelar no escriben archivos: siempre pueden (si no, un commit entre la flota y el /inicio traba el informe hasta
+// (r1-2). quedarse y congelar no escriben archivos: siempre pueden (si no, un commit entre la flota y el /inicio traba el informe hasta
 // el próximo rc: la flota dice "al día" o "salteado"). --a-mano: lo que cambió desde el informe se valida del disco (lo armó el
 // dueño); lo que sigue igual se escribe con lo del informe (la nueva en un molde, la propuesta en un tres limpio), así la próxima
 // flota no revierte el arreglo.
-function resolver(carpeta, id, salida, { por, aMano = false } = {}) {
+function resolver(carpeta, id, salidaPedida, { por, aMano = false } = {}) {
   const raiz = path.resolve(carpeta);
   const no = (m) => ({ codigo: 1, lineas: [`resolver: ${m}`] });
+  // `propia` es el nombre viejo de `quedarse` (8r2 t10): hace lo mismo y desde acá se llama quedarse
+  const salida = FU.salidaDe(salidaPedida);
+  if (!salida) return no(`"${salidaPedida}" no es una salida (${FU.SALIDAS.join(', ')}) — no toqué nada`);
   const top = gitEn(raiz, ['rev-parse', '--show-toplevel']);
   if (!top.ok || !mismaRuta(top.out.trim(), raiz)) return no(`${carpeta} no es la raíz de un repo git — no toco nada`);
   let rol = 'humano';
@@ -988,7 +995,7 @@ function resolver(carpeta, id, salida, { por, aMano = false } = {}) {
   // las rutas: solo las del catálogo de la pieza (nunca lo que diga un título del informe)
   const ajena = inf.tuyos.find((t) => piezaDeRutaProyecto(t.rel) !== id);
   if (ajena) return no(`${rInforme} nombra ${ajena.rel}, que no es de la pieza ${id}: no toqué nada`);
-  const CAMBIO = `cambió desde el informe: elegí ${FU.esFreno(id) ? 'propia' : 'propia o congelar'}, o mezclar --a-mano`;
+  const CAMBIO = `cambió desde el informe: elegí ${FU.esFreno(id) ? 'quedarse' : 'quedarse o congelar'}, o mezclar --a-mano`;
   const igualQueElInforme = (t) => {
     const d = leerD(t.rel);
     return (d === null ? null : F.hash(d)) === t.hash;
@@ -1020,7 +1027,7 @@ function resolver(carpeta, id, salida, { por, aMano = false } = {}) {
         if (aMano && igualQueElInforme(t)) {
           // no lo tocó: va lo del informe, como sin --a-mano (si quedara lo viejo, la próxima flota revierte el arreglo sin aviso)
           const texto = t.tipo === 'molde' ? sec.nueva : sec.propuesta;
-          if (!texto) return no(`--a-mano: ${t.rel} sigue como en el informe y no tiene fusión propuesta: armala a mano (o elegí propia); no toqué nada`);
+          if (!texto) return no(`--a-mano: ${t.rel} sigue como en el informe y no tiene fusión propuesta: armala a mano (o elegí quedarse); no toqué nada`);
           const val = FU.validar(t.rel, texto, disco === null ? null : lf(disco), tmp);
           if (!val.ok) return no(`--a-mano: ${val.problema}; no toqué nada`);
           if (disco === null || lf(disco) !== val.texto) ops.set(t.rel, val.texto);
@@ -1049,14 +1056,14 @@ function resolver(carpeta, id, salida, { por, aMano = false } = {}) {
   } finally {
     M.borrar(tmp);
   }
-  // la ficha: estado y por: (y desde: al quedarse con la propia; r1-1)
+  // la ficha: estado y por: (y desde: al quedarse con la tuya; r1-1)
   const viejo = piezas[id];
   const p = porLimpio(por);
   const unico = inf.tuyos.length === 1 ? inf.tuyos[0] : null;
   const hNuevo = unico && (inf.archivos.get(unico.rel) || {}).nueva ? huella(unico.rel, inf.archivos.get(unico.rel).nueva) : hashDe(viejo);
   const valor = {
     mezclar: () => valorPieza('adaptada', hNuevo, p),
-    propia: () => valorPieza('adaptada', hashDe(viejo), p, inf.base),
+    quedarse: () => valorPieza('adaptada', hashDe(viejo), p, inf.base),
     nueva: () => valorPieza('molde', hNuevo), // molde no lleva por: (la gramática); el porqué va en el commit
     congelar: () => valorPieza('propia', hashDe(viejo), p),
   }[salida]();
@@ -1096,7 +1103,7 @@ function leerResolver(resto) {
     else if (a.startsWith('--')) return null;
     else pos.push(a);
   }
-  if (pos.length !== 3 || !FU.SALIDAS.includes(pos[2]) || typeof o.por !== 'string' || !o.por.trim()) return null;
+  if (pos.length !== 3 || !FU.salidaDe(pos[2]) || typeof o.por !== 'string' || !o.por.trim()) return null;
   if (o.aMano && pos[2] !== 'mezclar') return null;
   return { carpeta: pos[0], pieza: pos[1], salida: pos[2], por: o.por, aMano: o.aMano };
 }
