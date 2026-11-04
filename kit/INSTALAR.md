@@ -1,5 +1,10 @@
 # El Arquitecto — instalación automática en esta PC
 
+> **El camino de hoy es otro**: con el kit v3, una PC se prepara diciéndole **"preparame esta PC"** al Equipador
+> (`manuales/EQUIPADOR.md` §1): deja el kit, los frenos de la PC, los ajustes de Claude Code y `~/.claude/kit-pc.md` con una sola
+> pregunta. Este prompt es el de la instalación a mano del kit v2: copia las skills y nada más (sin frenos ni `kit-pc.md`). Queda
+> como plan B.
+
 > **Cómo se usa**: descomprimí el zip en cualquier carpeta → abrí Claude Code **en esa carpeta**
 > (VSCode: Archivo → Abrir carpeta → chat de Claude; o en terminal, parado ahí: `claude`) →
 > pegá el prompt de abajo tal cual. Claude instala todo, te pregunta lo único que necesita

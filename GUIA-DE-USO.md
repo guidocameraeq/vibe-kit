@@ -81,7 +81,8 @@ Cambió la misión → cambiá el chat. Compactar es emergencia (*"cierre parcia
 
 ### 🏗️ "Quiero una feature más que chica en una app existente"
 Chat nuevo **en la carpeta de esa app** → **`/arquitecto`** (o lo llama la sesión sola, si midió "más que chico"): explora el código
-(Modo B), deja el **spec delta sellado** y el módulo armado, y te da la línea para la sesión que lo construye.
+(Modo B), deja el **spec delta sellado** y el módulo armado, y te da la línea para la sesión que lo construye (con director: la
+pestaña del módulo y su primer mensaje, `/director`).
 → [`manuales/COMO-USAR-EL-ARQUITECTO.md`](manuales/COMO-USAR-EL-ARQUITECTO.md) §4
 
 ### 👋 "Me voy" (y quedó un módulo con director andando)
@@ -93,8 +94,8 @@ Decile **"me voy"** al director: sin preguntarte nada te muestra el checklist de
 *"¿Cómo terminamos?"* suma el resumen del día. → [`manuales/ROLES.md`](manuales/ROLES.md) §6
 
 ### 🔏 "La sesión me pide aprobar un cambio de freno"
-Leé la regla en "Te espera" del handoff; si estás de acuerdo, el `cambios aprobar <id>` se corre en la pestaña principal y **tu clic
-en la ventana de permiso es la firma**. Desde otra pestaña, de noche o en bypass se niega solo. → [`manuales/ROLES.md`](manuales/ROLES.md) §9
+Leé la regla en "Te espera" del handoff y, si estás de acuerdo, pedíselo a la sesión en la pestaña principal: `cambios aprobar` lo corre la sesión cuando el dueño lo pide, y su clic en la ventana es la firma; nunca por su cuenta.
+Desde otra pestaña, de noche o en bypass se niega solo. → [`manuales/ROLES.md`](manuales/ROLES.md) §9
 
 ### 📋 "Necesito documentar un repo para la auditoría FyD"
 Chat nuevo **en la carpeta de esa app** → **`/docs-fyd`**. Deriva del código los 10 documentos que
@@ -120,19 +121,24 @@ repo: *"leé tips/tanda-<fecha> y procesemos las conclusiones"* — ahí decidí
 
 ### 💻 "Preparame esta PC" (PC nueva, o actualizar la del SAAS)
 Decile al Equipador (o al Arquitecto) **"preparame esta PC"**: te hace **una sola pregunta**, deja el kit, los frenos y los ajustes
-de Claude Code, y cierra con "reiniciá Claude Code". **Llega con el tag del kit v3**: hasta entonces, la PC nueva va con `kit/INSTALAR.md`.
+de Claude Code, y cierra con "reiniciá Claude Code". Anda desde la beta del kit v3 (baja el último tag anotado).
 → [`manuales/EQUIPADOR.md`](manuales/EQUIPADOR.md) §1
 
 ### 🔄 "Actualizate" (traer lo último del kit a esta PC)
-**`actualizate`**: el mismo camino que "preparame esta PC", y reiniciás Claude Code. **Llega con el tag del kit v3** (el último tag hoy, `v2.4.3`, no trae `preparar-pc`). → [`manuales/EQUIPADOR.md`](manuales/EQUIPADOR.md) §2
+**`actualizate`**: el mismo camino que "preparame esta PC", y reiniciás Claude Code. → [`manuales/EQUIPADOR.md`](manuales/EQUIPADOR.md) §2
 
 ### 🧰 "Quiero instalar una skill nueva / ver qué skills tengo"
 **`/arquitecto-skills`**: *"instalame skills"*, *"qué skills tengo"*, *"actualizá las skills"*, *"agregá tal skill al menú"* (nada
 entra sin curaduría). Los frenos de la PC: *"instalar hooks por PC"* y *"corré el doctor"* (solo mira). → [`manuales/EQUIPADOR.md`](manuales/EQUIPADOR.md) §3, §4 y §6
 
-### 🚚 "Poné al día la flota" / "Adoptá X" (llega con el tag del kit v3)
+### 🚚 "Poné al día la flota" / "Adoptá X"
 *"Poné al día la flota"* (o *"poné al día Hub"*): cada repo se actualiza en una copia temporal (tu carpeta no se toca) y te vuelve una
 tabla. Un repo que todavía no tiene el kit v3: *"adoptá X"* (primero mira, con tu OK aplica). → [`manuales/EQUIPADOR.md`](manuales/EQUIPADOR.md) §5
+
+### 🔀 "El `/inicio` me pregunta por una skill que adapté"
+El kit trajo una versión nueva justo donde vos la habías cambiado: la mezcla chocó y **nunca se resuelve sola**. La sesión te cuenta
+qué skill es, por qué la habías adaptado, qué trae la nueva y dónde chocan, te recomienda una salida y lo decidís charlando (mezclar ·
+quedarte con la tuya · tomar la nueva · congelar). → [`manuales/EQUIPADOR.md`](manuales/EQUIPADOR.md) §5
 
 ### 📈 "¿Qué aprendieron mis proyectos que debería subir al kit?"
 *"¿Cómo está la flota?"* (la tabla de proyectos) o *"qué se repite en la flota"* (qué regla está en 3+ proyectos o tiene cicatriz
@@ -184,14 +190,14 @@ de la anterior en `tips/tanda-2026-10-chats.md` §0; lo ya hallado en `D:\vibe-h
 | `/arquitecto` con el plan ya charlado | Modo B corto: sin entrevista, la charla se vuelve un spec sellado que ejecuta otra sesión |
 | `/estado` · `¿cómo terminamos?` | Cómo vamos: lo que te espera arriba, el avance de cada módulo · más el resumen del día |
 | `me voy` | (al director) El checklist de la noche y qué queda andando; tu `/inicio` al volver dice que ya es de día |
-| `cambios aprobar <id>` | Aprobar un cambio de freno: en la pestaña principal, tu clic en la ventana de permiso es la firma |
-| `preparame esta PC` | (kit v3, con su tag) El Equipador deja la PC entera lista: kit, frenos y ajustes, con una sola pregunta |
+| `cambios aprobar <id>` | Aprobar un cambio de freno, en la pestaña principal: `cambios aprobar` lo corre la sesión cuando el dueño lo pide, y su clic en la ventana es la firma; nunca por su cuenta |
+| `preparame esta PC` | El Equipador deja la PC entera lista: kit, frenos y ajustes, con una sola pregunta |
 | `instalame skills` | El Equipador instala lo que falte del menú curado |
 | `/docs-fyd` | Documenta el repo para la auditoría FyD (te pregunta por opciones lo que el código no sabe) |
 | `docs-fyd auditar` | Chequeo antes de entregar a FyD: qué quedó viejo, dudas abiertas, secretos — no escribe |
 | `actualizate` | El Equipador baja lo último del repo y se actualiza a sí mismo |
 | `instalar hooks por PC` · `corré el doctor` | El Equipador pone los frenos de la PC (con plan y vuelta atrás) · revisa qué anda |
-| `poné al día la flota` · `adoptá X` | (kit v3) Cada repo al día en una copia temporal, con una tabla · un repo sin kit v3 pasa a tenerlo, con tu OK |
+| `poné al día la flota` · `adoptá X` | Cada repo al día en una copia temporal, con una tabla · un repo sin kit v3 pasa a tenerlo, con tu OK |
 | *(pegar links en `observatorio/extractor/`)* | Informe de tips con veredictos, listo para procesar |
 
 ## Dónde profundizar
@@ -204,7 +210,7 @@ de la anterior en `tips/tanda-2026-10-chats.md` §0; lo ya hallado en `D:\vibe-h
 - **Cada script del kit**, qué hace y cómo se llama: [`manuales/SCRIPTS.md`](manuales/SCRIPTS.md)
 - **Si se filtró una credencial**: [`manuales/se-filtro-una-credencial.md`](manuales/se-filtro-una-credencial.md)
 - **`/relevamiento` en una hoja** (para tener a mano cuando te piden algo): `manuales/HOJA-DE-MANO-relevamiento.md`
-- **Instalar en otra PC**: `kit/INSTALAR.md` (o la carpeta del Escritorio con los PDFs)
+- **Instalar en otra PC**: *"preparame esta PC"* ([`manuales/EQUIPADOR.md`](manuales/EQUIPADOR.md) §1); `kit/INSTALAR.md` es el plan B a mano (copia las skills, sin los frenos de la PC)
 - **Por qué el kit es como es**: `docs/DECISIONS.md` · lo que se descartó: `docs/REJECTED.md`
 - **Para qué existe todo esto** (y qué NO hace): `docs/MISION-Y-VISION.md`
 - **Qué está pendiente**: `docs/TODO.md` (única fuente) · qué trajo cada versión: `docs/CHANGELOG.md`

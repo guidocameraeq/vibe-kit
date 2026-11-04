@@ -152,3 +152,143 @@ test('kit/CHANGELOG.md, la nota de 3.0.0: subio-al-kit y cubiertos.md, portada.c
     assert.ok(piezas[1].includes(x), `la nota de 3.0.0 no nombra ${x}`);
   }
 });
+
+// ---------------------------------------------------------------- SPEC-paquete-8r, encargo E: los textos dicen lo que hace el código
+// (ADR-034). Los manuales, la guía y el README viven solo en el repo del kit (no se instalan): sin ellos, esas pruebas se saltean.
+const ARQ = path.join(SCRIPTS, '..', '..', 'arquitecto');
+const RAIZ_REPO = path.join(SCRIPTS, '..', '..', '..', '..');
+const enRepo = (rel) => path.join(RAIZ_REPO, rel);
+const SIN_REPO = !fs.existsSync(enRepo('manuales/EQUIPADOR.md')) && 'sin el repo del kit (manuales/)';
+const APROBAR = '`cambios aprobar` lo corre la sesión cuando el dueño lo pide, y su clic en la ventana es la firma; nunca por su cuenta';
+const seccion = (t, titulo) => {
+  const i = t.indexOf(titulo);
+  if (i < 0) return null;
+  const resto = t.slice(i + titulo.length);
+  const fin = resto.search(/^## /m);
+  return fin < 0 ? resto : resto.slice(0, fin);
+};
+
+test('flota.md (8r §3): la mezcla que choca nunca se resuelve sola; se pregunta siempre, en criollo, con las cuatro salidas', () => {
+  const t = leer(FLOTA);
+  assert.match(t, /la mezcla chocó/);
+  assert.match(t, /\*\*La mezcla que choca nunca se resuelve sola\*\*/);
+  assert.match(t, /\*\*preguntá siempre\*\*/);
+  for (const x of ['qué skill es', 'por qué la había adaptado (su `por:`)', 'qué trae la nueva', '`## Dónde chocan`', 'ADR-030', 'recomendada primera']) {
+    assert.ok(t.includes(x), `flota.md no dice ${x}`);
+  }
+  assert.match(t, /\*\*mezclar · quedarse con la suya · tomar la nueva · congelar\*\*/);
+  assert.doesNotMatch(t, /con porqué se fusionan solas;/, 'el texto viejo: con porqué se fusionaba sola aunque chocara');
+});
+
+test('flota.md (8r 4, t2, t4, t9): la adopción con --claude-md, el director/obrero propio a mano, migrar-cambios, el clon y el último tag', () => {
+  const t = leer(FLOTA);
+  const adoptar = t.slice(t.indexOf('**"Adoptá X"**'));
+  for (const x of ['--claude-md', 'a mano', 'migrar-cambios.cjs" --repo <clon>', '--plan', '--commit', 'De dónde sale el clon', 'Cómo vuelve', '--principal', 'director-obrero']) {
+    assert.ok(adoptar.includes(x), `la adopción de flota.md no nombra ${x}`);
+  }
+  assert.ok(adoptar.indexOf('--plan') < adoptar.indexOf('--commit'), 'primero --plan, después --commit');
+  assert.doesNotMatch(t, /P6\.8b, orden 7/);
+  assert.match(t, /sin `--tag`: el último tag anotado, \*\*rc incluido\*\*, a todo proyecto con ficha/);
+  assert.match(t, /\*\*sin mezclar\*\* en su rama por defecto/);
+});
+
+test('modo-b.md y formato-spec.md (8r T1, T2, T3): el director pide la ficha; su primer mensaje es /director; la tarea 0 con su forma y el 00', () => {
+  const mb = leer(path.join(ARQ, 'anexos', 'modo-b.md'));
+  const b4 = seccion(mb, '## B4');
+  const b5 = seccion(mb, '## B5');
+  const b6 = seccion(mb, '## B6');
+  assert.ok(b4 && b5 && b6, 'modo-b.md trae B4, B5 y B6');
+  assert.match(b4, /`piezas\.director-obrero: sí` \(o `molde`\)/);
+  assert.match(b5, /`piezas\.director-obrero: sí` \(o `molde`\)[^\n]*`\.claude\/scripts\/worktree\.cjs`/);
+  assert.match(b4, /`- \*\*Tarea 0\*\*: montar la base de prueba`/);
+  assert.match(b4, /encargo `00`/);
+  assert.match(b4, /3\.0\.0-rc\.2/);
+  const director = b6.split('\n').find((l) => l.includes('**Con director**'));
+  assert.ok(director, 'B6 trae la línea con director');
+  assert.doesNotMatch(director, /inicio — ejecutá/);
+  assert.match(director, /`\/director`/);
+  assert.match(b5, /adoptar/, 'B5.6 apunta a adoptar');
+  assert.doesNotMatch(mb, /templates de esta skill/);
+  const fs0 = leer(path.join(ARQ, 'anexos', 'formato-spec.md'));
+  const abrir = fs0.split('\n').find((l) => l.startsWith('- **La línea para abrir**'));
+  const conDirector = abrir.slice(abrir.indexOf('con director'), abrir.indexOf('SPEC-0,'));
+  assert.doesNotMatch(conDirector, /inicio — ejecutá/);
+  assert.match(conDirector, /`\/director`/);
+  assert.match(fs0, /`- \*\*Tarea 0\*\*: montar la base de prueba`/);
+  assert.match(fs0, /\*\*el encargo `00`\*\*/);
+  assert.match(fs0, /`entorno — \(tarea 0: montar el entorno de prueba\)`/);
+});
+
+test('arquitecto/SKILL.md (8r t5, t7): el ruteo busca los borradores de Modo A en docs/modulos/v1/SPEC.md; apunta a adoptar, no a los moldes v2', () => {
+  const sk = leer(path.join(ARQ, 'SKILL.md'));
+  assert.ok(sk.includes('`<carpeta de proyectos>/*/docs/modulos/v1/SPEC.md`') && sk.includes('`<carpeta de proyectos>/*/SPEC-0.md`'), 'el ruteo busca los dos');
+  assert.match(sk, /lo monta el adoptador \(`adoptar`/);
+  assert.ok(!fs.existsSync(path.join(ARQ, 'templates', 'universales')), 'templates/universales/ ya no está en el Arquitecto');
+  assert.ok(fs.existsSync(path.join(ARQ, 'templates', 'adaptables', 'smoke.contrato.md')), 'los adaptables se quedan');
+  assert.doesNotMatch(leer(path.join(ARQ, 'templates', 'LEEME.md')), /^## `universales\/`/m);
+});
+
+test('consultorio.md (8r, 8): ¿Autonomía? ejecutar en auto, con acceptEdits de respaldo y el commit previo como red', () => {
+  const fila = leer(path.join(ARQ, 'anexos', 'consultorio.md')).split('\n').find((l) => l.startsWith('| ¿Autonomía? |'));
+  assert.ok(fila, 'la fila ¿Autonomía?');
+  assert.match(fila, /Ejecutar → `auto`/);
+  assert.match(fila, /`acceptEdits` de respaldo/);
+  assert.match(fila, /commit previo como red/);
+});
+
+test('templates/universales a legacy/ con lápida (8r t5)', { skip: !fs.existsSync(enRepo('legacy/LEEME.md')) && 'sin el repo del kit (legacy/)' }, () => {
+  const lapida = leer(enRepo('legacy/templates-universales-v2/LEEME.md'));
+  assert.match(lapida, /ARCHIVADO 2026-11-03/);
+  assert.ok(fs.existsSync(enRepo('legacy/templates-universales-v2/skills/inicio/SKILL.md')));
+  assert.match(leer(enRepo('legacy/LEEME.md')), /\[`templates-universales-v2\/`\]\(templates-universales-v2\/\)/);
+});
+
+test('crit. 4 (8r T4): la guía y el manual del Equipador no dicen que "preparame esta PC" o "actualizate" esperan otro tag', { skip: SIN_REPO }, () => {
+  for (const rel of ['GUIA-DE-USO.md', 'manuales/EQUIPADOR.md']) {
+    const t = leer(enRepo(rel));
+    assert.doesNotMatch(t, /cuando exista el tag|[Ll]lega con el tag|con su tag\)|el último tag es `v2/, rel);
+    for (const l of t.split('\n').filter((x) => /v2\.4\.3|versión oficial|cuando exista el tag/.test(x))) {
+      assert.doesNotMatch(l, /preparame|actualizate|preparar-pc/i, `${rel}: ${l}`);
+    }
+  }
+});
+
+test('crit. 6 (8r, 2): quién corre aprobar, dicho igual en los manuales y la guía; nadie dice la frase vieja (la de "jamás lo …")', { skip: SIN_REPO }, () => {
+  for (const rel of ['manuales/MOLDE.md', 'manuales/ROLES.md', 'manuales/SCRIPTS.md']) assert.ok(leer(enRepo(rel)).includes(APROBAR), `${rel} no trae la línea de aprobar`);
+  const guia = leer(enRepo('GUIA-DE-USO.md'));
+  assert.ok(guia.split(APROBAR).length - 1 >= 2, 'la guía la trae en la receta y en la chuleta');
+  const vieja = new RegExp('jamás lo ' + 'corras'); // en pedazos: entero, este archivo rompería el grep del criterio 6
+  for (const rel of ['GUIA-DE-USO.md', 'manuales/MOLDE.md', 'manuales/ROLES.md', 'manuales/SCRIPTS.md', 'manuales/EQUIPADOR.md']) assert.doesNotMatch(leer(enRepo(rel)), vieja, rel);
+  for (const f of [path.join(ARQ, 'SKILL.md'), SKILL, FLOTA]) assert.doesNotMatch(leer(f), vieja, f);
+});
+
+test('crit. 10 (8r, 6-8): EQUIPADOR.md con las cuatro salidas y core.hooksPath; el manual del Arquitecto con el molde v3', { skip: SIN_REPO }, () => {
+  const eq = leer(enRepo('manuales/EQUIPADOR.md'));
+  for (const x of ['**mezclar**', '**quedarse con la propia**', '**tomar la nueva**', '**congelar**', 'core.hooksPath', '--principal', '--claude-md', 'la mezcla que choca', 'nunca se resuelve sola']) {
+    assert.ok(eq.includes(x), `EQUIPADOR.md no nombra ${x}`);
+  }
+  assert.match(eq, /Perdés/, 'qué pierde cada una');
+  assert.match(eq, /\*\*sin mezclar\*\* en su rama por defecto/);
+  const ca = leer(enRepo('manuales/COMO-USAR-EL-ARQUITECTO.md'));
+  assert.doesNotMatch(ca, /molde v2/);
+  assert.doesNotMatch(ca, /`SPEC-0\.md`/);
+  assert.ok(ca.includes('docs/modulos/v1/SPEC.md') && ca.includes('adoptar --nuevo'), 'el Modo A con el molde v3');
+  assert.match(ca, /Tarea 0/);
+});
+
+test('crit. 11 (8r t8): SCRIPTS.md y MOLDE.md con lo nuevo; el README manda a "preparame esta PC"', { skip: SIN_REPO }, () => {
+  const sc = leer(enRepo('manuales/SCRIPTS.md'));
+  for (const x of ['resolver', '--nuevo', '--principal', '--claude-md', 'integrados', 'origin/<madre>', '-rc', 'desde:', 'primer mensaje: /director', 'tarea 0', '`00`', 'rc incluido', 'la mezcla chocó']) {
+    assert.ok(sc.includes(x), `SCRIPTS.md no nombra ${x}`);
+  }
+  const mo = leer(enRepo('manuales/MOLDE.md'));
+  for (const x of ['resolver', '--nuevo', '--principal', '--claude-md', 'integrados', '-rc', 'desde:', 'la mezcla chocó', 'el banner quedó en', 'cambios.cjs nuevo']) {
+    assert.ok(mo.includes(x), `MOLDE.md no nombra ${x}`);
+  }
+  const ro = leer(enRepo('manuales/ROLES.md'));
+  for (const x of ['primer mensaje es `/director`', '/obrero <x>--<ID>', '.kit-rol', 'después: /cierre', 'integrados']) assert.ok(ro.includes(x), `ROLES.md no nombra ${x}`);
+  const instalar = seccion(leer(enRepo('README.md')), '## Instalar');
+  assert.ok(instalar, 'el README trae ## Instalar');
+  assert.match(instalar, /preparame esta PC/);
+  assert.doesNotMatch(instalar, /INSTALAR\.md/);
+});

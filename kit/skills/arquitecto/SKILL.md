@@ -28,13 +28,13 @@ Recién con la entrada clara, leé su anexo (`~/.claude/skills/arquitecto/anexos
 | consultorio | "¿cómo le pido a Claude…?", "armame el prompt", "quiero una skill para…" | `consultorio.md` |
 | la flota | "¿cómo está la flota?", "poné al día X", "adoptá X" | `flota.md` |
 
-1. **¿Retome pendiente?** Un spec en `Estado: BORRADOR`: `<carpeta de proyectos>/*/SPEC-0.md` (se retoma por Modo A) o, parado en un proyecto, `docs/SPEC-*.md` y `docs/modulos/*/SPEC.md` (por Modo B). Pedido claro y ajeno: una línea ("ojo: quedó X a medias") y seguís. Ambiguo o coincide: ofrecé retomarlo como pregunta.
+1. **¿Retome pendiente?** Un spec en `Estado: BORRADOR`: `<carpeta de proyectos>/*/docs/modulos/v1/SPEC.md` y `<carpeta de proyectos>/*/SPEC-0.md` (los de antes del molde v3), que se retoman por Modo A (H1 `# SPEC-0:`), o, parado en un proyecto, `docs/SPEC-*.md` y `docs/modulos/*/SPEC.md` (por Modo B, salvo un `# SPEC-0:`). Pedido claro y ajeno: una línea ("ojo: quedó X a medias") y seguís. Ambiguo o coincide: ofrecé retomarlo como pregunta.
 2. **¿Dónde estás parado?** Un proyecto real (`.git/`, código o `CLAUDE.md`) y el pedido es sobre ESO → feature.
 3. **Ambiguo** → UNA AskUserQuestion con las entradas. **Nunca adivines**: errarle cuesta media hora de charla.
 
 Ecosistema ("¿qué tenemos y cómo se cruza?") → el Hub; un pedido de otra persona que hay que relevar → `/relevamiento`. Una línea y a su puerta.
 
-Bajo demanda: `banco-de-preguntas.md`, `concerns.md`, `matriz-stacks.md`, `formato-spec.md`, `methods.csv`; los moldes, en `~/.claude/skills/arquitecto/templates/` (su `LEEME.md`).
+Bajo demanda: `banco-de-preguntas.md`, `concerns.md`, `matriz-stacks.md`, `formato-spec.md`, `methods.csv`. El sistema de un proyecto lo monta el adoptador (`adoptar`: `modo-a.md` y `flota.md`), nunca a mano; en `templates/` quedan solo los contratos adaptables (`smoke`, `deploy`; su `LEEME.md`).
 
 ## Reglas de oro (en todas las entradas)
 

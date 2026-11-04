@@ -5,9 +5,8 @@
 > (`/arquitecto-skills`) o se lo pedís al Arquitecto, que te pasa. Si este manual y el kit difieren, manda el kit
 > (`kit/skills/arquitecto-skills/SKILL.md` y la cabecera de cada script en `scripts/`).
 
-**Ojo con la versión**: lo de este manual es el kit v3. "Preparame esta PC" y "actualizate" bajan **el último tag** del repo, y hoy
-el último tag es `v2.4.3`, que no trae `preparar-pc.cjs` ni el actualizador. Andan en una PC recién **cuando exista el tag del kit v3**
-(o un `v3.0.0-rc`). Hasta ahí, lo de abajo está construido y probado con PCs y repos de prueba, no en tus PCs.
+**La versión**: lo de este manual es el kit v3. "Preparame esta PC" y "actualizate" bajan **el último tag anotado** del repo (el que
+imprime `actualizar.cjs ultimo-tag`, rc incluido), y andan desde la beta `v3.0.0-rc.1`.
 
 ---
 
@@ -83,8 +82,9 @@ trabajo nunca se toca** (todo pasa en clones temporales del repo remoto).
 `actualizar.cjs flota <X>… | todo --canon <repo del kit> [--proyectos <carpeta>]`. Por cada repo, uno detrás del otro:
 
 1. Clona el kit en su último tag y **un clon temporal** del repo.
-2. **Saltea con su porqué** el que tiene obra en curso (ramas `modulo/*` vivas), el que ya está al día y el que ya tiene su rama
-   `kit/<versión>` esperando.
+2. **Saltea con su porqué** el que tiene obra en curso (ramas `modulo/*` del remoto **sin mezclar** en su rama por defecto; las ya
+   mezcladas no cuentan), el que ya está al día y el que ya tiene su rama `kit/<versión>` esperando. Si mezclaste el módulo con squash
+   en GitHub, la flota no lo ve mezclado: borrá la rama desde la web y la próxima vuelta entra.
 3. En la rama `kit/<versión>` aplica el kit pieza por pieza según la ficha del proyecto (`.claude/kit.md`), commitea y corre el
    **chequeo** (nueve líneas). El commit y el push los juzgan los frenos del molde nuevo.
 4. **Verde** → la rama por defecto avanza con un commit del kit. **Rojo** → nada llega a la rama por defecto: queda la rama `kit/…`
@@ -93,9 +93,26 @@ trabajo nunca se toca** (todo pasa en clones temporales del repo remoto).
 
 Te devuelve **una tabla** (mezclado · salteado con su porqué · ROTA · te espera) y la lista "te espera:".
 
-**Lo que adaptaste en un proyecto no se pisa**: si la pieza tiene su porqué, se fusiona sola; si no, queda en `.claude/fusiones/` del
-proyecto y la próxima vez que abras ese proyecto `/inicio` te hace **una** pregunta con el diff. (Abierto, para decidir: qué cuenta
-como "porqué" hoy; está en Pendientes del tracker. NO VERIFICADO: la fusión con un `claude` real, todas las pruebas usan uno falso.)
+**`todo` sin `--tag` reparte el último tag anotado, rc incluido, a todo proyecto con ficha.** Hoy solo Hermes tiene ficha; cuando se
+sumen otros, una beta les llega igual: para repartir solo una versión final (sin beta), pasá `--tag v<X.Y.Z>`.
+
+**Lo que adaptaste en un proyecto no se pisa.** Una pieza adaptada (la cambiaste a tu gusto; su porqué es el `por:` en la ficha):
+- con su porqué y una mezcla limpia (el kit cambió en otro lugar que vos) → se fusiona sola;
+- sin porqué → queda en `.claude/fusiones/<pieza>.md` del proyecto, "te espera";
+- **la mezcla que choca** (el kit cambió justo donde vos) **nunca se resuelve sola**: queda "te espera" con el motivo `la mezcla
+  chocó…`. Si hay `claude`, arma una propuesta de fusión, pero no la aplica. El informe trae qué pieza es, por qué la habías adaptado,
+  qué trae la versión nueva y `## Dónde chocan` (lo tuyo y lo nuevo, lado a lado).
+
+La próxima vez que abras ese proyecto, `/inicio` te lo cuenta en criollo y te recomienda una salida con criterio (si lo nuevo vale la
+pena frente a tu porqué); lo decidís charlando con la sesión, y lo escribe `actualizar.cjs resolver`. **Las cuatro salidas**, y qué
+pierde cada una:
+- **mezclar**: lo tuyo encima de lo nuevo (la fusión propuesta). No perdés nada, si la mezcla se puede armar.
+- **quedarse con la propia**: sigue adaptada, sin lo nuevo; la próxima versión del kit se te vuelve a ofrecer. Perdés lo nuevo, por ahora.
+- **tomar la nueva**: la versión del kit entera; la pieza pasa a `molde` y se actualiza sola de ahí en más. Perdés lo tuyo fuera de la
+  zona propia (el informe dice qué).
+- **congelar**: queda `propia`, el kit no la toca más. Perdés todas las mejoras futuras de esa pieza (no va en una pieza de frenos).
+
+NO VERIFICADO: la propuesta con un `claude` real; todas las pruebas usan uno falso.
 
 Si la pestaña está en `auto` y el clasificador no la deja pushear, **la línea la corrés vos en tu terminal** (nunca en bypass).
 
@@ -104,12 +121,22 @@ Si la pestaña está en `auto` y el clasificador no la deja pushear, **la línea
 Un repo que todavía no tiene el kit v3 **se adopta, no se actualiza**. Va en dos tiempos:
 
 1. **Mirar** (`actualizar.cjs adoptar <carpeta> --kit <clon del kit> --mirar --propuesta <archivo>`): no cambia nada. Deja una
-   propuesta: la ficha que tendría el repo, qué piezas trae, cuáles son propias del proyecto y no se pisan.
+   propuesta: la ficha que tendría el repo, qué piezas trae, cuáles son propias del proyecto y no se pisan. En un repo con código trae
+   también `/director` y `/obrero` (el módulo con director los necesita); si ya tenés los tuyos y son distintos, quedan `propia` y la
+   sesión lo resuelve con vos. Del `CLAUDE.md` te dice si le falta "El tamaño del pedido" y si habla de un director u obrero propio.
 2. **La pantalla, con vos delante**: la sesión arma el `NORTE.md`, el mapa, el plano de `docs/` y las reglas propias del proyecto
    como cambios. Vos das el OK.
-3. **Aplicar** (`--aplicar <archivo>`, en un clon): dos commits (las piezas, la ficha), el chequeo de frenos en verde y push. Dentro
-   del mismo OK, la **portada** (el README que se ve en GitHub, armado desde `NORTE.md`); si el repo ya tiene un README propio, queda
-   como está y te avisa *"portada: README propio, queda apagada"*.
+3. **Aplicar**, todo dentro de ese mismo OK. El clon sale del origin de tu carpeta (sin remoto, de tu carpeta misma) a un temporal;
+   tu carpeta no se toca: el resultado vuelve por el push y lo trae el `pull` de tu próximo `/inicio`.
+   - `--aplicar <archivo> --principal <tu carpeta>`: escribe las piezas en el clon y **prende los githooks en tu carpeta** (pone
+     `core.hooksPath` = `.githooks` ahí, nunca en el clon; la línea `githooks ·` dice cómo quedó). Con `--claude-md`, le suma al
+     final de tu `CLAUDE.md` la sección "El tamaño del pedido" del molde (si ya la trae, nada).
+   - Si tu `CLAUDE.md` tiene su director u obrero propio, la sesión te propone cambiarlo a mano por un puntero a `/director` y
+     `/obrero`.
+   - Si el proyecto tiene su registro de cambios propio (el `CAMBIOS.md` de Hermes), la migración: `migrar-cambios.cjs --plan` para
+     ver, después `--commit` (ver abajo).
+   - Dos commits (las piezas, la ficha), el chequeo de frenos en verde y push. La **portada** (el README que se ve en GitHub, armado
+     desde `NORTE.md`); si el repo ya tiene un README propio, queda como está y te avisa *"portada: README propio, queda apagada"*.
 
 ### "¿Qué se repite en la flota?" — `cambios-flota`
 

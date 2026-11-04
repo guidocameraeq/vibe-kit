@@ -62,7 +62,7 @@ Cada pieza es una *skill*: instrucciones que Claude Code carga cuando las llamá
 |---|---|---|
 | 📐 | **`/arquitecto`** | Piensa antes de hacer. Proyecto nuevo → entrevista, plano y montaje completo. Feature grande sobre algo que ya anda → explora el código y escribe qué cambia y qué no. ¿No sabés cómo pedir algo? → te arma el pedido |
 | 📋 | **`/relevamiento`** | Cuando te piden algo en el laburo: ordena la charla en 4 documentos con un PDF por etapa, y decide con evidencia si hace falta software (construir es solo una de seis salidas) |
-| 🧰 | **`/arquitecto-skills`** · el Equipador | Prepara la PC: instala las skills de un menú curado, las actualiza y se actualiza a sí mismo (`actualizate`) |
+| 🧰 | **`/arquitecto-skills`** · el Equipador | Prepara la PC (el kit, sus frenos y las skills de un menú curado), pone al día tus proyectos y se actualiza a sí mismo (`actualizate`) |
 | 🔁 | **`inicio` / `cierre`** | Los rituales de cada chat: arrancar sabiendo dónde quedaste, cerrar con todo guardado, commiteado y listo para tirar el chat |
 | 🗂️ | **`/docs-fyd`** | La documentación técnica de auditoría de un repo, sacada del código; lo que el código no sabe, te lo pregunta con opciones |
 | 🔭 | **El observatorio** | Mira y anota, no toca: extrae tips de videos e investiga los chats reales para proponer mejoras ([más](observatorio/)) |
@@ -90,10 +90,12 @@ nueva"…) están en la **[guía de uso](GUIA-DE-USO.md)**.
 
 Hace falta: [Claude Code](https://claude.com/claude-code) funcionando y git.
 
-1. Clonar este repo.
-2. Abrir Claude Code en `kit/` y pegar el prompt de [`kit/INSTALAR.md`](kit/INSTALAR.md). Copia las
-   skills a `~/.claude/`, pregunta dónde viven tus proyectos y verifica todo.
-3. Al final ofrece equipar la máquina con el menú curado de skills.
+1. Clonar este repo, completo (con sus tags).
+2. Abrir Claude Code en esa carpeta y decirle **"preparame esta PC"**, con el Equipador
+   ([`kit/skills/arquitecto-skills/SKILL.md`](kit/skills/arquitecto-skills/SKILL.md)): se para en la última versión, te hace
+   **una sola pregunta** (el plan y dónde viven tus proyectos) y deja el kit en `~/.claude/`, los frenos de la PC y los ajustes de
+   Claude Code. Termina con "reiniciá Claude Code".
+3. Después, *"instalame skills"* te ofrece el menú curado.
 
 ¿Ya lo tenés? Decile **`actualizate`** al Equipador y baja lo último.
 

@@ -22,6 +22,7 @@ tabla de ADR-023.
 | [`RECORRIDO-relevamiento.md`](RECORRIDO-relevamiento.md) | El relato de uso que le pasó el tono al chat constructor | 2026-08-03 | La skill ya construida |
 | [`PRESUPUESTO-relevamiento.md`](PRESUPUESTO-relevamiento.md) | El contrato de líneas del build de `/relevamiento` | 2026-10-13 (ADR-023) | La skill ya construida |
 | [`COMO-USAR-EL-ARQUITECTO-v2.md`](COMO-USAR-EL-ARQUITECTO-v2.md) | El manual del Arquitecto v2 (tres puertas, el Equipador adentro) | 2026-11-03 (v3) | `manuales/COMO-USAR-EL-ARQUITECTO.md`, `EQUIPADOR.md` y `ROLES.md` |
+| [`templates-universales-v2/`](templates-universales-v2/) | El molde v2 del Arquitecto (`kit/skills/arquitecto/templates/universales/`) | 2026-11-03 (v3, D8r.1) | `kit/molde/`, montado por el adoptador (`adoptar`) |
 
 **Lo que no está acá**: lo crudo de las investigaciones (chats condensados, hallazgos, informes de revisión) no se archiva en este
 repo público. Vive en el repo privado de investigación (ADR-025).

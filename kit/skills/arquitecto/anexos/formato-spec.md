@@ -100,8 +100,8 @@ Tamaño: módulo solo
 ```
 
 - **Su primera línea con texto dice `módulo solo` o `módulo con director`**, una sola de las dos (la lee `sello`). Con ficha, coincide con la ficha del módulo: `módulo solo` ↔ `director: no`; `módulo con director` ↔ `director: sí` y `rama: modulo/<x>`.
-- **Director, solo** con dos o más tareas que se escriben a la vez o noche sin Guido; varias sesiones seguidas son módulo solo.
-- **La línea para abrir**: módulo solo, `inicio — ejecutá docs/modulos/<x>/SPEC.md (está READY)` en un chat nuevo en la raíz del proyecto; con director, lo que imprime `worktree.cjs`: primero la vía de VS Code (`code "<ruta del worktree>"` y, en esa ventana, la pestaña de Claude con Opus, sesión `director-<x>`) y, solo si `claude` está en el PATH, la de terminal (`cd "<ruta>"; claude --name director-<x> --model opus`, con `;` y no `&&`: PowerShell 5.1 no tiene `&&`); adentro, la misma línea de `inicio`; SPEC-0, la de módulo solo con `v1`: `inicio — ejecutá docs/modulos/v1/SPEC.md (está READY)`; sin ficha, `inicio — ejecutá el spec docs/SPEC-<x>.md (está READY)`.
+- **Director, solo** con dos o más tareas que se escriben a la vez o noche sin Guido, y con `piezas.director-obrero: sí` (o `molde`) en la ficha del proyecto; varias sesiones seguidas son módulo solo.
+- **La línea para abrir**: módulo solo, `inicio — ejecutá docs/modulos/<x>/SPEC.md (está READY)` en un chat nuevo en la raíz del proyecto; con director, lo que imprime `worktree.cjs`: primero la vía de VS Code (`code "<ruta del worktree>"` y, en esa ventana, la pestaña de Claude con Opus, sesión `director-<x>`) y, solo si `claude` está en el PATH, la de terminal (`cd "<ruta>"; claude --name director-<x> --model opus`, con `;` y no `&&`: PowerShell 5.1 no tiene `&&`); adentro, el primer mensaje es `/director` (lo imprime `worktree.cjs`: `primer mensaje: /director`); SPEC-0, la de módulo solo con `v1`: `inicio — ejecutá docs/modulos/v1/SPEC.md (está READY)`; sin ficha, `inicio — ejecutá el spec docs/SPEC-<x>.md (está READY)`.
 
 ## La sección Entorno de prueba (todo spec READY la lleva)
 
@@ -115,6 +115,7 @@ Tamaño: módulo solo
 ```
 
 - Si falta el entorno, **montarlo es la tarea 0 del spec**; si eso solo es más que chico, es su propio módulo y va antes. `sello` lo chequea con la ficha (`gate:entorno-prueba`: por cada entorno `clase: real` hay un `dummy` o `prueba`; sin `real`, `comando-test` corre en verde; cada herramienta, su chequeo). Sin ficha, el sello dice `— (sin ficha del kit)`.
+- **La tarea 0, con la base real y ninguna de prueba**: el primer renglón del cuerpo de `## Entorno de prueba` (fuera de los bloques de código) es `- **Tarea 0**: montar la base de prueba` (vale también `- Tarea 0: …` sin negrita). Con eso, si la única falla de entornos es "real sin dummy ni prueba", el spec es `módulo con director` y el `kit:` de la ficha es ≥ `3.0.0-rc.2`, `sello` pone `entorno — (tarea 0: montar el entorno de prueba)`; si no, niega y dice por qué (en un módulo solo: la base de prueba es un módulo previo; con un kit más viejo: poné al día el proyecto). La tarea 0 es **el encargo `00`**: monta la base y suma su entorno (`clase: prueba` o `dummy`) a `entornos:` de la `.claude/kit.md` en `modulo/<x>`; hasta que esa ficha lo tenga, `encargo.cjs autorizado` y `presentar` niegan todo otro encargo.
 - Un proyecto `liviano` (sin código) escribe "no aplica: sin código" y qué se revisa en su lugar.
 
 ## Reglas al escribirlo

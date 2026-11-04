@@ -5,8 +5,11 @@
 > cada cosa. Es lo que ves **dentro de un proyecto**, no del repo del método. Si difiere del kit, manda el kit: `kit/molde/`
 > (empezá por su `CLAUDE.md`). Los scripts, uno por uno, están en [`SCRIPTS.md`](SCRIPTS.md).
 
-Lo normal es que no toques nada de esto a mano: lo pone el Arquitecto (proyecto nuevo) o el adoptador del Equipador (proyecto que
-ya existe), y lo mantiene el actualizador (`manuales/EQUIPADOR.md`). Lo que sí te toca a vos: leer la ficha de vez en cuando,
+Lo normal es que no toques nada de esto a mano: lo pone el adoptador (`actualizar.cjs adoptar`), con `--nuevo` cuando el Arquitecto
+monta un proyecto nuevo (Modo A) o con "adoptá X" para uno que ya existe, y lo mantiene el actualizador (`manuales/EQUIPADOR.md`). En
+los dos casos trabaja sobre un clon y prende los githooks en tu carpeta con `--principal` (pone `core.hooksPath` = `.githooks`). Tu
+`CLAUDE.md`, si ya había uno, no se toca, salvo que en el OK de la adopción digas que sí a `--claude-md` (le suma al final "El tamaño
+del pedido"). Lo que sí te toca a vos: leer la ficha de vez en cuando,
 aprobar los cambios del método y contestar las cinco preguntas.
 
 ---
@@ -19,10 +22,10 @@ es un ejemplo de la forma, no una ficha para copiar.
 
 | Campo | Qué dice |
 |---|---|
-| `kit` | La versión del kit con la que está al día el proyecto (la sube el actualizador). |
+| `kit` | La versión del kit con la que está al día el proyecto (la sube el actualizador): la versión entera, también una beta (`3.0.0-rc.2`). |
 | `nivel` | `liviano` (sin código) o `estandar` (con código). |
 | `vars` | Con qué se armó el molde: `proyecto`, `comando-test`, `comando-setup`, `lenguajes`. Sin esto no se puede regenerar. |
-| `piezas` | Cada pieza del molde con su estado (`molde`, `molde+propio`, `adaptada`, `propia`, `sí`, `no`) y su `hash` (12 hexa de lo que escribió el molde). Una `adaptada` o `propia` lleva `por:` (el porqué): con él el actualizador fusiona sola. |
+| `piezas` | Cada pieza del molde con su estado (`molde`, `molde+propio`, `adaptada`, `propia`, `sí`, `no`) y su `hash` (12 hexa de lo que escribió el molde). Una `adaptada` o `propia` lleva `por:` (el porqué): con él, si la mezcla sale limpia, el actualizador la fusiona sola; si choca, te pregunta (§11). `desde:` lo escribe `resolver` cuando te quedás con la tuya: la versión desde la que se te vuelve a ofrecer. |
 | `frenos` | `opcionales` y `quitados`: cada freno quitado con su `id`, la razón (`por`) y hasta cuándo (`hasta`: una fecha o `siempre`). |
 | `autorizado` | Lo que **no** es pregunta en este proyecto (por ejemplo `merge-a-main: con-gate-verde`). |
 | `sensible` | Las 5 preguntas de fábrica (§4): `no`, o los comandos que duelen acá. |
@@ -149,9 +152,11 @@ Los estados, en orden de vida: **propuesto → aprobado → aplicado → subió-
 
 - `cambios.cjs nuevo` crea uno; `listar` los muestra; `verificar` revisa que el registro esté sano; `anotar-sha` guarda con qué
   commit se aplicó; `rechazar` lo descarta con motivo; `subio-al-kit` marca que ya está en una versión del kit.
-- **`cambios aprobar <id>` es del dueño** (vos). Es el único camino a `aprobado`, y el OK para tocar un freno. Pasa por una ventana
-  de permiso, y además se niega solo si lo corre un agente, un modo sin ventana (bypass, de noche), un worktree, una rama que no es
-  la por defecto, un archivo sin commitear o con la ficha rota. Ni el director ni un obrero lo corren.
+- **`cambios aprobar <id>` es del dueño** (vos). Es el único camino a `aprobado`, y el OK para tocar un freno. `cambios aprobar` lo corre la sesión cuando el dueño lo pide, y su clic en la ventana es la firma; nunca por su cuenta.
+  Además se niega solo si lo corre un agente, un modo sin ventana (bypass, de noche), un worktree, una rama que no es la por defecto,
+  un archivo sin commitear o con la ficha rota. Ni el director ni un obrero lo corren.
+- **Quién anota**: si la sesión cambió cómo trabaja el proyecto (un freno, una regla, un paso de un ritual), lo anota:
+  `node .claude/scripts/cambios.cjs nuevo …` (lo dicen el `CLAUDE.md` del molde y el `/cierre`).
 - Los archivos de `.claude/cambios/` no se editan a mano (hay un `deny`): cada cambio de estado lo hace el script y deja su commit.
 - La flota agrega: `cambios-flota.cjs` cuenta lo que se repite entre proyectos (`manuales/EQUIPADOR.md`).
 
@@ -162,6 +167,9 @@ líneas) y de la ficha. Lleva título, banner (`assets/banner.svg`), qué es, c�
 **Sin pendientes, historial ni versión**: eso vive en el TODO, el CHANGELOG y la ficha. Si "Qué es" sigue con el marcador `{{…}}`, no
 escribe nada (no inventa). Lo que escribió lleva una marca con su hash: si lo tocaste a mano, no lo pisa. `chequear` es el mismo
 chequeo que el id `portada` del candado.
+
+Con un README propio, `armar` no lo pisa (sale 1) pero el banner igual queda, y te lo dice en un renglón: *"el banner quedó en
+assets/banner.svg: enlazalo arriba del README si querés"* (si tu README ya lo enlaza, no).
 
 ## 9. Los subagentes del molde (`.claude/agents/`)
 
@@ -181,9 +189,28 @@ llamás.
 ## 10. Las skills del molde (`.claude/skills/`)
 
 `inicio`, `cierre`, `estado`, `director`, `obrero`, `tramo` y el `nucleo` (que no es una skill: lo leen los demás antes de
-empezar). Cómo se usan: `manuales/ROLES.md`.
+empezar). `director`, `obrero`, `tramo`, `nucleo` y los subagentes son la pieza `director-obrero`; con `estado`, vienen en todo
+proyecto nuevo y al adoptar uno con código. Cómo se usan: `manuales/ROLES.md`.
 
-## 11. Lo que no viene en el molde
+Lo que hacen los scripts del módulo que vale saber desde acá (el detalle, en `ROLES.md` y `SCRIPTS.md`):
+- **El primer mensaje**: `worktree.cjs crear` termina en `primer mensaje: /director` (o `/obrero <x>--<ID>` para un encargo), y el
+  `/inicio` de esa pestaña deriva solo por el `.kit-rol` y la rama.
+- **La tarea 0**: con el sello `entorno — (tarea 0: montar el entorno de prueba)`, `encargo.cjs autorizado` niega todo encargo que no
+  sea el `00` hasta que la ficha de `modulo/<x>` tenga un entorno `dummy` o `prueba`.
+- **Después de integrar**: `integrar` termina en `después: /cierre en tu carpeta principal …`, y `worktree.cjs integrados` (lo corre el
+  `/inicio` después del `pull`) avisa si hubo un módulo integrado después del último handoff. `cerrar` borra la rama de origin si ya está
+  mezclada en `origin/<madre>`.
+
+## 11. Cuando el kit cambia algo que adaptaste
+
+Si cambiaste una pieza a tu gusto (`adaptada`, con su `por:`), el actualizador la pone al día sin pisarte: si el kit cambió en otro
+lugar, la mezcla sola. **Si la mezcla choca** (el kit cambió justo donde vos), **nunca se resuelve sola**: queda en
+`.claude/fusiones/<pieza>.md` con el motivo `la mezcla chocó…`, qué pieza es, por qué la habías adaptado, qué trae la versión nueva y
+`## Dónde chocan`. El `/inicio` te pregunta, te recomienda una con criterio y vos elegís una de las cuatro salidas (mezclar · quedarse
+con la propia · tomar la nueva · congelar); la escribe `actualizar.cjs resolver . <pieza> <salida> --por "<por qué>"`. Qué pierde
+cada una: `manuales/EQUIPADOR.md` §5.
+
+## 12. Lo que no viene en el molde
 
 Las skills globales (`docs-fyd`, `relevamiento`, el Arquitecto y el Equipador) viven en `~/.claude/`, no en el proyecto. El
 Equipador las instala y las pone al día (`manuales/EQUIPADOR.md`); `docs-fyd` y `relevamiento` tienen su guía propia
