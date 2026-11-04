@@ -13,7 +13,9 @@
 // Opciones: moldeNuevo (carpeta con la forma de kit/molde/, CON sus *.test.cjs: los usa la línea 7) · moldeViejo (opcional: va a
 // barreras como --molde-viejo) · moldeCrudo (opcional: el kit/molde/ del --kit sin instanciar; la línea 7 copia ESE y no moldeNuevo) · base (sha o ref) · plazoMs (de comando-test y de las pruebas de la línea 7; 30 min por defecto) ·
 // version (opcional: la versión nueva; sin ella la línea 5 exige que la ficha de HEAD sea mayor que la de <base>) · gitleaks
-// (opcional, para las pruebas: la ruta del ejecutable, o null = "no hay"; sin la opción se busca en el PATH y en WinGet\Links).
+// (opcional, para las pruebas: la ruta del ejecutable, o null = "no hay"; sin la opción se busca en el PATH y en WinGet\Links) ·
+// shell (opcional, para las pruebas: la shell de comando-setup y comando-test; sin ella, shellDeComandos de proceso.cjs: Git Bash
+// en Windows, D8r2-3).
 //
 // Lo que corre afuera, siempre con plazo y sin heredar NODE_*, GITLEAKS_*, KIT_* ni las GIT_* que mueven el repo: node, git,
 // gitleaks, el hook de arranque, estructura.cjs, comando-setup (si la ficha lo trae) y comando-test. El plazo lo cuida un vigía (un node aparte) que mata el árbol entero
@@ -28,6 +30,7 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 const { leerJsonSinDuplicados } = require('../../pc/lib/zona-propia.cjs');
 const ficha = require('../../pc/lib/ficha.cjs');
+const { shellDeComandos, comandoQueNoCorre } = require('../../pc/lib/proceso.cjs');
 const { seInstancia } = require('./molde.cjs');
 const { RUTA_FUSIONES } = require('./fusion.cjs');
 
@@ -122,7 +125,9 @@ let contador = 0;
 function correr(cmd, args, o) {
   const id = `c${++contador}`;
   const archivos = { out: path.join(o.tmp, `${id}.out`), res: path.join(o.tmp, `${id}.res`), cfg: path.join(o.tmp, `${id}.json`) };
-  const cfg = { cmd, args, cwd: o.cwd, shell: !!o.shell, entrada: o.entrada === undefined ? null : o.entrada, plazo: o.plazo, out: archivos.out, res: archivos.res };
+  // shell: false (sin shell), true (la de los comandos: shellDeComandos) o la ruta de una (la que inyectan las pruebas)
+  const shell = o.shell === true ? shellDeComandos() : o.shell || false;
+  const cfg = { cmd, args, cwd: o.cwd, shell, entrada: o.entrada === undefined ? null : o.entrada, plazo: o.plazo, out: archivos.out, res: archivos.res };
   fs.writeFileSync(archivos.cfg, JSON.stringify(cfg));
   const r = spawnSync(process.execPath, ['-e', VIGIA, archivos.cfg], { env: o.env || entorno(), stdio: 'ignore', timeout: o.plazo + 30000, windowsHide: true });
   let res = null;
@@ -602,7 +607,10 @@ function casos(ctx) {
 
 // ---------------------------------------------------------------- 8. pruebas
 
+// rt-1 (D8r.2): `&&` sí (el setup de Python lo usa: `py -3 -m venv .venv && …`); `|`, `;`, `<`, `>`, un `&` solo, backtick, `$(`
+// y saltos de línea, no.
 const RE_TUBERIA = /[|&;<>`\r\n]|\$\(/;
+const conTuberia = (c) => RE_TUBERIA.test(c.split('&&').join(' '));
 function pruebas(ctx) {
   const f = leerFicha(ctx);
   if (f.error) nv(`sin ficha que se lea no hay comando-test (${f.error})`);
@@ -612,15 +620,21 @@ function pruebas(ctx) {
     if (f.r.datos.nivel === 'liviano') return bien('nivel liviano: la ficha no trae comando-test');
     nv('la ficha no dice vars.comando-test');
   }
-  if (RE_TUBERIA.test(cmd)) nv(`comando-test con tuberías o redirecciones no se corre: ${corto(cmd, 80)}`);
+  if (conTuberia(cmd)) nv(`comando-test con tuberías o redirecciones no se corre: ${corto(cmd, 80)}`);
+  // La shell de los comandos (t6): la de la consola del director; el guardia de `cmd /c` / `cmd //c` (rt-2) antes de correr nada.
+  const shell = ctx.shell !== undefined ? ctx.shell : shellDeComandos();
+  const niegaTest = comandoQueNoCorre(cmd, shell);
+  if (niegaTest) nv(`comando-test no se corre: ${niegaTest}: ${corto(cmd, 80)}`);
   // comando-setup (opcional; p. ej. `npm ci`): en un clon fresco no hay dependencias, y sin él todo daría "ya estaba rojo antes".
   // Mismo plazo y misma regla de "sin tuberías"; se corre antes de comando-test, en HEAD y en el clon de base.
   const setup = typeof vars['comando-setup'] === 'string' ? vars['comando-setup'].trim() : '';
-  if (setup && RE_TUBERIA.test(setup)) nv(`comando-setup con tuberías o redirecciones no se corre: ${corto(setup, 80)}`);
+  if (setup && conTuberia(setup)) nv(`comando-setup con tuberías o redirecciones no se corre: ${corto(setup, 80)}`);
+  const niegaSetup = setup ? comandoQueNoCorre(setup, shell) : null;
+  if (niegaSetup) nv(`comando-setup no se corre: ${niegaSetup}: ${corto(setup, 80)}`);
   // → null si anduvo (o no hay), o el motivo por el que no anduvo
   const prepararEn = (cwd) => {
     if (!setup) return null;
-    const s = correr(setup, [], { cwd, plazo: ctx.plazoMs, shell: true, tmp: ctx.tmp });
+    const s = correr(setup, [], { cwd, plazo: ctx.plazoMs, shell, tmp: ctx.tmp });
     if (s.colgado) return `comando-setup colgado: no terminó en ${minutos(ctx.plazoMs)}`;
     if (s.error) return `comando-setup no arrancó (${s.error})`;
     if (s.status !== 0) return `comando-setup (${corto(setup, 60)}) salió con ${s.status}: ${corto(s.salida, 80) || 'sin salida'}`;
@@ -628,7 +642,7 @@ function pruebas(ctx) {
   };
   const fallaSetup = prepararEn(ctx.carpeta);
   if (fallaSetup) nv(fallaSetup);
-  const r = correr(cmd, [], { cwd: ctx.carpeta, plazo: ctx.plazoMs, shell: true, tmp: ctx.tmp });
+  const r = correr(cmd, [], { cwd: ctx.carpeta, plazo: ctx.plazoMs, shell, tmp: ctx.tmp });
   if (r.colgado) nv(`comando-test colgado: no terminó en ${minutos(ctx.plazoMs)}`);
   if (r.error) nv(`comando-test no arrancó (${r.error})`);
   if (r.status === 0) return bien(`${cmd} en verde`);
@@ -640,7 +654,7 @@ function pruebas(ctx) {
   if (!k.ok) antes = ' (no pude ver si ya estaba rojo antes)';
   else {
     const fallaBase = prepararEn(dir);
-    const rb = fallaBase ? null : correr(cmd, [], { cwd: dir, plazo: ctx.plazoMs, shell: true, tmp: ctx.tmp });
+    const rb = fallaBase ? null : correr(cmd, [], { cwd: dir, plazo: ctx.plazoMs, shell, tmp: ctx.tmp });
     if (fallaBase) antes = ` (en base ${fallaBase}: no se sabe si ya estaba rojo antes)`;
     else if (rb.colgado) antes = ' (en base se colgó: no se sabe si ya estaba rojo antes)';
     else if (!rb.error && rb.status !== 0) antes = ' — ya estaba rojo antes';
@@ -747,7 +761,7 @@ function chequear(carpeta, opciones = {}) {
   let tmp = null;
   try {
     const o = opciones || {};
-    const ctx = { moldeViejo: o.moldeViejo ? path.resolve(o.moldeViejo) : null, version: o.version || null, gitleaks: o.gitleaks };
+    const ctx = { moldeViejo: o.moldeViejo ? path.resolve(o.moldeViejo) : null, version: o.version || null, gitleaks: o.gitleaks, shell: o.shell };
     ctx.plazoMs = Number.isFinite(o.plazoMs) && o.plazoMs > 0 ? o.plazoMs : PLAZO_DEFECTO;
     if (typeof carpeta !== 'string' || !carpeta) throw new NoVerificado('no me pasaron la carpeta');
     let raiz;

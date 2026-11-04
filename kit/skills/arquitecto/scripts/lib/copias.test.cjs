@@ -20,6 +20,14 @@ test('lib/ficha.cjs es idéntica byte a byte a la del molde', () => {
   assert.ok(fs.readFileSync(path.join(LIB, 'ficha.cjs')).equals(fs.readFileSync(par)), 'lib/ficha.cjs se desvió del molde — volvé a copiarla byte a byte');
 });
 
+// D8r.2 t6: lib/proceso.cjs (la shell de los comandos del sello y el guardia de `cmd`) es la del molde, byte a byte. Se cambia en
+// el molde (hooks/lib/proceso.cjs) y se copia acá: nunca al revés.
+test('lib/proceso.cjs es idéntica byte a byte a la del molde', () => {
+  const par = path.join(MOLDE_LIB, 'proceso.cjs');
+  assert.ok(fs.existsSync(par), 'no encuentro kit/molde/hooks/lib/proceso.cjs');
+  assert.ok(fs.readFileSync(path.join(LIB, 'proceso.cjs')).equals(fs.readFileSync(par)), 'lib/proceso.cjs se desvió del molde — volvé a copiarla byte a byte');
+});
+
 // SPEC-paquete-5 "sello.cjs al molde" (D4-9, D5-7; criterio 8): la copia del molde (la usa `encargo.cjs presentar`) es idéntica
 // byte a byte. Se cambia acá, en el Arquitecto, y se copia: nunca al revés.
 const identicas = (a, b) => Buffer.isBuffer(a) && Buffer.isBuffer(b) && a.equals(b);

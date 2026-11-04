@@ -485,8 +485,30 @@ test('8 pruebas (RF-5): comando-setup que falla → NO VERIFICADO con su motivo 
   nueveBienFormadas(r);
   rojo(r, 'pruebas', /NO VERIFICADO: comando-setup \(node falla\.cjs\) salió con 3: sin red/);
   assert.deepEqual(r.noVerificados, ['pruebas']);
-  const q = armar({ cambio: (d) => escribir(path.join(d, '.claude', 'kit.md'), fichaCon({ kit: '3.0.0', setup: 'npm ci && npm run x' })) });
+  const q = armar({ cambio: (d) => escribir(path.join(d, '.claude', 'kit.md'), fichaCon({ kit: '3.0.0', setup: 'npm ci ; npm run x' })) });
   rojo(correr(q), 'pruebas', /NO VERIFICADO: comando-setup con tuberías/);
+});
+
+// rt-1 (D8r.2): el setup de Python es `<py> -m venv .venv && <venv-py> -m pip install …`: `&&` corre; un `&` solo, no.
+test('8 pruebas (rt-1): comando-setup `a && b` se corre (los dos); `a & b` → NO VERIFICADO', () => {
+  const conDep = (d) => {
+    escribir(path.join(d, 'prueba.cjs'), "process.exit(require('fs').existsSync('dep2.txt') ? 0 : 1);\n");
+    escribir(path.join(d, 'setup.cjs'), SETUP);
+    escribir(path.join(d, 'setup2.cjs'), "require('fs').writeFileSync('dep2.txt', require('fs').readFileSync('dep.txt'));\n");
+  };
+  const p = armar({ antes: conDep, cambio: (d) => escribir(path.join(d, '.claude', 'kit.md'), fichaCon({ kit: '3.0.0', setup: 'node setup.cjs && node setup2.cjs' })) });
+  verde(correr(p), 'pruebas');
+  assert.ok(fs.existsSync(path.join(p.d, 'dep2.txt')), 'corrió el segundo, después del primero');
+  const q = armar({ cambio: (d) => escribir(path.join(d, '.claude', 'kit.md'), fichaCon({ kit: '3.0.0', setup: 'node setup.cjs & node setup2.cjs' })) });
+  rojo(correr(q), 'pruebas', /NO VERIFICADO: comando-setup con tuberías/);
+});
+
+// rt-2 (D8r.2): el guardia de proceso.cjs, con la shell inyectada; no se corre nada (saldría verde sin haber corrido).
+test('8 pruebas (rt-2): `cmd //c` en cmd.exe y `cmd /c` en Git Bash → NO VERIFICADO, sin correrlos', () => {
+  const p = armar({ cambio: (d) => escribir(path.join(d, '.claude', 'kit.md'), fichaCon({ kit: '3.0.0', comando: 'cmd //c exit 0' })) });
+  rojo(correr(p, { shell: 'C:/Windows/System32/cmd.exe' }), 'pruebas', /NO VERIFICADO: comando-test no se corre: `cmd \/\/c` es de Git Bash/);
+  const q = armar({ cambio: (d) => escribir(path.join(d, '.claude', 'kit.md'), fichaCon({ kit: '3.0.0', comando: 'node prueba.cjs', setup: 'cmd /c npm ci' })) });
+  rojo(correr(q, { shell: 'C:/Program Files/Git/bin/bash.exe' }), 'pruebas', /NO VERIFICADO: comando-setup no se corre: en Git Bash es `cmd \/\/c`/);
 });
 
 test('9 gitleaks: una clave falsa armada en el diff → ❌ con archivo:línea y la regla, nunca el valor', () => {

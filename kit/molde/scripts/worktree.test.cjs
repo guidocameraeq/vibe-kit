@@ -377,7 +377,24 @@ test('comando-setup que falla → 1, lo dice, no borra nada y da la línea igual
   assert.ok(existeRama(p.P, 'modulo/x') && fs.existsSync(path.join(p.wt('modulo--x'), '.kit-rol')));
 });
 
-test('RF-fix 3b: lo que deja comando-setup — lo sin trackear al info/exclude y el trackeado que cambió vuelve con checkout, con sus líneas; el worktree queda limpio', () => {
+// t6, rt-2 (D8r.2): el setup corre en la shell de los comandos; `cmd /c` en Git Bash no se corre (saldría verde sin hacer nada).
+const P_PROCESO = require('../hooks/lib/proceso.cjs');
+const BASH = process.platform === 'win32' ? P_PROCESO.shellDeComandos() : '/bin/bash';
+const SIN_BASH = typeof BASH !== 'string' || !fs.existsSync(BASH) ? 'sin Git Bash / bash en esta PC' : false;
+test('t6/rt-2: comando-setup en la shell de los comandos; `cmd /c` en Git Bash → 1, no se corre, lo dice', { skip: SIN_BASH }, () => {
+  const conSetup = { 'setup.cjs': "require('fs').writeFileSync('setup-hecho', 'si');" };
+  const p = proyecto({ setup: 'cmd /c node setup.cjs', archivos: conSetup });
+  const r = cli(p.P, ['crear', 'x'], { shell: BASH });
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, /comando-setup no se corre \(en Git Bash es `cmd \/\/c`/);
+  assert.ok(!fs.existsSync(path.join(p.wt('modulo--x'), 'setup-hecho')), 'no corrió nada');
+  // con && corre, en esa shell
+  const q = proyecto({ setup: 'node setup.cjs && echo listo > y.txt', archivos: conSetup });
+  assert.equal(cli(q.P, ['crear', 'x'], { shell: BASH }).codigo, 0);
+  assert.equal(leer(q.wt('modulo--x'), 'y.txt').trim(), 'listo');
+});
+
+test('RF-fix 3b: lo que deja comando-setup —lo sin trackear al info/exclude y el trackeado que cambió vuelve con checkout, con sus líneas; el worktree queda limpio', () => {
   const SETUP_SUCIO = [
     "const fs = require('fs');",
     "fs.writeFileSync('otro.lock', 'nuevo');",
@@ -1018,6 +1035,18 @@ test('integrar: comando-setup que falla → 1 NO VERIFICADO, temporal borrado y 
   assert.equal(r.codigo, 1);
   assert.match(r.out, /NO VERIFICADO — comando-setup falló \(salida 3\) en el temporal: nada subió/);
   assert.doesNotMatch(r.out, /comando-test/);
+  assert.equal(enOrigin(p), base);
+  sinTemporal(p);
+});
+
+// t6, rt-2 (D8r.2): el gate de integrar corre comando-test en la shell de los comandos; el guardia lo niega sin correrlo.
+test('integrar: comando-test que la shell no correría (`cmd /c` en Git Bash) → 1 NO VERIFICADO, nada sube', { skip: SIN_BASH }, () => {
+  const p = proyectoI({ test: 'cmd /c exit 0' });
+  moduloX(p);
+  const base = enOrigin(p);
+  const r = cli(p.P, ['integrar', 'x'], { shell: BASH });
+  assert.equal(r.codigo, 1, r.out);
+  assert.match(r.out, /NO VERIFICADO: comando-test no se corre \(en Git Bash es `cmd \/\/c`/);
   assert.equal(enOrigin(p), base);
   sinTemporal(p);
 });

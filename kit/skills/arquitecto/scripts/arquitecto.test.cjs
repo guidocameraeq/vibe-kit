@@ -691,6 +691,25 @@ test('sello entorno: sin real, comando-test tiene que existir y salir 0; rojo o 
   assert.match(correr(['sello', 's.md'], lista).out, /tiene que ser un comando/);
 });
 
+// rt-8 (D8r.2): el venv vive en cada worktree; en la carpeta de Guido el rojo pregunta por el comando-setup (si la ficha lo trae).
+// rt-2: el guardia de lib/proceso.cjs (la shell inyectada con ARQUITECTO_SHELL): `cmd //c` en cmd.exe no se corre.
+test('sello entorno: rojo con comando-setup → "¿corriste el comando-setup en esta carpeta? (<setup>)"; sin setup, no; el guardia de cmd', () => {
+  const conSetup = repo(ficha({ test: 'node rojo.js', extra: '  comando-setup: py -3 -m venv .venv && .venv/Scripts/python.exe -m pip install -r requirements.txt' }));
+  escribir(conSetup, 's.md', spec());
+  const r = correr(['sello', 's.md'], conSetup);
+  assert.equal(r.codigo, 1, r.out);
+  assert.match(r.out, /entorno: comando-test dio rojo — ¿corriste el comando-setup en esta carpeta\? \(py -3 -m venv \.venv && \.venv\/Scripts\/python\.exe -m pip install -r requirements\.txt\) — arreglalo/);
+  const sinSetup = repo(ficha({ test: 'node rojo.js' }));
+  escribir(sinSetup, 's.md', spec());
+  assert.doesNotMatch(correr(['sello', 's.md'], sinSetup).out, /comando-setup/);
+  const conCmd = repo(ficha({ test: 'cmd //c exit 0' }));
+  const p = escribir(conCmd, 's.md', spec());
+  const rc = correr(['sello', 's.md'], conCmd, { env: { ...PLAZOS, ARQUITECTO_SHELL: 'C:/Windows/System32/cmd.exe' } });
+  assert.equal(rc.codigo, 1, rc.out);
+  assert.match(rc.out, /entorno: comando-test no se corre: `cmd \/\/c` es de Git Bash: en cmd\.exe no corre nada y saldría verde — corregilo en la ficha/);
+  assert.equal(leer(p), spec(), 'no escribe nada');
+});
+
 test('sello entorno: el chequeo de cada herramienta que nombra un entorno; rojo o colgado → 1', () => {
   const verde = repo(ficha({ extra: herramienta('node verde.js') }));
   assert.equal(sellado(verde, 's.md', spec()).r.codigo, 0);
