@@ -260,7 +260,10 @@ Code (permisos y worktrees).
   nace la sesión de una ventana; y sigue sumándolas al del worktree. Cubre con cualquiera de las dos premisas (rt-5). **El `settings.json`
   del molde no cambia**: las `Edit(./**/.env*)` eran redundantes y trababan `.env.example` (rt-10). Reemplaza el renglón del `.env` de u1 y
   D8r4-3. crit. 1 suma: después de `crear`, el `settings.local.json` del principal tiene las cuatro y lo que tenía antes; uno roto → 1
-  como hoy. crit. 8 suma: en una sesión real, después de EnterWorktree, `Read <principal>/.env` da deny (si no se mide: NO VERIFICADO).
+  como hoy. **Que se sepa dónde vive** (la madre, 2026-11-04): ese archivo no viaja por git y cada PC lo necesita; `crear`/`abrir`
+  imprimen `deny del .env del principal: en <principal>/.claude/settings.local.json (no viaja por git: cada PC lo arma con su primer
+  crear o abrir)`, y el `doctor`, parado en un proyecto con worktrees en `.claude/worktrees/`, da ⚠ si a ese archivo le falta alguna de
+  las cuatro, con la línea `node .claude/scripts/worktree.cjs abrir …` que lo rehace (sin pisar nada). crit. 8 suma: en una sesión real, después de EnterWorktree, `Read <principal>/.env` da deny (si no se mide: NO VERIFICADO).
 - **rt-2 (ALTO, u1) · Antes de entrar, un obrero es `humano` para los frenos.** En `main` no hay `.kit-rol` (`contexto.cjs:100`): un
   `cambios aprobar` de esa sesión le da ventana a Guido en vez de negar (`niega-aprobar.cjs:84-87`). **Arreglo**, sin tocar la lógica de
   los porteros: (a) `/obrero` y `/director`: *"si `donde` no dice `adentro:`, ningún comando más que la PARADA; nunca `ExitWorktree`"*;
