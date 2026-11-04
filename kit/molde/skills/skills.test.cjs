@@ -211,7 +211,9 @@ for (const nombre of NOMBRES) {
   });
 
   test(`${nombre}: cabe en una pantalla y media`, () => {
-    assert.ok(Buffer.byteLength(texto) <= 8000, `${Buffer.byteLength(texto)} bytes: recortá prosa, no pasos`);
+    // SPEC-paquete-8r (rt-9): el /inicio sube a 8.600 B por el paso 0, `integrados` y la mezcla que choca; los demás, 8.000.
+    const tope = nombre === 'inicio' ? 8600 : 8000;
+    assert.ok(Buffer.byteLength(texto) <= tope, `${Buffer.byteLength(texto)} bytes (tope ${tope}): recortá prosa, no pasos`);
     assert.ok(texto.split('\n').length <= 70);
   });
 }
@@ -372,17 +374,49 @@ test('inicio paso 6, paquete 8b: las fusiones del kit nombran las cuatro salidas
   assert.ok(l, 'la línea de las fusiones existe');
   assert.match(l, /leé `## Qué dice el kit`, las dos versiones y el `por:` de la pieza, y elegí una de `## Las salidas`/);
   assert.match(l, /\(mezclar · quedarse con la propia · tomar la nueva · congelar\) con su razón en una línea/);
-  assert.match(l, /\*\*Preguntá\*\* \(una sola `AskUserQuestion` por todas las que pregunten, la recomendada primera con su razón\)/);
+  assert.match(l, /Las demás: \*\*preguntá\*\* \(una sola `AskUserQuestion` por todas, la recomendada primera con su razón\)/);
   // las razones para preguntar (D8b-5 y r1-1)
   assert.match(l, /si la pieza no tiene `por:`/);
   assert.match(l, /si la recomendada es tomar la nueva o congelar/);
-  assert.match(l, /si la mezcla choca \(no hay propuesta\)/);
   assert.match(l, /si la pieza es de frenos y la recomendada no es mezclar/);
   assert.match(l, /Si no, corré `node "\$HOME\/\.claude\/skills\/arquitecto-skills\/scripts\/actualizar\.cjs" resolver \. <pieza> <salida> --por "<razón>"` y avisá en una línea/);
   assert.match(l, /`--a-mano`/);
   assert.match(l, /el candado pide el aprobado del dueño/);
   assert.doesNotMatch(l, /`hooks-lib`/, 'la lista de frenos vive en fusion.cjs (FRENOS), no acá');
   assert.doesNotMatch(l, /escribí `por: /, 'la ficha la escribe resolver, no el modelo (D8b-5)');
+});
+
+test('inicio paso 6, paquete 8r (3): si el motivo empieza con `la mezcla chocó`, pregunta siempre, con lo que pidió el dueño', () => {
+  const l = TEXTOS.inicio.split('\n').find((s) => s.includes('**Fusiones del kit.**'));
+  assert.ok(l, 'la línea de las fusiones existe');
+  assert.match(l, /\*\*Si el motivo empieza con `la mezcla chocó`, preguntá siempre\*\*/);
+  assert.match(l, /nunca la resuelvas sola/);
+  // las cuatro cosas: qué skill es, su por:, qué trae la nueva, dónde chocan
+  assert.match(l, /qué skill es, por qué la había adaptado \(su `por:`\), qué trae la nueva y dónde chocan \(`## Dónde chocan`\)/);
+  assert.match(l, /tu recomendación con criterio \(¿lo nuevo vale la pena frente a su porqué\?\) y las cuatro salidas, la recomendada primera/);
+  assert.ok(l.indexOf('la mezcla chocó') < l.indexOf('Si no, corré'), 'la pregunta va antes de resolver solo');
+  assert.doesNotMatch(l, /no hay propuesta/, 'desde 8r, la mezcla que choca puede traer la propuesta armada');
+});
+
+test('inicio paso 0, paquete 8r (T2, rt-5): el rol de .kit-rol solo si coincide con la rama; director → /director, obrero → /obrero', () => {
+  const t = TEXTOS.inicio;
+  const p0 = /^0\. \*\*[^\n]*$/m.exec(t);
+  assert.ok(p0, 'el paso 0 existe');
+  assert.ok(p0.index < t.indexOf('1. **Chequear lo inyectado.**'), 'el paso 0 va antes del 1');
+  assert.match(p0[0], /Solo si `\.kit-rol` y la rama \(`git branch --show-current`\) coinciden/);
+  assert.match(p0[0], /`director` o `nocturno` en una rama `modulo\/<x>` \(sin `--`\) → invocá `\/director`/);
+  assert.match(p0[0], /`obrero` o `nocturno` en `modulo\/<x>--<ID>` → invocá `\/obrero <x>--<ID>`/);
+  assert.match(p0[0], /En los dos, nada más: ni el tamaño ni el Arquitecto/);
+  assert.match(p0[0], /Si no coinciden, una línea \(\*"el `\.kit-rol` dice <rol> y la rama es <r>: sigo como inicio normal"\*\) y el paso 1/);
+  assert.match(p0[0], /sin `\.kit-rol` u otro rol, el paso 1/);
+});
+
+test('inicio paso 2, paquete 8r (5): `worktree integrados` después del pull, y lo que imprime va a Bloqueos con /cierre', () => {
+  const t = TEXTOS.inicio;
+  const i = t.indexOf('node .claude/scripts/worktree.cjs integrados');
+  assert.ok(i >= 0, 'el /inicio corre integrados');
+  assert.ok(t.indexOf('`git pull --rebase`') < i && i < t.indexOf('**Aprobados nuevos.**'), 'después del pull, dentro del paso 2');
+  assert.match(t.slice(i, i + 200), /si imprime, cada línea va en los Bloqueos del paso 6, con la propuesta de correr `\/cierre`/);
 });
 
 test('inicio paso 9, paquete 8b (10): pedido es solo lo del mensaje; lo que dejó otra sesión es propuesta con OK; el pull, con el árbol limpio', () => {
@@ -542,7 +576,31 @@ test('cierre: el aviso de push-publica no pregunta, y aprobar es del dueño', ()
   assert.match(t, /push-publica: sí/);
   assert.match(t, /No preguntes/);
   assert.doesNotMatch(t, /node \.claude\/scripts\/cambios\.cjs aprobar/);
-  assert.match(t, /el `aprobar` es suyo, jamás lo corras/);
+  // SPEC-paquete-8r (2): la línea, igual en los seis lugares; ya no la prohibición vieja (la sesión lo corre cuando el dueño lo pide).
+  assert.match(t, /`cambios aprobar` lo corre la sesión cuando el dueño lo pide, y su clic en la ventana es la firma; nunca por su cuenta/);
+  // En pedazos: entero, este archivo rompería el grep del crit. 6 sobre kit/.
+  assert.doesNotMatch(t, new RegExp('jamás lo ' + 'corras'));
+});
+
+test('8r t1: /cierre y el CLAUDE.md del molde dicen que el cambio de cómo trabaja el proyecto se anota con cambios.cjs nuevo', () => {
+  const claude = fs.readFileSync(path.join(DIR_MOLDE, 'CLAUDE.md'), 'utf8').replace(/\r\n/g, '\n');
+  for (const [donde, t] of [['cierre', TEXTOS.cierre], ['molde/CLAUDE.md', claude]]) {
+    assert.match(t, /si la sesión cambió cómo trabaja el proyecto \(un freno, una regla, un paso de un ritual\), lo anota: `node \.claude\/scripts\/cambios\.cjs nuevo/i, donde);
+  }
+  assert.deepEqual(comandosRotos(claude), [], 'el comando del CLAUDE.md existe');
+  // en el /cierre, en el paso de docs (3), antes de los chequeos (4)
+  assert.ok(TEXTOS.cierre.indexOf('cambios.cjs nuevo') < TEXTOS.cierre.indexOf('**Los chequeos, en este orden**'));
+});
+
+test('8r t6: el obrero y el CLAUDE.md del molde, al día con `auto` y con el paso 9 del /inicio', () => {
+  const claude = fs.readFileSync(path.join(DIR_MOLDE, 'CLAUDE.md'), 'utf8').replace(/\r\n/g, '\n');
+  assert.doesNotMatch(claude, /únicamente las 5/);
+  assert.match(claude, /lo que dejó otra sesión es propuesta y espera el OK \(paso 9\)/);
+  assert.match(claude, /Un obrero de fondo corre en `auto` con la lista de su encargo/);
+  const p4 = /^4\. \*\*Lo que no está en AUTORIZADO\.\*\*[^\n]*$/m.exec(TEXTOS.obrero)[0];
+  assert.match(p4, /De fondo \(`-p` en `auto`, o el respaldo en `acceptEdits`\)/);
+  assert.match(p4, /los porteros niegan igual/);
+  assert.doesNotMatch(p4, /en `-p` el permiso se niega/);
 });
 
 // ---------------------------------------------------------------- el núcleo, /director, /obrero y el revisor (SPEC-paquete-5, D5.1 · E4)
@@ -689,6 +747,23 @@ test('rf-1 y rf-7: el obrero para sin push ni commit ante un cancelado; la PARAD
     assert.match(t, /salvo la PARADA de `presentar`, que no commitea/, donde);
   }
   assert.match(NUCLEO, /`CORRECCION docs\/modulos\/<x>\/README\.md@<sha7> cancelado`/);
+});
+
+test('director, paquete 8r: la tarea 0 (encargo 00) primero, la línea de fondo con la herramienta Bash, push antes de cerrar y el /cierre después de integrar', () => {
+  const t = TEXTOS.director;
+  const p2 = /^2\. \*\*Sello\.\*\*[^\n]*$/m.exec(t)[0];
+  assert.match(p2, /`entorno — \(tarea 0: montar el entorno de prueba\)`, el primer encargo es el `00`/);
+  assert.match(p2, /suma su entorno \(`clase: prueba` o `dummy`\) a `entornos:` de la `\.claude\/kit\.md` en `modulo\/<x>`/);
+  assert.match(p2, /`autorizado` y `presentar` frenan todo otro encargo/);
+  const p4 = /^4\. \*\*La apertura\.\*\*[^\n]*$/m.exec(t)[0];
+  assert.match(p4, /con la herramienta Bash/);
+  assert.match(p4, /primer mensaje, `\/obrero <x>--<ID>`/);
+  const p6 = /^6\. \*\*Cierre del encargo\.\*\*[^\n]*$/m.exec(t)[0];
+  assert.ok(p6.indexOf('git push origin modulo/<x>') < p6.indexOf('worktree.cjs cerrar <x>--<ID>'), 'push de la madre antes de cerrar (cerrar borra de origin lo mezclado en origin/<madre>)');
+  const p9 = /^9\. \*\*Termina el módulo\.\*\*[^\n]*$/m.exec(t)[0];
+  assert.match(p9, /`después: \/cierre en tu carpeta principal …`/);
+  assert.ok(p9.indexOf('worktree.cjs integrar') < p9.indexOf('worktree.cjs cerrar <x>'), 'integrar y después cerrar');
+  assert.match(p9, /la de origin, ya mezclada/);
 });
 
 test('director: silencio (no contesta AVANCE), "me voy" en un bloque y Sesiones vivas en la ficha', () => {
