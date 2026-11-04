@@ -1157,7 +1157,7 @@ entre piezas, lo técnico lo decide la sesión, la revisión integral como paso 
 | 4 | **D8c.1 · La rc.4** (`vibe-kit M5 · D8c.1 · La rc.4: cierre de tramo y experimentos`) | no | después de la 3 | el obrero de cierre de tramo (renglón 11), los experimentos (el spec de la 3); `v3.0.0-rc.3` y "poné al día la flota" en Hermes (los arreglos de R1 ya salieron en la `rc.2`, D8r.1) |
 | 5 | **D9.x · Acompañar la prueba real** | a ratos | mientras dure el primer módulo de Hermes | cada arreglo del uso como `rc.N` |
 | 6 | **M6b · El ciclo, segunda parte** | sí, corta | cuando cierre el primer módulo de Hermes | §3.5 y §8 del ciclo con lo vivido; la fecha de la próxima vuelta |
-| 7 | **R2 · Revisión integral final + D10.1 · `v3.0`** | no / OK de Guido para publicar | después de la 6 | la segunda revisión integral (ADR-034), la medición contra `mediciones/2026-11-03.md`, el tag `v3.0` idéntico al último rc |
+| 7 | **R2 · Revisión integral final + D10.1 · `v3.0`** | no / OK de Guido para publicar | después de la 6 | la tercera revisión integral (ADR-034; R1 y R1b fueron las dos primeras), **con lo que haya mostrado el uso de Hermes y contra un clon suyo**, la medición contra `mediciones/2026-11-03.md`, el tag `v3.0` idéntico al último rc |
 
 ### Abrir R1 sin Guido (el prompt)
 
@@ -1228,6 +1228,11 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
   4. **t12 (a) mira solo el nombre** (`config*.ini`, `*.local.*`), no si el código lee el archivo.
   5. **NO VERIFICADO**: `barreras` verde en el commit de los permisos después de `cambios aprobar`; los casos "no llegó" y "otra rama" de
      `--traer` sobre el clon de Hermes (probados en las pruebas, no sobre Hermes); `claude -p` armando una mezcla real que choca.
+  6. **Un repo de prueba parecido a Hermes** (lección de R1b, pedido por Guido el 2026-11-04): `pruebas/rehacer.sh` suma uno con lo que
+     los de juguete no tienen: su propio `director`/`obrero`/`inicio`/`cierre`, Python con su `venv` y pruebas por un `.bat`, el repo dos
+     niveles abajo de la carpeta de proyectos, una subcarpeta `web/` con su `package.json`, un `SessionStart` propio, un handoff por
+     encima del tope y un `settings.json` con `ask` de `git merge`. Con datos genéricos (repo PÚBLICO: nada del Hermes real). Las
+     revisiones integrales y los revisores fríos corren contra ese repo y, cuando exista, contra un clon del proyecto real.
 - **De D8r.1, para la `rc.4`** (D8c.1):
   1. **El Modo A con director**: `modo-a.md` no arma el worktree de `v1` y su línea dice `inicio — ejecutá docs/modulos/v1/SPEC.md`; si
      `v1` nace con director, el paso 0 del `/inicio` no aplica (estás en `main`). No estaba en el delta.
@@ -1498,8 +1503,15 @@ Del spec, sección "Lo que hacés vos de nuevo". Acá solo cuándo toca, para qu
 | 2026-11-03 | **Después de la rc.1, siete sesiones en orden** ("Después de la rc.1: las sesiones que siguen"): R1 la revisión integral (sin Guido, esa noche) → la mañana con Guido (el informe de R1 primero: la tanda de correcciones, lo de negocio con él; después preparar la PC y adoptar Hermes) → el diseño de los experimentos con Guido → D8c.1 la rc.2 (el obrero de cierre de tramo, los experimentos, las correcciones de R1) → la prueba real → M6b → R2 y la `v3.0`. **La sesión madre orquesta**: lanza las que no piden a Guido cuando les toca, con su visto bueno previo. Y dos criterios nuevos en la vara (ADR-034): la coherencia entre piezas, y lo técnico lo decide la sesión; la revisión integral pasa a paso fijo del ciclo | Guido, en el chat del repaso: "una revisión integral del Vibe Kit, cómo quedó esta nueva versión […] cómo interactúan entre sí las partes"; "que las cosas interactúen bien entre sí, tengan coherencia, concordancia, sean cohesivas"; "ya tenés mi visto bueno para lanzarlas […] como una especie de agente orquestador"; "no dejes pasar lo de agregar el tema de probar una feature" |
 | 2026-11-03 | **La tanda de correcciones de R1 es la `rc.2` (D8r.1, sin Guido, esa misma noche)**, y **D8c.1 pasa a ser la `rc.3`** (el obrero de cierre de tramo y los experimentos). Después de D8r.1, la sesión madre vuelve a correr la revisión integral (**R1b**) y recién ahí la mañana con Guido | Guido, la noche del 03-11: "todos esos arreglos… tienen que estar resueltos inclusive en la beta. Que todas las partes interactúen correctamente entre sí". Decisión de la sesión madre, con su visto bueno |
 | 2026-11-04 | **La tanda de taller de R1b es la `rc.3` (D8r.2, sin Guido)** y **D8c.1 pasa a ser la `rc.4`**. D1-D4 quedan para Guido a la mañana, con la mecánica lista; no hay una tercera revisión integral | Guido, la noche del 03-11: "no hay que hacer 800 revisiones integrales": una sola vuelta de corrección. Decisión de la sesión madre |
+| 2026-11-04 | **No hay una tercera revisión integral antes de la prueba**: la próxima es R2, después del primer módulo de Hermes y contra un clon suyo; mientras, cada `rc.N` lleva su chequeo frío. Y un repo de prueba parecido a Hermes para la `rc.4` (Pendientes, "De D8r.2", 6) | R1 encontró piezas que no se hablaban; R1b, el kit contra un proyecto real (lo que los repos de juguete no muestran). Una tercera sin uso real buscaría en el mismo lugar con rendimiento decreciente: lo que falta lo muestra Hermes. Decidido con Guido el 04-11 |
 
 ## Lecciones (insumo de la misión 6)
+
+- 2026-11-04 · **R1b: la revisión que corrió sobre un clon del proyecto real encontró lo que tres revisores sobre repos de juguete no
+  vieron** (el director propio de Hermes, su `venv`, la carpeta dos niveles abajo y un gate que daba verde sin correr). Los repos de
+  prueba prolijos prueban que las piezas encajan entre sí, no que encajan con un proyecto de verdad: desde acá, toda revisión integral y
+  todo revisor frío corre también contra un clon real (o un repo de prueba que se le parezca). Y un freno se prueba con la forma en que
+  el proyecto escribe sus comandos, no solo con los casos que imaginó el que lo construyó.
 
 - 2026-11-02 · **D5.2: fijar el contrato entre dos encargos antes de repartir dejó correr cuatro a la vez.** El director escribió en los dos encargos
   la primera línea de `contexto.cjs` que iba a leer `/estado`; K1 y K2 corrieron en paralelo sin hablarse y encajaron al mergear. Lo mismo con
