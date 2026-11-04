@@ -139,6 +139,8 @@ test('default, acceptEdits, plan y auto → ask (la ventana), sin renglón', () 
     const r = decide(P, entrada(P, APROBAR, { permission_mode: modo }), 'ask');
     assert.equal(r.motivo, na.MOTIVO_ASK);
   }
+  // rt-2 de D8r.4: un obrero o director que todavía no entró a su worktree es "humano" para los frenos; el texto lo dice.
+  assert.match(na.MOTIVO_ASK, /si te lo pide una sesión de \/obrero o \/director, decí que no/);
 });
 
 test('bypassPermissions y dontAsk → deny, con renglón cuyo detalle es el modo', () => {
