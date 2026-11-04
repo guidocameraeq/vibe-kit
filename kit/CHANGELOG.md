@@ -5,6 +5,35 @@ Una sección por versión, la más nueva arriba. Cada una trae su **nota de migr
 Es lo que lee el agente de la fusión al actualizar un proyecto. La historia de sesiones del repo vive aparte, en `docs/CHANGELOG.md`.
 `kit/VERSION` lleva la versión del último tag y se sube en el commit que pone el tag siguiente.
 
+## 3.0.0-rc.3
+
+La tanda de taller de la segunda revisión integral R1b (2026-11-04, `docs/kit-v3/SPEC-paquete-8r2.md`): lo que se vio corriendo el día de
+Guido sobre un clon de Hermes. Las cuatro de diseño (D1-D4) no se decidieron: la adopción deja la mecánica para que se elijan en la
+pantalla y cada camino ande en un paso.
+
+- **Qué piezas cambiaron**:
+  - **Los comandos de la ficha y del gate corren en Git Bash en Windows** (la consola del director): el gate de `encargo`, `paquete`,
+    `integrar`, el `comando-setup` de `worktree`, `chequear` y el `sello` (`proceso.cjs shellDeComandos`; nunca el `bash` de WSL). Un
+    `cmd /c …` en Git Bash (es `cmd //c`), o un `cmd //c` sin Git Bash, sale `no-corrio`: antes daba verde sin correr nada. `chequear`
+    acepta `&&`. `proceso.cjs` se copia byte a byte a `pc/lib/` y a `arquitecto/scripts/lib/`.
+  - **Adoptar**: `--mirar --principal <tu carpeta>` (de ahí sale `vars.proyecto`); la línea `comandos:`; en Python, el `.venv` de cada
+    worktree (`py -3 -m venv .venv && .venv/Scripts/python.exe -m pip install -r requirements.txt`; nunca el pip global); `entornos:
+    ninguno declarado` y `herramientas:`; un `.worktreeinclude` para la config local ignorada; los bloques `D1`-`D4`. `--aplicar`:
+    `--director kit` (D1: los del kit reemplazan el director, `/estado`, `/inicio` y `/cierre` propios), `--permisos recomendada` (D2) y
+    `--arranque kit` (D3), estas dos en un tercer commit; `--principal` ya no prende los githooks: lo hace el paso nuevo **`adoptar
+    <clon> --traer <carpeta>`**, después del push (trae lo adoptado con `merge --ff-only` y recién ahí prende `core.hooksPath`).
+    `.venv/` en el `gitignore.snippet`.
+  - **La mezcla**: un choque sin `por:` también es `la mezcla chocó (sin porqué: …)`, con el informe entero y la pregunta charlada. La
+    salida `propia` de `resolver` pasa a llamarse **`quedarse`** (`propia` sigue andando). El informe de una adopción dice "adopción: el
+    molde v2 contra el del kit <v>".
+  - **La flota de la PC** (`registro`, la flota `todo`, el auto-mode de `preparar-pc`, `cambios-flota`): hasta dos niveles, una fila por
+    repo (el checkout principal, nunca un worktree), rutas absolutas (`Hermes/Hermes.exe`).
+  - **`/estado`** de noche lo dice arriba de TE ESPERA. Los textos: `flota.md` (la pantalla de adopción con D1-D4), `modo-a.md` y `modo-b.md`
+    (`--traer`; `/smoke` solo si está), el Equipador y sus manuales, la guía (la receta del módulo con director) y el PLAYBOOK.
+- **Automático o pide revisión**: automático, salvo una ficha con `comando-test` o `comando-setup` escritos para `cmd.exe` (barras `\`,
+  un `.bat` sin `./`, `cmd /c`): ahora salen rojo o `no-corrio` (nunca verde). Si tu proyecto lo tiene, pide revisión.
+- **Qué chequear después**: `chequear` verde en la flota; en Windows, que `comando-test` corra en Git Bash (`worktree crear` y un gate).
+
 ## 3.0.0-rc.2
 
 La tanda de correcciones de la revisión integral R1 (2026-11-03, `docs/kit-v3/SPEC-paquete-8r.md`): que las piezas interactúen bien entre
