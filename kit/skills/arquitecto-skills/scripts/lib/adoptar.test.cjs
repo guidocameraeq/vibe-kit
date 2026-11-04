@@ -414,7 +414,7 @@ test('--aplicar de una propuesta --nuevo: vienen el candado, el director y el es
     assert.equal(leer(d, `.claude/fusiones/${id}.md`), null, `${id} no queda en te espera`);
   }
   assert.doesNotMatch(r.lineas.join('\n'), /te espera|\(falta\)/);
-  assert.match(r.lineas.join('\n'), /^githooks · sin --principal · /m);
+  assert.match(r.lineas[r.lineas.length - 1], /^traer · sin --principal · .* adoptar ".*" --traer "<tu carpeta>"/, 'la última: el --traer (8r2, t2)');
   assert.equal(commitsDeLaLinea(d, r.lineas), 2);
   assert.equal(git(d, 'status', '--porcelain'), '');
   const b = barreras(d, antes);
@@ -553,25 +553,37 @@ function principalYClon(nombre, o = {}) {
 }
 const ponerHook = (d) => escribir(d, { '.git/hooks/pre-commit': '#!/bin/sh\necho husky v4\n' });
 
-test('--aplicar --principal (8b, 14): vacío → .githooks en la principal y la línea "puesto"; el clon sin core.hooksPath; la global igual', { ...deKit, timeout: 180000 }, async () => {
+test('--aplicar --principal (8b, 14; 8r2 t2): ya no prende los githooks — valida y da el --traer; después de los commits, --traer (sin origin: del clon) los prende en la principal; el clon sin core.hooksPath; la global igual', { ...deKit, timeout: 180000 }, async () => {
   const { p, c } = principalYClon('omega');
   const prop = path.join(nuevaCarpeta('prop'), 'propuesta.md');
   fs.writeFileSync(prop, mirar(c, { nuevo: true }).texto);
   const global = fs.readFileSync(process.env.GIT_CONFIG_GLOBAL);
   const gAntes = hooksPath(p, '--global');
+  const conf = fs.readFileSync(path.join(p, '.git', 'config'));
+  // una carpeta que no es la de este clon: el ⚠ en la línea (y el clon vuelve a limpio)
+  const otra = repoPelado('otra', { 'a.txt': 'a\n' });
+  const r2 = await AD.main([c, '--kit', RAIZ_KIT, '--aplicar', prop, '--fecha', FECHA, '--principal', otra]);
+  assert.match(r2.lineas[r2.lineas.length - 1], /^traer · .* · ⚠ no es la carpeta de este clon/);
+  git(c, 'checkout', '-q', '--', '.');
+  git(c, 'clean', '-fdq');
   const r = await AD.main([c, '--kit', RAIZ_KIT, '--aplicar', prop, '--fecha', FECHA, '--principal', p]);
   assert.equal(r.codigo, 0, r.lineas.join('\n'));
-  assert.ok(r.lineas.includes(`githooks · ${p} · puesto`), r.lineas.join('\n'));
+  assert.equal(r.lineas[r.lineas.length - 1], `traer · ${p} · el último paso, después de los dos commits, barreras y el push: node "$HOME/.claude/skills/arquitecto-skills/scripts/actualizar.cjs" adoptar "${c.replace(/\\/g, '/')}" --traer "${p.replace(/\\/g, '/')}" (trae lo adoptado y prende ahí los githooks)`);
+  assert.equal(hooksPath(p, '--local'), null, '--aplicar ya no lo cambia');
+  assert.deepEqual(fs.readFileSync(path.join(p, '.git', 'config')), conf, 'la config de la principal, byte a byte');
+  // los commits del clon pasan (el pre-commit no corre en el clon) y --traer los lleva a la principal y prende los githooks
+  assert.equal(commitsDeLaLinea(c, r.lineas), 2);
+  const t = await AD.main([c, '--traer', p]);
+  assert.equal(t.codigo, 0, t.lineas.join('\n'));
+  assert.equal(git(p, 'rev-parse', 'HEAD'), git(c, 'rev-parse', 'HEAD'));
+  assert.ok(leer(p, '.githooks/pre-commit') && leer(p, '.claude/kit.md'));
+  assert.ok(t.lineas.includes(`githooks · ${p} · puesto`), t.lineas.join('\n'));
   assert.equal(hooksPath(p, '--local'), '.githooks');
   assert.equal(hooksPath(c), null, 'en el clon no se prende (r1-5)');
   assert.equal(hooksPath(p, '--global'), gAntes);
   assert.deepEqual(fs.readFileSync(process.env.GIT_CONFIG_GLOBAL), global, 'la global, byte a byte');
-  // los commits del clon pasan (el pre-commit no corre en el clon) y la principal los trae con el pull
-  assert.equal(commitsDeLaLinea(c, r.lineas), 2);
-  git(p, 'pull', '-q', '--ff-only', c, 'HEAD');
-  assert.ok(leer(p, '.githooks/pre-commit') && leer(p, '.claude/kit.md'));
-  // la CLI: --principal solo con --aplicar; --nuevo solo con --mirar
-  for (const args of [[c, '--kit', RAIZ_KIT, '--mirar', '--principal', p], [c, '--kit', RAIZ_KIT, '--aplicar', prop, '--nuevo'], [c, '--kit', RAIZ_KIT, '--aplicar', prop, '--principal']]) assert.equal(await AD.main(args), null, args.join(' '));
+  // la CLI: --nuevo solo con --mirar; --principal con valor; --traer solo, sin --kit
+  for (const args of [[c, '--kit', RAIZ_KIT, '--aplicar', prop, '--nuevo'], [c, '--kit', RAIZ_KIT, '--aplicar', prop, '--principal'], [c, '--traer'], [c, '--traer', p, '--kit', RAIZ_KIT], [c, '--traer', p, '--mirar'], [c, '--traer', p, '--aplicar', prop], ['--traer', p]]) assert.equal(await AD.main(args), null, args.join(' '));
 });
 
 test('prenderGithooks (8b, 14; r1-6, r1-7): .git/hooks real sin .githooks/ → intacto; otro repo o subcarpeta → no pude, sin escribir; husky con .githooks/ → previo y .githooks; husky sin .githooks/ → intacto; ya → ya estaba', () => {
@@ -791,4 +803,175 @@ test('RF-fix 9: un repo cuya historia tuvo .claude/kit.md → --mirar y --aplica
 
 test('sin bypass: el adoptador no nombra bypassPermissions', () => {
   assert.ok(!fs.readFileSync(path.join(__dirname, 'adoptar.cjs'), 'utf8').includes('bypassPermissions'));
+});
+
+// ---------------------------------------------------------------- SPEC-paquete-8r2 (A2): t2 (--traer), t4, t5, t8, t12 (a)
+
+const cabeza = (d) => git(d, 'rev-parse', 'HEAD').trim();
+// Un origin bare, la carpeta de Guido clonada de él y el clon de la adopción clonado de él (como la flota), con .kit-rol.
+function bareYDos(nombre) {
+  const r = repoPelado(nombre, { 'notas.txt': 'la carpeta de Guido\n' });
+  const b = path.join(nuevaCarpeta('bare'), `${nombre}.git`);
+  git(path.dirname(b), 'clone', '-q', '--bare', r, b);
+  const p = path.join(nuevaCarpeta('guido'), nombre);
+  git(path.dirname(p), 'clone', '-q', b, p);
+  const c = path.join(nuevaCarpeta('clon'), nombre);
+  git(path.dirname(c), 'clone', '-q', b, c);
+  rol(c);
+  return { b, p, c };
+}
+
+test('crit. 2 (8r2 t2; rt-7, rt-8): --traer — sin push "no llegó"; sucia u otra rama, no toca; después del push, la carpeta en el HEAD del clon, core.hooksPath y el setup de una vez', deKit, async () => {
+  const { p, c } = bareYDos('traer');
+  // en el clon: lo adoptado (una ficha con comando-setup de Python, los githooks), commiteado
+  escribir(c, { 'requirements.txt': 'pytest\n' });
+  escribir(c, { '.claude/kit.md': mirar(c, { plataforma: 'linux' }).texto, '.githooks/pre-commit': '#!/bin/sh\nexit 0\n' });
+  git(c, 'add', '-A');
+  git(c, 'commit', '-q', '-m', 'kit: adopción');
+  const sha = cabeza(c);
+  const antes = cabeza(p);
+  const P = p.replace(/\\/g, '/');
+  // sin push: no llegó, y nada más
+  let t = await AD.main([c, '--traer', p]);
+  assert.equal(t.codigo, 0, t.lineas.join('\n'));
+  assert.deepEqual(t.lineas, [`traer · ${p} · el HEAD del clon (${sha.slice(0, 7)}) no llegó a origin/main: pusheá primero (git -C "${c.replace(/\\/g, '/')}" push origin main) y corré de nuevo — no toqué tu carpeta`]);
+  assert.equal(cabeza(p), antes);
+  assert.equal(hooksPath(p), null);
+  git(c, 'push', '-q', 'origin', 'main');
+  // sucia: no toca
+  escribir(p, { 'suelto.txt': 'sin commitear\n' });
+  t = await AD.main([c, '--traer', p]);
+  assert.deepEqual(t.lineas, [`traer · ${p} · no toqué nada: tu carpeta tiene cambios sin commitear (suelto.txt) — commitealos o guardalos (git -C "${P}" status) y corré de nuevo`]);
+  assert.equal(t.codigo, 0);
+  assert.equal(cabeza(p), antes);
+  assert.equal(hooksPath(p), null);
+  assert.equal(leer(p, 'suelto.txt'), 'sin commitear\n');
+  escribir(p, { 'suelto.txt': null });
+  // en otra rama: no toca
+  git(p, 'switch', '-q', '-c', 'otra');
+  t = await AD.main([c, '--traer', p]);
+  assert.deepEqual(t.lineas, [`traer · ${p} · no toqué nada: tu carpeta está en otra y lo adoptado está en main — git -C "${P}" switch main y corré de nuevo`]);
+  assert.equal(cabeza(p), antes);
+  assert.equal(hooksPath(p), null);
+  git(p, 'switch', '-q', 'main');
+  // limpia y en main: el ff, después los githooks, y el setup de una vez (no hay .venv)
+  t = await AD.main([c, '--traer', p]);
+  assert.equal(t.codigo, 0, t.lineas.join('\n'));
+  assert.equal(cabeza(p), sha);
+  assert.equal(hooksPath(p, '--local'), '.githooks');
+  assert.equal(hooksPath(c), null, 'el clon, nunca (r1-5)');
+  assert.deepEqual(t.lineas, [
+    `traer · ${p} · traje ${antes.slice(0, 7)}..${sha.slice(0, 7)} (origin/main)`,
+    `githooks · ${p} · puesto`,
+    'en tu carpeta, una vez: python3 -m venv .venv && .venv/bin/python -m pip install -r requirements.txt (el sello corre comando-test acá)',
+  ]);
+  // otra vez, con el .venv: nada que traer, ya estaba, sin la línea del setup
+  fs.mkdirSync(path.join(p, '.venv'));
+  escribir(p, { '.git/info/exclude': '.venv/\n' });
+  t = await AD.main([c, '--traer', p]);
+  assert.deepEqual(t.lineas, [`traer · ${p} · ya tenía ${sha.slice(0, 7)}: nada que traer`, `githooks · ${p} · ya estaba`]);
+  // otro repo, o el clon mismo: salida 1, sin tocar
+  const otro = repoPelado('otro', { 'a.txt': 'a\n' });
+  for (const pr of [otro, c, path.join(T, 'no-existe')]) {
+    const x = await AD.main([c, '--traer', pr]);
+    assert.equal(x.codigo, 1, pr);
+    assert.match(x.lineas[0], /no pude: no es el mismo repo/);
+  }
+  assert.equal(hooksPath(otro), null);
+});
+
+test('crit. 2 (8r2 t2): --traer sin origin en la carpeta trae del clon (como el Modo A)', deKit, async () => {
+  const { p, c } = principalYClon('sinorigin');
+  escribir(c, { '.githooks/pre-commit': '#!/bin/sh\nexit 0\n', 'nuevo.txt': 'adoptado\n' });
+  git(c, 'add', '-A');
+  git(c, 'commit', '-q', '-m', 'kit: adopción');
+  const antes = cabeza(p);
+  const t = await AD.main([c, '--traer', p]);
+  assert.equal(t.codigo, 0, t.lineas.join('\n'));
+  assert.equal(cabeza(p), cabeza(c));
+  assert.equal(leer(p, 'nuevo.txt'), 'adoptado\n');
+  assert.deepEqual(t.lineas, [`traer · ${p} · traje ${antes.slice(0, 7)}..${cabeza(c).slice(0, 7)} (del clon)`, `githooks · ${p} · puesto`], 'sin ficha: sin la línea del setup');
+  assert.equal(hooksPath(p, '--local'), '.githooks');
+});
+
+test('crit. 8 (8r2 t8): --mirar --principal …/Hermes.exe en un clon clon-x → proyecto: Hermes.exe, "el nombre de tu carpeta"; sin él, el del clon y la nota; la principal no se toca', deKit, async () => {
+  const c = repoPelado('clon-x', { 'CLAUDE.md': '# hermes\n' });
+  const p = repoPelado('Hermes.exe', { 'notas.txt': 'la de Guido\n' });
+  const fp = foto(p);
+  const con = mirar(c, { principal: p });
+  assert.equal(F.leer(con.texto).datos.vars.proyecto, 'Hermes.exe');
+  assert.match(con.texto, /^# vars: proyecto = Hermes\.exe \(el nombre de tu carpeta\)/m);
+  const sin = mirar(c);
+  assert.equal(F.leer(sin.texto).datos.vars.proyecto, 'clon-x');
+  assert.match(sin.texto, /^# vars: proyecto = clon-x \(el nombre del clon: si no es el de tu carpeta, corré con --principal\)/m);
+  // la CLI
+  const r = await AD.main([c, '--kit', RAIZ_KIT, '--mirar', '--principal', p, '--fecha', FECHA]);
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  assert.ok(r.lineas.includes('  proyecto: Hermes.exe'), r.lineas.join('\n'));
+  assert.deepEqual(foto(p), fp, '--mirar no escribe en la principal');
+  const no = await AD.main([c, '--kit', RAIZ_KIT, '--mirar', '--principal', path.join(T, 'no-existe')]);
+  assert.equal(no.codigo, 1);
+  assert.match(no.lineas[0], /--principal .* no es una carpeta/);
+});
+
+test('crit. 4 (8r2 t4): --mirar dice "entornos: ninguno declarado" y "herramientas: ninguna"; una propuesta con entornos (un real y un prueba) aplicada los deja en la ficha', { ...deKit, timeout: 180000 }, async () => {
+  const d = conCodigo('bases');
+  const r = mirar(d);
+  assert.match(r.texto, /^# entornos: ninguno declarado — preguntale a Guido cada base y su clase \(real · prueba · dummy\); sin declararla, la base de prueba cuenta como real$/m);
+  assert.match(r.texto, /^# herramientas: ninguna — el ejemplo de kit\.ejemplo\.md \("db ping"\) no es un comando de este proyecto: si se copia, entorno da rojo$/m);
+  assert.match(r.texto, /^# {5}entornos:\n# {7}base-real:\n# {9}clase: real\n# {7}base-prueba:\n# {9}clase: prueba$/m, 'el ejemplo de la gramática');
+  // la sesión declara las dos bases en la propuesta
+  const ls = r.texto.split('\n');
+  const fin = ls.indexOf('---', 1);
+  ls.splice(fin, 0, 'entornos:', '  base-real:', '    clase: real', '  base-prueba:', '    clase: prueba');
+  const prop = path.join(nuevaCarpeta('prop'), 'propuesta.md');
+  fs.writeFileSync(prop, ls.join('\n'));
+  rol(d);
+  const a = await aplicar(d, prop);
+  assert.equal(a.codigo, 0, a.lineas.join('\n'));
+  assert.deepEqual(F.leer(leer(d, '.claude/kit.md')).datos.entornos, { 'base-real': { clase: 'real' }, 'base-prueba': { clase: 'prueba' } });
+});
+
+test('crit. 5 (8r2 t5; D8r2-4): Python → el venv .venv, nunca el pip ni el pytest globales; win32 (con y sin py) y linux; pyproject solo → -e .; la línea comandos:; .venv/ en el snippet', deKit, () => {
+  const d = repoPelado('py', { 'requirements.txt': 'pytest\nrequests\n', 'CLAUDE.md': '# py\n', 'app.py': 'print(1)\n' });
+  const varsDe = (o) => F.leer(mirar(d, o).texto).datos.vars;
+  const win = varsDe({ plataforma: 'win32', hayPy: true });
+  assert.equal(win['comando-setup'], 'py -3 -m venv .venv && .venv/Scripts/python.exe -m pip install -r requirements.txt');
+  assert.equal(win['comando-test'], '.venv/Scripts/python.exe -m pytest');
+  assert.equal(varsDe({ plataforma: 'win32', hayPy: false })['comando-setup'], 'python -m venv .venv && .venv/Scripts/python.exe -m pip install -r requirements.txt');
+  const lin = varsDe({ plataforma: 'linux' });
+  assert.equal(lin['comando-setup'], 'python3 -m venv .venv && .venv/bin/python -m pip install -r requirements.txt');
+  assert.equal(lin['comando-test'], '.venv/bin/python -m pytest');
+  for (const v of [win, lin]) {
+    assert.doesNotMatch(v['comando-setup'], /^pip install/);
+    assert.notEqual(v['comando-test'], 'pytest');
+  }
+  assert.match(mirar(d, { plataforma: 'linux' }).texto, /^# comandos: setup python3 -m venv \.venv && \.venv\/bin\/python -m pip install -r requirements\.txt · test \.venv\/bin\/python -m pytest$/m);
+  // solo pyproject.toml, sin pytest
+  const pp = repoPelado('pp', { 'pyproject.toml': '[project]\nname = "pp"\n', 'CLAUDE.md': '# pp\n' });
+  const vp = F.leer(mirar(pp, { plataforma: 'linux' }).texto).datos.vars;
+  assert.equal(vp['comando-setup'], 'python3 -m venv .venv && .venv/bin/python -m pip install -e .');
+  assert.equal(vp['comando-test'], undefined);
+  assert.match(mirar(pp, { plataforma: 'linux' }).texto, /^# comandos: setup python3 -m venv \.venv && \.venv\/bin\/python -m pip install -e \. · test ninguno$/m);
+  // sin manifiesto: ninguno
+  assert.match(mirar(conCodigo('js-sin-test', { 'package.json': '{"name":"x"}\n' })).texto, /^# comandos: setup npm install · test ninguno$/m);
+  // el snippet del molde ignora el venv
+  assert.ok(fs.readFileSync(path.join(RAIZ_KIT, 'kit', 'molde', 'gitignore.snippet'), 'utf8').split(/\r?\n/).includes('.venv/'));
+});
+
+test('t12 (a) (8r2): config local ignorada en la raíz (config*.ini, *.local.*) → la línea del .worktreeinclude, sin los .env; con .worktreeinclude, "ya hay"; mirar no toca nada', deKit, () => {
+  const d = repoPelado('conf', { '.gitignore': 'config.ini\n*.local.*\n.env\n.env.*\n', 'CLAUDE.md': '# conf\n', 'config.local.md': 'trackeado\n' });
+  git(d, 'add', '-f', 'config.local.md');
+  git(d, 'commit', '-q', '-m', 'uno trackeado');
+  escribir(d, { 'config.ini': '[db]\n', 'app.local.json': '{}\n', '.env': 'SECRETO=x\n', '.env.local': 'SECRETO=y\n', 'otro.ini': 'no\n' });
+  const antes = foto(d);
+  const r = mirar(d);
+  assert.deepEqual(foto(d), antes);
+  const l = r.texto.split('\n').filter((x) => x.startsWith('# config local'));
+  assert.deepEqual(l, ['# config local ignorada en la raíz: app.local.json, config.ini — worktree crear no la copia (sin .worktreeinclude copia solo los .env): con el OK de Guido, un .worktreeinclude en la raíz con estas líneas (los .env también: con el archivo dejan de ir solos): .env · .env.* · app.local.json · config.ini']);
+  // con .worktreeinclude: lo dice y no propone
+  escribir(d, { '.worktreeinclude': '.env\n' });
+  assert.match(mirar(d).texto, /^# config local ignorada en la raíz: app\.local\.json, config\.ini — ya hay \.worktreeinclude/m);
+  // sin config local: ni una línea
+  assert.doesNotMatch(mirar(conCodigo('sin-conf')).texto, /config local/);
 });
