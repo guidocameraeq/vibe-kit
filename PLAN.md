@@ -14,7 +14,7 @@
   `doctor`, cuánto tardó y si algo pidió de más. Termina con "reiniciá Claude Code": Juan reinicia, vuelve a abrir esta carpeta y dice
   "arranquemos".
 
-- [ ] **2. La suite del kit en esta PC.** Es la primera vez que corre fuera de las PCs de Guido: una roja acá puede ser de la PC, y eso
+- [x] **2. La suite del kit en esta PC.** (prueba: `pruebas/2026-11-04-suite.md`: 2858/2867 pasan, 8 rojas que pasaron al repetirlas) Es la primera vez que corre fuera de las PCs de Guido: una roja acá puede ser de la PC, y eso
   es justo lo que se busca. Clon completo en `<temp>/vibe-kit-suite`, parado en el tag que imprime
   `node kit/skills/arquitecto-skills/scripts/actualizar.cjs ultimo-tag .`, y desde su raíz `node --test "kit/**/*.test.cjs"`, **en
   segundo plano y sola** (tarda entre 20 y 50 minutos; no corras otra cosa pesada a la vez). Prueba
