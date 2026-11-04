@@ -6,7 +6,7 @@ description: Cierre de sesión del repo vibe-kit — sincronizar kit a ~/.claude
 # /cierre — el ritual de cierre del proyecto madre
 
 Mismo esqueleto que el `/cierre` que el Arquitecto monta en cada proyecto
-(`kit/skills/arquitecto/templates/universales/skills/cierre/`), más el sync del kit. Pasos en orden,
+(`kit/molde/skills/cierre/`), más el sync del kit. Pasos en orden,
 mostrando evidencia de cada uno:
 
 1. **¿Se tocó `kit/`?** → sincronizar a la copia instalada y VERIFICAR, con el script (ADR-023):

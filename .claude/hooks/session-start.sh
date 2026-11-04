@@ -1,6 +1,6 @@
 #!/bin/bash
 # Hook SessionStart del proyecto madre: inyecta el estado en cada chat nuevo (y al retomar tras
-# /clear o /compact). Es el hook del molde (kit/.../templates/universales/hooks/) con los textos de acá.
+# /clear o /compact). Es el hook del molde (el v2; hoy vive en legacy/templates-universales-v2/hooks/) con los textos de acá.
 # $CLAUDE_PROJECT_DIR SIEMPRE entre comillas (paths con espacios rompen todo lo demás).
 #
 # TOPE (kit v2.4.3): la plataforma corta lo que inyecta un hook en 10.000 caracteres SIN avisar.

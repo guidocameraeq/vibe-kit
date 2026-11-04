@@ -16,6 +16,15 @@ if [ "${1:-diff}" = sync ]; then
   ruta=$(grep -m1 "$LINEA" "$ARQ" 2>/dev/null | cut -d'`' -f2)
   [ "$ruta" = "{{CARPETA_DE_PROYECTOS}}" ] && ruta=""
   for r in $SKILLS; do mkdir -p "$H/$r"; cp -r "$P/kit/$r/." "$H/$r/"; done
+  # Lo que el kit retiró (un git mv a legacy/, D8r.1 2026-11-03): se borra de ~/.claude SOLO si alguna vez fue un archivo del kit
+  # en el historial de git; lo que no viene del kit (algo de esta PC) no se toca.
+  for r in $SKILLS; do
+    (cd "$H/$r" && find . -type f) | sed 's|^\./||' | while IFS= read -r f; do
+      [ -e "$P/kit/$r/$f" ] && continue
+      if [ -n "$(git -C "$P" log -1 --format=%h -- "kit/$r/$f" 2>/dev/null)" ]; then rm -f "$H/$r/$f" && echo "retirado de ~/.claude: $r/$f"; fi
+    done
+    find "$H/$r" -mindepth 1 -type d -empty -delete 2>/dev/null
+  done
   mkdir -p "$H/agents"; cp "$P/kit/agents/redteam-spec.md" "$H/agents/"
   cp "$P/kit/VERSION" "$H/VERSION"
   if [ -n "$ruta" ]; then

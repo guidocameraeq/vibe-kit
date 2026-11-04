@@ -381,9 +381,10 @@ carpetas con espacios rompen todo lo demás).
 
 ## 2.9 Receta de aplicación
 
-> **Existen templates reales de todo lo de abajo** (skills genéricas, hooks, CLAUDE esqueleto,
-> docs mínimos, contratos de smoke/deploy) en `~/.claude/skills/arquitecto/templates/` — ver su
-> `LEEME.md`. Instanciar desde ahí, no reescribir de cero.
+> **Todo lo de abajo ya existe armado**: el sistema (skills, hooks, CLAUDE esqueleto, docs mínimos) lo monta
+> el adoptador del Equipador desde el molde v3 (`kit/molde/`; un proyecto nuevo, con el Modo A); los contratos
+> de smoke/deploy quedan en `~/.claude/skills/arquitecto/templates/adaptables/`. No reescribir de cero.
+> *(Cicatriz: la revisión integral R1, 2026-11-03, encontró al Arquitecto apuntando todavía a los moldes v2.)*
 
 ### Proyecto nuevo — el camino automático: `/arquitecto`
 
