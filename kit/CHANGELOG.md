@@ -27,6 +27,8 @@ La `rc.4` exprés (2026-11-04, `docs/kit-v3/SPEC-paquete-8r3.md`): lo que trabab
     antes de juntar lo pendiente, y lo dice en una línea que no frena; todo otro ignorado de esas carpetas sigue en rojo. `cambios.cjs`
     se copia byte a byte a `pc/lib/`.
   - **El `/inicio` sin huella** dice que el arranque puede ser otro y da el `resolver … hook-arranque nueva`.
+  - **El chequeo de la flota mide el tope de las skills sin el `\r`** de un checkout con `core.autocrlf` (como lo guarda git): antes un
+    `/inicio` dentro del tope daba ROTA por cómo se clonó.
 - **Automático o pide revisión**: automático. Sin `carpeta-docs:` todo queda como en la `rc.3`. Si tus papeles no están en `docs/`, se
   agrega la clave con un aprobado (es barrera).
 - **Qué chequear después**: `estructura.cjs todo` sin el rojo de los `.pyc` (en Hermes, `.claude/hooks/__pycache__/`); el arranque

@@ -173,7 +173,7 @@ test('D8b-3 ficha (sin la versión en las opciones): rc.1 → rc.2 es mayor ✅;
 test('1 llaves: un {{X}} suelto en lo que trajo → ❌ con archivo:línea; {{LINEAS:N}} y _fuente/ no cuentan', () => {
   const p = armar({
     cambio: (d) => {
-      fs.appendFileSync(path.join(d, '.claude', 'skills', 'inicio', 'SKILL.md'), '\nUn hueco {{X}} que quedó.\n');
+      fs.appendFileSync(path.join(d, '.claude', 'skills', 'estado', 'SKILL.md'), '\nUn hueco {{X}} que quedó.\n');
       escribir(path.join(d, 'docs', 'plantillas', '_fuente', 'a.md'), 'aprobada: {{SIN_TOCAR}}\n');
       escribir(path.join(d, 'docs', 'b.md'), 'tabla de {{LINEAS:12}} renglones\n');
       escribir(path.join(d, '.claude', 'scripts', 'portada.cjs'), "const t = '{{PROYECTO}} {{BANNER}}';\n");
@@ -181,7 +181,7 @@ test('1 llaves: un {{X}} suelto en lo que trajo → ❌ con archivo:línea; {{LI
   });
   const r = correr(p);
   nueveBienFormadas(r);
-  rojo(r, 'llaves', /\.claude\/skills\/inicio\/SKILL\.md:\d+/);
+  rojo(r, 'llaves', /\.claude\/skills\/estado\/SKILL\.md:\d+/);
   assert.doesNotMatch(linea(r, 'llaves'), /_fuente|docs\/b\.md|portada\.cjs/);
   verde(r, 'skills');
 });
