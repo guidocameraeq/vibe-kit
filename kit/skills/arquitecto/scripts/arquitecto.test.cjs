@@ -691,6 +691,25 @@ test('sello entorno: sin real, comando-test tiene que existir y salir 0; rojo o 
   assert.match(correr(['sello', 's.md'], lista).out, /tiene que ser un comando/);
 });
 
+// rt-8 (D8r.2): el venv vive en cada worktree; en la carpeta de Guido el rojo pregunta por el comando-setup (si la ficha lo trae).
+// rt-2: el guardia de lib/proceso.cjs (la shell inyectada con ARQUITECTO_SHELL): `cmd //c` en cmd.exe no se corre.
+test('sello entorno: rojo con comando-setup → "¿corriste el comando-setup en esta carpeta? (<setup>)"; sin setup, no; el guardia de cmd', () => {
+  const conSetup = repo(ficha({ test: 'node rojo.js', extra: '  comando-setup: py -3 -m venv .venv && .venv/Scripts/python.exe -m pip install -r requirements.txt' }));
+  escribir(conSetup, 's.md', spec());
+  const r = correr(['sello', 's.md'], conSetup);
+  assert.equal(r.codigo, 1, r.out);
+  assert.match(r.out, /entorno: comando-test dio rojo — ¿corriste el comando-setup en esta carpeta\? \(py -3 -m venv \.venv && \.venv\/Scripts\/python\.exe -m pip install -r requirements\.txt\) — arreglalo/);
+  const sinSetup = repo(ficha({ test: 'node rojo.js' }));
+  escribir(sinSetup, 's.md', spec());
+  assert.doesNotMatch(correr(['sello', 's.md'], sinSetup).out, /comando-setup/);
+  const conCmd = repo(ficha({ test: 'cmd //c exit 0' }));
+  const p = escribir(conCmd, 's.md', spec());
+  const rc = correr(['sello', 's.md'], conCmd, { env: { ...PLAZOS, ARQUITECTO_SHELL: 'C:/Windows/System32/cmd.exe' } });
+  assert.equal(rc.codigo, 1, rc.out);
+  assert.match(rc.out, /entorno: comando-test no se corre: `cmd \/\/c` es de Git Bash: en cmd\.exe no corre nada y saldría verde — corregilo en la ficha/);
+  assert.equal(leer(p), spec(), 'no escribe nada');
+});
+
 test('sello entorno: el chequeo de cada herramienta que nombra un entorno; rojo o colgado → 1', () => {
   const verde = repo(ficha({ extra: herramienta('node verde.js') }));
   assert.equal(sellado(verde, 's.md', spec()).r.codigo, 0);
@@ -928,4 +947,35 @@ test('registro: una ficha por <carpeta>/*/.claude/kit.md, con alias, repo, tipo,
   const no = correr(['registro', path.join(TMP, 'no-esta')], TMP);
   assert.equal(no.codigo, 1);
   assert.match(no.out, /no encuentro la carpeta/);
+});
+
+// SPEC-paquete-8r2 t7 (crit. 7): la carpeta de proyectos D:/ con Hermes/Hermes.exe (dos niveles), su worktree Hermes-x y Otro.
+test('crit. 7: registro mira dos niveles — una ficha para Hermes/Hermes.exe y una para Otro; ninguna para el worktree Hermes-x', () => {
+  const carpeta = path.join(TMP, `flota${++n}`);
+  const g = (cwd, ...args) => {
+    const r = spawnSync('git', args, { cwd, encoding: 'utf8' });
+    assert.equal(r.status, 0, `git ${args.join(' ')}: ${r.stderr}`);
+  };
+  const h = path.join(carpeta, 'Hermes', 'Hermes.exe');
+  const bare = path.join(TMP, `remotos${n}`, 'Hermes.exe.git');
+  fs.mkdirSync(h, { recursive: true });
+  g(h, 'init', '-q', '-b', 'main');
+  escribir(h, '.claude/kit.md', ['---', 'kit: 3.0.0', 'nivel: estandar', 'vars:', '  proyecto: hermes', '---', ''].join('\n'));
+  g(h, 'add', '-A');
+  g(h, 'commit', '-q', '-m', 'nace');
+  g(TMP, 'clone', '-q', '--bare', h, bare);
+  g(h, 'remote', 'add', 'origin', bare);
+  g(h, 'worktree', 'add', '-q', '-b', 'x', path.join(carpeta, 'Hermes-x'));
+  const otro = path.join(carpeta, 'Otro');
+  fs.mkdirSync(otro);
+  g(otro, 'init', '-q', '-b', 'main');
+  escribir(otro, '.claude/kit.md', ['---', 'kit: 3.0.0', 'nivel: liviano', 'vars:', '  proyecto: otro', '---', ''].join('\n'));
+  const r = correr(['registro', carpeta], TMP);
+  assert.equal(r.codigo, 0, r.err);
+  assert.equal(r.err, '');
+  assert.deepEqual(JSON.parse(r.out).fichas, [
+    { alias: 'hermes', repo: bare, tipo: 'código', kit: '3.0.0' },
+    { alias: 'otro', repo: null, tipo: 'sin código', kit: '3.0.0' },
+  ]);
+  assert.equal(r.err, '');
 });

@@ -16,6 +16,7 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 const ficha = require('../pc/lib/ficha.cjs');
 const CU = require('./lib/cubiertos.cjs');
+const R = require('./lib/repos.cjs');
 
 const USO = 'uso: cambios-flota.cjs [<repo>…] [--proyectos <carpeta>] [--urgentes] [--kit <raíz del kit>] [--home <dir>]';
 const RE_CAMBIO = /^\d{4}-\d{2}-\d{2}-.+\.md$/;
@@ -162,11 +163,13 @@ function proyectosDeKitPc(home) {
 
 // Lo descubierto por carpeta: solo los repos que tienen registro de cambios en el disco (.claude/cambios/); los demás, en silencio
 // (RF-fix rf-3: un repo sin rama por defecto daba "⚠ no se lee" en cada /inicio). Los nombrados a mano siguen avisando.
-const reposDe = (carpeta) =>
-  fs.readdirSync(carpeta, { withFileTypes: true })
-    .filter((d) => d.isDirectory() && fs.existsSync(path.join(carpeta, d.name, '.git')) && esCarpeta(path.join(carpeta, d.name, '.claude', 'cambios')))
-    .map((d) => path.join(carpeta, d.name))
-    .sort();
+// El recorrido es lib/repos.cjs (SPEC-paquete-8r2 t7): hasta dos niveles (D:/Hermes/Hermes.exe), uno por git-common-dir y por
+// origin, nunca un worktree; la misma regla que `arquitecto.cjs registro`, preparar-pc.cjs y lib/flota.cjs.
+// → { repos: [rutas absolutas], avisos: [...] }
+function reposDe(carpeta) {
+  const rec = R.recorrer(carpeta);
+  return { repos: rec.repos.map((r) => r.dir).filter((d) => esCarpeta(path.join(d, '.claude', 'cambios'))), avisos: rec.avisos };
+}
 
 function esCarpeta(p) {
   try {
@@ -267,7 +270,9 @@ function main(argv, salida) {
     }
     const abs = path.resolve(carpeta.replace(/^~(?=$|[\\/])/, os.homedir()));
     try {
-      repos = reposDe(abs);
+      const r = reposDe(abs);
+      repos = r.repos;
+      for (const av of r.avisos) log(`⚠ ${av}`);
     } catch (e) {
       log(`no pude abrir la carpeta de proyectos ${abs} (${e.code || e.message}).`);
       return 0;

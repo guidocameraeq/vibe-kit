@@ -975,3 +975,253 @@ test('t12 (a) (8r2): config local ignorada en la raíz (config*.ini, *.local.*) 
   // sin config local: ni una línea
   assert.doesNotMatch(mirar(conCodigo('sin-conf')).texto, /config local/);
 });
+
+// ---------------------------------------------------------------- SPEC-paquete-8r2: t3 (crit. 3, rt-4) y t9 (crit. 9, rt-9) — A1
+
+// Sin claude en el PATH mientras corre fn: una pieza que va a la fusión no lanza un `claude -p` de verdad.
+async function sinClaude(fn) {
+  const antes = process.env.PATH;
+  const exts = process.platform === 'win32' ? ['.exe', '.cmd', '.bat', ''] : [''];
+  process.env.PATH = String(antes || '').split(path.delimiter).filter((d) => !exts.some((e) => fs.existsSync(path.join(d, `claude${e}`)))).join(path.delimiter);
+  try {
+    return await fn();
+  } finally {
+    process.env.PATH = antes;
+  }
+}
+const aplicarCon = (d, propuesta, ...extra) => AD.main([d, '--kit', RAIZ_KIT, '--aplicar', propuesta, '--fecha', FECHA, ...extra]);
+const DIR_PROPIO = '# el director de hermes (646 renglones)\n';
+const INICIO_PROPIO = '# el inicio de hermes\n';
+const CIERRE_PROPIO = '# el cierre de hermes\n';
+const conDirectorPropio = (nombre, extra = {}) => conCodigo(nombre, {
+  '.claude/skills/director/SKILL.md': DIR_PROPIO, '.claude/skills/inicio/SKILL.md': INICIO_PROPIO, '.claude/skills/cierre/SKILL.md': CIERRE_PROPIO, ...extra,
+});
+// El molde nuevo con las vars de la ficha que quedó (las mismas que usó --aplicar).
+function delMolde(d, rel) {
+  const vars = F.leer(leer(d, '.claude/kit.md')).datos.vars;
+  const m = M.materializarNuevo(RAIZ_KIT, { vars, fecha: FECHA });
+  try {
+    return fs.readFileSync(path.join(m.dir, ...rel.split('/')), 'utf8');
+  } finally {
+    M.borrar(m.dir);
+  }
+}
+
+test('crit. 3 (8r2, t3): director, /inicio y /cierre propios → --mirar trae el bloque D1 con (A) y (B), y el D4', deKit, () => {
+  const r = mirar(conDirectorPropio('hermes'));
+  const p = piezas(r.texto);
+  for (const id of ['director-obrero', 'inicio', 'cierre']) assert.equal(p[id], 'propia', id);
+  assert.match(r.texto, /^# D1 · el director, \/inicio y \/cierre: ya hay unos tuyos distintos de los del kit — .*\.claude\/skills\/director\/SKILL\.md \(director-obrero\)/m);
+  assert.match(r.texto, /^# D1 · .*\.claude\/skills\/inicio\/SKILL\.md \(inicio\).*\.claude\/skills\/cierre\/SKILL\.md \(cierre\)/m);
+  const lineas = r.texto.split('\n');
+  const i = lineas.findIndex((l) => l.startsWith('# D1 · '));
+  assert.equal(lineas[i + 1], '#   (A, recomendada) los del kit: --aplicar <propuesta> --director kit — las reglas tuyas que valgan pasan a la zona propia del CLAUDE.md o a cambios (los cambios de método ya migran)');
+  assert.equal(lineas[i + 2], '#   (B) los tuyos: sin la opción — el módulo arranca solo, sin el director del kit');
+  assert.match(r.texto, /^# D4 · sensible: las cinco de sensible: quedan en no; recomendada: datos-reales con los comandos que tocan la base real — se cambia en la propuesta, como lista \(p\. ej\. datos-reales: \[sqlcmd\]; "sí" no se lee: va no o los comandos, como en kit\.ejemplo\.md\); el commit de la ficha da ROJO en barreras y eso lo aprueba Guido después del merge, desde su checkout \(cambios nuevo \+ cambios aprobar\)$/m);
+  // sin nada propio, no hay D1
+  assert.doesNotMatch(mirar(conCodigo('limpio')).texto, /^# D1 · /m);
+});
+
+test('crit. 3 (8r2, t3; rt-4): --aplicar --director kit escribe los del kit, la ficha en sí/molde con su hash, el renglón dice D1: A, y barreras verde', { ...deKit, timeout: 240000 }, async () => {
+  const d = conDirectorPropio('hermes');
+  const prop = propuestaDe(d); // sin editar: la opción alcanza (un paso)
+  rol(d);
+  const antes = git(d, 'rev-parse', 'HEAD').trim();
+  const r = await sinClaude(() => aplicarCon(d, prop, '--director', 'kit'));
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  const t = r.lineas.join('\n');
+  for (const rel of ['.claude/skills/director/SKILL.md', '.claude/skills/inicio/SKILL.md', '.claude/skills/cierre/SKILL.md', '.claude/skills/obrero/SKILL.md']) {
+    assert.equal(leer(d, rel), delMolde(d, rel.slice('.claude/'.length)), rel);
+  }
+  const f = F.leer(leer(d, '.claude/kit.md')).datos;
+  assert.equal(f.piezas['director-obrero'], 'sí');
+  for (const id of ['inicio', 'cierre']) {
+    assert.match(String(f.piezas[id].estado), /^molde/, id);
+    assert.match(String(f.piezas[id].hash), /^[0-9a-f]{8,}$/, `${id} con su hash`);
+  }
+  assert.match(t, new RegExp(`^director-obrero · sí · reemplacé los tuyos \\(D1: A\\) — lo tuyo queda en la historia: git show ${antes}:\\.claude/skills/director/SKILL\\.md$`, 'm'));
+  assert.match(t, new RegExp(`^cierre · molde[^ ]* · reemplacé los tuyos \\(D1: A\\) — lo tuyo queda en la historia: git show ${antes}:\\.claude/skills/cierre/SKILL\\.md$`, 'm'));
+  assert.match(leer(d, 'docs/CHANGELOG.md'), /^kit .*: adopción — piezas .* — D1: A, los del kit reemplazan los propios$/m);
+  assert.equal(leer(d, '.claude/fusiones/director-obrero.md'), null, 'no va a la fusión');
+  assert.equal(commitsDeLaLinea(d, r.lineas), 2);
+  assert.equal(git(d, 'status', '--porcelain'), '');
+  const b = barreras(d, antes);
+  assert.equal(b.status, 0, b.stdout + b.stderr);
+  assert.equal(git(d, 'show', `${antes}:.claude/skills/director/SKILL.md`), DIR_PROPIO, 'lo tuyo queda en la historia');
+});
+
+test('crit. 3 (8r2, t3; rt-4): sin --director kit no se tocan; ni un --nuevo con director propio, ni un githooks propio en molde (ni con --director kit)', { ...deKit, timeout: 300000 }, async () => {
+  // la propuesta sin editar, sin la opción: quedan propia
+  const d = conDirectorPropio('hermes');
+  const prop = propuestaDe(d);
+  rol(d);
+  const r = await sinClaude(() => aplicar(d, prop));
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  assert.equal(leer(d, '.claude/skills/director/SKILL.md'), DIR_PROPIO);
+  assert.equal(leer(d, '.claude/skills/inicio/SKILL.md'), INICIO_PROPIO);
+  assert.equal(leer(d, '.claude/skills/cierre/SKILL.md'), CIERRE_PROPIO);
+  for (const id of ['director-obrero', 'inicio', 'cierre']) assert.equal(F.leer(leer(d, '.claude/kit.md')).datos.piezas[id], 'propia', id);
+  assert.doesNotMatch(r.lineas.join('\n'), /D1: A/);
+  // --nuevo con un director propio (sí de mirar, no a mano): sin la opción, no se toca
+  const n = repoPelado('nuevo', { 'notas.txt': 'recién nacido\n', '.claude/skills/director/SKILL.md': DIR_PROPIO });
+  const pn = path.join(nuevaCarpeta('prop'), 'propuesta.md');
+  fs.writeFileSync(pn, mirar(n, { nuevo: true }).texto);
+  assert.equal(piezas(fs.readFileSync(pn, 'utf8'))['director-obrero'], 'sí');
+  rol(n);
+  const rn = await sinClaude(() => aplicar(n, pn));
+  assert.equal(rn.codigo, 0, rn.lineas.join('\n'));
+  assert.equal(leer(n, '.claude/skills/director/SKILL.md'), DIR_PROPIO, '--nuevo sin --director kit: el tuyo queda');
+  assert.doesNotMatch(rn.lineas.join('\n'), /reemplacé los tuyos/);
+  // un githooks propio, puesto en molde a mano: ni con --director kit (no es de las cuatro)
+  const HOOK = '#!/bin/sh\necho el pre-commit de hermes\n';
+  const g = conCodigo('ganchos', { '.githooks/pre-commit': HOOK });
+  const pg = propuestaDe(g);
+  assert.equal(piezas(fs.readFileSync(pg, 'utf8')).githooks, 'propia');
+  fs.writeFileSync(pg, fs.readFileSync(pg, 'utf8').replace('\n  githooks: propia\n', '\n  githooks: molde\n'));
+  rol(g);
+  const rg = await sinClaude(() => aplicarCon(g, pg, '--director', 'kit'));
+  assert.equal(rg.codigo, 0, rg.lineas.join('\n'));
+  assert.equal(leer(g, '.githooks/pre-commit'), HOOK, 'githooks no es de D1');
+  assert.doesNotMatch(rg.lineas.join('\n'), /^githooks · .*reemplacé los tuyos/m);
+  // la opción es de --aplicar, con su único valor
+  for (const args of [[d, '--kit', RAIZ_KIT, '--mirar', '--director', 'kit'], [d, '--kit', RAIZ_KIT, '--aplicar', prop, '--director', 'propio'], [d, '--kit', RAIZ_KIT, '--aplicar', prop, '--permisos', 'todas'], [d, '--kit', RAIZ_KIT, '--aplicar', prop, '--arranque', 'mio']]) {
+    assert.equal(await AD.main(args), null, args.join(' '));
+  }
+});
+
+test('8r2 t3 (modo-b.md B4): resolver … nueva sobre una pieza propia ya adoptada no anda (no hay informe); en la adopción, sí a mano + --aplicar + resolver … nueva sí', { ...deKit, timeout: 300000 }, async () => {
+  const ACT = path.join(SCRIPTS, 'actualizar.cjs');
+  const d = conDirectorPropio('hermes');
+  const prop = propuestaDe(d);
+  rol(d);
+  const r = await sinClaude(() => aplicar(d, prop));
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  commitsDeLaLinea(d, r.lineas);
+  fs.rmSync(path.join(d, '.kit-rol')); // el dueño: rol humano
+  const res = spawnSync(process.execPath, [ACT, 'resolver', '.', 'director-obrero', 'nueva', '--por', 'x'], { cwd: d, encoding: 'utf8' });
+  assert.equal(res.status, 1, res.stdout + res.stderr);
+  assert.match(res.stdout, /^resolver: no hay \.claude\/fusiones\/director-obrero\.md: no hay nada que resolver$/m);
+  // el camino viejo, en la adopción: la propuesta a sí a mano → --aplicar la manda a la fusión (te espera) → resolver … nueva
+  const e = conDirectorPropio('hermes2');
+  const pe = propuestaDe(e);
+  fs.writeFileSync(pe, fs.readFileSync(pe, 'utf8').replace('\n  director-obrero: propia\n', '\n  director-obrero: sí\n'));
+  rol(e);
+  const ae = await sinClaude(() => aplicar(e, pe));
+  assert.equal(ae.codigo, 0, ae.lineas.join('\n'));
+  assert.ok(leer(e, '.claude/fusiones/director-obrero.md'), `el informe: ${ae.lineas.join('\n')}`);
+  assert.equal(leer(e, '.claude/skills/director/SKILL.md'), DIR_PROPIO);
+  commitsDeLaLinea(e, ae.lineas);
+  assert.equal(git(e, 'status', '--porcelain'), '');
+  fs.rmSync(path.join(e, '.kit-rol'));
+  const nueva = spawnSync(process.execPath, [ACT, 'resolver', '.', 'director-obrero', 'nueva', '--por', 'x'], { cwd: e, encoding: 'utf8' });
+  assert.equal(nueva.status, 0, nueva.stdout + nueva.stderr);
+  assert.equal(leer(e, '.claude/skills/director/SKILL.md'), delMolde(e, 'skills/director/SKILL.md'));
+  assert.equal(leer(e, '.claude/fusiones/director-obrero.md'), null);
+});
+
+// Un repo con código y un settings como el de Hermes: una allow del v2, un ask de git merge, un SessionStart propio y un handoff gordo.
+function conSettingsPropio(nombre) {
+  const settings = {
+    hooks: { SessionStart: [{ matcher: '', hooks: [{ type: 'command', command: 'bash .claude/hooks/arranque-hermes.sh' }] }] },
+    permissions: { allow: ['Bash(git add:*)', 'Bash(npm test:*)'], ask: ['Bash(git merge:*)', 'Bash(git push --force:*)'] },
+  };
+  return conCodigo(nombre, {
+    '.claude/settings.json': `${JSON.stringify(settings, null, 2)}\n`,
+    '.claude/hooks/arranque-hermes.sh': 'cat docs/SESSION_HANDOFF.md\n',
+    'docs/SESSION_HANDOFF.md': `# handoff\n${'x'.repeat(6 * 1024)}\n`,
+  });
+}
+const settingsDe = (d) => JSON.parse(leer(d, '.claude/settings.json'));
+const hooksDe = (s, ev) => ((s.hooks || {})[ev] || []).flatMap((g) => g.hooks.map((h) => [h.command, ...(h.args || [])].join(' ')));
+
+test('crit. 9 (8r2, t9): --mirar lista lo que se va, los ask que frenan, el SessionStart propio y el handoff gordo, con D2 y D3', deKit, () => {
+  const r = mirar(conSettingsPropio('hermes'));
+  const t = r.texto;
+  assert.match(t, /^# settings: se van con la mezcla \(iguales al molde v2\):$/m);
+  assert.match(t, /^# {3}se va: allow Bash\(git add:\*\)$/m);
+  assert.doesNotMatch(t, /se va: allow Bash\(npm test:\*\)/, 'una allow que no es del v2 no se va');
+  assert.match(t, /^# {3}frena: ask Bash\(git merge:\*\)$/m);
+  assert.doesNotMatch(t, /frena: ask Bash\(git push --force/, 'git push --force no lo corre el director');
+  assert.match(t, /^# arranque: un SessionStart propio \(no es del molde\): hook SessionStart \*: bash \.claude\/hooks\/arranque-hermes\.sh$/m);
+  assert.match(t, /^# arranque: docs\/SESSION_HANDOFF\.md pesa 6155 B y el tope del hook es 5000 B: cada arranque lo inyecta CORTADO$/m);
+  const ls = t.split('\n');
+  const i2 = ls.indexOf('# D2 · los permisos:');
+  assert.ok(i2 > 0, 'el bloque D2');
+  assert.match(ls[i2 + 1], /^# {3}\(recomendada\) .*--aplicar <propuesta> --permisos recomendada/);
+  assert.match(ls[i2 + 2], /^# {3}\(otra\) sin la opción/);
+  const i3 = ls.indexOf('# D3 · el arranque:');
+  assert.ok(i3 > 0, 'el bloque D3');
+  assert.match(ls[i3 + 1], /^# {3}\(recomendada\) el del kit: --aplicar <propuesta> --arranque kit/);
+  assert.match(ls[i3 + 2], /^# {3}\(otra\) sin la opción/);
+  // un repo sin nada de eso: ni D2 ni D3 (sí el D4)
+  const limpio = mirar(conCodigo('limpio')).texto;
+  assert.doesNotMatch(limpio, /^# D[23] · /m);
+  assert.match(limpio, /^# D4 · /m);
+});
+
+test('crit. 9 (8r2, t9; rt-9): --aplicar --permisos recomendada --arranque kit → tres commits; la allow queda, el ask y el SessionStart propio se van; sin opciones, como hoy', { ...deKit, timeout: 300000 }, async () => {
+  // sin las opciones: el settings, la mezcla de siempre (dos commits)
+  const h = conSettingsPropio('hermes');
+  const ph = propuestaDe(h);
+  rol(h);
+  const comoHoy = await aplicar(h, ph);
+  assert.equal(comoHoy.codigo, 0, comoHoy.lineas.join('\n'));
+  const sHoy = settingsDe(h);
+  assert.ok(!sHoy.permissions.allow.includes('Bash(git add:*)'), 'sin la opción, la mezcla saca la allow del v2');
+  assert.ok(sHoy.permissions.ask.includes('Bash(git merge:*)'));
+  assert.ok(hooksDe(sHoy, 'SessionStart').includes('bash .claude/hooks/arranque-hermes.sh'));
+  assert.doesNotMatch(comoHoy.lineas.join('\n'), /tres commits|D2|D3/);
+  assert.equal(commitsDeLaLinea(h, comoHoy.lineas), 2);
+
+  // con las dos
+  const d = conSettingsPropio('hermes');
+  const prop = propuestaDe(d);
+  rol(d);
+  const antes = git(d, 'rev-parse', 'HEAD').trim();
+  const r = await aplicarCon(d, prop, '--permisos', 'recomendada', '--arranque', 'kit');
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  const t = r.lineas.join('\n');
+  assert.match(t, /^settings · D2 \(--permisos recomendada\): quedan allow Bash\(git add:\*\) \(la mezcla las sacaba\); salen ask Bash\(git merge:\*\) \(frenaban al director\)$/m);
+  assert.match(t, /^settings · D3 \(--arranque kit\): sale del settings hook SessionStart \*: bash \.claude\/hooks\/arranque-hermes\.sh — su archivo queda$/m);
+  assert.match(t, /^van tres commits, en este orden/m);
+  const s = settingsDe(d);
+  assert.ok(s.permissions.allow.includes('Bash(git add:*)'), 'la allow queda');
+  assert.ok(s.permissions.allow.includes('Bash(npm test:*)'));
+  assert.ok(!s.permissions.ask.includes('Bash(git merge:*)'), 'el ask que frena se va');
+  assert.ok(s.permissions.ask.includes('Bash(git push --force:*)'), 'el que no frena queda');
+  assert.ok(!hooksDe(s, 'SessionStart').includes('bash .claude/hooks/arranque-hermes.sh'), 'el SessionStart propio se va');
+  assert.ok(hooksDe(s, 'SessionStart').some((c) => c.includes('session-start.cjs')), 'queda el del kit');
+  assert.ok(leer(d, '.claude/hooks/arranque-hermes.sh'), 'su archivo queda');
+  assert.equal(commitsDeLaLinea(d, r.lineas), 3);
+  assert.equal(git(d, 'status', '--porcelain'), '');
+  assert.deepEqual(git(d, 'log', '--format=%s', '-3').trim().split('\n'), [`kit: adopción ${VERSION} (permisos: D2/D3)`, `kit: adopción ${VERSION} (ficha)`, `kit: adopción ${VERSION} (piezas)`]);
+  assert.deepEqual(git(d, 'show', '--name-only', '--format=', 'HEAD').trim().split('\n'), ['.claude/settings.json'], 'el tercero, solo el settings');
+  assert.deepEqual(JSON.parse(git(d, 'show', 'HEAD~2:.claude/settings.json')), sHoy, 'en el de las piezas, la mezcla de siempre');
+  // barreras: las piezas y la ficha, verde; con el tercero, lo que dice la línea después:
+  const b2 = spawnSync(process.execPath, [path.join(d, '.claude', 'scripts', 'estructura.cjs'), 'barreras', '--rango', `${antes}..HEAD~1`, '--sin-log'], { cwd: d, encoding: 'utf8' });
+  assert.equal(b2.status, 0, b2.stdout + b2.stderr);
+  const b3 = barreras(d, antes);
+  assert.equal(b3.status, 1, 'el tercero da rojo: toca reglas del settings');
+  assert.match(b3.stdout + b3.stderr, /toca settings \(allow:Bash\(git add:\*\), ask:Bash\(git merge:\*\), hook:SessionStart\/\/bash \.claude\/hooks\/arranque-hermes\.sh\) sin un aprobado sellado/);
+  assert.match(t, /^después: node \.claude\/scripts\/estructura\.cjs barreras --rango [0-9a-f]{40}\.\.HEAD → verde en las piezas y la ficha$/m);
+  assert.match(t, /^después: el commit de los permisos \(permisos: D2\/D3\) da ROJO en barreras \(toca reglas del settings sin un aprobado sellado\): eso lo aprueba Guido después del merge, desde su checkout \(cambios nuevo \+ cambios aprobar\), y ese commit se rehace después del sello \(o se revierte: queda la mezcla de siempre\)$/m);
+});
+
+test('8r2 D4: datos-reales con una lista en la propuesta → --aplicar anda y la línea después: dice el camino; con "sí", la propuesta no se lee', { ...deKit, timeout: 240000 }, async () => {
+  const d = conCodigo('hermes');
+  const prop = propuestaDe(d);
+  const conSi = path.join(path.dirname(prop), 'con-si.md');
+  fs.writeFileSync(conSi, fs.readFileSync(prop, 'utf8').replace('  datos-reales: no', '  datos-reales: sí'));
+  fs.writeFileSync(prop, fs.readFileSync(prop, 'utf8').replace('  datos-reales: no', '  datos-reales: [sqlcmd]'));
+  rol(d);
+  const si = await aplicar(d, conSi);
+  assert.equal(si.codigo, 1);
+  assert.match(si.lineas[0], /^adoptar: la propuesta no se lee \(.*"sensible\.datos-reales" tiene que ser "no" o una lista/);
+  const antes = git(d, 'rev-parse', 'HEAD').trim();
+  const r = await aplicar(d, prop);
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  assert.deepEqual(F.leer(leer(d, '.claude/kit.md')).datos.sensible['datos-reales'], ['sqlcmd']);
+  assert.match(r.lineas.join('\n'), /^después: node \.claude\/scripts\/estructura\.cjs barreras --rango [0-9a-f]{40}\.\.HEAD da ROJO en el commit de la ficha \(sensible no es de fábrica\): eso lo aprueba Guido después del merge, desde su checkout \(cambios nuevo \+ cambios aprobar\)$/m);
+  commitsDeLaLinea(d, r.lineas);
+  assert.equal(barreras(d, antes).status, 1);
+});

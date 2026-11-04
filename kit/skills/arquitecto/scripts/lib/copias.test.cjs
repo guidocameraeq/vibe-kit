@@ -20,6 +20,14 @@ test('lib/ficha.cjs es idéntica byte a byte a la del molde', () => {
   assert.ok(fs.readFileSync(path.join(LIB, 'ficha.cjs')).equals(fs.readFileSync(par)), 'lib/ficha.cjs se desvió del molde — volvé a copiarla byte a byte');
 });
 
+// D8r.2 t6: lib/proceso.cjs (la shell de los comandos del sello y el guardia de `cmd`) es la del molde, byte a byte. Se cambia en
+// el molde (hooks/lib/proceso.cjs) y se copia acá: nunca al revés.
+test('lib/proceso.cjs es idéntica byte a byte a la del molde', () => {
+  const par = path.join(MOLDE_LIB, 'proceso.cjs');
+  assert.ok(fs.existsSync(par), 'no encuentro kit/molde/hooks/lib/proceso.cjs');
+  assert.ok(fs.readFileSync(path.join(LIB, 'proceso.cjs')).equals(fs.readFileSync(par)), 'lib/proceso.cjs se desvió del molde — volvé a copiarla byte a byte');
+});
+
 // SPEC-paquete-5 "sello.cjs al molde" (D4-9, D5-7; criterio 8): la copia del molde (la usa `encargo.cjs presentar`) es idéntica
 // byte a byte. Se cambia acá, en el Arquitecto, y se copia: nunca al revés.
 const identicas = (a, b) => Buffer.isBuffer(a) && Buffer.isBuffer(b) && a.equals(b);
@@ -58,4 +66,13 @@ test('D8b-3: la regex de versión de sello.cjs es la misma que ficha.RE_VERSION 
   const m = /^const RE_VERSION = (\/.*\/);$/m.exec(fs.readFileSync(path.join(LIB, 'sello.cjs'), 'utf8'));
   assert.ok(m, 'sello.cjs no define RE_VERSION en una línea');
   assert.equal(m[1], String(F.RE_VERSION));
+});
+
+// SPEC-paquete-8r2 t7: el recorrido de la flota se cambia acá y se copia byte a byte al Equipador (preparar-pc, lib/flota y
+// cambios-flota lo usan desde allá; las dos skills se instalan por separado). Solo node estándar.
+test('arquitecto-skills/scripts/lib/repos.cjs es idéntica byte a byte a lib/repos.cjs, y usa solo node estándar', () => {
+  const par = path.join(KIT, 'skills', 'arquitecto-skills', 'scripts', 'lib', 'repos.cjs');
+  assert.ok(fs.existsSync(par), 'no encuentro kit/skills/arquitecto-skills/scripts/lib/repos.cjs');
+  assert.ok(identicas(fs.readFileSync(path.join(LIB, 'repos.cjs')), fs.readFileSync(par)), 'la copia del Equipador de repos.cjs se desvió — volvé a copiarla byte a byte desde arquitecto/scripts/lib/repos.cjs');
+  assert.deepEqual(requiresDe(par).filter((r) => !/^(node:)?[a-z_]+$/.test(r)), [], 'repos.cjs tiene que usar solo módulos de node');
 });

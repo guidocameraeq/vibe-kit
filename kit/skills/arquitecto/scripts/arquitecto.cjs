@@ -12,6 +12,7 @@
 // La versión del kit sale de <skill>/../../VERSION por __dirname, nunca de os.homedir() (r1-15).
 // Salidas: 0 anduvo · 1 negado o con fallas (una línea por qué, con qué hacer) · 2 mal llamado. Error propio: "arquitecto roto: …", 1.
 // Plazos (para las pruebas): ARQUITECTO_PLAZO_TEST_MS (comando-test, 5 min) y ARQUITECTO_PLAZO_CHEQUEO_MS (cada chequeo, 30 s).
+// Los comandos de la ficha corren en la shell de lib/proceso.cjs (Git Bash en Windows; las pruebas: ARQUITECTO_SHELL).
 // Node estándar, cero dependencias. Es .cjs a propósito: corre igual en proyectos con "type": "module".
 
 const fs = require('fs');
@@ -19,6 +20,8 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 const S = require('./lib/sello.cjs');
 const ficha = require('./lib/ficha.cjs');
+const proceso = require('./lib/proceso.cjs');
+const R = require('./lib/repos.cjs');
 
 const USO = [
   'Uso: node <skill>/scripts/arquitecto.cjs <comando> …',
@@ -180,12 +183,16 @@ function plazo(env, nombre, porDefecto) {
   return Number.isFinite(v) && v > 0 ? Math.floor(v) : porDefecto;
 }
 
-// Corre un comando de la ficha en la raíz, sin mostrar su salida. → 'verde' | 'rojo' | 'colgado'.
-function correr(comando, cwd, ms) {
-  const r = spawnSync(comando, { cwd, shell: true, stdio: 'ignore', timeout: ms, windowsHide: true });
-  if (r.error && r.error.code === 'ETIMEDOUT') return 'colgado';
-  if (r.signal) return 'colgado';
-  return r.status === 0 ? 'verde' : 'rojo';
+// Corre un comando de la ficha en la raíz, sin mostrar su salida, en la shell de los comandos (lib/proceso.cjs, copia del molde:
+// Git Bash en Windows, como el gate; D8r2-3) y adentro del vigía (pasado el plazo mata el árbol). → { estado: 'verde' | 'rojo' |
+// 'colgado' | 'no-corre', como }. 'no-corre': el guardia de `cmd /c` / `cmd //c` (rt-2) lo niega, sin correrlo. Un comando que no
+// se encuentra (127) es rojo, como antes. Las pruebas inyectan la shell con ARQUITECTO_SHELL ('true' = la de siempre).
+function correr(comando, cwd, ms, env = process.env) {
+  const shell = env.ARQUITECTO_SHELL ? (env.ARQUITECTO_SHELL === 'true' ? true : env.ARQUITECTO_SHELL) : proceso.shellDeComandos();
+  const niega = proceso.comandoQueNoCorre(comando, shell);
+  if (niega) return { estado: 'no-corre', como: niega };
+  const r = proceso.correrConPlazo(comando, { cwd, plazoMs: ms, shell });
+  return { estado: r.estado === 'no-corrio' ? 'rojo' : r.estado, como: r.como };
 }
 
 // ---------------------------------------------------------------- los chequeos
@@ -276,9 +283,13 @@ function chequearEntornoFicha(raiz, datos, { ahora, env, spec = null }) {
     else if (typeof ct !== 'string' || ct.trim() === '') fallas.push('entorno: vars.comando-test tiene que ser un comando (un texto) — corregilo en la ficha');
     else {
       const ms = plazo(env, 'ARQUITECTO_PLAZO_TEST_MS', PLAZO_TEST_MS);
-      const r = correr(ct, raiz, ms);
-      if (r === 'rojo') fallas.push('entorno: comando-test dio rojo — arreglalo antes de sellar (o quitá gate:entorno-prueba con su razón)');
-      if (r === 'colgado') fallas.push(`entorno: comando-test se colgó (pasó los ${plazoTexto(ms)}) — revisalo antes de sellar`);
+      const r = correr(ct, raiz, ms, env);
+      // rt-8 (D8r.2): el venv (o las dependencias) viven en cada worktree; en la carpeta de Guido puede faltar el setup.
+      const cs = datos.vars && typeof datos.vars['comando-setup'] === 'string' ? datos.vars['comando-setup'].trim() : '';
+      const setup = cs ? ` — ¿corriste el comando-setup en esta carpeta? (${cs})` : '';
+      if (r.estado === 'rojo') fallas.push(`entorno: comando-test dio rojo${setup} — arreglalo antes de sellar (o quitá gate:entorno-prueba con su razón)`);
+      if (r.estado === 'colgado') fallas.push(`entorno: comando-test se colgó (pasó los ${plazoTexto(ms)}) — revisalo antes de sellar`);
+      if (r.estado === 'no-corre') fallas.push(`entorno: comando-test no se corre: ${r.como} — corregilo en la ficha`);
     }
   }
   const herramientas = datos.herramientas && typeof datos.herramientas === 'object' ? datos.herramientas : {};
@@ -290,9 +301,10 @@ function chequearEntornoFicha(raiz, datos, { ahora, env, spec = null }) {
       fallas.push(`entorno: la herramienta ${h} no tiene chequeo en la ficha — agregalo`);
       continue;
     }
-    const r = correr(def.chequeo, raiz, ms);
-    if (r === 'rojo') fallas.push(`entorno: el chequeo de la herramienta ${h} dio rojo — que ande antes de sellar`);
-    if (r === 'colgado') fallas.push(`entorno: el chequeo de la herramienta ${h} se colgó (pasó los ${plazoTexto(ms)})`);
+    const r = correr(def.chequeo, raiz, ms, env);
+    if (r.estado === 'rojo') fallas.push(`entorno: el chequeo de la herramienta ${h} dio rojo — que ande antes de sellar`);
+    if (r.estado === 'colgado') fallas.push(`entorno: el chequeo de la herramienta ${h} se colgó (pasó los ${plazoTexto(ms)})`);
+    if (r.estado === 'no-corre') fallas.push(`entorno: el chequeo de la herramienta ${h} no se corre: ${r.como} — corregilo en la ficha`);
   }
   return fallas.length ? { fallas } : { c: cTareaCero || S.cOk() };
 }
@@ -457,19 +469,22 @@ function entorno(a, { cwd, ahora, env }) {
   return { codigo: 0, lineas: [`entorno ${r.c}`] };
 }
 
-// El adaptador de ejemplo del registro (E §9): una ficha por <carpeta>/*/.claude/kit.md que se lee.
+// El adaptador de ejemplo del registro (E §9): una ficha por repo de la carpeta con .claude/kit.md que se lee. Los repos salen de
+// lib/repos.cjs (SPEC-paquete-8r2 t7): hasta dos niveles (D:/Hermes/Hermes.exe), uno por git-common-dir y por origin, nunca un
+// worktree; la misma regla que preparar-pc.cjs, lib/flota.cjs y cambios-flota.cjs del Equipador. El alias es vars.proyecto (sin él,
+// la carpeta del repo: Hermes.exe); `actualizar.cjs flota <X> --proyectos` acepta los dos, y la ruta Hermes/Hermes.exe.
 function registro(a, { cwd, error }) {
   const carpeta = path.resolve(cwd, a.pos[0]);
-  let dirs;
+  let rec;
   try {
-    dirs = fs.readdirSync(carpeta, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name).sort();
+    rec = R.recorrer(carpeta);
   } catch (e) {
     return { codigo: 1, lineas: [`registro: no encuentro la carpeta ${carpeta}`] };
   }
+  for (const av of rec.avisos) error(`registro: ${av}\n`);
   const fichas = [];
   const conexiones = [];
-  for (const nombre of dirs) {
-    const d = path.join(carpeta, nombre);
+  for (const { dir: d, rel, nombre } of rec.repos) {
     const k = path.join(d, '.claude', 'kit.md');
     if (!fs.existsSync(k)) continue;
     let datos;
@@ -477,7 +492,7 @@ function registro(a, { cwd, error }) {
       datos = ficha.leerArchivo(k).datos;
     } catch (e) {
       const que = e instanceof ficha.ErrorFicha ? `línea ${e.linea}: ${e.mensaje}` : 'no se pudo leer';
-      error(`registro: ${nombre}/.claude/kit.md no se lee (${que}): se saltea\n`);
+      error(`registro: ${rel}/.claude/kit.md no se lee (${que}): se saltea\n`);
       continue;
     }
     const alias = datos.vars && typeof datos.vars.proyecto === 'string' && datos.vars.proyecto.trim() ? datos.vars.proyecto : nombre;

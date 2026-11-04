@@ -305,6 +305,29 @@ test('crit. 16: main protegido (pre-receive) → kit/v3.0.0-rc.1 queda viva y va
   assert.match(texto, /^ {2}- en alfa, la próxima sesión te pregunta por hook-x$/m);
 });
 
+// SPEC-paquete-8r2 t7 (crit. 7; rt-5): la carpeta de proyectos D:/ con Hermes/Hermes.exe (dos niveles), su worktree Hermes-x y Otro.
+test('crit. 7: todo mira dos niveles — una fila para Hermes/Hermes.exe (que NO dice "sin tocar") y una para Otro; ninguna para el worktree Hermes-x', async () => {
+  const canon = armarCanon();
+  const P = nuevaCarpeta('proyectos');
+  const hermes = armarRepo(P, 'Hermes/Hermes.exe');
+  git(hermes.d, 'worktree', 'add', '-q', '-b', 'x', path.join(P, 'Hermes-x'));
+  const otro = armarRepo(P, 'Otro');
+  // rt-5: rutas absolutas, y el repo se nombra por la ruta de --proyectos o por su carpeta
+  assert.equal(FL.rutaDeRepo('Hermes/Hermes.exe', P), hermes.d);
+  assert.equal(FL.rutaDeRepo('Hermes.exe', P), hermes.d);
+  assert.equal(FL.rutaDeRepo('Otro', P), otro.d);
+  assert.deepEqual(FL.todosLosRepos(P), { repos: [hermes.d, otro.d], avisos: [] });
+  const r = await correr({ repos: ['todo'], canon, proyectos: P });
+  const texto = r.lineas.join('\n');
+  assert.equal(r.codigo, 0, texto);
+  assert.deepEqual(r.filas.map((f) => f.repo), ['Hermes/Hermes.exe', 'Otro'], texto);
+  assert.equal(fila(r, 'Hermes/Hermes.exe').resultado, 'mezclado', texto);
+  assert.equal(git(hermes.bare, 'rev-list', '--count', `${hermes.base}..main`), '1');
+  // nombrado a mano por su carpeta, también: al día, no "sin tocar"
+  const r2 = await correr({ repos: ['Hermes.exe'], canon, proyectos: P });
+  assert.notEqual(r2.filas[0].resultado, 'sin tocar', r2.lineas.join('\n'));
+});
+
 test('crit. 16: sin red, sin remoto o el remoto que no existe → sin tocar, y la tabla dice por qué; el resto sigue', async () => {
   const canon = armarCanon();
   const P = nuevaCarpeta('proyectos');

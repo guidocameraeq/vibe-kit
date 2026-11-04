@@ -170,6 +170,18 @@ test('estado (corta): "te espera" arriba con "desde" del commit en que entró el
   assert.ok(lineas.indexOf('ESPERAS') > lineas.indexOf('MÓDULOS'));
 });
 
+// t12c (D8r.2): con .kit-noche en el checkout, "es de noche" arriba de TE ESPERA (en las dos vistas); sin ella, nada.
+test('noche: con .kit-noche en el checkout, "es de noche: el director trabaja solo" arriba de TE ESPERA', () => {
+  const dir = mundo();
+  assert.doesNotMatch(estado(dir, []).out, /es de noche/);
+  fs.writeFileSync(path.join(dir, '.kit-noche'), 'hasta: 07:00\n');
+  const L = estado(dir, []).out.split('\n');
+  assert.equal(L[0], 'es de noche: el director trabaja solo');
+  assert.equal(L[L.indexOf('TE ESPERA') - 2], 'es de noche: el director trabaja solo');
+  const M = estado(dir, ['m1']).out.split('\n');
+  assert.equal(M[M.indexOf('TE ESPERA') - 2], 'es de noche: el director trabaja solo');
+});
+
 test('estado <x>: encargos, minutos y sub-pasos de git; y el total de tiempos.md, que escribió tiempos.cjs, coincide', () => {
   const dir = mundo();
   const e = esperado(dir);

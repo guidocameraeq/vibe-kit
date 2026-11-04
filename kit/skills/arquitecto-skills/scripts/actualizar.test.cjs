@@ -297,8 +297,9 @@ test('guardia: un hook editado → la pieza entera "adaptada (desvío detectado)
   const hViejo = F.leer(leer(d, '.claude/kit.md')).datos.piezas['hook-arranque'].hash;
   const r = aplicar(d);
   assert.equal(r.codigo, 0);
-  // el commit que creó el archivo no es un porqué (nacer no es adaptar): sin porqué → "te espera" del proyecto (D6-19)
-  assert.match(lineaDe(r, 'hook-arranque'), /^hook-arranque · adaptada \(desvío detectado\) · te espera: sin porqué .* · desvío: no se tocó \(\.claude\/hooks\/session-start\.cjs\)$/);
+  // el commit que creó el archivo no es un porqué (nacer no es adaptar): sin porqué → "te espera" del proyecto (D6-19); y como el molde
+  // tocó el mismo renglón, es un choque (8r2 t1): "la mezcla chocó (sin porqué: …)"
+  assert.match(lineaDe(r, 'hook-arranque'), /^hook-arranque · adaptada \(desvío detectado\) · te espera: la mezcla chocó \(sin porqué: .* · desvío: no se tocó \(\.claude\/hooks\/session-start\.cjs\)$/);
   assert.equal(leer(d, '.claude/hooks/session-start.cjs'), '// arranque v1\n// mío\n');
   assert.match(leer(d, '.claude/fusiones/hook-arranque.md'), /¿la mejoramos con esto\?/);
   const p = F.leer(leer(d, '.claude/kit.md')).datos.piezas['hook-arranque'];
@@ -309,7 +310,8 @@ test('guardia: un hook editado → la pieza entera "adaptada (desvío detectado)
   const inf = leer(d, '.claude/fusiones/hook-arranque.md');
   const r2 = A.aplicar(d, { kit: KIT, fecha: '2026-11-02', claude: 'no' });
   assert.equal(r2.codigo, 0, r2.lineas.join('\n'));
-  assert.match(lineaDe(r2, 'hook-arranque'), /· te espera: todavía espera tu respuesta \(desde el kit [^)]+\); el --kit no tiene el tag v[^:]+: el informe queda como estaba$/);
+  // el informe es de un choque (8r2 t1): sigue diciendo "la mezcla chocó" (rt-6)
+  assert.match(lineaDe(r2, 'hook-arranque'), /· te espera: la mezcla chocó \(todavía espera tu respuesta desde el kit [^;]+; el --kit no tiene el tag v[^:]+: el informe queda como estaba\)$/);
   assert.equal(leer(d, '.claude/hooks/session-start.cjs'), '// arranque v1\n// mío\n');
   assert.equal(leer(d, '.claude/fusiones/hook-arranque.md'), inf);
 });
@@ -1118,7 +1120,8 @@ function esperando({ cierre = CIERRE_NUESTRO, kit = RS_KIT_N, moldeViejo = RS_KI
   });
   const r = A.aplicar(d, { kit, moldeViejo, fecha: '2026-11-02', claude: 'no' });
   assert.equal(r.codigo, 0, r.lineas.join('\n'));
-  assert.match(lineaDe(r, 'cierre'), /te espera: sin porqué/);
+  // un cierre que choca con el molde, sin porqué, es un choque (8r2 t1); el que no choca, "sin porqué"
+  assert.match(lineaDe(r, 'cierre'), cierre === CIERRE_CHOCA ? /te espera: la mezcla chocó \(sin porqué: / : /te espera: sin porqué \(/);
   assert.match(lineaDe(r, 'scripts'), /te espera: sin porqué/);
   commitTodo(d, 'kit 2.9.0 → 3.0.0');
   fs.rmSync(path.join(d, '.kit-rol'));
@@ -1203,7 +1206,7 @@ test('resolver mezclar sin propuesta → 1 ("armala a mano"); --a-mano con marca
   assert.equal(leer(d, '.claude/fusiones/cierre.md'), null);
 });
 
-test('resolver no pisa trabajo (r1-2): un archivo tocado después del informe (commiteado o no) → mezclar y nueva 1 sin escribir, propia y congelar 0; un informe que nombra una ruta ajena → 1', () => {
+test('resolver no pisa trabajo (r1-2): un archivo tocado después del informe (commiteado o no) → mezclar y nueva 1 sin escribir, quedarse (y propia) y congelar 0; un informe que nombra una ruta ajena → 1', () => {
   // commiteado después del informe: la huella no coincide → las que escriben se niegan y dicen la verdad (la flota no lo destraba)
   const despues = CIERRE_NUESTRO.replace('dos\n', 'dos (después)\n');
   const tocado = () => {
@@ -1217,7 +1220,7 @@ test('resolver no pisa trabajo (r1-2): un archivo tocado después del informe (c
   for (const salida of ['mezclar', 'nueva']) {
     const r = resolver(d, 'cierre', salida);
     assert.equal(r.codigo, 1, salida);
-    assert.match(r.lineas[0], /^resolver: \.claude\/skills\/cierre\/SKILL\.md cambió desde el informe: elegí propia o congelar, o mezclar --a-mano; no toqué nada$/, salida);
+    assert.match(r.lineas[0], /^resolver: \.claude\/skills\/cierre\/SKILL\.md cambió desde el informe: elegí quedarse o congelar, o mezclar --a-mano; no toqué nada$/, salida);
   }
   assert.deepEqual(foto(d), antes);
   // en una pieza de frenos no ofrece congelar
@@ -1225,15 +1228,15 @@ test('resolver no pisa trabajo (r1-2): un archivo tocado después del informe (c
   commitTodo(d, 'scripts: otro cambio', 'Dueño <d@kit.invalid>');
   const rf = resolver(d, 'scripts', 'mezclar');
   assert.equal(rf.codigo, 1);
-  assert.match(rf.lineas[0], /^resolver: \.claude\/scripts\/b\.cjs cambió desde el informe: elegí propia, o mezclar --a-mano; no toqué nada$/);
-  // propia y congelar no escriben archivos: pueden igual, y lo commiteado después queda
-  for (const salida of ['propia', 'congelar']) {
+  assert.match(rf.lineas[0], /^resolver: \.claude\/scripts\/b\.cjs cambió desde el informe: elegí quedarse, o mezclar --a-mano; no toqué nada$/);
+  // quedarse (y su alias propia) y congelar no escriben archivos: pueden igual, y lo commiteado después queda
+  for (const salida of ['quedarse', 'propia', 'congelar']) {
     const x = tocado();
     const r = resolver(x, 'cierre', salida);
     assert.equal(r.codigo, 0, `${salida}: ${r.lineas.join('\n')}`);
     assert.equal(leer(x, CIERRE), despues, salida);
     assert.equal(leer(x, '.claude/fusiones/cierre.md'), null, salida);
-    assert.equal(fichaDe(x).piezas.cierre.estado, salida === 'propia' ? 'adaptada' : 'propia', salida);
+    assert.equal(fichaDe(x).piezas.cierre.estado, salida === 'congelar' ? 'propia' : 'adaptada', salida);
   }
   // sin commitear, en un archivo de la pieza que el informe no nombra (las rutas salen del catálogo)
   const d2 = esperando();
@@ -1338,7 +1341,9 @@ test('resolver por la CLI: sin --por, salida rara, --a-mano sin mezclar o de má
     const r = correr(s, args);
     assert.equal(r.status, 2, args.join(' '));
     assert.match(r.stderr, /^uso: node actualizar\.cjs aplicar/);
-    assert.match(r.stderr, /resolver <carpeta> <pieza> mezclar\|propia\|nueva\|congelar --por "<texto>" \[--a-mano\]/);
+    assert.match(r.stderr, /resolver <carpeta> <pieza> mezclar\|quedarse\|nueva\|congelar --por "<texto>" \[--a-mano\]/);
+    assert.doesNotMatch(r.stderr, /mezclar\|propia\|nueva\|congelar/, '8r2 t10');
+    assert.match(r.stderr, /quedarse \(con la tuya: sigue adaptada;[^]*`propia` es su nombre viejo y hace lo mismo\)/);
   }
   const d = esperando();
   fs.writeFileSync(path.join(d, '.kit-rol'), 'obrero\n');
@@ -1349,6 +1354,44 @@ test('resolver por la CLI: sin --por, salida rara, --a-mano sin mezclar o de má
   const ok = correr(s, ['resolver', d, 'cierre', 'mezclar', '--por', 'p']);
   assert.equal(ok.status, 0, ok.stdout + ok.stderr);
   assert.match(ok.stdout, /commit por rutas: /);
+});
+
+test('8r2 t10: resolver quedarse y resolver propia (el alias) dejan la misma ficha y el mismo disco; el commit dice quedarse; una salida rara → 1 sin tocar nada', () => {
+  const corrida = (salida) => {
+    const d = esperando();
+    const r = resolver(d, 'cierre', salida, { por: 'el paso seis es nuestro' });
+    assert.equal(r.codigo, 0, `${salida}: ${r.lineas.join('\n')}`);
+    return { d, r };
+  };
+  const q = corrida('quedarse');
+  const p = corrida('propia');
+  assert.deepEqual(fichaDe(q.d).piezas.cierre, { estado: 'adaptada', hash: Z.hashPieza(RS_CIERRE), por: 'el paso seis es nuestro', desde: '2.9.0' });
+  assert.deepEqual(fichaDe(p.d).piezas.cierre, fichaDe(q.d).piezas.cierre);
+  assert.equal(leer(q.d, '.claude/kit.md'), leer(p.d, '.claude/kit.md'));
+  assert.equal(leer(p.d, CIERRE), CIERRE_NUESTRO);
+  assert.equal(leer(p.d, '.claude/fusiones/cierre.md'), null);
+  assert.deepEqual(p.r.lineas, q.r.lineas, 'las mismas líneas');
+  assert.match(q.r.lineas.at(-1), /git commit -m "inicio: cierre, quedarse \(el paso seis es nuestro\)"$/);
+  // no: una salida que no es → 1, nada escrito
+  const d = esperando();
+  const antes = foto(d);
+  const r = resolver(d, 'cierre', 'tirar');
+  assert.equal(r.codigo, 1);
+  assert.match(r.lineas[0], /^resolver: "tirar" no es una salida \(mezclar, quedarse, nueva, congelar\) — no toqué nada$/);
+  assert.deepEqual(foto(d), antes);
+  // congelar en un freno sigue negándose (la salida se normaliza antes)
+  assert.equal(resolver(esperando(), 'scripts', 'congelar').codigo, 1);
+});
+
+test('8r2 t10: la CLI acepta resolver … quedarse y resolver … propia', () => {
+  const s = copiaScripts(null);
+  for (const salida of ['quedarse', 'propia']) {
+    const d = esperando();
+    const r = correr(s, ['resolver', d, 'cierre', salida, '--por', 'p']);
+    assert.equal(r.status, 0, `${salida}: ${r.stdout}${r.stderr}`);
+    assert.match(r.stdout, /git commit -m "inicio: cierre, quedarse \(p\)"/);
+    assert.equal(fichaDe(d).piezas.cierre.estado, 'adaptada');
+  }
 });
 
 test('notaDelKit: las secciones > vieja y ≤ nueva (rc incluida), sin archivo o sin sección → null', () => {
