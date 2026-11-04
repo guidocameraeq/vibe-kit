@@ -230,7 +230,14 @@ const CON_DESDE = ['adaptada', 'adaptada (desvío detectado)']; // los que lleva
 const CLASES = ['real', 'prueba', 'dummy'];
 const SENSIBLES = ['datos-reales', 'plata', 'sale-afuera', 'claves', 'release'];
 const CONOCIDOS = ['kit', 'nivel', 'vars', 'piezas', 'frenos', 'autorizado', 'sensible', 'secretos', 'publicas',
-  'herramientas', 'entornos', 'datos-de-prueba', 'push-publica', 'aprueba', 'mesa', 'multi-llm'];
+  'herramientas', 'entornos', 'datos-de-prueba', 'push-publica', 'aprueba', 'mesa', 'multi-llm', 'carpeta-docs'];
+
+// La carpeta de papeles del método (SPEC-paquete-8r3, i1): `carpeta-docs:`, `docs` sin ella. Una ruta relativa con `/`: segmentos de
+// [A-Za-z0-9._-] que empiezan con letra o número y no terminan en punto (Windows los ignora), sin `..`, sin `/` en las puntas, ≤ 80.
+const RE_CARPETA_DOCS = /^(?=.{1,80}$)[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9_-])?(?:\/[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9_-])?)*$/;
+const CARPETA_DOCS = 'docs';
+// carpetaDocs(datos) → la carpeta de papeles de una ficha ya leída (sin la clave, o sin ficha: `docs`).
+const carpetaDocs = (datos) => (datos && typeof datos['carpeta-docs'] === 'string' ? datos['carpeta-docs'] : CARPETA_DOCS);
 
 // Los nombres que elige el usuario (piezas, entornos, alias de la mesa…) no van a los mensajes: se muestran como <nombre>.
 const CON_NOMBRE_DEL_USUARIO = { piezas: '<nombre>', herramientas: '<nombre>', entornos: '<nombre>', mesa: '<alias>', autorizado: '<clave>' };
@@ -432,6 +439,10 @@ function validar(datos, st, cierre, avisos) {
     for (const [k, v] of Object.entries(datos.autorizado)) texto(`autorizado.${k}`, v);
   }
   if (tiene(datos, 'datos-de-prueba')) texto('datos-de-prueba', datos['datos-de-prueba']);
+  if (tiene(datos, 'carpeta-docs')) {
+    patron('carpeta-docs', datos['carpeta-docs'], RE_CARPETA_DOCS,
+      'tiene que ser una carpeta del repo con / (como docs o arti-docs): letras, números, . _ -, cada parte empieza con letra o número, sin .. ni / en las puntas, hasta 80');
+  }
 
   // Campos de arriba desconocidos: aviso, no error (una PC atrasada no se tiene que trabar).
   for (const k of Object.keys(datos)) {
@@ -670,7 +681,7 @@ function cli(argv) {
   }
 }
 
-module.exports = { leer, leerCabecera, leerArchivo, hash, compararVersiones, RE_VERSION, ErrorFicha };
+module.exports = { leer, leerCabecera, leerArchivo, hash, compararVersiones, RE_VERSION, ErrorFicha, RE_CARPETA_DOCS, CARPETA_DOCS, carpetaDocs };
 
 if (require.main === module) {
   process.exitCode = cli(process.argv.slice(2));

@@ -307,7 +307,33 @@ const CASOS = [
   ['autorizado con un valor lista', ficha('autorizado:\n  a: [x]\n'), 7, /"autorizado.<clave>" tiene que ser un texto/],
   ['datos-de-prueba no es texto', ficha('datos-de-prueba: [a]\n'), 6, /"datos-de-prueba" tiene que ser un texto/],
   ['datos-de-prueba como mapa', ficha('datos-de-prueba: {a: b}\n'), 6, /"datos-de-prueba" tiene que ser un texto/],
+  // --- carpeta-docs (8r3, i1): una carpeta del repo, nunca afuera ni adentro de .claude
+  ...['../x', 'a/../b', '/x', 'x/', '.claude', '.claude/docs', 'x.', 'a./b', 'a//b', '"a b"', 'año', `${'a'.repeat(81)}`, '-x', '_x/y']
+    .map((v) => [`carpeta-docs: ${v}`, ficha(`carpeta-docs: ${v}\n`), 6, /"carpeta-docs" tiene un valor que no se acepta — tiene que ser una carpeta del repo/]),
+  ['carpeta-docs como lista', ficha('carpeta-docs: [a]\n'), 6, /"carpeta-docs" tiene que ser un texto/],
 ];
+
+test('carpeta-docs (8r3): las carpetas buenas se aceptan; sin la clave, docs', () => {
+  const F = require('./ficha.cjs');
+  for (const v of ['docs', 'arti-docs', 'a/b-c', 'A1.x/y_z', 'x'.repeat(80)]) {
+    const r = leer(ficha(`carpeta-docs: ${v}\n`));
+    assert.equal(r.datos['carpeta-docs'], v);
+    assert.equal(F.carpetaDocs(r.datos), v);
+    assert.deepEqual(r.avisos, []);
+  }
+  assert.equal(F.carpetaDocs(leer(ficha('')).datos), 'docs');
+  assert.equal(F.carpetaDocs(null), 'docs');
+  assert.equal(F.CARPETA_DOCS, 'docs');
+});
+
+test('carpeta-docs (8r3): el mensaje no repite el valor', () => {
+  try {
+    leer(ficha('carpeta-docs: ../secreto-raro\n'));
+    assert.fail('tenía que dar error');
+  } catch (e) {
+    assert.ok(!e.message.includes('secreto-raro'), e.message);
+  }
+});
 
 for (const [nombre, texto, linea, re] of CASOS) {
   test(`malformada: ${nombre} -> error en la línea ${linea}`, () => {
