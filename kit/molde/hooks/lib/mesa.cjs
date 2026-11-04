@@ -13,6 +13,8 @@ const path = require('path');
 const git = require('./git.cjs');
 const E = require('./encargo.cjs');
 const topes = require('./topes.cjs');
+const ficha = require('./ficha.cjs');
+const docsRuta = require('./docs-ruta.cjs');
 
 const TIPOS = E.VOCABULARIO.filter((v) => v.mesa).map((v) => v.tipo); // HECHO PEDIDO RESPUESTA PROPUESTA ALERTA PRESENTACION
 const ESPERAN = ['PEDIDO', 'PROPUESTA', 'ALERTA']; // los que esperan una RESPUESTA (HECHO informa; PRESENTACION también)
@@ -26,11 +28,20 @@ const T_FETCH = 60000;
 const ALIAS = '[a-z0-9]+(?:-[a-z0-9]+)*';
 const RE_ALIAS = new RegExp(`^${ALIAS}$`);
 const RE_DIRECCION = new RegExp(`^(${ALIAS})/(${ROLES.join('|')})$`);
-const RE_RUTA = new RegExp(`^docs/modulos/(${ALIAS})/mesa/(${ALIAS})/(\\d{4}-\\d{2}-\\d{2})-(\\d+)-([A-Z]+)\\.md$`);
-const RE_CITA = new RegExp(`^(${ALIAS}):(docs/modulos/[^\\s@]+\\.md)@([0-9a-f]{7,40})$`);
+// 8r3 i1: el árbol del método vive en la carpeta de papeles (docs, o la `carpeta-docs:` de la ficha). Lo MÍO se arma con la mía
+// (docs-ruta, de la ficha vigente); lo del OTRO repo, con la de su ficha en esa ref (carpetaEn): cada repo tiene la suya.
+const escRe = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const rutaMesa = (patron) => new RegExp(`^${patron}/modulos/(${ALIAS})/mesa/(${ALIAS})/(\\d{4}-\\d{2}-\\d{2})-(\\d+)-([A-Z]+)\\.md$`);
+const reRuta = (carpeta) => rutaMesa(escRe(carpeta));
+const RE_RUTA = reRuta('docs');
+// Una cita apunta al repo de <alias>, que puede tener otra carpeta: la forma de cualquier carpeta-docs (minúsculas, cifras, . _ -, con
+// /) seguida de /modulos/. La carpeta exacta la comprueba citaEnRepo contra la ficha de ese commit.
+const CARPETA_CUALQUIERA = '[a-z0-9][a-z0-9._-]*(?:/[a-z0-9][a-z0-9._-]*)*';
+const RE_CITA = new RegExp(`^(${ALIAS}):(${CARPETA_CUALQUIERA}/modulos/[^\\s@]+\\.md)@([0-9a-f]{7,40})$`);
+const RE_RUTA_CUALQUIERA = rutaMesa(CARPETA_CUALQUIERA);
 const RE_HECHO = new RegExp(`^${ALIAS}:[^\\s@]+@[0-9a-f]{7,40}$`);
 const RE_RESULTADO = new RegExp(`^(aceptado|rechazado \\S.*|devuelto \\S.*|hecho ${ALIAS}:[0-9a-f]{7,40})$`);
-const esRutaMesa = (rel) => /^docs\/modulos\/[^/]+\/mesa\//.test(rel);
+const esRutaMesa = (rel, carpeta = 'docs') => new RegExp(`^${escRe(carpeta)}/modulos/[^/]+/mesa/`).test(rel);
 
 const sinBom = (t) => String(t).replace(/^﻿/, '').replace(/\r\n?/g, '\n');
 const dos = (n) => String(n).padStart(2, '0');
@@ -68,7 +79,8 @@ const parsearCita = (t) => {
 
 // validar(texto, { ruta, bytes }) → [{ que, hacer }]: lo que candado:mesa frena y `mesa nuevo` no deja escribir. El tope se cuenta
 // sin los \r (RF-fix 4): con core.autocrlf=true el mismo mensaje sale con CRLF y crecía en otra PC hasta pasar los 2000 B.
-function validar(texto, { ruta = null, bytes = null } = {}) {
+// `carpeta`: la carpeta de papeles del repo donde vive `ruta` (8r3 i1; docs sin ella).
+function validar(texto, { ruta = null, bytes = null, carpeta = 'docs' } = {}) {
   const f = [];
   const mal = (que, hacer) => f.push({ que, hacer });
   const n = bytes === null ? Buffer.byteLength(String(texto).replace(/\r/g, ''), 'utf8') : bytes;
@@ -91,8 +103,8 @@ function validar(texto, { ruta = null, bytes = null } = {}) {
   }
   for (const h of c.hechos) if (!RE_HECHO.test(h)) mal(`el hecho "${h}" no es <alias>:<archivo>[:<línea>]@<sha>`, 'un hecho sin cita no es un hecho: citalo');
   if (ruta !== null) {
-    const m = RE_RUTA.exec(ruta);
-    if (!m) mal(`${ruta} no tiene el nombre de la mesa`, 'lo nombra `mesa nuevo`: docs/modulos/<x>/mesa/<alias>/<fecha>-<n>-<TIPO>.md');
+    const m = reRuta(carpeta).exec(ruta);
+    if (!m) mal(`${ruta} no tiene el nombre de la mesa`, `lo nombra \`mesa nuevo\`: ${carpeta}/modulos/<x>/mesa/<alias>/<fecha>-<n>-<TIPO>.md`);
     else {
       if (tipo && m[5] !== tipo) mal(`el nombre dice ${m[5]} y la cabecera ${tipo}`, 'un mensaje no cambia de tipo: escribí otro');
       const para = RE_DIRECCION.exec(c.campos.para || '');
@@ -137,19 +149,33 @@ function refsDe(cwd, lado) {
 
 // mensajesDe(cwd, lado) → [{ lado, ruta, sha, fecha (Date), cab, tipo, de, para, clave }]: cada mensaje de mesa una vez (la primera
 // ref que lo trae), con el commit que lo agregó. Los que no pasan validar() se saltean (los frena el candado de su repo).
+// carpetaEn(cwd, ref) → la carpeta de papeles de la ficha que trae ese commit (docs sin ficha, sin la clave o rota): la del otro repo.
+function carpetaEn(cwd, ref) {
+  const r = G(cwd, ['cat-file', 'blob', `${ref}:.claude/kit.md`]);
+  if (!r.ok) return docsRuta.POR_DEFECTO;
+  try {
+    return docsRuta.deDatos(ficha.leer(r.salida.toString('utf8')).datos);
+  } catch (e) {
+    return docsRuta.POR_DEFECTO;
+  }
+}
+
 function mensajesDe(cwd, lado) {
   const out = [];
   const vistos = new Set();
+  const mia = lado === null ? docsRuta.deRaiz(cwd) : null;
   for (const ref of refsDe(cwd, lado)) {
-    const ls = G(cwd, ['ls-tree', '-r', '-z', '--name-only', ref, '--', 'docs/modulos']);
+    const carpeta = mia || carpetaEn(cwd, ref);
+    const re = reRuta(carpeta);
+    const ls = G(cwd, ['ls-tree', '-r', '-z', '--name-only', ref, '--', `${carpeta}/modulos`]);
     if (!ls.ok) continue;
-    for (const ruta of ls.stdout.split('\0').filter((s) => RE_RUTA.test(s))) {
+    for (const ruta of ls.stdout.split('\0').filter((s) => re.test(s))) {
       if (vistos.has(ruta)) continue;
       vistos.add(ruta);
       const b = G(cwd, ['cat-file', 'blob', `${ref}:${ruta}`]);
       if (!b.ok) continue;
       const texto = b.salida.toString('utf8');
-      if (validar(texto, { ruta, bytes: b.salida.length }).length) continue;
+      if (validar(texto, { ruta, bytes: b.salida.length, carpeta }).length) continue;
       const lg = G(cwd, ['log', '-1', '--format=%H %ct', '--diff-filter=A', ref, '--', ruta]);
       const [sha, ct] = lg.ok ? lg.stdout.trim().split(' ') : [];
       if (!sha) continue;
@@ -226,11 +252,13 @@ function hilo(mensajes, id) {
 
 // citaEnRepo(cwd, alias, ruta, sha) → { ok, sha12 } · { ok: false, por }: el archivo de mesa del aviso está commiteado en ese SHA
 // y el SHA lo trae el remoto <alias> (o es de este repo). Es lo que hace que un mensaje de mesa deje de ser solo un dato.
+// La carpeta es la de la ficha de ESE commit (el repo de <alias> puede tener otra: 8r3 i1).
 function citaEnRepo(cwd, alias, ruta, sha) {
-  if (!RE_RUTA.test(ruta)) return { ok: false, por: `${ruta} no es un archivo de mesa` };
+  if (!RE_RUTA_CUALQUIERA.test(ruta)) return { ok: false, por: `${ruta} no es un archivo de mesa` };
   const c = G(cwd, ['rev-parse', '--verify', '-q', `${sha}^{commit}`]);
   if (!c.ok) return { ok: false, por: `@${sha} no está en este repo: traelo (git fetch ${alias}) o pedí el aviso de nuevo` };
   const completo = c.stdout.trim();
+  if (!reRuta(carpetaEn(cwd, completo)).test(ruta)) return { ok: false, por: `${ruta} no es un archivo de mesa` };
   const t = G(cwd, ['cat-file', '-t', `${completo}:${ruta}`]);
   if (!t.ok || t.stdout.trim() !== 'blob') return { ok: false, por: `@${sha.slice(0, 12)} no contiene ${ruta}` };
   const b = G(cwd, ['cat-file', 'blob', `${completo}:${ruta}`]);
@@ -288,13 +316,14 @@ function huellaEnCarpeta(dir) {
 
 // ---------------------------------------------------------------- candado:mesa
 
-// revisar(raiz, { archivos }) → [{ que, hacer, detalle }]. En cada archivo de docs/modulos/*/mesa/ (git ls-files: commiteado o
+// revisar(raiz, { archivos, carpeta }) → [{ que, hacer, detalle }]. En cada archivo de <carpeta>/modulos/*/mesa/ (git ls-files: commiteado o
 // nuevo): el nombre, el tope y la cabecera (validar); que no se haya reescrito ni borrado después de commiteado (contra HEAD) ni
 // reescrito después del push (contra toda versión que tenga origin); y que ninguna PROPUESTA quede firmada dos veces en este repo.
-function revisar(raiz, { archivos }) {
+function revisar(raiz, { archivos, carpeta = docsRuta.deRaiz(raiz) }) {
+  const esMia = (rel) => esRutaMesa(rel, carpeta);
   const fallas = [];
   const add = (detalle, que, hacer) => fallas.push({ que, hacer, detalle });
-  const lista = archivos.filter(esRutaMesa);
+  const lista = archivos.filter(esMia);
   const firmas = new Map();
   for (const rel of lista) {
     let buf;
@@ -306,7 +335,7 @@ function revisar(raiz, { archivos }) {
     if (buf === null) continue; // borrado: lo dice el chequeo de abajo
     const texto = buf.toString('utf8');
     const sinCR = buf.length - buf.reduce((k, b) => k + (b === 0x0d ? 1 : 0), 0); // los bytes sin \r (RF-fix 4)
-    for (const f of validar(texto, { ruta: rel, bytes: sinCR })) add(rel, `${rel}: ${f.que}`, f.hacer);
+    for (const f of validar(texto, { ruta: rel, bytes: sinCR, carpeta })) add(rel, `${rel}: ${f.que}`, f.hacer);
     const c = leerCabecera(texto).campos;
     if (tipoMesa(c.tipo) === 'RESPUESTA' && c.resultado === 'aceptado') {
       const k = claveDeCita(c['responde-a']);
@@ -317,33 +346,33 @@ function revisar(raiz, { archivos }) {
     if (rs.length > 1) add(rs[1], `${k} está aceptado ${rs.length} veces (${rs.join(', ')})`, 'un acuerdo se firma una sola vez (G §7.1): borrá la firma de más antes de commitearla');
   }
   // Después de commiteado: lo del disco o del índice distinto de HEAD (o borrado).
-  const st = G(raiz, ['status', '--porcelain', '-z', '--no-renames', '--untracked-files=no', '--', 'docs/modulos']);
+  const st = G(raiz, ['status', '--porcelain', '-z', '--no-renames', '--untracked-files=no', '--', `${carpeta}/modulos`]);
   if (!st.ok) throw new Error('git status no anduvo');
   const reescritos = new Set();
   for (const e of st.stdout.split('\0').filter(Boolean)) {
     const rel = e.slice(3);
-    if (!esRutaMesa(rel)) continue;
+    if (!esMia(rel)) continue;
     reescritos.add(rel);
     add(rel, `${rel} cambió después de commiteado`, 'un mensaje de mesa no se edita nunca: volvelo atrás (git checkout -- <ruta>) y mandá otro mensaje');
   }
   // Después del push: lo de HEAD distinto de toda versión que tenga origin (los remotos alias son el repo del otro: no cuentan).
   const subidos = new Map();
   for (const ref of G(raiz, ['for-each-ref', '--format=%(refname)', 'refs/remotes/origin']).stdout.split('\n').filter((s) => s && !/\/HEAD$/.test(s))) {
-    const ls = G(raiz, ['ls-tree', '-r', '-z', ref, '--', 'docs/modulos']);
+    const ls = G(raiz, ['ls-tree', '-r', '-z', ref, '--', `${carpeta}/modulos`]);
     if (!ls.ok) continue;
     for (const e of ls.stdout.split('\0').filter(Boolean)) {
       const m = /^\S+ blob (\S+)\t(.*)$/s.exec(e);
-      if (!m || !esRutaMesa(m[2])) continue;
+      if (!m || !esMia(m[2])) continue;
       if (!subidos.has(m[2])) subidos.set(m[2], new Set());
       subidos.get(m[2]).add(m[1]);
     }
   }
-  const head = G(raiz, ['ls-tree', '-r', '-z', 'HEAD', '--', 'docs/modulos']);
+  const head = G(raiz, ['ls-tree', '-r', '-z', 'HEAD', '--', `${carpeta}/modulos`]);
   const enHead = new Map();
   if (head.ok) {
     for (const e of head.stdout.split('\0').filter(Boolean)) {
       const m = /^\S+ blob (\S+)\t(.*)$/s.exec(e);
-      if (m && esRutaMesa(m[2])) enHead.set(m[2], m[1]);
+      if (m && esMia(m[2])) enHead.set(m[2], m[1]);
     }
   }
   for (const [rel, blobs] of subidos) {
@@ -354,7 +383,7 @@ function revisar(raiz, { archivos }) {
 }
 
 module.exports = {
-  TIPOS, ESPERAN, TOPE, TRABADO_MS, ROLES, CLAVES, RE_ALIAS, RE_DIRECCION, RE_RUTA, RE_CITA,
+  TIPOS, ESPERAN, TOPE, TRABADO_MS, ROLES, CLAVES, RE_ALIAS, RE_DIRECCION, RE_RUTA, RE_CITA, RE_RUTA_CUALQUIERA, reRuta, carpetaEn,
   esRutaMesa, leerCabecera, tipoMesa, parsearCita, validar, armar, remotosAlias, traer, refsDe, mensajesDe, todos, estado, hilo,
   lineaAbierto, lineaAcordado, citaEnRepo, hashConjunto, huellaEnRef, huellaEnCarpeta, revisar, dia,
 };

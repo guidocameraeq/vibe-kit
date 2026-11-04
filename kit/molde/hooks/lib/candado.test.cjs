@@ -640,3 +640,88 @@ test('portada en correr: con la ficha vigente rota corre si la última que se le
   assert.ok(r.corrieron.includes('portada'));
   assert.ok(r.lineas.some((l) => l.startsWith('candado:portada · ')));
 });
+
+// ---------------------------------------------------------------- 8r3 i1: la carpeta de papeles (carpeta-docs:)
+
+const FICHA_ARTI = (o = {}) => FICHA(o).replace('kit: 2.4.3\n', `kit: 2.4.3\ncarpeta-docs: ${o.carpeta || 'arti-docs'}\n`);
+// Un fork con un docs/ ajeno lleno de sueltos (un sitio publicado) y los papeles del método en arti-docs/.
+function repoArti(archivos = {}, o = {}) {
+  const c = o.carpeta || 'arti-docs';
+  const papeles = {};
+  for (const [rel, t] of Object.entries(DOCS)) papeles[rel.replace(/^docs\//, `${c}/`)] = t;
+  return repo({
+    'docs/docs.json': '{}\n',
+    'docs/CNAME': 'docs.ejemplo.invalid\n',
+    'docs/guia.md': 'ver `docs/no-existe.md`\n',
+    'docs/sitio/a.md': 'a\n',
+    'docs/modulos/z/SPEC.md': 'sin README\n',
+    'README.md': '# px\n\n[norte](arti-docs/NORTE.md)\n',
+    ...papeles,
+    ...archivos,
+  }, { ficha: o.ficha || FICHA_ARTI({ carpeta: c, portada: 'sí' }) });
+}
+
+test('8r3 i1: con carpeta-docs: arti-docs, el candado entero no mira el docs/ ajeno (verde con sus sueltos)', () => {
+  const d = repoArti();
+  const r = correr(d);
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  assert.deepEqual(r.corrieron, K.IDS);
+  // los chequeos sueltos (la carpeta de docs-ruta) dicen lo mismo
+  for (const id of ['raiz', 'rutas', 'mesa', 'estados', 'estado-viejo', 'portada']) assert.deepEqual(chequeo(id, d), [], id);
+});
+
+test('8r3 i1: con arti-docs, candado:raiz frena un suelto en arti-docs/ y un módulo sin README; candado:rutas mira arti-docs/', () => {
+  const d = repoArti({ 'arti-docs/suelto.md': 'x\n', 'arti-docs/modulos/caja/SPEC.md': 'x\n', 'arti-docs/TODO.md': '# TODO\nver `arti-docs/nada.md`\n' });
+  const r = correr(d);
+  assert.equal(r.codigo, 1);
+  assert.ok(r.lineas.includes('candado:raiz · `arti-docs/suelto.md` no va ahí · movelo a `modulos/<x>/` o a `referencia/`'), r.lineas.join('\n'));
+  assert.ok(r.lineas.some((l) => l.startsWith('candado:raiz · el módulo arti-docs/modulos/caja/ no tiene su README.md')));
+  assert.ok(r.lineas.some((l) => l.startsWith('candado:rutas · arti-docs/TODO.md:2 cita arti-docs/nada.md, que no existe')));
+  assert.ok(!r.lineas.some((l) => / docs\//.test(l)), 'nada del docs/ ajeno');
+  // lo que el árbol crea a demanda, en arti-docs/
+  const e = repoArti({ 'arti-docs/README.md': '# Docs\n`arti-docs/referencia` y `arti-docs/MAPA.md`\n' });
+  assert.deepEqual(chequeo('rutas', e), []);
+});
+
+test('8r3 i1: con arti-docs, estado-viejo: el docs/ ajeno es código; la portada pide arti-docs/NORTE.md', () => {
+  const d = repoArti();
+  escribir(d, 'arti-docs/TODO.md', '# TODO\n- [ ] x\n');
+  assert.deepEqual(chequeo('estado-viejo', d), []);
+  escribir(d, 'docs/guia.md', 'otra\n');
+  const f = chequeo('estado-viejo', d);
+  assert.deepEqual(ques(f), ['hubo cambios de código desde el último cierre y "## Próximo paso" del handoff sigue igual']);
+  assert.equal(f[0].detalle, 'arti-docs/SESSION_HANDOFF.md');
+  const p = repoArti({ 'README.md': '# px\n\n[norte](docs/NORTE.md)\n' });
+  assert.deepEqual(ques(chequeo('portada', p)), ['README.md no enlaza a arti-docs/NORTE.md']);
+});
+
+test('8r3 i1: con arti-docs, estados y topes miran arti-docs/modulos/ y el handoff de arti-docs/', () => {
+  const d = repoArti({
+    'arti-docs/modulos/caja/README.md': 'Estado: EN OBRA\n',
+    'arti-docs/modulos/caja/SPEC.md': '# SPEC\n- Estado: COMPLETO 2026-10-01\n',
+    'docs/modulos/z/README.md': 'Estado: EN OBRA\n',
+    'docs/modulos/z/SPEC.md': '# SPEC\n- Estado: COMPLETO 2026-10-01\n',
+  });
+  assert.deepEqual(ques(chequeo('estados', d)), ['arti-docs/modulos/caja/SPEC.md está COMPLETO y el módulo sigue EN OBRA']);
+  escribir(d, 'arti-docs/SESSION_HANDOFF.md', HANDOFF + 'x'.repeat(6000));
+  escribir(d, 'docs/SESSION_HANDOFF.md', 'chico\n');
+  const t = chequeo('topes', d, { parcial: true });
+  assert.ok(t.length > 0 && t.every((x) => x.detalle === 'arti-docs/SESSION_HANDOFF.md'), JSON.stringify(t));
+});
+
+test('8r3 i1: correr lee la carpeta de la ficha de ESA corrida (no la guardada por proceso): sacar la clave vuelve a mirar docs/', () => {
+  const d = repoArti();
+  assert.equal(correr(d).codigo, 0);
+  assert.deepEqual(chequeo('raiz', d), []); // deja guardada arti-docs en docs-ruta para esta raíz
+  commit(d, { '.claude/kit.md': FICHA({ portada: 'sí' }) }, 'saca carpeta-docs:');
+  const r = correr(d);
+  assert.ok(r.lineas.includes('candado:raiz · `docs/docs.json` no va ahí · movelo a `modulos/<x>/` o a `referencia/`'), r.lineas.join('\n'));
+});
+
+test('8r3 i1: la clave solo en el disco (sin commitear) no mueve el candado: sigue mirando docs/', () => {
+  const d = repo({ 'docs/docs.json': '{}\n' });
+  escribir(d, '.claude/kit.md', FICHA_ARTI());
+  const r = correr(d);
+  assert.equal(r.codigo, 1);
+  assert.ok(r.lineas.includes('candado:raiz · `docs/docs.json` no va ahí · movelo a `modulos/<x>/` o a `referencia/`'), r.lineas.join('\n'));
+});

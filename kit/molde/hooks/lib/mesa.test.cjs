@@ -110,3 +110,76 @@ test('hashConjunto: no depende del orden ni del fin de línea; sí del contenido
   assert.notEqual(M.hashConjunto([['a.sql', Buffer.from('x\ny')], ['b/c.sql', Buffer.from('z')]]), a);
   assert.notEqual(M.hashConjunto([['a2.sql', Buffer.from('x\ny\n')], ['b/c.sql', Buffer.from('z')]]), a);
 });
+
+// ---------------------------------------------------------------- 8r3 i1: la carpeta de papeles (carpeta-docs:)
+
+test('8r3 i1: validar y esRutaMesa con la carpeta de papeles; sin ella, docs (como hoy); RE_CITA acepta la carpeta del otro', () => {
+  const A = RUTA.replace(/^docs\//, 'arti-docs/');
+  assert.deepEqual(M.validar(MSG(), { ruta: A, carpeta: 'arti-docs' }), []);
+  assert.match(ques(M.validar(MSG(), { ruta: RUTA, carpeta: 'arti-docs' })), /no tiene el nombre de la mesa/);
+  assert.match(M.validar(MSG(), { ruta: RUTA, carpeta: 'arti-docs' })[0].hacer, /arti-docs\/modulos\/<x>\/mesa\//);
+  assert.match(ques(M.validar(MSG(), { ruta: A })), /no tiene el nombre de la mesa/, 'sin carpeta: docs');
+  assert.ok(M.esRutaMesa(A, 'arti-docs') && !M.esRutaMesa(RUTA, 'arti-docs') && M.esRutaMesa(RUTA) && !M.esRutaMesa(A));
+  // la carpeta va escapada: el punto no es comodín
+  assert.ok(M.reRuta('a.b').test(RUTA.replace(/^docs\//, 'a.b/')));
+  assert.ok(!M.reRuta('a.b').test(RUTA.replace(/^docs\//, 'axb/')));
+  for (const c of [`hermes:${RUTA}@a1b2c3d`, `arti:${A}@a1b2c3d`, `x:p/q/modulos/i/mesa/y/2026-10-24-1-PEDIDO.md@a1b2c3d`]) assert.ok(M.parsearCita(c), c);
+  for (const c of [`x:modulos/i/mesa/y/a.md@a1b2c3d`, `x:/abs/modulos/i/mesa/a.md@a1b2c3d`, `x:Docs/modulos/i/mesa/a.md@a1b2c3d`]) assert.equal(M.parsearCita(c), null, c);
+});
+
+const fsM = require('fs');
+const osM = require('os');
+const pathM = require('path');
+const { spawnSync: spawnM } = require('child_process');
+function gm(cwd, ...args) {
+  const r = spawnM('git', ['-c', 'user.name=Prueba', '-c', 'user.email=prueba@ejemplo.invalid', ...args], { cwd, encoding: 'utf8' });
+  if (r.status !== 0) throw new Error(`git ${args.join(' ')}: ${r.stderr}`);
+  return r.stdout.trim();
+}
+function repoM(dir, archivos) {
+  fsM.mkdirSync(dir, { recursive: true });
+  gm(dir, 'init', '-q', '-b', 'main');
+  for (const [rel, t] of Object.entries(archivos)) {
+    const p = pathM.join(dir, ...rel.split('/'));
+    fsM.mkdirSync(pathM.dirname(p), { recursive: true });
+    fsM.writeFileSync(p, t);
+  }
+  gm(dir, 'add', '-A');
+  gm(dir, 'commit', '-q', '-m', 'mesa');
+  return gm(dir, 'rev-parse', 'HEAD');
+}
+
+test('8r3 i1: con git, cada repo con su carpeta — arti (arti-docs) lee lo suyo y lo de hermes (docs); el docs/ ajeno de arti no es mesa', () => {
+  const T = fsM.mkdtempSync(pathM.join(osM.tmpdir(), 'kit-mesa-'));
+  try {
+    const FICHA = (extra) => `---\nkit: 3.0.0-rc.4\nnivel: estandar\nvars:\n  proyecto: x\n${extra}---\n`;
+    const MARTI = MSG({ de: 'arti/director', para: 'hermes/director' });
+    const MHERMES = MSG({ tipo: 'PROPUESTA', de: 'hermes/director', para: 'arti/director' });
+    const rArti = 'arti-docs/modulos/i/mesa/hermes/2026-10-24-1-PEDIDO.md';
+    const rAjeno = 'docs/modulos/i/mesa/hermes/2026-10-24-2-PEDIDO.md';
+    const rHermes = 'docs/modulos/i/mesa/arti/2026-10-24-1-PROPUESTA.md';
+    const H = pathM.join(T, 'hermes');
+    const shaH = repoM(H, { '.claude/kit.md': FICHA(''), [rHermes]: MHERMES });
+    const A = pathM.join(T, 'arti');
+    const shaA = repoM(A, { '.claude/kit.md': FICHA('carpeta-docs: arti-docs\n'), [rArti]: MARTI, [rAjeno]: MARTI, 'docs/modulos/i/mesa/hermes/mal-nombre.md': 'x\n' });
+    gm(A, 'remote', 'add', 'hermes', H);
+    gm(A, 'fetch', '-q', 'hermes');
+    const ms = M.todos(A);
+    assert.deepEqual(ms.map((m) => `${m.lado}|${m.ruta}`).sort(), [`hermes|${rHermes}`, `null|${rArti}`]);
+    // la cita: la carpeta es la de la ficha de ESE commit
+    assert.equal(M.citaEnRepo(A, 'hermes', rHermes, shaH).ok, true);
+    assert.equal(M.citaEnRepo(A, 'arti', rArti, shaA).ok, true);
+    assert.match(M.citaEnRepo(A, 'arti', rAjeno, shaA).por, /no es un archivo de mesa/);
+    assert.match(M.citaEnRepo(A, 'hermes', rArti.replace('hermes/2026', 'arti/2026'), shaH).por, /no es un archivo de mesa/);
+    assert.equal(M.carpetaEn(A, shaA), 'arti-docs');
+    assert.equal(M.carpetaEn(A, shaH), 'docs');
+    // candado:mesa: solo arti-docs/ (el mal nombre del docs/ ajeno no frena)
+    const archivos = gm(A, 'ls-files').split('\n');
+    assert.deepEqual(M.revisar(A, { archivos }), []);
+    fsM.writeFileSync(pathM.join(A, ...rArti.split('/')), `${MARTI}cambio\n`);
+    fsM.writeFileSync(pathM.join(A, ...rAjeno.split('/')), `${MARTI}cambio\n`);
+    assert.deepEqual(M.revisar(A, { archivos }).map((f) => f.detalle), [rArti]);
+  } finally {
+    fsM.rmSync(T, { recursive: true, force: true });
+  }
+});

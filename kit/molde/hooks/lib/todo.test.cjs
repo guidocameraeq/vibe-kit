@@ -404,3 +404,9 @@ test('linea: el formato exacto, byte a byte', () => {
     '544f444f3a202b3320e288923220c2b720343120c3ad74656d7320c2b720352062616a61726f6e206120f09f9fa2',
   );
 });
+
+test('8r3 i1: cabecera con la ruta del TODO en la carpeta de papeles: la marca la nombra', () => {
+  const t3 = `## ${R} C\n- [ ] aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n- [ ] bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n- [ ] cccccccccccccccccccccccccccccccccc\n`;
+  const dos = `## ${R} C\n- [ ] aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n- [ ] bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n… (1 más en arti-docs/TODO.md)`;
+  assert.equal(todo.cabecera(t3, dos.length, 'arti-docs/TODO.md'), dos);
+});

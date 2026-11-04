@@ -162,21 +162,26 @@ function revisarTopes(raiz, opciones = {}) {
   };
 
   // El nivel, de la ficha vigente (regla de 4.7); sin ficha o rota, no se exige la línea de Producción.
+  // La carpeta de papeles (8r3 i1), de la misma ficha vigente: docs sin la clave.
   let nivel;
+  let carpeta = 'docs';
   try {
     const fv = require('./contexto.cjs').fichaVigente(raiz);
     if (fv.estado === 'ok') nivel = fv.datos.nivel;
+    carpeta = require('./docs-ruta.cjs').deVigente(fv, raiz);
   } catch (e) {
     nivel = undefined;
   }
+  const rutaHandoff = `${carpeta}/SESSION_HANDOFF.md`;
+  const rutaMapa = `${carpeta}/MAPA.md`;
 
   // 1 · el handoff (5.000 bytes y sus secciones)
-  const h = leer('docs/SESSION_HANDOFF.md');
+  const h = leer(rutaHandoff);
   let handoffGrande = false;
   if (h !== null) {
     for (const f of revisarHandoff(h, nivel)) {
       if (f.tipo === 'tamano') handoffGrande = true;
-      falla('handoff', 'docs/SESSION_HANDOFF.md', f.mensaje, { detalle: f.tipo });
+      falla('handoff', rutaHandoff, f.mensaje, { detalle: f.tipo });
     }
   }
 
@@ -185,7 +190,7 @@ function revisarTopes(raiz, opciones = {}) {
   let modulos = [];
   try {
     modulos = fs
-      .readdirSync(path.join(raiz, 'docs', 'modulos'), { withFileTypes: true })
+      .readdirSync(path.join(raiz, ...carpeta.split('/'), 'modulos'), { withFileTypes: true })
       .filter((d) => d.isDirectory())
       .map((d) => d.name)
       .sort();
@@ -193,7 +198,7 @@ function revisarTopes(raiz, opciones = {}) {
     modulos = [];
   }
   for (const x of modulos) {
-    const rel = `docs/modulos/${x}/README.md`;
+    const rel = `${carpeta}/modulos/${x}/README.md`;
     const b = leer(rel);
     if (b === null || !iny.datosFichaModulo(b.toString('utf8')).activo) continue;
     if (b.length > FICHA_ACTIVA_BYTES) {
@@ -202,9 +207,9 @@ function revisarTopes(raiz, opciones = {}) {
   }
 
   // 3 · MAPA.md (5.000 bytes; puede no existir)
-  const m = leer('docs/MAPA.md');
+  const m = leer(rutaMapa);
   if (m !== null && m.length > MAPA_BYTES) {
-    falla('mapa', 'docs/MAPA.md', `docs/MAPA.md pesa ${m.length} bytes y el tope es ${MAPA_BYTES} — la arquitectura a fondo va a referencia/ARCHITECTURE.md; acá, una pantalla`);
+    falla('mapa', rutaMapa, `${rutaMapa} pesa ${m.length} bytes y el tope es ${MAPA_BYTES} — la arquitectura a fondo va a referencia/ARCHITECTURE.md; acá, una pantalla`);
   }
 
   // 4 · lo que inyectaría el hook

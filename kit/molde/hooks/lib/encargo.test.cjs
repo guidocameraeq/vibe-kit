@@ -622,3 +622,63 @@ test('8r tareaCeroPendiente: con el sello de tarea 0, un ID ≠ 00 espera al dum
   assert.equal(ref2.nombre, 'origin/modulo/x');
   assert.equal(E.tareaCeroPendiente(r2.P, n01, ref2, specT0()), null);
 });
+
+// ---------------------------------------------------------------- 8r3 i1: la carpeta de papeles (carpeta-docs:)
+
+// Un repo con remoto cuya ficha vigente (origin/main) dice carpeta-docs: arti-docs, y un docs/ ajeno con lo mismo de señuelo.
+function repoArti() {
+  const base = path.join(TMP, `a${k++}`);
+  const remoto = path.join(base, 'remoto.git');
+  const P = path.join(base, 'p');
+  fs.mkdirSync(P, { recursive: true });
+  g(base, 'init', '-q', '--bare', '-b', 'main', remoto);
+  g(P, 'init', '-q', '-b', 'main');
+  commit(P, { '.claude/kit.md': '---\nkit: 3.0.0-rc.4\nnivel: estandar\nvars:\n  proyecto: arti\ncarpeta-docs: arti-docs\n---\n' }, 'base');
+  g(P, 'remote', 'add', 'origin', remoto);
+  g(P, 'push', '-q', 'origin', 'main');
+  g(P, 'switch', '-q', '-c', 'modulo/x');
+  const sha = commit(P, {
+    'arti-docs/modulos/x/README.md': '# x\n',
+    'arti-docs/modulos/x/SPEC.md': '# SPEC\n',
+    'arti-docs/modulos/x/SPEC-2.md': '# SPEC 2\n',
+    'arti-docs/modulos/x/bitacora/2026-10-30-encargo-01.md': 'el de arti\n',
+    'docs/modulos/x/SPEC-9.md': 'ajeno\n',
+    'docs/modulos/x/bitacora/2026-10-31-encargo-01.md': 'ajeno\n',
+  }, 'modulo');
+  g(P, 'push', '-q', 'origin', 'modulo/x');
+  g(P, 'switch', '-q', 'main');
+  return { P, sha };
+}
+
+test('8r3 i1: con carpeta-docs: arti-docs, ubicarEncargo y specVigente miran arti-docs/modulos/<x>/ (el docs/ ajeno no cuenta)', () => {
+  const r = repoArti();
+  const u = E.ubicarEncargo(r.P, N);
+  assert.equal(u.ok, true, u.por);
+  assert.equal(u.ruta, 'arti-docs/modulos/x/bitacora/2026-10-30-encargo-01.md');
+  assert.equal(u.texto, 'el de arti\n');
+  assert.equal(u.carpeta, 'arti-docs');
+  assert.equal(E.specVigente(r.P, r.sha, 'x'), 'arti-docs/modulos/x/SPEC-2.md');
+  // sin la clave, como siempre
+  const s = repo({ 'docs/modulos/x/bitacora/2026-10-30-encargo-01.md': 'e\n' });
+  assert.equal(E.ubicarEncargo(s.P, N).carpeta, 'docs');
+});
+
+test('8r3 i1: leerEncargo con la carpeta: el - Spec: va en ella; sin carpeta, docs (como hoy)', () => {
+  const t = encargo({ '- Spec:': '- Spec: arti-docs/modulos/x/SPEC-2.md:3-9' });
+  const e = E.leerEncargo(t, N, 'arti-docs');
+  assert.deepEqual(e.errores, []);
+  assert.deepEqual(e.campos.spec, { ruta: 'arti-docs/modulos/x/SPEC-2.md', desde: 3, hasta: 9 });
+  assert.ok(E.leerEncargo(t, N).errores.some((x) => x.startsWith('- Spec: no es "docs/modulos/<x>/')), 'sin carpeta: docs');
+  const d = E.leerEncargo(encargo(), N, 'arti-docs');
+  assert.ok(d.errores.some((x) => x.startsWith('- Spec: no es "arti-docs/modulos/<x>/')), JSON.stringify(d.errores));
+  // la carpeta va escapada: el punto no es comodín
+  assert.ok(E.leerEncargo(encargo({ '- Spec:': '- Spec: axb/modulos/x/SPEC.md:1' }), N, 'a.b').errores.some((x) => x.startsWith('- Spec:')));
+});
+
+test('8r3 i1: la cita de mesa del aviso puede venir de un repo con otra carpeta (arti-docs/); sin /mesa/, no', () => {
+  const R = 'arti-docs/modulos/identidad/mesa/desktop/2026-10-24-1-PEDIDO.md';
+  const si = juzgar(`PEDIDO · arti → desktop · x · arti:${R}@a1b2c3d4e5f6`, { pestana: DIRECTOR, citaDeMesa: citaOk });
+  assert.deepEqual(si, { codigo: 0, linea: `vale: leé arti:${R}@a1b2c3d4e5f6` });
+  assert.deepEqual(E.citaMesa([`arti:${R}@a1b2c3d`]), { alias: 'arti', ruta: R, sha: 'a1b2c3d' });
+  for (const w of ['arti:arti-docs/modulos/x/bitacora/a.md@a1b2c3d', 'arti:modulos/i/mesa/d/a.md@a1b2c3d', 'arti:../x/modulos/i/mesa/d/a.md@a1b2c3d']) assert.equal(E.citaMesa([w]), null, w);
+});

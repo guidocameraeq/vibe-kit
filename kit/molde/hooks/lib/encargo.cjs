@@ -9,12 +9,14 @@ const path = require('path');
 const git = require('./git.cjs');
 const sello = require('./sello.cjs');
 const ficha = require('./ficha.cjs');
+const docsRuta = require('./docs-ruta.cjs');
 
 const RE_X = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const RE_ID = /^[0-9]{2}$/;
 const RE_SHA = /^[0-9a-f]{4,40}$/i;
 const T_GIT = 60000; // ls-tree, show y merge-base en un repo grande pasan los 5 s de git.cjs
 const GATE = 'gate:entorno-prueba';
+const escRe = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // ---------------------------------------------------------------- el nombre
 
@@ -118,9 +120,9 @@ const LECTORES = {
     if (n && (m[1] !== n.rama || m[2] !== n.madre)) return { ok: false, por: `dice ${m[1]} desde ${m[2]}, y el encargo es ${n.rama} desde ${n.madre}` };
     return { ok: true, datos: { rama: m[1], madre: m[2], sha: m[3], fecha: m[4] } };
   },
-  Spec(v, n) {
-    const m = /^(docs\/modulos\/([^/]+)\/SPEC(?:-\d+)?\.md):(\d+)(?:-(\d+))?$/.exec(v);
-    if (!m) return { ok: false, por: 'no es "docs/modulos/<x>/SPEC[-N].md:<línea>[-<línea>]"' };
+  Spec(v, n, carpeta = 'docs') {
+    const m = new RegExp(`^(${escRe(carpeta)}/modulos/([^/]+)/SPEC(?:-\\d+)?\\.md):(\\d+)(?:-(\\d+))?$`).exec(v);
+    if (!m) return { ok: false, por: `no es "${carpeta}/modulos/<x>/SPEC[-N].md:<línea>[-<línea>]"` };
     if (n && m[2] !== n.x) return { ok: false, por: `el spec es del módulo ${m[2]}, y el encargo es de ${n.x}` };
     return { ok: true, datos: { ruta: m[1], desde: Number(m[3]), hasta: m[4] ? Number(m[4]) : Number(m[3]) } };
   },
@@ -165,7 +167,8 @@ function itemsDe(cuerpo) {
 // leerEncargo(texto, nombre?) → { titulo, campos, secciones, errores }: el encargo según la plantilla. `errores` vacío = se lee.
 // campos: { partida, spec, skill, modelo, riesgo, apertura, suscripcion } ya leídos; secciones: { toca: { rutas, recursos },
 // alcance, noSeToca (renglones crudos), autorizado: [reglas] ([] si es (nada)), gate: [comandos] }.
-function leerEncargo(texto, nombre) {
+// `carpeta`: la carpeta de papeles del repo (8r3 i1; la da ubicarEncargo, o docs-ruta.deRaiz): el `- Spec:` vive en ella; docs sin ella.
+function leerEncargo(texto, nombre, carpeta = 'docs') {
   const errores = [];
   let t = Buffer.isBuffer(texto) ? texto.toString('utf8') : String(texto);
   if (t.charCodeAt(0) === 0xfeff) t = t.slice(1);
@@ -211,7 +214,7 @@ function leerEncargo(texto, nombre) {
   const campos = {};
   for (const c of CAMPOS) {
     if (!Object.prototype.hasOwnProperty.call(crudos, c)) continue;
-    const r = LECTORES[c](crudos[c], nombre);
+    const r = LECTORES[c](crudos[c], nombre, carpeta);
     if (!r.ok) errores.push(`- ${c}: ${r.por}`);
     else campos[c === 'Suscripción' ? 'suscripcion' : c.toLowerCase()] = r.datos;
   }
@@ -398,12 +401,14 @@ function leerEn(cwd, sha, ruta) {
   return r.ok ? r.salida : null;
 }
 
-// ubicarEncargo(cwd, nombre) → { ok: true, ref, ruta, texto } · { ok: false, por }: el único
-// docs/modulos/<x>/bitacora/*-encargo-<ID>.md de la más nueva entre modulo/<x> local y origin (ninguno o dos → no).
+// ubicarEncargo(cwd, nombre) → { ok: true, ref, ruta, texto, carpeta } · { ok: false, por }: el único
+// docs/modulos/<x>/bitacora/*-encargo-<ID>.md de la más nueva entre modulo/<x> local y origin (ninguno o dos → no). `docs` es la
+// carpeta de papeles de la ficha vigente (8r3 i1); `carpeta` sale en la respuesta para leerEncargo.
 function ubicarEncargo(cwd, n) {
   const ref = refMasNueva(cwd, n.madre);
   if (!ref.ok) return ref;
-  const dir = `docs/modulos/${n.x}/bitacora`;
+  const carpeta = docsRuta.deRaiz(cwd);
+  const dir = `${carpeta}/modulos/${n.x}/bitacora`;
   const r = G(cwd, ['ls-tree', '-z', ref.sha, '--', `${dir}/`]);
   if (!r.ok && r.error) throw new ErrorGit(`git ls-tree: ${r.error}`);
   const re = new RegExp(`^.+-encargo-${n.id}\\.md$`);
@@ -418,13 +423,14 @@ function ubicarEncargo(cwd, n) {
     .map((e) => e.ruta);
   if (!rutas.length) return { ok: false, por: `no hay encargo ${n.id} commiteado en ${ref.nombre} (${dir}/<fecha>-encargo-${n.id}.md): que el director lo commitee` };
   if (rutas.length > 1) return { ok: false, por: `hay ${rutas.length} encargos ${n.id} en ${ref.nombre} (${rutas.join(', ')}): que el director deje uno` };
-  return { ok: true, ref, ruta: rutas[0], texto: leerEn(cwd, ref.sha, rutas[0]).toString('utf8') };
+  return { ok: true, ref, ruta: rutas[0], texto: leerEn(cwd, ref.sha, rutas[0]).toString('utf8'), carpeta };
 }
 
 // specVigente(cwd, sha, x) → la ruta del SPEC[-N].md de N más alto de docs/modulos/<x>/ en ese commit (el SPEC.md es N=1), o
-// docs/modulos/<x>/SPEC.md si no hay ninguno (rf-4: un cambio aprobado va como SPEC-2.md en el mismo módulo).
+// docs/modulos/<x>/SPEC.md si no hay ninguno (rf-4: un cambio aprobado va como SPEC-2.md en el mismo módulo). docs: la carpeta de
+// papeles de la ficha vigente (8r3 i1).
 function specVigente(cwd, sha, x) {
-  const dir = `docs/modulos/${x}`;
+  const dir = `${docsRuta.deRaiz(cwd)}/modulos/${x}`;
   const r = G(cwd, ['ls-tree', '-z', '--name-only', sha, '--', `${dir}/`]);
   if (!r.ok && r.error) throw new ErrorGit(`git ls-tree: ${r.error}`);
   let mejor = { n: 0, ruta: `${dir}/SPEC.md` };
@@ -531,8 +537,10 @@ function rutaEnModulo(cwd, x, ruta, sha) {
   return { ok: true, sha7: completo.slice(0, 7) };
 }
 
-// La cita de mesa del aviso: `<alias>:docs/modulos/<x>/mesa/<alias>/<archivo>.md@<sha>` (G §5.7).
-const RE_CITA_MESA = /^([a-z0-9]+(?:-[a-z0-9]+)*):(docs\/modulos\/[^\s@]+\/mesa\/[^\s@]+\.md)@([0-9a-f]{7,40})$/;
+// La cita de mesa del aviso: `<alias>:docs/modulos/<x>/mesa/<alias>/<archivo>.md@<sha>` (G §5.7). El archivo vive en el repo de
+// <alias>, que puede tener otra carpeta de papeles (8r3 i1): vale la forma de cualquier `carpeta-docs:`; la exacta la mira citaDeMesa
+// (mesa.citaEnRepo, contra la ficha de ese commit).
+const RE_CITA_MESA = /^([a-z0-9]+(?:-[a-z0-9]+)*):([a-z0-9][a-z0-9._-]*(?:\/[a-z0-9][a-z0-9._-]*)*\/modulos\/[^\s@]+\/mesa\/[^\s@]+\.md)@([0-9a-f]{7,40})$/;
 function citaMesa(palabras) {
   for (const w of palabras) {
     const m = RE_CITA_MESA.exec(w);

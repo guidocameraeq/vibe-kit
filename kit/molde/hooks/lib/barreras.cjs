@@ -33,7 +33,13 @@ const PENDIENTE = 'pendiente';
 const INDICE = 'indice';
 const esPendiente = (cual) => cual === PENDIENTE || cual === INDICE;
 // La base de scripts/todo.cjs: el último commit que tocó el handoff (el cierre anterior). todo.cjs no la exporta: es este git log.
+// Esta es la de docs/; la de cada corrida está en la carpeta de papeles de la ficha vigente (rutaHandoff; 8r3 i1).
 const RUTA_HANDOFF = 'docs/SESSION_HANDOFF.md';
+// Sin cache por proceso (docs-ruta.deRaiz guarda): rango() decide qué commits se juzgan y la ficha puede cambiar en la misma corrida.
+const rutaHandoff = (raiz) => {
+  const D = require('./docs-ruta.cjs'); // tardío: docs-ruta requiere este archivo cuando la ficha vigente está rota
+  return D.rel(D.deVigente(contexto.fichaVigente(raiz), raiz), 'SESSION_HANDOFF.md');
+};
 // Las fichas de fábrica, como quedan instanciadas (kit/molde/hooks/lib/fabrica/ → .claude/hooks/lib/fabrica/; F1).
 const CARPETA_FABRICA = '.claude/hooks/lib/fabrica';
 // La ficha del padre rota: se compara contra la última que se lee, hasta tantos commits atrás.
@@ -152,7 +158,8 @@ function rutasPendientesContra(raiz, antes) {
 //  · sin remoto, fuera de la rama por defecto: <rama por defecto>..HEAD;
 //  · sin remoto, en la rama por defecto: desde la base de todo.cjs (el último commit que tocó el handoff) INCLUIDA (rf-4: si no, un
 //    commit que toca el handoff y vacía los deny se lava solo), salvo que la base sea el primer commit del repo o el que creó la
-//    ficha (la adopción): ahí, <base>..HEAD (r4-5: si no, el repo recién montado nace trabado);
+//    ficha (la adopción): ahí, <base>..HEAD (r4-5: si no, el repo recién montado nace trabado); y nunca después del último commit
+//    que cambió carpeta-docs: (8r3 rt-2: ese commit entra, con base o sin ella);
 //  · sin base (o sin rama por defecto): solo lo pendiente (r4-5: si no, el commit que creó el settings da rojo siempre). Sin commits,
 //    ni eso: lo pendiente sin HEAD se juzga contra la vigente si hay ramas (rf2-5) y, sin ninguna, no se juzga (D3.3).
 function rango(raiz) {
@@ -169,7 +176,7 @@ function rango(raiz) {
       desde = rv.ref;
       como = `${rv.nombre}..HEAD (sin remoto)`;
     } else {
-      const base = git.texto(['log', '-1', '--format=%H', '--', RUTA_HANDOFF], { cwd: raiz });
+      const base = git.texto(['log', '-1', '--format=%H', '--', rutaHandoff(raiz)], { cwd: raiz });
       if (base) {
         const ps = padres(raiz, base);
         if (!ps.length || esAdopcion(raiz, base, ps)) {
@@ -180,6 +187,15 @@ function rango(raiz) {
           como = 'desde el último cierre, con él (sin remoto)';
         }
       } else como = 'sin remoto y sin base: solo lo pendiente';
+      // 8r3 rt-2: la base sale de <carpeta>/SESSION_HANDOFF.md, y la carpeta la decide la ficha: un commit que cambia carpeta-docs:
+      // movería la base (a una carpeta sin handoff, o a un handoff creado después) y se sacaría solo del rango. La base nunca es
+      // posterior a ese commit: entra al rango. La ficha que nace con la clave (la adopción) no cuenta: la cubre esAdopcion.
+      const z = ultimoCambioDeCarpeta(raiz);
+      const zp = z ? padres(raiz, z)[0] : null;
+      if (zp && (!desde || !esAncestro(raiz, desde, zp))) {
+        desde = !desde || esAncestro(raiz, zp, desde) ? zp : git.texto(['merge-base', desde, zp], { cwd: raiz }) || zp;
+        como = `desde el último cambio de carpeta-docs:, con él (${corto(z)}; sin remoto)`;
+      }
     }
   } else como = 'sin rama por defecto: solo lo pendiente';
   if (!desde) return { commits: [], desde: null, como };
@@ -217,6 +233,30 @@ function esAdopcion(raiz, sha, ps) {
   if (blob(raiz, sha, R) === null || ps.some((p) => blob(raiz, p, R) !== null)) return false;
   const t = git.texto(['rev-list', '--full-history', '-n', '2', sha, '--', R], { cwd: raiz });
   return t !== null && t.split('\n').filter(Boolean).every((x) => x === sha);
+}
+
+// La carpeta de papeles que vale en <rev> (8r3 i1): la de su ficha; sin ficha, docs; rota, la de la última que se lee (rt-10).
+function carpetaEnRev(raiz, rev) {
+  let l = leerFicha(blob(raiz, rev, contexto.RUTA_FICHA));
+  if (l && l.rota) {
+    const u = ultimaFichaQueSeLee(raiz, rev);
+    l = u ? leerFicha(u.texto) : null;
+  }
+  return ficha.carpetaDocs(l && !l.rota ? l.datos : null);
+}
+
+// 8r3 rt-2: el último commit de HEAD que cambió la carpeta de papeles que vale (ponerla, sacarla, cambiarla; borrar o volver a crear
+// la ficha con otra), o null. Los candidatos son los que tocan un renglón `carpeta-docs:` de la ficha (git log -G: un solo git; sin
+// la clave en la historia, ninguno y todo como antes). La ficha que nace con la clave (esAdopcion) no cuenta.
+function ultimoCambioDeCarpeta(raiz) {
+  const t = lista(raiz, ['log', '--full-history', '--topo-order', '--format=%H', '-G', '^carpeta-docs:', 'HEAD', '--', contexto.RUTA_FICHA]).stdout;
+  for (const c of t.split('\n').map((s) => s.trim()).filter(Boolean)) {
+    const ps = padres(raiz, c);
+    if (carpetaEnRev(raiz, c) === (ps.length ? carpetaEnRev(raiz, ps[0]) : ficha.CARPETA_DOCS)) continue;
+    if (esAdopcion(raiz, c, ps)) continue;
+    return c;
+  }
+  return null;
 }
 
 // ¿La ficha está en algún lado? En el disco, el índice, HEAD, la ficha vigente o el padre de algún commit del rango (r4-2:

@@ -138,3 +138,52 @@ test('entradas raras: nada que juzgar', () => {
   assert.equal(juzgarRuta(R, undefined), null);
   assert.equal(juzgarRuta(R, 42), null);
 });
+
+// ---------------------------------------------------------------- 8r3 i1: la carpeta de papeles (carpeta-docs:)
+
+test('8r3 i1: juzgarRuta con la carpeta configurada — el docs/ ajeno pasa y lo suelto en la carpeta frena; dos tramos; mayúsculas', () => {
+  const c = 'arti-docs';
+  for (const r of ['docs/notas.md', 'docs/specs/x.md', `${R}/docs/x.md`, 'arti-docs', 'arti-docs/TODO.md', 'arti-docs/modulos/x/README.md', 'otra/arti-docs/x.md', 'arti-docsx/a.md']) {
+    assert.equal(juzgarRuta(R, r, c), null, r);
+  }
+  const f = juzgarRuta(R, `${R}/arti-docs/suelto.md`, c);
+  assert.deepEqual(f, { id: ID, mensaje: '`arti-docs/suelto.md` no va ahí: a `modulos/<x>/` o a `referencia/`', ruta: 'arti-docs/suelto.md' });
+  assert.equal(juzgarRuta(R, 'arti-docs/specs/x.md', c).mensaje, '`arti-docs/specs/` no va ahí: a `modulos/<x>/` o a `referencia/`');
+  assert.equal(juzgarRuta(W, `${W}\\ARTI-DOCS.\\Suelto.md`, c).ruta, 'ARTI-DOCS/Suelto.md');
+  // dos tramos: la raíz de los papeles es a/b
+  assert.equal(juzgarRuta(R, 'a/suelto.md', 'a/b'), null);
+  assert.equal(juzgarRuta(R, 'a/b/TODO.md', 'a/b'), null);
+  assert.equal(juzgarRuta(R, 'a/b/modulos/x/y.md', 'a/b'), null);
+  assert.equal(juzgarRuta(R, 'a/b/suelto.md', 'a/b').mensaje, '`a/b/suelto.md` no va ahí: a `modulos/<x>/` o a `referencia/`');
+  assert.equal(juzgarRuta(R, 'a/b/otra/x.md', 'a/b').mensaje, '`a/b/otra/` no va ahí: a `modulos/<x>/` o a `referencia/`');
+  // sin carpeta (o vacía), docs: como siempre
+  assert.ok(juzgarRuta(R, 'docs/x.md', undefined));
+  assert.ok(juzgarRuta(R, 'docs/x.md', ''));
+});
+
+test('8r3 i1: carpetaDelDisco — la clave de arriba del .claude/kit.md del disco; lo que no se acepta, null', () => {
+  const fs = require('fs');
+  const os = require('os');
+  const path = require('path');
+  const { carpetaDelDisco } = require('./arbol.cjs');
+  const T = fs.mkdtempSync(path.join(os.tmpdir(), 'kit-arbol-'));
+  try {
+    const con = (t) => {
+      const d = fs.mkdtempSync(path.join(T, 'r'));
+      if (t !== null) {
+        fs.mkdirSync(path.join(d, '.claude'));
+        fs.writeFileSync(path.join(d, '.claude', 'kit.md'), t);
+      }
+      return carpetaDelDisco(d);
+    };
+    const F = (l) => `---\nkit: 3.0.0-rc.4\nnivel: estandar\n${l}\n---\n`;
+    assert.equal(con(F('carpeta-docs: arti-docs')), 'arti-docs');
+    assert.equal(con(F('carpeta-docs: "a/b-c"   # los papeles')), 'a/b-c');
+    assert.equal(con(F('carpeta-docs: arti-docs\r')), 'arti-docs');
+    for (const malo of ['carpeta-docs: ../x', 'carpeta-docs: Docs', 'carpeta-docs: nul', '  carpeta-docs: arti-docs', 'carpeta-docs:', 'otra: arti-docs']) assert.equal(con(F(malo)), null, malo);
+    assert.equal(con(null), null);
+    assert.equal(carpetaDelDisco(''), null);
+  } finally {
+    fs.rmSync(T, { recursive: true, force: true });
+  }
+});

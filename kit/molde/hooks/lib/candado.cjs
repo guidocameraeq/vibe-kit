@@ -17,17 +17,23 @@ const { datosFichaModulo } = require('./inyeccion.cjs');
 const barreras = require('./barreras.cjs');
 const cambiosRuta = require('./cambios-ruta.cjs');
 const mesaLib = require('./mesa.cjs');
+const docsRuta = require('./docs-ruta.cjs');
 
 const IDS = ['raiz', 'rutas', 'topes', 'mesa', 'estados', 'lecturas', 'estado-viejo', 'barreras', 'datos', 'portada'];
 const PARCIAL = ['topes', 'barreras']; // en `cierre parcial`: el handoff y las barreras
 const HERRAMIENTA = 'estructura';
 const LECTURA_GRANDE = 100 * 1024; // B §11.3
-const RUTA_HANDOFF = 'docs/SESSION_HANDOFF.md';
 const RUTA_CLAUDE = 'CLAUDE.md';
 const CARPETA_SKILLS = '.claude/skills';
 
 const esMapa = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const sinBom = (t) => String(t).replace(/^﻿/, '').replace(/\r\n?/g, '\n');
+
+// 8r3 i1: la carpeta de papeles (docs/ o la `carpeta-docs:` de la ficha vigente). correr() la pone en las opciones (de la misma
+// ficha que decide qué corre); un chequeo llamado suelto la lee de docs-ruta. Ningún chequeo mira el docs/ de otro proyecto.
+const carpetaDe = (raiz, op) => (op && typeof op.carpeta === 'string' && op.carpeta ? op.carpeta : docsRuta.deRaiz(raiz));
+const rutaHandoff = (carpeta) => docsRuta.rel(carpeta, 'SESSION_HANDOFF.md');
+const escRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // ---------------------------------------------------------------- utilidades
 
@@ -50,11 +56,12 @@ function blob(raiz, rev, rel) {
   return r.ok ? r.salida.toString('utf8') : null;
 }
 
-// Los módulos: las carpetas de docs/modulos/ que tienen algo adentro (según git ls-files).
-function modulos(lista) {
+// Los módulos: las carpetas de <carpeta>/modulos/ que tienen algo adentro (según git ls-files).
+function modulos(lista, carpeta = docsRuta.POR_DEFECTO) {
+  const re = new RegExp(`^${escRe(carpeta)}/modulos/([^/]+)/.`);
   const s = new Set();
   for (const rel of lista) {
-    const m = /^docs\/modulos\/([^/]+)\/./.exec(rel);
+    const m = re.exec(rel);
     if (m) s.add(m[1]);
   }
   return [...s].sort();
@@ -70,23 +77,25 @@ function partirMensaje(m) {
 
 // La raíz de docs/ con los seis archivos y las tres carpetas (juzgarRuta sobre lo que lista git), y cada docs/modulos/<x>/ con su
 // README.md con `Estado:`.
-function raiz_(raiz) {
+function raiz_(raiz, op) {
+  const carpeta = carpetaDe(raiz, op);
+  const n = carpeta.split('/').length;
   const fallas = [];
-  const lista = archivos(raiz, ['docs']);
+  const lista = archivos(raiz, [carpeta]);
   const vistos = new Set();
   for (const rel of lista) {
-    const j = arbol.juzgarRuta(raiz, rel);
+    const j = arbol.juzgarRuta(raiz, rel, carpeta);
     if (!j) continue;
-    const donde = j.ruta.split('/').length > 2 ? `${j.ruta.split('/').slice(0, 2).join('/')}/` : j.ruta;
+    const donde = j.ruta.split('/').length > n + 1 ? `${j.ruta.split('/').slice(0, n + 1).join('/')}/` : j.ruta;
     if (vistos.has(donde)) continue;
     vistos.add(donde);
     const i = j.mensaje.indexOf(' no va ahí: ');
     fallas.push({ id: 'raiz', que: `${j.mensaje.slice(0, i)} no va ahí`, hacer: `movelo ${j.mensaje.slice(i + ' no va ahí: '.length)}`, detalle: donde });
   }
-  for (const x of modulos(lista)) {
-    const rel = `docs/modulos/${x}/README.md`;
+  for (const x of modulos(lista, carpeta)) {
+    const rel = `${carpeta}/modulos/${x}/README.md`;
     const b = leer(raiz, rel);
-    if (b === null) fallas.push({ id: 'raiz', que: `el módulo docs/modulos/${x}/ no tiene su README.md`, hacer: 'escribí la ficha del módulo con su renglón Estado:', detalle: `docs/modulos/${x}/` });
+    if (b === null) fallas.push({ id: 'raiz', que: `el módulo ${carpeta}/modulos/${x}/ no tiene su README.md`, hacer: 'escribí la ficha del módulo con su renglón Estado:', detalle: `${carpeta}/modulos/${x}/` });
     else if (datosFichaModulo(b.toString('utf8')).estado === null) fallas.push({ id: 'raiz', que: `${rel} no tiene el renglón Estado:`, hacer: 'agregalo arriba (EN OBRA, PAUSADO, COMPLETO o ABANDONADO)', detalle: rel });
   }
   return fallas;
@@ -160,16 +169,20 @@ const existe = (raiz, rel) => fs.existsSync(path.join(raiz, ...rel.split('/')));
 // Lo que el árbol del molde crea a demanda: citarlo antes de que exista no es una ruta rota. Las tres carpetas de docs/ (git no
 // guarda carpetas vacías: un repo recién montado no las tiene) y el MAPA, que es opcional (B §4); frenos.log lo crean los hooks y el
 // candado en la primera frenada, y .claude/cambios/ lo crea `cambios nuevo`. Lo de ADENTRO de esas carpetas se sigue exigiendo.
-const A_DEMANDA = new Set([...arbol.TRES.map((x) => `docs/${x}`), 'docs/MAPA.md', frenosLog.RUTA, cambiosRuta.CARPETA].map((x) => x.toLowerCase()));
+// aDemanda(carpeta): lo mismo en la carpeta de papeles (8r3 i1); A_DEMANDA es el de docs/.
+const aDemanda = (carpeta) => new Set([...arbol.TRES.map((x) => `${carpeta}/${x}`), `${carpeta}/MAPA.md`, frenosLog.RUTA, cambiosRuta.CARPETA].map((x) => x.toLowerCase()));
+const A_DEMANDA = aDemanda(docsRuta.POR_DEFECTO);
 
 // candado:rutas — en CLAUDE.md, docs/README.md, el TODO, el handoff, las fichas de módulo y docs/referencia/**, cada ruta citada existe.
-function rutas(raiz) {
+function rutas(raiz, op) {
+  const carpeta = carpetaDe(raiz, op);
+  const demanda = carpeta === docsRuta.POR_DEFECTO ? A_DEMANDA : aDemanda(carpeta);
   const todos = archivos(raiz);
   const raices = entradasRaiz(todos);
-  const docs = todos.filter((r) => r.startsWith('docs/'));
-  const mirar = [RUTA_CLAUDE, 'docs/README.md', 'docs/TODO.md', RUTA_HANDOFF]
-    .concat(modulos(docs).map((x) => `docs/modulos/${x}/README.md`))
-    .concat(docs.filter((r) => r.startsWith('docs/referencia/') && /\.md$/i.test(r)));
+  const docs = todos.filter((r) => r.startsWith(`${carpeta}/`));
+  const mirar = [RUTA_CLAUDE, `${carpeta}/README.md`, `${carpeta}/TODO.md`, rutaHandoff(carpeta)]
+    .concat(modulos(docs, carpeta).map((x) => `${carpeta}/modulos/${x}/README.md`))
+    .concat(docs.filter((r) => r.startsWith(`${carpeta}/referencia/`) && /\.md$/i.test(r)));
   const fallas = [];
   for (const archivo of mirar) {
     const b = leer(raiz, archivo);
@@ -177,7 +190,7 @@ function rutas(raiz) {
     const vistos = new Set();
     for (const c of citas(b.toString('utf8'))) {
       const r = aRuta(c, archivo, raices);
-      if (r === null || vistos.has(r) || A_DEMANDA.has(r.toLowerCase()) || existe(raiz, r)) continue;
+      if (r === null || vistos.has(r) || demanda.has(r.toLowerCase()) || existe(raiz, r)) continue;
       vistos.add(r);
       fallas.push({ id: 'rutas', que: `${archivo}:${c.linea} cita ${r}, que no existe`, hacer: 'corregí la ruta o sacala; si es registro, marcalo > Histórico', detalle: archivo });
     }
@@ -190,11 +203,12 @@ function rutas(raiz) {
 // revisarTopes (el handoff, las fichas activas, el MAPA y lo que inyectaría el hook); en parcial, solo el handoff.
 function topes_(raiz, opciones = {}) {
   if (opciones.parcial) {
-    const h = leer(raiz, RUTA_HANDOFF);
+    const rh = rutaHandoff(carpetaDe(raiz, opciones));
+    const h = leer(raiz, rh);
     if (h === null) return [];
     const fv = opciones.fichaVigente;
     const nivel = fv && fv.estado === 'ok' ? fv.datos.nivel : undefined;
-    return topes.revisarHandoff(h, nivel).map((f) => ({ id: 'topes', ...partirMensaje(f.mensaje), detalle: RUTA_HANDOFF }));
+    return topes.revisarHandoff(h, nivel).map((f) => ({ id: 'topes', ...partirMensaje(f.mensaje), detalle: rh }));
   }
   return topes.revisarTopes(raiz, { home: opciones.home, ahora: opciones.ahora }).map((f) => ({ id: 'topes', ...partirMensaje(f.mensaje), detalle: f.archivo || 'lo que inyecta el hook' }));
 }
@@ -203,7 +217,10 @@ function topes_(raiz, opciones = {}) {
 
 // Cada archivo de docs/modulos/*/mesa/: nombre de `mesa nuevo`, ≤ 2 KB, cabecera válida con un tipo de la mesa; ninguno
 // reescrito después de commiteado o del push; ningún acuerdo firmado dos veces. La regla vive en lib/mesa.cjs.
-const mesa = (raiz) => mesaLib.revisar(raiz, { archivos: archivos(raiz, ['docs/modulos']) }).map((f) => ({ id: 'mesa', ...f }));
+const mesa = (raiz, op) => {
+  const carpeta = carpetaDe(raiz, op);
+  return mesaLib.revisar(raiz, { archivos: archivos(raiz, [`${carpeta}/modulos`]), carpeta }).map((f) => ({ id: 'mesa', ...f }));
+};
 
 // ---------------------------------------------------------------- candado:estados
 
@@ -221,11 +238,13 @@ function estadoDeSpec(texto) {
 }
 
 // El spec más nuevo de cada módulo (SPEC.md = 1, SPEC-2.md…) contra el Estado: de su ficha; COMPLETO con `- [ ]` en la ficha → rojo.
-function estados(raiz) {
-  const lista = archivos(raiz, ['docs/modulos']);
+function estados(raiz, op) {
+  const carpeta = carpetaDe(raiz, op);
+  const n = carpeta.split('/').length; // <carpeta>/modulos/<x>/SPEC.md: n + 3 tramos
+  const lista = archivos(raiz, [`${carpeta}/modulos`]);
   const fallas = [];
-  for (const x of modulos(lista)) {
-    const rel = `docs/modulos/${x}/README.md`;
+  for (const x of modulos(lista, carpeta)) {
+    const rel = `${carpeta}/modulos/${x}/README.md`;
     const b = leer(raiz, rel);
     if (b === null) continue; // eso lo dice candado:raiz
     const texto = b.toString('utf8');
@@ -234,8 +253,8 @@ function estados(raiz) {
     let spec = null;
     for (const r of lista) {
       const p = r.split('/');
-      if (p.length !== 4 || p[2] !== x) continue;
-      const m = RE_SPEC.exec(p[3]);
+      if (p.length !== n + 3 || p[n + 1] !== x) continue;
+      const m = RE_SPEC.exec(p[n + 2]);
       if (m && (!spec || Number(m[1] || 1) > spec.n)) spec = { n: Number(m[1] || 1), rel: r };
     }
     const sb = spec ? leer(raiz, spec.rel) : null;
@@ -303,24 +322,28 @@ const lineaEstado = (texto) => {
 
 // Con cambios de código (fuera de docs/ y .claude/) desde la base de todo.cjs hasta el disco, "## Próximo paso" del handoff tuvo que
 // cambiar en ese tramo; y un módulo con rama: igual a la rama actual, su Estado:. Sin base, verde.
-function estadoViejo(raiz) {
-  const base = git.texto(['log', '-1', '--format=%H', '--', RUTA_HANDOFF], { cwd: raiz });
+function estadoViejo(raiz, op) {
+  const carpeta = carpetaDe(raiz, op);
+  const rh = rutaHandoff(carpeta);
+  const base = git.texto(['log', '-1', '--format=%H', '--', rh], { cwd: raiz });
   if (!base) return [];
   const d = git.correr(['diff', '--no-renames', '--name-only', '-z', base], { cwd: raiz, tiempo: 20000 });
   const o = git.correr(['ls-files', '--others', '--exclude-standard', '-z'], { cwd: raiz, tiempo: 20000 });
   if (!d.ok || !o.ok) throw new Error('git diff no anduvo');
   const cambiados = [...d.stdout.split('\0'), ...o.stdout.split('\0')].filter(Boolean);
-  if (!cambiados.some((r) => !/^(docs|\.claude)\//i.test(r))) return [];
+  // Código = fuera de la carpeta de papeles y de .claude/ (con arti-docs, el docs/ de otro proyecto ES código; 8r3 i1).
+  const papeles = new RegExp(`^(${escRe(carpeta)}|\\.claude)/`, 'i');
+  if (!cambiados.some((r) => !papeles.test(r))) return [];
   const fallas = [];
-  const hd = leer(raiz, RUTA_HANDOFF);
+  const hd = leer(raiz, rh);
   const ahora = hd === null ? null : hd.toString('utf8');
-  if (ahora === null || proximoPaso(ahora) === proximoPaso(blob(raiz, base, RUTA_HANDOFF))) {
-    fallas.push({ id: 'estado-viejo', que: 'hubo cambios de código desde el último cierre y "## Próximo paso" del handoff sigue igual', hacer: 'reescribí el próximo paso con lo que sigue de verdad', detalle: RUTA_HANDOFF });
+  if (ahora === null || proximoPaso(ahora) === proximoPaso(blob(raiz, base, rh))) {
+    fallas.push({ id: 'estado-viejo', que: 'hubo cambios de código desde el último cierre y "## Próximo paso" del handoff sigue igual', hacer: 'reescribí el próximo paso con lo que sigue de verdad', detalle: rh });
   }
   const rama = contexto.rama(raiz);
   if (rama) {
-    for (const x of modulos(archivos(raiz, ['docs/modulos']))) {
-      const rel = `docs/modulos/${x}/README.md`;
+    for (const x of modulos(archivos(raiz, [`${carpeta}/modulos`]), carpeta)) {
+      const rel = `${carpeta}/modulos/${x}/README.md`;
       const b = leer(raiz, rel);
       if (b === null) continue;
       const t = b.toString('utf8');
@@ -384,9 +407,10 @@ function citasPortada(texto) {
 
 // Corre solo si la ficha tiene piezas.portada y no es `no` (r1-4: el apagado es por repo, así ningún repo viejo se pone rojo al
 // actualizarse). README en la raíz (sin mirar mayúsculas, como entradasRaiz), que enlace a docs/NORTE.md (resuelto con aRuta: vale
-// ./docs/NORTE.md, con ancla o estilo referencia) y que ese archivo exista (r1-10). Nada más: barato.
-const RUTA_NORTE = 'docs/NORTE.md';
-function portada(raiz) {
+// ./docs/NORTE.md, con ancla o estilo referencia) y que ese archivo exista (r1-10). Nada más: barato. Con `carpeta-docs:`, el
+// NORTE es <carpeta>/NORTE.md (8r3 i1: el README de la raíz no se mueve).
+function portada(raiz, op) {
+  const RUTA_NORTE = docsRuta.rel(carpetaDe(raiz, op), 'NORTE.md');
   const todos = archivos(raiz);
   const readme = todos.find((r) => !r.includes('/') && r.toLowerCase() === 'readme.md');
   const falla = (que, hacer, detalle) => [{ id: 'portada', que, hacer, detalle }];
@@ -495,7 +519,9 @@ function correr(raiz, opciones = {}) {
   const quitados = rota ? new Set() : quitadosVigentes(datosFicha, ahora);
   const pedidos = modo === 'parcial' ? PARCIAL : modo === 'ids' ? IDS.filter((x) => (opciones.ids || []).includes(x)) : IDS;
   const corrieron = pedidos.filter((id) => id === 'barreras' || (encendido && !quitados.has(id) && (id !== 'portada' || conPortada)));
-  const op = { parcial: modo === 'parcial', molde: opciones.molde, moldeViejo: opciones.moldeViejo, indice: !!opciones.indice, rango: opciones.rango, fichaVigente: fv, ahora, home: opciones.home };
+  // La carpeta de papeles de la misma ficha (rota: la última que se lee, como piezas.candado arriba; 8r3 i1, rt-10).
+  const carpeta = docsRuta.deVigente(fv, raiz);
+  const op = { parcial: modo === 'parcial', molde: opciones.molde, moldeViejo: opciones.moldeViejo, indice: !!opciones.indice, rango: opciones.rango, fichaVigente: fv, ahora, home: opciones.home, carpeta };
   const fallas = [];
   for (const id of corrieron) fallas.push(...CHEQUEOS[id](raiz, op));
 
