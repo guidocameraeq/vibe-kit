@@ -42,8 +42,9 @@ El detalle de lo que tocan (el handoff, el TODO, el candado): `manuales/MOLDE.md
 
 ## 3. El director (`/director`)
 
-La sesión que dirige un módulo con director. Abre en el worktree del módulo (la línea `code "<ruta>"` que te dio el Arquitecto) y
-su **primer mensaje es `/director`** (la última línea que imprime `worktree.cjs crear`: `primer mensaje: /director`).
+La sesión que dirige un módulo con director. Nace donde sea (en tu ventana de siempre, una sesión nueva) y
+su **primer mensaje es `/director`**: entra solo al worktree del módulo (`worktree.cjs donde` + EnterWorktree) y verifica rama y rol.
+El obrero, igual, con `/obrero <x>--<ID>`.
 
 1. **Chequea el sello** del spec (`encargo.cjs presentar --spec`). Sin sello no reparte: llama al Arquitecto en Modo B corto. Si el
    sello dice `entorno — (tarea 0: montar el entorno de prueba)` (el proyecto tiene la base real y ninguna de prueba), el primer
