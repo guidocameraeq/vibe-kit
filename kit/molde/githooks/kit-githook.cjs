@@ -20,7 +20,8 @@
 // la marca .kit-noche (la propia o la del director de un obrero) cuenta como nocturno (crit. 16 del delta 5).
 // Lo que ve gitleaks lo arma el runner (rf2-1): `gitleaks git` le pide el diff a git, y un `.gitattributes` con `-diff` (o un
 // `git -c core.attributesFile=…`) lo vuelve "binario" y la clave pasa. El runner saca él las líneas agregadas — pre-commit
-// `git diff --cached`, pre-push `git log -p --cc <rango>` (también lo que agrega un merge), siempre con --text --no-textconv
+// `git diff --cached` (con MERGE_HEAD, `git diff --cc <árbol del índice> HEAD <MERGE_HEAD…>`, u9), pre-push `git log -p --cc
+// <local> --not <remoto> <vigente>` (también lo que agrega un merge; nueva = agregada contra todos los padres), siempre con --text --no-textconv
 // --no-ext-diff — y las escribe en un temporal, cada una en su archivo y su línea (más un renglón de cabecera, para que gitleaks no
 // tome el archivo por binario); corre `gitleaks dir .` ahí, con el cwd en el temporal (las rutas que ve son las del repo: sus
 // allowlist de rutas valen igual) y mapea cada hallazgo a su archivo:línea (y commit) de verdad.
@@ -127,6 +128,24 @@ const gitTexto = (args, o) => {
 };
 const existeCommit = (sha, o) => git(['cat-file', '-e', `${sha}^{commit}`], o).ok;
 const existeBlob = (ref, rel, o) => git(['cat-file', '-e', `${ref}:${rel}`], o).ok;
+// Los otros padres de un merge en curso (los SHA de MERGE_HEAD, como barreras.mergeHeads), o [] si no hay merge. Tira si no se leen.
+function mergeHeads(o) {
+  const donde = gitTexto(['rev-parse', '--git-path', 'MERGE_HEAD'], o);
+  if (!donde) falla('git rev-parse no anduvo');
+  let t;
+  try {
+    t = fs.readFileSync(path.resolve(o.raiz, donde), 'utf8');
+  } catch (e) {
+    return [];
+  }
+  const out = [];
+  for (const l of t.split(/\r?\n/).map((x) => x.trim()).filter(Boolean)) {
+    const sha = gitTexto(['rev-parse', '-q', '--verify', `${l}^{commit}`], o);
+    if (!sha) falla('MERGE_HEAD no se lee');
+    if (!out.includes(sha)) out.push(sha);
+  }
+  return out;
+}
 
 // ---------------------------------------------------------------- dónde estamos (sin las librerías del kit: el runner es autónomo)
 
@@ -271,7 +290,9 @@ function agregadas(texto) {
       if (!/^[ +-]*$/.test(pre)) falla('no entendí el diff de git (una línea rara adentro de un bloque)');
       const enResultado = !pre.includes('-');
       if (enResultado) {
-        if (pre.includes('+') && archivo !== null) out.push({ commit, archivo, linea: hunk.nueva, texto: l.slice(hunk.n) });
+        // u9 (rt-u9-4): nueva es la agregada contra TODOS los padres ('+' en cada columna); la que está en un padre (' ' en su
+        // columna) vino de ahí, y la juzgó el commit de ese lado.
+        if (!pre.includes(' ') && archivo !== null) out.push({ commit, archivo, linea: hunk.nueva, texto: l.slice(hunk.n) });
         hunk.nueva++;
         hunk.quedan.nueva--;
       }
@@ -736,6 +757,8 @@ function principal(argv, opciones = {}) {
       for (const h of hs.slice(0, 20)) lineas.push(`gitleaks: ${h.regla} en ${h.archivo}:${h.linea}${h.commit ? ` (commit ${h.commit.slice(0, 12)})` : ''}${donde}`);
       if (hs.length > 20) lineas.push(`gitleaks: y ${hs.length - 20} más`);
       lineas.push('gitleaks: sacá el valor (pedile al humano cargar-secreto NOMBRE); si ya se commiteó, rotalo. Falsa alarma → .gitleaksignore, con aprobado');
+      // u9 (rt-u9-3 b): acá no hay MERGE_HEAD y se mira contra HEAD; git deja el merge a medias y git commit lo juzga con los dos.
+      if (cual === 'pre-merge-commit') lineas.push('pre-merge-commit: el merge quedó a medias: git commit lo juzga contra los dos padres');
     };
 
     // gitleaks sobre las líneas agregadas (rf2-1), con la configuración de refConfig ('' = el índice; si no, lo que sube). → false si
@@ -768,7 +791,11 @@ function principal(argv, opciones = {}) {
           lineas.push(`pre-push: ${args[0] || 'el remoto'} tiene en ${x.refRemota} commits que esta PC no tiene (avanzó o lo reescribieron) — hacé git fetch y git pull --rebase, y volvé a pushear`);
           continue;
         }
-        const rango = x.nueva ? [x.local, '--not', '--remotes'] : [`${x.remoto}..${x.local}`];
+        // u9 (rt-u9-3 a): una rama ya subida que mergeó main no vuelve a escanear lo que ya está en la vigente del remoto (lo juzgó
+        // su push); barreras --rango excluye lo mismo por su cuenta. Sin vigente del remoto, como antes.
+        const rv = refVigente(o);
+        const vigente = rv && rv.ref.startsWith('refs/remotes/') ? [rv.ref] : [];
+        const rango = x.nueva ? [x.local, '--not', '--remotes'] : [x.local, '--not', x.remoto, ...vigente];
         if (escaner) escaner = escanear(['log', '-p', '--cc', '--root', '--no-notes', '--no-show-signature', `--format=${MARCA_COMMIT.replace('', '%x01')}%H`, ...DIFF_TEXTO, ...rango, '--'], false, x.local, donde);
         const c = candado('--rango', `${x.nueva ? '0'.repeat(x.local.length) : x.remoto}..${x.local}`, o);
         lineas.push(...c.lineas.map((l) => `${l}${donde}`));
@@ -779,7 +806,14 @@ function principal(argv, opciones = {}) {
         }
       }
     } else {
-      escanear(['diff', '--cached', ...DIFF_TEXTO], true, '', '');
+      // u9 (rt-u9-4): en un merge en curso (MERGE_HEAD; el pre-commit que cierra un merge), el diff combinado del árbol del índice
+      // contra HEAD y cada otro padre, como el pre-push juzga el merge commiteado: lo que vino igual de un padre no es nuevo.
+      const otros = mergeHeads(o);
+      if (otros.length) {
+        const t = git(['write-tree'], { ...o, indice: true });
+        if (!t.ok) falla('no pude armar el árbol del merge (git write-tree)');
+        escanear(['diff', '--cc', ...DIFF_TEXTO, t.stdout.trim(), 'HEAD', ...otros, '--'], true, '', '');
+      } else escanear(['diff', '--cached', ...DIFF_TEXTO], true, '', '');
       if (cual === 'pre-merge-commit') lineas.push('pre-merge-commit: el candado no corre acá (git todavía no dice cuál es el otro padre del merge) — el merge lo juzga el pre-push, contra cada padre');
       else {
         const aparte = indiceAparte(o);
