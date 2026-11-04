@@ -45,7 +45,7 @@ Una sola vara para los cinco pasos, con Guido o sin él (ADR-030 y ADR-034; acá
 | 2 | **Ordenar la casa** | el repo como quedó | repo prolijo, docs en su lugar, lo crudo al privado, el diario | una sesión Opus | ~1,9 M; 3 sesiones |
 | 3 | **Diseñar con Guido** | el acta, las líneas base | un diseño por racimo con su tabla de criterios → SPEC-0 READY | Guido + sesión en Fable (criterio) | ~14 M; 13 sesiones en 14 días |
 | 4 | **Construir** | el SPEC-0 | la versión nueva en `main`, con pruebas | un director Opus por paquete + encargos | ~34 M; 19 sesiones; ~32 h de reloj medidas |
-| 4½ | **Revisión integral** (cierre de construir) | el kit entero en `main` | un informe en criollo, "te afecta" y "de taller"; lo que rompe se arregla → la beta `-rc` | una sesión, solo lectura, con lectores por mirada | *vuelta 1: se agregó al final (2026-11-03)* |
+| 4½ | **Revisión integral** (cierre de construir) | el kit entero en `main` | un informe en criollo, "te afecta" y "de taller"; lo que rompe se arregla → la beta `-rc` | una sesión, solo lectura, con lectores por mirada; cada tanda de corrección, un director con encargos | *vuelta 1 (2026-11-03/04)*: 2 revisiones de 3 revisores Opus y 2 tandas (~9,6 h, 16 encargos) → `rc.2` y `rc.3` |
 | 5 | **Probar en un proyecto real y medir** | la beta | los `rc.N`, **otra revisión integral**, la versión final, la medición contra la línea base | *6b* | *6b* |
 
 **Los costos son tokens "nuevos"**: entrada + escritura de caché + salida, del chat principal **más** sus subagentes (la caché leída se
@@ -142,6 +142,18 @@ de la versión final. Solo lectura, con tres miradas:
 
 Cada hallazgo trae su escenario (sin escenario no se reporta). El informe va **en criollo**, separado en **"te afecta"** (lo que Guido
 tiene que saber o decidir) y **"de taller"** (lo técnico, que la sesión arregla con la vara). Lo que rompe se arregla antes de seguir.
+
+**Cuántas y cómo se corrige** (lo vivido la noche del 2026-11-03 al 04, R1 y R1b; tracker, "Cambios al plan" y "Lecciones"):
+- **Contra un proyecto real, corriendo los scripts.** La mirada del día de Guido corre sobre un **clon del proyecto real** (y sobre un repo
+  de prueba que se le parezca), no solo sobre los repos de juguete: R1, sobre repos prolijos, no vio el director propio de Hermes, su
+  `venv`, la carpeta dos niveles abajo ni un gate que daba verde sin correr; R1b, sobre el clon, los encontró.
+- **Después de cada revisión, una sola tanda de corrección**, como un paquete chico: delta con un criterio por hallazgo, red team si toca
+  un freno, revisor frío que recorre el día, la suite y la flota; si da verde, **una `rc` nueva**. Lo de taller lo decide la tanda; lo de
+  diseño no se toca: queda para Guido con la recomendada.
+- **No más de dos antes de usar.** La primera encuentra piezas que no se hablan; la segunda, el kit contra el proyecto real. Una tercera
+  sin uso real busca en el mismo lugar con rendimiento decreciente ("no hay que hacer 800 revisiones integrales", Guido): lo que falta lo
+  muestra el uso. Mientras se usa, cada `rc.N` lleva su chequeo frío corto; **la revisión integral final va después del primer módulo**,
+  con lo que mostró el uso, antes de la versión final.
 
 ### 3.5 Probar en un proyecto real y medir
 

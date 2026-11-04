@@ -2,6 +2,23 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-11-04 — Misión 5: la sesión madre de la noche (R1b, las dos tandas, sin tercera revisión antes de la prueba)
+
+La sesión que arrancó como D8.1 (PC `Guido-PC-eQ`, Opus) siguió de orquestadora, con Guido a ratos por Remote Control: como por ahí no
+se abren sesiones, R1 y R1b corrieron como 3 revisores Opus cada una y las tandas D8r.1 y D8r.2 como subagentes.
+
+**Added**
+- `docs/kit-v3/REVISION-INTEGRAL-rc2.md`: la segunda revisión integral (R1b), con el día de Guido corrido sobre un clon de Hermes; 4 de
+  diseño para Guido (D1-D4) y 12 de taller (los arregló D8r.2).
+- `docs/CICLO-DE-MEJORA.md` §3.4, "Cuántas y cómo se corrige": contra un clon del proyecto real; una tanda de corrección por revisión
+  (con su `rc`); no más de dos antes de usar; la final después del primer módulo.
+
+**Changed**
+- Tracker: sin tercera revisión integral antes de la prueba (R2, después del primer módulo y contra un clon de Hermes); un repo de prueba
+  parecido a Hermes para la `rc.4` (Pendientes "De D8r.2", 6); la lección de R1b; la fila de D8c.1 dice `rc.4`.
+- El privado: los 26 chats de vibe-kit de esta PC al día (el de la 6a nuevo; D3.1, D8b.1 y esta sesión, enteros) y el diario con
+  D8r.1, D8r.2 y esta sesión.
+
 ## 2026-11-04 — Misión 5, D8r.2: la tanda de taller de la revisión integral R1b · v3.0.0-rc.3
 
 Sin Guido (PC `Guido-PC-eQ`, Opus, ~5 h, 8 encargos), lanzada por la sesión madre. Delta `docs/kit-v3/SPEC-paquete-8r2.md` (red team

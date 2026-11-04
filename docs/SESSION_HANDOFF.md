@@ -3,9 +3,11 @@
 > **Save game** del proyecto madre. `/cierre` lo sobreescribe entero; el hook SessionStart lo inyecta en cada chat
 > nuevo de esta carpeta. **Tope 5.500 bytes**; el hook corta y avisa "CORTADO" si se pasa, y termina con la huella.
 
-**Última sesión cerrada:** 2026-11-04, **D8r.2** (Opus, `Guido-PC-eQ`, ~5 h, 8 encargos, sin Guido): **la tanda de taller de R1b =
-la beta `v3.0.0-rc.3`** (tag anotado `v3.0.0-rc.3`, pusheado). Suite 2.867/2.867 (2 re-corridas: una de plazo, una prueba del doctor
-que ya no armaba un repo); flota 2.4.2 → rc.2 → rc.3 sale 0 (un módulo mezclado no saltea, uno sin mezclar sí). `kit-sync` LIMPIO.
+**Última sesión cerrada:** 2026-11-04, **la sesión madre** (`3c7d552c`: arrancó como D8.1 y orquestó la noche). Lanzó R1 y R1b
+(revisiones integrales) y las tandas D8r.1 (`rc.2`) y **D8r.2 = la beta `v3.0.0-rc.3`** (tag anotado, pusheado; suite 2.867/2.867,
+flota 0). Decidido con Guido: **no hay tercera revisión antes de la prueba** (R2 después del primer módulo, contra un clon de Hermes);
+las reglas de la revisión integral quedaron en `docs/CICLO-DE-MEJORA.md` §3.4. Los 26 chats de vibe-kit de esta PC, en el privado.
+`kit-sync` LIMPIO.
 
 ## Dónde estamos
 
@@ -22,6 +24,7 @@ que ya no armaba un repo); flota 2.4.2 → rc.2 → rc.3 sale 0 (un módulo mezc
 
 ## Próximo paso
 
+Guido arrancó "preparame esta PC" en `Guido-PC-eQ` el 04-11 (que terminó: NO VERIFICADO; su guía en PDF: Escritorio, "Probar la beta del kit en Hermes").
 **La mañana con Guido** (`vibe-kit M5 · Mañana: preparar la PC y adoptar Hermes`, tracker "Mañana con Guido"). **Abre con D1-D4**
 (`REVISION-INTEGRAL-rc2.md`, en criollo, la recomendada primero), después las ⚠️ de D8r.1 y D8r.2; "actualizate" (la PC en la `rc.3`),
 `adoptar --mirar --principal` sobre un clon de Hermes, la pantalla (comandos, `entornos:`, D1-D4, el `web/`), `cargar-secreto` con
