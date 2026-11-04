@@ -133,7 +133,8 @@ entra sin curaduría). Los frenos de la PC: *"instalar hooks por PC"* y *"corré
 
 ### 🚚 "Poné al día la flota" / "Adoptá X"
 *"Poné al día la flota"* (o *"poné al día Hub"*): cada repo se actualiza en una copia temporal (tu carpeta no se toca) y te vuelve una
-tabla. Un repo que todavía no tiene el kit v3: *"adoptá X"* (primero mira, con tu OK aplica). → [`manuales/EQUIPADOR.md`](manuales/EQUIPADOR.md) §5
+tabla. Un repo que todavía no tiene el kit v3: *"adoptá X"* (primero mira, con tu OK aplica). Antes, la PC al día: si el kit tiene
+una versión más nueva que la de esta PC, primero *"actualizate"* (si no, el repo nace con el molde viejo). → [`manuales/EQUIPADOR.md`](manuales/EQUIPADOR.md) §5
 
 ### 🔀 "El `/inicio` me pregunta por una skill que adapté"
 El kit trajo una versión nueva justo donde vos la habías cambiado: la mezcla chocó y **nunca se resuelve sola**. La sesión te cuenta

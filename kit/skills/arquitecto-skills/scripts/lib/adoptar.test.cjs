@@ -699,6 +699,96 @@ test('los docs dicen lo que hace el script: los dos commits de --aplicar, el --p
   }
 });
 
+// ---------------------------------------------------------------- RF-fix (D8r.1)
+
+test('RF-fix 2: el paso 0 de adoptar (la PC al día) lo dicen igual flota.md, el SKILL.md del Equipador, EQUIPADOR.md §5 y la GUIA', () => {
+  const kit = path.resolve(__dirname, '..', '..', '..');
+  const raiz = RAIZ_KIT;
+  for (const rel of [[kit, 'arquitecto', 'anexos', 'flota.md'], [kit, 'arquitecto-skills', 'SKILL.md'], [raiz, 'manuales', 'EQUIPADOR.md']]) {
+    const t = fs.readFileSync(path.join(...rel), 'utf8').replace(/\r\n/g, '\n').replace(/\n\s+/g, ' ');
+    assert.match(t, /ultimo-tag <clon[^>]*>` contra `~\/\.claude\/VERSION`/, rel.join('/'));
+    assert.match(t, /primero \*?"actualizate"/, rel.join('/'));
+    assert.match(t, /`⚠ el --kit tiene el tag …`/, rel.join('/'));
+  }
+  const guia = fs.readFileSync(path.join(raiz, 'GUIA-DE-USO.md'), 'utf8').replace(/\r\n/g, '\n').replace(/\n/g, ' ');
+  assert.match(guia, /"adoptá X".*Antes, la PC al día: .*primero \*"actualizate"\*/);
+});
+
+const gitId = (cwd, ...args) => git(cwd, '-c', 'user.name=prueba', '-c', 'user.email=prueba@ejemplo.invalid', '-c', 'commit.gpgsign=false', '-c', 'tag.gpgsign=false', ...args);
+
+test('RF-fix 2: --mirar con un --kit que tiene un tag más nuevo que su kit/VERSION → la línea "esta PC está atrás"; parado en el último, no', deKit, () => {
+  // un clon del kit (nunca el repo real) con un tag anotado nuevo en otro commit; HEAD queda donde estaba
+  const clon = path.join(nuevaCarpeta('kit-clon'), 'k');
+  git(path.dirname(clon), 'clone', '-q', RAIZ_KIT, clon);
+  gitId(clon, 'checkout', '-q', '-b', 'mas-nuevo');
+  gitId(clon, 'commit', '-q', '--allow-empty', '-m', 'una versión nueva');
+  gitId(clon, 'tag', '-a', 'v99.0.0', '-m', 'v99.0.0');
+  gitId(clon, 'tag', 'v100.0.0'); // liviano: no cuenta (ultimo-tag mira solo los anotados)
+  gitId(clon, 'checkout', '-q', '-');
+  const d = conCodigo('atras');
+  const r = AD.mirar(d, { kit: clon, fecha: FECHA });
+  assert.match(r.texto, new RegExp(`^# ⚠ el --kit tiene el tag v99\\.0\\.0, más nuevo que su kit/VERSION \\(${VERSION.replace(/\./g, '\\.')}\\): esta PC está atrás — primero "actualizate"`, 'm'));
+  // la misma cuenta que `actualizar.cjs ultimo-tag <clon>`
+  const ut = spawnSync(process.execPath, [path.join(SCRIPTS, 'actualizar.cjs'), 'ultimo-tag', clon], { encoding: 'utf8' });
+  assert.equal(ut.stdout.trim(), 'v99.0.0');
+  // no: con la versión igual o más nueva que el último tag anotado, ni una línea; sin repo git que leer, tampoco (no frena)
+  assert.equal(AD.avisoKitAtras(clon, '99.0.0'), null);
+  assert.equal(AD.avisoKitAtras(clon, '99.0.1'), null);
+  assert.equal(AD.avisoKitAtras(nuevaCarpeta('sin-git'), '3.0.0'), null);
+  // la propuesta sigue siendo una ficha que se lee
+  assert.equal(F.leer(r.texto).datos.kit, VERSION);
+});
+
+test('RF-fix 3a: comando-setup → npm ci / --frozen-lockfile con el lock commiteado; el install a secas sin lock o con el lock sin commitear', deKit, () => {
+  const setupDe = (d) => F.leer(mirar(d).texto).datos.vars['comando-setup'];
+  assert.equal(setupDe(conCodigo('npm-ci', { 'package-lock.json': '{}\n' })), 'npm ci');
+  assert.equal(setupDe(conCodigo('pnpm-fijo', { 'pnpm-lock.yaml': 'lockfileVersion: 9\n' })), 'pnpm install --frozen-lockfile');
+  assert.equal(setupDe(conCodigo('yarn-fijo', { 'yarn.lock': '# yarn\n' })), 'yarn install --frozen-lockfile');
+  assert.equal(setupDe(conCodigo('sin-lock')), 'npm install');
+  const suelto = conCodigo('lock-suelto');
+  escribir(suelto, { 'package-lock.json': '{}\n' }); // en el disco, sin commitear
+  const r = mirar(suelto);
+  assert.equal(F.leer(r.texto).datos.vars['comando-setup'], 'npm install');
+  assert.match(r.texto, /comando-setup = npm install \(package\.json; package-lock\.json no está commiteado\)/);
+});
+
+test('RF-fix 4: un renglón del CLAUDE.md igual a uno del CLAUDE.md del molde no cuenta como director/obrero propio', deKit, () => {
+  const molde = fs.readFileSync(path.join(RAIZ_KIT, 'kit', 'molde', 'CLAUDE.md'), 'utf8').replace(/\r\n/g, '\n');
+  const delKit = molde.split('\n').find((l) => /obrero/i.test(l) && !/\/(director|obrero)\b/i.test(l) && !/\{\{/.test(l));
+  assert.ok(delKit, 'el molde tiene un renglón que nombra al obrero');
+  // sí cuenta: el propio; no cuenta: el del molde (con o sin espacios de más)
+  const r = mirar(conCodigo('mezcla', { 'CLAUDE.md': `# m\n${delKit}\nEl director propio reparte.\n  ${delKit}  \n` }));
+  assert.match(r.texto, /director\/obrero propio \(renglones 3\)/);
+  const solo = mirar(conCodigo('solo-kit', { 'CLAUDE.md': `# m\n${delKit}\n` }));
+  assert.doesNotMatch(solo.texto, /director\/obrero propio/);
+});
+
+test('RF-fix 9: un repo cuya historia tuvo .claude/kit.md → --mirar y --aplicar dicen el rojo de barreras (exención b); sin esa historia, verde', { ...deKit, timeout: 240000 }, async () => {
+  const d = repoV2('fichavieja');
+  escribir(d, { '.claude/kit.md': '---\nkit: 2.4.2\n---\n' });
+  gitId(d, 'add', '-A');
+  gitId(d, 'commit', '-q', '-m', 'una ficha que hubo');
+  gitId(d, 'rm', '-q', '.claude/kit.md');
+  gitId(d, 'commit', '-q', '-m', 'y se fue');
+  const sha = git(d, 'log', '--all', '-1', '--format=%h', '--', '.claude/kit.md').trim();
+  assert.equal(AD.fichaEnLaHistoria(d), sha);
+  const prop = propuestaDe(d);
+  assert.match(fs.readFileSync(prop, 'utf8'), new RegExp(`^# ⚠ \\.claude/kit\\.md ya estuvo en la historia \\(commit ${sha}\\) y la exención b pide que no haya existido nunca: el commit de la ficha da ROJO en barreras`, 'm'));
+  rol(d);
+  const antes = git(d, 'rev-parse', 'HEAD').trim();
+  const r = await aplicar(d, prop);
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  const t = r.lineas.join('\n');
+  assert.match(t, /^después: node \.claude\/scripts\/estructura\.cjs barreras --rango [0-9a-f]{40}\.\.HEAD da ROJO: \.claude\/kit\.md ya estuvo en la historia/m);
+  assert.doesNotMatch(t, /→ verde/);
+  commitsDeLaLinea(d, r.lineas);
+  const b = barreras(d, antes);
+  assert.equal(b.status, 1, 'barreras de verdad da rojo: ' + b.stdout + b.stderr);
+  // no: un repo sin esa historia no la nombra
+  assert.equal(AD.fichaEnLaHistoria(conCodigo('sin-historia')), null);
+  assert.doesNotMatch(mirar(conCodigo('sin-historia2')).texto, /ya estuvo en la historia/);
+});
+
 test('sin bypass: el adoptador no nombra bypassPermissions', () => {
   assert.ok(!fs.readFileSync(path.join(__dirname, 'adoptar.cjs'), 'utf8').includes('bypassPermissions'));
 });

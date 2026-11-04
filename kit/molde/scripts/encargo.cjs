@@ -37,6 +37,8 @@ const USO = [
 const ROTO = 'encargo roto: corré doctor';
 const PLAZO_BASE_MS = 10 * 60 * 1000; // la base de presentar: 10 min (no cambia la salida)
 const COMANDOS = ['partida', 'presentar', 'mensaje', 'autorizado', 'verificar'];
+// Los lockfiles que deja un comando-setup (RF-fix 3): sin trackear, el consejo es el info/exclude, no el .gitignore.
+const LOCKS = new Set(['package-lock.json', 'npm-shrinkwrap.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lockb', 'bun.lock', 'Pipfile.lock', 'poetry.lock', 'uv.lock']);
 
 class MalLlamado extends Error {}
 const malLlamado = (m) => {
@@ -183,7 +185,11 @@ function presentarSpec(L, g, rama) {
   const ruta = L.E.specVigente(g.raiz, ref.sha, p.modulo);
   const s = chequearSpec(L, g.raiz, ref, ruta);
   if (!s.ok) return no(`${ruta}: ${s.por}`);
-  return { codigo: 0, lineas: [...avisos, `presentar --spec: ${ruta} en ${ref.nombre} @${ref.sha.slice(0, 7)} · sellado y READY: se puede repartir`] };
+  const lineas = [...avisos, `presentar --spec: ${ruta} en ${ref.nombre} @${ref.sha.slice(0, 7)} · sellado y READY: se puede repartir`];
+  // RF-fix 8 (D8r.1): con el sello de tarea 0 y la ficha de la punta sin entorno de prueba, el director lo sabe antes de repartir
+  // (la misma regla que frena presentar, autorizado y worktree crear de todo encargo ≠ 00).
+  if (L.E.tareaCeroPendiente(g.raiz, { id: '01', madre: ref.nombre }, ref, s.buf)) lineas.push('tarea 0 pendiente: el primer encargo es el 00');
+  return { codigo: 0, lineas };
 }
 
 function presentar(L, g, a, opciones) {
@@ -492,7 +498,11 @@ function lineaLimpio(L, c) {
     if (f.estado !== 'agregado') return [MAL, `${LOG} cambió en el medio o se borró (no solo renglones al final): revisalo`];
     ojo.push(`${LOG} con ${f.renglones} renglón(es) agregado(s) sin commitear (los muda worktree cerrar)`);
   }
-  if (afuera.length) ojo.push(`sin trackear fuera de ## Toca: ${lista(afuera)} (el merge va por SHA: no llegan a modulo/${c.n.x}; si es de la suite, sumalo al .gitignore)`);
+  // RF-fix 3 (D8r.1): un lockfile sin trackear lo dejó comando-setup; al .gitignore no (es del proyecto): va al info/exclude.
+  const locks = afuera.filter((l) => LOCKS.has(path.posix.basename(ruta(l))));
+  const resto = afuera.filter((l) => !locks.includes(l));
+  if (resto.length) ojo.push(`sin trackear fuera de ## Toca: ${lista(resto)} (el merge va por SHA: no llegan a modulo/${c.n.x}; si es de la suite, sumalo al .gitignore)`);
+  if (locks.length) ojo.push(`lock sin trackear: ${lista(locks)} (lo dejó comando-setup; no va al .gitignore: sumalo al info/exclude del repo, como hace worktree crear)`);
   return ojo.length ? [OJO, ojo.join(' · ')] : [OK, 'el worktree está limpio'];
 }
 

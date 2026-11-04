@@ -11,3 +11,5 @@
 ## NO SE TOCA
 ## AUTORIZADO
 ## GATE
+- `<comando>`
+<!-- un comando por renglón, entre comillas invertidas (- `npm test`); lo corre verificar después de comando-test. Sin gate propio: - (nada) -->

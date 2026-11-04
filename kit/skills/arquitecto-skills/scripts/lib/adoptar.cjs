@@ -121,6 +121,29 @@ function leerP(carpeta, rel) {
   }
 }
 const hay = (carpeta, rel) => fs.existsSync(path.join(carpeta, ...rel.split('/')));
+const trackeado = (carpeta, rel) => gitEn(carpeta, ['ls-files', '--error-unmatch', '--', rel]).ok;
+
+// RF-fix 2: la PC atrás. El --kit es un clon parado en v<~/.claude/VERSION>; si el clon ya tiene un tag más nuevo (el que va, como
+// `actualizar.cjs ultimo-tag`), adoptar trae el molde viejo. Una línea de aviso, o null (sin tags que leer, tampoco: no frena).
+function avisoKitAtras(kit, version) {
+  const FL = require('./flota.cjs');
+  let ult;
+  try {
+    ult = FL.elegirTag(FL.tagsDe(kit));
+  } catch {
+    return null;
+  }
+  if (FL.compararTags(ult, `v${version}`) <= 0) return null;
+  return `⚠ el --kit tiene el tag ${ult}, más nuevo que su kit/VERSION (${version}): esta PC está atrás — primero "actualizate" y adoptá con un clon parado en ${ult} (con este, el repo nace con el molde de ${version})`;
+}
+
+// RF-fix 9: la exención b de barreras pide que la ficha no haya existido NUNCA. Si .claude/kit.md estuvo en alguna rama, el commit de
+// la ficha da rojo aunque sea de fábrica. El commit corto donde aparece, o null.
+function fichaEnLaHistoria(carpeta) {
+  const r = gitEn(carpeta, ['log', '--all', '-1', '--format=%h', '--', RUTA_FICHA]);
+  return r.ok && r.out.trim() ? r.out.trim() : null;
+}
+const lineaFichaVieja = (sha) => `${RUTA_FICHA} ya estuvo en la historia (commit ${sha}) y la exención b pide que no haya existido nunca: el commit de la ficha da ROJO en barreras — eso lo aprueba Guido después del merge, desde su checkout (cambios nuevo + cambios aprobar)`;
 
 // La carpeta: la raíz de un repo git, sin ficha.
 function revisarRaiz(carpeta) {
@@ -273,9 +296,14 @@ function inferirVars(carpeta) {
         vars['comando-test'] = 'npm test';
         notas.push('comando-test = npm test (package.json tiene scripts.test)');
       }
-      const setup = hay(carpeta, 'pnpm-lock.yaml') ? 'pnpm install' : hay(carpeta, 'yarn.lock') ? 'yarn install' : hay(carpeta, 'package-lock.json') ? 'npm ci' : 'npm install';
+      // RF-fix 3: con el lock COMMITEADO, el que no lo reescribe (npm ci, --frozen-lockfile); si no, el install a secas (en cada
+      // worktree deja el lock sin trackear: worktree.cjs equipar lo saca del medio con info/exclude).
+      const lock = [['pnpm-lock.yaml', 'pnpm install --frozen-lockfile', 'pnpm install'], ['yarn.lock', 'yarn install --frozen-lockfile', 'yarn install'], ['package-lock.json', 'npm ci', 'npm install']]
+        .find(([f]) => hay(carpeta, f));
+      const commiteado = !!lock && trackeado(carpeta, lock[0]);
+      const setup = !lock ? 'npm install' : commiteado ? lock[1] : lock[2];
       vars['comando-setup'] = setup;
-      notas.push(`comando-setup = ${setup} (package.json${setup === 'npm install' ? '' : ' y su lock'})`);
+      notas.push(`comando-setup = ${setup} (package.json${!lock ? ', sin lock' : commiteado ? ` y su ${lock[0]} commiteado` : `; ${lock[0]} no está commiteado`})`);
     }
   } else {
     const req = leerP(carpeta, 'requirements.txt');
@@ -474,6 +502,10 @@ function mirar(carpeta, opciones) {
     const obs = [];
     const o = (s) => obs.push(`# ${s}`);
     o(`adoptar · kit ${version} · ${nombre} · ${fecha}`);
+    const atras = avisoKitAtras(opciones.kit, version);
+    if (atras) o(atras);
+    const fichaVieja = fichaEnLaHistoria(carpeta);
+    if (fichaVieja) o(`⚠ ${lineaFichaVieja(fichaVieja)}`);
     o(`nivel: ${nivel} (${opciones.nivel ? 'pedido con --nivel' : `inferido: ${inf.porque}`}; la regla: con código → estandar, sin código → liviano)`);
     o(`vars: ${notas.join(' · ')}`);
     o('piezas (id · estado · qué pasa al aplicar):');
@@ -498,8 +530,10 @@ function mirar(carpeta, opciones) {
       o(RE_TAMANO.test(tc)
         ? 'CLAUDE.md: hay — no se toca (ya trae "El tamaño del pedido")'
         : 'CLAUDE.md: le falta "El tamaño del pedido" — con tu OK, --aplicar <propuesta> --claude-md la suma al final (la del molde)');
-      // un director u obrero propio: renglones que lo nombran, sin contar los que ya nombran /director o /obrero (8r, 4; D8r-6)
-      const nros = tc.split('\n').map((l, i) => (/director|obrero/i.test(l) && !/\/(director|obrero)\b/i.test(l) ? i + 1 : 0)).filter(Boolean);
+      // un director u obrero propio: renglones que lo nombran, sin contar los que ya nombran /director o /obrero (8r, 4; D8r-6), ni
+      // los iguales a un renglón del CLAUDE.md del molde (RF-fix 4: el del kit no es "propio")
+      const delMolde = new Set(lf(aN.get('CLAUDE.md') || '').split('\n').map((l) => l.trim()).filter(Boolean));
+      const nros = tc.split('\n').map((l, i) => (/director|obrero/i.test(l) && !/\/(director|obrero)\b/i.test(l) && !delMolde.has(l.trim()) ? i + 1 : 0)).filter(Boolean);
       if (nros.length) o(`CLAUDE.md: tiene su director/obrero propio (renglones ${nros.slice(0, 5).join(', ')}${nros.length > 5 ? ', …' : ''}): choca con /director — la sesión le propone a Guido cambiarlo por un puntero a /director y /obrero (a mano, con su OK)`);
     }
     if (hay(carpeta, 'AGENTS.md')) o('AGENTS.md: hay — aviso: con otro contenido que el del kit no se toca');
@@ -602,6 +636,7 @@ function aplicarPropuesta(carpeta, opciones) {
   const trae = (id) => TRAE.includes(estado(id));
   const fecha = opciones.fecha || hoy();
   const antes = gitEn(carpeta, ['rev-parse', 'HEAD']).out.trim();
+  const fichaVieja = fichaEnLaHistoria(carpeta);
 
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'kit-adoptar-'));
   let plan;
@@ -712,6 +747,7 @@ function aplicarPropuesta(carpeta, opciones) {
     const rango = `node .claude/scripts/estructura.cjs barreras --rango ${antes || '<el HEAD de antes>'}..HEAD`;
     if (!algo) lineas.push(`después: barreras da ROJO en el commit de la ficha (sin la fábrica en el árbol del padre no hay exención b): lo aprueba Guido`);
     else if (distintas.length) lineas.push(`después: ${rango} da ROJO en el commit de la ficha (${distintas.join(', ')} no es de fábrica): eso lo aprueba Guido después del merge, desde su checkout (cambios nuevo + cambios aprobar)`);
+    else if (fichaVieja) lineas.push(`después: ${rango} da ROJO: ${lineaFichaVieja(fichaVieja)}`);
     else lineas.push(`después: ${rango} → verde`);
     return { codigo: 0, lineas };
   } finally {
@@ -850,4 +886,4 @@ async function main(argv) {
   }
 }
 
-module.exports = { mirar, aplicarPropuesta, main, prenderGithooks, normalizarOrigen, casaPlantilla, contenidoPropio, sinObservaciones, MARCA_INI, MARCA_FIN };
+module.exports = { mirar, aplicarPropuesta, main, avisoKitAtras, fichaEnLaHistoria, prenderGithooks, normalizarOrigen, casaPlantilla, contenidoPropio, sinObservaciones, MARCA_INI, MARCA_FIN };

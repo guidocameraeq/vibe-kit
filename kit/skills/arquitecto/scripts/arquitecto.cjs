@@ -236,10 +236,12 @@ function kitConTareaCero(datos) {
 // la tarea 0, módulo con director y el kit de la ficha ≥ rc.2 → { c } con "— (tarea 0: …)"; si no, { falla } con por qué.
 // spec null (el comando `entorno`, sin spec) → { falla } con la falla de siempre y cómo se sella con tarea 0.
 function conTareaCero(datos, spec) {
-  if (!spec) {
+  // RF-fix 7 (D8r.1): sin la tarea 0 en el spec, la misma cola que imprime `entorno` (cómo se sella con tarea 0).
+  if (!spec || !spec.tareaCero) {
     return { falla: `${REAL_SIN_PRUEBA}; o, en un módulo con director, sellá con tarea 0: el renglón "- **Tarea 0**: montar la base de prueba" en ## Entorno de prueba del spec` };
   }
-  if (!spec.tareaCero) return { falla: REAL_SIN_PRUEBA };
+  // Con el tamaño ya en rojo no se sabe si es módulo con director: esa falla manda (no se dice "vale solo con director").
+  if (spec.tamanoFallo) return { falla: 'entorno: la tarea 0 se mira cuando el tamaño esté bien (## Ejecución) — arreglá eso primero' };
   if (spec.tamano !== 'director') return { falla: 'entorno: la tarea 0 vale solo en un módulo con director (en un módulo solo nadie ordena los pasos) — montá la base de prueba como módulo previo' };
   if (!kitConTareaCero(datos)) {
     return { falla: `entorno: la ficha dice kit: ${datos.kit === undefined ? '(nada)' : String(datos.kit)} y el sello con tarea 0 pide ${KIT_TAREA_CERO} o más — poné al día el proyecto (flota) antes de sellar con tarea 0` };
@@ -331,7 +333,7 @@ function sello(a, { cwd, ahora, env }) {
   const fallas = [];
   const tam = chequearTamano(lineas, { raiz, specAbs, hayFicha, noAplica: a.noAplica['tamaño'] });
   if (tam.fallas) fallas.push(...tam.fallas);
-  const spec = { tareaCero: S.tareaCero(lineas) !== null, tamano: tam.fallas ? null : tam.tamano };
+  const spec = { tareaCero: S.tareaCero(lineas) !== null, tamano: tam.fallas ? null : tam.tamano, tamanoFallo: !!tam.fallas };
   const ent = chequearEntorno({ raiz, hayFicha, datos, noAplica: a.noAplica.entorno, ahora, env, spec });
   if (ent.fallas) fallas.push(...ent.fallas);
   const top = chequearTope(s.buf, tam.fallas ? null : tam.tamano, a.noPartir);

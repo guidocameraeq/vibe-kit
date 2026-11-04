@@ -395,7 +395,10 @@ function informe({ id, versiones, motivo, porque, archivos, tmp, nota = null }) 
     `base: ${versiones.viejo}`,
     ...archivos.map((a) => `tuyo: ${huellaTuya(a.p)} ${a.tipo} ${a.rel}`),
     '',
-    '> La dejó el actualizador del kit. La próxima sesión (`/inicio`) elige una de las salidas de abajo o te la pregunta, junto con',
+    // RF-fix 5 (D8r.1): la mezcla que choca nunca se resuelve sola: con ese motivo, el /inicio te la pregunta siempre.
+    String(motivo).startsWith(CHOCO)
+      ? '> La dejó el actualizador del kit. La mezcla chocó: la próxima sesión (`/inicio`) te la pregunta siempre (nunca la elige sola), junto con'
+      : '> La dejó el actualizador del kit. La próxima sesión (`/inicio`) elige una de las salidas de abajo o te la pregunta, junto con',
     '> las otras; la escribe `resolver` (el porqué queda en `por:` de la ficha) y este archivo se borra. Si la pieza sigue adaptada',
     '> sin mezclar, la próxima versión se te vuelve a ofrecer. Mientras esté, la pieza no se fusiona sola: la próxima versión lo',
     '> rehace desde la misma base.',

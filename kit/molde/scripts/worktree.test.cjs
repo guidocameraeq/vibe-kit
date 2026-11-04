@@ -377,6 +377,63 @@ test('comando-setup que falla → 1, lo dice, no borra nada y da la línea igual
   assert.ok(existeRama(p.P, 'modulo/x') && fs.existsSync(path.join(p.wt('modulo--x'), '.kit-rol')));
 });
 
+test('RF-fix 3b: lo que deja comando-setup — lo sin trackear al info/exclude y el trackeado que cambió vuelve con checkout, con sus líneas; el worktree queda limpio', () => {
+  const SETUP_SUCIO = [
+    "const fs = require('fs');",
+    "fs.writeFileSync('otro.lock', 'nuevo');",
+    "fs.mkdirSync('modulos-bajados', { recursive: true });",
+    "fs.writeFileSync('modulos-bajados/x.js', '1');",
+    "fs.writeFileSync('package-lock.json', '{\"reescrito\": true}');",
+    '',
+  ].join('\n');
+  const p = proyecto({ setup: 'node setup.cjs', archivos: { 'setup.cjs': SETUP_SUCIO, 'package-lock.json': '{}\n' } });
+  const r = cli(p.P, ['crear', 'x']);
+  assert.equal(r.codigo, 0, r.out + r.err);
+  const wx = p.wt('modulo--x');
+  assert.match(r.out, /^comando-setup anduvo: node setup\.cjs\ncomando-setup dejó sin trackear modulos-bajados\/, otro\.lock: lo sumé al info\/exclude del repo \(así no traba cerrar ni integrar\)\ncomando-setup cambió package-lock\.json \(trackeado\): lo volví a como estaba con git checkout -- package-lock\.json\n/m);
+  const exclude = fs.readFileSync(path.join(p.P, '.git', 'info', 'exclude'), 'utf8');
+  assert.match(exclude, /^\/otro\.lock$/m);
+  assert.match(exclude, /^\/modulos-bajados\/$/m);
+  assert.equal(leer(wx, 'package-lock.json'), '{}\n');
+  assert.equal(leer(wx, 'otro.lock'), 'nuevo', 'lo sin trackear no se borra: queda fuera de git');
+  assert.equal(g(wx, 'status', '--porcelain', '--untracked-files=all'), '', 'cerrar e integrar no lo ven sucio');
+  // otro worktree con el mismo setup: no repite los renglones del exclude
+  assert.equal(cli(p.P, ['crear', 'y']).codigo, 0);
+  const otra = fs.readFileSync(path.join(p.P, '.git', 'info', 'exclude'), 'utf8');
+  assert.equal(otra.split('\n').filter((l) => l === '/otro.lock').length, 1);
+  // no: un setup que deja solo lo ignorado (setup-hecho) no suma líneas ni toca el exclude
+  const q = proyecto({ setup: 'node setup.cjs', archivos: { 'setup.cjs': "require('fs').writeFileSync('setup-hecho', 'si')\n" } });
+  const exAntes = leer(q.P, '.git/info/exclude');
+  const rq = cli(q.P, ['crear', 'x']);
+  assert.equal(rq.codigo, 0, rq.out);
+  assert.doesNotMatch(rq.out, /info\/exclude|git checkout --/);
+  assert.equal(leer(q.P, '.git/info/exclude'), exAntes);
+});
+
+test('RF-fix 8: con el sello de tarea 0 en el spec de modulo/x, crear x--01 frena con el mismo mensaje (sin crear nada); x--00 pasa', () => {
+  const S = require('../hooks/lib/sello.cjs');
+  const texto = ['# SPEC: x', '- Estado: READY', '- Fecha: 2026-10-30', '', '## Pedido original, textual', 'algo', '', '## Ejecución', 'módulo con director', '',
+    '## Entorno de prueba', '- **Tarea 0**: montar la base de prueba', ''].join('\n');
+  const linea = S.armar({ fecha: '2026-10-30', kit: '3.0.0-rc.2', tamano: '✅', entorno: `— (${S.RAZON_TAREA_CERO})`, tope: '✅', hash: S.hash(texto) });
+  const p = proyecto();
+  assert.equal(cli(p.P, ['crear', 'x']).codigo, 0);
+  const wx = p.wt('modulo--x');
+  commit(wx, { 'docs/modulos/x/SPEC.md': texto.replace('- Fecha: 2026-10-30\n', `- Fecha: 2026-10-30\n${linea}\n`) }, 'spec con tarea 0');
+  const r = cli(p.P, ['crear', 'x--01']);
+  assert.equal(r.codigo, 1, r.out);
+  assert.equal(r.out, 'worktree crear: no — la tarea 0 (encargo 00) va primero: el entorno de prueba no está en la ficha de modulo/x\n');
+  assert.ok(!existeRama(p.P, 'modulo/x--01'));
+  assert.ok(!fs.existsSync(p.wt('modulo--x--01')));
+  // el 00 es la tarea 0: pasa
+  const r0 = cli(p.P, ['crear', 'x--00']);
+  assert.equal(r0.codigo, 0, r0.out);
+  // con el entorno de prueba en la ficha de la punta de modulo/x, el 01 ya pasa
+  const f = leer(wx, '.claude/kit.md').replace('frenos:', 'entornos:\n  ensayo:\n    clase: prueba\nfrenos:');
+  commit(wx, { '.claude/kit.md': f }, 'tarea 0: el entorno de prueba');
+  const r1 = cli(p.P, ['crear', 'x--01']);
+  assert.equal(r1.codigo, 0, r1.out);
+});
+
 // ---------------------------------------------------------------- abrir (crit. 11, r1-10)
 
 test('abrir: solo en origin → la crea; local atrás → la adelanta; divergida → 1; borrada a mano y registrada → anda; ya abierta o inexistente → 1', () => {

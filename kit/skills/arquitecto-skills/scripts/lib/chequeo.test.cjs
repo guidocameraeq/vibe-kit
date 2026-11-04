@@ -265,6 +265,33 @@ test('4 skills: una skill del molde sin description → ❌; una propia rota y g
   rojo(correr(w), 'skills', /cierre\/SKILL\.md pesa \d+ B \(tope 8000\)/);
 });
 
+test('RF-fix 1, 4 skills: el tope por skill es el de skills.test (inicio 8.600, las demás 8.000), contra el molde REAL', () => {
+  // Las skills de kit/molde/ tal cual (no un molde falso) caben: un /inicio de más de 8.000 B no deja ROTA a la flota.
+  const reales = fs.readdirSync(path.join(MOLDE, 'skills'), { withFileTypes: true })
+    .filter((e) => e.isDirectory() && fs.existsSync(path.join(MOLDE, 'skills', e.name, 'SKILL.md')))
+    .map((e) => e.name);
+  assert.ok(reales.includes('inicio'));
+  for (const n of reales) {
+    const b = Buffer.byteLength(leer(path.join(MOLDE, 'skills', n, 'SKILL.md')).replace(/\r\n/g, '\n'));
+    assert.ok(b <= Q.topeSkill(n), `${n}: ${b} B > ${Q.topeSkill(n)}`);
+  }
+  assert.equal(Q.topeSkill('inicio'), 8600);
+  assert.equal(Q.topeSkill('cierre'), 8000);
+  const rellenar = (nombre, total) => (d) => {
+    const f = path.join(d, '.claude', 'skills', nombre, 'SKILL.md');
+    const t = leer(f);
+    fs.writeFileSync(f, t + 'z'.repeat(total - Buffer.byteLength(t)));
+  };
+  // el molde real: verde (el /inicio pesa más de 8.000)
+  const r = correr(armar());
+  verde(r, 'skills');
+  assert.match(linea(r, 'skills'), /el \/inicio, 8600/);
+  // sí: /inicio justo en 8.600 → ✅; no: 8.601 → ❌; /cierre en 8.001 → ❌ (su tope sigue en 8.000)
+  verde(correr(armar({ cambio: rellenar('inicio', 8600) })), 'skills');
+  rojo(correr(armar({ cambio: rellenar('inicio', 8601) })), 'skills', /inicio\/SKILL\.md pesa 8601 B \(tope 8600\)/);
+  rojo(correr(armar({ cambio: rellenar('cierre', 8001) })), 'skills', /cierre\/SKILL\.md pesa 8001 B \(tope 8000\)/);
+});
+
 test('5 ficha: la ficha con la versión vieja → ❌; una ficha que no se lee → ❌', () => {
   const p = armar({ cambio: (d) => escribir(path.join(d, '.claude', 'kit.md'), fichaCon({ kit: '2.4.3' })) });
   const r = correr(p);
