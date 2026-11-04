@@ -110,11 +110,13 @@ function cli(cwd, args, extra = {}) {
   return { codigo, out, err };
 }
 const re = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-// La apertura sin `claude` en el PATH: las dos líneas de VS Code y el primer mensaje (8r T2), al final de la salida.
-const primerMensaje = (sesion) => `primer mensaje: ${sesion.startsWith('director-') ? '/director' : `/obrero ${sesion.slice('obrero-'.length)}`}\n`;
+// La apertura sin `claude` en el PATH, al final de la salida: primero la vía de una ventana con el primer mensaje (8r T2; 8r4 u1),
+// después las dos líneas de otra ventana de VS Code.
+const primerMensaje = (sesion) =>
+  `en tu ventana de siempre, una sesión nueva de Claude; primer mensaje: ${sesion.startsWith('director-') ? '/director' : `/obrero ${sesion.slice('obrero-'.length)}`} (entra sola al worktree)\n`;
 const vscode = (wt, modelo, sesion) =>
-  `abrilo en VS Code: code "${barras(wt)}"\nen esa ventana, abrí la pestaña de Claude y elegí ${modelo} (nombre sugerido para la sesión: ${sesion})\n`;
-const apertura = (wt, modelo, sesion) => vscode(wt, modelo, sesion) + primerMensaje(sesion);
+  `o en otra ventana: code "${barras(wt)}"\nen esa ventana, abrí la pestaña de Claude y elegí ${modelo}, con el mismo primer mensaje (nombre sugerido para la sesión: ${sesion})\n`;
+const apertura = (wt, modelo, sesion) => primerMensaje(sesion) + vscode(wt, modelo, sesion);
 const existeRama = (P, r) => gOk(P, 'rev-parse', '--verify', '-q', `refs/heads/${r}`);
 const barras = (p) => path.resolve(p).split(path.sep).join('/');
 const sinValores = (r, ...valores) => {
@@ -230,7 +232,7 @@ test('H §19bis: crear x y x--01 — nombres, base del encargo en la punta del m
   const w1 = p.wt('modulo--x--01');
   assert.equal(g(w1, 'rev-parse', 'HEAD'), punta);
   assert.deepEqual(fs.readFileSync(path.join(w1, '.kit-rol')), Buffer.from('obrero\n'));
-  assert.match(r1.out, new RegExp(`${re(vscode(w1, 'Sonnet', 'obrero-x--01'))}o en una terminal: cd "${re(barras(w1))}"; claude --name obrero-x--01 --model sonnet\\nprimer mensaje: /obrero x--01\\n$`));
+  assert.match(r1.out, new RegExp(`${re(apertura(w1, 'Sonnet', 'obrero-x--01'))}o en una terminal: cd "${re(barras(w1))}"; claude --name obrero-x--01 --model sonnet\\n$`));
   // --noche y --model.
   const r2 = cli(p.P, ['crear', 'x--02', '--noche', '--model', 'haiku']);
   assert.equal(r2.codigo, 0, r2.out);
@@ -1115,7 +1117,8 @@ test('rf-1: cerrar x--02 --cancelado — sin el renglón (o sin el SHA de la pun
   const c = cli(p.P, ['crear', 'x--02'], { claudeEnPath: false, dirExtensiones: ext });
   assert.equal(c.codigo, 0, c.out);
   const P = require('../hooks/lib/proceso.cjs');
-  assert.ok(c.out.endsWith(`o en una terminal de Git Bash: cd "${barras(w2)}" && "${P.rutaGitBash(bin)}" --name obrero-x--02 --model sonnet\nprimer mensaje: /obrero x--02\n`), c.out);
+  assert.ok(c.out.endsWith(`o en una terminal de Git Bash: cd "${barras(w2)}" && "${P.rutaGitBash(bin)}" --name obrero-x--02 --model sonnet\n`), c.out);
+  assert.ok(c.out.includes(apertura(w2, 'Sonnet', 'obrero-x--02')), c.out);
   assert.ok(cli(p.P, ['crear', 'y'], { claudeEnPath: false }).out.endsWith(apertura(p.wt('modulo--y'), 'Opus', 'director-y')), 'sin ninguno, solo VS Code');
   const punta = commit(w2, { 'e.txt': 'a medias\n' }, 'trabajo a medias');
   g(w2, 'push', '-q', 'origin', 'modulo/x--02');
@@ -1224,14 +1227,14 @@ test('8r T2: crear x y crear x --noche terminan en "primer mensaje: /director"; 
   const p = proyecto();
   const rx = cli(p.P, ['crear', 'x']);
   assert.equal(rx.codigo, 0, rx.out);
-  assert.ok(rx.out.endsWith('primer mensaje: /director\n'), rx.out);
+  assert.ok(rx.out.endsWith(apertura(p.wt('modulo--x'), 'Opus', 'director-x')), rx.out);
   const ry = cli(p.P, ['crear', 'y', '--noche']);
   assert.equal(ry.codigo, 0, ry.out);
   assert.deepEqual(fs.readFileSync(path.join(p.wt('modulo--y'), '.kit-rol')), Buffer.from('nocturno\n'));
-  assert.ok(ry.out.endsWith('primer mensaje: /director\n'), 'el director de noche también arranca con /director (rt-5)');
+  assert.ok(ry.out.includes(primerMensaje('director-y')), 'el director de noche también arranca con /director (rt-5)');
   const r1 = cli(p.P, ['crear', 'x--01']);
   assert.equal(r1.codigo, 0, r1.out);
-  assert.ok(r1.out.endsWith('primer mensaje: /obrero x--01\n'), r1.out);
+  assert.ok(r1.out.endsWith(apertura(p.wt('modulo--x--01'), 'Sonnet', 'obrero-x--01')), r1.out);
   assert.doesNotMatch(r1.out, /primer mensaje: \/director/);
 });
 
@@ -1335,4 +1338,257 @@ test('8r 5: integrar termina en "después: /cierre …"; integrados — el merge
   fs.mkdirSync(fuera);
   r = cli(fuera, ['integrados']);
   assert.equal(r.codigo, 0, r.out);
+});
+
+// ---------------------------------------------------------------- SPEC-paquete-8r4: u1 (donde, la apertura, rt-1) y u2 (traer-main)
+
+const estado = (d) => g(d, 'status', '--porcelain', '--untracked-files=all');
+const ENTRAR = 'con la herramienta EnterWorktree (path = esa ruta); después volvé a correr donde\n';
+
+test('8r4 u1: la apertura empieza por la vía de una ventana; rt-1: el deny del .env también en el settings.local.json del principal, sin pisar nada; roto → 1', () => {
+  const previo = { permissions: { allow: ['Bash(ls)'], deny: ['Bash(rm:*)'] }, otra: 1 };
+  const p = proyecto();
+  escribir(p.P, '.claude/settings.local.json', JSON.stringify(previo));
+  const r = cli(p.P, ['crear', 'x']);
+  assert.equal(r.codigo, 0, r.out);
+  const lineas = r.out.split('\n');
+  const i = lineas.findIndex((l) => l.startsWith('worktree crear: modulo/x'));
+  assert.equal(lineas[i + 1], 'en tu ventana de siempre, una sesión nueva de Claude; primer mensaje: /director (entra sola al worktree)', r.out);
+  assert.equal(lineas[i + 2], `o en otra ventana: code "${barras(p.wt('modulo--x'))}"`);
+  const localP = `${barras(p.P)}/.claude/settings.local.json`;
+  assert.ok(r.out.includes(`deny del .env del principal: en ${localP} (no viaja por git: cada PC lo arma con su primer crear o abrir)\n`), r.out);
+  let s = JSON.parse(leer(p.P, '.claude/settings.local.json'));
+  assert.deepEqual(s.permissions.deny, ['Bash(rm:*)', ...W.reglasDeny(p.P)]);
+  assert.deepEqual(s.permissions.allow, ['Bash(ls)']);
+  assert.equal(s.otra, 1);
+  assert.deepEqual(JSON.parse(leer(p.wt('modulo--x'), '.claude/settings.local.json')).permissions.deny, W.reglasDeny(p.P), 'y sigue en el del worktree');
+  assert.equal(estado(p.P), '', 'el settings.local.json del principal está ignorado');
+  // El segundo crear no duplica; el del encargo muestra su primer mensaje.
+  const r1 = cli(p.P, ['crear', 'x--01']);
+  assert.equal(r1.codigo, 0, r1.out);
+  assert.match(r1.out, /^en tu ventana de siempre, una sesión nueva de Claude; primer mensaje: \/obrero x--01 \(entra sola al worktree\)$/m);
+  s = JSON.parse(leer(p.P, '.claude/settings.local.json'));
+  assert.deepEqual(s.permissions.deny, ['Bash(rm:*)', ...W.reglasDeny(p.P)]);
+  // Sin archivo previo: lo crea con las cuatro.
+  const q = proyecto();
+  assert.equal(cli(q.P, ['crear', 'x']).codigo, 0);
+  assert.deepEqual(JSON.parse(leer(q.P, '.claude/settings.local.json')).permissions.deny, W.reglasDeny(q.P));
+  // Roto: 1 con la línea, sin tocarlo.
+  escribir(q.P, '.claude/settings.local.json', '{roto');
+  const rr = cli(q.P, ['crear', 'y']);
+  assert.equal(rr.codigo, 1, rr.out);
+  assert.ok(rr.out.includes(`no pude sumar el deny al .env del principal: ${barras(q.P)}/.claude/settings.local.json no es un JSON de objeto — arreglalo y corré abrir de nuevo`), rr.out);
+  assert.equal(leer(q.P, '.claude/settings.local.json'), '{roto');
+});
+
+test('8r4 u1: donde — entrar desde el principal y desde otro worktree, adentro, sin worktree, otro rol, sin .kit-rol, otra rama, nocturno (rt-4), obrero sucio (rt-6); no escribe nada', () => {
+  const p = proyecto();
+  assert.equal(cli(p.P, ['crear', 'x']).codigo, 0);
+  assert.equal(cli(p.P, ['crear', 'x--01']).codigo, 0);
+  const wx = p.wt('modulo--x');
+  const w1 = p.wt('modulo--x--01');
+  const antes = [estado(p.P), estado(wx), estado(w1), leer(p.P, '.claude/settings.local.json')];
+  const entrar = (w) => `entrar: ${barras(w)}\n${ENTRAR}`;
+  // Desde el principal y desde el worktree del director: a qué ruta entrar.
+  assert.deepEqual(cli(p.P, ['donde', 'x--01']), { codigo: 0, out: entrar(w1), err: '' });
+  assert.deepEqual(cli(wx, ['donde', 'x--01']), { codigo: 0, out: entrar(w1), err: '' });
+  assert.deepEqual(cli(p.P, ['donde', 'x']), { codigo: 0, out: entrar(wx), err: '' });
+  assert.deepEqual(cli(path.join(p.P, 'docs'), ['donde', 'x']), { codigo: 0, out: entrar(wx), err: '' }, 'desde una subcarpeta del principal');
+  // Adentro.
+  assert.deepEqual(cli(w1, ['donde', 'x--01']), { codigo: 0, out: `adentro: modulo/x--01 · rol obrero · ${barras(w1)}\n`, err: '' });
+  assert.deepEqual(cli(wx, ['donde', 'x']), { codigo: 0, out: `adentro: modulo/x · rol director · ${barras(wx)}\n`, err: '' });
+  // Nada de esto escribió.
+  assert.deepEqual([estado(p.P), estado(wx), estado(w1), leer(p.P, '.claude/settings.local.json')], antes);
+  // Sin worktree: 1.
+  let r = cli(p.P, ['donde', 'x--02']);
+  assert.deepEqual([r.codigo, r.out], [1, 'no hay worktree: el director corre worktree crear x--02 (o abrir, en otra PC)\n']);
+  r = cli(p.P, ['donde', 'y']);
+  assert.deepEqual([r.codigo, r.out], [1, 'no hay worktree: el director corre worktree crear y (o abrir, en otra PC)\n']);
+  // Una carpeta con el nombre pero sin registro: tampoco hay worktree.
+  fs.mkdirSync(p.wt('modulo--x--03'), { recursive: true });
+  assert.equal(cli(p.P, ['donde', 'x--03']).codigo, 1);
+  // Otro rol, o sin .kit-rol: PARADA (desde afuera y desde adentro).
+  fs.writeFileSync(path.join(w1, '.kit-rol'), 'director\n');
+  for (const cwd of [p.P, w1]) {
+    r = cli(cwd, ['donde', 'x--01']);
+    assert.equal(r.codigo, 1);
+    assert.match(r.out, /^PARADA: \.kit-rol de .*modulo--x--01 dice director, no obrero o nocturno/);
+  }
+  fs.rmSync(path.join(w1, '.kit-rol'));
+  r = cli(w1, ['donde', 'x--01']);
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, /^PARADA: .*modulo--x--01 no tiene \.kit-rol/);
+  fs.writeFileSync(path.join(w1, '.kit-rol'), 'obrero\n');
+  fs.writeFileSync(path.join(wx, '.kit-rol'), 'obrero\n');
+  r = cli(wx, ['donde', 'x']);
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, /^PARADA: \.kit-rol de .* dice obrero, no director o nocturno/);
+  fs.writeFileSync(path.join(wx, '.kit-rol'), 'director\n');
+  // Otra rama en esa carpeta: PARADA.
+  g(w1, 'checkout', '-q', '-b', 'otra');
+  for (const cwd of [p.P, w1]) {
+    r = cli(cwd, ['donde', 'x--01']);
+    assert.equal(r.codigo, 1);
+    assert.match(r.out, /^PARADA: .*modulo--x--01 tiene otra, no modulo\/x--01/);
+  }
+  g(w1, 'checkout', '-q', 'modulo/x--01');
+  // rt-4: el obrero de noche.
+  assert.equal(cli(p.P, ['crear', 'x--02', '--noche']).codigo, 0);
+  const w2 = p.wt('modulo--x--02');
+  assert.deepEqual(cli(p.P, ['donde', 'x--02']), { codigo: 0, out: entrar(w2), err: '' });
+  assert.equal(cli(w2, ['donde', 'x--02']).out, `adentro: modulo/x--02 · rol nocturno · ${barras(w2)}\n`);
+  // rt-6: el obrero con cambios sin commitear → 1 (frenos.log no cuenta); el director, no.
+  frenosLog.anotar(w1, { id: 'deny:x', herramienta: 'Bash', detalle: 'algo', rol: 'obrero', rama: 'modulo/x--01' });
+  assert.equal(cli(p.P, ['donde', 'x--01']).codigo, 0, 'frenos.log con renglones no cuenta');
+  fs.writeFileSync(path.join(w1, 'sucio.txt'), 'a medias\n');
+  for (const cwd of [p.P, w1]) {
+    r = cli(cwd, ['donde', 'x--01']);
+    assert.equal(r.codigo, 1);
+    assert.match(r.out, /^¿hay otra sesión en este worktree\? .*sucio\.txt/);
+  }
+  fs.writeFileSync(path.join(wx, 'sucio.txt'), 'del director\n');
+  assert.equal(cli(wx, ['donde', 'x']).codigo, 0, 'el director con cambios: sigue (rt-6 es del obrero)');
+});
+
+test('8r4: donde y traer-main mal llamados → 2 con el USO (sin nombre, traer-main con encargo, una bandera)', () => {
+  const p = proyecto();
+  for (const args of [['donde'], ['donde', 'x', 'y'], ['donde', 'x', '--noche'], ['traer-main'], ['traer-main', 'x--01'], ['traer-main', 'x', '--ok-de-guido']]) {
+    const r = cli(p.P, args);
+    assert.equal(r.codigo, 2, JSON.stringify(args));
+    assert.match(r.err, /donde <x>\[--<ID>\]/);
+    assert.match(r.err, /traer-main <x>/);
+  }
+});
+
+const cambiosCli = require('./cambios.cjs');
+const CUERPO_T = '## Caso de origen\nmain endurece el settings y un hook\n\n## Regla\nlo de main\n\n## Dónde vive\n.claude/settings.json\n\n## Medición\n| antes | después |\n';
+function cambios(d, ...args) {
+  let out = '';
+  const codigo = cambiosCli.main(args, { cwd: d, salida: (s) => (out += s), error: (s) => (out += s), entradaEstandar: () => CUERPO_T });
+  return { codigo, out };
+}
+const SETTINGS_T = (deny) => `${JSON.stringify({ permissions: { deny } }, null, 2)}\n`;
+const HOOK_T = 'l1\nl2\nl3\nl4\nl5\nl6\nl7\n';
+// Un proyecto con el settings y un hook, y el módulo x con un commit propio en su worktree (sin subir).
+function proyectoT() {
+  const p = proyecto({ archivos: { '.claude/settings.json': SETTINGS_T(['Bash(rm:*)']), '.claude/hooks/h.cjs': HOOK_T } });
+  const wx = moduloX(p);
+  return { ...p, wx };
+}
+// main cambia los archivos con el aprobado sellado ANTES del commit (como lo pide barreras), y sube.
+function mainConAprobado(p, archivos) {
+  const B = require('../hooks/lib/barreras.cjs');
+  for (const [rel, contenido] of Object.entries(archivos)) escribir(p.P, rel, contenido);
+  g(p.P, 'add', '--', ...Object.keys(archivos));
+  const cats = new Set();
+  const ids = new Set();
+  for (const f of B.archivosDe(p.P, B.INDICE, {})) {
+    const t = B.tocaArchivo(p.P, f);
+    t.cats.forEach((x) => cats.add(x));
+    t.ids.forEach((x) => ids.add(x));
+  }
+  g(p.P, 'reset', '-q');
+  assert.ok(ids.size, 'main toca frenos');
+  const args = ['nuevo', '--slug', 'main-endurece', '--clase', '3-barrera', '--toca', [...cats].join(','), '--origen', 'lo pidió el dueño'];
+  for (const id of ids) args.push('--id', id);
+  const nu = cambios(p.P, ...args);
+  assert.equal(nu.codigo, 0, nu.out);
+  const id = /propuesto (\S+)/.exec(nu.out)[1];
+  const ap = cambios(p.P, 'aprobar', id);
+  assert.equal(ap.codigo, 0, ap.out);
+  commit(p.P, archivos, 'main endurece el settings y un hook');
+  assert.deepEqual(B.revisarBarreras(p.P, { rango: B.resolverRango(p.P, { desde: 'origin/main', hasta: 'HEAD' }) }).filter((x) => !x.soloLista && x.commit === g(p.P, 'rev-parse', 'HEAD')), [], 'main está verde');
+  g(p.P, 'push', '-q', 'origin', 'main');
+  return g(p.P, 'rev-parse', 'HEAD');
+}
+
+test('8r4 u2: traer-main verde — trae de main un settings.json y un hook ya aprobados allá: merge con dos padres, frenos.log con el merge, push; de nuevo → ya al día', () => {
+  const p = proyectoT();
+  const antes = g(p.wx, 'rev-parse', 'HEAD');
+  const deMain = mainConAprobado(p, { '.claude/settings.json': SETTINGS_T(['Bash(rm:*)', 'Bash(curl:*)']), '.claude/hooks/h.cjs': `${HOOK_T}l8\n` });
+  const renglon = frenosLog.anotar(p.wx, { id: 'deny:x', herramienta: 'Bash', detalle: 'algo', rol: 'director', rama: 'modulo/x' });
+  const r = cli(p.wx, ['traer-main', 'x']);
+  assert.equal(r.codigo, 0, r.out);
+  const merge = g(p.wx, 'rev-parse', 'HEAD');
+  assert.equal(g(p.wx, 'rev-list', '--parents', '-n', '1', merge), `${merge} ${antes} ${deMain}`);
+  assert.equal(g(p.wx, 'log', '-1', '--format=%s', merge), `módulo x: trae main @${deMain.slice(0, 7)}`);
+  assert.equal(enOrigin(p, 'modulo/x'), merge, 'subió modulo/x');
+  assert.equal(enOrigin(p), deMain, 'main en origin no cambió');
+  assert.equal(estado(p.wx), '', 'quedó limpio');
+  assert.ok(g(p.wx, 'show', `${merge}:.claude/frenos.log`).includes(renglon.trim()), 'el renglón de frenos.log va con el merge');
+  assert.equal(leer(p.wx, '.claude/hooks/h.cjs'), `${HOOK_T}l8\n`);
+  assert.match(r.out, /subí modulo\/x a origin/);
+  // Otra vez: ya al día, sin commit.
+  const r2 = cli(p.wx, ['traer-main', 'x']);
+  assert.equal(r2.codigo, 0, r2.out);
+  assert.match(r2.out, /ya al día con origin\/main/);
+  assert.equal(g(p.wx, 'rev-parse', 'HEAD'), merge);
+});
+
+test('8r4 u2: traer-main que choca → merge --abort, 1 con las rutas; HEAD, árbol y frenos.log como antes', () => {
+  const p = proyecto();
+  const wx = moduloX(p, { 'a.txt': 'del módulo\n' });
+  commit(p.P, { 'a.txt': 'de main\n' }, 'main avanza');
+  g(p.P, 'push', '-q', 'origin', 'main');
+  frenosLog.anotar(wx, { id: 'deny:x', herramienta: 'Bash', detalle: 'algo', rol: 'director', rama: 'modulo/x' });
+  const antes = [g(wx, 'rev-parse', 'HEAD'), estado(wx), leer(wx, '.claude/frenos.log')];
+  const r = cli(wx, ['traer-main', 'x']);
+  assert.equal(r.codigo, 1, r.out);
+  assert.match(r.out, /traer main choca en a\.txt: es un encargo del director/);
+  assert.deepEqual([g(wx, 'rev-parse', 'HEAD'), estado(wx), leer(wx, '.claude/frenos.log')], antes);
+  assert.ok(!gOk(wx, 'rev-parse', '-q', '--verify', 'MERGE_HEAD'), 'sin merge a medias');
+  assert.ok(!gOk(p.remoto, 'rev-parse', '-q', '--verify', 'refs/heads/modulo/x'), 'nada subió');
+});
+
+test('8r4 u2: traer-main con barreras en rojo (el merge deja un hook distinto de los dos lados) → merge --abort, 1, los ids y la línea de cambios nuevo', () => {
+  const p = proyectoT();
+  commit(p.wx, { '.claude/hooks/h.cjs': HOOK_T.replace('l1', 'l1-modulo') }, 'el módulo cambia el hook');
+  commit(p.P, { '.claude/hooks/h.cjs': HOOK_T.replace('l7', 'l7-main') }, 'main cambia el hook');
+  g(p.P, 'push', '-q', 'origin', 'main');
+  const antes = [g(p.wx, 'rev-parse', 'HEAD'), estado(p.wx)];
+  const r = cli(p.wx, ['traer-main', 'x']);
+  assert.equal(r.codigo, 1, r.out);
+  assert.match(r.out, /^candado:barreras · /m);
+  assert.match(r.out, /barreras en rojo: hooks:\.claude\/hooks\/h\.cjs — merge abortado, modulo\/x quedó como estaba/);
+  assert.match(r.out, /^para el dueño, en su checkout principal y en main: node \.claude\/scripts\/cambios\.cjs nuevo --slug traer-main-x --clase 3-barrera --toca hooks --id "hooks:\.claude\/hooks\/h\.cjs" --origen "traer main @[0-9a-f]{7} a modulo\/x \(worktree\.cjs traer-main\) da rojo en barreras" --cuerpo "[^"]+kit-traer-main\/x\.md"$/m);
+  assert.match(r.out, /barreras en rojo: nada se commiteó ni subió/);
+  assert.equal(g(p.wx, 'rev-parse', 'HEAD'), antes[0]);
+  assert.ok(!gOk(p.wx, 'rev-parse', '-q', '--verify', 'MERGE_HEAD'), 'sin merge a medias');
+  assert.equal(leer(p.wx, '.claude/hooks/h.cjs'), HOOK_T.replace('l1', 'l1-modulo'));
+  // Lo único nuevo en el árbol es el renglón de la frenada en frenos.log.
+  const sinLog = (s) => s.split('\n').filter((l) => l && !l.endsWith('.claude/frenos.log')).join('\n');
+  assert.equal(sinLog(estado(p.wx)), sinLog(antes[1]));
+  assert.match(leer(p.wx, '.claude/frenos.log'), /candado:barreras/);
+  assert.ok(!gOk(p.remoto, 'rev-parse', '-q', '--verify', 'refs/heads/modulo/x'), 'nada subió');
+  const cuerpo = /--cuerpo "([^"]+)"/.exec(r.out)[1];
+  assert.match(fs.readFileSync(cuerpo, 'utf8'), /^## Caso de origen\n/);
+});
+
+test('8r4 u2: traer-main se niega sin tocar nada — árbol sucio, parado en main, fetch que falla, sin origin', () => {
+  const p = proyecto();
+  const wx = moduloX(p);
+  commit(p.P, { 'b.txt': 'de main\n' }, 'main avanza');
+  g(p.P, 'push', '-q', 'origin', 'main');
+  const head = g(wx, 'rev-parse', 'HEAD');
+  fs.writeFileSync(path.join(wx, 'sucio.txt'), 'a medias\n');
+  let r = cli(wx, ['traer-main', 'x']);
+  assert.equal(r.codigo, 1, r.out);
+  assert.match(r.out, /el worktree tiene cambios sin commitear: \?\? sucio\.txt/);
+  assert.equal(g(wx, 'rev-parse', 'HEAD'), head);
+  fs.rmSync(path.join(wx, 'sucio.txt'));
+  const mainAntes = g(p.P, 'rev-parse', 'HEAD');
+  r = cli(p.P, ['traer-main', 'x']);
+  assert.equal(r.codigo, 1, r.out);
+  assert.match(r.out, /estás en main, no en modulo\/x: traer-main se corre en el worktree del director/);
+  assert.equal(g(p.P, 'rev-parse', 'HEAD'), mainAntes);
+  g(p.P, 'remote', 'set-url', 'origin', path.join(p.base, 'no-existe.git'));
+  r = cli(wx, ['traer-main', 'x']);
+  assert.equal(r.codigo, 1, r.out);
+  assert.match(r.out, /no pude hacer fetch de origin .*no toqué nada/);
+  g(p.P, 'remote', 'remove', 'origin');
+  r = cli(wx, ['traer-main', 'x']);
+  assert.equal(r.codigo, 1, r.out);
+  assert.match(r.out, /traer-main necesita origin/);
+  assert.equal(g(wx, 'rev-parse', 'HEAD'), head);
+  assert.equal(estado(wx), '');
 });
