@@ -91,7 +91,8 @@ sesión sigue con lo que no depende de eso. Lo que sí se decide y es grande se 
 | R1 | **La revisión integral de la rc.1** (ADR-034): el kit entero, tres miradas, solo lectura; y la tanda de correcciones (lo de taller lo decide la sesión, lo de negocio con Guido) | 1 | ✅ 2026-11-03, el informe ([`REVISION-INTEGRAL-rc1.md`](REVISION-INTEGRAL-rc1.md)): 4 traban la adopción con director (T1-T4), 2 preguntas para Guido · **la tanda de correcciones ✅ 2026-11-03 (D8r.1, la beta `v3.0.0-rc.2`)** ([`SPEC-paquete-8r.md`](SPEC-paquete-8r.md)) |
 | 8r | **La rc.2: la tanda de correcciones de R1** (T1-T4, los 8 que le cambian algo a Guido, lo de taller, las 2 preguntas con la A) | 1 | ✅ 2026-11-03 (D8r.1; la beta `v3.0.0-rc.2` taggeada) ([`SPEC-paquete-8r.md`](SPEC-paquete-8r.md)) |
 | 8r2 | **La rc.3: la tanda de taller de R1b** (t1-t12; D1-D4 con su mecánica, sin decidir) | 1 | ✅ 2026-11-04 (D8r.2; la beta `v3.0.0-rc.3` taggeada) ([`SPEC-paquete-8r2.md`](SPEC-paquete-8r2.md)) |
-| 8c | **La rc.4**: el obrero de cierre de tramo (renglón 11) y los experimentos de método (diseño con Guido antes) | 1 + el diseño | ⬜ |
+| 8r3 | **La rc.4 exprés**: que el bot de Arti se pueda adoptar (`carpeta-docs:`, el arranque con el mismo nombre) y el rojo de los `.pyc` de Hermes | 1 | ✅ 2026-11-04 (D8r.3; la beta `v3.0.0-rc.4` taggeada) ([`SPEC-paquete-8r3.md`](SPEC-paquete-8r3.md)) |
+| 8c | **La rc.5**: el obrero de cierre de tramo (renglón 11) y los experimentos de método (diseño con Guido antes) | 1 + el diseño | ⬜ |
 | 9 | **La prueba real: el primer módulo nuevo de Hermes con el kit v3** (desde el 2026-11-04); cada arreglo sale como `rc.N` y le llega a Hermes por la flota | 2 en la madre | ⬜ |
 | 10 | Tag `v3.0` y nota de migración | 1 | ⬜ |
 | | **Total** (sin el 0, ya hecho) | **16** | |
@@ -1074,6 +1075,41 @@ sello → `worktree crear` con el `.venv` → el gate en Git Bash); 2 MEDIOS y 2
 - **D8r2-6 · La flota de la PC: dos niveles, una fila por repo** (agrupado por `git-common-dir`; nunca un worktree). **D8r2-7 · `quedarse`**
   (con `propia` de alias). **D8r2-8 · Esta tanda es la `rc.3` y D8c.1 pasa a la `rc.4`.** `[workflow · consistencia]`
 
+### D8r.3 · Decisiones sin Guido
+
+D8r.3 corrió sin Guido el 2026-11-04 en `Guido-PC-eQ`, lanzada por la sesión madre de la recta final con la vara del ADR-030 y el
+ADR-034: la `rc.4` exprés, para adoptar ya el bot de Arti (`Arti-bot-eq`) y destrabar el primer `/cierre` de Hermes. El detalle, en el
+delta (`SPEC-paquete-8r3.md`, "Decisiones (la vara)" y "Lo que trajo el red team"). **6 encargos** (red team, H, S, A, P, el chequeo
+frío), todos Opus; la base (`carpeta-docs:` en la ficha y `docs-ruta.cjs`) y los textos, el director. Red team 1 ronda: 2 ALTOS (la
+excepción de los `.pyc` era un agujero: los hooks de Hermes **leen** ese caché; sin remoto, cambiar la carpeta sacaba su propio commit del
+rango), 5 MEDIOS, 3 BAJOS, todos integrados. Mutación: H 42/42, S 19/19, A 14/14, P 13/13. RESULTADOS_D8R3
+
+- **D8r3-1 · `carpeta-docs:` en la ficha, para todo el árbol del método** (no solo el handoff), en minúsculas y sin nombres reservados
+  de Windows. Se lee de la **ficha vigente**, como todo lo que leen los hooks, y **cambiarla es barrera** (`frenos:carpeta-docs`).
+  *Qué cambia en tu día*: en el bot, el método vive en `arti-docs/` y `docs/` sigue siendo de OpenClaw; si algún día movés la carpeta,
+  te pide un aprobado. `[coherencia · mejor código]`
+- ⚠️ **D8r3-2 · `barreras` borra el caché de Python ignorado** (`*.pyc` en `__pycache__/`) de `.claude/hooks`, `.claude/scripts` y
+  `.githooks`, y lo dice en una línea; no hay excepción (el red team mostró que los hooks de Hermes leen ese caché: un `.pyc` fabricado
+  vaciaba el freno de git con `barreras` verde). `PYTHONDONTWRITEBYTECODE` no hace falta. *Qué cambia en tu día*: el `/cierre` de Hermes
+  sale verde y dice "borré 3 cachés de Python ignorados (se rehacen solos)". `[mejor código · coherencia]`
+- ⚠️ **D8r3-3 · `--arranque kit` reemplaza un `session-start.cjs` propio con el nombre del del kit**, como `--director kit`; `--mirar`
+  muestra lo que hacía y el puntero a `session-start.propio.sh` (el del kit lo corre al final). *Qué cambia en tu día*: en el bot, con la
+  recomendada de D3, el arranque es el del kit y el `/inicio` encuentra su huella; lo tuyo queda en la historia. `[workflow]`
+- ⚠️ **D8r3-4 · `--aplicar` se niega con un `docs/` ajeno y sin `carpeta-docs:`** (un `docs.json`, `mkdocs.yml`, `CNAME` o archivos que no
+  son del método): adoptar así metía el handoff en el sitio de OpenClaw. *Qué cambia en tu día*: en la pantalla de adopción se elige la
+  carpeta antes del OK. `[mejor código]`
+- **D8r3-5 · La línea `después:` dice la verdad**: el sello va antes del commit; con remoto, el rojo es solo en el clon antes del push
+  (después ningún `/cierre` lo mira); sin remoto, lo ve tu primer `/cierre`. Corrige lo que prometía D8r2-5 ("lo aprobás después"). Y si
+  en el clon quedó `core.hooksPath` prendido, da `git config --unset core.hooksPath` (el clon de la adopción va sin githooks).
+  `[coherencia]`
+- **D8r3-6 · `resolver <carpeta> <pieza> nueva --kit <clon> --por …` sobre una `propia`, sin informe** (el pendiente 1 de "De D8r.2"):
+  necesita `--kit` porque `~/.claude` no trae el molde. Con una pieza de frenos imprime el `cambios nuevo` exacto y el orden (aprobado,
+  después el commit; probado de verdad). Una pieza de varios archivos queda `molde` sin hash (la gramática da hash a las de un archivo).
+  `[workflow · acordarse de menos]`
+- **D8r3-7 · Los textos no se reescriben ruta por ruta** (una línea en el arranque, el `/inicio`, el `/cierre` y `NUCLEO.md`); `portada
+  armar` lee la carpeta de la ficha del disco (antes del push no hay vigente). **D8r3-8 · Esta tanda es la `rc.4`; D8c.1 pasa a la `rc.5`**
+  (decisión de la sesión madre). `[acordarse de menos · workflow]`
+
 ## Abrir D8.1 sin Guido (el prompt)
 
 *(Armado en el cierre de D7.1, 2026-11-02.)* En cualquier PC con el kit (`Draco-PC` está lista) y acceso a `vibe-research` (los chats y el
@@ -1154,7 +1190,8 @@ entre piezas, lo técnico lo decide la sesión, la revisión integral como paso 
 | 2c ✅ | **R1b · La segunda revisión integral, sobre la `rc.2`** (la sesión madre, la noche del 03-11) | no | ✅ 2026-11-04 | `REVISION-INTEGRAL-rc2.md`: el día corrido sobre un clon de Hermes; 4 de diseño para Guido (D1-D4) y 12 de taller (t1-t12) |
 | 2d ✅ | **D8r.2 · La tanda de taller de R1b = la `rc.3`** (`vibe-kit M5 · D8r.2`; la lanzó la sesión madre) | no | ✅ 2026-11-04 | `SPEC-paquete-8r2.md`: t1-t12 y la mecánica de D1-D4; la beta `v3.0.0-rc.3` taggeada. Sigue **la mañana con Guido**, que abre con D1-D4 |
 | 3 | **Diseño: los experimentos de método** (`vibe-kit M5 · Diseño: probar una idea nueva (experimentos)`) | **sí** | cuando Guido pueda, 2026-11-04 o 05 | el Arquitecto (Modo B sobre vibe-kit) charla con Guido y deja el spec sellado de la pieza nueva |
-| 4 | **D8c.1 · La rc.4** (`vibe-kit M5 · D8c.1 · La rc.4: cierre de tramo y experimentos`) | no | después de la 3 | el obrero de cierre de tramo (renglón 11), los experimentos (el spec de la 3) y lo de Pendientes "De D8r.2"; `v3.0.0-rc.4` y "poné al día la flota" en Hermes (los de R1 y R1b ya salieron en la `rc.2` y la `rc.3`) |
+| 2e ✅ | **D8r.3 · La `rc.4` exprés: el bot de Arti y los `.pyc`** (`vibe-kit M5 · D8r.3`; la lanzó la sesión madre de la recta final) | no | ✅ 2026-11-04 | `SPEC-paquete-8r3.md`: `carpeta-docs:` en la ficha, el arranque con el mismo nombre, `barreras` borra el caché de Python, la línea `después:` que dice la verdad y `resolver … nueva` sin informe; la beta `v3.0.0-rc.4` taggeada. La flota a los repos de Guido y la adopción del bot, las propone la sesión madre |
+| 4 | **D8c.1 · La rc.5** (`vibe-kit M5 · D8c.1 · La rc.5: cierre de tramo y experimentos`) | no | después de la 3 | el obrero de cierre de tramo (renglón 11), los experimentos (el spec de la 3) y lo de Pendientes "De D8r.2"; `v3.0.0-rc.4` y "poné al día la flota" en Hermes (los de R1 y R1b ya salieron en la `rc.2` y la `rc.3`) |
 | 5 | **D9.x · Acompañar la prueba real** | a ratos | mientras dure el primer módulo de Hermes | cada arreglo del uso como `rc.N` |
 | 6 | **M6b · El ciclo, segunda parte** | sí, corta | cuando cierre el primer módulo de Hermes | §3.5 y §8 del ciclo con lo vivido; la fecha de la próxima vuelta |
 | 7 | **R2 · Revisión integral final + D10.1 · `v3.0`** | no / OK de Guido para publicar | después de la 6 | la tercera revisión integral (ADR-034; R1 y R1b fueron las dos primeras), **con lo que haya mostrado el uso de Hermes y contra un clon suyo**, la medición contra `mediciones/2026-11-03.md`, el tag `v3.0` idéntico al último rc |
@@ -1190,10 +1227,10 @@ entre piezas, lo técnico lo decide la sesión, la revisión integral como paso 
 
 ### Abrir D8c.1 sin Guido (el prompt)
 
-> inicio — misión 5, **D8c.1: la rc.4**, sin mí, con el presupuesto del ADR-029 y lo mismo que autoricé a D8b.1 (su prompt), con la vara
+> inicio — misión 5, **D8c.1: la rc.5**, sin mí, con el presupuesto del ADR-029 y lo mismo que autoricé a D8b.1 (su prompt), con la vara
 > del ADR-030 y el ADR-034. Alcance: (1) el obrero de cierre de tramo (renglón 11 del repaso, que D8b.1 dejó con su porqué); (2) los
-> experimentos de método (el spec que salió del diseño con Guido); y lo de "De D8r.1, para la rc.4" y "De D8r.2" en Pendientes. Delta `docs/kit-v3/SPEC-paquete-8c.md`, red team si toca un freno, revisor frío que recorra el día de Guido, la suite
-> entera, la prueba de la flota con un canónico `bare`, y si todo da verde: `kit/VERSION` `3.0.0-rc.4`, su nota, tag anotado, push, y
+> experimentos de método (el spec que salió del diseño con Guido); y lo de "De D8r.1, para la rc.5" y "De D8r.2" en Pendientes. Delta `docs/kit-v3/SPEC-paquete-8c.md`, red team si toca un freno, revisor frío que recorra el día de Guido, la suite
+> entera, la prueba de la flota con un canónico `bare`, y si todo da verde: `kit/VERSION` `3.0.0-rc.5`, su nota, tag anotado, push, y
 > "poné al día la flota" sobre Hermes (en `auto`; si el clasificador frena el push, la línea la corre Guido). `/cierre` completo.
 
 ### Abrir la sesión de la prueba hasta la v3.0 (el prompt, con Guido a ratos)
@@ -1239,7 +1276,7 @@ Lo que se evaluó, para no volver a evaluarlo de cero (insumo de la misión 6):
 
 Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (queda en el CHANGELOG).
 
-- **De la adopción real de Hermes (2026-11-04, con Guido), para la `rc.4`** (D8c.1). Hermes quedó adoptado con la `rc.3` (`main` @
+- **De la adopción real de Hermes (2026-11-04, con Guido), para la `rc.5`** (D8c.1; la `rc.4` exprés, D8r.3, se llevó el 11 (a) y (b)). Hermes quedó adoptado con la `rc.3` (`main` @
   `5f824544`, `eQ-Repositorio/Hermes-desktop`): D1 A con lo propio de Hermes en la zona propia de las 5 skills, D2/D3 las recomendadas,
   D4 `datos-reales` con 8 comandos, `merge-a-main: con-ok-de-guido`, las reglas de la casa solo con el clic de Guido (CM-14 de Hermes).
   Lo que dolió en el kit:
@@ -1273,12 +1310,12 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
      solo en `Riesgo: alto` (kit); hasta 2 vueltas de revisor con lo abierto declarado (CM-76) contra PARADA; el handoff con 2 banners y
      archivo contra sobreescribir. Hoy en Hermes rigen los del kit.
   11. **De la adopción de los repos de Artibot (el mismo día)**. El analytics (`eQ-Repositorio/Arti-bot-analytics-eq`) quedó adoptado
-     (`main` @ `8519427`); **el bot (`Arti-bot-eq`) espera la `rc.4`** por (a):
-     (a) **la carpeta de papeles es fija, `docs/`** (`RUTA_HANDOFF` en `inyeccion.cjs`, `candado.cjs` y `barreras.cjs`, y los rituales):
+     (`main` @ `8519427`); **el bot (`Arti-bot-eq`) esperaba la `rc.4`** por (a), que ya salió (D8r.3):
+     ~~(a)~~ ✅ D8r.3 (`carpeta-docs:` en la ficha; `--mirar` la detecta, `--aplicar` la toma) — (a) **la carpeta de papeles es fija, `docs/`** (`RUTA_HANDOFF` en `inyeccion.cjs`, `candado.cjs` y `barreras.cjs`, y los rituales):
          el bot es un fork de OpenClaw cuyo `docs/` es el sitio publicado de OpenClaw (699 archivos, `docs.json`, `CNAME`) y sus papeles
          viven en `arti-docs/`. Adoptarlo metía el handoff, el TODO y el NORTE del kit en la documentación de OpenClaw. Arreglo: una
          `carpeta-docs:` en la ficha que lean el hook, el candado, las barreras y los rituales; después, "poné al día la flota" lo adopta.
-     (b) **Un hook de arranque propio con el mismo nombre que el del kit** (`.claude/hooks/session-start.cjs`, en los dos repos): con
+     ~~(b)~~ ✅ D8r.3 (`--mirar` lo dice y abre D3; `--arranque kit` lo reemplaza; en un repo ya adoptado, `resolver . hook-arranque nueva --kit <clon>`) — (b) **Un hook de arranque propio con el mismo nombre que el del kit** (`.claude/hooks/session-start.cjs`, en los dos repos): con
          `hook-arranque: propia` la adopción no lo toca, `--arranque kit` saca su renglón del settings y queda el del molde, que apunta
          al mismo archivo, o sea al hook viejo: el `/inicio` del kit no encuentra su huella y nadie avisa. Con `molde` sale "te espera:
          la mezcla chocó" y `resolver … nueva` lo arregla, pero solo en la carpeta del dueño (el clon es `actualizador`) y el commit pide
@@ -1287,7 +1324,7 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
          ssh al VPS ("me vuelve loco"). Decidido con él: mirar el VPS libre (allow con los comandos exactos de solo lectura que corren
          los rituales) y tocar pregunta la primera vez (sale el `ask`). Lo mismo con `ask git commit` (frena a un obrero en cada sub-paso).
          Arreglo: que la pantalla de adopción liste los `ask` propios que van a preguntar en cada vuelta, no solo los que frenan al director.
-  10. **Verificado en esta adopción**: el `comando-setup` (con `npm --prefix web ci`) corrió en la carpeta de Guido con Python 3.14.0,
+  10. ~~El NO VERIFICADO de `barreras` después de `cambios aprobar`~~ **NO APLICA** (medido por la sesión "Preparar PC": `rango()` es `origin/main..HEAD` y esos commits ya están en `origin/main`, así que ningún `/cierre` los mira; un aprobado posterior no los cubre: el sello va antes del primer commit que toca; salida en el analytics: `candado: en verde (barreras)`, 0). La línea `después:` de `adoptar` ya lo dice así (D8r.3, i4). **Verificado en esta adopción**: el `comando-setup` (con `npm --prefix web ci`) corrió en la carpeta de Guido con Python 3.14.0,
      salida 0. **Sigue NO VERIFICADO**: que `barreras` quede verde después de `cambios aprobar` sobre los dos commits ya pusheados (la
      ficha y los permisos); los githooks no los traban (pre-commit mira el índice, pre-push lo que origin no tiene). La portada quedó
      apagada (README propio). `cargar-secreto` (paso 5 de "Mañana con Guido") no se hizo: va con el módulo del usuario de lectura de Supabase.
@@ -1346,8 +1383,8 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
   a la rama huérfana `prueba/juan` de este repo (sin el kit: su `CLAUDE.md`, `PLAN.md`, `pruebas/`, `impresiones.md`, proyectos con
   alias). La sesión madre la lee con `git fetch origin prueba/juan`; lo que sirva entra acá, en esta sección.
 
-- **De D8r.2, para la `rc.4`** (D8c.1), con su porqué (no entraron en la única vuelta de corrección):
-  1. **Un repo ya adoptado con `director-obrero` en `propia` no tiene un paso que la traiga**: la flota saltea una ficha al día y
+- **De D8r.2, para la `rc.5`** (D8c.1), con su porqué (no entraron en la única vuelta de corrección):
+  1. ~~✅ D8r.3: `resolver . <pieza> nueva --kit <clon> --por …` anda sin informe sobre una `propia`~~ **Un repo ya adoptado con `director-obrero` en `propia` no tenía un paso que la traiga**: la flota saltea una ficha al día y
      `resolver … nueva` pide un informe de fusión (`modo-b.md` B4 lo dice así). Para Hermes no aplica (se trae al adoptar con
      `--director kit`). Arreglo: que `resolver . <pieza> nueva` ande sin informe sobre una `propia`.
   2. **CF-3**: el `comando-test` de Hermes tarda ~7 min y el plazo del `sello` es 5 (`ARQUITECTO_PLAZO_TEST_MS`): en un proyecto sin
@@ -1362,7 +1399,7 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
      niveles abajo de la carpeta de proyectos, una subcarpeta `web/` con su `package.json`, un `SessionStart` propio, un handoff por
      encima del tope y un `settings.json` con `ask` de `git merge`. Con datos genéricos (repo PÚBLICO: nada del Hermes real). Las
      revisiones integrales y los revisores fríos corren contra ese repo y, cuando exista, contra un clon del proyecto real.
-- **De D8r.1, para la `rc.4`** (D8c.1):
+- **De D8r.1, para la `rc.5`** (D8c.1):
   1. **El Modo A con director**: `modo-a.md` no arma el worktree de `v1` y su línea dice `inicio — ejecutá docs/modulos/v1/SPEC.md`; si
      `v1` nace con director, el paso 0 del `/inicio` no aplica (estás en `main`). No estaba en el delta.
   2. **La portada en la adopción** (`flota.md` paso 4) hace un commit después del push del paso 3: conviene el push después.
@@ -1633,6 +1670,7 @@ Del spec, sección "Lo que hacés vos de nuevo". Acá solo cuándo toca, para qu
 | 2026-11-03 | **La tanda de correcciones de R1 es la `rc.2` (D8r.1, sin Guido, esa misma noche)**, y **D8c.1 pasa a ser la `rc.3`** (el obrero de cierre de tramo y los experimentos). Después de D8r.1, la sesión madre vuelve a correr la revisión integral (**R1b**) y recién ahí la mañana con Guido | Guido, la noche del 03-11: "todos esos arreglos… tienen que estar resueltos inclusive en la beta. Que todas las partes interactúen correctamente entre sí". Decisión de la sesión madre, con su visto bueno |
 | 2026-11-04 | **La tanda de taller de R1b es la `rc.3` (D8r.2, sin Guido)** y **D8c.1 pasa a ser la `rc.4`**. D1-D4 quedan para Guido a la mañana, con la mecánica lista; no hay una tercera revisión integral | Guido, la noche del 03-11: "no hay que hacer 800 revisiones integrales": una sola vuelta de corrección. Decisión de la sesión madre |
 | 2026-11-04 | **No hay una tercera revisión integral antes de la prueba**: la próxima es R2, después del primer módulo de Hermes y contra un clon suyo; mientras, cada `rc.N` lleva su chequeo frío. Y un repo de prueba parecido a Hermes para la `rc.4` (Pendientes, "De D8r.2", 6) | R1 encontró piezas que no se hablaban; R1b, el kit contra un proyecto real (lo que los repos de juguete no muestran). Una tercera sin uso real buscaría en el mismo lugar con rendimiento decreciente: lo que falta lo muestra Hermes. Decidido con Guido el 04-11 |
+| 2026-11-04 | **Una `rc.4` exprés (D8r.3) antes de D8c.1**, que pasa a la `rc.5`: `carpeta-docs:`, el arranque con el mismo nombre, el caché de Python en `barreras`, la línea `después:` y `resolver … nueva` sin informe | Guido necesitaba adoptar ya el bot de Arti (su `docs/` es el sitio de OpenClaw) y el primer `/cierre` de Hermes iba a dar rojo por 3 `.pyc`. Decisión de la sesión madre de la recta final |
 
 ## Lecciones (insumo de la misión 6)
 
