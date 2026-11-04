@@ -575,6 +575,29 @@ function ignoradosDeBarrera(raiz) {
   return partirZ(r.stdout);
 }
 
+// 8r3 i3 (rt-1): el caché de bytecode de Python ignorado bajo esas tres carpetas no se exceptúa (los hooks de Hermes lo LEEN al
+// cargar otro .py, y la cabecera se calca): se borra. Solo un .pyc cuya carpeta madre es __pycache__ (sin mirar mayúsculas) y que es
+// un archivo común (lstat: nunca un enlace ni una carpeta). Uno borrado se rehace del .py seguido; uno fabricado deja de estar.
+// → [rel] borrados; el que no se puede borrar no va y sigue contando en ignoradosDeBarrera (rojo, como rf-6 b).
+function limpiarCachePython(raiz) {
+  const r = git.correr(['ls-files', '--others', '--ignored', '--exclude-standard', '-z', '--', ...IGNORADOS_BARRERA], { cwd: raiz });
+  if (!r.ok) throw new Error('git ls-files no anduvo');
+  const borrados = [];
+  for (const rel of partirZ(r.stdout)) {
+    const partes = rel.split('/');
+    if (!rel.endsWith('.pyc') || partes.length < 2 || partes[partes.length - 2].toLowerCase() !== '__pycache__') continue;
+    const abs = path.join(raiz, ...partes);
+    try {
+      if (!fs.lstatSync(abs).isFile()) continue;
+      fs.unlinkSync(abs);
+      borrados.push(rel);
+    } catch {
+      // no se pudo: sigue ahí y cuenta como pendiente
+    }
+  }
+  return borrados;
+}
+
 // Las rutas de lo pendiente: el índice y el disco contra HEAD (o todo el índice sin commits), lo no seguido y lo ignorado de barrera.
 function rutasPendientes(raiz, head) {
   const rutas = new Set();
@@ -971,6 +994,7 @@ module.exports = {
   paresArchivo,
   interseccion,
   ignoradosDeBarrera,
+  limpiarCachePython,
   rutasPendientes,
   rutasContra,
   basesDeMerge,

@@ -423,6 +423,19 @@ test('toca pendiente: índice y disco contra HEAD, más lo no seguido; lo ignora
   assert.deepEqual(C.toca(d, 'pendiente').ids, ['nivel']);
 });
 
+test('8r3 i3: limpiarCachePython borra solo el .pyc ignorado en __pycache__ de las tres carpetas; ignoradosDeBarrera no cambia', () => {
+  const d = repo({ '.gitignore': '/.claude/worktrees/\n/.kit-rol\n__pycache__/\n__PYCACHE__/\n*.pyc\n*.pyo\n/notas/\n', '.claude/hooks/h.py': 'x = 1\n' });
+  const borran = ['.claude/hooks/__pycache__/h.cpython-314.pyc', '.claude/scripts/sub/__pycache__/s.cpython-312.opt-2.pyc', '.githooks/__PYCACHE__/g.cpython-314.pyc'];
+  const quedan = ['.claude/hooks/h.pyc', '.claude/hooks/__pycache__/h.cpython-314.pyo', '.claude/hooks/__pycache__/h.cpython-314.pyc.sh', 'src/__pycache__/h.cpython-314.pyc', 'notas/__pycache__/n.cpython-314.pyc'];
+  for (const r of [...borran, ...quedan]) escribir(d, r, 'x');
+  const antes = C.ignoradosDeBarrera(d);
+  assert.deepEqual(C.limpiarCachePython(d).sort(), [...borran].sort());
+  for (const r of borran) assert.ok(!fs.existsSync(path.join(d, ...r.split('/'))), `${r} se borró`);
+  for (const r of quedan) assert.ok(fs.existsSync(path.join(d, ...r.split('/'))), `${r} sigue`);
+  assert.deepEqual(C.ignoradosDeBarrera(d), antes.filter((x) => !borran.includes(x)), 'lo que queda cuenta como hoy');
+  assert.deepEqual(C.limpiarCachePython(d), [], 'la segunda vez no hay nada');
+});
+
 test('toca pendiente en un repo sin commits: todo lo del índice y lo no seguido', () => {
   const d = path.join(TMP, `vacio${n++}`);
   fs.mkdirSync(d);
