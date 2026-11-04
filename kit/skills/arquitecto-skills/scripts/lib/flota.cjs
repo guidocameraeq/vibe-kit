@@ -507,6 +507,7 @@ async function actualizarMain(nombre, url, ctx, est) {
   }
   if (fus.fusionadas.length) notas.push(`fusionadas: ${fus.fusionadas.join(', ')}`);
   if (fus.esperan.length) notas.push(`te espera: ${fus.esperan.join(', ')}`);
+  notas.push(...require('./chequeo.cjs').avisosDe(ch.lineas)); // D8r.4 (S): un ⚠ de chequear (la zona propia que pasa el tope) va a la fila; no la vuelve ROTA
   // las que esperan viajan en el commit (.claude/fusiones/): las ve la sesión del proyecto cuando el commit está en su rama
   const avisarFusiones = () => {
     if (fus.esperan.length) fila.espera.push(`en ${nombre}, la próxima sesión te pregunta por ${fus.esperan.join(', ')}`);

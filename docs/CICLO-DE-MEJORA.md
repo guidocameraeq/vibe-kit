@@ -160,6 +160,20 @@ tiene que saber o decidir) y **"de taller"** (lo técnico, que la sesión arregl
 *6b.* Lo ya decidido: la prueba es en un proyecto de verdad, con un módulo nuevo (no un piloto de juguete); cada arreglo sale como
 `rc.N` y le llega por la flota; la versión final sale cuando el módulo cierra bien; se mide contra las líneas base del TABLERO §1.
 
+**Las pruebas, contra copias de los repos reales, no contra repos perfectos** (Guido, 2026-11-04: "hacer las pruebas no contra repos
+ficticios perfectos, sino usar reales"). Cada `rc.N` lleva su chequeo frío sobre **clones de los proyectos reales de la flota**, nunca
+sobre sus carpetas, además de los repos de prueba. Y los repos de prueba se arman parecidos a los reales: historia larga, método propio,
+ramas de antes de adoptar, `.gitignore` genéricos. *La cicatriz, del primer día de uso real (2026-11-04)*: los repos de prueba no
+mostraron nada de esto, y los repos reales lo mostraron en horas:
+- el `docs/` que no era del método (el bot, un fork);
+- un hook propio con el mismo nombre que el del kit;
+- el caché de Python ignorado que `barreras` contaba como freno;
+- el merge de `main` en una rama de antes de la adopción;
+- el `*.log` genérico que tapaba `frenos.log`;
+- la forma de trabajar de Guido, con una sola ventana de VS Code.
+
+Están en el tracker de la v3, Pendientes, "De la prueba real".
+
 ## 4. Cómo trabajamos de verdad (la vuelta 1)
 
 Sale de leer los 42 chats recortados (`recortar.py --modo contraste`: los 420 mensajes de Guido enteros, la primera línea de Claude y los

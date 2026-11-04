@@ -282,14 +282,127 @@ test('RF-fix 1, 4 skills: el tope por skill es el de skills.test (inicio 8.600, 
     const t = leer(f);
     fs.writeFileSync(f, t + 'z'.repeat(total - Buffer.byteLength(t)));
   };
+  // D8r.4 (S): lo que frena es la parte del kit (sin lo de adentro de la zona propia): se rellena hasta que ELLA pese `kit`
+  const rellenarKit = (nombre, kit) => (d) => {
+    const f = path.join(d, '.claude', 'skills', nombre, 'SKILL.md');
+    const t = leer(f);
+    fs.writeFileSync(f, t + 'z'.repeat(kit - Q.pesoSkill(Buffer.from(t)).kit));
+  };
   // el molde real: verde (el /inicio pesa más de 8.000)
   const r = correr(armar());
   verde(r, 'skills');
   assert.match(linea(r, 'skills'), /el \/inicio, 8600/);
-  // sí: /inicio justo en 8.600 → ✅; no: 8.601 → ❌; /cierre en 8.001 → ❌ (su tope sigue en 8.000)
+  // sí: /inicio justo en 8.600 → ✅; no: su parte del kit en 8.601 → ❌; /cierre con la suya en 8.001 → ❌ (su tope sigue en 8.000)
   verde(correr(armar({ cambio: rellenar('inicio', 8600) })), 'skills');
-  rojo(correr(armar({ cambio: rellenar('inicio', 8601) })), 'skills', /inicio\/SKILL\.md pesa 8601 B \(tope 8600\)/);
-  rojo(correr(armar({ cambio: rellenar('cierre', 8001) })), 'skills', /cierre\/SKILL\.md pesa 8001 B \(tope 8000\)/);
+  rojo(correr(armar({ cambio: rellenarKit('inicio', 8601) })), 'skills', /inicio\/SKILL\.md pesa \d+ B \(tope 8600\), 8601 sin su zona propia/);
+  rojo(correr(armar({ cambio: rellenarKit('cierre', 8001) })), 'skills', /cierre\/SKILL\.md pesa \d+ B \(tope 8000\), 8001 sin su zona propia/);
+});
+
+test('8r3, 4 skills: el tope se mide sin el \\r de un checkout con autocrlf (como lo guarda git)', () => {
+  // D8r.4 (S): kit = true → se rellena hasta que la parte del kit (sin lo de adentro de la zona propia) pese totalLf
+  const crlf = (nombre, totalLf, kit = false) => (d) => {
+    const f = path.join(d, '.claude', 'skills', nombre, 'SKILL.md');
+    const t = leer(f).replace(/\r\n/g, '\n');
+    const lleno = t + 'z'.repeat(totalLf - (kit ? Q.pesoSkill(Buffer.from(t)).kit : Buffer.byteLength(t)));
+    fs.writeFileSync(f, lleno.replace(/\n/g, '\r\n'));
+  };
+  // sí: el /inicio en 8.600 B con LF, en el disco con CRLF (más de 8.600) → ✅
+  verde(correr(armar({ cambio: crlf('inicio', 8600) })), 'skills');
+  // no: 8.601 con LF sigue rojo aunque venga con CRLF, y dice el peso sin los \r
+  rojo(correr(armar({ cambio: crlf('inicio', 8601, true) })), 'skills', /inicio\/SKILL\.md pesa \d+ B \(tope 8600\), 8601 sin su zona propia/);
+  // un \r suelto (sin \n) sí cuenta
+  const suelto = (d) => {
+    const f = path.join(d, '.claude', 'skills', 'cierre', 'SKILL.md');
+    const t = leer(f).replace(/\r\n/g, '\n');
+    fs.writeFileSync(f, t + '\r'.repeat(8001 - Q.pesoSkill(Buffer.from(t)).kit));
+  };
+  rojo(correr(armar({ cambio: suelto })), 'skills', /cierre\/SKILL\.md pesa \d+ B \(tope 8000\), 8001 sin su zona propia/);
+});
+
+// D8r.4 (S), "que avise, no que frene" (Guido, 2026-11-04): en un clon de Hermes la flota daba ROTA por la zona propia del proyecto
+// (cierre 8.975 B, director 13.154, inicio 9.171, tramo 9.179). Lo que pasa el tope por la zona propia es ⚠ en una línea ✅; lo que
+// lo pasa por la parte del kit sigue ❌.
+const MARCA = '<!-- kit:propio -->';
+// Mete relleno ADENTRO de la primera zona propia hasta que la skill pese `total` B (con LF).
+const enLaZona = (nombre, total) => (d) => {
+  const f = path.join(d, '.claude', 'skills', nombre, 'SKILL.md');
+  const t = leer(f).replace(/\r\n/g, '\n');
+  const i = t.indexOf(`${MARCA}\n`) + MARCA.length + 1;
+  assert.ok(i > MARCA.length, `${nombre} sin zona propia`);
+  const falta = total - Buffer.byteLength(t) - 1;
+  fs.writeFileSync(f, `${t.slice(0, i)}${'p'.repeat(falta)}\n${t.slice(i)}`);
+  assert.equal(Buffer.byteLength(leer(f)), total);
+};
+// Relleno AFUERA de la zona (al final): es parte del kit.
+const afuera = (nombre, extra) => (d) => fs.appendFileSync(path.join(d, '.claude', 'skills', nombre, 'SKILL.md'), 'k'.repeat(extra));
+
+test('D8r.4 S, 4 skills: la zona propia que pasa el tope → ✅ con ⚠ y cuánto se pasa; la flota lo ve como aviso, no como ROTA', () => {
+  const r = correr(armar({ cambio: enLaZona('cierre', 8975) }));
+  nueveBienFormadas(r);
+  verde(r, 'skills');
+  assert.equal(r.ok, true, r.lineas.join('\n'));
+  const l = linea(r, 'skills');
+  assert.match(l, / · ✅ · ⚠ /);
+  assert.match(l, /cierre\/SKILL\.md pesa 8975 B, 975 de más por su zona propia \(tope 8000\)/);
+  assert.match(l, /mové a un anexo lo propio que no hace falta siempre \(nunca lo de producción\)/);
+  // lo que usa la flota: ok (codigo 0) y el aviso, para su fila
+  const av = Q.avisosDe(r.lineas);
+  assert.equal(av.length, 1);
+  assert.match(av[0], /^skills ⚠ .*975 de más por su zona propia/);
+  // varias: cada una con lo suyo
+  const v = correr(armar({ cambio: (d) => { enLaZona('cierre', 8975)(d); enLaZona('tramo', 9179)(d); } }));
+  verde(v, 'skills');
+  assert.match(linea(v, 'skills'), /cierre\/SKILL\.md pesa 8975 B, 975 de más.*tramo\/SKILL\.md pesa 9179 B, 1179 de más/);
+});
+
+test('D8r.4 S, 4 skills: el /inicio con su tope de 8.600 — 8.601 por la zona propia es ⚠ de 1; la parte del kit en 8.601 es ❌', () => {
+  const r = correr(armar({ cambio: enLaZona('inicio', 8601) }));
+  verde(r, 'skills');
+  assert.match(linea(r, 'skills'), /inicio\/SKILL\.md pesa 8601 B, 1 de más por su zona propia \(tope 8600\)/);
+  verde(correr(armar({ cambio: enLaZona('inicio', 8600) })), 'skills');
+  assert.doesNotMatch(linea(correr(armar({ cambio: enLaZona('inicio', 8600) })), 'skills'), /⚠/);
+});
+
+test('D8r.4 S, 4 skills: la parte del kit pasa el tope → ❌ como hoy, aunque también haya zona propia; dentro del tope → sin ⚠', () => {
+  // parte del kit: el molde de cierre (7.785 B, con su zona) + 300 afuera; la zona, con 2.000 más → la parte del kit sola no cabe
+  const p = (d) => {
+    const f = path.join(d, '.claude', 'skills', 'cierre', 'SKILL.md');
+    const t = leer(f).replace(/\r\n/g, '\n');
+    const sinZona = Q.pesoSkill(Buffer.from(t)).kit;
+    afuera('cierre', 8001 - sinZona)(d);
+    const u = leer(f);
+    const i = u.indexOf(`${MARCA}\n`) + MARCA.length + 1;
+    fs.writeFileSync(f, `${u.slice(0, i)}${'p'.repeat(1999)}\n${u.slice(i)}`);
+  };
+  const r = correr(armar({ cambio: p }));
+  rojo(r, 'skills', /cierre\/SKILL\.md pesa \d+ B \(tope 8000\), 8001 sin su zona propia/);
+  assert.equal(Q.avisosDe(r.lineas).length, 0);
+  // el molde real, dentro de su tope: verde y sin ⚠
+  const q = correr(armar());
+  verde(q, 'skills');
+  assert.doesNotMatch(linea(q, 'skills'), /⚠/);
+  assert.deepEqual(Q.avisosDe(q.lineas), []);
+});
+
+test('D8r.4 S, 4 skills: una zona propia rota (marca sin cierre) se mide entera, como hoy → ❌', () => {
+  const roto = (d) => {
+    const f = path.join(d, '.claude', 'skills', 'cierre', 'SKILL.md');
+    const t = leer(f).replace(/\r\n/g, '\n').replace('<!-- /kit:propio -->\n', '');
+    fs.writeFileSync(f, `${t}${'p'.repeat(8975 - Buffer.byteLength(t))}`);
+  };
+  rojo(correr(armar({ cambio: roto })), 'skills', /cierre\/SKILL\.md pesa 8975 B \(tope 8000\)/);
+});
+
+test('D8r.4 S, pesoSkill: total sin el \\r de autocrlf; la parte del kit sin lo de adentro de la zona (las marcas cuentan)', () => {
+  const t = 'a\n<!-- kit:propio -->\nxyz\nw\n<!-- /kit:propio -->\nb\n';
+  assert.deepEqual(Q.pesoSkill(Buffer.from(t)), { total: t.length, kit: t.length - 6, propio: 6 });
+  assert.deepEqual(Q.pesoSkill(Buffer.from(t.replace(/\n/g, '\r\n'))), { total: t.length, kit: t.length - 6, propio: 6 });
+  const vacia = 'a\n<!-- kit:propio -->\n<!-- /kit:propio -->\n';
+  assert.deepEqual(Q.pesoSkill(Buffer.from(vacia)), { total: vacia.length, kit: vacia.length, propio: 0 });
+  const rota = 'a\n<!-- kit:propio -->\nxyz\n';
+  const pr = Q.pesoSkill(Buffer.from(rota));
+  assert.equal(pr.kit, rota.length);
+  assert.ok(pr.problema);
 });
 
 test('5 ficha: la ficha con la versión vieja → ❌; una ficha que no se lee → ❌', () => {

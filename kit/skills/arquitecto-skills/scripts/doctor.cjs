@@ -13,7 +13,7 @@
 // Sin --home mira el ~/.claude/ real (solo lo lee): las pruebas SIEMPRE pasan uno falso.
 // Los chequeos del repo (pre-commit, ficha, sensible-prosa) son del repo donde estás parado (el cwd).
 //
-// Vive en eq/scripts/ y se instala en ~/.claude/skills/arquitecto-skills/scripts/: solo hace require de ../pc/lib/ y del instalador,
+// Vive en eq/scripts/ y se instala en ~/.claude/skills/arquitecto-skills/scripts/: solo hace require de ../pc/lib/, del instalador y de lib/chequeo.cjs (el tope de las skills),
 // que viajan con él (NO del molde). Los textos de abajo son las líneas de F del arranque dichas con más detalle: tienen que coincidir.
 const fs = require('fs');
 const os = require('os');
@@ -38,7 +38,7 @@ const CANONICO = 'https://github.com/guidocameraeq/vibe-kit.git'; // KIT_REPO_CA
 const VAR_PLAZO = 'KIT_PLAZO_ARRANQUE_MS';
 const HOOKS_GIT = ['pre-commit', 'pre-merge-commit', 'pre-push'];
 const IDS = ['node', 'gitleaks', 'claude-code', 'lefthook', 'git-bash', 'settings-pc', 'hooks-pc', 'hooks-pc-iguales', 'deny-almacen', 'anti-secretos-viejo', 'plazo-arranque', 'pre-commit', 'ficha', 'sensible-prosa',
-  'version-kit', 'kit-sync', 'githooks', 'archivo-pc', 'credencial', 'gh-push', 'mesa-gh', 'cross-session', 'automode', 'copias-kit', 'frenos-vencidos', 'regla-tamano'];
+  'version-kit', 'kit-sync', 'githooks', 'archivo-pc', 'credencial', 'gh-push', 'mesa-gh', 'cross-session', 'automode', 'copias-kit', 'frenos-vencidos', 'regla-tamano', 'tope-skills'];
 const VIEJO = 'gh' + 'p_'; // el prefijo que delata al anti-secretos viejo (armado: ninguna forma de clave literal en kit/)
 const ARREGLO_INSTALAR = 'pedile al Equipador "instalar hooks por PC" (o corré scripts/instalar-hooks-pc.cjs) y reiniciá Claude Code';
 
@@ -701,6 +701,39 @@ function chFrenosVencidos(f, hoy) {
   return res('✓', `${q.length} freno${q.length === 1 ? '' : 's'} quitado${q.length === 1 ? '' : 's'}, ninguno vencido`);
 }
 
+// D8r.4 (S), "que avise, no que frene" (Guido, 2026-11-04): el tope de la línea 4 del actualizador, medido acá. Mira las skills del
+// repo que traen la zona propia del molde (<!-- kit:propio -->; una skill propia del proyecto, sin marcas, no tiene tope). Nunca ✗:
+// un ⚠ por skill que pasa su tope. La medida es la de chequeo.cjs (una sola fuente), que viaja con el doctor en scripts/lib/.
+function chTopeSkills(raiz, f) {
+  if (!raiz || f.sinRepo || f.sinFicha) return res('✓', 'sin ficha no hay skills del kit que medir');
+  const Q = require('./lib/chequeo.cjs');
+  const dir = path.join(raiz, '.claude', 'skills');
+  let nombres;
+  try {
+    nombres = fs.readdirSync(dir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name).sort();
+  } catch (e) {
+    return res('✓', 'el repo no trae .claude/skills/');
+  }
+  const out = [];
+  let medidas = 0;
+  for (const n of nombres) {
+    let b;
+    try {
+      b = fs.readFileSync(path.join(dir, n, 'SKILL.md'));
+    } catch (e) {
+      continue;
+    }
+    if (!b.toString('utf8').includes('<!-- kit:propio -->')) continue;
+    medidas++;
+    const p = Q.pesoSkill(b);
+    const tope = Q.topeSkill(n);
+    if (p.kit > tope) out.push(res('⚠', `${n}: ${p.total} B, pasa su tope (${tope}) sin contar su zona propia (${p.kit} B del kit)`, 'eso es del kit, no tuyo: avisale a Guido (la flota da ROTA)'));
+    else if (p.total > tope) out.push(res('⚠', `${n}: ${p.total} B, ${p.total - tope} de más por su zona propia (tope ${tope})`, 'mové a un anexo lo propio que no hace falta siempre, nunca lo de producción'));
+  }
+  if (out.length) return out;
+  return res('✓', medidas ? `las ${medidas} skills del kit del repo caben en su tope (${Q.TOPE_SKILL} B; el /inicio, ${Q.TOPES_SKILL.inicio})` : 'el repo no trae skills del kit');
+}
+
 function chReglaTamano(raiz, f) {
   if (!raiz || f.sinRepo || f.sinFicha) return res('✓', 'sin ficha no hay regla del tamaño que pedir');
   const t = leerTexto(path.join(raiz, 'CLAUDE.md'));
@@ -841,6 +874,7 @@ async function principal(argv, { env = process.env, cwd = process.cwd(), plazoMs
     'copias-kit': () => chCopias(kp),
     'frenos-vencidos': () => chFrenosVencidos(f, hoy),
     'regla-tamano': () => chReglaTamano(raiz, f),
+    'tope-skills': () => chTopeSkills(raiz, f),
   };
   const lineas = [];
   let rojos = 0;
@@ -852,9 +886,11 @@ async function principal(argv, { env = process.env, cwd = process.cwd(), plazoMs
     } catch (e) {
       x = res('✗', `el chequeo falló por dentro (${e && e.message ? e.message : e})`, 'avisale a Guido: es un bug del doctor');
     }
-    if (x.est === '✗') rojos++;
-    if (x.est === '⚠') avisos++;
-    lineas.push(`${x.est} ${id} · ${x.qué}${x.arreglo ? ` · ${x.arreglo}` : ''}`);
+    for (const y of Array.isArray(x) ? x : [x]) { // tope-skills: un ⚠ por skill
+      if (y.est === '✗') rojos++;
+      if (y.est === '⚠') avisos++;
+      lineas.push(`${y.est} ${id} · ${y.qué}${y.arreglo ? ` · ${y.arreglo}` : ''}`);
+    }
   }
   lineas.push(`doctor · ${IDS.length} chequeos · ${rojos} ✗ · ${avisos} ⚠${rojos ? ' · hay que arreglar los ✗' : ''}`);
   try {

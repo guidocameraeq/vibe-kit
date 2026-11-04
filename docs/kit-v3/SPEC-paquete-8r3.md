@@ -1,7 +1,7 @@
 # SPEC delta: paquete 8r3 — la `rc.4` exprés: que el bot de Arti se pueda adoptar, y el rojo de los `.pyc` — vibe-kit
 Lo que traba **ya** la adopción del bot (`Arti-bot-eq`, un fork de OpenClaw) y el primer `/cierre` de Guido en Hermes. Nada más: el
 resto de Pendientes sigue en la `rc.5` (D8c.1: el obrero de cierre de tramo y los experimentos).
-- Estado: READY (D8r.3, 2026-11-04)
+- Estado: ✅ IMPLEMENTADO 2026-11-04 (D8r.3; la beta `v3.0.0-rc.4`)
 - Fecha: 2026-11-04 · Misión: 5, director **D8r.3** (lo lanzó la sesión madre de la recta final; la vara: ADR-030 y ADR-034; el presupuesto: ADR-029)
 - Plano: [`SPEC-0-kit-v3.md`](SPEC-0-kit-v3.md); el modelo: [`SPEC-paquete-8r2.md`](SPEC-paquete-8r2.md). La fuente: tracker, Pendientes, "De la
   adopción real de Hermes" ítem 11 (a) y (b), y el pedido de la sesión madre.
@@ -274,6 +274,23 @@ copiados a su `__pycache__/` ignorado, `estructura.cjs todo` sin el rojo de los 
   commit hasta que la clave vuelva a cambiar o haya remoto (más commits por `/cierre`, nunca menos).
 - Los textos que nombran `docs/…` en las skills y los manuales siguen diciendo `docs/` (D8r3-3).
 - La adopción real del bot y la flota a los repos de Guido: las propone la sesión madre.
+
+### Lo que trajo el chequeo frío (crit. 9, sobre clones en el scratchpad)
+
+Los dos lados anduvieron: (a) el bot se adopta de punta a punta con `carpeta-docs: arti-docs` (`git status -- docs` vacío; el arranque en la
+segunda copia dice `papeles: arti-docs/ …`, inyecta `arti-docs/SESSION_HANDOFF.md` y termina con la huella `inyectado: 5.982 de 9.700`);
+(b) en Hermes con la rc.4, `estructura.cjs todo` borra los tres `.pyc`, lo dice y sale 0; la segunda corrida, 0 sin la línea. Lo que trajo:
+
+- **Arreglado acá**: el tope de las skills del chequeo de la flota (línea 4) mide sin el `\r` de un checkout con `core.autocrlf` (el `/inicio`
+  de la rc.4, 8.594 B en 38 renglones, pesaba 8.632 en el disco: ROTA por cómo se clonó); la línea `traer` de `--aplicar` dice "dos; tres con
+  `--permisos` o `--arranque`".
+- **ALTO, no es de esta tanda (pasado a la sesión madre y a D8r.4)**: la rc.4 no le llega a Hermes por la flota. Hoy sale `salteado` por la
+  obra en curso (`modulo/cashflow` viva en el remoto); sin eso, sale **ROTA** en la línea 4 porque sus skills adaptadas (molde + zona propia)
+  ya pasaban el tope en la rc.3 (cierre 8.860, director 13.094, inicio 8.995, tramo 9.111 en git), y `adoptar` con D1 A no lo avisó.
+- **NO VERIFICADO**: la línea 7 de esa flota (las pruebas de los hooks del molde) no terminó en los 30 min con la PC cargada; sola, no se midió.
+- **Bajos que quedan**: la línea del borrado del caché sale con el prefijo `candado:barreras ·`, el mismo de un rojo, aunque no frena (es el
+  formato de todo renglón `soloLista` del candado); un clon del bot con más de ~120 caracteres de prefijo da `Filename too long` sin
+  `core.longpaths`.
 
 ## Los encargos (el director reparte, lee cada diff y corre las pruebas de cada uno)
 

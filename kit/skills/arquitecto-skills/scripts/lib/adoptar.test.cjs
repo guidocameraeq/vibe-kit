@@ -568,7 +568,7 @@ test('--aplicar --principal (8b, 14; 8r2 t2): ya no prende los githooks — vali
   git(c, 'clean', '-fdq');
   const r = await AD.main([c, '--kit', RAIZ_KIT, '--aplicar', prop, '--fecha', FECHA, '--principal', p]);
   assert.equal(r.codigo, 0, r.lineas.join('\n'));
-  assert.equal(r.lineas[r.lineas.length - 1], `traer · ${p} · el último paso, después de los dos commits, barreras y el push: node "$HOME/.claude/skills/arquitecto-skills/scripts/actualizar.cjs" adoptar "${c.replace(/\\/g, '/')}" --traer "${p.replace(/\\/g, '/')}" (trae lo adoptado y prende ahí los githooks)`);
+  assert.equal(r.lineas[r.lineas.length - 1], `traer · ${p} · el último paso, después de los commits (dos; tres con --permisos o --arranque), barreras y el push: node "$HOME/.claude/skills/arquitecto-skills/scripts/actualizar.cjs" adoptar "${c.replace(/\\/g, '/')}" --traer "${p.replace(/\\/g, '/')}" (trae lo adoptado y prende ahí los githooks)`);
   assert.equal(hooksPath(p, '--local'), null, '--aplicar ya no lo cambia');
   assert.deepEqual(fs.readFileSync(path.join(p, '.git', 'config')), conf, 'la config de la principal, byte a byte');
   // los commits del clon pasan (el pre-commit no corre en el clon) y --traer los lleva a la principal y prende los githooks
