@@ -273,7 +273,7 @@ test('--aplicar con frenos, sensible o autorizado distintos de fábrica: lo dice
   assert.equal(r.codigo, 0, r.lineas.join('\n'));
   const t = r.lineas.join('\n');
   assert.match(t, /^ficha · .* sensible distinto de fábrica$/m);
-  assert.match(t, /da ROJO en el commit de la ficha \(sensible no es de fábrica\): eso lo aprueba Guido después/);
+  assert.match(t, /da ROJO en el commit de la ficha \(sensible no es de fábrica\): sin remoto, ese rojo no queda en el clon: /); // 8r3 i4
   commitsDeLaLinea(d, r.lineas);
   const b = barreras(d, antes);
   assert.equal(b.status, 1, b.stdout + b.stderr);
