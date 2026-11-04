@@ -23,6 +23,18 @@
 - [ ] **Misión 7 — la mensajería agéntica → kit v3.1** (lo que era G.1; brief en `DISENO-G` §18 + sus insumos del acta de contraste: hueco 3/P71,
   P68, P77 y las "otras" 5, 8 y 24). Con investigación en internet y piloto. Guido, 2026-10-26: "no está bien claro todavía; siguiente versión;
   no bien termine lo otro, lo hago".
+  **Guido, 2026-11-04: la próxima versión (después de la v3.0) junta tres cosas, cada una con su charla de diseño con él:**
+  1. **El buzón**, que es esta mensajería.
+  2. **"Probar una idea nueva"** (los experimentos de método). Sale de la v3.0, donde estaba en D8c.1: "vamos a sacar esta versión bien
+     armada y en la próxima versión traemos eso de la idea nueva".
+  3. **Un "PO" como skill**: un rol al lado del director que responde el buzón, habla con los directores, entiende el proyecto en su
+     totalidad y puede consultar las bases. Guido: "después me ayudás a desarrollarla".
+
+  Para el diseño hay que mirar cuatro cosas:
+  - Hermes ya tiene un PO de hecho: Guido decide "por clic" lo que le traen los directores.
+  - Cruzarlo con la mesa entre directores (paquete 5).
+  - Cruzarlo con lo que se escribió en Hermes (`docs/legacy/una-sola-identidad/`).
+  - Las consultas a las bases van con el rol de solo lectura (el módulo `lector` de Hermes).
 
 ## 🔁 El ciclo (cada 3-4 meses; la próxima vuelta arranca del corte del 2026-10-26 y cae entre febrero y marzo de 2027)
 1. **Investigar**: condensar los chats desde el corte anterior y leerlos con las decisiones vigentes en la mano (como la lectura de contraste);
