@@ -3,11 +3,11 @@ La `rc.6` junta tres cosas ya diseñadas: **el obrero de cierre de tramo** (el r
 [`SPEC-paquete-8b.md`](SPEC-paquete-8b.md) "(11)"), **la vuelta 2 de [`SPEC-paquete-8r4.md`](SPEC-paquete-8r4.md)** (u4-u8, u13, h5-h12,
 que pasó red team con ese delta) y **lo de Pendientes "De D8r.1" y "De D8r.2"** del tracker. Lo nuevo de diseño es solo **h11** (a
 `main` sube solo el director, decidido con Guido) y el cómo de **h12**.
-- Estado: BORRADOR (D8c.1, 2026-11-04)
+- Estado: READY (D8c.1, 2026-11-04, después de una ronda de red team sobre h11 y h12: 4 ALTOS, 3 MEDIOS, 4 BAJOS, integrados)
 - Fecha: 2026-11-04 · Misión: 5, director **D8c.1** (lo lanzó la sesión madre de la recta final; la vara: ADR-030 y ADR-034; el
   presupuesto: ~2 h de reloj después del tag de la `rc.5` y ~6 encargos, pedido de Guido)
 - **Nivel de la `rc`: MEDIO-ALTO** (`docs/CICLO-DE-MEJORA.md` §3.6, pedido de Guido, 2026-11-04). Cada cambio dice su nivel en la tabla
-  de abajo; el red team de una ronda va **solo** sobre h11 y h12 (los dos que tocan un freno o el actualizador); la mutación, en esos dos.
+  de abajo; el red team de una ronda fue **solo** sobre h11 y h12 (los dos que tocaban un freno o el actualizador); h12 quedó en el aviso (medio), así que la mutación va solo en h11.
   La flota, contra **un** clon de Hermes, rc.5 → rc.6 con `--con-obra`. Los tres repos de prueba no corren.
 - **Fuera de alcance**: los experimentos de método (pasaron a la próxima versión: TODO, Misión 7).
 - **Base**: el tag `v3.0.0-rc.5`. Ni código ni merge antes; los worktrees salen de ese tag.
@@ -77,7 +77,7 @@ Rutas: `molde` = `kit/molde/`, `dir` = `kit/molde/skills/director/`, `lib` = `ki
 |---|---|---|---|---|
 | c1 | El obrero de cierre de tramo (renglón 11) | `dir/plantilla-cierre.md` (nueva), `dir/SKILL.md` (paso 7), `anexos/formato-spec.md` (la ficha), `lib/inyeccion.cjs`, `molde/scripts/estado.cjs` | `inyeccion.test`, `estado.test`, `lib/encargo.test`, `scripts/encargo.test`, `skills.test` | medio |
 | h11 | A la rama por defecto sube solo el director | `molde/hooks/git-seguro.cjs` (`push()`), `molde/githooks/kit-githook.cjs` (pre-push), los textos de `/obrero` y `/director` | `git-seguro.test`, `kit-githook.test`, `kit-githook-noche.test`, `worktree.test` (`integrar` sigue), **mutación** | **medio-alto** (freno) |
-| h12 | Los hooks esperan junto con `hooks-lib` | `as/actualizar.cjs`, `as/lib/fusion.cjs` (si hace falta el acople), `as/lib/chequeo.cjs` (línea 7), `as/lib/flota.cjs` (la nota) | `actualizar.test`, `fusion.test`, `chequeo.test`, `flota.test`, **mutación** | **medio-alto** (actualizador) |
+| h12 | El aviso de `hooks-lib` esperando (el acople, a otra versión) | `as/lib/chequeo.cjs` (el detalle de la línea 7), `as/lib/flota.cjs` (la nota) | `chequeo.test`, `flota.test` | medio |
 | u4 + h6 | Lo que queda fuera del repo: `vecinos` | `as/lib/vecinos.cjs` (nuevo), `as/lib/adoptar.cjs` (`mirar`), `as/doctor.cjs` | `vecinos.test` (nuevo), `adoptar.test`, `doctor.test`, `worktree.test` (h6) | medio |
 | u6 + u13 a + h5 | Los avisos de la adopción, el CHANGELOG, lo que D2 saca y qué lo cubre, gitleaks de la historia | `as/lib/adoptar.cjs`, `as/actualizar.cjs` (solo el renglón del CHANGELOG), `molde/skills/cierre/SKILL.md` (con `[Unreleased]`) | `adoptar.test`, `actualizar.test`, `skills.test` | medio |
 | u7 código + u8 | `andamiaje:` en la ficha; `vars.plazo-test` | `lib/ficha.cjs` y sus dos copias, `kit/skills/arquitecto/scripts/arquitecto.cjs`, `molde/kit.ejemplo.md` | `ficha.test`, `copias.test`, `pc/lib.test`, `arquitecto.test` | medio |
@@ -109,46 +109,55 @@ Rutas: `molde` = `kit/molde/`, `dir` = `kit/molde/skills/director/`, `lib` = `ki
    entran → `… (N más …)`); `estado.test` (la misma línea); `encargo.test` (`presentar` acepta un encargo copiado de `plantilla-cierre.md`
    con `<x>` y el `Spec` llenos); `skills.test` (el paso 7 nombra la plantilla y no dice "sobreescribí la ficha"; ≤ 8.000 B).
 
-### h11 · A la rama por defecto sube solo el director (DECIDIDO por Guido, 2026-11-04)
+### h11 · A la rama por defecto sube solo el director (DECIDIDO por Guido, 2026-11-04; rehecho por el red team)
 
-- **Dónde frena: en el pre-push** (`kit-githook.cjs`), que es el candado que ve toda subida (la herramienta, la terminal del worktree, un
-  script) con las refs reales que da git, sin parsear el comando. Por cada ref que sube: si la `refRemota` es `refs/heads/<def>` (la rama
-  por defecto del remoto: `origin/HEAD`, y si no está, la que ya lee el kit) **y** el `rolEfectivo` es `obrero`, `nocturno` o `desconocido`
-  → 1, *"a `<def>` sube solo el director (`worktree.cjs integrar`) o vos desde la carpeta principal: un obrero pushea su rama
-  `modulo/<x>--<ID>`"*. Pasan: `humano` (Guido en el principal, el `/cierre`), `director` (lo hace `integrar` desde su temporal con rol
-  director), `actualizador` (la flota). Borrar la rama por defecto ya lo frena `git-seguro`.
+- **Dónde frena: en el pre-push** (`kit-githook.cjs`), que ve toda subida (la herramienta, la terminal del worktree, un script) con las
+  refs reales que da git, sin parsear el comando. **Con una lista de lo que cada rol puede subir** (rt-5), no con "¿es la rama por
+  defecto?": así no hay que adivinar la rama (`trunk`, `master`, sin `origin/HEAD`) y quedan cubiertos los tags y la rama del director.
+  | Rol (el `rolEfectivo`) | Puede subir | Si no |
+  |---|---|---|
+  | `obrero` | solo `refs/heads/modulo/<x>--<ID>`, la de su HEAD | 1 |
+  | `nocturno`, `desconocido` | solo `refs/heads/modulo/*` (el director de noche sube `modulo/<x>`; a `main`, `integrar`) | 1 |
+  | `humano`, `director`, `actualizador` | lo de hoy | — |
+  El texto: *"a `<la ref>` no sube un obrero: a la rama por defecto sube solo el director (`worktree.cjs integrar`) o vos desde la carpeta
+  principal; vos pusheás `modulo/<x>--<ID>`"*.
+- **El rol por la rama** (rt-6): si el HEAD es `modulo/<x>--<ID>` y el `.kit-rol` falta (o dice `humano`), el rol es `obrero` (lo mismo
+  que `agente.cjs:8-10,138`). Un obrero que borra su `.kit-rol` sigue siendo obrero.
+- **Primero h11, después lo demás** (rt-10): el "remoto adelantado" (`kit-githook.cjs:788-792`) no le dice a un obrero que reintente un
+  push a `main`.
+- **`integrar` y la flota no cambian** (medido por el red team): `integrar` sube desde un temporal desprendido con `.kit-rol` director
+  (`worktree.cjs:1090`; `marcaDeNoche` solo mira ramas `--<ID>`, así que pasa también de noche); la flota, con `actualizador` (`flota.cjs:433`).
 - **Y antes, en `git-seguro` `push()`** (el aviso temprano, para que el agente no gaste el intento): en sesión de agente (`enAgente`), un
-  refspec cuyo destino explícito es la rama por defecto (`main`, `HEAD:main`, `x:refs/heads/main`, `:main` ya va) o `--all`/`--branches`
-  → deny con el mismo texto. `git push` a secas no se adivina acá (depende del upstream): lo ataja el pre-push.
-- **El director no cambia**: no es agente (`agente.cjs:32`) y a mano solo pushea `modulo/<x>`; si pushea `main` a mano, el pre-push lo
-  deja (es su rol), y el texto de `/director` paso 10 ya dice "a `main`, `integrar`".
+  refspec con destino explícito fuera de `modulo/*` (`main`, `HEAD:main`, `x:refs/heads/main`, un tag) o `--all`/`--branches`/`--tags` →
+  deny con el mismo texto. `git push` a secas no se adivina acá: lo ataja el pre-push.
+- **El caso de Hermes** (rt-4): si el obrero que pusheó a `main` estaba en el principal o sin `.kit-rol`, h11 no lo hubiera visto: lo cubre
+  el paso 0 del `/obrero` de la `rc.5` (ningún comando antes de `adentro:`). Se le pregunta a la madre desde dónde fue (no se lee `D:\Hermes`).
 - **Textos**: `/obrero` `:24` *"nunca push a otra rama: a `main` sube solo el director, y el pre-push lo frena"*; el manual del director.
-- **Lo que no cierra** (va a "Lo que esto no cierra"): un obrero de una ventana **antes** de entrar a su worktree es `humano` (rt-2 de la
-  `rc.5`): ahí el pre-push lo deja. Lo cubre el paso 0 del `/obrero` (ningún comando antes de `adentro:`).
-- **crit. h11**: `kit-githook.test`: con rol `obrero` (y `nocturno`, y `obrero` con `.kit-noche`) un push a `refs/heads/main` → 1 con el
-  texto; a `modulo/x--01` → como hoy; con rol `director`, `humano` y `actualizador` a `main` → como hoy; la rama por defecto sin
-  `origin/HEAD`. `git-seguro.test`: en sesión de agente `git push origin main`, `HEAD:main`, `x:refs/heads/main`, `--all` → deny; `git
-  push origin modulo/x--01` → como hoy; fuera de agente, como hoy. `worktree.test`: `integrar` sigue subiendo (su temporal es director).
-  **Mutación**: (a) sacar la condición de rol → la prueba de `director`/`humano` a `main` se pone roja; (b) sacar la de la ref → la del
-  obrero a su rama se pone roja; (c) comparar contra `main` fijo en vez de `<def>` → la prueba con la rama por defecto `trunk` se pone roja.
+- **crit. h11**: `kit-githook.test`, con el remoto en `main` y otro en `trunk`: `obrero` → `refs/heads/main`, `refs/heads/trunk`,
+  `refs/heads/modulo/x` y `refs/tags/v1` → 1 con el texto; → su `modulo/x--01` → como hoy; obrero **sin `.kit-rol`** en `modulo/x--01` → a
+  `main` 1; `nocturno` → `modulo/x` pasa, `main` 1; **director con `.kit-noche`** → `modulo/x` pasa, `main` 1; `desconocido` → `main` 1;
+  `director`, `humano` y `actualizador` → `main` como hoy; un obrero con el remoto adelantado → el texto de h11, no el de `pull --rebase`.
+  `git-seguro.test`: en sesión de agente `git push origin main`, `HEAD:main`, `x:refs/heads/main`, `origin v1`, `--all`, `--tags` → deny;
+  `git push origin modulo/x--01` → como hoy; fuera de agente, como hoy. `worktree.test`: `integrar` sigue subiendo, también con `.kit-noche`
+  en el worktree del director. **Mutación**: (a) sacar la condición de rol → `director`/`humano` a `main` rojo; (b) dejar subir cualquier
+  `modulo/*` al obrero → la de `modulo/x` desde obrero roja; (c) `rolDe` en vez de `rolEfectivo` → la del director con `.kit-noche` roja;
+  (d) sacar el rol por la rama → la del obrero sin `.kit-rol` roja.
 
-### h12 · Los hooks esperan junto con `hooks-lib`
+### h12 · El aviso de `hooks-lib` esperando (achicado por el red team)
 
-- **El arreglo de fondo** (el de la nota de la `rc.5`): en `actualizar`, si `hooks-lib` queda esperando (choque, sin `por:`, informe previo),
-  **las piezas `hook-*` también esperan**: quedan como estaban, con su línea *"espera a `hooks-lib`"* en el informe de `hooks-lib` (no un
-  informe propio). Así el proyecto queda con hooks viejos y lib vieja, que andaban juntos, en vez de hooks nuevos con lib vieja (que fallan
-  abiertos). Al resolver `hooks-lib` (`resolver … hooks-lib …`), el siguiente `actualizar` trae los `hook-*` como siempre.
-- **La línea 7 con `hooks-lib` esperando**: no corre las pruebas del molde nuevo contra los hooks viejos (fallarían por diseño); da
-  `⚠ casos: hooks-lib te espera — resolvela primero: <la línea de resolver>` y **no** cuenta como roja. Sin `hooks-lib` esperando, igual que hoy.
-- **La flota**: con eso, el repo sale `te espera` (no ROTA) y la nota dice `hooks-lib (y los hook-* con ella): resolvé hooks-lib primero`.
-- **Lo que no se afloja**: si `hooks-lib` **no** espera y la línea 7 da rojo, sigue ROTA como hoy. `settings` no se acopla (sus hooks
-  enchufados son los mismos archivos; si un `hook-*` nuevo no llegó, el `settings` nuevo que lo nombra apuntaría a nada: **se acopla
-  también** si el `settings` nuevo enchufa un hook que no está en el disco; se mide en la prueba).
-- **crit. h12**: `actualizar.test`: un proyecto con `hooks-lib` adaptada sin `por:` y un `hook-*` que cambió en el molde → los dos quedan
-  como estaban, el informe de `hooks-lib` nombra el `hook-*`; sin `hooks-lib` esperando, el `hook-*` se actualiza (como hoy); `chequeo.test`:
-  la línea 7 con `hooks-lib` esperando → ⚠ con la línea de resolver, sin rojo; sin esperar y con un caso perdido → ❌ como hoy; `flota.test`:
-  la nota. **Mutación**: (a) sacar el acople → el `hook-*` se actualiza y la prueba se pone roja; (b) que la línea 7 dé ⚠ siempre → la prueba
-  sin `hooks-lib` esperando se pone roja.
+- **Lo que entra: el aviso** (es lo que pidió la madre: *"el aviso de piezas pendientes de `hooks-lib`"*). La línea 7 (`chequeo.cjs
+  casos()`) con `hooks-lib` esperando (su informe en `.claude/fusiones/hooks-lib.md`, o la pieza fuera de su versión) y un caso perdido
+  sigue **❌** (es un ROTA de verdad: rt-2), pero el detalle dice *"hooks-lib te espera desde <base>: los hooks nuevos necesitan su lib
+  nueva. Resolvela primero (`resolver . hooks-lib …`) y volvé a poner al día"*. La nota de la flota (`flota.cjs:509-513`) dice lo mismo en
+  vez de solo `te espera: hooks-lib`. Sin `hooks-lib` esperando, el detalle de hoy.
+- **Lo que no entra: el acople** (que los `hook-*` esperen con su lib). El red team mostró que es un rediseño del actualizador, no un
+  cambio acotado: el acople tendría que abarcar `cambios-metodo`, `candado` y `scripts` (también hacen `require` de `hooks/lib`: rt-1),
+  `resolver hooks-lib` tendría que traer los acoplados y guardar su base (si no, la próxima vuelta los lee como adaptados: rt-3), y faltan
+  causas de espera (rt-8) y cómo lo cuenta la flota (rt-9). Eso es nivel **completo** (§3.6), no cabe en una `rc` medio-alto, y hoy no le
+  pega a ningún proyecto real (Hermes, el analytics y el bot tienen `hooks-lib: molde`). Va al tracker, Pendientes, con los cuatro hallazgos.
+- **Nivel: medio** (es un texto con una condición, no cambia qué se actualiza ni qué frena).
+- **crit. h12**: `chequeo.test`: la línea 7 con `hooks-lib` esperando y un caso perdido → ❌ con la línea de resolver; sin esperar → ❌ con el
+  detalle de hoy; con `hooks-lib` esperando y ningún hook cambiado → como hoy ("ningún hook cambió"). `flota.test`: la nota.
 
 ### La vuelta 2 de la `rc.5` (sin rediseñar; el texto que manda es el de `SPEC-paquete-8r4.md`, con su red team)
 
@@ -220,10 +229,13 @@ Los crit. de c1, h11, h12 y de cada ítem de la vuelta 2 (los del delta de la `r
 
 - **D8c-1 · h11 frena en el pre-push, y `git-seguro` solo avisa antes** cuando el destino es explícito: el pre-push ve las refs reales
   (también `git push` a secas, un script o la terminal), y parsear todo refspec en el portero es adivinar. `[mejor código]`
-- **D8c-2 · h11 deja pasar a `humano`, `director` y `actualizador`**: el pedido es "nunca un obrero"; Guido en el principal y la flota
-  suben a `main` por diseño. `desconocido` frena (un `.kit-rol` roto no es un permiso). `[coherencia]`
-- **D8c-3 · h12: los `hook-*` esperan con `hooks-lib`, en vez de un mensaje mejor sobre el ROTA**: el mensaje solo no arregla que los
-  hooks nuevos con la lib vieja fallen abiertos; esperar juntos deja el proyecto como andaba. `[mejor código · acordarse de menos]`
+- **D8c-2 · h11 con una lista de lo que sube cada rol, no con "¿es `main`?"** (rt-5): el obrero sube solo su rama; el nocturno y el
+  desconocido, solo `modulo/*`; `humano`, `director` y `actualizador`, lo de hoy. No adivina la rama por defecto y cubre tags y la rama del
+  director. Es más estricto que "nunca `main`", pero es lo que ya dice `/obrero` ("nunca push a otra rama"). El director de noche
+  (`.kit-noche`) no sube `main` a mano: lo hace `integrar`. `[coherencia · mejor código]`
+- **D8c-3 · h12 queda en el aviso; el acople de los hooks con su lib va a otra versión** (rt-1/2/3/8/9): bien hecho es rediseñar el
+  actualizador (nivel completo) y hoy no le pega a ningún proyecto real. El ROTA sigue siendo ROTA (es verdad), con el camino escrito.
+  `[filtro pragmático · coherencia]`
 - **D8c-4 · El cierre de tramo se construye como lo diseñó D8b.1, sin cambiar nada**: lo charló Guido en el repaso. `[coherencia]`
 - **D8c-5 · El `/director` no crece**: el tope de 8.000 B está a 27 B; lo que no entra va a `plantilla-cierre.md`, que es donde se lee.
   `[acordarse de menos]`
@@ -234,6 +246,9 @@ Los crit. de c1, h11, h12 y de cada ítem de la vuelta 2 (los del delta de la `r
 
 - **Un obrero de una ventana antes de entrar** a su worktree es `humano` para el pre-push (rt-2 de la `rc.5`): h11 no lo ve. Lo cubre el
   paso 0 del `/obrero`.
+- **h11 no ve lo que no pasa por git en esta carpeta** (rt-11): `gh pr merge` y `gh api`; un script que corre `git -C <principal> push`
+  (el pre-push lo lee `humano`); borrar la rama por defecto desde un script (el pre-push saltea los borrados).
+- **El acople de los hooks con `hooks-lib`** (h12): a otra versión, con los cuatro hallazgos del red team.
 - **La frecuencia del cierre de tramo** la respeta el director leyendo la ficha: ningún script lo frena si se la saltea.
 - **EnterWorktree y los settings con una ventana** siguen NO VERIFICADO (de la `rc.5`).
 - `andamiaje: con-ok-de-guido` depende de que el agente lea `NUCLEO.md` (D8r4-8).
@@ -247,7 +262,7 @@ Presupuesto: ~2 h de reloj y ~6 encargos de trabajo, más el red team y el chequ
 |---|---|---|---|
 | RT | Red team, una ronda, **solo h11 y h12** | — | — |
 | P | h11 + su mutación | `git-seguro.cjs`, `kit-githook.cjs`, sus pruebas | crit. h11 |
-| L | h12 + su mutación | `actualizar.cjs` (solo el acople), `fusion.cjs`, `chequeo.cjs`, `flota.cjs`, sus pruebas | crit. h12 |
+| L | h12 (el aviso) | `chequeo.cjs`, `flota.cjs`, sus pruebas | crit. h12 |
 | C | c1 + los textos de `/director` (u5 paso 2, lecciones del paso 3) | `dir/*`, `formato-spec.md`, `inyeccion.cjs`, `estado.cjs`, sus pruebas | crit. c1 |
 | V | u4 + h6 + h9 + h10 | `lib/vecinos.cjs`, `adoptar.cjs` (solo `mirar`, la línea de vecinos), `doctor.cjs`, `worktree.test` | crit. 4, h6, h9, h10 |
 | D | u6 + u13 a + h5 | `adoptar.cjs`, `actualizar.cjs` (solo el renglón del CHANGELOG), `cierre/SKILL.md`, sus pruebas | crit. u6, u13, h5 |
