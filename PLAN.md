@@ -7,7 +7,7 @@
   `git --version`, `python --version` (o `py -3 --version`), si hay Git Bash, y si está gitleaks (si no, la pregunta de la
   restricción 3). Creá `.local/alias.md` vacío y la PC con su alias (`pc-juan`, o el que diga Juan).
 
-- [ ] **1. Preparar la PC con la beta.** Clon completo del kit, con tags (nunca `--depth 1`):
+- [x] **1. Preparar la PC con la beta.** (prueba: `pruebas/2026-11-04-preparar-pc.md`; falta que Juan reinicie Claude Code) Clon completo del kit, con tags (nunca `--depth 1`):
   `git clone https://github.com/guidocameraeq/vibe-kit <temp>/vibe-kit`. Leé `<temp>/vibe-kit/kit/skills/arquitecto-skills/SKILL.md`,
   modo INSTALAR, **"Preparame esta máquina"**, y seguilo tal cual (se para solo en el último tag, que hoy es la beta). Prueba
   (`pruebas/AAAA-MM-DD-preparar-pc.md`): el tag en el que se paró, el plan (`--plan`), la pregunta que hizo, la tabla final del
