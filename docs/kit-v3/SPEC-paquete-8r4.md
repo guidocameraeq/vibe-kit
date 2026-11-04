@@ -237,6 +237,8 @@ Rutas: `molde` = `kit/molde/`, `lib` = `kit/molde/hooks/lib/`, `wt` = `kit/molde
 - **Encargo S** (`chequeo.cjs` línea 4 y `doctor.cjs`, sus pruebas). **crit. 10**: `chequeo.test` — la zona propia que pasa el tope → la
   línea no es roja y dice cuánto; la parte del kit que lo pasa → roja; el `/inicio` con su 8600; `doctor.test` la línea ⚠. Chequeo frío:
   un clon de Hermes, flota `rc.3` → `rc.5` con la obra en curso y `--con-obra`: tiene que llegar (crit. 8 suma).
+- **El salto del bot** (la madre, 2026-11-04): Guido adopta `Arti-bot-eq` hoy con la `rc.4`; el chequeo frío suma un clon suyo adoptado
+  con la `rc.4` y "poné al día" `rc.4` → `rc.5`: tiene que llegar limpio.
 
 #### u13 · Lo que D2 recomendada saca, y qué lo cubre (lo trajo la madre, de Hermes, 2026-11-04; vuelta 2)
 
@@ -268,7 +270,7 @@ de su clase.
 | h7 | Con una ventana, el hook de `main` (rc nueva) convive con los scripts y la ficha del worktree (rc vieja), o al revés: ¿choca un formato? | una ventana | 1 (con u1) | una prueba que corre los hooks del molde nuevo sobre un árbol con los scripts y la ficha de la `rc.4`, y al revés |
 | h8 | Dos sesiones en el mismo árbol: `barreras --indice` o el candado le cargan a una lo que la otra dejó en el índice | una ventana | 1 (con rt-6) | se razona sobre el código y una prueba: lo que deja una en el índice entra en el commit de la otra (rt-6 ya lo frena en `donde`) |
 | h9 | `.worktreeinclude` copia `config*.ini` con credenciales a cada worktree: ¿lo cubren el corrector de secretos y el deny? | una ventana | 2 (con u6) | `worktree.test`: un `config.local.ini` ignorado con una clave de mentira, copiado; `secretos.cjs` y el deny sobre esa ruta |
-| h11 | Un obrero (rol `obrero`, en su worktree) pushea directo a `origin main` (pasó en Hermes, con el clic de Guido, porque CC va por mensaje): ¿el kit lo frena en `git-seguro` o en el pre-push, como con el principal? | una ventana | 2 | primero se mira qué hace hoy `git-seguro` con un push a la rama por defecto desde rol `obrero`; la recomendada: negarlo (el texto de `/obrero` ya dice "nunca push a otra rama" y el que mergea a `main` es `integrar`). **Le cambia el día a Guido** (el flujo de CC por mensaje): va a él por la madre, con la recomendada, antes de codearlo |
+| h11 | Un obrero (rol `obrero`, en su worktree) pushea directo a `origin main` (pasó en Hermes, con el clic de Guido, porque CC va por mensaje): ¿el kit lo frena en `git-seguro` o en el pre-push, como con el principal? | una ventana | 2 | primero se mira qué hace hoy `git-seguro` con un push a la rama por defecto desde rol `obrero`; la recomendada: negarlo (el texto de `/obrero` ya dice "nunca push a otra rama" y el que mergea a `main` es `integrar`). **DECIDIDO por Guido (2026-11-04, por la madre)**: a `main` sube solo el director (o `integrar`), nunca un obrero. Va a la `rc.6` (vuelta 2) |
 | h10 | Un hook o comando del kit llama a `sh` y falla desde una sesión en PowerShell sin `sh` en el PATH; el `doctor` lee mal la versión de `claude` de la terminal | otra PC | 2 | `git grep` de `sh`/`spawn('sh'` en el molde y los scripts; `doctor.test` con una salida de `claude --version` como la de Juan (`prueba/juan`, `52e0ca3`) |
 
 ### Vuelta 2 — el resto de lo que dolió
