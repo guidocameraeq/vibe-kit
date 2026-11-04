@@ -67,3 +67,12 @@ test('D8b-3: la regex de versión de sello.cjs es la misma que ficha.RE_VERSION 
   assert.ok(m, 'sello.cjs no define RE_VERSION en una línea');
   assert.equal(m[1], String(F.RE_VERSION));
 });
+
+// SPEC-paquete-8r2 t7: el recorrido de la flota se cambia acá y se copia byte a byte al Equipador (preparar-pc, lib/flota y
+// cambios-flota lo usan desde allá; las dos skills se instalan por separado). Solo node estándar.
+test('arquitecto-skills/scripts/lib/repos.cjs es idéntica byte a byte a lib/repos.cjs, y usa solo node estándar', () => {
+  const par = path.join(KIT, 'skills', 'arquitecto-skills', 'scripts', 'lib', 'repos.cjs');
+  assert.ok(fs.existsSync(par), 'no encuentro kit/skills/arquitecto-skills/scripts/lib/repos.cjs');
+  assert.ok(identicas(fs.readFileSync(path.join(LIB, 'repos.cjs')), fs.readFileSync(par)), 'la copia del Equipador de repos.cjs se desvió — volvé a copiarla byte a byte desde arquitecto/scripts/lib/repos.cjs');
+  assert.deepEqual(requiresDe(par).filter((r) => !/^(node:)?[a-z_]+$/.test(r)), [], 'repos.cjs tiene que usar solo módulos de node');
+});

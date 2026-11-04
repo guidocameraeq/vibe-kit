@@ -948,3 +948,34 @@ test('registro: una ficha por <carpeta>/*/.claude/kit.md, con alias, repo, tipo,
   assert.equal(no.codigo, 1);
   assert.match(no.out, /no encuentro la carpeta/);
 });
+
+// SPEC-paquete-8r2 t7 (crit. 7): la carpeta de proyectos D:/ con Hermes/Hermes.exe (dos niveles), su worktree Hermes-x y Otro.
+test('crit. 7: registro mira dos niveles — una ficha para Hermes/Hermes.exe y una para Otro; ninguna para el worktree Hermes-x', () => {
+  const carpeta = path.join(TMP, `flota${++n}`);
+  const g = (cwd, ...args) => {
+    const r = spawnSync('git', args, { cwd, encoding: 'utf8' });
+    assert.equal(r.status, 0, `git ${args.join(' ')}: ${r.stderr}`);
+  };
+  const h = path.join(carpeta, 'Hermes', 'Hermes.exe');
+  const bare = path.join(TMP, `remotos${n}`, 'Hermes.exe.git');
+  fs.mkdirSync(h, { recursive: true });
+  g(h, 'init', '-q', '-b', 'main');
+  escribir(h, '.claude/kit.md', ['---', 'kit: 3.0.0', 'nivel: estandar', 'vars:', '  proyecto: hermes', '---', ''].join('\n'));
+  g(h, 'add', '-A');
+  g(h, 'commit', '-q', '-m', 'nace');
+  g(TMP, 'clone', '-q', '--bare', h, bare);
+  g(h, 'remote', 'add', 'origin', bare);
+  g(h, 'worktree', 'add', '-q', '-b', 'x', path.join(carpeta, 'Hermes-x'));
+  const otro = path.join(carpeta, 'Otro');
+  fs.mkdirSync(otro);
+  g(otro, 'init', '-q', '-b', 'main');
+  escribir(otro, '.claude/kit.md', ['---', 'kit: 3.0.0', 'nivel: liviano', 'vars:', '  proyecto: otro', '---', ''].join('\n'));
+  const r = correr(['registro', carpeta], TMP);
+  assert.equal(r.codigo, 0, r.err);
+  assert.equal(r.err, '');
+  assert.deepEqual(JSON.parse(r.out).fichas, [
+    { alias: 'hermes', repo: bare, tipo: 'código', kit: '3.0.0' },
+    { alias: 'otro', repo: null, tipo: 'sin código', kit: '3.0.0' },
+  ]);
+  assert.equal(r.err, '');
+});

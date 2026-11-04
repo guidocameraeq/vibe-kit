@@ -93,6 +93,7 @@ function proyectos(mapa) {
   for (const [nombre, ents] of Object.entries(mapa)) {
     fs.mkdirSync(path.join(d, nombre, '.claude'), { recursive: true });
     fs.writeFileSync(path.join(d, nombre, '.claude', 'kit.md'), FICHA(nombre, ents));
+    git(path.join(d, nombre), 'init', '-q'); // un proyecto es un repo (SPEC-paquete-8r2 t7: el recorrido mira carpetas con .git)
   }
   return d;
 }
@@ -323,6 +324,7 @@ test('crit 3: sin entornos dummy ni prueba no se crea el bloque; una ficha rota 
   const proy = proyectos({ alfa: [['vivo', 'real']] });
   fs.mkdirSync(path.join(proy, 'roto', '.claude'), { recursive: true });
   fs.writeFileSync(path.join(proy, 'roto', '.claude', 'kit.md'), '---\nkit: x\n---\n');
+  git(path.join(proy, 'roto'), 'init', '-q'); // un proyecto es un repo (SPEC-paquete-8r2 t7)
   const e = escenario({ proy });
   const r = correr(e);
   assert.equal(r.codigo, 0, r.texto);
@@ -534,6 +536,28 @@ test('kit-pc.md: se lee lo que se escribe (con barras de Windows y comillas sane
   assert.equal(r.codigo, 1);
   assert.match(r.texto, /^✗ archivo-pc · .*no se lee/m);
   assert.deepEqual(foto(e.home), antes);
+});
+
+// SPEC-paquete-8r2 t7 (crit. 7): la carpeta de proyectos D:/ con Hermes/Hermes.exe (dos niveles), su worktree Hermes-x y Otro.
+test('crit. 7: generarAutoMode mira dos niveles — las entradas de Hermes/Hermes.exe y de Otro; ninguna del worktree Hermes-x', () => {
+  const PR = nueva('proy');
+  const h = path.join(PR, 'Hermes', 'Hermes.exe');
+  fs.mkdirSync(path.join(h, '.claude'), { recursive: true });
+  fs.writeFileSync(path.join(h, '.claude', 'kit.md'), FICHA('hermes', [['base', 'dummy']]));
+  git(h, 'init', '-q', '-b', 'main');
+  git(h, 'add', '-A');
+  git(h, 'commit', '-q', '-m', 'nace');
+  const bare = path.join(nueva('remotos'), 'Hermes.exe.git');
+  git(RAIZ_TMP, 'clone', '-q', '--bare', h, bare);
+  git(h, 'remote', 'add', 'origin', bare);
+  const wt = path.join(PR, 'Hermes-x');
+  git(h, 'worktree', 'add', '-q', '-b', 'x', wt);
+  // el worktree trae otra ficha en el disco: si se leyera, saldría su entrada
+  fs.writeFileSync(path.join(wt, '.claude', 'kit.md'), FICHA('hermes-x', [['del-worktree', 'prueba']]));
+  fs.mkdirSync(path.join(PR, 'Otro', '.claude'), { recursive: true });
+  fs.writeFileSync(path.join(PR, 'Otro', '.claude', 'kit.md'), FICHA('otro', [['o', 'prueba']]));
+  git(path.join(PR, 'Otro'), 'init', '-q');
+  assert.deepEqual(P.generarAutoMode(PR), { entradas: ['hermes: base (dummy)', 'otro: o (prueba)'], avisos: [] });
 });
 
 test('generarAutoMode: entradas saneadas (sin \\ ni ") y en orden de carpeta', () => {

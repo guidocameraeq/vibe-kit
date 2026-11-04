@@ -21,6 +21,7 @@ const { spawnSync } = require('child_process');
 const S = require('./lib/sello.cjs');
 const ficha = require('./lib/ficha.cjs');
 const proceso = require('./lib/proceso.cjs');
+const R = require('./lib/repos.cjs');
 
 const USO = [
   'Uso: node <skill>/scripts/arquitecto.cjs <comando> …',
@@ -468,19 +469,22 @@ function entorno(a, { cwd, ahora, env }) {
   return { codigo: 0, lineas: [`entorno ${r.c}`] };
 }
 
-// El adaptador de ejemplo del registro (E §9): una ficha por <carpeta>/*/.claude/kit.md que se lee.
+// El adaptador de ejemplo del registro (E §9): una ficha por repo de la carpeta con .claude/kit.md que se lee. Los repos salen de
+// lib/repos.cjs (SPEC-paquete-8r2 t7): hasta dos niveles (D:/Hermes/Hermes.exe), uno por git-common-dir y por origin, nunca un
+// worktree; la misma regla que preparar-pc.cjs, lib/flota.cjs y cambios-flota.cjs del Equipador. El alias es vars.proyecto (sin él,
+// la carpeta del repo: Hermes.exe); `actualizar.cjs flota <X> --proyectos` acepta los dos, y la ruta Hermes/Hermes.exe.
 function registro(a, { cwd, error }) {
   const carpeta = path.resolve(cwd, a.pos[0]);
-  let dirs;
+  let rec;
   try {
-    dirs = fs.readdirSync(carpeta, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name).sort();
+    rec = R.recorrer(carpeta);
   } catch (e) {
     return { codigo: 1, lineas: [`registro: no encuentro la carpeta ${carpeta}`] };
   }
+  for (const av of rec.avisos) error(`registro: ${av}\n`);
   const fichas = [];
   const conexiones = [];
-  for (const nombre of dirs) {
-    const d = path.join(carpeta, nombre);
+  for (const { dir: d, rel, nombre } of rec.repos) {
     const k = path.join(d, '.claude', 'kit.md');
     if (!fs.existsSync(k)) continue;
     let datos;
@@ -488,7 +492,7 @@ function registro(a, { cwd, error }) {
       datos = ficha.leerArchivo(k).datos;
     } catch (e) {
       const que = e instanceof ficha.ErrorFicha ? `línea ${e.linea}: ${e.mensaje}` : 'no se pudo leer';
-      error(`registro: ${nombre}/.claude/kit.md no se lee (${que}): se saltea\n`);
+      error(`registro: ${rel}/.claude/kit.md no se lee (${que}): se saltea\n`);
       continue;
     }
     const alias = datos.vars && typeof datos.vars.proyecto === 'string' && datos.vars.proyecto.trim() ? datos.vars.proyecto : nombre;

@@ -41,6 +41,7 @@ const F = require('../../pc/lib/ficha.cjs');
 const M = require('./molde.cjs');
 const CU = require('./cubiertos.cjs');
 const CA = require('../../pc/lib/cambios.cjs');
+const R = require('./repos.cjs');
 
 const ROTO = 'actualizador roto: corré doctor';
 const RUTA_FICHA = '.claude/kit.md';
@@ -155,22 +156,59 @@ function origenDe(dir) {
   return { url: resolverOrigen(url, dir) };
 }
 
-// `todo`: los de --proyectos con ficha o con origin (la idea del adaptador registro de arquitecto.cjs, sin depender de esa skill).
-// Con origin aunque el checkout no tenga ficha: puede estar atrasado; la ficha que manda es la del clon ("sin ficha" sale ahí).
+// `todo`: los repos de --proyectos con ficha o con origin. El recorrido es lib/repos.cjs (SPEC-paquete-8r2 t7): hasta dos niveles
+// (D:/Hermes/Hermes.exe), uno por git-common-dir y por origin, nunca un worktree (D:/Hermes-x); la misma regla que
+// `arquitecto.cjs registro`, preparar-pc.cjs y cambios-flota.cjs. Con origin aunque el checkout no tenga ficha: puede estar
+// atrasado; la ficha que manda es la del clon ("sin ficha" sale ahí). → { repos: [rutas ABSOLUTAS] (rt-5), avisos: [...] }
 function todosLosRepos(proyectos) {
-  let dirs;
+  let rec;
   try {
-    dirs = fs.readdirSync(proyectos, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name).sort();
+    rec = R.recorrer(proyectos);
   } catch {
     throw new Negativa(`no encuentro la carpeta de proyectos ${proyectos}`);
   }
-  return dirs.filter((n) => fs.existsSync(path.join(proyectos, n, ...RUTA_FICHA.split('/'))) || !!origenDe(path.join(proyectos, n)).url);
+  const repos = rec.repos.filter((r) => fs.existsSync(path.join(r.dir, ...RUTA_FICHA.split('/'))) || !!origenDe(r.dir).url).map((r) => r.dir);
+  return { repos, avisos: rec.avisos };
 }
 
+// Un repo nombrado → su ruta ABSOLUTA (rt-5: 'Hermes/Hermes.exe' resolvía contra el cwd). Absoluta, tal cual; ./x o ../x, contra el
+// cwd; si no, contra --proyectos: la carpeta si está (Hermes/Hermes.exe, alfa) y, si no, el repo del segundo nivel con ese nombre
+// (Hermes.exe) o con ese vars.proyecto en su ficha (el alias que da `arquitecto.cjs registro`). Sin --proyectos, contra el cwd.
 function rutaDeRepo(nombre, proyectos) {
-  const esRuta = path.isAbsolute(nombre) || /[\\/]/.test(nombre) || nombre === '.' || nombre === '..';
-  if (!esRuta && proyectos) return path.join(proyectos, nombre);
-  return path.resolve(nombre);
+  if (path.isAbsolute(nombre)) return path.resolve(nombre);
+  const alCwd = nombre === '.' || nombre === '..' || /^\.\.?[\\/]/.test(nombre);
+  if (alCwd || !proyectos) return path.resolve(nombre);
+  const dentro = path.resolve(proyectos, nombre);
+  if (fs.existsSync(dentro)) return dentro;
+  if (/[\\/]/.test(nombre)) return path.resolve(nombre);
+  try {
+    const repos = R.recorrer(proyectos).repos;
+    let hay = repos.filter((r) => r.nombre === nombre || path.basename(r.dir) === nombre);
+    if (!hay.length) hay = repos.filter((r) => aliasDeFicha(r.dir) === nombre);
+    if (hay.length === 1) return hay[0].dir;
+  } catch {
+    /* la carpeta de proyectos no se lee: queda la ruta de adentro, que dice "no encuentro la carpeta" */
+  }
+  return dentro;
+}
+
+// El vars.proyecto de la ficha del checkout (el alias de `arquitecto.cjs registro`), o null.
+function aliasDeFicha(dir) {
+  try {
+    const v = F.leerArchivo(path.join(dir, ...RUTA_FICHA.split('/'))).datos.vars;
+    return v && typeof v.proyecto === 'string' && v.proyecto.trim() ? v.proyecto.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+// La columna repo de la tabla: la ruta desde --proyectos (Hermes/Hermes.exe), o el nombre de la carpeta si está fuera.
+function etiquetaDe(dir, proyectos) {
+  if (proyectos) {
+    const r = path.relative(proyectos, dir);
+    if (r && !r.startsWith('..') && !path.isAbsolute(r)) return r.split(path.sep).join('/');
+  }
+  return path.basename(dir);
 }
 
 // ---------------------------------------------------------------- lo que dijo aplicar y chequear
@@ -431,20 +469,23 @@ async function flota(o) {
   try {
     let canon;
     let repos;
+    let avisos = [];
     try {
-      repos = o.repos.length === 1 && o.repos[0] === 'todo' ? todosLosRepos(o.proyectos) : o.repos;
+      if (o.repos.length === 1 && o.repos[0] === 'todo') ({ repos, avisos } = todosLosRepos(o.proyectos));
+      else repos = o.repos;
       canon = prepararCanon(o.canon, o.tag, path.join(tmp, 'canon'));
     } catch (e) {
       if (e instanceof Negativa) return { codigo: 1, lineas: [`flota: ${e.message}`], filas: [] };
       throw e;
     }
     const lineas = [`flota · kit ${canon.version} (tag ${canon.tag})`];
+    for (const av of avisos) lineas.push(`⚠ ${av}`);
     if (!repos.length) lineas.push('ningún repo con ficha en la carpeta de proyectos');
     const filas = [];
     let n = 0;
     for (const nombre of repos) {
       const dir = rutaDeRepo(nombre, o.proyectos);
-      const etiqueta = path.basename(dir);
+      const etiqueta = etiquetaDe(dir, o.proyectos);
       const og = origenDe(dir);
       if (!og.url) {
         filas.push({ repo: etiqueta, antes: '?', despues: '?', resultado: 'sin tocar', porque: og.sinRemoto, espera: [], falla: false });
@@ -500,4 +541,4 @@ async function main(argv) {
   });
 }
 
-module.exports = { flota, main, leerArgs, entorno, porqueNoSubio, actualizarRepo, pendienteDeSubir, hooksDelMolde, prepararCanon, tagsDe, elegirTag, compararTags, versionDeTag, origenDe, resolverOrigen, todosLosRepos, fusionDe, primeraRoja, porqueRechazo, tabla, Negativa, RE_ROTA };
+module.exports = { flota, main, leerArgs, entorno, porqueNoSubio, actualizarRepo, pendienteDeSubir, hooksDelMolde, prepararCanon, tagsDe, elegirTag, compararTags, versionDeTag, origenDe, resolverOrigen, todosLosRepos, rutaDeRepo, fusionDe, primeraRoja, porqueRechazo, tabla, Negativa, RE_ROTA };

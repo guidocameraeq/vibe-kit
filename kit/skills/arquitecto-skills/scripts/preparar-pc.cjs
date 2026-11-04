@@ -44,6 +44,7 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 const { leerJsonSinDuplicados } = require('../pc/lib/zona-propia.cjs');
 const ficha = require('../pc/lib/ficha.cjs');
+const R = require('./lib/repos.cjs');
 const I = require('./instalar-hooks-pc.cjs');
 
 const SKILLS = ['arquitecto', 'arquitecto-skills', 'docs-fyd', 'relevamiento'];
@@ -396,28 +397,30 @@ function entradaAutoMode(proyecto, entorno, clase, acceso) {
   return limpiar(`${proyecto}: ${entorno} (${clase})${acceso ? `: ${acceso}` : ''}`);
 }
 
-// Las fichas de <carpeta>/*/.claude/kit.md (la misma regla que el adaptador local `arquitecto.cjs registro`: su JSON no trae los
-// entornos, por eso se recorre acá igual que él) → por cada entorno clase dummy o prueba, una entrada. Orden: carpeta, entorno.
+// Las fichas de los repos de <carpeta> (lib/repos.cjs, SPEC-paquete-8r2 t7: hasta dos niveles, uno por git-common-dir y por origin,
+// nunca un worktree; la misma regla que `arquitecto.cjs registro`, lib/flota.cjs y cambios-flota.cjs; el JSON de registro no trae
+// los entornos, por eso se recorre acá igual que él) → por cada entorno clase dummy o prueba, una entrada. Orden: repo, entorno.
 // → { entradas: [...], avisos: [...] }
 function generarAutoMode(carpeta) {
   const entradas = [];
   const avisos = [];
   if (!carpeta) return { entradas, avisos };
-  let dirs;
+  let rec;
   try {
-    dirs = fs.readdirSync(carpeta, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name).sort();
+    rec = R.recorrer(carpeta);
   } catch (e) {
     avisos.push(`no encuentro la carpeta de proyectos ${barras(carpeta)}`);
     return { entradas, avisos };
   }
-  for (const nombre of dirs) {
-    const k = path.join(carpeta, nombre, '.claude', 'kit.md');
+  avisos.push(...rec.avisos);
+  for (const { dir, rel, nombre } of rec.repos) {
+    const k = path.join(dir, '.claude', 'kit.md');
     if (!fs.existsSync(k)) continue;
     let datos;
     try {
       datos = ficha.leerArchivo(k).datos;
     } catch (e) {
-      avisos.push(`${nombre}/.claude/kit.md no se lee${e && e.name === 'ErrorFicha' ? ` (línea ${e.linea})` : ''}: sus entornos no entran`);
+      avisos.push(`${rel}/.claude/kit.md no se lee${e && e.name === 'ErrorFicha' ? ` (línea ${e.linea})` : ''}: sus entornos no entran`);
       continue;
     }
     const alias = datos.vars && typeof datos.vars.proyecto === 'string' && datos.vars.proyecto.trim() ? datos.vars.proyecto : nombre;

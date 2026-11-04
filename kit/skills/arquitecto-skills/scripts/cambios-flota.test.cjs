@@ -233,6 +233,21 @@ test('sin repos: --proyectos toma las carpetas con .git; las demás se ignoran',
   assert.match(r.out, /⚠ alfa/);
 });
 
+// SPEC-paquete-8r2 t7 (crit. 7): la carpeta de proyectos D:/ con Hermes/Hermes.exe (dos niveles), su worktree Hermes-x y Otro.
+test('crit. 7: --proyectos mira dos niveles — una línea para Hermes/Hermes.exe y una para Otro; ninguna para el worktree Hermes-x', () => {
+  const dir = carpeta('flota');
+  fs.mkdirSync(path.join(dir, 'Hermes'));
+  const h = repo(path.join(dir, 'Hermes'), 'Hermes.exe', 'hermes', { [ID]: cambio({ urgente: 'sí', regla: 'De Hermes.' }) });
+  const bare = path.join(carpeta('remotos'), 'Hermes.exe.git');
+  git(T, 'clone', '-q', '--bare', h, bare);
+  git(h, 'remote', 'add', 'origin', bare);
+  git(h, 'worktree', 'add', '-q', '-b', 'x', path.join(dir, 'Hermes-x'));
+  repo(dir, 'Otro', 'otro', { [ID]: cambio({ urgente: 'sí', regla: 'De Otro.' }) });
+  const r = correr(['--proyectos', dir, '--urgentes']);
+  assert.equal(r.code, 0, r.err);
+  assert.deepEqual(r.out.trim().split('\n'), [`⚠ hermes · ${ID} · De Hermes. · aplicado`, `⚠ otro · ${ID} · De Otro. · aplicado`]);
+});
+
 test('RF-fix rf-3: descubiertos por carpeta, solo los repos con .claude/cambios/; uno sin rama por defecto y sin registro, en silencio', () => {
   const dir = carpeta('flota');
   repo(dir, 'alfa', 'alfa', { [ID]: cambio({ urgente: 'sí', regla: 'Una.' }) });
