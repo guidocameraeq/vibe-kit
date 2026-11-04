@@ -173,7 +173,7 @@ test('D8b-3 ficha (sin la versión en las opciones): rc.1 → rc.2 es mayor ✅;
 test('1 llaves: un {{X}} suelto en lo que trajo → ❌ con archivo:línea; {{LINEAS:N}} y _fuente/ no cuentan', () => {
   const p = armar({
     cambio: (d) => {
-      fs.appendFileSync(path.join(d, '.claude', 'skills', 'inicio', 'SKILL.md'), '\nUn hueco {{X}} que quedó.\n');
+      fs.appendFileSync(path.join(d, '.claude', 'skills', 'estado', 'SKILL.md'), '\nUn hueco {{X}} que quedó.\n');
       escribir(path.join(d, 'docs', 'plantillas', '_fuente', 'a.md'), 'aprobada: {{SIN_TOCAR}}\n');
       escribir(path.join(d, 'docs', 'b.md'), 'tabla de {{LINEAS:12}} renglones\n');
       escribir(path.join(d, '.claude', 'scripts', 'portada.cjs'), "const t = '{{PROYECTO}} {{BANNER}}';\n");
@@ -181,7 +181,7 @@ test('1 llaves: un {{X}} suelto en lo que trajo → ❌ con archivo:línea; {{LI
   });
   const r = correr(p);
   nueveBienFormadas(r);
-  rojo(r, 'llaves', /\.claude\/skills\/inicio\/SKILL\.md:\d+/);
+  rojo(r, 'llaves', /\.claude\/skills\/estado\/SKILL\.md:\d+/);
   assert.doesNotMatch(linea(r, 'llaves'), /_fuente|docs\/b\.md|portada\.cjs/);
   verde(r, 'skills');
 });
@@ -474,6 +474,28 @@ test('7 casos (RF-9): dos dueños que comparten un archivo de pruebas → un sol
   const rq = correr(q, { moldeNuevo: m });
   verde(rq, 'casos');
   assert.equal(leer(cuenta), 'x\n');
+});
+
+test('8r3, 7 casos: los hooks del proyecto van a la copia como los guarda git, sin el \\r de un checkout con autocrlf', () => {
+  // Como fabrica.test.cjs: una prueba del molde lee un archivo de datos de hooks/lib/ y busca su cabecera con \n.
+  const m = nuevaCarpeta('molde-crlf');
+  fs.cpSync(moldeNuevo(), m, { recursive: true });
+  const L = (...r) => path.join(m, 'hooks', 'lib', ...r);
+  escribir(L('tabla.cjs'), "module.exports = require('fs').readFileSync(require('path').join(__dirname, 'tabla', 'datos.md'), 'utf8');\n");
+  escribir(L('tabla', 'datos.md'), '# cabecera de una línea\nresto\n');
+  escribir(L('tabla.test.cjs'), "'use strict';\nconst test = require('node:test');\nconst assert = require('node:assert/strict');\nconst t = require('./tabla.cjs');\ntest('la cabecera trae su \\\\n', () => assert.ok(t.includes('# cabecera de una línea\\n')));\ntest('el \\\\r suelto queda', () => assert.ok(t.includes('a\\rb')));\n");
+  const hl = (d, ...r) => path.join(d, '.claude', 'hooks', 'lib', ...r);
+  const p = armar({
+    antes: (d) => escribir(hl(d, 'tabla.cjs'), 'module.exports = "";\n'),
+    cambio: (d) => {
+      // el checkout de Windows: \r\n en cada renglón (y un \r suelto, que no es de git y se respeta)
+      escribir(hl(d, 'tabla.cjs'), leer(L('tabla.cjs')).replace(/\n/g, '\r\n'));
+      escribir(hl(d, 'tabla', 'datos.md'), '# cabecera de una línea\r\nresto a\rb\r\n');
+    },
+  });
+  const r = correr(p, { moldeNuevo: m });
+  nueveBienFormadas(r);
+  verde(r, 'casos');
 });
 
 test('7 casos (D6.2, F0): con moldeCrudo la copia sale del molde SIN instanciar ({{…}}); sin él, del moldeNuevo (instanciado: [completar: …])', () => {

@@ -595,7 +595,12 @@ function casos(ctx) {
     if (rel.endsWith('.test.cjs')) continue;
     const d = path.join(hooksT, ...rel.split('/'));
     fs.mkdirSync(path.dirname(d), { recursive: true });
-    fs.copyFileSync(path.join(hooksP, ...rel.split('/')), d);
+    // 8r3 (la flota de prueba): cada archivo va como lo guarda git, sin el \r de un checkout con core.autocrlf. Copiado tal cual, las
+    // fichas de fábrica de hooks/lib/fabrica/ llegaban con \r\n y fabrica.test.cjs ("su cabecera de una línea", que busca el \n)
+    // daba ROTA en toda puesta al día de un proyecto en Windows desde la rc.3 (el analytics real: i/lf w/crlf). Mismo criterio que la
+    // línea 4. Solo los pares \r\n: un \r suelto queda.
+    const b = fs.readFileSync(path.join(hooksP, ...rel.split('/')));
+    fs.writeFileSync(d, b.includes('\r\n') ? Buffer.from(b.toString('latin1').replace(/\r\n/g, '\n'), 'latin1') : b);
   }
   const duenos = new Map(); // dueño → [archivos tocados]
   for (const r of tocados) {
