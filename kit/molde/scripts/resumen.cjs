@@ -8,6 +8,7 @@
 // directores (de mesa.cjs acordados; "— (sin mesa todavía)" si no hay mesa) · lo que medimos y aprendimos · lo que el método atajó
 // hoy, en números (los renglones de hoy de .claude/frenos.log, por tipo). "Se muestra una vez": si el de hoy ya existe (el archivo,
 // o la marca .git/kit-resumen-del-dia cuando no hay archivo) no lo pisa, dice dónde está y sale 0; --forzar lo rehace.
+// docs/ es la carpeta de papeles: la `carpeta-docs:` de la ficha vigente si la hay (SPEC-paquete-8r3 i1; lib/docs-ruta.cjs).
 // Salidas: 0 anduvo (o ya estaba) · 1 el módulo no existe · 2 mal llamado. Node estándar, cero dependencias.
 // Es .cjs a propósito: corre igual en proyectos con "type": "module".
 
@@ -26,6 +27,7 @@ const USO = [
   '  (sin <x>)  imprime el bloque para la entrada del CHANGELOG de hoy (no lo edita: lo pega /cierre)',
   '  --forzar   rehace el de hoy aunque ya exista (sin él, "se muestra una vez": dice dónde está y sale 0)',
   '  --ayuda    este texto',
+  '  (docs/ es la carpeta de papeles: la carpeta-docs: de la ficha si la hay)',
 ].join('\n');
 
 const MARCA = 'kit-resumen-del-dia'; // dentro de la carpeta común de git: no viaja y no ensucia el árbol
@@ -39,7 +41,7 @@ const dos = (n) => String(n).padStart(2, '0');
 const hoyDe = S.hoyDe;
 const diaDe = (segundos) => hoyDe(new Date(segundos * 1000));
 
-const rutaResumen = (raiz, x, fecha) => path.join(raiz, 'docs', 'modulos', x, 'bitacora', `${fecha}-resumen.md`);
+const rutaResumen = (raiz, x, fecha) => path.join(raiz, ...S.papeles(raiz, `modulos/${x}/bitacora/${fecha}-resumen.md`).split('/'));
 function yaMostrado(raiz, fecha) {
   try {
     return fs.readFileSync(rutaMarca(raiz), 'utf8').trim() === fecha;
@@ -68,7 +70,7 @@ function queSeHizo(raiz, x, fecha) {
 function todoAbiertos(raiz, n) {
   try {
     return fs
-      .readFileSync(path.join(raiz, 'docs', 'TODO.md'), 'utf8')
+      .readFileSync(path.join(raiz, ...S.papeles(raiz, 'TODO.md').split('/')), 'utf8')
       .replace(/\r\n/g, '\n')
       .split('\n')
       .filter((l) => /^- \[ \] /.test(l))
@@ -249,7 +251,7 @@ function main(argv, opciones = {}) {
   if (x) {
     m = S.fichas(raiz).find((f) => f.x === x) || null;
     if (!m) {
-      salida(`resumen: no hay ficha de "${x}" (docs/modulos/${x}/README.md)\n`);
+      salida(`resumen: no hay ficha de "${x}" (${S.papeles(raiz, `modulos/${x}/README.md`)})\n`);
       return 1;
     }
   }

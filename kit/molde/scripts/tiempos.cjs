@@ -12,6 +12,7 @@
 // notas del CIERRE y sale 1. Sin --transcript toma el .jsonl más nuevo de la carpeta de transcripts de esta carpeta de trabajo.
 // `contador <x>`: sub-pasos y desvíos por encargo (un desvío = un commit del obrero que toca algo fuera de ## Toca de su encargo,
 // con la misma regla de `encargo.cjs verificar`, línea 4). NUNCA frena: va al director y a /estado.
+// docs/ es la carpeta de papeles: la `carpeta-docs:` de la ficha vigente si la hay (SPEC-paquete-8r3 i1; lib/docs-ruta.cjs).
 // Salidas: 0 anduvo (o la alarma en 3 o menos) · 1 la alarma saltó (más de 3), o no hay módulo para escribir · 2 mal llamado.
 // Node estándar, cero dependencias. Es .cjs a propósito: corre igual en proyectos con "type": "module".
 
@@ -21,12 +22,14 @@ const path = require('path');
 const git = require('../hooks/lib/git.cjs');
 const E = require('../hooks/lib/encargo.cjs');
 const frenosLog = require('../hooks/lib/frenos-log.cjs');
+const docsRuta = require('../hooks/lib/docs-ruta.cjs');
 
 const USO = [
   'Uso: node .claude/scripts/tiempos.cjs <comando> …   (desde el repo)',
   '  tiempos <x> [--ver]                 por encargo: primer y último commit, duración y sub-pasos; escribe docs/modulos/<x>/tiempos.md',
   '  alarma [--transcript <ruta>]        intervenciones de Guido en esta pestaña (más de 3: línea para las notas del CIERRE, salida 1)',
   '  contador <x>                        sub-pasos y desvíos por encargo (nunca frena)',
+  '  (docs/ es la carpeta de papeles: la carpeta-docs: de la ficha si la hay)',
 ].join('\n');
 
 const UMBRAL_ALARMA = 3;
@@ -42,6 +45,9 @@ const malLlamado = (m) => {
 
 const G = (cwd, args) => git.correr(args, { cwd, tiempo: T_GIT });
 const dos = (n) => String(n).padStart(2, '0');
+const escRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+// La carpeta del módulo, relativa y con '/' (8r3 i1): docs/modulos/<x> sin la clave.
+const moduloRel = (raiz, x) => docsRuta.rel(docsRuta.deRaiz(raiz), `modulos/${x}`);
 // Hora local, sin zona: 2026-11-02 10:05.
 function fechaHora(segundos) {
   const d = new Date(segundos * 1000);
@@ -148,7 +154,7 @@ function datosEncargo(raiz, x, rama) {
   let cs = commitsDe(raiz, base, rama.sha);
   if (cs && b.viaPartida) {
     // Desde la partida entran los commits del director que dejaron encargos (de este obrero o de otro): no son sub-pasos del obrero.
-    const soloEncargo = new RegExp('^docs/modulos/' + x + '/bitacora/[^/]*-encargo-[0-9]{2}\\.md$');
+    const soloEncargo = new RegExp('^' + escRe(moduloRel(raiz, x)) + '/bitacora/[^/]*-encargo-[0-9]{2}\\.md$');
     cs = cs.filter((c) => {
       const f = archivosDe(raiz, c.sha);
       return !(f && f.length && f.every((r) => soloEncargo.test(r)));
@@ -174,7 +180,7 @@ function datosEncargo(raiz, x, rama) {
     return d;
   }
   const { enToca } = require('./encargo.cjs'); // la misma regla de ## Toca que la línea 4 de `verificar`: se usa, no se reescribe
-  const evidencia = new RegExp(`^docs/modulos/${x}/bitacora/[^/]+-evidencia-${rama.id}\\.md$`);
+  const evidencia = new RegExp(`^${escRe(moduloRel(raiz, x))}/bitacora/[^/]+-evidencia-${rama.id}\\.md$`);
   d.desvios = [];
   for (const c of cs) {
     const archivos = archivosDe(raiz, c.sha);
@@ -196,7 +202,7 @@ function datosModulo(raiz, x) {
 
 // ---------------------------------------------------------------- tiempos.md
 
-const rutaTiempos = (raiz, x) => path.join(raiz, 'docs', 'modulos', x, 'tiempos.md');
+const rutaTiempos = (raiz, x) => path.join(raiz, ...moduloRel(raiz, x).split('/'), 'tiempos.md');
 
 // Los renglones del bloque anterior: { id, celdas[] }.
 function filasPrevias(texto) {
@@ -263,7 +269,8 @@ function totalGuardado(raiz, x) {
 
 function cmdTiempos(raiz, x, ver) {
   const datos = datosModulo(raiz, x);
-  const carpeta = path.join(raiz, 'docs', 'modulos', x);
+  const rel = moduloRel(raiz, x);
+  const carpeta = path.join(raiz, ...rel.split('/'));
   let actual = null;
   try {
     actual = fs.readFileSync(rutaTiempos(raiz, x), 'utf8').replace(/\r\n/g, '\n');
@@ -280,9 +287,9 @@ function cmdTiempos(raiz, x, ver) {
     );
   }
   if (ver) return { codigo: 0, lineas: [`tiempos ${x}: ${b.encargos} encargo(s) · ${b.subpasos} sub-paso(s) · ${b.minutos} min (sin escribir)`, ...lineas] };
-  if (!fs.existsSync(carpeta)) return { codigo: 1, lineas: [`tiempos ${x}: no hay docs/modulos/${x}/ (el módulo nace con el Arquitecto); no escribí nada`, ...lineas] };
+  if (!fs.existsSync(carpeta)) return { codigo: 1, lineas: [`tiempos ${x}: no hay ${rel}/ (el módulo nace con el Arquitecto); no escribí nada`, ...lineas] };
   fs.writeFileSync(rutaTiempos(raiz, x), conBloque(actual, x, b.texto), 'utf8');
-  return { codigo: 0, lineas: [`tiempos ${x}: ${b.encargos} encargo(s) · ${b.subpasos} sub-paso(s) · ${b.minutos} min · escrito docs/modulos/${x}/tiempos.md`, ...lineas] };
+  return { codigo: 0, lineas: [`tiempos ${x}: ${b.encargos} encargo(s) · ${b.subpasos} sub-paso(s) · ${b.minutos} min · escrito ${rel}/tiempos.md`, ...lineas] };
 }
 
 function cmdContador(raiz, x) {

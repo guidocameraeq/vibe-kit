@@ -1096,6 +1096,159 @@ test('rf-6 b: un .propio.sh (o un script del candado, un githook) ignorado → r
   verde(d);
 });
 
+// ---------------------------------------------------------------- 8r3 i3: el caché de Python ignorado se borra (crit. 4, el que va)
+
+// __pycache__/ ignorado (con las dos grafías: en Linux .gitignore mira mayúsculas), *.pyc y *.pyo sueltos, y el .propio.sh de rf-6 b.
+const IGN_PY = '/.claude/worktrees/\n/.kit-rol\n__pycache__/\n__PyCache__/\n*.pyc\n*.pyo\n*.propio.sh\n';
+const PYC = Buffer.from([0x2b, 0x0e, 0x0d, 0x0a, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 0xe3]); // la cabecera calcada da igual: se borra
+const existe = (d, r) => {
+  try {
+    fs.lstatSync(path.join(d, ...r.split('/')));
+    return true;
+  } catch {
+    return false;
+  }
+};
+const repoPy = () => repo({ archivos: { '.gitignore': IGN_PY, '.claude/hooks/h.py': 'x = 1\n', '.githooks/h.py': 'x = 1\n', 'src/h.py': 'x = 1\n' } });
+const lineaCache = (f) => f.filter((x) => x.soloLista && /^borré \d+ cachés? de Python ignorados? \(se rehacen solos del \.py seguido\): /.test(x.que));
+
+test('8r3 i3: un .pyc ignorado en __pycache__ bajo hooks, .githooks o __PyCache__ → se borra, verde y la línea lo nombra', () => {
+  for (const r of ['.claude/hooks/__pycache__/h.cpython-314.pyc', '.githooks/__pycache__/h.cpython-314.pyc', '.claude/hooks/__PyCache__/h.cpython-314.pyc']) {
+    const d = repoPy();
+    escribir(d, r, PYC);
+    assert.equal(g(d, 'status', '--porcelain'), '', 'git no lo ve');
+    const f = revisar(d);
+    assert.equal(f.length, 1, JSON.stringify(f));
+    assert.equal(lineaCache(f).length, 1, JSON.stringify(f));
+    assert.ok(f[0].que.endsWith(r), f[0].que);
+    assert.ok(!existe(d, r), `${r} se borró`);
+    verde(d); // la segunda corrida ya no tiene nada que borrar ni decir
+  }
+  // Por el candado: no frena, la línea sale y sigue en verde.
+  const candado = require('./candado.cjs');
+  const d = repoPy();
+  escribir(d, '.claude/hooks/__pycache__/a.cpython-314.pyc', PYC);
+  escribir(d, '.claude/hooks/__pycache__/b.cpython-314.opt-1.pyc', PYC);
+  const r = candado.correr(d, { modo: 'ids', ids: ['barreras'] });
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  assert.ok(r.lineas.some((l) => l.startsWith('candado:barreras · borré 2 cachés de Python ignorados (se rehacen solos del .py seguido): .claude/hooks/__pycache__/a.cpython-314.pyc, .claude/hooks/__pycache__/b.cpython-314.opt-1.pyc')), r.lineas.join('\n'));
+  assert.ok(r.lineas.some((l) => l.startsWith('candado: en verde')), r.lineas.join('\n'));
+  // Más de cinco: nombra cinco y sigue con "…".
+  const m = repoPy();
+  for (let i = 0; i < 7; i++) escribir(m, `.claude/hooks/__pycache__/m${i}.cpython-314.pyc`, PYC);
+  const fm = revisar(m);
+  assert.equal(fm.length, 1, JSON.stringify(fm));
+  assert.match(fm[0].que, /^borré 7 cachés .*m4\.cpython-314\.pyc…$/);
+  assert.ok(!/m5\./.test(fm[0].que));
+});
+
+test('8r3 i3: un h.pyc fuera de __pycache__, un .pyo y el .propio.sh → rojo como hoy y siguen; en src/ no se toca', () => {
+  const casos = ['.claude/hooks/h.pyc', '.claude/hooks/__pycache__/h.cpython-314.pyo', '.claude/hooks/session-start.propio.sh', '.githooks/__pycache__.pyc'];
+  for (const r of casos) {
+    const d = repoPy();
+    escribir(d, r, PYC);
+    assert.equal(g(d, 'status', '--porcelain'), '', `git no ve ${r}`);
+    const f = rojo(d, new RegExp(r.replace(/\./g, '\\.')));
+    assert.equal(lineaCache(f).length, 0, JSON.stringify(f));
+    assert.ok(existe(d, r), `${r} sigue`);
+  }
+  // Junto con uno que sí se borra: rojo por el .propio.sh, la línea por el .pyc, y el .propio.sh sigue.
+  const j = repoPy();
+  escribir(j, '.claude/hooks/__pycache__/h.cpython-314.pyc', PYC);
+  escribir(j, '.claude/hooks/session-start.propio.sh', 'echo allow\n');
+  const fj = rojo(j, /session-start\.propio\.sh/);
+  assert.equal(lineaCache(fj).length, 1);
+  assert.ok(!existe(j, '.claude/hooks/__pycache__/h.cpython-314.pyc') && existe(j, '.claude/hooks/session-start.propio.sh'));
+  // Fuera de las tres carpetas: ni lo cuenta ni lo borra.
+  const s = repoPy();
+  escribir(s, 'src/__pycache__/h.cpython-314.pyc', PYC);
+  verde(s);
+  assert.ok(existe(s, 'src/__pycache__/h.cpython-314.pyc'));
+});
+
+test('8r3 i3: un enlace llamado h.cpython-314.pyc en __pycache__ → no se borra, rojo como hoy', (t) => {
+  const d = repoPy();
+  const r = '.claude/hooks/__pycache__/h.cpython-314.pyc';
+  const abs = path.join(d, ...r.split('/'));
+  fs.mkdirSync(path.dirname(abs), { recursive: true });
+  // Un enlace de archivo; sin permiso (Windows sin modo desarrollador), una junction a una carpeta con un archivo adentro.
+  try {
+    fs.symlinkSync(path.join(d, 'a.txt'), abs, 'file');
+  } catch {
+    try {
+      fs.mkdirSync(path.join(d, 'afuera'));
+      fs.writeFileSync(path.join(d, 'afuera', 'x'), 'x');
+      fs.symlinkSync(path.join(d, 'afuera'), abs, 'junction');
+    } catch (e) {
+      t.skip(`no se puede crear un enlace acá: ${e.code}`);
+      return;
+    }
+  }
+  rojo(d, /h\.cpython-314\.pyc/);
+  assert.ok(fs.lstatSync(abs).isSymbolicLink(), 'el enlace sigue');
+  assert.equal(fs.readFileSync(path.join(d, 'a.txt'), 'utf8'), 'a\n', 'y a lo que apunta no se lo toca');
+});
+
+test('8r3 i3: el que no se puede borrar no va en la línea y sigue rojo', () => {
+  const d = repoPy();
+  const malo = '.claude/hooks/__pycache__/malo.cpython-314.pyc';
+  const bueno = '.claude/hooks/__pycache__/bueno.cpython-314.pyc';
+  escribir(d, malo, PYC);
+  escribir(d, bueno, PYC);
+  const unlink = fs.unlinkSync;
+  fs.unlinkSync = (p) => {
+    if (String(p).endsWith('malo.cpython-314.pyc')) throw Object.assign(new Error('EPERM'), { code: 'EPERM' });
+    return unlink(p);
+  };
+  let f;
+  try {
+    f = rojo(d, /malo\.cpython-314\.pyc/);
+  } finally {
+    fs.unlinkSync = unlink;
+  }
+  const l = lineaCache(f);
+  assert.equal(l.length, 1, JSON.stringify(f));
+  assert.match(l[0].que, /^borré 1 caché de Python ignorado .*bueno\.cpython-314\.pyc$/);
+  assert.ok(existe(d, malo) && !existe(d, bueno));
+});
+
+test('8r3 i3: una sola vez por corrida, también sin HEAD (rama huérfana); con --indice o --rango no se borra', () => {
+  const r = '.claude/hooks/__pycache__/h.cpython-314.pyc';
+  const orig = C.limpiarCachePython;
+  let veces = 0;
+  C.limpiarCachePython = (...a) => {
+    veces++;
+    return orig(...a);
+  };
+  try {
+    const d = repoPy();
+    commit(d, { 'b.txt': 'b\n' });
+    escribir(d, r, PYC);
+    assert.equal(lineaCache(revisar(d)).length, 1);
+    assert.equal(veces, 1, 'una vez');
+    assert.ok(!existe(d, r));
+    // Sin HEAD con ramas: lo pendiente se junta contra el antes virtual (rutasPendientesContra).
+    veces = 0;
+    const o = repoPy();
+    g(o, 'checkout', '-q', '--orphan', 'huerfana');
+    escribir(o, r, PYC);
+    assert.equal(lineaCache(revisar(o)).length, 1);
+    assert.equal(veces, 1, 'una vez, sin HEAD');
+    assert.ok(!existe(o, r));
+    // --indice y --rango no miran lo ignorado: no borran.
+    veces = 0;
+    const x = repoPy();
+    const c = commit(x, { 'b.txt': 'b\n' });
+    escribir(x, r, PYC);
+    assert.deepEqual(revisar(x, { indice: true }), []);
+    assert.deepEqual(revisar(x, { rango: B.resolverRango(x, { desde: 'origin/main', hasta: c }) }), []);
+    assert.equal(veces, 0);
+    assert.ok(existe(x, r), 'sigue');
+  } finally {
+    C.limpiarCachePython = orig;
+  }
+});
+
 test('rf-6 c: settings.local.json ignorado con disableAllHooks o hooks → rojo; con solo permissions y env → verde', () => {
   const d = repo({ archivos: { '.gitignore': '/.claude/worktrees/\n/.kit-rol\n/.claude/settings.local.json\n' } });
   const R = '.claude/settings.local.json';

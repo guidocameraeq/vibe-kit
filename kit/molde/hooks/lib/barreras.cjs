@@ -295,6 +295,9 @@ function archivosDe(raiz, cual, memo = {}) {
   const virtual = antesVirtual(raiz, cual, memo);
   if (cual === PENDIENTE) {
     padre = shaDe(raiz, 'HEAD') || virtual;
+    // 8r3 i3: antes de juntar lo ignorado de barrera, el caché de Python ignorado se borra (una vez por corrida: memo); lo dice
+    // revisarBarreras. Solo acá: el índice y un --rango no miran lo ignorado.
+    if (!memo.cachePython) memo.cachePython = C.limpiarCachePython(raiz);
     rutas = virtual ? rutasPendientesContra(raiz, virtual) : C.rutasPendientes(raiz, padre);
     despuesDe = (rel) => [blob(raiz, '', rel), leerDisco(path.join(raiz, ...rel.split('/')))];
   } else if (cual === INDICE) {
@@ -755,7 +758,8 @@ function settingsLocal(raiz) {
 // SOLO el índice (rf-10). rango: { desde, hasta } (resolverRango) → SOLO esos commits, lo que sube el push (rf-7); desde null = una
 // ref nueva (lo que ningún remoto tiene). Lo que no tiene padre (el índice o lo pendiente sin HEAD, un commit raíz) se juzga contra
 // su antes virtual (antesVirtual, rf2-5); sin antes (el repo sin ninguna rama, o el primer commit de la historia vigente) no se
-// juzga, y a secas sale un renglón con soloLista (no frena) que lo dice.
+// juzga, y a secas sale un renglón con soloLista (no frena) que lo dice. Al juzgar lo pendiente, antes borra el caché de Python
+// ignorado de las carpetas de barrera (8r3 i3) y, si borró algo, lo dice primero en otro renglón soloLista.
 function revisarBarreras(raiz, opciones = {}) {
   if (opciones.indice && opciones.rango) throw new Error('indice y rango no van juntos');
   if (opciones.moldeViejo && !opciones.molde) throw new Error('el molde viejo va solo con el molde');
@@ -827,6 +831,12 @@ function revisarBarreras(raiz, opciones = {}) {
         ? `proponelo con cambios nuevo (3-barrera, un --id por cada uno) y que el dueño lo apruebe con cambios aprobar antes de commitear; o sacalo${cual === INDICE ? ' del índice (git restore --staged <archivo>)' : ''}`
         : 'proponé el cambio (cambios nuevo), que el dueño lo apruebe (cambios aprobar) y rehacé ese commit después del sello; o revertilo';
     fallas.push({ id: ID, commit: cual, detalle, que, hacer });
+  }
+  // 8r3 i3: lo que se borró del caché de Python se dice en una línea que no frena, primera.
+  const borrados = memo.cachePython || [];
+  if (borrados.length) {
+    const rutas = borrados.slice(0, 5).join(', ') + (borrados.length > 5 ? '…' : '');
+    fallas.unshift({ id: ID, commit: PENDIENTE, detalle: borrados[0], soloLista: true, que: `borré ${borrados.length} ${borrados.length === 1 ? 'caché' : 'cachés'} de Python ${borrados.length === 1 ? 'ignorado' : 'ignorados'} (se rehacen solos del .py seguido): ${rutas}`, hacer: 'no hace falta nada' });
   }
   return fallas;
 }

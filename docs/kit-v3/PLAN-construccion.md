@@ -1304,6 +1304,43 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
   2. **2026-11-04 · `gitleaks detect` sobre toda la historia de vibe-kit da 2** (no 0): dos claves de mentira en
      `kit/skills/arquitecto-skills/scripts/doctor.test.cjs` (líneas 595 y 597, commit `f670568`, D6.1 E2, 2026-11-02), ya públicas. Son
      del test, no secretos reales. Arreglo de taller: un `.gitleaksignore` con sus dos huellas, así "push solo con 0" vuelve a medir algo.
+  3. **2026-11-04 · Una sola ventana: el obrero nace en `main` y el director le da el worktree** (el Arquitecto v3 en Hermes, rc.3).
+     `worktree.cjs crear`/`abrir` terminan con `code "<worktree>"` o una línea de `claude.exe`. **Guido trabaja en la extensión de
+     Claude Code de VS Code, una ventana por proyecto** (los proyectos chicos, en la app): "New Session" nace en el workspace (`main`), y
+     un `/director` o `/obrero` ahí corre en `main`, no en su rama. Probado: `EnterWorktree` (path) entra (`git branch` = `modulo/cashflow`,
+     `.kit-rol` = director). Los hooks leen bien el rol (`contexto.cjs:6,30`: la raíz por `rev-parse` desde el cwd de la entrada, nunca
+     `CLAUDE_PROJECT_DIR`), pero los scripts de hook y los permisos quedan los del settings de arranque (`main`). **Medido por la madre**:
+     el `settings.json` de Hermes ya trae `Read(./**/.env)` y `Read(./**/.env.*)`, que cubren el principal y `.claude/worktrees/**`; lo
+     que el worktree suma (`settings.local.json`) es `Read`/`Edit` absolutos del `.env` del principal: con EnterWorktree falta solo el
+     **`Edit`**, y las `allow` de AUTORIZADO no cargan (más preguntas, no menos frenos). NO VERIFICADO que `./**` siga resolviendo contra
+     `main` después de EnterWorktree, ni si la extensión deja elegir la carpeta de una sesión nueva (multi-raíz). **Decidido con Guido,
+     desde hoy**: "esa forma de antes es muchísimo más práctica. Porque yo levanto al director en un worktree que lo planeo, eso con el
+     arquitecto, eso está bien. Pero una vez ahí, ya el director logra gestionar a los obreros. Lo mismo pasará eventualmente con los
+     gates". **Para la rc.5**: ese es el camino del kit: el obrero nace donde sea, `/obrero` se presenta, el director corre `abrir` y le
+     da la ruta, el obrero entra (EnterWorktree) y verifica rama y `.kit-rol` antes de tocar nada (si no coinciden, para); el `Edit` del
+     `.env` del principal, al `settings.json` del molde; `crear`/`abrir` imprimen esa vía; los gate, también desde el director.
+  4. **2026-11-04 · Diseñar un módulo ya armado, adentro de su worktree** (el Arquitecto v3, `cashflow`). `modo-b.md` B0 ("parado en
+     otra rama… el módulo nace en la rama por defecto") protege el NACIMIENTO (`worktree.cjs:610` exige la ficha en `main`) pero se lee
+     como si prohibiera el retome; `/director` paso 2 manda a `/arquitecto` en `modulo/<x>`. Se contradicen; `arquitecto.cjs` (sello y
+     ready) no mira la rama, solo `rama: modulo/<x>` en la ficha (`:225`): la traba es de texto. Y B5 dice crear el worktree después del
+     ready; se creó con el spec en BORRADOR porque Guido quiere que el diseño corra bajo el director. Workaround de hoy: una sesión
+     `arquitecto-cashflow` entra al worktree, commitea por rutas solo `docs/modulos/cashflow/SPEC.md` y `prototipo/` en `modulo/cashflow`
+     y pushea esa rama; el director corre `presentar --spec` con el READY. **Para la rc.5**: B0 distingue nacer (en `main`) de retomar
+     (en `modulo/<x>`), B5 admite el worktree en borrador, y `/director` dice si diseña él o una sesión de Arquitecto aparte.
+  5. **2026-11-04 · Un director para dos cosas** (tensión, sin decidir): el de `cashflow` también conduce ajustes de Cuenta Corriente
+     fuera del módulo, con un obrero en `ui/cc-seguimiento-circuitos`, por mensaje (decisión de Guido, se mantiene). Queda fuera de
+     `encargo.cjs verificar` y no hay cómo darle encargo (con el spec en BORRADOR `presentar --spec` sale 1; la rama no es
+     `modulo/<x>--<ID>`). Insumo de D8c.1: encargos para un cierre suelto bajo un director.
+  6. **2026-11-04 · La flota saltea el repo con obra en curso, y eso choca con la beta.** `lib/flota.cjs:305`: una rama `modulo/*` del
+     remoto sin mezclar → `salteado` ("no me meto en el medio"): no toca nada del repo, `main` incluido; y el worktree del módulo sigue
+     con el molde viejo hasta traer `main`. El proyecto que más se prueba es el que menos arreglos recibe. **Decidido con Guido**:
+     "quiero poder actualizar main y las ramas, que sea una opción. Que me recomiende no hacerlo, pero, por ejemplo, si yo sé que estoy
+     en un momento en el que puedo, quiero poder hacerlo". **Para la rc.5**: la opción explícita (la flota, o "poné al día X" con obra),
+     que avisa y recomienda no hacerlo, actualiza `main` y ofrece llevarlo a cada rama de módulo viva, con lo rojo de los frenos para
+     que lo apruebe Guido.
+  7. **2026-11-04 · `docs/NORTE.md` queda con `[completar]` después de la adopción** (Hermes): la adopción tendría que avisarlo.
+  8. **Dato, no pendiente**: los módulos de Hermes en curso: `lector` solo (rol de lectura en Supabase y `scripts/consultar.py`; sello
+     y ready ✅, `2a708a4b`) y `cashflow` con director (spec en BORRADOR, `30427858`; `worktree crear cashflow` con salida 0).
 
 - **La prueba de Juan** (2026-11-04, pedida por Guido): Juan prueba la beta en su PC y sus proyectos y sube pruebas duras e impresiones
   a la rama huérfana `prueba/juan` de este repo (sin el kit: su `CLAUDE.md`, `PLAN.md`, `pruebas/`, `impresiones.md`, proyectos con

@@ -979,3 +979,40 @@ test('crit. 7: registro mira dos niveles — una ficha para Hermes/Hermes.exe y 
   ]);
   assert.equal(r.err, '');
 });
+
+// ---------------------------------------------------------------- la carpeta de papeles (SPEC-paquete-8r3 i1, crit. 1)
+
+test('8r3 i1: con carpeta-docs: arti-docs en la ficha, el módulo es arti-docs/modulos/<x>/ (tamaño, delta por la ruta, --pendientes); docs/ es ajeno', () => {
+  const d = repo(ficha({ extra: 'carpeta-docs: arti-docs' }));
+  // tamaño: la ficha del módulo al lado, en arti-docs/modulos/<x>/
+  escribir(d, 'arti-docs/modulos/pagos/README.md', '# pagos\n- Estado: EN OBRA\n');
+  escribir(d, 'arti-docs/modulos/pagos/SPEC.md', spec());
+  const sinDir = correr(['sello', 'arti-docs/modulos/pagos/SPEC.md'], d);
+  assert.equal(sinDir.codigo, 1);
+  assert.match(sinDir.out, /tamaño: la ficha del módulo \(arti-docs\/modulos\/pagos\/README\.md\) no dice director: — agregá "director: no"/);
+  escribir(d, 'arti-docs/modulos/pagos/README.md', '# pagos\n- Estado: EN OBRA\n- director: sí\n');
+  assert.match(correr(['sello', 'arti-docs/modulos/pagos/SPEC.md'], d).out, /la Ejecución dice .* y la ficha del módulo dice director: sí/);
+  // en docs/ (ajeno) no es un módulo: la misma ficha al lado no se mira
+  escribir(d, 'docs/modulos/pagos/README.md', '# pagos\n- Estado: EN OBRA\n- director: sí\n');
+  assert.equal(sellado(d, 'docs/modulos/pagos/SPEC.md', spec({ h1: '# Pagos' })).r.codigo, 0);
+  // delta por la ruta: arti-docs/modulos/<x>/SPEC.md sí, docs/modulos/<x>/SPEC.md no
+  assert.equal(correr(['ready', 'docs/modulos/pagos/SPEC.md'], d).codigo, 0);
+  escribir(d, 'arti-docs/modulos/pagos/README.md', '# pagos\n- Estado: EN OBRA\n- director: no\n');
+  assert.equal(sellado(d, 'arti-docs/modulos/pagos/SPEC.md', spec({ h1: '# Pagos' })).r.codigo, 0);
+  assert.match(correr(['ready', 'arti-docs/modulos/pagos/SPEC.md'], d).out, /faltan secciones: ## Pedido original, textual, ## NO SE TOCA/);
+  // --pendientes: los módulos de arti-docs/modulos/ (pagos ya está sellado), no los de docs/
+  escribir(d, 'docs/modulos/ajeno/README.md', '# ajeno\n- Estado: EN OBRA\n');
+  escribir(d, 'arti-docs/modulos/nuevo/README.md', '# nuevo\n- Estado: EN OBRA\n- director: no\n');
+  assert.deepEqual(correr(['ready', '--pendientes'], d), { codigo: 0, out: 'nuevo · sin sello\n', err: '' });
+  // una carpeta de dos partes también
+  const dos = repo(ficha({ extra: 'carpeta-docs: papeles/metodo' }));
+  escribir(dos, 'papeles/metodo/modulos/m/README.md', '# m\n- Estado: EN OBRA\n');
+  escribir(dos, 'papeles/metodo/modulos/m/SPEC.md', spec());
+  assert.match(correr(['sello', 'papeles/metodo/modulos/m/SPEC.md'], dos).out, /\(papeles\/metodo\/modulos\/m\/README\.md\) no dice director:/);
+  // sin la clave (o con una ficha que no se lee) todo como antes: docs/
+  const sin = repo(ficha());
+  escribir(sin, 'docs/modulos/m/README.md', '# m\n- Estado: EN OBRA\n');
+  escribir(sin, 'docs/modulos/m/SPEC.md', spec());
+  assert.match(correr(['sello', 'docs/modulos/m/SPEC.md'], sin).out, /\(docs\/modulos\/m\/README\.md\) no dice director:/);
+  assert.deepEqual(correr(['ready', '--pendientes'], sin).out, 'm · borrador a medias\n');
+});

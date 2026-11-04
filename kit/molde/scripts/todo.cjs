@@ -4,15 +4,20 @@
 // Poda docs/TODO.md (a 🟢 lo que lleva 90 días sin tocarse, por la edad que da git blame), escribe el resultado e imprime
 //   TODO: +n −m · k ítems · j bajaron a 🟢
 // Base de la comparación: --base, o el último commit que tocó docs/SESSION_HANDOFF.md (el cierre anterior).
+// docs/ es la carpeta de papeles: la `carpeta-docs:` de la ficha vigente si la hay (SPEC-paquete-8r3 i1; lib/docs-ruta.cjs).
 // Salidas: 0 anduvo · 2 mal llamado · 3 sin docs/TODO.md. Node estándar, cero dependencias.
 
 const fs = require('fs');
 const path = require('path');
 const git = require('../hooks/lib/git.cjs');
 const todo = require('../hooks/lib/todo.cjs');
+const docsRuta = require('../hooks/lib/docs-ruta.cjs');
 
-const RUTA_TODO = 'docs/TODO.md';
-const RUTA_HANDOFF = 'docs/SESSION_HANDOFF.md';
+// Las dos rutas, dentro de la carpeta de papeles del checkout (8r3 i1): docs/TODO.md y docs/SESSION_HANDOFF.md sin la clave.
+const rutas = (cwd) => {
+  const c = docsRuta.deRaiz(cwd);
+  return { RUTA_TODO: docsRuta.rel(c, 'TODO.md'), RUTA_HANDOFF: docsRuta.rel(c, 'SESSION_HANDOFF.md') };
+};
 
 const USO = 'Uso: node todo.cjs cierre [--base <ref>]   (desde la raíz del repo)';
 
@@ -36,7 +41,8 @@ function leerArgumentos(argv) {
 }
 
 function cierre(cwd, baseArg) {
-  const archivo = path.join(cwd, RUTA_TODO);
+  const { RUTA_TODO, RUTA_HANDOFF } = rutas(cwd);
+  const archivo = path.join(cwd, ...RUTA_TODO.split('/'));
   let despues;
   try {
     despues = fs.readFileSync(archivo, 'utf8');

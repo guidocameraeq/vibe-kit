@@ -54,6 +54,7 @@ function libs() {
     git: require('../hooks/lib/git.cjs'),
     proceso: require('../hooks/lib/proceso.cjs'),
     worktree: require('./worktree.cjs'), // reglasDeny: el deny que suma worktree, el mismo que verificar exige
+    docs: require('../hooks/lib/docs-ruta.cjs'), // 8r3 i1: la carpeta de papeles
   };
 }
 
@@ -529,7 +530,9 @@ function lineaAlcance(L, c) {
   const r = G(L, c.raiz, ['diff', '--name-only', '--no-renames', '-z', c.base, c.punta]);
   if (!r.ok) return [MAL, `${NV} — no pude listar los archivos de la rama`];
   const archivos = r.stdout.split('\0').filter(Boolean);
-  const evidencia = new RegExp(`^docs/modulos/${c.n.x}/bitacora/[^/]+-evidencia-${c.n.id}\\.md$`);
+  // 8r3 i1: la evidencia vive en la carpeta de papeles (docs sin la clave)
+  const bitacora = L.docs.rel(L.docs.deRaiz(c.raiz), `modulos/${c.n.x}/bitacora/`).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const evidencia = new RegExp(`^${bitacora}[^/]+-evidencia-${c.n.id}\\.md$`);
   const toca = c.e.secciones.toca.rutas;
   const demas = archivos.filter((f) => f !== LOG && !evidencia.test(f) && !toca.some((p) => enToca(f, p)));
   if (demas.length) return [OJO, `${demas.length} fuera de ## Toca (el director decide): ${demas.slice(0, 10).join(', ')}${demas.length > 10 ? ' …' : ''}`];

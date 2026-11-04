@@ -1,0 +1,385 @@
+# SPEC delta: paquete 8r4 — la `rc.5`: las correcciones del uso real — vibe-kit
+Lo que dolió en la primera semana de uso real de la beta (Hermes Desktop con `cashflow`, el analytics de Arti, el bot que espera) y que
+Guido quiere ya. El corazón: **el obrero (y el director) de una sola ventana** y **la flota con obra en curso como opción**. Lo que era
+la `rc.5` (D8c.1: el obrero de cierre de tramo y los experimentos de método) pasa a la `rc.6`.
+- Estado: READY (D8r.4, 2026-11-04, después de una ronda de red team)
+- Fecha: 2026-11-04 · Misión: 5, director **D8r.4** (lo lanzó la sesión madre de la recta final; la vara: ADR-030 y ADR-034; el presupuesto: ADR-029)
+- Plano: [`SPEC-0-kit-v3.md`](SPEC-0-kit-v3.md); el modelo: [`SPEC-paquete-8r3.md`](SPEC-paquete-8r3.md). La fuente: tracker, Pendientes, "De la
+  prueba real, lo que cuenta Guido" (1, 2, 3, 4, 6, 7), "De la adopción real de Hermes" (1, 3, 4, 5, 6, 7, 8, 11 c) y lo que la `rc.4`
+  deje de "De D8r.2".
+- Red team: **sí, una ronda** (obligatorio: toca frenos — el `settings.json` del molde, `datos-reales`, la flota que actualiza `main`
+  con obra en curso y un comando que mergea `main` en la rama de un módulo). Chequeo frío sobre clones (nunca las carpetas reales).
+- **Base**: el tag `v3.0.0-rc.4` (D8r.3). No se codea ni se mergea antes; los worktrees salen de ese tag.
+
+## Por qué (el dolor)
+
+- **Guido trabaja en una sola ventana** (la extensión de Claude Code en VS Code, una ventana por proyecto): "New Session" nace en el
+  workspace, o sea en `main`. `worktree crear`/`abrir` le imprimen `code "<worktree>"`, que abre **otra** ventana. Un `/obrero` tipeado
+  en la ventana de siempre corre en `main`, no en su rama: `presentar` para con "rama equivocada" y no hay camino. Decidido con Guido el
+  2026-11-04 (tracker, "lo que cuenta Guido" 3): *"esa forma de antes es muchísimo más práctica […] una vez ahí, ya el director logra
+  gestionar a los obreros. Lo mismo pasará eventualmente con los gates"*.
+- **La flota saltea el repo con obra en curso** (`lib/flota.cjs:305`): una `modulo/*` viva → `salteado`, sin tocar `main`. Hermes, el
+  proyecto que más prueba la beta, es el que menos arreglos recibe. Decidido con Guido (ítem 6): *"quiero poder actualizar main y las
+  ramas, que sea una opción. Que me recomiende no hacerlo, pero […] si yo sé que estoy en un momento en el que puedo, quiero poder"*.
+- **El disco se llena de copias**: en `D:\` hay 9 worktrees de Hermes **registrados** (`git worktree list` de `D:\Hermes\Hermes.exe`:
+  `D:/Hermes-5b-cc`, `D:/Hermes-cc-ui`, … — medido acá en solo lectura) fuera de `.claude/worktrees/`, y 66 carpetas `gate-*` en
+  `D:\Hermes\` (el padre del repo; las crea el proceso propio de Hermes de antes de la adopción: `tests/test_candados_por_rol.py:148`
+  lee `<padre del principal>/gate-candados/`). Nadie lo avisa (ítem 1).
+- **`gitleaks detect` da 2, no 0** (ítem 2): dos claves de mentira de `doctor.test.cjs` (`f670568`): "push solo con 0" dejó de medir.
+- **`modo-b.md` B0 se lee como si prohibiera retomar el diseño en `modulo/<x>`**, `/director` paso 2 manda ahí a `/arquitecto`, y B5
+  pide el worktree después del READY cuando Guido quiere que el diseño corra bajo el director (ítem 4, `cashflow`).
+- **`NORTE.md` queda con `[completar]`** después de la adopción y nadie lo dice (ítem 7, Hermes).
+- **De la adopción de Hermes**: el renglón del CHANGELOG rompe un Keep a Changelog que lee `publicar.bat` (1); `NUCLEO.md` deja editar
+  `CLAUDE.md`, skills y agentes como clase 1/2 y Guido eligió para Hermes "solo con mi clic" (3); los agentes propios con el nombre de
+  los del kit solo se nombran (4); `datos-reales` pregunta también contra el ensayo (5); el Equipador no pide cruzar los patrones antes de
+  `--sacar-viejo` (6); `--mirar` propone el `.worktreeinclude` pero `--aplicar` no lo escribe (7); las lecciones de Hermes (8); y en el
+  analytics, un `ask Bash(ssh:*)` propio preguntaba en cada ssh aunque Guido dijera "no volver a preguntar" (11 c: *"me vuelve loco"*).
+
+## Contexto (explorado el 2026-11-04, `Guido-PC-eQ`, sobre `main` @ `5465a56`)
+
+- **`EnterWorktree` con `path`** (la herramienta de Claude Code): entra a un worktree que ya existe si la ruta está en `git worktree list`
+  del repo; `ExitWorktree` nunca borra uno entrado así; cambiar a otro deja el anterior sin escritura. La descripción de la herramienta
+  pide que la use solo si lo dice el usuario o "las instrucciones del proyecto": la skill tiene que nombrar `EnterWorktree` y "worktree".
+  La madre lo probó en Hermes: `git branch` = `modulo/cashflow`, `.kit-rol` = director.
+- **Los hooks ya leen bien el rol** después de entrar (`contexto.cjs:6,30`: la raíz por `rev-parse` desde el cwd de la entrada), pero los
+  **scripts de hook y los permisos son los del arranque** (`${CLAUDE_PROJECT_DIR}` = `main`). El `settings.json` del molde trae `Read(./**/.env)`
+  y `Read(./**/.env.*)` en `deny`; `worktree.cjs reglasDeny` (~422) suma al `settings.local.json` del worktree `Read` y `Edit` absolutos
+  del `.env` del principal, que con EnterWorktree **no cargan**: falta el `Edit`. Y las `allow` de AUTORIZADO (también en ese
+  `settings.local.json`) tampoco cargan: más ventanas, no menos frenos.
+- `worktree.cjs lineasApertura` (~462): `code "<ruta>"`, la pestaña, la línea de terminal si hay `claude`, `primer mensaje: /obrero x--ID`.
+  `equipar` (~514) escribe `.kit-rol`, copia los `.env`, suma el deny, corre el setup. La carpeta es `CARPETAS/<n.carpeta>`
+  (`.claude/worktrees/modulo--<x>[--<ID>]`): se calcula del nombre, sin estado.
+- `/obrero` paso 1 corre `encargo.cjs presentar` (para con rama equivocada); `/director` paso 1 llega por `/director` o por el paso 0 del
+  `/inicio`. Ninguno sabe entrar.
+- **El gate ya es del director**: `encargo.cjs verificar` y `worktree.cjs integrar` son scripts que corre él (el temporal de `integrar`
+  vive en `.claude/worktrees/`). No hay "sesión de gate" en el kit: los `gate-*` de Hermes son de su proceso propio.
+- **Flota**: `actualizarRepo` (~286) clona, saltea con obra (~305) y, en verde, avanza la rama por defecto con un commit (ff, ~427).
+  El commit del kit se juzga con la exención (a) contra el molde nuevo.
+- **Un merge de `main` en `modulo/<x>`** se juzga contra cada padre con `descontarMerge` (`barreras.cjs` ~345): lo que llega igual
+  desde `main` (ya juzgado allá) se descuenta. Con remoto, el rango es `origin/<def>..HEAD`: el commit del kit ya está en `origin/main`
+  y no entra. O sea: traer `main` limpio da verde; lo que puede dar rojo es lo que choca o lo que el módulo cambió de un freno.
+- `adoptar.cjs`: `RUTA_CHANGELOG` (~72, el renglón al tope), `lineaWorktreeinclude` (~466-483, solo texto), los agentes propios en
+  `distintos` (~555, solo una línea), `decisionesSettings` (~988: solo los `ask` que `frenaAlDirector`). `actualizar.cjs` escribe su renglón
+  igual. El `/cierre` del molde impone `## AAAA-MM-DD — <tema>`.
+- Hermes, en solo lectura: `scripts/aplicar_migracion.py` corre contra el **ensayo por defecto** y se niega contra producción sin
+  `--confirmar-produccion`; su ficha lista `scripts/aplicar_migracion.py` en `datos-reales`. `sensible.cjs` ya matchea banderas de la
+  entrada "en algún lugar del comando": la entrada `scripts/aplicar_migracion.py --confirmar-produccion` pregunta solo contra producción.
+- `NUCLEO.md` §9.4: "El andamiaje del propio proyecto (`CLAUDE.md`, skills, agentes, CI) lo editan los agentes […] (clase 1 o 2)".
+
+## Pedido original, textual
+
+> **D8r.4 · la `rc.5`: las correcciones del uso real.** […] **3, el obrero de una sola ventana (DECIDIDO por Guido, es el corazón de esta
+> rc).** El obrero nace donde sea (la extensión de VS Code abre en `main`) y `/obrero` se presenta. El director corre `abrir` y le da la
+> ruta. El obrero entra con `EnterWorktree` y verifica rama y `.kit-rol` antes de tocar nada; si no coinciden, para. El `Edit` del `.env`
+> del principal va al `settings.json` del molde. `crear`/`abrir` imprimen esta vía. Lo mismo para el director (lo levanta Guido con el
+> Arquitecto en su worktree) y, si entra, para los gate. […] **6, la flota con obra en curso como OPCIÓN (DECIDIDO).** La flota, o "poné
+> al día X", lo ofrece explícito, avisa y recomienda no hacerlo. Si Guido insiste, actualiza `main` y ofrece llevarlo a cada rama de
+> módulo viva, con lo rojo de los frenos para que lo apruebe él. […] **El 5 no entra** […] **NO entran**: el 2 […] ni el 9 […]
+> *(La sesión madre, 2026-11-04.)*
+
+## AGREGA y MODIFICA
+
+Rutas: `molde` = `kit/molde/`, `lib` = `kit/molde/hooks/lib/`, `wt` = `kit/molde/scripts/worktree.cjs`, `adoptar` =
+`kit/skills/arquitecto-skills/scripts/lib/adoptar.cjs`, `flota` = `kit/skills/arquitecto-skills/scripts/lib/flota.cjs`.
+
+### Vuelta 1 — lo que Guido decidió y quiere ya
+
+#### u1 · Una sola ventana: el obrero y el director entran solos a su worktree
+
+- **`wt donde <x>[--<ID>]`** (nuevo, solo lectura; no escribe nada, no hace fetch): desde cualquier carpeta del repo (el principal o un
+  worktree) calcula el worktree esperado (`<principal>/.claude/worktrees/modulo--<x>[--<ID>]`, el principal por `git-common-dir`) y:
+  - si el cwd **ya es** ese worktree (la raíz por `rev-parse --show-toplevel`, comparada con `mismaRuta`) y la rama es `modulo/<x>[--<ID>]`
+    y `.kit-rol` dice el rol esperado (`obrero` con `<ID>`; `director` o `nocturno` sin él) → salida 0, `adentro: <rama> · rol <rol> ·
+    <ruta>`;
+  - si el cwd es otra carpeta del mismo repo y el worktree está en `git worktree list` con esa rama → salida 0, `entrar: <ruta absoluta>`
+    y la línea `con la herramienta EnterWorktree (path = esa ruta); después volvé a correr donde`;
+  - si no está registrado o no existe la carpeta → salida 1, `no hay worktree: el director corre worktree crear <x>--<ID> (o abrir, en
+    otra PC)`; si existe con otra rama, o `.kit-rol` falta o dice otro rol → salida 1, `PARADA: <qué no coincide>`.
+- **`/obrero` paso 0 (nuevo), antes de la presentación**: `node .claude/scripts/worktree.cjs donde <x>--<ID>`. `entrar:` → la herramienta
+  `EnterWorktree` con esa ruta, y `donde` otra vez: tiene que decir `adentro:`. Cualquier otra cosa → PARADA sin tocar nada (no hay rol de
+  obrero todavía: los frenos te leen como el dueño). El paso 1 (`presentar`) sigue igual: es el segundo candado de la rama.
+- **`/director` paso 1**: lo mismo con `donde <x>` (sin `<ID>`) antes de leer el relevo. Lo levanta Guido en su ventana; el `/director` de
+  una sesión nueva entra solo.
+- **La apertura que imprimen `crear`/`abrir`** (`lineasApertura`): **primero la vía de una ventana**: `en tu ventana de siempre, una
+  sesión nueva de Claude; primer mensaje: /obrero <x>--<ID> (entra sola al worktree)`; después, como alternativa, `o en otra ventana:
+  code "<ruta>"` y la de terminal como hoy. `/director` paso 4 ("La apertura") dice lo mismo: dale al dueño el primer mensaje.
+- **El `.env` del principal con EnterWorktree**: el `settings.json` del molde suma `Edit(./**/.env)` y `Edit(./**/.env.*)` al `deny`, al
+  lado de las `Read` que ya están. Cubre el principal y todo `.claude/worktrees/**` desde el settings de `main`. El deny absoluto del
+  `settings.local.json` (`reglasDeny`) queda: es el de una ventana aparte.
+- **Lo que no carga**: las `allow` de AUTORIZADO viven en el `settings.local.json` del worktree; con una ventana, el obrero pide más
+  ventanas (no menos frenos). `/obrero` paso 4 lo dice. El arreglo de fondo (que `autorizado` también sirva así) no entra: NO VERIFICADO
+  cómo recarga permisos la extensión después de EnterWorktree (se mide en el piloto, "Lo que esto no cierra").
+- **Los gate**: no cambian (ya los corre el director por script). `NUCLEO.md` §6 suma media línea: "el gate lo corre el director desde su
+  worktree; nunca en una carpeta fuera del repo".
+- **El molde `CLAUDE.md`**: una línea en "Autonomía": "Un `/director` o `/obrero` entra a su worktree con `EnterWorktree` (lo dice su
+  skill); nunca trabaja en `main`". Así la herramienta tiene su instrucción del proyecto.
+- **crit. 1**: `worktree.test` — `donde` en las cinco salidas: desde el principal con el worktree creado (`entrar:` y la ruta), desde
+  adentro (`adentro:`), sin worktree (1), con `.kit-rol` de otro rol (1, PARADA), con otra rama en esa carpeta (1); y desde otro
+  worktree del mismo repo (`entrar:`). `donde` no escribe nada (el `git status` del principal y del worktree, iguales antes y después).
+  `lineasApertura`: la primera línea es la de una ventana. (El deny del `.env`: ver rt-1, que reemplaza el renglón de arriba.)
+  `skills.test`: `/obrero` y `/director` nombran `worktree.cjs donde` y `EnterWorktree`, y el paso 0 va antes de `presentar`.
+
+#### u2 · La flota con obra en curso: la opción explícita
+
+- **`actualizar.cjs flota … --con-obra`** (nuevo; sin él, como hoy): un repo con `modulo/*` vivas no se saltea. Sin la bandera, el
+  `porque` del `salteado` suma: `si sabés que podés: --con-obra (no lo recomiendo con un director trabajando: su rama queda atrás de main
+  hasta que la traiga)`.
+- **Con `--con-obra`**: `main` se actualiza por el camino de siempre (el commit del kit, `chequear`, ff o `kit/<tag>` que espera, ROTA).
+  Después, **por cada `modulo/*` viva, una prueba en el clon, sin subir nada**: `git checkout -B` de `origin/modulo/<x>`, `git merge
+  --no-ff --no-commit` de la rama por defecto **ya actualizada**, y `estructura.cjs barreras` sobre lo pendiente (el merge en curso, el
+  camino de MERGE_HEAD). Cada módulo da una línea en "te espera": `modulo/<x>: trae main con worktree.cjs traer-main <x> (lo corre el
+  director) — barreras verde` · `… — barreras rojo: <ids> (lo apruebas vos antes: cambios nuevo …)` · `… — choca en <rutas>: es un encargo
+  del director`. La flota **nunca** sube a una `modulo/*`: la rama es del director.
+- **`wt traer-main <x>`** (nuevo, lo corre el director en su worktree, `modulo/<x>`): `git fetch origin`; rama equivocada, árbol sucio o
+  un obrero sin mergear con cambios en el disco → 1 sin tocar; `git merge --no-ff --no-commit origin/<def>`; **choca → `git merge --abort`**,
+  salida 1 y las rutas ("es un encargo"); limpio → `barreras` sobre lo pendiente: **rojo → `git merge --abort`**, salida 1, los ids y la
+  línea exacta del `cambios nuevo …` para que el dueño apruebe (el sello antes del commit, como i5 de la `rc.4`); verde → `git commit`
+  (`módulo <x>: trae <def> @<sha7>`) y `git push origin modulo/<x>`. Nunca `--force`, nunca otra rama.
+- **"Poné al día X" con obra** (`flota.md`): el Arquitecto lo ofrece explícito: *"X tiene obra en curso (modulo/a, modulo/b). Lo
+  recomendado: esperar a que integre. Si sabés que podés, actualizo main y te digo, por módulo, si traerlo da verde"* — con AskUserQuestion,
+  la recomendada primero. "Sí" → `--con-obra`; después le pasa al director de cada módulo la línea `traer-main`.
+- **`/director`**: una línea en el paso 6: *"main trajo el kit (la flota te lo avisa, o el dueño): `node .claude/scripts/worktree.cjs
+  traer-main <x>` entre dos encargos, nunca con un obrero a mitad de un sub-paso que toque lo mismo"*.
+- **crit. 2**: `flota.test` — un remoto con `modulo/a` viva: sin `--con-obra` sale `salteado` y el porqué nombra la bandera; con ella,
+  `main` avanza un commit, `modulo/a` en el remoto queda **igual** (mismo sha) y "te espera" trae la línea de `modulo/a` (verde); un
+  `modulo/b` que cambió `.claude/settings.json` sin aprobado → la línea dice rojo con sus ids; uno que choca con el kit → "choca".
+  `worktree.test` — `traer-main` verde (commit con dos padres, push al bare), choca (aborta, el árbol y HEAD como antes, 1), rojo
+  (aborta, 1, imprime el `cambios nuevo`), árbol sucio (1 sin tocar), parado en `main` (1). Mutación de `traer-main`: sacar el
+  `--abort` del rojo, o el chequeo de rama, deja una prueba en rojo.
+
+#### u3 · Taller: `.gitleaksignore` con las dos huellas de mentira
+
+- En la raíz de vibe-kit, `.gitleaksignore` con las dos huellas (`<commit>:<archivo>:<regla>:<línea>`) que da `gitleaks detect` hoy.
+  Solo esas dos. **crit. 3**: `gitleaks detect` sobre toda la historia sale 0; con una clave de mentira nueva en un archivo de prueba
+  (sin commitear, `gitleaks protect`), sale 1.
+
+### Vuelta 2 — el resto de lo que dolió
+
+#### u4 · Lo que queda fuera del repo: `--mirar` y el `doctor` lo avisan
+
+- **`lib/vecinos.cjs`** (nuevo, en `arquitecto-skills/scripts/lib/`): `vecinos(principal)` → (a) los worktrees de `git worktree list
+  --porcelain` **fuera** de `.claude/worktrees/`, cada uno con su estado: `mezclada` (su punta es ancestro de la rama por defecto y el
+  árbol limpio), `viva` (commits que la rama por defecto no tiene), `suelta` (detached), `perdida` (prunable: la carpeta no existe);
+  (b) las carpetas `gate-*` y `gate_*` en el **padre** del principal. Solo lee; nunca borra.
+- **`adoptar --mirar`** (con `--principal`): una línea `fuera del repo: N worktrees (M ya mezclados) y K carpetas gate-* en <padre> — el
+  kit los arma adentro (.claude/worktrees/; el gate, worktree integrar): lo que esté mezclado se puede borrar con git worktree remove
+  <ruta> (lo decide Guido, una por una)`. Si un script del repo escribe `../gate-` o `parent / "gate-` (un `git grep` de esas dos formas),
+  lo nombra: *"tu gate propio escribe fuera del repo: pasalo al del kit o a `.claude/worktrees/`"*.
+- **`doctor`** (parado en un proyecto): la misma lista como ⚠ (nunca ✗), con `git worktree remove <ruta>` solo para las `mezclada`.
+- **crit. 4**: `vecinos.test` con un repo y tres worktrees fuera (una mezclada, una viva, una prunable) y dos `gate-*` en el padre: los
+  cuatro estados bien; `adoptar.test` y `doctor.test` imprimen la línea; ninguno borra (las carpetas siguen).
+
+#### u5 · `modo-b.md` B0 y B5, y quién diseña bajo el director
+
+- **B0**: la regla "parado en otra rama: no armás" vale para **nacer** (sin `docs/modulos/<x>/` en la rama por defecto). **Retomar** un
+  módulo que ya nació (su `README.md` en la rama por defecto y `rama: modulo/<x>` en su ficha) se hace **en `modulo/<x>`**, en su worktree
+  (`wt donde <x>`, u1): el spec y el prototipo se commitean por rutas ahí y se pushea esa rama.
+- **B5**: con director, el worktree **puede** armarse con el spec en BORRADOR (el diseño corre bajo el director: Guido lo quiere así); el
+  sello y el READY siguen siendo del Arquitecto, en `modulo/<x>`, y `presentar --spec` sigue frenando el reparto sin READY.
+- **`/director` paso 2**: con el spec en BORRADOR, el diseño **lo hace una sesión de Arquitecto aparte** (Modo B, retome, en el mismo
+  worktree: `/arquitecto` en una sesión nueva entra con `donde`); el director no diseña (rol 10: no escribe código ni specs) y espera el READY.
+- `arquitecto.cjs` no cambia (no mira la rama: medido en el tracker, `:225`). **crit. 5**: `skills.test`/`arquitecto.test` — los textos
+  dicen nacer/retomar y el BORRADOR bajo director; `worktree crear <x>` con el spec en BORRADOR sigue andando (ya anda) y `presentar --spec`
+  sigue en 1.
+
+#### u6 · Los avisos de la adopción
+
+- **`NORTE.md` con `[completar`**: `--aplicar` termina con `NORTE.md tiene N [completar]: llenalo con Guido (lo usa el Arquitecto en B1)`
+  si quedó alguno; la flota no lo mira. **crit.**: `adoptar.test`.
+- **El CHANGELOG del proyecto** (`adoptar` y `actualizar`): si `<carpeta>/CHANGELOG.md` tiene un `## [Unreleased]` (Keep a Changelog), el
+  renglón va **adentro de esa sección**, en una subsección `### Método (kit)` (creada si falta, al final de la sección), nunca en las otras
+  subsecciones (las lee el release). Si no, como hoy. El `/cierre` del molde dice lo mismo: con `## [Unreleased]`, la entrada de la sesión
+  va como renglones en `### Método (kit)` (o donde diga la zona propia del `/cierre`), sin `## AAAA-MM-DD`. **crit.**: `adoptar.test` y
+  `actualizar.test` con un Keep a Changelog con `### Para usuarios`: esa subsección queda byte a byte; `skills.test` para el `/cierre`.
+- **Los agentes propios** con el nombre de un agente del kit: `--aplicar … --agentes renombrar` los mueve a `.claude/agents/<nombre>-propio.md`
+  (`git mv`, en el commit de las piezas) y la pieza pasa a `sí`; la línea dice que sus reglas pueden ir a la zona propia del `/tramo` o al
+  brief. "Mezclar" no es un camino del script (dos agentes con instrucciones distintas no se funden solos): es la sesión con Guido, a mano.
+  **crit.**: `adoptar.test` (el propio sigue con su contenido y el del kit queda; sin la opción, como hoy).
+- **`.worktreeinclude`**: `--aplicar … --worktreeinclude` escribe en la raíz las líneas que propuso `--mirar` (en el commit de las piezas;
+  si ya hay uno, se niega a pisarlo). **crit.**: `adoptar.test`.
+- **Los `ask` propios** (11 c): `--mirar` suma `ask que preguntan en cada vuelta (también con "no volver a preguntar"): <lista>` con los
+  `ask` del settings que no frenan al director, y el remedio: *"para que pregunte una vez: sacá el ask; si es para mirar (ssh de solo
+  lectura), una allow con el comando exacto"*. No los saca solo (es decisión de Guido). **crit.**: `adoptar.test`.
+
+#### u7 · Las opciones de la ficha y los textos
+
+- **`andamiaje:`** (nueva, opcional, de arriba): `agentes` (por defecto, como hoy) · `con-ok-de-guido`. `NUCLEO.md` §9.4: con
+  `con-ok-de-guido`, editar `CLAUDE.md`, skills o agentes es **clase 3** (el clic del dueño). `ficha.cjs` la valida (las copias byte a
+  byte). La adopción la propone cuando el proyecto ya tiene esa regla (Hermes: CM-14). Es texto, no un hook (como la clase 3 de hoy).
+- **`datos-reales` por entorno** (Hermes 5): sin código nuevo (ya anda, Contexto). `flota.md` D4 y el ejemplo de la ficha: *"si el
+  comando elige el entorno con una bandera, la entrada lleva la bandera que apunta a lo real (`scripts/aplicar_migracion.py
+  --confirmar-produccion`): pregunta solo contra lo real"*. **crit.**: `sensible.test` con esa entrada: pregunta con la bandera, no sin.
+  A Hermes se lo propone la madre (su ficha es de Guido).
+- **El Equipador** (Hermes 6): el modo HOOKS POR PC, paso 4, pide antes de `--sacar-viejo` cruzar los patrones del corrector viejo con los
+  de `secretos.cjs` y decir cuáles faltan.
+- **Las lecciones de Hermes** (8), con la vara del ADR-030, una línea cada una donde se lee:
+
+  | CM de Hermes | Entra | Dónde / por qué no |
+  |---|---|---|
+  | 15, 37, 101 · un pendiente no queda huérfano, lleva su destino | sí | `/cierre` y el CIERRE del obrero: cada pendiente dice adónde va (TODO, un módulo, o "descartado: por qué") `[acordarse de menos]` |
+  | 16, 70, 81 · fila por decisión, camino en papel, "qué ve hoy / qué va a ver" | no | ya está: B2 (prototipo antes del spec) y "Decisiones" del formato |
+  | partir sin mezclar capas | sí | la plantilla del encargo: un sub-paso no mezcla capas (datos · lógica · pantalla) `[mejor código]` |
+  | tope de 3 archivos por sub-paso | no | por las dudas: `## Toca` ya acota y un tope fijo no sirve para todos |
+  | 34 · abrir la función entera antes de citar | sí | el `explorador` y B1: antes de citar `archivo:línea` de una función, leerla entera `[mejor código]` |
+  | 17, 6, 74, 88 · contar los números contra el código; "X ya no existe" con su medición; una premisa corregida reabre la decisión | sí | `NUCLEO.md` §9: una sola línea `[mejor código · coherencia]` |
+  | 31, 42, 55, 85 · un mutante vivo es un agujero de la prueba | sí | `NUCLEO.md` §7: un mutante vivo se mira y va una prueba o la nota de por qué es equivalente |
+  | 93, 95 · antes de borrar un módulo, la suite con él bloqueado | no | regla de 3+: un caso en Hermes; queda en su zona propia |
+  | 32, 63, 96 · no armar texto por partes para esquivar un control; sin atribuciones en el código | no | lo primero ya está (`/obrero` 4: "nunca un rodeo"); lo segundo choca con el kit, que cita su spec en los comentarios |
+  | 28 · el gate prueba primero el camino de la mayoría | no | no tiene escenario de error medido en el kit |
+  | 25 · el obrero sale con trabajo de reserva | no | va con D8c.1 (el obrero de cierre de tramo, `rc.6`) |
+  | 3 · el entregable que no se parte se avisa antes | sí | `/director` paso 3: el encargo lo dice arriba y se avisa al dueño antes de lanzar `[workflow]` |
+  | 87 · un archivo con una credencial adentro no se lee entero | sí | `NUCLEO.md` §11: fuera de los `.env`, se busca el nombre, nunca se abre entero `[mejor código]` |
+  | 63 · cruzar el NO SE TOCA con decisiones posteriores al spec | sí | `/director` paso 3, al armar el encargo `[coherencia]` |
+
+- **crit. 6** (ADR-034): los textos dicen lo mismo que el código (`flota.md`, `modo-b.md`, `NUCLEO.md`, `/obrero`, `/director`, `/cierre`,
+  `EQUIPADOR`/`SKILL.md` del Equipador, el `USO` de `actualizar` y de `worktree`), y los topes de las skills siguen (`skills.test`).
+
+### De la `rc.4` (lo que D8r.3 deje)
+
+D8r.3 contestó (2026-11-04): la `rc.4` toma 11 (a) y (b) y, de "De D8r.2", solo el 1. Del resto de "De D8r.2", con la vara:
+
+- **u8 · CF-3, el plazo del test en la ficha** (entra): `vars.plazo-test` (minutos, entero 1-60, opcional) lo lee el `sello` en vez de
+  los 5 de `ARQUITECTO_PLAZO_TEST_MS` (la variable sigue mandando si está). Hermes tarda ~7 min: sin esto, en un proyecto sin base real
+  el sello daría "colgado". `[workflow]` **crit.**: `arquitecto.test` con un test falso de más de 5 s y `plazo-test` chico/grande (con el
+  plazo en segundos por la variable de pruebas).
+- **CF-2, la mitad** (no entra): sumar `web/` al setup se decide en la pantalla con Guido (`--mirar` ya lo avisa); hacerlo solo es adivinar.
+- **t12 (a), mirar si el código lee el archivo** (no entra): por las dudas; la línea ya lo deja a Guido.
+- **El repo de prueba parecido a Hermes** (no entra en esta tanda): es grande y no arregla un dolor de uso; va antes de R2 (se le avisa a la madre).
+- **Los NO VERIFICADO de D8r.2** (5): el de `--traer` sobre un clon de Hermes lo cubre el chequeo frío (crit. 8 c, sobre el bot); el resto sigue.
+
+### Lo que trajo el red team (manda sobre lo de arriba)
+
+Una ronda (2026-11-04): 4 ALTOS, 5 MEDIOS, 2 BAJOS, todos integrados. Contrastó con el código y con la documentación oficial de Claude
+Code (permisos y worktrees).
+
+- **rt-1 (ALTO, u1) · El `.env` del principal queda legible después de EnterWorktree.** Las reglas `./…` son relativas al directorio
+  actual y `**/.env` no cubre un `.env` en un directorio **padre** (la tabla de la documentación de permisos): desde
+  `<principal>/.claude/worktrees/modulo--x--01`, el `.env` del principal es un padre. Ni las `Read(./**/.env)` de hoy ni las `Edit` nuevas
+  lo cubren. **Arreglo**: `equipar` suma `reglasDeny(principal)` (las cuatro absolutas, Read/Edit × .env/.env.*) **también** al
+  `.claude/settings.local.json` del **principal** (ignorado por `IGNORADOS`; sin pisar lo que tenga: el mismo `sumarDeny`), que es donde
+  nace la sesión de una ventana; y sigue sumándolas al del worktree. Cubre con cualquiera de las dos premisas (rt-5). **El `settings.json`
+  del molde no cambia**: las `Edit(./**/.env*)` eran redundantes y trababan `.env.example` (rt-10). Reemplaza el renglón del `.env` de u1 y
+  D8r4-3. crit. 1 suma: después de `crear`, el `settings.local.json` del principal tiene las cuatro y lo que tenía antes; uno roto → 1
+  como hoy. **Que se sepa dónde vive** (la madre, 2026-11-04): ese archivo no viaja por git y cada PC lo necesita; `crear`/`abrir`
+  imprimen `deny del .env del principal: en <principal>/.claude/settings.local.json (no viaja por git: cada PC lo arma con su primer
+  crear o abrir)`, y el `doctor`, parado en un proyecto con worktrees en `.claude/worktrees/`, da ⚠ si a ese archivo le falta alguna de
+  las cuatro, con la línea `node .claude/scripts/worktree.cjs abrir …` que lo rehace (sin pisar nada). crit. 8 suma: en una sesión real, después de EnterWorktree, `Read <principal>/.env` da deny (si no se mide: NO VERIFICADO).
+- **rt-2 (ALTO, u1) · Antes de entrar, un obrero es `humano` para los frenos.** En `main` no hay `.kit-rol` (`contexto.cjs:100`): un
+  `cambios aprobar` de esa sesión le da ventana a Guido en vez de negar (`niega-aprobar.cjs:84-87`). **Arreglo**, sin tocar la lógica de
+  los porteros: (a) `/obrero` y `/director`: *"si `donde` no dice `adentro:`, ningún comando más que la PARADA; nunca `ExitWorktree`"*;
+  (b) el texto de la ventana (`MOTIVO_ASK`, `niega-aprobar.cjs:42`) suma *"si te lo pide una sesión de /obrero o /director, decí que no"*;
+  (c) una línea en "Lo que esto no cierra"; (d) `skills.test` y `niega-aprobar.test` miran los textos.
+- **rt-3 (ALTO, u2) · `barreras` a secas no juzga un merge en curso.** El modo pendiente compara solo contra HEAD (`barreras.cjs:256-259`);
+  el descuento por padre corre con `--indice` (~260-266) o con un merge commiteado: a secas, todo lo que el kit cambió en `main` saldría
+  como cambio del módulo (rojo siempre). **Arreglo**: después de `git merge --no-ff --no-commit`, **`estructura.cjs barreras --indice`**,
+  sin `--molde`, igual en la prueba de la flota y en `traer-main`. El caso verde de crit. 2 trae de `main` un cambio de
+  `.claude/settings.json` y de un hook ya aprobado allá (si no, la prueba pasa con el modo equivocado).
+- **rt-4 (ALTO, u1) · `donde` paraba a todo obrero de noche.** `crear x--ID --noche` escribe `nocturno` (`rolDe`, `worktree.cjs:452`).
+  **Arreglo**: con `<ID>`, el rol esperado es `obrero` o `nocturno`; sin `<ID>`, `director` o `nocturno`. crit. 1 suma el caso.
+- **rt-5 (MEDIO, u1) · La documentación dice que los settings sí se mudan con EnterWorktree** ("the move takes […] project configuration
+  such as CLAUDE.md and settings"; solo `${CLAUDE_PROJECT_DIR}` se queda en `main`). La medición de la madre miró rama y `.kit-rol`, no
+  los permisos. **Arreglo**: el Contexto, `/obrero` paso 4 y D8r4-4 lo dicen condicional (*"si la extensión no carga el settings del
+  worktree, pedís más ventanas"*) y queda **NO VERIFICADO de verdad**: en el piloto, `/status` después de EnterWorktree (qué fuentes de
+  settings cargaron). Con rt-1, el deny anda con las dos premisas. Si cargan los del worktree, la lista de hooks es la del módulo y los
+  scripts los de `main`: otra razón para `traer-main` ("Lo que esto no cierra").
+- **rt-6 (MEDIO, u1, u5) · Dos sesiones en el mismo worktree.** Con `code "<ruta>"` la ventana ya abierta tomaba el foco; con una ventana,
+  un `/obrero x--02` mal tipeado entra al worktree de otro. **Arreglo**: `donde` para un obrero, con el árbol con cambios sin commitear
+  (sin contar `.claude/frenos.log`) → 1, *"¿hay otra sesión en este worktree?"*. u5: *"mientras diseña el Arquitecto, el director no está
+  vivo (cerró, o se mudó con relevo); el Arquitecto ahí corre con rol director"*.
+- **rt-7 (MEDIO, u2) · Los bordes de `traer-main` y de la prueba de la flota.** (a) `frenos.log` con renglones agregados no es "sucio": el
+  mismo trato que `integrar` (`worktree.cjs:1161-1185`, los commitea); (b) `modulo/<x>` que ya contiene `origin/<def>` → 0, `ya al día`,
+  sin commit; (c) el `fetch` que falla → 1 sin tocar; (d) en la flota, `git merge --abort` (o `reset --hard`) entre un módulo y otro, y
+  una prueba con dos módulos donde el primero choca; (e) la prueba por módulo **solo si `main` salió `mezclado`**; si salió `te espera`
+  o ROTA, la línea es `modulo/<x>: primero mezclá kit/<tag> en <def>`.
+- **rt-8 (MEDIO, u7) · La bandera de `datos-reales` se esquiva con una abreviatura.** `sensible.cjs:149` exige la bandera tal cual, y el
+  `argparse` de `aplicar_migracion.py` (~587-591) acepta `--confirmar` por `--confirmar-produccion` (sin `allow_abbrev=False`): correría
+  contra producción sin preguntar. **Arreglo**: el texto de `flota.md` D4 y del ejemplo dice *"solo si el script no acepta abreviaturas
+  (en Python, `allow_abbrev=False`)"*; la madre se lo propone a Hermes junto con la entrada nueva, y hasta entonces queda la vieja.
+  `sensible.test` documenta que la abreviatura no matchea.
+- **rt-9 (MEDIO, u4) · `gate-candados` de Hermes es un dato, no un gate viejo** (`tests/test_candados_por_rol.py:148`: una foto de los
+  roles de producción, compartida entre worktrees y PCs a propósito). **Arreglo**: los `gate-*` se cuentan, **sin** consejo de mudarlos (y
+  sin el `git grep`); una `gate-*` sin `.git` se dice *"datos, no un gate: no tocar"*. La línea de las `mezclada` suma *"`git worktree
+  remove` borra también lo ignorado (.env, config): miralo antes"*.
+- **rt-10 (BAJO)**: lo cubre rt-1 (no se toca el `settings.json`).
+- **rt-11 (BAJO, CF) · Los clones apuntan a las carpetas reales.** El chequeo frío, antes de cualquier push: `git remote get-url origin`
+  de cada clon cae dentro del scratchpad; si no, para.
+- **De paso**: el renglón del CHANGELOG es `<carpeta-docs>/CHANGELOG.md` (con la `rc.4`, la carpeta de papeles), no la raíz.
+
+## NO SE TOCA
+
+- Lo que frenan los porteros (`git-seguro`, `niega-aprobar`, `sensible`, `secretos`): de `niega-aprobar` cambia solo el texto de la
+  ventana (rt-2). El `settings.json` del molde (rt-1). `presentar` sigue siendo el candado de la rama.
+- La flota **sin** `--con-obra` (la tabla y el `salteado` de hoy, más una frase). La flota nunca sube a una `modulo/*`.
+- `encargo.cjs autorizado` y las líneas de fondo (`-p`): el obrero de fondo sigue naciendo en su worktree.
+- `arquitecto.cjs` (sello, ready). D1-D4 por defecto. El ítem 5 de "lo que cuenta Guido" (D8c.1), el 2 y el 9 de Hermes (decididos).
+- Las carpetas reales de Guido (`D:\Hermes\*`, `D:\Arti-*`): solo lectura. Las actas de `tips/` y `_fuente/`.
+
+## Entorno de prueba
+
+Temporales y repos de prueba (`pruebas/rehacer.sh`), canónico `bare` con tag anotado, `--claude no`. Clones **solo** en el scratchpad,
+cada uno con un `bare` falso de remoto: `git clone D:\Hermes\Hermes.exe` (más `modulo/cashflow` empujada al bare), `git clone
+D:\Arti-bot-analytics-eq`, `git clone D:\Arti-bot-eq`.
+
+## Criterios de aceptación
+
+Los crit. 1 a 6 y los de u6, y: **crit. 7** la suite entera verde (sola, en segundo plano) y la flota 2.4.2 → rc.4 → rc.5 con canónico
+`bare` sale 0; **crit. 8** el chequeo frío: (a) en un clon de Hermes con `main` y `modulo/cashflow` en su bare: `flota --con-obra` → `main`
+avanza, `modulo/cashflow` igual, la línea de "te espera" → en el worktree del módulo, `traer-main cashflow` → verde y push; y el camino del
+obrero hasta donde llega un script: `worktree crear cashflow--01` desde el principal → `donde cashflow--01` dice `entrar:` → desde la ruta,
+`adentro:` (EnterWorktree mismo en una sesión: **NO VERIFICADO**, lo mira Guido); (b) en un clon del analytics: `poné al día` (la flota
+de un repo) sale `mezclado` o `al día`; (c) en un clon del bot: la adopción completa (`--mirar` → `--aplicar` → commits → `barreras
+--rango` verde → push → `--traer`).
+
+## Decisiones (la vara)
+
+- **D8r4-1 · El obrero se ubica con un script (`donde`), no con texto**: la ruta sale del nombre, y el chequeo de rama y rol es el mismo
+  para el obrero, el director y el Arquitecto que retoma. `presentar` queda como segundo candado. `[acordarse de menos · coherencia]`
+- **D8r4-2 · La vía de una ventana va primero en la apertura**, `code "…"` queda de alternativa: es como trabaja Guido. `[workflow]`
+- **D8r4-3 · (rehecha por rt-1) El deny absoluto del `.env` del principal va también al `settings.local.json` del principal**, no al
+  `settings.json` del molde: una regla relativa no cubre un `.env` en un directorio padre del worktree, y el del molde trababa
+  `.env.example`. El pedido decía "al `settings.json` del molde"; esto cumple lo que buscaba (que el `.env` quede cerrado con una
+  ventana) con las dos premisas de cómo cargan los settings. `[mejor código · coherencia]`
+- **D8r4-4 · Las `allow` de AUTORIZADO con una ventana no se arreglan en esta tanda**: no se sabe cómo recarga la extensión (NO
+  VERIFICADO) y el costo es más ventanas, no menos frenos. `[filtro pragmático]`
+- **D8r4-5 · La flota prueba el merge a cada módulo en su clon y no sube nada a una `modulo/*`**; trae `main` el director con
+  `traer-main`, que aborta ante choque o rojo. Así "con lo rojo para que lo apruebe Guido" es una línea antes del commit, y el director no
+  se encuentra su rama movida. `[workflow · coherencia]`
+- **D8r4-6 · Los vecinos se avisan, nunca se borran**: borrar un worktree vivo pierde trabajo; Guido decide uno por uno. `[mejor código]`
+- **D8r4-7 · El CHANGELOG se detecta por `## [Unreleased]`, sin clave en la ficha**: una clave es una cosa más para acordarse y la marca
+  ya dice el formato. `[acordarse de menos]`
+- **D8r4-8 · `andamiaje:` es texto (clase 3), no un hook**: como las otras clases; un hook en cada `Edit` es caro para un caso. `[filtro pragmático]`
+- **D8r4-9 · "Mezclar agentes" no es un comando**: fundir instrucciones es criterio, no mecánica. `[mejor código]`
+- **D8r4-10 · Las lecciones de Hermes entran como una línea donde se lee**, nunca una sección nueva; seis no pasan la vara (tabla). `[acordarse de menos]`
+- **D8r4-11 · Dos vueltas, un tag**: la vuelta 1 (u1-u3) y la 2 (u4-u7) van en la `rc.5`. Si la 2 no entra sana en esta sesión, la `rc.5`
+  sale con la 1 y la 2 pasa a la `rc.6` junto a D8c.1 (se le avisa a la madre). `[workflow]`
+
+## Lo que esto no cierra
+
+- **EnterWorktree en una sesión real** de la extensión (el paso 0 del `/obrero` de punta a punta) y si `./**` del settings sigue resolviendo
+  contra `main` después de entrar: NO VERIFICADO; lo mira Guido en el piloto (tracker, "NO VERIFICADO").
+- **Con una ventana, los hooks son los de `main`** y los scripts (`.claude/scripts/…`, relativos al cwd) los del módulo: si `main` trajo un
+  kit nuevo y el módulo no, conviven dos versiones hasta `traer-main`. Es lo que pide la flota con obra; se dice en `/director`.
+- **Las `allow` de AUTORIZADO no cargan** con una ventana, si la extensión no carga el settings del worktree (D8r4-4, rt-5).
+- **Antes de entrar, la sesión de un obrero es `humano` para los frenos** (rt-2): un `cambios aprobar` le da ventana a Guido en vez de
+  negar. Lo cuidan el texto de la skill y el de la ventana; la lógica de los porteros no cambia.
+- `andamiaje: con-ok-de-guido` depende de que el agente lea `NUCLEO.md` (D8r4-8).
+
+## Los encargos (el director reparte, lee cada diff y corre las pruebas de cada uno)
+
+Presupuesto (ADR-029): RT, **cuatro de trabajo en la vuelta 1 y 2**, el chequeo frío. Cada uno en `scratchpad/<x>/wt`, desde el tag
+`v3.0.0-rc.4`, con el `--stat` antes del merge. Los textos, el director al final de cada vuelta.
+
+| # | Encargo | Puede tocar | Prueba |
+|---|---|---|---|
+| RT | Red team, una ronda (sobre todo u1, u2 y `traer-main`) | — | — |
+| W | u1 y `traer-main` (u2), rt-1/2/4/6/7 | `kit/molde/scripts/worktree.cjs`, el texto `MOTIVO_ASK` de `niega-aprobar.cjs` (solo el texto), sus pruebas | crit. 1, la mitad de crit. 2 |
+| F | u2 en la flota | `flota.cjs`, `actualizar.cjs` (USO), sus pruebas | la otra mitad de crit. 2 |
+| A | u4, u6 (vuelta 2) | `adoptar.cjs`, `actualizar.cjs` (el renglón), `lib/vecinos.cjs`, `doctor.cjs`, sus pruebas | crit. 4 y los de u6 |
+| K | u7 en código (`andamiaje:`) y u8 (`plazo-test`) | `ficha.cjs` y sus copias, `arquitecto.cjs`, sus pruebas | `ficha.test`, `arquitecto.test`, copias iguales |
+| CF | Chequeo frío (crit. 8) | — | — |
+
+**Orden**: RT → (vuelta 1) W ∥ F → textos de u1-u2 → u3 → (vuelta 2) A ∥ K → textos de u5-u7 → CF → suite → la flota → tag.
+
+## Ejecución
+
+Un director Opus (D8r.4), este delta, una ronda de red team y un chequeo frío; el cómo, en [`PLAN-construccion.md`](PLAN-construccion.md).

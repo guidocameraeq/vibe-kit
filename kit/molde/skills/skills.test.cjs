@@ -228,8 +228,15 @@ test('inicio: CORTADO, la huella y el hook que no corrió', () => {
   const t = TEXTOS.inicio;
   assert.match(t, /CORTADO/);
   assert.match(t, /inyectado: N de 9\.700/);
-  assert.match(t, /el hook de arranque no corrió: corré doctor/);
-  assert.match(t, /docs\/SESSION_HANDOFF\.md/);
+  // 8r3 i2: sin huella, el arranque puede ser otro (un session-start.cjs propio): el arreglo en un comando; i1: la carpeta de papeles
+  assert.match(t, /el arranque no es el del kit \(o no corrió\)/);
+  assert.match(t, /actualizar\.cjs resolver \. hook-arranque nueva --por/);
+  assert.match(t, /si no, doctor/);
+  assert.match(t, /`carpeta-docs:` de la ficha/);
+});
+
+test('cierre y NUCLEO (8r3 i1): docs/ es la carpeta de papeles, la carpeta-docs: de la ficha si la hay', () => {
+  for (const t of [TEXTOS.cierre, NUCLEO]) assert.match(t, /`docs\/` es la carpeta de papeles: la `carpeta-docs:` de la ficha si la hay/);
 });
 
 test('inicio: fetch, cruce con git, aprobados nuevos y confirmación, en ese orden', () => {
