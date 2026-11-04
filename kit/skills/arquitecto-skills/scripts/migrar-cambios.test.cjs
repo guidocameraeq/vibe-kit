@@ -328,3 +328,21 @@ test('clasificar: el rótulo en negrita manda, y los SHA y la fecha salen de la 
   assert.equal(MC.clasificar(null).tipo, 'propuesto');
   assert.equal(MC.clasificar('**aplicado** el 2026-02-30 en `abc1234`').fecha, null, 'una fecha que no existe no cuenta');
 });
+
+test('8r3 rt-8: sin --fuente, la de fábrica es <carpeta-docs de la ficha>/metodo/CAMBIOS.md; sin ficha, docs/metodo/CAMBIOS.md', () => {
+  const { d } = armarRepo(fuenteChica);
+  // la ficha con carpeta-docs: arti-docs y la fuente movida ahí
+  fs.mkdirSync(path.join(d, 'arti-docs', 'metodo'), { recursive: true });
+  fs.renameSync(path.join(d, ...FUENTE.split('/')), path.join(d, 'arti-docs', 'metodo', 'CAMBIOS.md'));
+  fs.mkdirSync(path.join(d, '.claude'), { recursive: true });
+  fs.writeFileSync(path.join(d, '.claude', 'kit.md'), '---\nkit: 3.0.0\nnivel: liviano\ncarpeta-docs: arti-docs\nvars:\n  proyecto: x\n---\n');
+  const r = correr(d, '--plan');
+  assert.notEqual(r.codigo, 2, r.salida); // la encontró (el CM sin fecha en git, por el renombre sin commitear, da 1: no es de esto)
+  assert.match(r.salida, /^CM-1 · 2026-09-21-cm-1 · aplicado · escribiría$/m);
+  assert.match(r.salida, /arti-docs\/metodo\/CAMBIOS\.md no se tocó/);
+  // sin la clave: busca la de siempre (y no está)
+  fs.writeFileSync(path.join(d, '.claude', 'kit.md'), '---\nkit: 3.0.0\nnivel: liviano\nvars:\n  proyecto: x\n---\n');
+  const s = correr(d, '--plan');
+  assert.equal(s.codigo, 2, s.salida);
+  assert.match(s.salida, /no está la fuente docs\/metodo\/CAMBIOS\.md/);
+});

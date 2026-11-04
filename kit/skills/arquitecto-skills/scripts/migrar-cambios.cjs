@@ -5,6 +5,8 @@
 //
 //   node migrar-cambios.cjs --repo <dir> [--fuente docs/metodo/CAMBIOS.md] [--plan] [--commit]
 //
+// Sin --fuente, la de fábrica: <carpeta>/metodo/CAMBIOS.md, con la carpeta-docs: de la ficha del disco del repo (sin ficha o sin
+// la clave, docs; 8r3 rt-8).
 // Lee la fuente DEL DISCO del repo. Por cada CM:
 //   - id <fecha>-cm-<n>: la fecha de la línea **Estado** si trae una; si no, la del commit que agregó la sección (git log -S);
 //     si no, la del primer commit del archivo.
@@ -31,16 +33,26 @@ const C = require('../pc/lib/cambios.cjs');
 const R = require('../pc/lib/cambios-ruta.cjs');
 const G = require('../pc/lib/git.cjs');
 const { ramaPorDefecto } = require('./cambios-flota.cjs');
+const F = require('../pc/lib/ficha.cjs');
 
 const USO = 'Uso: node migrar-cambios.cjs --repo <dir> [--fuente docs/metodo/CAMBIOS.md] [--plan] [--commit]';
-const FUENTE = 'docs/metodo/CAMBIOS.md';
+const FUENTE = 'docs/metodo/CAMBIOS.md'; // la de fábrica sin carpeta-docs:
+const SUB_FUENTE = 'metodo/CAMBIOS.md';
+// 8r3 (rt-8): la de fábrica de un repo es <carpeta-docs de su ficha, la del disco>/metodo/CAMBIOS.md; sin ficha que se lea, docs.
+function fuenteDe(raiz) {
+  try {
+    return `${F.carpetaDocs(F.leer(fs.readFileSync(path.join(raiz, '.claude', 'kit.md'), 'utf8')).datos)}/${SUB_FUENTE}`;
+  } catch (e) {
+    return FUENTE;
+  }
+}
 const SIN_MEDIR = 'no está medido (migrado de CAMBIOS.md)';
 const TIEMPO = 60000; // un git log -S sobre miles de commits pasa los 5 s del hook
 
 // ---------------------------------------------------------------- argumentos
 
 function leerArgs(argv) {
-  const a = { fuente: FUENTE, plan: false, commit: false, repo: null };
+  const a = { fuente: null, plan: false, commit: false, repo: null }; // sin --fuente: la de fábrica del repo (fuenteDe)
   for (let i = 0; i < argv.length; i++) {
     const x = argv[i];
     if (x === '--plan') a.plan = true;
@@ -312,7 +324,7 @@ function correr(argv, out = (l) => process.stdout.write(`${l}\n`)) {
     out(`migrar-cambios: ${a.repo} no es un repo git.`);
     return 2;
   }
-  const fuente = a.fuente.replace(/\\/g, '/');
+  const fuente = (a.fuente === null ? fuenteDe(raiz) : a.fuente).replace(/\\/g, '/');
   const absFuente = path.resolve(raiz, fuente);
   let textoFuente;
   try {

@@ -5,7 +5,8 @@
 //                               [--comando-test "<comando>"] [--principal <carpeta principal>]
 //   node actualizar.cjs adoptar <carpeta> --kit <raíz del kit> --aplicar <archivo de propuesta> [--fecha <AAAA-MM-DD>]
 //                               [--principal <carpeta principal>] [--claude-md]
-//                               [--director kit] [--permisos recomendada] [--arranque kit]   (D1-D3: SPEC-paquete-8r2, t3 y t9)
+//                               [--director kit] [--permisos recomendada] [--arranque kit]   (D1-D3: SPEC-paquete-8r2, t3 y t9;
+//                               --arranque kit también reemplaza un session-start.cjs propio: 8r3 i2)
 //   node actualizar.cjs adoptar <clon> --traer <carpeta principal>     (el último paso: después de los commits y el push)
 //
 // Un script determinista (D6-1): MIRA y APLICA. La pantalla (NORTE, MAPA, el plano de docs/, las reglas propias como cambios) la
@@ -41,7 +42,8 @@
 // hay, no se toca, salvo --claude-md (8r, 4): le suma al final la sección "El tamaño del pedido" del molde (si no la trae), en el
 // commit de las piezas. Escritura atómica (ejecutar de aplicar). No commitea: van DOS commits, las piezas y después la ficha sola,
 // porque la exención (b) compara contra la ficha de fábrica DEL ÁRBOL DEL PADRE (barreras.cjs, exencionB) y la fábrica llega con
-// las piezas. La ficha con frenos, sensible o autorizado distintos de fábrica da rojo en barreras: lo aprueba Guido después.
+// las piezas. La ficha con frenos, sensible o autorizado distintos de fábrica da rojo en barreras: un aprobado de después no lo
+// cubre; la línea "después:" dice el camino verdadero, con remoto o sin él (caminoDelRojo, 8r3 i4).
 // Después va barreras --rango <antes>..HEAD; chequear no, porque pide la ficha en la base (corre desde la primera puesta al día).
 // Una pieza en sí (las opcionales que prendió la sesión, o las de --nuevo) se trae como una molde.
 //
@@ -69,7 +71,9 @@ const A = require('../actualizar.cjs');
 const { Negativa } = A;
 const RUTA_FICHA = '.claude/kit.md';
 const RUTA_SETTINGS = '.claude/settings.json';
-const RUTA_CHANGELOG = 'docs/CHANGELOG.md';
+// La carpeta de papeles (8r3 i1b): la `carpeta-docs:` de la propuesta; sin ella, docs. El CHANGELOG y el handoff viven ahí.
+const CARPETA_DOCS = F.CARPETA_DOCS;
+const rutaPapel = (carpetaDocs, archivo) => `${carpetaDocs || CARPETA_DOCS}/${archivo}`;
 const MARCA_INI = '# ==== lo que vio el adoptador (este bloque se va al aplicar) ====';
 const MARCA_FIN = '# ==== fin de lo que vio el adoptador ====';
 const NIVELES = ['liviano', 'estandar'];
@@ -90,6 +94,12 @@ const V2 = ['.claude/hooks/session-start.sh', '.claude/hooks/check-code.js'];
 const MANIFIESTOS = ['package.json', 'pyproject.toml', 'requirements.txt', 'go.mod', 'Cargo.toml', 'pom.xml', 'build.gradle', 'composer.json', 'Gemfile'];
 const RE_CODIGO = /\.(c?js|mjs|jsx|tsx?|py|go|rs|java|kts?|cs|rb|php|swift|c|cc|cpp|h|hpp|sql|vue|svelte|dart|scala|exs?)$/i;
 const NO_MIRAR = new Set(['.git', '.claude', '.githooks', 'docs', 'node_modules', 'vendor', 'dist', 'build', '.venv', 'venv', '__pycache__', '.next', 'coverage']);
+// 8r3 (rt-8): con otra carpeta de papeles, docs/ es del proyecto (se mira como código) y la que no se mira es esa, por su ruta.
+// Sin la clave (docs), NO_MIRAR tal cual: el docs de cualquier nivel no se mira, como hasta la rc.3.
+function noMirar(carpetaDocs) {
+  if (!carpetaDocs || carpetaDocs === CARPETA_DOCS) return (nombre) => NO_MIRAR.has(nombre);
+  return (nombre, rel) => (nombre !== 'docs' && NO_MIRAR.has(nombre)) || rel === carpetaDocs;
+}
 
 const lf = M.lf;
 const esMapa = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -150,9 +160,35 @@ function fichaEnLaHistoria(carpeta) {
   const r = gitEn(carpeta, ['log', '--all', '-1', '--format=%h', '--', RUTA_FICHA]);
   return r.ok && r.out.trim() ? r.out.trim() : null;
 }
-// El camino de un commit de la adopción que da rojo en barreras (la ficha distinta de fábrica, D4, los permisos de D2/D3).
-const APRUEBA = 'eso lo aprueba Guido después del merge, desde su checkout (cambios nuevo + cambios aprobar)';
-const lineaFichaVieja = (sha) => `${RUTA_FICHA} ya estuvo en la historia (commit ${sha}) y la exención b pide que no haya existido nunca: el commit de la ficha da ROJO en barreras — ${APRUEBA}`;
+// 8r3 i4 (rt-3): ¿lo adoptado llega a la carpeta de Guido por un remoto? Con --principal, si ella tiene origin; sin él, si el origin
+// del clon es un remoto (una URL o un bare) y no la carpeta misma sin origin (el Modo A: el clon sale de la carpeta).
+function hayRemoto(clon, principal) {
+  if (principal !== undefined) return !!origenDe(principal);
+  const oc = origenDe(clon);
+  if (!oc) return false;
+  const ruta = oc.replace(/^file:\/\//, '').replace(/^\/(?=[A-Za-z]:)/, '');
+  if (!esCarpeta(ruta)) return true;
+  return gitEn(ruta, ['rev-parse', '--is-bare-repository']).out.trim() === 'true' || !!origenDe(ruta);
+}
+// El camino VERDADERO de un commit de la adopción que da rojo en barreras (la ficha distinta de fábrica, D4, los permisos de D2/D3):
+// un aprobado de después no lo cubre (el sello va antes del primer commit que toca: barreras.cjs, cubre). Medido (8r3 i4): con
+// remoto, barreras mira origin/<rama>..HEAD — rojo en el clon, verde en tu carpeta después del push y del --traer; sin remoto, el
+// rango de tu carpeta arranca en el último commit del handoff (antes de la adopción) y estructura.cjs todo da rojo ahí; con
+// core.hooksPath prendido en el clon (una sesión que arrancó ahí), el pre-commit frena el commit de la ficha.
+function caminoDelRojo(clon, principal) {
+  const g = gitEn(clon, ['config', '--get', 'core.hooksPath']);
+  const prendido = g.ok && g.out.trim() !== '';
+  const rama = gitEn(clon, ['symbolic-ref', '-q', '--short', 'HEAD']).out.trim() || '<la rama>';
+  const queda = 'lo que se decidió queda en el commit y en el renglón del CHANGELOG de la adopción';
+  const despues = 'un aprobado de después no lo cubre (el sello va antes del primer commit que toca)';
+  const t = hayRemoto(clon, principal)
+    ? `ese rojo es solo en este clon, antes del push: barreras mira origin/${rama}..HEAD y, pusheado, ningún /cierre lo vuelve a mirar; ${despues} — ${queda}`
+    : `sin remoto, ese rojo no queda en el clon: --traer lleva estos commits a tu carpeta y ahí estructura.cjs todo (tu primer /cierre) da ROJO en ese commit — su rango arranca en el último commit del handoff, antes de la adopción, hasta que un /cierre commitee el handoff; ${despues}: si no lo querés así, revertilo (git revert) — ${queda}`;
+  return prendido
+    ? `${t}; ⚠ en este clon core.hooksPath apunta a ${g.out.trim()} (arrancó una sesión acá): el pre-commit frena ese commit — el clon de la adopción va sin githooks (r1-5): git config --unset core.hooksPath (en tu carpeta los prende --traer)`
+    : t;
+}
+const lineaFichaVieja = (sha, camino) => `${RUTA_FICHA} ya estuvo en la historia (commit ${sha}) y la exención b pide que no haya existido nunca: el commit de la ficha da ROJO en barreras — ${camino}`;
 
 // La carpeta: la raíz de un repo git, sin ficha.
 function revisarRaiz(carpeta) {
@@ -211,13 +247,13 @@ function compararTags(a, b) {
 }
 
 // Los archivos de un molde v2 que son "el v2 sin editar" en el proyecto: [{ rel, proyecto, texto }]. El settings no cuenta (la mezcla
-// es regla por regla), CLAUDE.md y docs/ tampoco (nunca y nacimiento). Los que casan pero traen contenido propio en un marcador de
+// es regla por regla), CLAUDE.md y el docs/ DEL MOLDE tampoco (nunca y nacimiento: en el proyecto va a la carpeta de papeles; 8r3 rt-8). Los que casan pero traen contenido propio en un marcador de
 // contenido no cuentan: van a `propios` ({ proyecto, marcadores }), para el comentario de la propuesta.
-function casadosCon(carpeta, dir, propios = []) {
+function casadosCon(carpeta, dir, propios = [], carpetaDocs = CARPETA_DOCS) {
   const out = [];
   for (const rel of C.rutasDeMolde(dir)) {
-    if (rel === 'settings.json' || rel === 'CLAUDE.md' || rel.startsWith('docs/')) continue;
-    const rp = C.rutaEnProyecto(rel);
+    if (rel === 'settings.json' || rel === 'CLAUDE.md' || rel.startsWith('docs/')) continue; // docs/: la ruta del molde
+    const rp = C.rutaEnProyecto(rel, carpetaDocs);
     const t = rp === null ? null : leerP(carpeta, rp);
     const propio = t === null ? null : contenidoPropio(fs.readFileSync(path.join(dir, ...rel.split('/')), 'utf8'), t);
     if (propio && propio.length) propios.push({ proyecto: rp, marcadores: propio });
@@ -230,7 +266,7 @@ function casadosCon(carpeta, dir, propios = []) {
 // el que más archivos del proyecto casa como "el v2 sin editar" (empate → el más nuevo), con el texto del proyecto en cada uno (así
 // el guardia de aplicar los ve intactos y los reemplaza o los retira). null si el kit no tiene ninguno.
 // → { dir, forma, version, casados: [rutas del proyecto] }
-function moldeV2(kit, carpeta, destino) {
+function moldeV2(kit, carpeta, destino, carpetaDocs = CARPETA_DOCS) {
   const r = gitEn(kit, ['tag', '-l', 'v2.*']);
   const tags = r.ok ? r.out.split(/\r?\n/).map((x) => x.trim()).filter((x) => /^v2\.\d+(\.\d+)?$/.test(x)).sort(compararTags) : [];
   let mejor = null;
@@ -238,14 +274,14 @@ function moldeV2(kit, carpeta, destino) {
     const dir = `${destino}-${t}`;
     let m = null;
     try {
-      m = M.materializarViejo(kit, t.slice(1), {}, dir);
+      m = M.materializarViejo(kit, t.slice(1), { carpetaDocs }, dir);
     } catch { /* ese tag no trae un molde que conozca */ }
     if (!m || m.forma !== '2.4') {
       M.borrar(dir);
       continue;
     }
     const propios = [];
-    const casados = casadosCon(carpeta, dir, propios);
+    const casados = casadosCon(carpeta, dir, propios, carpetaDocs);
     if (!mejor || casados.length > mejor.casados.length) {
       if (mejor) M.borrar(mejor.dir);
       mejor = { ...m, version: t.slice(1), casados, propios };
@@ -260,7 +296,7 @@ function moldeV2(kit, carpeta, destino) {
   // mezcla, y la del settings necesita al viejo para retirar sus reglas.
   for (const rel of C.rutasDeMolde(destino)) {
     if (['settings.json', 'gitignore.snippet', 'gitattributes.snippet'].includes(rel)) continue;
-    const rp = C.rutaEnProyecto(rel);
+    const rp = C.rutaEnProyecto(rel, carpetaDocs);
     if (rp !== null && !hay(carpeta, rp)) fs.rmSync(path.join(destino, ...rel.split('/')), { force: true });
   }
   return { dir: destino, forma: mejor.forma, version: mejor.version, casados: mejor.casados.map((c) => c.proyecto), propios: mejor.propios };
@@ -268,9 +304,10 @@ function moldeV2(kit, carpeta, destino) {
 
 // ---------------------------------------------------------------- lo que se infiere
 
-function inferirNivel(carpeta) {
+function inferirNivel(carpeta, carpetaDocs = CARPETA_DOCS) {
   const vistos = MANIFIESTOS.filter((m) => hay(carpeta, m));
   const codigo = [];
+  const saltear = noMirar(carpetaDocs);
   let mirados = 0;
   (function rec(d, rel) {
     if (codigo.length >= 3 || mirados > 20000) return;
@@ -280,14 +317,14 @@ function inferirNivel(carpeta) {
       mirados++;
       const q = rel ? `${rel}/${e.name}` : e.name;
       if (e.isDirectory()) {
-        if (!NO_MIRAR.has(e.name)) rec(path.join(d, e.name), q);
+        if (!saltear(e.name, q)) rec(path.join(d, e.name), q);
       } else if (e.isFile() && RE_CODIGO.test(e.name) && codigo.length < 3) codigo.push(q);
     }
   })(carpeta, '');
   const pruebas = [...vistos, ...codigo];
   return pruebas.length
     ? { nivel: 'estandar', porque: `hay código (${listaCorta(pruebas)})` }
-    : { nivel: 'liviano', porque: 'no hay código (ni un manifiesto en la raíz ni archivos de código fuera de .claude/ y docs/)' };
+    : { nivel: 'liviano', porque: `no hay código (ni un manifiesto en la raíz ni archivos de código fuera de .claude/ y ${carpetaDocs}/)` };
 }
 
 // t5 (8r2; D8r2-4): el Python de la PC para crear el venv. En win32, el lanzador `py -3` si está (el `python` del PATH puede ser
@@ -424,8 +461,9 @@ function hooksPropios(carpeta, rutasMolde, casados) {
   return out;
 }
 
-// Un registro de cambios de método propio (Hermes): docs/cambios*, hasta dos niveles adentro de docs/.
-function registroDeCambios(carpeta) {
+// Un registro de cambios de método propio (Hermes): <papeles>/cambios*, hasta dos niveles adentro de la carpeta de papeles (docs/,
+// o la carpeta-docs: que se propone; 8r3 rt-8).
+function registroDeCambios(carpeta, carpetaDocs = CARPETA_DOCS) {
   const out = [];
   (function rec(d, rel, prof) {
     let es;
@@ -435,8 +473,155 @@ function registroDeCambios(carpeta) {
       if (/^cambios/i.test(e.name)) out.push(q);
       else if (e.isDirectory() && prof < 2) rec(path.join(d, e.name), q, prof + 1);
     }
-  })(path.join(carpeta, 'docs'), 'docs', 1);
+  })(path.join(carpeta, ...carpetaDocs.split('/')), carpetaDocs, 1);
   return out;
+}
+
+// ---------------------------------------------------------------- la carpeta de papeles (8r3 i1b; rt-4, rt-5)
+
+// Los seis archivos y las tres carpetas del árbol del método (los de molde/hooks/lib/arbol.cjs, SEIS y TRES: candado:raiz).
+const SEIS = ['NORTE.md', 'MAPA.md', 'SESSION_HANDOFF.md', 'TODO.md', 'CHANGELOG.md', 'README.md'];
+const TRES = ['modulos', 'referencia', 'archive'];
+const SITIO = ['docs.json', 'mkdocs.yml', 'CNAME']; // un docs/ que es un sitio publicado (OpenClaw: docs.json y CNAME)
+const HANDOFF = 'SESSION_HANDOFF.md';
+const minus = (s) => s.toLowerCase();
+
+// Lo seguido por git (solo lectura: ls-files no escribe el índice). → [rutas con /]
+const seguidos = (carpeta) => gitEn(carpeta, ['ls-files', '-z']).out.split('\0').filter(Boolean);
+
+// Lo que no es del método en la raíz de una carpeta de papeles: los sueltos (archivos que no son de los seis) y las carpetas que
+// no son de las tres. → { sueltos: [nombres], carpetas: [nombres/] }
+function fueraDelArbol(todos, carpetaDocs) {
+  const pre = `${carpetaDocs}/`;
+  const sueltos = new Set();
+  const carpetas = new Set();
+  for (const r of todos) {
+    if (!r.startsWith(pre)) continue;
+    const resto = r.slice(pre.length).split('/');
+    if (resto.length === 1) {
+      if (!SEIS.map(minus).includes(minus(resto[0]))) sueltos.add(resto[0]);
+    } else if (!TRES.map(minus).includes(minus(resto[0]))) carpetas.add(`${resto[0]}/`);
+  }
+  return { sueltos: [...sueltos].sort(), carpetas: [...carpetas].sort() };
+}
+
+// ¿docs/ es de otra cosa (rt-5)? Seguido, sin SESSION_HANDOFF.md, y con un archivo de sitio (docs.json, mkdocs.yml, CNAME) o algo
+// fuera de los seis y las tres. Con el handoff es la carpeta de papeles (Hermes): como hasta la rc.3.
+// → { archivos: N seguidos en docs/, fuera: N que no son del método, sitio: [los de SITIO que tiene], ajeno }
+function docsAjeno(todos) {
+  const enDocs = todos.filter((r) => r.startsWith(`${CARPETA_DOCS}/`));
+  const conHandoff = enDocs.includes(rutaPapel(CARPETA_DOCS, HANDOFF));
+  const sitio = SITIO.filter((x) => enDocs.includes(rutaPapel(CARPETA_DOCS, x)));
+  const f = fueraDelArbol(todos, CARPETA_DOCS);
+  const fuera = enDocs.filter((r) => {
+    const resto = r.slice(CARPETA_DOCS.length + 1).split('/');
+    return resto.length === 1 ? f.sueltos.includes(resto[0]) : f.carpetas.includes(`${resto[0]}/`);
+  }).length;
+  return { archivos: enDocs.length, fuera, sitio, ajeno: enDocs.length > 0 && !conHandoff && (sitio.length > 0 || fuera > 0) };
+}
+
+// La carpeta de papeles del repo: la ÚNICA carpeta de la raíz (o de un nivel abajo) con SESSION_HANDOFF.md seguido por git.
+// → { propone: la carpeta-docs: para la propuesta (null = docs, la de siempre), carpeta: la que se usa al mirar, lineas: [para mirar] }
+function papeles(carpeta) {
+  const todos = seguidos(carpeta);
+  const cands = [...new Set(todos.filter((r) => /^[^/]+(\/[^/]+)?\/SESSION_HANDOFF\.md$/.test(r)).map((r) => r.slice(0, -(HANDOFF.length + 1))))].sort();
+  const docs = docsAjeno(todos);
+  const lineas = [];
+  const sueltosDe = (c) => {
+    const f = fueraDelArbol(todos, c);
+    const xs = [...f.sueltos, ...f.carpetas];
+    if (xs.length) lineas.push(`papeles: ${c}/ tiene ${xs.length} que no son de los seis ni de las tres carpetas (${listaCorta(xs, 4)}) — con el candado prendido (candado:raiz) van a referencia/ o a modulos/<x>/; si no, candado: no, como en Hermes`);
+  };
+  if (cands.length === 1 && cands[0] === CARPETA_DOCS) {
+    sueltosDe(CARPETA_DOCS);
+    return { propone: null, carpeta: CARPETA_DOCS, lineas };
+  }
+  if (cands.length === 1) {
+    const c = cands[0];
+    if (!F.RE_CARPETA_DOCS.test(c)) {
+      lineas.push(`papeles: ${c}/ tiene ${HANDOFF} pero ese nombre no sirve de carpeta-docs: (minúsculas, números, . _ y -, sin nombres reservados de Windows) — no la propongo: renombrala (git mv) o elegí otra en la propuesta`);
+      return { propone: null, carpeta: CARPETA_DOCS, lineas };
+    }
+    lineas.push(`papeles: ${c}/ (tiene ${HANDOFF}) — ${docs.archivos ? `docs/ tiene ${docs.archivos} archivos y no es del método: queda del proyecto` : 'docs/ no está'}; en la propuesta, carpeta-docs: ${c}`);
+    sueltosDe(c);
+    return { propone: c, carpeta: c, lineas };
+  }
+  if (cands.length > 1) {
+    lineas.push(`papeles: hay ${HANDOFF} seguido en ${cands.map((c) => `${c}/`).join(', ')} — no elegí ninguna: escribí carpeta-docs: <la del método> en la propuesta (las otras quedan del proyecto; docs, la de siempre, si es esa)`);
+    return { propone: null, carpeta: CARPETA_DOCS, lineas };
+  }
+  if (docs.ajeno) {
+    const que = [docs.sitio.length ? `tiene ${docs.sitio.join(', ')}` : '', `${docs.fuera} archivos que no son del método`].filter(Boolean).join(' y ');
+    lineas.push(`papeles: docs/ ya ${que} — si es de otra cosa, escribí carpeta-docs: <otra> en la propuesta (si los papeles van igual ahí, carpeta-docs: docs); sin la clave, --aplicar no escribe nada`);
+  }
+  return { propone: null, carpeta: CARPETA_DOCS, lineas };
+}
+
+// ---------------------------------------------------------------- un session-start.cjs propio con el nombre del del kit (8r3 i2, rt-9)
+
+const RUTA_ARRANQUE = '.claude/hooks/session-start.cjs';
+const RUTA_ARRANQUE_PROPIO = '.claude/hooks/session-start.propio.sh'; // el hermano que corre el del kit (correrPropio, con bash)
+
+// Sus primeras líneas de comentario (después del shebang y de 'use strict'), hasta tres.
+function comentariosArriba(texto) {
+  const out = [];
+  let enBloque = false;
+  for (const crudo of lf(texto).split('\n')) {
+    const l = crudo.trim();
+    if (out.length >= 3) break;
+    if (!enBloque && (l === '' || l.startsWith('#!') || /^['"]use strict['"];?$/.test(l))) {
+      if (out.length && l === '') break;
+      continue;
+    }
+    if (enBloque || l.startsWith('/*')) {
+      enBloque = !l.includes('*/');
+      const t = l.replace(/^\/\*+|\*+\/$|^\*+/g, '').trim();
+      if (t) out.push(t);
+      continue;
+    }
+    if (l.startsWith('//')) {
+      const t = l.replace(/^\/\/+/, '').trim();
+      if (t) out.push(t);
+      continue;
+    }
+    break;
+  }
+  return out.map((t) => (t.length > 120 ? `${t.slice(0, 117)}…` : t));
+}
+// Las rutas que nombra: los textos entre comillas con forma de ruta (con / o una extensión conocida); los seguidos por comas (los
+// argumentos de un path.join) van juntos con /. Hasta seis.
+function rutasQueNombra(texto) {
+  const out = [];
+  const lit = /(['"`])([^'"`\n\\]{1,200})\1/g;
+  const t = lf(texto);
+  let m;
+  let corrida = [];
+  let fin = -1;
+  const cerrar = () => {
+    if (!corrida.length) return;
+    const r = corrida.join('/');
+    if (/^[\w.$@{}-]+(\/[\w.$@{}-]+)+$|^[\w.-]+\.(md|json|txt|ya?ml|sh|cjs|js|log)$/i.test(r) && !out.includes(r)) out.push(r);
+    corrida = [];
+  };
+  while ((m = lit.exec(t)) !== null) {
+    // otra corrida si no viene pegada por una coma, o si la anterior ya termina en un archivo (readFileSync('x.md', 'utf8'))
+    if (fin < 0 || !/^\s*,\s*$/.test(t.slice(fin, m.index)) || /\.[A-Za-z0-9]+$/.test(corrida[corrida.length - 1] || '')) cerrar();
+    corrida.push(m[2]);
+    fin = lit.lastIndex;
+  }
+  cerrar();
+  return out.slice(0, 6);
+}
+// Las líneas de --mirar para un arranque propio con el nombre del del kit.
+function lineasArranquePropio(texto) {
+  const com = comentariosArriba(texto);
+  const rutas = rutasQueNombra(texto);
+  return [
+    `arranque: tu ${RUTA_ARRANQUE} tiene el nombre del hook del kit y es otro — el settings del kit lo corre igual y el /inicio no encuentra su huella`,
+    `  lo que hacía: ${com.length ? com.join(' · ') : '(sin comentarios arriba)'}`,
+    `  lo que lee: ${rutas.length ? rutas.join(', ') : '(no nombra rutas)'}`,
+    `  lo que quieras conservar, a ${RUTA_ARRANQUE_PROPIO} (el del kit lo corre al final, con bash)`,
+  ];
 }
 
 // t4 (8r2): sin entornos: declarados, la base de prueba cuenta como real (la guardia de db pregunta como en producción). La
@@ -455,10 +640,11 @@ function lineasEntornos() {
 }
 
 // CF-2: los package.json de las subcarpetas de primer nivel (fuera de NO_MIRAR) que el comando-setup no nombra. → ['web/package.json', …]
-function manifiestosSinSetup(carpeta, setup) {
+function manifiestosSinSetup(carpeta, setup, carpetaDocs = CARPETA_DOCS) {
   let es;
   try { es = fs.readdirSync(carpeta, { withFileTypes: true }); } catch { return []; }
-  return es.filter((e) => e.isDirectory() && !NO_MIRAR.has(e.name) && !e.name.startsWith('.') && hay(carpeta, `${e.name}/package.json`))
+  const saltear = noMirar(carpetaDocs);
+  return es.filter((e) => e.isDirectory() && !saltear(e.name, e.name) && !e.name.startsWith('.') && hay(carpeta, `${e.name}/package.json`))
     .map((e) => e.name).sort().filter((d) => !(setup || '').includes(d)).map((d) => `${d}/package.json`);
 }
 
@@ -491,7 +677,10 @@ function mirar(carpeta, opciones) {
   const fecha = opciones.fecha || hoy();
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'kit-adoptar-'));
   try {
-    const inf = inferirNivel(carpeta);
+    // 8r3 i1b: la carpeta de papeles (la única con SESSION_HANDOFF.md seguido); docs si no hay otra
+    const pap = papeles(carpeta);
+    const carpetaDocs = pap.carpeta;
+    const inf = inferirNivel(carpeta, carpetaDocs);
     const nivel = opciones.nivel || inf.nivel;
     if (opciones.principal !== undefined && !esCarpeta(opciones.principal)) throw new Negativa(`--principal ${opciones.principal} no es una carpeta`);
     const { vars, notas } = inferirVars(carpeta, { principal: opciones.principal, plataforma: opciones.plataforma, hayPy: opciones.hayPy });
@@ -502,19 +691,20 @@ function mirar(carpeta, opciones) {
       if (i >= 0) notas.splice(i, 1);
       notas.push(`comando-test = ${opciones.comandoTest} (--comando-test: el Entorno de prueba del SPEC-0)`);
     }
-    const nuevo = M.materializarNuevo(opciones.kit, { vars, fecha }, path.join(tmp, 'nuevo'));
+    const nuevo = M.materializarNuevo(opciones.kit, { vars, fecha, carpetaDocs }, path.join(tmp, 'nuevo'));
     if (nuevo.forma !== '3') throw new Negativa('el --kit no trae kit/molde/ (el molde v3): con ese no se adopta');
-    const viejo = moldeV2(opciones.kit, carpeta, path.join(tmp, 'viejo'));
+    const viejo = moldeV2(opciones.kit, carpeta, path.join(tmp, 'viejo'), carpetaDocs);
     const aN = M.archivosDe(nuevo.dir);
     const aV = viejo ? M.archivosDe(viejo.dir) : new Map();
-    const repN = C.repartir(nuevo.forma, C.rutasDeMolde(nuevo.dir));
-    const repV = viejo ? C.repartir(viejo.forma, C.rutasDeMolde(viejo.dir)) : new Map();
+    const repN = C.repartir(nuevo.forma, C.rutasDeMolde(nuevo.dir), carpetaDocs);
+    const repV = viejo ? C.repartir(viejo.forma, C.rutasDeMolde(viejo.dir), carpetaDocs) : new Map();
     const conClaude = hay(carpeta, 'CLAUDE.md');
     const nuevoRepo = !!opciones.nuevo;
     const base = conClaude || nuevoRepo; // lo base va en molde; sin CLAUDE.md y sin --nuevo, todo en no (criterio 19)
 
     const piezas = []; // { id, estado, que }
     const d1 = []; // { id, distintos }: las del director (D1_PIEZAS) que quedan propia por un archivo distinto
+    let arranquePropio = null; // 8r3 i2: el texto de un .claude/hooks/session-start.cjs propio (distinto del molde)
     for (const [id, { pieza, archivos }] of repN) {
       if (['nunca', 'no-viaja', 'snippet'].includes(pieza.trato)) continue;
       const pone = (estado, que) => piezas.push({ id, estado, que });
@@ -534,7 +724,7 @@ function mirar(carpeta, opciones) {
       }
       if (pieza.trato === 'nacimiento') {
         const nacen = archivos.filter((a) => leerP(carpeta, a.proyecto) === null).map((a) => a.proyecto);
-        pone('molde', nacen.length ? `nacen ${nacen.length} (${listaCorta(nacen)}); lo que ya hay en docs/ no se toca` : 'ya están todos: no se toca nada');
+        pone('molde', nacen.length ? `nacen ${nacen.length} (${listaCorta(nacen)}); lo que ya hay en ${carpetaDocs}/ no se toca` : 'ya están todos: no se toca nada');
         continue;
       }
       if (pieza.forma === 'settings') {
@@ -547,6 +737,8 @@ function mirar(carpeta, opciones) {
       const { distintos, delV2 } = distintosDe(carpeta, mapaDe(repN, aN, id), mapaDe(repV, aV, id));
       // D1 (8r2, t3): una de las cuatro del director con un archivo distinto (acá siempre sale propia) → el bloque D1 de abajo
       if (distintos.length && D1_PIEZAS.includes(id)) d1.push({ id, distintos });
+      // D3 (8r3 i2): el arranque propio con el nombre del del kit → la línea y el bloque D3 de abajo
+      if (id === 'hook-arranque' && distintos.includes(RUTA_ARRANQUE)) arranquePropio = leerP(carpeta, RUTA_ARRANQUE);
       const ocupada = distintos.length ? `${listaCorta(distintos)} ya está y es distinto del molde` : '';
       if (conModulos) {
         if (!distintos.length) pone('sí', 'repo con código: el módulo con director necesita /director y /obrero');
@@ -578,14 +770,16 @@ function mirar(carpeta, opciones) {
     const atras = avisoKitAtras(opciones.kit, version);
     if (atras) o(atras);
     const fichaVieja = fichaEnLaHistoria(carpeta);
-    if (fichaVieja) o(`⚠ ${lineaFichaVieja(fichaVieja)}`);
+    const camino = caminoDelRojo(carpeta, opciones.principal); // 8r3 i4: el camino verdadero de un rojo
+    if (fichaVieja) o(`⚠ ${lineaFichaVieja(fichaVieja, camino)}`);
     o(`nivel: ${nivel} (${opciones.nivel ? 'pedido con --nivel' : `inferido: ${inf.porque}`}; la regla: con código → estandar, sin código → liviano)`);
+    for (const l of pap.lineas) o(l);
     o(`vars: ${notas.join(' · ')}`);
     // t5: los dos comandos, en su línea, para la pantalla
     o(`comandos: setup ${vars['comando-setup'] || 'ninguno'} · test ${vars['comando-test'] || 'ninguno'}`);
     // t4: las bases y las herramientas (la propuesta de mirar nunca trae entornos: los declara la sesión con Guido)
     // CF-2: un manifiesto de npm en una subcarpeta que el setup no instala (el web/ en React de Hermes): el gate da rojo sin él
-    const sub = manifiestosSinSetup(carpeta, vars['comando-setup']);
+    const sub = manifiestosSinSetup(carpeta, vars['comando-setup'], carpetaDocs);
     if (sub.length) o(`otro manifiesto: ${listaCorta(sub)} — el comando-setup no lo instala: preguntale a Guido si las pruebas lo necesitan (si sí, sumalo al setup, p. ej. … && npm --prefix ${sub[0].replace(/\/package\.json$/, '')} ci)`);
     for (const l of lineasEntornos()) o(l);
     // t12 (a): la config local ignorada en la raíz, que worktree crear no copia sin .worktreeinclude
@@ -633,7 +827,7 @@ function mirar(carpeta, opciones) {
       o('reglas propias candidatas (que no trae el molde; la sesión las propone como cambios, cada una con su chico:):');
       for (const r of reglas) o(`  ${r}`);
     } else o('reglas propias candidatas: ninguna');
-    const reg = registroDeCambios(carpeta);
+    const reg = registroDeCambios(carpeta, carpetaDocs);
     if (!reg.length) o('registro de cambios de método: no hay');
     else {
       // la receta, dentro del OK de la adopción (8r, t2): --plan para ver, después --commit; --fuente si no es la de fábrica
@@ -643,7 +837,7 @@ function mirar(carpeta, opciones) {
     }
     o('docs-fyd: se ofrece — la documentación de auditoría FyD (si va, piezas.docs-fyd: sí)');
     if (base) {
-      for (const l of bloquesDecision(carpeta, { d1, settings: { viejo: aV.has('settings.json') ? aV.get('settings.json') : null, nuevo: aN.get('settings.json'), proyecto: leerP(carpeta, RUTA_SETTINGS) } })) o(l);
+      for (const l of bloquesDecision(carpeta, { d1, carpetaDocs, arranquePropio, camino, settings: { viejo: aV.has('settings.json') ? aV.get('settings.json') : null, nuevo: aN.get('settings.json'), proyecto: leerP(carpeta, RUTA_SETTINGS) } })) o(l);
     }
     o(`al aplicar: dos commits (las piezas, después la ficha sola: la exención b mira la fábrica en el árbol del padre; con --permisos o --arranque, un tercero: los permisos)`);
 
@@ -656,6 +850,7 @@ function mirar(carpeta, opciones) {
       `# Ficha del kit de ${nombre}: la escribió el adoptador (kit ${version}). frenos, sensible y autorizado: los de fábrica del nivel.`,
       `kit: ${version}`,
       `nivel: ${nivel}`,
+      ...(pap.propone ? [`carpeta-docs: ${pap.propone}`] : []),
       'vars:',
       ...lineasVars,
       'piezas:',
@@ -718,10 +913,20 @@ function aplicarPropuesta(carpeta, opciones) {
   }
   const version = A.versionDelKit(opciones.kit);
   if (datos.kit !== version) throw new Negativa(`la propuesta es del kit ${datos.kit} y el --kit es ${version} — corré --mirar de nuevo; no escribí nada`);
+  // 8r3 i1b: la carpeta de papeles de la propuesta (la validó la ficha); rt-5: un docs/ ajeno sin la clave → no se escribe nada
+  const carpetaDocs = F.carpetaDocs(datos);
+  if (!Object.prototype.hasOwnProperty.call(datos, 'carpeta-docs')) {
+    const dj = docsAjeno(seguidos(carpeta));
+    if (dj.ajeno) {
+      const que = [dj.sitio.length ? `tiene ${dj.sitio.join(', ')}` : '', `${dj.fuera} archivos que no son del método`].filter(Boolean).join(' y ');
+      throw new Negativa(`docs/ no es del método (${que}, sin ${HANDOFF}) y la propuesta no trae carpeta-docs: — escribí carpeta-docs: <la carpeta de los papeles> en la propuesta (carpeta-docs: docs si van igual ahí) y corré --aplicar de nuevo; no escribí nada`);
+    }
+  }
   const propuestas = esMapa(datos.piezas) ? datos.piezas : {};
   const estadoPropuesto = (id) => (Object.prototype.hasOwnProperty.call(propuestas, id) ? estadoDe(propuestas[id]) : undefined);
-  // D1 (--director kit, rt-4): las del director que se reemplazan, con el estado que toman (una propia → sí o molde)
-  const d1 = []; // { id, estado, distintos }
+  // D1 (--director kit, rt-4): las del director que se reemplazan, con el estado que toman (una propia → sí o molde); D3 (--arranque
+  // kit, 8r3 i2): hook-arranque, igual (un session-start.cjs propio con el nombre del del kit → el del molde)
+  const d1 = []; // { id, estado, distintos, d: 'D1' | 'D3' }
   const elegidoD1 = new Map();
   const estado = (id) => (elegidoD1.has(id) ? elegidoD1.get(id) : estadoPropuesto(id));
   const trae = (id) => TRAE.includes(estado(id));
@@ -732,22 +937,23 @@ function aplicarPropuesta(carpeta, opciones) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'kit-adoptar-'));
   let plan;
   try {
-    const viejo = moldeV2(opciones.kit, carpeta, path.join(tmp, 'viejo'));
+    const viejo = moldeV2(opciones.kit, carpeta, path.join(tmp, 'viejo'), carpetaDocs);
     let fichaPlan = fichaTexto;
-    if (opciones.director === 'kit') {
-      // lo distinto con la misma vara de --mirar; solo las cuatro del director, y solo las que vienen (o las propia de --mirar)
-      const nuevo = M.materializarNuevo(opciones.kit, { vars: esMapa(datos.vars) ? datos.vars : {}, fecha }, path.join(tmp, 'nuevo'));
+    const aReemplazar = [...(opciones.director === 'kit' ? D1_PIEZAS : []), ...(opciones.arranque === 'kit' ? [D3_PIEZA] : [])];
+    if (aReemplazar.length) {
+      // lo distinto con la misma vara de --mirar; solo las cuatro del director (y el arranque con D3), y solo las que vienen (o las propia de --mirar)
+      const nuevo = M.materializarNuevo(opciones.kit, { vars: esMapa(datos.vars) ? datos.vars : {}, fecha, carpetaDocs }, path.join(tmp, 'nuevo'));
       const aN = M.archivosDe(nuevo.dir);
-      const repN0 = C.repartir(nuevo.forma, C.rutasDeMolde(nuevo.dir));
+      const repN0 = C.repartir(nuevo.forma, C.rutasDeMolde(nuevo.dir), carpetaDocs);
       const aV = viejo ? M.archivosDe(viejo.dir) : new Map();
-      const repV0 = viejo ? C.repartir(viejo.forma, C.rutasDeMolde(viejo.dir)) : new Map();
-      for (const id of D1_PIEZAS) {
+      const repV0 = viejo ? C.repartir(viejo.forma, C.rutasDeMolde(viejo.dir), carpetaDocs) : new Map();
+      for (const id of aReemplazar) {
         const e = estadoPropuesto(id);
         if (e !== 'propia' && !TRAE.includes(e)) continue;
         const { distintos } = distintosDe(carpeta, mapaDe(repN0, aN, id), mapaDe(repV0, aV, id));
         if (!distintos.length) continue;
         const toma = e === 'propia' ? (MODULOS.includes(id) ? 'sí' : 'molde') : e;
-        d1.push({ id, estado: toma, distintos });
+        d1.push({ id, estado: toma, distintos, d: id === D3_PIEZA ? 'D3' : 'D1' });
         elegidoD1.set(id, toma);
       }
       // al planificador le llegan en propia: así no pasan por el guardia ni por la fusión (nada de claude); se escriben abajo
@@ -759,9 +965,10 @@ function aplicarPropuesta(carpeta, opciones) {
     M.borrar(tmp);
   }
   try {
-    const repN = C.repartir('3', C.rutasDeMolde(plan.moldeNuevo));
+    const repN = C.repartir('3', C.rutasDeMolde(plan.moldeNuevo), carpetaDocs);
     const formaV = M.formaDe(plan.moldeViejo).forma;
-    const repV = C.repartir(formaV, C.rutasDeMolde(plan.moldeViejo));
+    const repV = C.repartir(formaV, C.rutasDeMolde(plan.moldeViejo), carpetaDocs);
+    const RUTA_CHANGELOG = plan.changelog; // <carpeta>/CHANGELOG.md (8r3 i1b)
     const duenoDe = new Map();
     for (const rep of [repV, repN]) for (const [id, { archivos }] of rep) for (const a of archivos) if (a.proyecto) duenoDe.set(a.proyecto, id);
     // las que traen archivos (docs-fyd: sí no trae ninguno: la skill es global)
@@ -827,7 +1034,8 @@ function aplicarPropuesta(carpeta, opciones) {
     let renglon = null;
     if (lc && ops.has(RUTA_CHANGELOG)) {
       const viejoR = lc.slice(`${RUTA_CHANGELOG} · un renglón · `.length);
-      renglon = `kit ${version}: adopción — piezas ${traidas.join(', ')}${d1.length ? ' — D1: A, los del kit reemplazan los propios' : ''}`;
+      const conD = (d) => d1.some((x) => x.d === d);
+      renglon = `kit ${version}: adopción — piezas ${traidas.join(', ')}${conD('D1') ? ' — D1: A, los del kit reemplazan los propios' : ''}${conD('D3') ? ' — D3: kit, el arranque del kit reemplaza el tuyo' : ''}`;
       ops.set(RUTA_CHANGELOG, ops.get(RUTA_CHANGELOG).split('\n').map((l) => (l === viejoR ? renglon : l)).join('\n'));
     }
     // D2 (--permisos recomendada) y D3 (--arranque kit), rt-9: en el disco el settings elegido; en el commit de las piezas, la
@@ -862,7 +1070,9 @@ function aplicarPropuesta(carpeta, opciones) {
     for (const id of Object.keys(propuestas)) {
       const e = estadoDe(final.piezas[id]);
       const x = d1.find((y) => y.id === id);
-      if (x) lineas.push(`${id} · ${e} · reemplacé los tuyos (D1: A) — lo tuyo queda en la historia: ${x.distintos.map((r) => `git show ${antes || '<el HEAD de antes>'}:${r}`).join(', ')}`);
+      const historia = x ? x.distintos.map((r) => `git show ${antes || '<el HEAD de antes>'}:${r}`).join(', ') : '';
+      if (x && x.d === 'D3') lineas.push(`${id} · ${e} · reemplacé el tuyo (D3: kit) — lo tuyo queda en la historia: ${historia}`);
+      else if (x) lineas.push(`${id} · ${e} · reemplacé los tuyos (D1: A) — lo tuyo queda en la historia: ${historia}`);
       else if (trae(id)) lineas.push(dePlan.has(id) ? `${id} · ${e} · ${dePlan.get(id).split(' · ').slice(2).join(' · ')}` : `${id} · ${e} · sin cambios`);
       else if (id === 'candado' && candadoCorre) lineas.push(`${id} · ${e} · apagado hasta migrar (estructura.cjs vino: barreras corre)`);
       else lineas.push(`${id} · ${e} · ${e === 'propia' ? 'propia: no se toca' : 'no se trae'}`);
@@ -917,12 +1127,13 @@ function aplicarPropuesta(carpeta, opciones) {
     }
     // chequear no va: pide la ficha en la base, y antes de la adopción no hay (corre desde la primera puesta al día de la flota)
     const rango = `node .claude/scripts/estructura.cjs barreras --rango ${antes || '<el HEAD de antes>'}..HEAD`;
-    if (!algo) lineas.push(`después: barreras da ROJO en el commit de la ficha (sin la fábrica en el árbol del padre no hay exención b): lo aprueba Guido`);
-    else if (distintas.length) lineas.push(`después: ${rango} da ROJO en el commit de la ficha (${distintas.join(', ')} no es de fábrica): ${APRUEBA}`);
-    else if (fichaVieja) lineas.push(`después: ${rango} da ROJO: ${lineaFichaVieja(fichaVieja)}`);
+    const camino = caminoDelRojo(carpeta, opciones.principal); // 8r3 i4 (rt-3): lo que pasa de verdad con ese rojo
+    if (!algo) lineas.push(`después: barreras da ROJO en el commit de la ficha (sin la fábrica en el árbol del padre no hay exención b): ${camino}`);
+    else if (distintas.length) lineas.push(`después: ${rango} da ROJO en el commit de la ficha (${distintas.join(', ')} no es de fábrica): ${camino}`);
+    else if (fichaVieja) lineas.push(`después: ${rango} da ROJO: ${lineaFichaVieja(fichaVieja, camino)}`);
     else lineas.push(`después: ${rango} → verde${blobPlano ? ' en las piezas y la ficha' : ''}`);
     // rt-9: el tercero toca reglas del settings sin un aprobado sellado (lo dice barreras, regla por regla)
-    if (blobPlano) lineas.push(`después: el commit de los permisos (${MSG_PERMISOS}) da ROJO en barreras (toca reglas del settings sin un aprobado sellado): ${APRUEBA}; ya pusheado, no se rehace (sería un push forzado): si no se aprueba, se revierte con un commit nuevo (git revert) y queda la mezcla de siempre`);
+    if (blobPlano) lineas.push(`después: el commit de los permisos (${MSG_PERMISOS}) da ROJO en barreras (toca reglas del settings sin un aprobado sellado): ${camino}; ya pusheado no se rehace (sería un push forzado): si no lo querés, se revierte con un commit nuevo (git revert) y queda la mezcla de siempre`);
     lineas.push(traer);
     return { codigo: 0, lineas };
   } finally {
@@ -941,7 +1152,7 @@ const DECISIONES = { '--director': 'director', '--permisos': 'permisos', '--arra
 const VALOR_DECISION = { '--director': 'kit', '--permisos': 'recomendada', '--arranque': 'kit' };
 const D1_PIEZAS = ['director-obrero', 'estado', 'inicio', 'cierre'];
 const PASOS_DIRECTOR = ['git merge', 'git push', 'git worktree', 'git branch -d']; // los que corre el director (un ask lo frena)
-const RUTA_HANDOFF = 'docs/SESSION_HANDOFF.md';
+const D3_PIEZA = 'hook-arranque'; // D3 (8r3 i2): --arranque kit reemplaza el session-start.cjs propio por el del molde
 const TOPE_HANDOFF = 5000; // el del hook de arranque (hooks/lib/topes.cjs, HANDOFF_BYTES)
 const MSG_PERMISOS = 'permisos: D2/D3';
 
@@ -1029,7 +1240,7 @@ function settingsElegido(entrada, { permisos, arranque }) {
 }
 
 // Los bloques de --mirar: lo que se ve (a)-(d) y D1-D4, cada uno con la recomendada del informe primero y cómo se elige.
-function bloquesDecision(carpeta, { d1, settings }) {
+function bloquesDecision(carpeta, { d1, settings, carpetaDocs = CARPETA_DOCS, arranquePropio = null, camino = caminoDelRojo(carpeta) }) {
   const out = [];
   if (d1.length) {
     const rutas = d1.flatMap((x) => x.distintos.map((r) => `${r} (${x.id})`));
@@ -1054,19 +1265,29 @@ function bloquesDecision(carpeta, { d1, settings }) {
     }
     for (const x of d.arranque) out.push(`arranque: un SessionStart propio (no es del molde): ${textoHook(x)}`);
   }
+  // el handoff de la carpeta de papeles (8r3 i1b: la carpeta-docs: que se propone)
+  const rutaHandoff = rutaPapel(carpetaDocs, HANDOFF);
   let handoff = null;
   try {
-    const st = fs.statSync(path.join(carpeta, ...RUTA_HANDOFF.split('/')));
+    const st = fs.statSync(path.join(carpeta, ...rutaHandoff.split('/')));
     if (st.isFile() && st.size > TOPE_HANDOFF) handoff = st.size;
   } catch { /* no hay handoff */ }
-  if (handoff !== null) out.push(`arranque: ${RUTA_HANDOFF} pesa ${handoff} B y el tope del hook es ${TOPE_HANDOFF} B: cada arranque lo inyecta CORTADO`);
-  if ((d && d.arranque.length) || handoff !== null) {
+  if (handoff !== null) out.push(`arranque: ${rutaHandoff} pesa ${handoff} B y el tope del hook es ${TOPE_HANDOFF} B: cada arranque lo inyecta CORTADO`);
+  // 8r3 i2 (rt-9): el session-start.cjs propio con el nombre del del kit — lo que hacía y lo que lee, y adónde va lo que se conserva
+  if (arranquePropio !== null) out.push(...lineasArranquePropio(arranquePropio));
+  const porSettings = (d && d.arranque.length) || handoff !== null;
+  if (porSettings || arranquePropio !== null) {
     out.push('D3 · el arranque:');
-    out.push('  (recomendada) el del kit: --aplicar <propuesta> --arranque kit — el SessionStart propio sale del settings (su archivo queda); el /cierre del kit mantiene el handoff bajo el tope (va con la A de D1) — va en un tercer commit, aparte');
-    out.push('  (otra) sin la opción: quedan los dos hooks de arranque y el handoff entra cortado (dos veces, si el tuyo también lo inyecta)');
+    if (!porSettings) {
+      out.push(`  (recomendada) el del kit: --aplicar <propuesta> --arranque kit — lo reemplaza por el del kit (${RUTA_ARRANQUE}, en el commit de las piezas; lo tuyo queda en la historia)`);
+      out.push(`  (otra) sin la opción: queda el tuyo con el nombre del del kit (hook-arranque: propia) y el /inicio dice que el arranque del kit no corrió`);
+    } else {
+      out.push(`  (recomendada) el del kit: --aplicar <propuesta> --arranque kit — el SessionStart propio sale del settings (su archivo queda); el /cierre del kit mantiene el handoff bajo el tope (va con la A de D1) — va en un tercer commit, aparte${arranquePropio !== null ? `; y ${RUTA_ARRANQUE} se reemplaza por el del kit, en el commit de las piezas` : ''}`);
+      out.push(`  (otra) sin la opción: quedan los dos hooks de arranque y el handoff entra cortado (dos veces, si el tuyo también lo inyecta)${arranquePropio !== null ? `; y el tuyo sigue con el nombre del del kit` : ''}`);
+    }
   }
   // la gramática de la ficha: no, o la lista de los comandos que duelen (pregunta el que empieza así); un "sí" no se lee
-  out.push(`D4 · sensible: las cinco de sensible: quedan en no; recomendada: datos-reales con los comandos que tocan la base real — se cambia en la propuesta, como lista (p. ej. datos-reales: [sqlcmd]; "sí" no se lee: va no o los comandos, como en kit.ejemplo.md); el commit de la ficha da ROJO en barreras y ${APRUEBA}`);
+  out.push(`D4 · sensible: las cinco de sensible: quedan en no; recomendada: datos-reales con los comandos que tocan la base real — se cambia en la propuesta, como lista (p. ej. datos-reales: [sqlcmd]; "sí" no se lee: va no o los comandos, como en kit.ejemplo.md); el commit de la ficha da ROJO en barreras: ${camino}`);
   return out;
 }
 

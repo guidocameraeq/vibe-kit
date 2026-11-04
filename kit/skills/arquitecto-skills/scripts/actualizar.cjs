@@ -17,7 +17,7 @@ const USO = [
   '     node actualizar.cjs adoptar <carpeta> --kit <raíz del kit> --aplicar <archivo de propuesta> [--fecha <AAAA-MM-DD>]',
   '                               [--principal <carpeta principal>] [--claude-md] [--director kit] [--permisos recomendada] [--arranque kit]',
   '     node actualizar.cjs adoptar <clon> --traer <carpeta principal>',
-  '     node actualizar.cjs resolver <carpeta> <pieza> mezclar|quedarse|nueva|congelar --por "<texto>" [--a-mano]',
+  '     node actualizar.cjs resolver <carpeta> <pieza> mezclar|quedarse|nueva|congelar --por "<texto>" [--a-mano] [--kit <raíz del kit>]',
   '     node actualizar.cjs ultimo-tag <clon del kit>',
   '  aplicar   pone al día <carpeta> pieza por pieza según su ficha (.claude/kit.md), contra el molde del --kit. Escribe solo en',
   '            <carpeta>; no commitea, no pushea, no pone core.hooksPath (eso es de flota). Se niega (1) si <carpeta> no es un repo',
@@ -41,6 +41,9 @@ const USO = [
   '            no commitea: la última línea dice el commit. mezclar y nueva se niegan (1) sin escribir si algo de la pieza cambió',
   '            desde el informe (quedarse y congelar pueden igual). --a-mano (con mezclar):',
   '            lo que cambió lo armaste vos y se valida del disco; lo que sigue igual va con lo del informe.',
+  '            nueva sobre una pieza propia y sin informe: la del molde de la versión de la ficha (el del --kit, o el clon del',
+  '            kit de este script; de otra versión, se niega: poné al día primero), la ficha en molde y el porqué al CHANGELOG;',
+  '            si la pieza toca frenos, la línea da el orden: cambios nuevo → cambios aprobar → el commit de la pieza.',
   '  ultimo-tag imprime el tag v* anotado que va (el de la flota sin --tag: v3.0.0 después de v3.0.0-rc.N); sin ninguno → 1.',
   '  --nuevo        (con --mirar) un repo recién nacido: las bases van en molde, el candado va (sí) y el director-obrero y el estado también.',
   '  --comando-test (con --mirar) vars.comando-test de la propuesta (el Entorno de prueba del SPEC-0); le gana al de los manifiestos.',
@@ -50,8 +53,9 @@ const USO = [
   '  --director kit (con --aplicar; D1: A) el director, /inicio y /cierre del kit reemplazan los tuyos distintos (director-obrero,',
   '                 estado, inicio, cierre; nada más); lo tuyo queda en la historia. Sin ella, lo distinto queda propia.',
   '  --permisos recomendada (con --aplicar; D2) las allow que la mezcla sacaba se quedan y salen los ask que frenan al director.',
-  '  --arranque kit (con --aplicar; D3) el SessionStart propio sale del settings (su archivo queda). D2 y D3 van en un tercer',
-  '                 commit, aparte; la línea "después:" dice el camino si da rojo. Sin ellas, el settings sale como siempre.',
+  '  --arranque kit (con --aplicar; D3) el SessionStart propio sale del settings (su archivo queda) y un session-start.cjs',
+  '                 propio (el nombre del del kit) pasa a ser el del kit, en el commit de las piezas. D2 y D3 en el settings van en',
+  '                 un tercer commit, aparte; la línea "después:" dice el camino si da rojo. Sin ellas, el settings sale como siempre.',
   '  --nivel        el nivel de la propuesta (sin él: con código → estandar, sin código → liviano).',
   '  --canon        el repo canónico del kit (URL o carpeta): se clona con sus tags.',
   '  --tag          el tag anotado a repartir (sin él, el último v* anotado); su versión sin la v = kit/VERSION entero, o 1.',
@@ -78,8 +82,8 @@ const USO = [
 // (3) Bajas: lo que el viejo traía y el nuevo no; intacto → se borra, editado → se deja; las de propia/adaptada no se borran.
 // (4) settings por mezclarSettings (lo quitado no vuelve; lo retirado que el proyecto tenía igual se va: las deny Write(...)).
 // (5) los .snippet renglón por renglón. (6) core.hooksPath NO (r1-5). (7) la ficha: kit y los hashes de lo reemplazado, el
-// estado de lo marcado, todo lo demás byte a byte; un renglón al tope de docs/CHANGELOG.md. Nunca CLAUDE.md ni otro de docs/
-// (docs solo nace: crea lo que falta; r1-2). (8) todo el plan antes de escribir; cada archivo temporal + renombre.
+// estado de lo marcado, todo lo demás byte a byte; un renglón al tope de <carpeta>/CHANGELOG.md (8r3 i1b: la carpeta-docs: de la
+// ficha; sin ella, docs/). Nunca CLAUDE.md ni otro de los papeles (docs solo nace en <carpeta>/: crea lo que falta; r1-2). (8) todo el plan antes de escribir; cada archivo temporal + renombre.
 // (6bis, antes de la ficha; SPEC-paquete-7 P6.8b-1) el cierre del ciclo: cada cambio aplicado del proyecto que kit/cubiertos.md
 // del --kit nombra (por id o por cita, nunca por texto) y cuyo verificar da verde pasa a subio-al-kit, y su zona propia se retira
 // solo con las cinco condiciones de D7-7 (si no, la línea dice por qué queda). Con opciones.rc (lo pasa flota con un tag -rc):
@@ -102,7 +106,8 @@ const CU = require('./lib/cubiertos.cjs');
 const ROTO = 'actualizador roto: corré doctor';
 const RUTA_FICHA = '.claude/kit.md';
 const RUTA_SETTINGS = '.claude/settings.json';
-const RUTA_CHANGELOG = 'docs/CHANGELOG.md';
+// El CHANGELOG de los papeles (8r3 i1b): <carpeta-docs de la ficha>/CHANGELOG.md; sin la clave, docs/CHANGELOG.md.
+const rutaChangelog = (carpeta) => `${carpeta || C.CARPETA_DOCS}/CHANGELOG.md`;
 const KIT_ROL = '.kit-rol';
 const RE_VERSION = F.RE_VERSION; // N.N.N o N.N.N-rc.N: una sola gramática, la de la ficha (D8b-3)
 const SNIPPETS = [['gitignore.snippet', '.gitignore'], ['gitattributes.snippet', '.gitattributes']];
@@ -313,18 +318,20 @@ function planear(carpeta, opciones) {
   const vViejo = datos.kit;
   const vars = esMapa(datos.vars) ? datos.vars : {};
   const fecha = opciones.fecha || hoy();
+  // 8r3 i1b: la carpeta de papeles de la ficha (la del disco o la que propone el adoptador): ahí nace lo de docs/ del molde y va el renglón
+  const carpetaDocs = F.carpetaDocs(datos);
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'kit-aplicar-'));
-  const plan = { tmp, lineas: [], ops: new Map(), vViejo, vNuevo, vars, fecha };
+  const plan = { tmp, lineas: [], ops: new Map(), vViejo, vNuevo, vars, fecha, carpetaDocs, changelog: rutaChangelog(carpetaDocs) };
   try {
-    const nuevo = M.materializarNuevo(opciones.kit, { vars, fecha }, path.join(tmp, 'nuevo'));
+    const nuevo = M.materializarNuevo(opciones.kit, { vars, fecha, carpetaDocs }, path.join(tmp, 'nuevo'));
     let viejo;
-    if (opciones.moldeViejo) viejo = M.materializarDir(opciones.moldeViejo, { vars, fecha }, path.join(tmp, 'viejo'));
+    if (opciones.moldeViejo) viejo = M.materializarDir(opciones.moldeViejo, { vars, fecha, carpetaDocs }, path.join(tmp, 'viejo'));
     else if (vViejo === vNuevo) viejo = nuevo;
     else {
       const falta = faltaTagViejo(opciones.kit, vViejo);
       if (falta) throw new Negativa(falta);
       try {
-        viejo = M.materializarViejo(opciones.kit, vViejo, { vars, fecha }, path.join(tmp, 'viejo'));
+        viejo = M.materializarViejo(opciones.kit, vViejo, { vars, fecha, carpetaDocs }, path.join(tmp, 'viejo'));
       } catch (e) {
         throw new Negativa(e.message);
       }
@@ -347,8 +354,8 @@ function armar(plan, carpeta, { textoFicha, datos, nuevo, viejo, opciones = {} }
   const aV = viejo === nuevo ? aN : M.archivosDe(viejo.dir);
   let repN, repV;
   try {
-    repN = C.repartir(nuevo.forma, C.rutasDeMolde(nuevo.dir));
-    repV = C.repartir(viejo.forma, C.rutasDeMolde(viejo.dir));
+    repN = C.repartir(nuevo.forma, C.rutasDeMolde(nuevo.dir), plan.carpetaDocs);
+    repV = C.repartir(viejo.forma, C.rutasDeMolde(viejo.dir), plan.carpetaDocs);
   } catch (e) {
     throw new Negativa(`el catálogo no cubre el molde: ${e.message}`);
   }
@@ -377,8 +384,8 @@ function armar(plan, carpeta, { textoFicha, datos, nuevo, viejo, opciones = {} }
   const moldeDeBase = (base) => {
     if (!bases.has(base)) {
       try {
-        const m = M.materializarViejo(opciones.kit, base, { vars: plan.vars, fecha: plan.fecha }, path.join(plan.tmp, `base-${base}`));
-        bases.set(base, { a: M.archivosDe(m.dir), rep: C.repartir(m.forma, C.rutasDeMolde(m.dir)) });
+        const m = M.materializarViejo(opciones.kit, base, { vars: plan.vars, fecha: plan.fecha, carpetaDocs: plan.carpetaDocs }, path.join(plan.tmp, `base-${base}`));
+        bases.set(base, { a: M.archivosDe(m.dir), rep: C.repartir(m.forma, C.rutasDeMolde(m.dir), plan.carpetaDocs) });
       } catch {
         bases.set(base, null);
       }
@@ -673,14 +680,14 @@ function armar(plan, carpeta, { textoFicha, datos, nuevo, viejo, opciones = {} }
   } else plan.lineas.push(`ficha · kit ${plan.vViejo} · sin cambios`);
   if (cambiaVersion || tocadas.length) {
     const renglon = `kit ${plan.vViejo} → ${plan.vNuevo}: piezas ${tocadas.length ? tocadas.join(', ') : '(ninguna)'}`;
-    let t = leerP(RUTA_CHANGELOG);
+    let t = leerP(plan.changelog);
     t = t === null ? '' : lf(t);
     const ls = t.split('\n');
     const i = ls.findIndex((l) => /^## /.test(l));
     if (i < 0) t = t ? `${t.replace(/\n*$/, '')}\n\n${renglon}\n` : `${renglon}\n`;
     else t = [...ls.slice(0, i), renglon, '', ...ls.slice(i)].join('\n');
-    escribir(RUTA_CHANGELOG, t);
-    plan.lineas.push(`${RUTA_CHANGELOG} · un renglón · ${renglon}`);
+    escribir(plan.changelog, t);
+    plan.lineas.push(`${plan.changelog} · un renglón · ${renglon}`);
   }
   if (plan.fichaNueva) plan.ops.set(RUTA_FICHA, plan.fichaNueva); // la ficha, la última
 }
@@ -954,6 +961,157 @@ function piezaDeRutaProyecto(rel) {
 // Un porqué que entra entre comillas en la ficha: sin comillas dobles ni saltos de línea.
 const porLimpio = (s) => String(s).replace(/"/g, "'").replace(/\s+/g, ' ').trim();
 
+// ---------------------------------------------------------------- resolver … nueva sobre una propia, sin informe (8r3 i5; rt-7)
+
+// El kit de donde sale el molde: --kit, o el clon del kit en el que vive este script (kit/skills/arquitecto-skills/scripts/); null
+// si no hay ninguno (instalado en ~/.claude no viaja el molde).
+function kitParaResolver(kit) {
+  const k = kit ? path.resolve(kit) : path.resolve(__dirname, '..', '..', '..', '..');
+  return fs.existsSync(path.join(k, 'kit', 'VERSION')) && fs.existsSync(path.join(k, 'kit', 'molde', 'settings.json')) ? k : null;
+}
+const NUEVA_COMANDO = 'node .claude/scripts/cambios.cjs';
+// Entre comillas dobles, que andan igual en Git Bash y en cmd (como las líneas de adoptar): sin ", \, $ ni ` adentro.
+const entreComillas = (s) => `"${String(s).replace(/["\\$`]/g, '')}"`;
+
+// La pieza propia pasa al molde de la versión de la ficha (kit:): escribe sus archivos (la zona propia del proyecto queda, como en
+// nueva con informe: fusion.validar), la ficha en molde (con su hash si es un archivo; molde+propio con zona o en el settings, que se
+// mezcla regla por regla como en aplicar) y un renglón al tope de <carpeta>/CHANGELOG.md con el porqué (una molde no lleva por:).
+// Se niega sin escribir: sin el molde de esa versión ("poné al día primero"), una ruta de la pieza con cambios sin commitear. Si la
+// pieza toca frenos (categoriaDe sobre sus rutas, como barreras), la línea da el orden que pasa barreras: cambios nuevo → cambios
+// aprobar → el commit de la pieza (el sello va antes del primer commit que toca: barreras.cjs, cubre).
+function nuevaSinInforme(raiz, { id, def, datos, textoFicha, por, kit: kitPedido, no, leerD }) {
+  const vFicha = datos.kit;
+  const kit = kitParaResolver(kitPedido);
+  if (!kit) return no(`${id} está propia y no hay informe: nueva trae la del molde del kit ${vFicha}, y acá no encuentro el molde — pasá --kit <un clon del kit en v${vFicha}>; no toqué nada`);
+  let vKit;
+  try {
+    vKit = versionDelKit(kit);
+  } catch (e) {
+    return no(`${e.message}; no toqué nada`);
+  }
+  if (vKit !== vFicha) return no(`el molde del kit es ${vKit} y la ficha dice kit: ${vFicha} — poné al día primero (la flota) o pasá --kit <un clon del kit en v${vFicha}>; no toqué nada`);
+  // una ruta de la pieza con cambios sin commitear: no (lo de hoy, r1-2)
+  const st = gitEn(raiz, ['status', '--porcelain=v1', '-z', '--untracked-files=all']);
+  if (!st.ok) return no(`git status falló: ${st.err.trim()}`);
+  const partes = st.out.split('\0');
+  for (let i = 0; i < partes.length; i++) {
+    const e = partes[i];
+    if (!e) continue;
+    const rutas = [e.slice(3)];
+    if (e[0] === 'R' || e[0] === 'C') rutas.push(partes[++i]);
+    const sucia = rutas.find((r) => piezaDeRutaProyecto(r) === id);
+    if (sucia) return no(`${sucia} tiene cambios sin commitear: commitealo o descartalo antes de tomar la nueva; no toqué nada`);
+  }
+  const carpetaDocs = F.carpetaDocs(datos);
+  const fecha = hoy();
+  const vars = esMapa(datos.vars) ? datos.vars : {};
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'kit-resolver-'));
+  const ops = new Map();
+  let valor;
+  let archivos;
+  try {
+    const m = M.materializarNuevo(kit, { vars, fecha, carpetaDocs }, path.join(tmp, 'molde'));
+    const rep = C.repartir(m.forma, C.rutasDeMolde(m.dir), carpetaDocs);
+    const aN = M.archivosDe(m.dir);
+    archivos = rep.has(id) ? rep.get(id).archivos : [];
+    if (!archivos.length) return no(`el molde del kit ${vKit} no trae archivos de ${id}: no hay nada que traer`);
+    let h;
+    let estado = 'molde';
+    if (def.forma === 'settings') {
+      // el settings, regla por regla (la mezcla de aplicar, sin molde viejo: lo propio queda)
+      const textoN = aN.get(archivos[0].molde);
+      const quitados = esMapa(datos.frenos) && Array.isArray(datos.frenos.quitados) ? datos.frenos.quitados : [];
+      const r = Z.mezclarSettings({ viejo: null, nuevo: textoN, proyecto: leerD(archivos[0].proyecto), quitados });
+      if (!r.ok) return no(`${archivos[0].proyecto}: ${r.problema} — no toqué nada`);
+      const d = leerD(archivos[0].proyecto);
+      if (d === null || lf(d) !== r.texto) ops.set(archivos[0].proyecto, r.texto);
+      estado = 'molde+propio';
+      h = Z.hashPieza(Z.textoSettings(JSON.parse(textoN)));
+    } else {
+      for (const a of archivos) {
+        const disco = leerD(a.proyecto);
+        const val = FU.validar(a.proyecto, aN.get(a.molde), disco === null ? null : lf(disco), tmp);
+        if (!val.ok) return no(`${val.problema}; no toqué nada`);
+        if (disco === null || lf(disco) !== val.texto) ops.set(a.proyecto, val.texto);
+      }
+      const unico = archivos.length === 1 ? archivos[0] : null;
+      if (unico && esTextoConZona(unico.proyecto) && (Z.zonas(aN.get(unico.molde)).zonas || []).length) estado = 'molde+propio';
+      h = unico ? huella(unico.proyecto, aN.get(unico.molde)) : undefined;
+    }
+    valor = valorPieza(estado, h); // molde no lleva por: (la gramática); el porqué va al CHANGELOG
+  } finally {
+    M.borrar(tmp);
+  }
+  const fichaNueva = reescribirFicha(textoFicha, null, new Map([[id, valor]]));
+  try {
+    F.leer(fichaNueva);
+  } catch (e) {
+    return no(`la ficha reescrita no se lee (${e.message}) — no toqué nada`);
+  }
+  const p = porLimpio(por);
+  const changelog = rutaChangelog(carpetaDocs);
+  const renglon = `kit ${vFicha}: ${id} propia → molde (resolver nueva, sin informe): ${p}`;
+  let t = leerD(changelog);
+  t = t === null ? '' : lf(t);
+  const ls = t.split('\n');
+  const i = ls.findIndex((l) => /^## /.test(l));
+  t = i < 0 ? (t ? `${t.replace(/\n*$/, '')}\n\n${renglon}\n` : `${renglon}\n`) : [...ls.slice(0, i), renglon, '', ...ls.slice(i)].join('\n');
+  const escritos = [...ops.keys()];
+  ops.set(RUTA_FICHA, fichaNueva);
+  ops.set(changelog, t);
+  // lo que barreras va a pedir: por archivo que cambia, la categoría y los ids (los de cambios.cjs: categoriaDe, paresArchivo)
+  const pares = new Set();
+  for (const rel of escritos) {
+    const cat = CA.categoriaDe(rel);
+    if (!cat) continue;
+    const enHead = gitEn(raiz, ['cat-file', '-e', `HEAD:${rel}`]).ok ? spawnSync('git', ['show', `HEAD:${rel}`], { cwd: raiz, windowsHide: true }).stdout : null;
+    CA.paresArchivo(cat, rel, enHead, [Buffer.from(ops.get(rel), 'utf8')]).forEach((x) => pares.add(x));
+  }
+  const toca = CA.desdePares(pares);
+  // el cuerpo del cambio, en el git-dir (no ensucia el árbol)
+  let cuerpo = null;
+  if (toca.categorias.length) {
+    const gd = gitEn(raiz, ['rev-parse', '--absolute-git-dir']);
+    if (!gd.ok) return no(`no encuentro el git-dir (${gd.err.trim()}); no toqué nada`);
+    cuerpo = path.join(gd.out.trim(), 'kit-resolver', `${id}.md`);
+  }
+  try {
+    ejecutar(raiz, ops);
+    if (cuerpo) {
+      fs.mkdirSync(path.dirname(cuerpo), { recursive: true });
+      fs.writeFileSync(cuerpo, [
+        '## Caso de origen', `${id} estaba propia en la ficha y se trae la del kit ${vFicha} (resolver ${id} nueva, sin informe): ${p}`, '',
+        '## Regla', `${id} pasa a la del molde del kit ${vFicha} (${valor})`, '',
+        '## Dónde vive', escritos.join(', '), '',
+        '## Medición', '| antes | después |', '|---|---|', `| ${id}: propia | ${id}: ${valor.replace(/\|/g, '/')} |`, '',
+      ].join('\n'));
+    }
+  } catch (e) {
+    return no(`no pude escribir ${e.ruta || cuerpo || '?'} (${e.code || e.message}): mirá \`git status\``);
+  }
+  const lineas = [];
+  for (const r of escritos) lineas.push(`${r} · escrito (nueva, del molde del kit ${vFicha})`);
+  if (!escritos.length) lineas.push(`${id} · los archivos ya eran los del molde del kit ${vFicha}: solo cambia la ficha`);
+  lineas.push(`${RUTA_FICHA} · ${id}: ${valor}`, `${changelog} · un renglón · ${renglon}`);
+  const sh = escritos.filter((r) => /^\.githooks\/[^/.]+$/.test(r));
+  const x = sh.length ? ` && git update-index --chmod=+x -- ${sh.join(' ')}` : '';
+  const commit = `git add -A -- ${[...escritos, RUTA_FICHA, changelog].join(' ')}${x} && git commit -m "inicio: ${id}, nueva (${p.replace(/[`$\\"]/g, '')})"`;
+  if (!toca.categorias.length) {
+    lineas.push(`commit por rutas: ${commit}`);
+    return { codigo: 0, lineas };
+  }
+  // de frenos: el sello antes del commit de la pieza (un aprobado de después no lo cubre)
+  const slug = `kit-${id}`.replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  const origen = `resolver ${id} nueva: ${p}`.replace(/[\\"]/g, '').slice(0, 300);
+  const nuevo = [`${NUEVA_COMANDO} nuevo --slug ${slug} --clase 3-barrera --toca ${toca.categorias.join(',')}`, ...toca.ids.map((x2) => `--id ${entreComillas(x2)}`), `--origen ${entreComillas(origen)}`, `--cuerpo ${entreComillas(cuerpo.replace(/\\/g, '/'))}`].join(' ');
+  lineas.push(`${id} toca frenos (${toca.categorias.join(', ')}): el sello va ANTES del commit de la pieza (barreras pide un aprobado anterior al primer commit que la toca; uno de después no la cubre) — en este orden, en tu checkout principal y en la rama por defecto, con lo escrito sin commitear:`);
+  lineas.push(`  1. ${nuevo}`);
+  lineas.push(`  2. ${NUEVA_COMANDO} aprobar ${hoy()}-${slug}   (el id que dijo el paso 1; lo apretás vos: un agente no aprueba)`);
+  lineas.push(`  3. ${commit}`);
+  lineas.push(`si no lo aprobás: git checkout -- ${escritos.join(' ')} ${RUTA_FICHA} ${changelog}`);
+  return { codigo: 0, lineas };
+}
+
 // resolver(carpeta, pieza, salida, {por, aMano}) → { codigo, lineas }. En el checkout del proyecto (rol humano), con un
 // .claude/fusiones/<pieza>.md: escribe lo que dice el informe para la salida, pone estado y `por:` en la ficha, borra el informe e
 // imprime el commit por rutas. No commitea. Se niega (1) sin escribir nada: congelar en una pieza de FRENOS, mezclar sin propuesta
@@ -963,7 +1121,7 @@ const porLimpio = (s) => String(s).replace(/"/g, "'").replace(/\s+/g, ' ').trim(
 // el próximo rc: la flota dice "al día" o "salteado"). --a-mano: lo que cambió desde el informe se valida del disco (lo armó el
 // dueño); lo que sigue igual se escribe con lo del informe (la nueva en un molde, la propuesta en un tres limpio), así la próxima
 // flota no revierte el arreglo.
-function resolver(carpeta, id, salidaPedida, { por, aMano = false } = {}) {
+function resolver(carpeta, id, salidaPedida, { por, aMano = false, kit } = {}) {
   const raiz = path.resolve(carpeta);
   const no = (m) => ({ codigo: 1, lineas: [`resolver: ${m}`] });
   // `propia` es el nombre viejo de `quedarse` (8r2 t10): hace lo mismo y desde acá se llama quedarse
@@ -996,6 +1154,10 @@ function resolver(carpeta, id, salidaPedida, { por, aMano = false } = {}) {
   if (!Object.prototype.hasOwnProperty.call(piezas, id)) return no(`la ficha no tiene la pieza ${id}`);
   const rInforme = FU.rutaInforme(id);
   const textoInforme = leerD(rInforme);
+  // 8r3 i5 (rt-7): nueva sobre una propia, sin informe (la flota saltea una ficha al día): la del molde de la versión de la ficha
+  if (textoInforme === null && salida === 'nueva' && estadoDe(piezas[id]) === 'propia') {
+    return nuevaSinInforme(raiz, { id, def, datos, textoFicha, por, kit, no, leerD });
+  }
   if (textoInforme === null) return no(`no hay ${rInforme}: no hay nada que resolver`);
   const inf = FU.leerInforme(textoInforme);
   if (!inf.base || !RE_VERSION.test(inf.base)) return no(`${rInforme} no tiene la línea base: — corré la flota de nuevo`);
@@ -1107,13 +1269,18 @@ function leerResolver(resto) {
     if (a === '--por') {
       if (i + 1 >= resto.length) return null;
       o.por = resto[++i];
+    } else if (a === '--kit') {
+      // 8r3 i5: el clon del kit del que sale el molde (nueva sobre una propia, sin informe)
+      if (i + 1 >= resto.length || o.kit !== undefined) return null;
+      o.kit = resto[++i];
     } else if (a === '--a-mano') o.aMano = true;
     else if (a.startsWith('--')) return null;
     else pos.push(a);
   }
   if (pos.length !== 3 || !FU.salidaDe(pos[2]) || typeof o.por !== 'string' || !o.por.trim()) return null;
   if (o.aMano && pos[2] !== 'mezclar') return null;
-  return { carpeta: pos[0], pieza: pos[1], salida: pos[2], por: o.por, aMano: o.aMano };
+  if (o.kit !== undefined && pos[2] !== 'nueva') return null;
+  return { carpeta: pos[0], pieza: pos[1], salida: pos[2], por: o.por, aMano: o.aMano, kit: o.kit };
 }
 
 // ---------------------------------------------------------------- línea de comandos
@@ -1160,7 +1327,7 @@ async function main(argv) {
   }
   if (argv[0] === 'resolver') {
     const r = leerResolver(argv.slice(1));
-    return r ? resolver(r.carpeta, r.pieza, r.salida, { por: r.por, aMano: r.aMano }) : { codigo: 2, lineas: [USO] };
+    return r ? resolver(r.carpeta, r.pieza, r.salida, { por: r.por, aMano: r.aMano, kit: r.kit }) : { codigo: 2, lineas: [USO] };
   }
   const o = leerArgs(argv);
   if (!o) return { codigo: 2, lineas: [USO] };
