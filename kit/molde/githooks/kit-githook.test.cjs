@@ -1146,11 +1146,8 @@ test('agregadas: las líneas agregadas con su archivo y línea — rutas entre c
     '+ del otro padre',
     ' +del primero',
   ].join('\n');
-  assert.deepEqual(kg.agregadas(cc), [
-    { commit: sha, archivo: 'm.txt', linea: 1, texto: 'malvada' },
-    { commit: sha, archivo: 'm.txt', linea: 2, texto: 'del otro padre' },
-    { commit: sha, archivo: 'm.txt', linea: 3, texto: 'del primero' },
-  ]);
+  // u9 (rt-u9-4): nueva es la agregada contra todos los padres; la que ya estaba en un padre (' ' en su columna) vino de ahí
+  assert.deepEqual(kg.agregadas(cc), [{ commit: sha, archivo: 'm.txt', linea: 1, texto: 'malvada' }]);
   // el "\ No newline" en el medio de un bloque, y un contexto vacío sin su espacio (diff.suppressBlankEmpty) que cuenta como viejo
   const medio = ['+++ b/n.txt', '@@ -1 +1,2 @@', '-viejo sin fin', '\\ No newline at end of file', '+uno', '+dos', 'diff --git a/s.txt b/s.txt', '+++ b/s.txt', '@@ -1,3 +1,3 @@', '-a', '+b', '', '-c', '+d', 'diff --git a/t.txt b/t.txt', ''].join('\n');
   assert.deepEqual(kg.agregadas(medio).map((x) => `${x.archivo}:${x.linea}:${x.texto}`), ['n.txt:1:uno', 'n.txt:2:dos', 's.txt:1:b', 's.txt:3:d']);
@@ -1455,4 +1452,118 @@ test('moldeDelActualizador: solo actualizador y una carpeta; sin las variables (
   assert.deepEqual(m.args, ['--molde', path.resolve(moldes().nuevo), '--molde-viejo', path.resolve(moldes().viejo)]);
   assert.equal(m.dir, path.resolve(moldes().nuevo));
   assert.deepEqual(kg.moldeDelActualizador(d, { KIT_MOLDE: '', KIT_MOLDE_VIEJO: '' }), { args: [], dir: null, linea: null });
+});
+
+// ---------------------------------------------------------------- u9 (D8r.4): el merge de main en una rama vieja
+
+// Otra clave de prueba (k = 0 es claveDePrueba), armada en tiempo de corrida como esa.
+const claveN = (k) => ['gh', 'p_'].join('') + Array.from({ length: 36 }, (_, i) => 'AbCdEfGhIjKlMnOpQrStUvWxYz0123456789'[(i * 7 + 3 + k * 5) % 36]).join('');
+const CONF = (tres) => `uno\ndos\n${tres}\ncuatro\ncinco\nseis\nsiete\nocho\n`;
+// Una rama "vieja" (de antes de adoptar: sin .claude/ ni .githooks/) ya subida, y main que adoptó el kit con una clave vieja en
+// conf.txt (subida sin hooks). o.rama: lo que commitea la rama. → la carpeta, en la rama vieja.
+function ramaVieja(o = {}) {
+  const d = carpeta('vieja');
+  g(d, ['init', '-q', '-b', 'main']);
+  commitArmado(d, { '.gitignore': '/.kit-rol\n/.claude/frenos.log\n', 'a.txt': 'a\n', 'conf.txt': CONF('tres') }, 'antes del kit');
+  g(d, ['branch', 'vieja']);
+  commitArmado(d, { ...MOLDE_ARCHIVOS, '.claude/kit.md': FICHA(), 'a.txt': 'a de main\n', 'conf.txt': CONF(`token = "${claveDePrueba()}"`) }, 'adopción, con una clave vieja');
+  if (!ES_WIN) for (const h of kg.CUALES) g(d, ['update-index', '--chmod=+x', `.githooks/${h}`]);
+  if (!ES_WIN) g(d, ['commit', '-q', '--no-verify', '-m', '+x']);
+  const bare = carpeta('origen-vieja');
+  g(bare, ['init', '-q', '--bare', '-b', 'main']);
+  g(d, ['remote', 'add', 'origin', bare]);
+  g(d, ['push', '-q', '--no-verify', '-u', 'origin', 'main']);
+  g(d, ['config', 'core.hooksPath', '.githooks']);
+  g(d, ['checkout', '-q', 'vieja']);
+  commitArmado(d, o.rama || { 'a.txt': 'a de la rama\n' }, 'la rama');
+  g(d, ['push', '-q', '--no-verify', '-u', 'origin', 'vieja']);
+  return d;
+}
+const loQueVio = (archivo) => (fs.existsSync(archivo) ? fs.readFileSync(archivo, 'utf8').trim().split('\n').filter(Boolean).map((l) => JSON.parse(l).vio) : []);
+
+test('u9 crit. 9 (a): la rama vieja mergea main con un conflicto en un archivo común → el pre-commit del merge verde (sin la clave vieja de main) y el push de la rama ya subida verde', () => {
+  const d = ramaVieja();
+  assert.notEqual(g(d, ['merge', '-q', '--no-ff', '--no-commit', 'origin/main'], { puede: true }).codigo, 0, 'el conflicto en a.txt');
+  escribir(d, 'a.txt', 'a de main y de la rama\n');
+  g(d, ['add', 'a.txt']);
+  if (!ES_WIN) for (const h of kg.CUALES) fs.chmodSync(path.join(d, '.githooks', h), 0o755);
+  const llamadas = path.join(TMP, `u9a-${n++}.log`);
+  let r = g(d, ['commit', '-q', '--no-edit'], { env: entorno('verde', { FAKE_GITLEAKS_LOG: llamadas }), puede: true });
+  assert.equal(r.codigo, 0, r.err);
+  assert.match(r.err, /candado de origin\/main: candado: en verde \(barreras\)/);
+  assert.match(r.err, /candado del disco: candado: en verde \(barreras\)/);
+  assert.match(r.err, /kit pre-commit: en verde/);
+  assert.deepEqual(loQueVio(llamadas), [{ 'a.txt': 'kit-githook\na de main y de la rama\n' }], 'solo lo que trae la resolución');
+  assert.equal(gt(d, 'rev-list', '--parents', '-n', '1', 'HEAD').split(' ').length, 3, 'es un merge');
+  const push = path.join(TMP, `u9a-push-${n++}.log`);
+  r = g(d, ['push', '-q', 'origin', 'vieja'], { env: entorno('verde', { FAKE_GITLEAKS_LOG: push }), puede: true });
+  assert.equal(r.codigo, 0, r.err);
+  assert.match(r.err, /kit pre-push: en verde/);
+  assert.deepEqual(loQueVio(push), [{ 'a.txt': 'kit-githook\na de main y de la rama\n' }], 'ni la adopción ni la clave vieja de main');
+});
+
+test('u9 crit. 9 (d): el merge sin conflicto con --no-commit y commit --no-edit (lo que hace traer-main) → verde; gitleaks no ve nada de main', () => {
+  const d = ramaVieja({ rama: { 'b.txt': 'b de la rama\n' } });
+  g(d, ['merge', '-q', '--no-ff', '--no-commit', 'origin/main']);
+  if (!ES_WIN) for (const h of kg.CUALES) fs.chmodSync(path.join(d, '.githooks', h), 0o755);
+  const llamadas = path.join(TMP, `u9d-${n++}.log`);
+  const r = g(d, ['commit', '-q', '--no-edit'], { env: entorno('verde', { FAKE_GITLEAKS_LOG: llamadas }), puede: true });
+  assert.equal(r.codigo, 0, r.err);
+  assert.match(r.err, /kit pre-commit: en verde/);
+  assert.deepEqual(loQueVio(llamadas), [], 'lo de cada lado vino igual de un padre: nada nuevo que escanear');
+});
+
+test('u9: el rojo de gitleaks del pre-merge-commit dice que el merge quedó a medias y que git commit lo juzga contra los dos padres', () => {
+  const e = repo();
+  g(e, ['checkout', '-q', '-b', 'tema']);
+  commitArmado(e, { 'x.txt': 'x\n' });
+  g(e, ['checkout', '-q', 'main']);
+  commitArmado(e, { 'm.txt': 'm\n' });
+  let r = g(e, ['merge', '-q', '--no-edit', 'tema'], { env: entorno('rojo'), puede: true });
+  assert.notEqual(r.codigo, 0);
+  assert.match(r.err, /pre-merge-commit: el merge quedó a medias: git commit lo juzga contra los dos padres/);
+  r = g(e, ['commit', '-q', '--no-edit'], { env: entorno('verde'), puede: true });
+  assert.equal(r.codigo, 0, r.err);
+  assert.match(r.err, /kit pre-commit: en verde/);
+});
+
+test('u9 (Hermes): main subió un .gitleaksignore; una rama vieja lo mergea --no-ff (main de segundo padre) y git push origin HEAD:main → verde', () => {
+  const d = repo();
+  g(d, ['branch', 'vieja']);
+  commitArmado(d, { '.gitleaksignore': Array.from({ length: 7 }, (_, i) => `abc${i}:x${i}.txt:generic-api-key:${i + 1}`).join('\n') + '\n' }, 'huellas (aprobadas allá)');
+  g(d, ['push', '-q', '--no-verify', 'origin', 'main']);
+  g(d, ['checkout', '-q', 'vieja']);
+  commitArmado(d, { 'v.txt': 'v\n' }, 'la rama');
+  g(d, ['merge', '-q', '--no-ff', '--no-verify', '-m', 'main en la rama', 'origin/main']);
+  const r = g(d, ['push', '-q', 'origin', 'HEAD:main'], { env: entorno('verde'), puede: true });
+  assert.equal(r.codigo, 0, r.err);
+  assert.doesNotMatch(r.err, /gitleaks:\.gitleaksignore/);
+  assert.match(r.err, /kit pre-push: en verde/);
+});
+
+test('u9 crit. 9 (e) con el gitleaks de verdad: en la resolución, una clave nueva → rojo; la vieja de main repetida en otro renglón → rojo; la vieja de main en su lugar → no sale', { skip: GITLEAKS_REAL ? false : 'gitleaks no está en esta PC' }, () => {
+  const vieja = `token = "${claveDePrueba()}"`;
+  const nueva = `token = "${claveN(1)}"`;
+  const casos = [
+    { resolucion: CONF(`${vieja}\ntres de la rama`), sale: null },
+    { resolucion: CONF(`${vieja}\ntres de la rama\n${nueva}`), sale: 'conf.txt:5' },
+    { resolucion: `${CONF(`${vieja}\ntres de la rama`)}${vieja}\n`, sale: 'conf.txt:10' },
+  ];
+  for (const c of casos) {
+    const d = ramaVieja({ rama: { 'conf.txt': CONF('tres de la rama') } });
+    assert.notEqual(g(d, ['merge', '-q', '--no-ff', '--no-commit', 'origin/main'], { puede: true }).codigo, 0, 'el conflicto en conf.txt');
+    escribir(d, 'conf.txt', c.resolucion);
+    g(d, ['add', 'conf.txt']);
+    if (!ES_WIN) for (const h of kg.CUALES) fs.chmodSync(path.join(d, '.githooks', h), 0o755);
+    const r = g(d, ['commit', '-q', '--no-edit'], { env: entorno('real'), puede: true });
+    if (c.sale === null) {
+      assert.equal(r.codigo, 0, r.err);
+      assert.doesNotMatch(r.err, /gitleaks: github-pat/);
+    } else {
+      assert.equal(r.codigo, 1, r.err);
+      assert.match(r.err, new RegExp(`gitleaks: github-pat en ${c.sale.replace('.', '\\.')}(?!\\d)`));
+      assert.equal((r.err.match(/gitleaks: github-pat/g) || []).length, 1, `solo la nueva: ${r.err}`);
+    }
+    assert.ok(!r.err.includes(claveDePrueba().slice(4)) && !r.err.includes(claveN(1).slice(4)), 'el valor no sale');
+  }
 });

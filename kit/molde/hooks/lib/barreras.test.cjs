@@ -1901,3 +1901,120 @@ test('8r3 i1: con carpeta-docs: arti-docs, la base sale de arti-docs/SESSION_HAN
   const ajeno = commit(a, { 'docs/SESSION_HANDOFF.md': '# del sitio\n' }, 'el sitio');
   assert.deepEqual(B.rango(a).commits, [h, ajeno]);
 });
+
+// ---------------------------------------------------------------- u9 (D8r.4): el merge de main en una rama vieja
+
+// El merge en curso de <de> en HEAD con conflicto (sale distinto de 0): no tira.
+const mergeConConflicto = (d, de) => spawnSync('git', ['merge', '-q', '--no-ff', '--no-commit', de], { cwd: d, encoding: 'utf8', env: process.env });
+const ADOPCION = { '.claude/kit.md': FICHA(), '.claude/hooks/x.cjs': 'x main\n', '.githooks/pre-commit': '#!/bin/sh\nexit 0\n', '.claude/settings.json': '{"permissions": {"deny": ["Bash(rm -rf:*)"]}}\n' };
+
+test('u9 crit. 9 (a): una rama sin .claude/ mergea main (ficha, un hook, un githook y el settings) con un conflicto en un archivo común → verde en el índice y en el push de la rama ya subida', () => {
+  const d = repo({ ficha: false });
+  g(d, 'branch', 'vieja');
+  commit(d, { ...ADOPCION, 'a.txt': 'a de main\n' }, 'adopción en main');
+  push(d);
+  g(d, 'checkout', '-q', 'vieja');
+  commit(d, { 'a.txt': 'a de la rama\n' }, 'la rama');
+  g(d, 'push', '-q', '-u', 'origin', 'vieja');
+  assert.notEqual(mergeConConflicto(d, 'origin/main').status, 0, 'el conflicto en a.txt');
+  poner(d, { 'a.txt': 'a de main y de la rama\n' });
+  assert.equal(B.mergeHeads(d).length, 1);
+  verde(d, IDX);
+  g(d, 'commit', '-q', '--no-edit');
+  const m = g(d, 'rev-parse', 'HEAD');
+  // el push de la rama: lo que ya está en origin/main lo juzgó su push (la adopción no se vuelve a juzgar)
+  const rg = RG(d, 'origin/vieja', m);
+  assert.deepEqual(B.commitsDelRango(d, rg.rango), [m]);
+  verde(d, rg);
+});
+
+test('u9 crit. 9 (b): rf-13 con un hook — la rama lo endureció con su aprobado, main no lo tocó y la resolución usa el de main → rojo en el índice y en el push', () => {
+  const d = repo({ archivos: { '.claude/hooks/x.cjs': 'x flojo\n' } });
+  aprobado(d, { toca: 'hooks', ids: ['hooks:.claude/hooks/x.cjs'] });
+  push(d);
+  g(d, 'checkout', '-q', '-b', 'rama');
+  commit(d, { '.claude/hooks/x.cjs': 'x duro\n' }, 'endurece el hook');
+  g(d, 'push', '-q', '-u', 'origin', 'rama');
+  verde(d, RG(d, 'origin/main', 'rama'));
+  g(d, 'checkout', '-q', 'main');
+  commit(d, { 'b.txt': 'b\n' }, 'main avanza');
+  push(d);
+  g(d, 'checkout', '-q', 'rama');
+  g(d, 'merge', '-q', '--no-ff', '--no-commit', 'main');
+  g(d, 'checkout', 'main', '--', '.claude/hooks/x.cjs'); // el lado que no lo tocó
+  const f = rojo(d, /hooks:\.claude\/hooks\/x\.cjs/, IDX);
+  assert.match(f[0].hacer, /esto vino distinto de los dos lados: en el merge dejalo como el lado que lo cambió \(casi siempre main: git checkout --theirs <archivo>\), commiteá el merge, y tu cambio hacelo en un commit aparte con su aprobado/);
+  assert.doesNotMatch(f[0].hacer, /cambios aprobar/);
+  g(d, 'commit', '-q', '--no-edit');
+  const m = g(d, 'rev-parse', 'HEAD');
+  assert.deepEqual(rojo(d, /hooks:\.claude\/hooks\/x\.cjs/, RG(d, 'origin/rama', m)).map((x) => x.commit), [m]);
+});
+
+test('u9 crit. 9 (c): un MERGE_HEAD escrito a mano con un ancestro de HEAD no lava nada → rojo', () => {
+  const d = repo({ archivos: { '.claude/hooks/x.cjs': 'x flojo\n' } });
+  const viejo = g(d, 'rev-parse', 'HEAD');
+  aprobado(d, { toca: 'hooks', ids: ['hooks:.claude/hooks/x.cjs'] });
+  commit(d, { '.claude/hooks/x.cjs': 'x duro\n' }, 'endurece el hook');
+  commit(d, { 'b.txt': 'b\n' }, 'otra cosa');
+  fs.writeFileSync(path.join(d, '.git', 'MERGE_HEAD'), `${viejo}\n`);
+  assert.deepEqual(B.mergeHeads(d), [viejo]);
+  poner(d, { '.claude/hooks/x.cjs': 'x flojo\n' }); // igual al "otro padre", que nunca lo cambió
+  rojo(d, /hooks:\.claude\/hooks\/x\.cjs/, IDX);
+  fs.rmSync(path.join(d, '.git', 'MERGE_HEAD'));
+});
+
+test('u9 crit. 9 (f): un MERGE_HEAD de una rama cualquiera con un hook cambiado sin aprobado → el índice verde (lo trae la rama) y el push de esa rama, rojo en su commit', () => {
+  const d = repo({ archivos: { '.claude/hooks/x.cjs': 'x\n' } });
+  g(d, 'checkout', '-q', '-b', 'otra');
+  const c = commit(d, { '.claude/hooks/x.cjs': 'x cambiado\n' }, 'hook sin aprobado');
+  g(d, 'checkout', '-q', 'main');
+  commit(d, { 'b.txt': 'b\n' }, 'main avanza');
+  g(d, 'merge', '-q', '--no-ff', '--no-commit', 'otra');
+  verde(d, IDX);
+  assert.deepEqual(rojo(d, /hooks:\.claude\/hooks\/x\.cjs/, RG(d, 'origin/main', 'otra')).map((x) => x.commit), [c]);
+  g(d, 'merge', '--abort');
+});
+
+// El caso de Hermes (D8r.4, por el director): main cambió .gitleaksignore con su aprobado (aplicado y subido); una rama vieja lo
+// mergea y el push a main daba "toca gitleaks (gitleaks:.gitleaksignore) sin un aprobado" (contra main el diff es vacío).
+const HUELLAS = (n) => Array.from({ length: n }, (_, i) => `abc${i}:x${i}.txt:generic-api-key:${i + 1}`).join('\n') + '\n';
+test('u9 (Hermes): main con un .gitleaksignore aprobado y subido; la rama vieja que lo mergea, con main de primer padre y al revés, y el push a main → verde', () => {
+  for (const alReves of [false, true]) {
+    const d = repo();
+    g(d, 'branch', 'vieja');
+    aprobado(d, { toca: 'gitleaks', ids: ['gitleaks:.gitleaksignore'] });
+    commit(d, { '.gitleaksignore': HUELLAS(7) }, 'las huellas');
+    verde(d, RG(d, 'origin/main', 'main'));
+    push(d);
+    g(d, 'checkout', '-q', 'vieja');
+    commit(d, { 'v.txt': 'v\n' }, 'la rama');
+    if (alReves) g(d, 'merge', '-q', '--no-ff', '-m', 'main en la rama', 'origin/main');
+    else {
+      g(d, 'checkout', '-q', 'main');
+      g(d, 'merge', '-q', '--no-ff', '-m', 'la rama en main', 'vieja');
+    }
+    const m = g(d, 'rev-parse', 'HEAD');
+    assert.ok(B.archivosDe(d, m).some((f) => f.rel === '.gitleaksignore'), 'el .gitleaksignore cambia contra uno de los padres');
+    verde(d, RG(d, 'origin/main', m)); // git push origin HEAD:main
+  }
+});
+
+test('u9: rf-13 con gitleaks — la rama endureció .gitleaksignore (sacó una huella) con su aprobado, main no lo tocó y la resolución usa el de main → rojo en el índice y en el push', () => {
+  const d = repo({ archivos: { '.gitleaksignore': HUELLAS(2) } });
+  aprobado(d, { toca: 'gitleaks', ids: ['gitleaks:.gitleaksignore'] });
+  push(d);
+  g(d, 'checkout', '-q', '-b', 'rama');
+  commit(d, { '.gitleaksignore': HUELLAS(1) }, 'saca una huella');
+  g(d, 'push', '-q', '-u', 'origin', 'rama');
+  verde(d, RG(d, 'origin/main', 'rama'));
+  g(d, 'checkout', '-q', 'main');
+  commit(d, { 'b.txt': 'b\n' }, 'main avanza');
+  push(d);
+  g(d, 'checkout', '-q', 'rama');
+  g(d, 'merge', '-q', '--no-ff', '--no-commit', 'main');
+  g(d, 'checkout', 'main', '--', '.gitleaksignore');
+  rojo(d, /gitleaks:\.gitleaksignore/, IDX);
+  g(d, 'commit', '-q', '--no-edit');
+  const m = g(d, 'rev-parse', 'HEAD');
+  assert.deepEqual(rojo(d, /gitleaks:\.gitleaksignore/, RG(d, 'origin/rama', m)).map((x) => x.commit), [m]);
+});
