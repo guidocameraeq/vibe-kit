@@ -381,7 +381,7 @@ function tocaContraUno(raiz, f) {
     return { pares: C.paresArchivo('ficha', f.rel, antes, nuevas(f)), imposible };
   }
   if (f.cat === 'settings') return { pares: C.paresArchivo('settings', f.rel, f.antes, f.despues), imposible };
-  return { pares: C.paresArchivo(f.cat, f.rel, null, []), imposible };
+  return { pares: nuevas(f).length ? C.paresArchivo(f.cat, f.rel, null, []) : new Set(), imposible };
 }
 
 // Lo que toca UN archivo: { cats: Set, ids: Set, imposible: texto | null }. imposible = rojo que ningún cambio cubre.
