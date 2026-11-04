@@ -3,7 +3,7 @@
 > Los pasos en orden. Cada uno deja su prueba en `pruebas/`. Una casilla se marca cuando la prueba está commiteada.
 > `<temp>` es una carpeta temporal fuera de esta (por ejemplo, la de temporales del sistema).
 
-- [ ] **0. Lo básico.** `git config user.name` y `user.email` de Juan; anotá en `pruebas/AAAA-MM-DD-pc.md` el sistema, `node --version`,
+- [x] **0. Lo básico.** (prueba: `pruebas/2026-11-04-pc.md`) `git config user.name` y `user.email` de Juan; anotá en `pruebas/AAAA-MM-DD-pc.md` el sistema, `node --version`,
   `git --version`, `python --version` (o `py -3 --version`), si hay Git Bash, y si está gitleaks (si no, la pregunta de la
   restricción 3). Creá `.local/alias.md` vacío y la PC con su alias (`pc-juan`, o el que diga Juan).
 
