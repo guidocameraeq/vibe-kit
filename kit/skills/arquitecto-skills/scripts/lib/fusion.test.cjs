@@ -244,6 +244,20 @@ test('el informe trae lo que dice el kit (las versiones > vieja y ≤ nueva, rc 
   assert.match(leer(d2, '.claude/fusiones/cierre.md'), /## Qué dice el kit\n\nel kit no dejó nota para estas versiones\n/);
 });
 
+test('RF-fix 5: la cabecera del informe — con "la mezcla chocó" el /inicio te la pregunta siempre; sin choque, elige o pregunta', () => {
+  const tmp = nuevaCarpeta('inf-cabecera');
+  const archivos = [{ rel: '.claude/skills/cierre/SKILL.md', tipo: 'tres', v: 'a\n', n: 'b\n', p: 'c\n', conflictos: 1 }];
+  const de = (motivo) => FU.informe({ id: 'cierre', versiones: { viejo: '2.9.0', nuevo: '3.0.0' }, motivo, porque: null, archivos, tmp });
+  for (const motivo of ['la mezcla chocó', 'la mezcla chocó: la propuesta la armó claude, elegí vos', 'la mezcla chocó (claude no está)']) {
+    const inf = de(motivo);
+    assert.match(inf, /^> La dejó el actualizador del kit\. La mezcla chocó: la próxima sesión \(`\/inicio`\) te la pregunta siempre \(nunca la elige sola\), junto con\n> las otras;/m, motivo);
+    assert.doesNotMatch(inf, /elige una de las salidas/, motivo);
+  }
+  const sin = de('adaptada sin porqué');
+  assert.match(sin, /^> La dejó el actualizador del kit\. La próxima sesión \(`\/inicio`\) elige una de las salidas de abajo o te la pregunta, junto con$/m);
+  assert.doesNotMatch(sin, /te la pregunta siempre/);
+});
+
 test('el informe de una pieza de frenos no ofrece congelar (FRENOS, r1-5); de una que no es freno, sí', () => {
   const tmp = nuevaCarpeta('inf');
   const archivos = [{ rel: '.claude/hooks/lib/x.cjs', tipo: 'tres', v: 'a\n', n: 'b\n', p: 'c\n', conflictos: 1 }];

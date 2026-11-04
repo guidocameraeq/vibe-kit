@@ -601,6 +601,16 @@ test('8r sello entorno: solo real + kit rc.2 — sin tarea 0 niega; con director
   const sin = correr(['sello', 'a.md'], d);
   assert.equal(sin.codigo, 1);
   assert.match(sin.out, /clase: real y ningún dummy ni prueba/);
+  // RF-fix 7: la negativa suma la misma cola que imprime `entorno` (cómo se sella con tarea 0).
+  assert.match(sin.out, /; o, en un módulo con director, sellá con tarea 0: el renglón "- \*\*Tarea 0\*\*: montar la base de prueba" en ## Entorno de prueba del spec$/m);
+  // RF-fix 7: con el tamaño ya en rojo (## Ejecución que no dice el tamaño), la tarea 0 no dice "vale solo con director".
+  escribir(d, 't.md', conTarea(spec({ ejecucion: 'algo que no es un tamaño' })));
+  const tam = correr(['sello', 't.md'], d);
+  assert.equal(tam.codigo, 1, tam.out);
+  assert.match(tam.out, /^tamaño: la primera línea de ## Ejecución no dice/m);
+  assert.doesNotMatch(tam.out, /vale solo en un módulo con director/);
+  assert.match(tam.out, /^entorno: la tarea 0 se mira cuando el tamaño esté bien/m);
+  fs.rmSync(path.join(d, 't.md'));
   // Con la tarea 0 en negrita y sin negrita.
   for (const renglon of ['- **Tarea 0**: montar la base de prueba', '- Tarea 0: montar la base de prueba']) {
     const { p, r } = sellado(d, 'b.md', conTarea(dir, renglon));

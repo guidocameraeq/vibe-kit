@@ -735,6 +735,15 @@ test('rf-10: verificar línea 2 — lo sin trackear fuera de ## Toca (el coverag
   assert.equal(r.codigo, 0, r.out);
   assert.equal(marca(r, 2), '⚠️');
   assert.equal(r.linea(2), '2. limpio · ⚠️ · .claude/frenos.log con 1 renglón(es) agregado(s) sin commitear (los muda worktree cerrar) · sin trackear fuera de ## Toca: coverage/lcov.info (el merge va por SHA: no llegan a modulo/x; si es de la suite, sumalo al .gitignore)');
+  // RF-fix 3c: un lockfile sin trackear (lo dejó comando-setup) no lleva el consejo del .gitignore: va al info/exclude.
+  escribir(p.obr, 'package-lock.json', '{}\n');
+  r = ver(p.dir);
+  assert.equal(r.codigo, 0, r.out);
+  assert.equal(r.linea(2), '2. limpio · ⚠️ · .claude/frenos.log con 1 renglón(es) agregado(s) sin commitear (los muda worktree cerrar) · sin trackear fuera de ## Toca: coverage/lcov.info (el merge va por SHA: no llegan a modulo/x; si es de la suite, sumalo al .gitignore) · lock sin trackear: package-lock.json (lo dejó comando-setup; no va al .gitignore: sumalo al info/exclude del repo, como hace worktree crear)');
+  fs.rmSync(path.join(p.obr, 'coverage'), { recursive: true });
+  r = ver(p.dir);
+  assert.doesNotMatch(r.linea(2), /\.gitignore\)/, 'solo el lock: sin el consejo del .gitignore');
+  fs.rmSync(path.join(p.obr, 'package-lock.json'));
   // No: un archivo trackeado modificado, aunque esté fuera de ## Toca, es ❌ (es trabajo sin commitear).
   escribir(p.obr, 'base.js', '// tocado\n');
   r = ver(p.dir);
@@ -956,6 +965,10 @@ test('8r T3: con el sello de tarea 0, autorizado y presentar de x--01 → 1 hast
   r = cli(p.obr, ['presentar', 'x--01', '--sin-base']);
   assert.equal(r.codigo, 1, r.out);
   assert.equal(r.out, `presentar: no — ${TAREA_CERO}\n`);
+  // RF-fix 8: presentar --spec (el director, antes de repartir) pasa y además lo dice.
+  r = cli(p.dir, ['presentar', '--spec']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(r.out, /· sellado y READY: se puede repartir\ntarea 0 pendiente: el primer encargo es el 00\n$/);
   // El 00 es la tarea 0: pasa.
   const ruta00 = 'docs/modulos/x/bitacora/2026-10-30-encargo-00.md';
   const e00 = encargo({ '# Encargo 01': '# Encargo 00 · x · la tarea 0', '- Partida:': partidaAhora().replace('modulo/x--01', 'modulo/x--00') });
@@ -981,10 +994,15 @@ test('8r T3: con el sello de tarea 0, autorizado y presentar de x--01 → 1 hast
   assert.equal(r.codigo, 0, r.out);
   r = cli(p.obr, ['presentar', 'x--01', '--sin-base']);
   assert.equal(r.codigo, 0, r.out);
+  // RF-fix 8, no: con el entorno ya en la ficha de modulo/x, presentar --spec no lo dice.
+  r = cli(p.dir, ['presentar', '--spec']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.doesNotMatch(r.out, /tarea 0 pendiente/);
 });
 
 test('8r T3: sin el sello de tarea 0 (entorno ✅) el freno no cuenta, aunque la ficha de modulo/x no tenga entorno de prueba', () => {
   const p = proyectoV();
   assert.equal(aut(p).codigo, 0);
   assert.equal(cli(p.obr, ['presentar', 'x--01', '--sin-base']).codigo, 0);
+  assert.doesNotMatch(cli(p.dir, ['presentar', '--spec']).out, /tarea 0 pendiente/);
 });

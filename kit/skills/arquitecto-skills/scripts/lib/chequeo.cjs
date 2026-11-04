@@ -38,7 +38,11 @@ const PLAZO_CHECK = 20000;
 const PLAZO_BARRERAS = 5 * 60 * 1000;
 const PLAZO_GITLEAKS = 120000;
 const TOPE_ARRANQUE = 9700;
+// El tope por skill del molde (bytes). UNA sola fuente: kit/molde/skills/skills.test.cjs lee topeSkill de acá. SPEC-paquete-8r (rt-9):
+// el /inicio sube a 8.600 por el paso 0, `integrados` y la mezcla que choca; las demás, 8.000.
 const TOPE_SKILL = 8000;
+const TOPES_SKILL = Object.freeze({ inicio: 8600 });
+const topeSkill = (nombre) => TOPES_SKILL[nombre] || TOPE_SKILL;
 const RUTA_FICHA = '.claude/kit.md';
 const RUTA_SETTINGS = '.claude/settings.json';
 const RUTA_HOOKS = '.claude/hooks/';
@@ -402,11 +406,11 @@ function skills(ctx) {
       if (!c.name) problemas.push(`${rel} sin name`);
       if (!c.description) problemas.push(`${rel} sin description`);
     }
-    if (b.length > TOPE_SKILL) problemas.push(`${rel} pesa ${b.length} B (tope ${TOPE_SKILL})`);
+    if (b.length > topeSkill(nombre)) problemas.push(`${rel} pesa ${b.length} B (tope ${topeSkill(nombre)})`);
   }
   if (problemas.length) return mal(problemas.slice(0, 4).join('; ') + (problemas.length > 4 ? ` y ${problemas.length - 4} más` : ''));
   if (!delMolde.length) return bien('el molde no trae skills');
-  return bien(`${vistas} de las ${delMolde.length} skills del molde están en el proyecto, con name, description y ≤ ${TOPE_SKILL} B`);
+  return bien(`${vistas} de las ${delMolde.length} skills del molde están en el proyecto, con name, description y dentro de su tope (${TOPE_SKILL} B; el /inicio, ${TOPES_SKILL.inicio})`);
 }
 
 // ---------------------------------------------------------------- 5. ficha
@@ -791,4 +795,4 @@ function chequear(carpeta, opciones = {}) {
   return { lineas, ok: res.every((r) => r.ok), noVerificado: noVerif.length > 0, noVerificados: noVerif };
 }
 
-module.exports = { chequear, IDS, PLAZO_DEFECTO, agregadas, rutasDeHook, cabeceraSkill, pruebasDe, casoRojo, rojosPorArchivo, correr };
+module.exports = { chequear, IDS, TOPE_SKILL, TOPES_SKILL, topeSkill, PLAZO_DEFECTO, agregadas, rutasDeHook, cabeceraSkill, pruebasDe, casoRojo, rojosPorArchivo, correr };

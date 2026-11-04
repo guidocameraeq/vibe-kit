@@ -120,6 +120,9 @@ Si la pestaña está en `auto` y el clasificador no la deja pushear, **la línea
 
 Un repo que todavía no tiene el kit v3 **se adopta, no se actualiza**. Va en dos tiempos:
 
+0. **La PC al día primero**: `actualizar.cjs ultimo-tag <clon del kit>` contra `~/.claude/VERSION`. Si el tag es más nuevo, esta PC
+   está atrás: primero *"actualizate"* (§2), porque si no el repo nace con el molde viejo. `--mirar` lo avisa igual, con una línea
+   `⚠ el --kit tiene el tag …`.
 1. **Mirar** (`actualizar.cjs adoptar <carpeta> --kit <clon del kit> --mirar --propuesta <archivo>`): no cambia nada. Deja una
    propuesta: la ficha que tendría el repo, qué piezas trae, cuáles son propias del proyecto y no se pisan. En un repo con código trae
    también `/director` y `/obrero` (el módulo con director los necesita); si ya tenés los tuyos y son distintos, quedan `propia` y la

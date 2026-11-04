@@ -14,7 +14,8 @@
 // .worktreeinclude (sin él: los .env y .env.* ignorados) SACANDO todo renglón cuyo nombre esté en el almacén del proyecto
 // (~/.config/kit-secretos/<proyecto>.env: de ahí se leen solo los NOMBRES; ningún valor sale por pantalla), suman al
 // .claude/settings.local.json del worktree un deny absoluto al .env del principal, corren vars.comando-setup e imprimen la
-// apertura: primero `code "<ruta>"` y la pestaña de Claude (VS Code), la línea de terminal solo si `claude` está en el PATH (rf-1),
+// apertura: primero `code "<ruta>"` y la pestaña de Claude (VS Code), la línea de terminal solo si hay `claude` (rf-1): la de PowerShell
+// con el del PATH, o la de Git Bash con el binario de la extensión de VS Code (D-b de D5.1),
 // y al final `primer mensaje: /director` (módulo, también con --noche) o `primer mensaje: /obrero <x>--<ID>` (encargo; 8r T2).
 // El filtro falla cerrado: almacén ilegible, o un .env* trackeado con un nombre del almacén → 1 sin crear nada.
 // `cerrar`: fetch de origin (rf-5), todos los chequeos primero (desde adentro, sin mergear en su madre local u origin, sucio;
@@ -519,7 +520,7 @@ function equipar(L, wt, principal, n, a, copia, opciones) {
     codigo = 1;
   }
   const s = correrSetup(L, wt, opciones);
-  lineas.push(s.linea);
+  lineas.push(s.linea, ...(s.extra || []));
   if (s.falla) codigo = 1;
   lineas.push(`worktree ${a.comando}: ${n.rama} en ${CARPETAS}/${n.carpeta} (rol ${rol})`);
   lineas.push(...lineasApertura(wt, n, a.modelo, opciones));
@@ -538,13 +539,57 @@ function correrSetup(L, wt, opciones) {
   }
   const cmd = datos && datos.vars ? datos.vars['comando-setup'] : undefined;
   if (typeof cmd !== 'string' || cmd.trim() === '') return { linea: 'la ficha no tiene vars.comando-setup: no corrí nada' };
+  const antes = estadoDelArbol(L, wt);
   const r = spawnSync(cmd, { cwd: wt, shell: true, stdio: opciones.heredar === false ? 'pipe' : 'inherit', windowsHide: true });
   if (r.error || r.status !== 0) {
     const como = r.error ? r.error.code || r.error.message : `salida ${r.status}`;
     const motivo = `comando-setup falló (${como})`;
     return { linea: `${motivo}: corrélo a mano adentro del worktree; no borré nada`, falla: true, motivo };
   }
-  return { linea: `comando-setup anduvo: ${cmd}` };
+  const extra = antes ? limpiarLoDelSetup(L, wt, antes) : [];
+  return { linea: `comando-setup anduvo: ${cmd}`, extra };
+}
+
+// RF-fix 3 (D8r.1): lo que deja el setup en el árbol (un package-lock.json nuevo, uno reescrito) traba cerrar e integrar ("sucio").
+// Lo sin trackear que apareció va al info/exclude del repo (el del git-common-dir: vale para todos sus worktrees); un trackeado que
+// el setup cambió vuelve a HEAD con `git checkout --`. Cada cosa con su línea. Si git no responde, no se toca nada.
+function estadoDelArbol(L, wt) {
+  const o = G(L, ['ls-files', '--others', '--exclude-standard', '--directory', '-z'], wt);
+  const m = G(L, ['diff', '--name-only', '-z'], wt);
+  if (!o.ok || !m.ok) return null;
+  const lista = (s) => s.split('\0').filter(Boolean);
+  return { sueltos: new Set(lista(o.stdout)), cambiados: new Set(lista(m.stdout)) };
+}
+
+function limpiarLoDelSetup(L, wt, antes) {
+  const despues = estadoDelArbol(L, wt);
+  if (!despues) return [];
+  const lineas = [];
+  const sueltos = [...despues.sueltos].filter((f) => !antes.sueltos.has(f));
+  if (sueltos.length) {
+    const comun = G(L, ['rev-parse', '--git-common-dir'], wt);
+    const exclude = comun.ok ? path.join(path.resolve(wt, comun.stdout.trim()), 'info', 'exclude') : null;
+    try {
+      if (!exclude) throw new Error('sin git-common-dir');
+      const previo = fs.existsSync(exclude) ? fs.readFileSync(exclude, 'utf8') : '';
+      const ya = new Set(previo.split(/\r?\n/).map((l) => l.trim()));
+      const nuevas = sueltos.map((f) => `/${f}`).filter((l) => !ya.has(l));
+      if (nuevas.length) {
+        fs.mkdirSync(path.dirname(exclude), { recursive: true });
+        fs.writeFileSync(exclude, `${previo}${previo && !previo.endsWith('\n') ? '\n' : ''}${nuevas.join('\n')}\n`);
+      }
+      lineas.push(`comando-setup dejó sin trackear ${sueltos.join(', ')}: lo sumé al info/exclude del repo (así no traba cerrar ni integrar)`);
+    } catch (e) {
+      lineas.push(`comando-setup dejó sin trackear ${sueltos.join(', ')} y no pude sumarlo al info/exclude (${e.message || e}): sacalo a mano antes de cerrar`);
+    }
+  }
+  for (const f of [...despues.cambiados].filter((x) => !antes.cambiados.has(x))) {
+    const c = G(L, ['checkout', '--', f], wt);
+    lineas.push(c.ok
+      ? `comando-setup cambió ${f} (trackeado): lo volví a como estaba con git checkout -- ${f}`
+      : `comando-setup cambió ${f} (trackeado) y git checkout -- ${f} falló: volvelo a mano antes de cerrar`);
+  }
+  return lineas;
 }
 
 function crear(L, u, n, a, opciones) {
@@ -562,6 +607,16 @@ function crear(L, u, n, a, opciones) {
   if (fs.existsSync(wt) || worktrees(L, P).some((w) => mismaRuta(w.ruta, wt))) return no(`la carpeta ${CARPETAS}/${n.carpeta} ya existe — eso es abrir`);
   const base = n.madre ? `refs/heads/${n.madre}` : `refs/heads/${def}`;
   if (n.madre && !existeRef(L, P, base)) return no(`no existe ${n.madre} en esta PC — el encargo nace de la punta del módulo (worktree abrir ${n.x})`);
+  // RF-fix 8 (D8r.1): el freno de la tarea 0, el mismo que el de presentar y autorizado, antes de crear nada: con el sello de tarea 0
+  // en el spec vigente del módulo, un encargo ≠ 00 espera a que la ficha de la punta de modulo/<x> tenga el entorno de prueba.
+  if (n.id !== null) {
+    const E = require('../hooks/lib/encargo.cjs');
+    const ref = E.refMasNueva(P, n.madre);
+    if (ref.ok) {
+      const t0 = E.tareaCeroPendiente(P, n, ref, E.leerEn(P, ref.sha, E.specVigente(P, ref.sha, n.x)));
+      if (t0) return no(t0);
+    }
+  }
   const ch = chequeosDeCredenciales(L, P, base, 'crear');
   if (ch.codigo) return ch;
   // Pasó todo: recién ahora se toca algo.
@@ -1012,7 +1067,7 @@ function enElTemporal(L, P, tmp, n, def, base, punta, okLinea, opciones) {
   if (!sumarDeny(tmp, P)) return no('no pude sumar el deny al settings.local.json del temporal: nada subió');
   const s = correrSetup(L, tmp, opciones);
   if (s.falla) return no(`NO VERIFICADO — ${s.motivo} en el temporal: nada subió`);
-  lineas.push(s.linea);
+  lineas.push(s.linea, ...(s.extra || []));
   const gt = gate(L, tmp, base, merge, opciones);
   lineas.push(...gt.lineas);
   if (!gt.verde) return no('el gate está en rojo: nada subió');

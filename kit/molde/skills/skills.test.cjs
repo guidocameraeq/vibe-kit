@@ -19,6 +19,9 @@ const DIR_MOLDE = path.join(__dirname, '..');
 // kit/skills del repo: contra donde se resuelve ~/.claude/skills/ (nunca el ~/.claude/ real).
 const DIR_KIT_SKILLS = path.join(__dirname, '..', '..', 'skills');
 
+// El tope por skill: la misma fuente que usa el chequeo del actualizador.
+const { topeSkill } = require(path.join(DIR_KIT_SKILLS, 'arquitecto-skills', 'scripts', 'lib', 'chequeo.cjs'));
+
 const NOMBRES = ['inicio', 'cierre', 'director', 'obrero', 'tramo', 'estado'];
 // Scripts cuyo primer argumento es posicional (no un subcomando): solo se les chequean los flags contra su USO.
 const SIN_SUBCOMANDO = ['paquete', 'estado', 'resumen', 'contexto', 'afirmaciones'];
@@ -211,8 +214,9 @@ for (const nombre of NOMBRES) {
   });
 
   test(`${nombre}: cabe en una pantalla y media`, () => {
-    // SPEC-paquete-8r (rt-9): el /inicio sube a 8.600 B por el paso 0, `integrados` y la mezcla que choca; los demás, 8.000.
-    const tope = nombre === 'inicio' ? 8600 : 8000;
+    // SPEC-paquete-8r (rt-9): el /inicio sube a 8.600 B; los demás, 8.000. El tope sale de chequeo.cjs (la línea 4 del actualizador):
+    // una sola fuente, así una skill que pasa acá no deja ROTA a la flota allá (RF-fix, hallazgo 1).
+    const tope = topeSkill(nombre);
     assert.ok(Buffer.byteLength(texto) <= tope, `${Buffer.byteLength(texto)} bytes (tope ${tope}): recortá prosa, no pasos`);
     assert.ok(texto.split('\n').length <= 70);
   });
@@ -468,6 +472,18 @@ test('el SKILL.md del Arquitecto mide el tamaño igual que la sesión: la charla
   const sk = fs.readFileSync(path.join(DIR_KIT_SKILLS, 'arquitecto', 'SKILL.md'), 'utf8').replace(/\r\n/g, '\n');
   assert.match(sk, /Lo que sale de una charla con el dueño \([^)]*\) es más que chico, aunque termine en un documento/);
   assert.ok(Buffer.byteLength(sk) <= 6000, `${Buffer.byteLength(sk)} bytes: el SKILL.md del Arquitecto tiene que seguir en 6.000 o menos`);
+});
+
+test('RF-fix 10: modo-b y formato-spec dicen la línea de terminal como worktree.cjs — la del PATH y, si no, la de Git Bash con el binario de la extensión', () => {
+  const wt = fs.readFileSync(path.join(DIR_SCRIPTS, 'worktree.cjs'), 'utf8');
+  assert.match(wt, /o en una terminal: cd "\$\{barras\(wt\)\}"; claude --name/, 'el script: la del PATH, con ;');
+  assert.match(wt, /o en una terminal de Git Bash: cd "\$\{barras\(wt\)\}" && \$\{claude\} --name/, 'el script: la de Git Bash, con &&');
+  for (const anexo of ['modo-b.md', 'formato-spec.md']) {
+    const t = fs.readFileSync(path.join(DIR_KIT_SKILLS, 'arquitecto', 'anexos', anexo), 'utf8').replace(/\r\n/g, '\n');
+    assert.doesNotMatch(t, /solo si `claude` está en el PATH/, anexo);
+    assert.match(t, /`cd "<ruta>"; claude --name director-<x> --model opus`/, anexo);
+    assert.match(t, /la de Git Bash \(`cd "<ruta>" && "<ese binario>" --name director-<x> --model opus`\)/, anexo);
+  }
 });
 
 test('modo-b B2: una pantalla lleva prototipo siempre, antes del spec, también en corto y con "dale con los defaults" (D4.2 · pedido 16)', () => {
@@ -785,6 +801,24 @@ test('plantilla del encargo: los campos y las cinco secciones, en el orden conge
   assert.deepEqual([...pos].sort((a, b) => a - b), pos, 'orden');
   // `Guido` es un valor del campo Apertura que lee el script: lo único permitido.
   assert.deepEqual(SIN_PERSONA(datosDeProyecto(PLANTILLA)), []);
+});
+
+test('RF-fix 8: /director dice la línea de presentar --spec tal cual la imprime encargo.cjs, y que worktree crear también frena', () => {
+  const linea = 'tarea 0 pendiente: el primer encargo es el 00';
+  assert.ok(fs.readFileSync(path.join(DIR_SCRIPTS, 'encargo.cjs'), 'utf8').includes(`'${linea}'`));
+  assert.ok(TEXTOS.director.includes(`\`${linea}\``));
+  assert.match(TEXTOS.director, /`worktree crear`, `autorizado` y `presentar` frenan todo otro encargo/);
+});
+
+test('RF-fix 11: la plantilla muestra el formato de ## GATE que exige el script (- `<comando>`, uno por renglón) y el parser lo acepta', () => {
+  const E = require(path.join(DIR_MOLDE, 'hooks', 'lib', 'encargo.cjs'));
+  const gate = PLANTILLA.slice(PLANTILLA.indexOf('## GATE'));
+  assert.match(gate, /^- `<comando>`$/m);
+  assert.match(gate, /un comando por renglón, entre comillas invertidas/);
+  // el renglón de la plantilla, tal cual, no da error de GATE; uno sin comillas invertidas, sí
+  const n = { x: 'x', id: '01', rama: 'modulo/x--01', madre: 'modulo/x' };
+  assert.ok(!E.leerEncargo(PLANTILLA, n).errores.some((e) => e.includes('## GATE')));
+  assert.ok(E.leerEncargo(PLANTILLA.replace('- `<comando>`', '- npm test'), n).errores.some((e) => e.includes('## GATE')));
 });
 
 test('el revisor: opus, effort alto y solo lectura (sin Bash), con lo que /obrero y el canon le piden (D5-17)', () => {

@@ -61,7 +61,7 @@ Listo para copiar; es la de "Ejecución":
 
 > **Feature diseñada, sellada y armada.** Para construirla:
 > - **Módulo solo**: abrí un chat NUEVO en `<ruta absoluta del proyecto>` (en VS Code, una pestaña de Claude nueva ahí; sesión `sesion-<x>`) y pegá `inicio — ejecutá docs/modulos/<x>/SPEC.md (está READY)`.
-> - **Con director**: lo que imprimió `worktree.cjs`: `code "<ruta del worktree>"`, y en esa ventana la pestaña de Claude con Opus (sesión `director-<x>`); el primer mensaje, `/director`. La línea de terminal (`cd "<ruta>"; claude --name director-<x> --model opus`) la da solo si `claude` está en el PATH.
+> - **Con director**: lo que imprimió `worktree.cjs`: `code "<ruta del worktree>"`, y en esa ventana la pestaña de Claude con Opus (sesión `director-<x>`); el primer mensaje, `/director`. La línea de terminal la da solo si hay `claude`: con `claude` en el PATH, `cd "<ruta>"; claude --name director-<x> --model opus`; si no, con el de la extensión de VS Code, la de Git Bash (`cd "<ruta>" && "<ese binario>" --name director-<x> --model opus`).
 > - **Sin ficha**: abrí un chat NUEVO en `<ruta>` y pegá `inicio — ejecutá el spec docs/SPEC-<x>.md (está READY)`.
 >
 > El que piensa no construye. Verificá con `/smoke` (el criterio #1: lo de NO SE TOCA sigue andando) y cerrá con `cierre`.
