@@ -28,7 +28,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
-const { leerJsonSinDuplicados } = require('../../pc/lib/zona-propia.cjs');
+const { leerJsonSinDuplicados, zonas } = require('../../pc/lib/zona-propia.cjs');
 const ficha = require('../../pc/lib/ficha.cjs');
 const { shellDeComandos, comandoQueNoCorre } = require('../../pc/lib/proceso.cjs');
 const { seInstancia } = require('./molde.cjs');
@@ -394,6 +394,7 @@ function skills(ctx) {
     .filter((r) => /^[^/]+\/SKILL\.md$/.test(r))
     .map((r) => r.split('/')[0]);
   const problemas = [];
+  const avisos = [];
   let vistas = 0;
   for (const nombre of delMolde) {
     const ruta = path.join(ctx.carpeta, '.claude', 'skills', nombre, 'SKILL.md');
@@ -411,14 +412,44 @@ function skills(ctx) {
       if (!c.name) problemas.push(`${rel} sin name`);
       if (!c.description) problemas.push(`${rel} sin description`);
     }
-    // 8r3 (chequeo frío, Hermes): se mide sin el \r de cada renglón, como lo guarda git. Un checkout con core.autocrlf le suma un byte
-    // por renglón (el /inicio de la rc.4, 8.594 B en 38 renglones, pesa 8.632 en el disco) y daba ROTA por cómo se clonó, no por la skill.
-    const largo = b.length - (b.toString('latin1').match(/\r\n/g) || []).length;
-    if (largo > topeSkill(nombre)) problemas.push(`${rel} pesa ${largo} B (tope ${topeSkill(nombre)})`);
+    // D8r.4 (S), "que avise, no que frene" (Guido, 2026-11-04): el tope frena por la parte del kit; lo que la zona propia del proyecto
+    // agrega encima es ⚠ (en el clon de Hermes, cierre 8.975 B, director 13.154, inicio 9.171 y tramo 9.179 por lo propio).
+    const p = pesoSkill(b);
+    const tope = topeSkill(nombre);
+    if (p.kit > tope) problemas.push(`${rel} pesa ${p.total} B (tope ${tope})${p.propio ? `, ${p.kit} sin su zona propia` : ''}`);
+    else if (p.total > tope) avisos.push(`${rel} pesa ${p.total} B, ${p.total - tope} de más por su zona propia (tope ${tope})`);
   }
   if (problemas.length) return mal(problemas.slice(0, 4).join('; ') + (problemas.length > 4 ? ` y ${problemas.length - 4} más` : ''));
   if (!delMolde.length) return bien('el molde no trae skills');
-  return bien(`${vistas} de las ${delMolde.length} skills del molde están en el proyecto, con name, description y dentro de su tope (${TOPE_SKILL} B; el /inicio, ${TOPES_SKILL.inicio})`);
+  const todo = `${vistas} de las ${delMolde.length} skills del molde están en el proyecto, con name, description y dentro de su tope (${TOPE_SKILL} B; el /inicio, ${TOPES_SKILL.inicio})`;
+  if (avisos.length) return bien(`⚠ ${avisos.join('; ')} — ${CONSEJO_TOPE} · ${todo} sin contar lo propio`);
+  return bien(todo);
+}
+
+const CONSEJO_TOPE = 'mové a un anexo lo propio que no hace falta siempre (nunca lo de producción)';
+
+// El peso de una skill (bytes): total = sin el \r de cada renglón, como lo guarda git (8r3, chequeo frío en Hermes: un checkout con
+// core.autocrlf le suma un byte por renglón —el /inicio de la rc.4, 8.594 B en 38 renglones, pesa 8.632 en el disco— y daba ROTA por
+// cómo se clonó, no por la skill); kit = el total sin lo de ADENTRO de las zonas propias (las marcas cuentan); propio = la diferencia.
+// Una zona rota (marca sin par, anidada) no se descuenta: kit = total y `problema` dice por qué, como antes de D8r.4.
+function pesoSkill(b) {
+  const buf = Buffer.isBuffer(b) ? b : Buffer.from(String(b), 'utf8');
+  const total = buf.length - (buf.toString('latin1').match(/\r\n/g) || []).length;
+  const z = zonas(buf.toString('utf8'));
+  if (!z.ok) return { total, kit: total, propio: 0, problema: z.problema };
+  // sacar los renglones de adentro saca su contenido y un \n por renglón: contenido (unidos con \n) + el \n del último
+  const propio = z.zonas.reduce((s, x) => s + (x.hasta - x.desde > 1 ? Buffer.byteLength(x.contenido, 'utf8') + 1 : 0), 0);
+  return { total, kit: total - propio, propio };
+}
+
+// Los avisos de las nueve (líneas ✅ cuyo detalle arranca con ⚠): "<id> ⚠ <detalle>". La flota los suma a la fila; nunca la vuelven ROTA.
+function avisosDe(lineas) {
+  const out = [];
+  for (const l of lineas || []) {
+    const m = /^\d+\. (\S+) · ✅ · ⚠ (.*)$/.exec(String(l));
+    if (m) out.push(`${m[1]} ⚠ ${m[2]}`);
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------- 5. ficha
@@ -812,4 +843,4 @@ function chequear(carpeta, opciones = {}) {
   return { lineas, ok: res.every((r) => r.ok), noVerificado: noVerif.length > 0, noVerificados: noVerif };
 }
 
-module.exports = { chequear, IDS, TOPE_SKILL, TOPES_SKILL, topeSkill, PLAZO_DEFECTO, agregadas, rutasDeHook, cabeceraSkill, pruebasDe, casoRojo, rojosPorArchivo, correr };
+module.exports = { chequear, IDS, TOPE_SKILL, TOPES_SKILL, topeSkill, pesoSkill, avisosDe, CONSEJO_TOPE, PLAZO_DEFECTO, agregadas, rutasDeHook, cabeceraSkill, pruebasDe, casoRojo, rojosPorArchivo, correr };
