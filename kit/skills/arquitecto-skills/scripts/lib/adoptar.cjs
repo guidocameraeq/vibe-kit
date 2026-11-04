@@ -1374,7 +1374,7 @@ const comandoTraer = (clon, principal) => `${ACTUALIZAR} adoptar "${barras(clon)
 
 // La última línea de --aplicar: el comando del --traer (con --principal, validada la carpeta y con sus rutas). No toca nada.
 function lineaTraer(clon, principal) {
-  const paso = 'el último paso, después de los dos commits, barreras y el push';
+  const paso = 'el último paso, después de los commits (dos; tres con --permisos o --arranque), barreras y el push';
   if (principal === undefined) return `traer · sin --principal · ${paso}: ${comandoTraer(clon, '<tu carpeta>')} (trae lo adoptado a tu carpeta y prende ahí los githooks)`;
   if (!esLaPrincipal(clon, principal)) return `traer · ${principal} · ⚠ no es la carpeta de este clon (tiene que ser la raíz de tu carpeta, sin .kit-rol, y el clon salir de ella o de su mismo origin): --traer ahí no va a andar — corregí la ruta`;
   return `traer · ${principal} · ${paso}: ${comandoTraer(clon, principal)} (trae lo adoptado y prende ahí los githooks)`;

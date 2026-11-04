@@ -411,7 +411,10 @@ function skills(ctx) {
       if (!c.name) problemas.push(`${rel} sin name`);
       if (!c.description) problemas.push(`${rel} sin description`);
     }
-    if (b.length > topeSkill(nombre)) problemas.push(`${rel} pesa ${b.length} B (tope ${topeSkill(nombre)})`);
+    // 8r3 (chequeo frío, Hermes): se mide sin el \r de cada renglón, como lo guarda git. Un checkout con core.autocrlf le suma un byte
+    // por renglón (el /inicio de la rc.4, 8.594 B en 38 renglones, pesa 8.632 en el disco) y daba ROTA por cómo se clonó, no por la skill.
+    const largo = b.length - (b.toString('latin1').match(/\r\n/g) || []).length;
+    if (largo > topeSkill(nombre)) problemas.push(`${rel} pesa ${largo} B (tope ${topeSkill(nombre)})`);
   }
   if (problemas.length) return mal(problemas.slice(0, 4).join('; ') + (problemas.length > 4 ? ` y ${problemas.length - 4} más` : ''));
   if (!delMolde.length) return bien('el molde no trae skills');

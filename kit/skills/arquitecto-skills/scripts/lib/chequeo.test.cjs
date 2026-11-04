@@ -292,6 +292,26 @@ test('RF-fix 1, 4 skills: el tope por skill es el de skills.test (inicio 8.600, 
   rojo(correr(armar({ cambio: rellenar('cierre', 8001) })), 'skills', /cierre\/SKILL\.md pesa 8001 B \(tope 8000\)/);
 });
 
+test('8r3, 4 skills: el tope se mide sin el \\r de un checkout con autocrlf (como lo guarda git)', () => {
+  const crlf = (nombre, totalLf) => (d) => {
+    const f = path.join(d, '.claude', 'skills', nombre, 'SKILL.md');
+    const t = leer(f).replace(/\r\n/g, '\n');
+    const lleno = t + 'z'.repeat(totalLf - Buffer.byteLength(t));
+    fs.writeFileSync(f, lleno.replace(/\n/g, '\r\n'));
+  };
+  // sí: el /inicio en 8.600 B con LF, en el disco con CRLF (más de 8.600) → ✅
+  verde(correr(armar({ cambio: crlf('inicio', 8600) })), 'skills');
+  // no: 8.601 con LF sigue rojo aunque venga con CRLF, y dice el peso sin los \r
+  rojo(correr(armar({ cambio: crlf('inicio', 8601) })), 'skills', /inicio\/SKILL\.md pesa 8601 B \(tope 8600\)/);
+  // un \r suelto (sin \n) sí cuenta
+  const suelto = (d) => {
+    const f = path.join(d, '.claude', 'skills', 'cierre', 'SKILL.md');
+    const t = leer(f).replace(/\r\n/g, '\n');
+    fs.writeFileSync(f, t + '\r'.repeat(8001 - Buffer.byteLength(t)));
+  };
+  rojo(correr(armar({ cambio: suelto })), 'skills', /cierre\/SKILL\.md pesa 8001 B \(tope 8000\)/);
+});
+
 test('5 ficha: la ficha con la versión vieja → ❌; una ficha que no se lee → ❌', () => {
   const p = armar({ cambio: (d) => escribir(path.join(d, '.claude', 'kit.md'), fichaCon({ kit: '2.4.3' })) });
   const r = correr(p);
