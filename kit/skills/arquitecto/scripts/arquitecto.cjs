@@ -157,11 +157,22 @@ function escribirAtomico(abs, buf) {
   fs.renameSync(tmp, abs);
 }
 
-// Si el spec vive en docs/modulos/<x>/: <x>; si no, null.
-function moduloDe(raiz, specAbs) {
+// La carpeta de papeles (SPEC-paquete-8r3 i1): `carpeta-docs:` de la ficha del disco (como el resto de lo que lee este script);
+// sin ficha, o una que no se lee, `docs`.
+function carpetaDe(raiz) {
+  if (!hayFichaEn(raiz)) return ficha.CARPETA_DOCS;
+  const f = leerFicha(raiz);
+  return f.error ? ficha.CARPETA_DOCS : ficha.carpetaDocs(f.datos);
+}
+
+// Si el spec vive en <carpeta>/modulos/<x>/: <x>; si no, null. Sin raíz (fuera de git: sin ficha), mira los tres últimos con docs.
+function moduloDe(raiz, specAbs, carpeta = ficha.CARPETA_DOCS) {
   const dir = path.dirname(specAbs);
+  const pre = raiz ? carpeta.split('/') : [ficha.CARPETA_DOCS];
   const seg = raiz ? path.relative(raiz, dir).split(path.sep) : dir.split(path.sep).slice(-3);
-  if (seg.length === 3 && seg[0] === 'docs' && seg[1] === 'modulos' && seg[2] && seg[2] !== '..') return seg[2];
+  if (seg.length !== pre.length + 2 || !pre.every((p, i) => seg[i] === p)) return null;
+  const [m, x] = seg.slice(pre.length);
+  if (m === 'modulos' && x && x !== '..') return x;
   return null;
 }
 
@@ -198,7 +209,7 @@ function correr(comando, cwd, ms, env = process.env) {
 // ---------------------------------------------------------------- los chequeos
 
 // tamaño: { c, tamano } o { fallas }.
-function chequearTamano(lineas, { raiz, specAbs, hayFicha, noAplica }) {
+function chequearTamano(lineas, { raiz, specAbs, hayFicha, noAplica, carpeta = ficha.CARPETA_DOCS }) {
   if (noAplica !== undefined) {
     if (hayFicha) return { fallas: ['tamaño: con ficha del kit no se saltea — escribí ## Ejecución con "módulo solo" o "módulo con director"'] };
     return { c: S.cNo(noAplica), tamano: null };
@@ -212,7 +223,7 @@ function chequearTamano(lineas, { raiz, specAbs, hayFicha, noAplica }) {
     };
   }
   if (!ej.tamano) return { fallas: ['tamaño: la primera línea de ## Ejecución no dice "módulo solo" ni "módulo con director" — decilo ahí'] };
-  const x = moduloDe(raiz, specAbs);
+  const x = moduloDe(raiz, specAbs, carpeta);
   if (x !== null) {
     const readme = path.join(path.dirname(specAbs), 'README.md');
     if (fs.existsSync(readme)) {
@@ -220,7 +231,7 @@ function chequearTamano(lineas, { raiz, specAbs, hayFicha, noAplica }) {
       let dir = campoModulo(texto, 'director');
       if (dir === 'si') dir = 'sí';
       const quiere = ej.tamano === 'director' ? 'sí' : 'no';
-      if (dir === null) return { fallas: [`tamaño: la ficha del módulo (docs/modulos/${x}/README.md) no dice director: — agregá "director: ${quiere}"`] };
+      if (dir === null) return { fallas: [`tamaño: la ficha del módulo (${carpeta}/modulos/${x}/README.md) no dice director: — agregá "director: ${quiere}"`] };
       if (dir !== quiere) return { fallas: [`tamaño: la Ejecución dice ${S.TOPES[ej.tamano].nombre} y la ficha del módulo dice director: ${dir} — que digan lo mismo`] };
       if (ej.tamano === 'director' && campoModulo(texto, 'rama') !== `modulo/${x}`) {
         return { fallas: [`tamaño: con director, la ficha del módulo tiene que decir rama: modulo/${x}`] };
@@ -343,7 +354,8 @@ function sello(a, { cwd, ahora, env }) {
   }
   const lineas = S.renglones(s.buf);
   const fallas = [];
-  const tam = chequearTamano(lineas, { raiz, specAbs, hayFicha, noAplica: a.noAplica['tamaño'] });
+  const carpeta = datos ? ficha.carpetaDocs(datos) : ficha.CARPETA_DOCS;
+  const tam = chequearTamano(lineas, { raiz, specAbs, hayFicha, noAplica: a.noAplica['tamaño'], carpeta });
   if (tam.fallas) fallas.push(...tam.fallas);
   const spec = { tareaCero: S.tareaCero(lineas) !== null, tamano: tam.fallas ? null : tam.tamano, tamanoFallo: !!tam.fallas };
   const ent = chequearEntorno({ raiz, hayFicha, datos, noAplica: a.noAplica.entorno, ahora, env, spec });
@@ -388,10 +400,10 @@ function ready(a, { cwd }) {
   if (r.estado === 'invalido') return { codigo: 1, lineas: [`sello inválido: ${r.error} — corré sello de nuevo`] };
   if (r.estado === 'cambio') return { codigo: 1, lineas: ['el spec cambió después del sello: corré sello de nuevo'] };
   const lineas = S.renglones(s.buf);
-  // SPEC-paquete-8b (15), D8b-8: el SPEC-0 del Modo A vive en docs/modulos/v1/SPEC.md; su H1 `# SPEC-0:` manda sobre la ruta.
+  // SPEC-paquete-8b (15), D8b-8: el SPEC-0 del Modo A vive en <carpeta>/modulos/v1/SPEC.md; su H1 `# SPEC-0:` manda sobre la ruta.
   const h1 = S.titulos(lineas).find((t) => t.nivel === 1);
   const spec0 = !!h1 && h1.texto.startsWith('# SPEC-0:');
-  const porRuta = !spec0 && moduloDe(raiz, specAbs) !== null && path.basename(specAbs) === 'SPEC.md';
+  const porRuta = !spec0 && moduloDe(raiz, specAbs, carpetaDe(raiz)) !== null && path.basename(specAbs) === 'SPEC.md';
   const falta = S.faltantes(lineas, S.esDelta(lineas, porRuta));
   if (falta.length) return { codigo: 1, lineas: falta.map((x) => `ready: ${x} — agregalas y corré sello de nuevo`) };
   const p = S.pasarAReady(s.buf);
@@ -415,7 +427,7 @@ function ready(a, { cwd }) {
 // `sin sello`; un sello que no vale: `sello inválido: <qué>` (rf-3); el hash distinto: `cambió después del sello`.
 function pendientes({ cwd }) {
   const raiz = raizDe(cwd) || path.resolve(cwd);
-  const base = path.join(raiz, 'docs', 'modulos');
+  const base = path.join(raiz, ...carpetaDe(raiz).split('/'), 'modulos'); // 8r3 i1: la carpeta de papeles de la ficha
   let dirs = [];
   try {
     dirs = fs.readdirSync(base, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name).sort();

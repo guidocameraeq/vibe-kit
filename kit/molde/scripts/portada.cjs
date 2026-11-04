@@ -14,22 +14,28 @@
 // `chequear` corre el mismo chequeo que candado:portada (hooks/lib/candado.cjs): 0 si cumple, 1 con una línea por lo que falta.
 // Las dos plantillas viajan ACÁ ADENTRO porque en un proyecto instalado no existe kit/molde/: kit/molde/README.md y
 // kit/molde/assets/banner.svg son su versión legible y portada.test.cjs verifica que coinciden letra por letra.
+// docs/ es la carpeta de papeles (SPEC-paquete-8r3 i1): la `carpeta-docs:` de la MISMA ficha que lee `armar` (la del disco, de donde
+// salen el nombre y los comandos; así corre bien en el clon de la adopción antes del push): el NORTE se lee de <carpeta>/NORTE.md y
+// los tres enlaces van a <carpeta>/. `chequear` es el del candado (lee la vigente).
 // Salidas: 0 anduvo · 1 no pisó algo propio, falta lo que hay que llenar o chequear no cumple · 2 mal llamado o sin ficha.
 // Node estándar, cero dependencias. Es .cjs a propósito: corre igual en proyectos con "type": "module".
 
 const fs = require('fs');
 const path = require('path');
 const ficha = require('../hooks/lib/ficha.cjs');
+const docsRuta = require('../hooks/lib/docs-ruta.cjs');
 
 const USO = [
   'Uso: node .claude/scripts/portada.cjs armar [--plan] [--raiz <dir>]   (desde la raíz del repo)',
   '     node .claude/scripts/portada.cjs chequear [--raiz <dir>]',
   '  armar     arma README.md desde docs/NORTE.md y la ficha  y assets/banner.svg; --plan solo dice qué haría',
   '  chequear  0 si hay README en la raíz que enlaza a docs/NORTE.md (y ese archivo existe); 1 con qué falta',
+  '  (docs/ es la carpeta de papeles: la carpeta-docs: de la ficha si la hay)',
 ].join('\n');
 
 const RUTA_FICHA = '.claude/kit.md';
-const RUTA_NORTE = 'docs/NORTE.md';
+// El NORTE, en la carpeta de papeles (8r3 i1): docs/NORTE.md sin la clave.
+const rutaNorte = (carpeta) => docsRuta.rel(carpeta, 'NORTE.md');
 const RUTA_BANNER = 'assets/banner.svg';
 const MAX_LINEAS = 3;
 
@@ -142,6 +148,9 @@ const conMarca = (cuerpo) => `${cuerpo}<!-- kit:portada ${ficha.hash(cuerpo)} --
 
 function armarReadme({ proyecto, queEs: q, datos, banner }) {
   let t = PLANTILLA_README.replace('{{BANNER}}\n\n', banner ? `![${proyecto}](${RUTA_BANNER})\n\n` : '');
+  // 8r3 i1: los tres enlaces van a la carpeta de papeles de la ficha (la plantilla dice docs/, la de fábrica)
+  const carpeta = docsRuta.deDatos(datos);
+  if (carpeta !== docsRuta.POR_DEFECTO) t = t.split('](docs/').join(`](${carpeta}/`);
   t = t.replace('{{QUE_ES}}', () => q.join('\n')).replace('{{COMO_CORRERLO}}', () => comoCorrerlo(datos));
   return conMarca(t.replace('{{PROYECTO}}', () => proyecto));
 }
@@ -203,6 +212,7 @@ function armar(raiz, { plan }, salida) {
     salida(`la ficha no tiene vars.proyecto — agregalo en ${RUTA_FICHA} y volvé a correr`);
     return 2;
   }
+  const RUTA_NORTE = rutaNorte(docsRuta.deDatos(datos));
   let norte;
   try {
     norte = fs.readFileSync(path.join(raiz, ...RUTA_NORTE.split('/')), 'utf8');

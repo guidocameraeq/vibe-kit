@@ -20,6 +20,7 @@
 // `huella`: solo si guardás una copia de un recurso compartido (G §8.3): el hash del conjunto <carpeta> en <alias>@<sha>; con
 // --copia, también el de tu copia, y si no coinciden, salida 1.
 // Salidas: 0 anduvo · 1 negado (una línea por qué y qué hacer) · 2 mal llamado. Un error propio: "mesa rota: corré doctor", 1.
+// docs/ es la carpeta de papeles: la `carpeta-docs:` de la ficha vigente si la hay (SPEC-paquete-8r3 i1; lib/docs-ruta.cjs).
 // La lógica vive en .claude/hooks/lib/mesa.cjs (decide un freno: candado:mesa). Node estándar, cero dependencias.
 
 const fs = require('fs');
@@ -47,6 +48,7 @@ function libs() {
     E: require('../hooks/lib/encargo.cjs'),
     contexto: require('../hooks/lib/contexto.cjs'),
     git: require('../hooks/lib/git.cjs'),
+    docs: require('../hooks/lib/docs-ruta.cjs'), // 8r3 i1: la carpeta de papeles (docs sin la clave)
   };
 }
 
@@ -151,7 +153,8 @@ function nuevo(L, g, a, opciones) {
   const pest = L.contexto.pestana(L.contexto.rama(raiz));
   if (pest.tipo === 'obrero') return no('mesa: un obrero no escribe en la mesa — es entre directores: pasale el tema a tu director (CONSULTA)');
   if (pest.tipo === 'director' && pest.modulo !== a.x) return no(`mesa: sos el director de ${pest.modulo} y el mensaje es del módulo ${a.x} — escribí en tu módulo`);
-  if (!fs.existsSync(path.join(raiz, 'docs', 'modulos', a.x, 'README.md'))) return no(`mesa: no está docs/modulos/${a.x}/README.md — el mensaje va en el módulo dueño de la conexión`);
+  const modulo = L.docs.rel(L.docs.deRaiz(raiz), `modulos/${a.x}`);
+  if (!fs.existsSync(path.join(raiz, ...modulo.split('/'), 'README.md'))) return no(`mesa: no está ${modulo}/README.md — el mensaje va en el módulo dueño de la conexión`);
   const yo = miAlias(L, raiz, a.de);
   if (!yo) return no('mesa: no sé tu alias — pasalo con --de <alias> (o poné vars.proyecto en la ficha)');
   const cuerpo = leerCuerpo(a, opciones);
@@ -163,7 +166,7 @@ function nuevo(L, g, a, opciones) {
   const aliasPara = a.para.split('/')[0];
   const ahora = opciones.ahora || new Date();
   const fecha = L.M.dia(ahora);
-  const carpeta = `docs/modulos/${a.x}/mesa/${aliasPara}`;
+  const carpeta = `${modulo}/mesa/${aliasPara}`;
   const abs = path.join(raiz, ...carpeta.split('/'));
   const n = siguienteN(L, raiz, carpeta, abs, fecha);
   const ruta = `${carpeta}/${fecha}-${n}-${a.tipo}.md`;
