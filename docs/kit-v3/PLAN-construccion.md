@@ -1239,6 +1239,76 @@ Lo que se evaluó, para no volver a evaluarlo de cero (insumo de la misión 6):
 
 Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (queda en el CHANGELOG).
 
+- **De la adopción real de Hermes (2026-11-04, con Guido), para la `rc.4`** (D8c.1). Hermes quedó adoptado con la `rc.3` (`main` @
+  `5f824544`, `eQ-Repositorio/Hermes-desktop`): D1 A con lo propio de Hermes en la zona propia de las 5 skills, D2/D3 las recomendadas,
+  D4 `datos-reales` con 8 comandos, `merge-a-main: con-ok-de-guido`, las reglas de la casa solo con el clic de Guido (CM-14 de Hermes).
+  Lo que dolió en el kit:
+  1. **El renglón de CHANGELOG de la adopción ignora el formato del proyecto**: lo metió suelto arriba de la última versión de un
+     CHANGELOG Keep a Changelog que lee `publicar.bat` (`### Para usuarios`). Y el `/cierre` del kit impone `## AAAA-MM-DD — <tema>`: en
+     Hermes rompería las notas del release. Se tapó con la zona propia del `/cierre`. Arreglo: que la adopción y el `/cierre` detecten
+     `[Unreleased]` (o un `formato-changelog:` en la ficha) y escriban ahí.
+  2. **El kit no tiene protocolo de producción**: solo `Riesgo: alto` y la clase 3. Hermes tiene la ALERTA con las filas esperadas, la
+     autorización por tramo con vencimiento (CM-7, 27, 53) y los 4 pasos (ensayo, foto, revisión, verificación). Quedó en su zona propia;
+     el principio es del método.
+  3. **`NUCLEO.md` deja que los agentes editen `CLAUDE.md`, skills y agentes como clase 1/2**: Guido eligió para Hermes que solo con su
+     clic. Que sea una opción de la ficha, no una regla fija.
+  4. **El `implementador` del kit no trae las reglas que Hermes tenía en sus agentes** (`db-migr-*`, CM-29 a 44): quedan en el brief, por
+     la zona propia del `/tramo`, y los `db-migr-*` sin usar. Arreglo: que la adopción ofrezca renombrar o mezclar agentes propios.
+  5. **`sensible: datos-reales` no distingue entorno**: `scripts/aplicar_migracion.py` pregunta también contra el ensayo.
+  6. **El Equipador no dice que antes de `--sacar-viejo` se crucen los patrones** del corrector viejo con los de `secretos.cjs` (paso 2
+     de "Mañana con Guido"): esta sesión lo sacó primero y lo cruzó después (los 5 del viejo están en el nuevo). Arreglo: el modo HOOKS
+     POR PC del Equipador, paso 4, lo pide.
+  7. **`.worktreeinclude`**: `--mirar` lo propone pero `--aplicar` no tiene la opción; se escribió a mano.
+  8. **Las lecciones de Hermes que el kit no tiene** (sus `CM`, en `.claude/cambios/` de Hermes): los pendientes no quedan huérfanos y
+     llevan su destino (CM-15, 37, 101); el plan con una fila por decisión, el camino en papel y "qué ve hoy / qué va a ver" (CM-16, 70,
+     81; NO VERIFICADO si el Modo B del Arquitecto ya lo pide); partir sin mezclar capas, tope de 3 archivos por sub-paso; abrir la
+     función entera antes de citar (CM-34), contar los números de un documento contra el código (CM-17), un "X ya no existe" lleva su
+     medición y una premisa corregida reabre la decisión (CM-6, 74, 88); una mutación que queda verde es un agujero de la prueba, se mira
+     dónde cayó y va en el código (CM-31, 42, 55, 85); antes de borrar un módulo, la suite entera con él bloqueado y el recuento de
+     aserciones (CM-93, 95); no armar texto por partes para esquivar un control y sin atribuciones en el código (CM-32, 63, 96); el gate
+     prueba primero el camino de la mayoría (CM-28); el obrero sale con trabajo de reserva (CM-25); el entregable que no se puede hacer
+     por mitades se avisa antes (CM-3); un archivo con una credencial adentro no se lee entero (CM-87); cruzar el NO SE TOCA con
+     decisiones posteriores al spec (CM-63). Cada una con su cicatriz en el `CM` de Hermes; entran si pasan la vara del ADR-030.
+  9. **Choques de diseño que Guido decidió para Hermes y conviene mirar en el kit**: la mutación de cada prueba nueva (Hermes) contra
+     solo en `Riesgo: alto` (kit); hasta 2 vueltas de revisor con lo abierto declarado (CM-76) contra PARADA; el handoff con 2 banners y
+     archivo contra sobreescribir. Hoy en Hermes rigen los del kit.
+  11. **De la adopción de los repos de Artibot (el mismo día)**. El analytics (`eQ-Repositorio/Arti-bot-analytics-eq`) quedó adoptado
+     (`main` @ `8519427`); **el bot (`Arti-bot-eq`) espera la `rc.4`** por (a):
+     (a) **la carpeta de papeles es fija, `docs/`** (`RUTA_HANDOFF` en `inyeccion.cjs`, `candado.cjs` y `barreras.cjs`, y los rituales):
+         el bot es un fork de OpenClaw cuyo `docs/` es el sitio publicado de OpenClaw (699 archivos, `docs.json`, `CNAME`) y sus papeles
+         viven en `arti-docs/`. Adoptarlo metía el handoff, el TODO y el NORTE del kit en la documentación de OpenClaw. Arreglo: una
+         `carpeta-docs:` en la ficha que lean el hook, el candado, las barreras y los rituales; después, "poné al día la flota" lo adopta.
+     (b) **Un hook de arranque propio con el mismo nombre que el del kit** (`.claude/hooks/session-start.cjs`, en los dos repos): con
+         `hook-arranque: propia` la adopción no lo toca, `--arranque kit` saca su renglón del settings y queda el del molde, que apunta
+         al mismo archivo, o sea al hook viejo: el `/inicio` del kit no encuentra su huella y nadie avisa. Con `molde` sale "te espera:
+         la mezcla chocó" y `resolver … nueva` lo arregla, pero solo en la carpeta del dueño (el clon es `actualizador`) y el commit pide
+         un aprobado (el hook es de frenos). Arreglo: que `--mirar` lo diga y `--arranque kit` traiga el del kit.
+     (c) **La regla `ask` de un comando le gana al "no volver a preguntar"**: el analytics tenía `ask Bash(ssh:*)` y Guido aprobaba cada
+         ssh al VPS ("me vuelve loco"). Decidido con él: mirar el VPS libre (allow con los comandos exactos de solo lectura que corren
+         los rituales) y tocar pregunta la primera vez (sale el `ask`). Lo mismo con `ask git commit` (frena a un obrero en cada sub-paso).
+         Arreglo: que la pantalla de adopción liste los `ask` propios que van a preguntar en cada vuelta, no solo los que frenan al director.
+  10. **Verificado en esta adopción**: el `comando-setup` (con `npm --prefix web ci`) corrió en la carpeta de Guido con Python 3.14.0,
+     salida 0. **Sigue NO VERIFICADO**: que `barreras` quede verde después de `cambios aprobar` sobre los dos commits ya pusheados (la
+     ficha y los permisos); los githooks no los traban (pre-commit mira el índice, pre-push lo que origin no tiene). La portada quedó
+     apagada (README propio). `cargar-secreto` (paso 5 de "Mañana con Guido") no se hizo: va con el módulo del usuario de lectura de Supabase.
+
+- **De la prueba real, lo que cuenta Guido** (la sesión madre de la recta final; cada uno con su fecha):
+  1. **2026-11-04 · Las carpetas de gate de Hermes ensucian `D:\`.** El Arquitecto, al ordenar el disco: 9 copias de Hermes sueltas en
+     `D:\` (4 ya en `main`, 3 con ramas viejas del 21/10, 1 vacía, 1 viva: la del obrero `cc-ui`, 4 commits sobre `main`) y **66 carpetas
+     `gate-*` en `D:\Hermes\`** (del 6/10 al 3/11), más logs de Mobile y una carpeta con nombre roto (`Hermes.exe;C`). Los worktrees del
+     kit ya van adentro del repo (`.claude/worktrees/`); **el gate del kit también** (`worktree integrar` arma su temporal en
+     `.claude/worktrees/` y lo borra al final: `kit/molde/scripts/worktree.cjs`, `CARPETAS`). Los `gate-*` vienen del gate propio de
+     Hermes, de antes de la adopción (NO VERIFICADO qué script los crea, ni si sigue vivo en la zona propia). Para la `rc.4`: que
+     `adoptar --mirar` detecte un gate o temporales propios que escriben fuera del repo y ofrezca pasarlos al de `.claude/worktrees/`,
+     y que el `doctor` o la flota avisen de carpetas hermanas del repo que son worktrees muertos.
+  2. **2026-11-04 · `gitleaks detect` sobre toda la historia de vibe-kit da 2** (no 0): dos claves de mentira en
+     `kit/skills/arquitecto-skills/scripts/doctor.test.cjs` (líneas 595 y 597, commit `f670568`, D6.1 E2, 2026-11-02), ya públicas. Son
+     del test, no secretos reales. Arreglo de taller: un `.gitleaksignore` con sus dos huellas, así "push solo con 0" vuelve a medir algo.
+
+- **La prueba de Juan** (2026-11-04, pedida por Guido): Juan prueba la beta en su PC y sus proyectos y sube pruebas duras e impresiones
+  a la rama huérfana `prueba/juan` de este repo (sin el kit: su `CLAUDE.md`, `PLAN.md`, `pruebas/`, `impresiones.md`, proyectos con
+  alias). La sesión madre la lee con `git fetch origin prueba/juan`; lo que sirva entra acá, en esta sección.
+
 - **De D8r.2, para la `rc.4`** (D8c.1), con su porqué (no entraron en la única vuelta de corrección):
   1. **Un repo ya adoptado con `director-obrero` en `propia` no tiene un paso que la traiga**: la flota saltea una ficha al día y
      `resolver … nueva` pide un informe de fusión (`modo-b.md` B4 lo dice así). Para Hermes no aplica (se trae al adoptar con
