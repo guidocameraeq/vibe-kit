@@ -181,6 +181,25 @@ Rutas: `molde` = `kit/molde/`, `lib` = `kit/molde/hooks/lib/`, `wt` = `kit/molde
 - **Red team**: una ronda más, solo de u9 (toca un freno), antes de codearlo. Chequeo frío: un clon de Hermes con una rama vieja y el
   merge de `main` con un conflicto (crit. 8 suma).
 
+#### u10 · Las trabas que todavía no saltaron (hipótesis; pedido de Guido por la madre, 2026-11-04)
+
+Inferidas de lo que dolió hoy. **Cada una se reproduce primero** (una prueba o un clon del scratchpad); la que no se reproduce va al
+tracker como `probada, no pasa` con su salida, y no se toca código. La que sí, se arregla con su prueba en rojo y entra al red team
+de su clase.
+
+| # | Hipótesis | Clase | Vuelta | Cómo se prueba |
+|---|---|---|---|---|
+| h1 | `integrar` de un módulo que ya trajo `main` (`traer-main`) ve el merge como barrera sin aprobar | base equivocada | 1 (con u9) | `worktree.test`: módulo → `traer-main` (main con un hook aprobado) → `integrar` verde |
+| h2 | `git pull` con conflicto **en `main`** (el remoto trajo un freno aprobado en la otra PC): el pre-commit del merge sale rojo | base equivocada | 1 (con u9) | `kit-githook.test`: dos clones, uno aprueba y pushea un cambio de `settings.json`, el otro pull con conflicto → pre-commit |
+| h3 | `cherry-pick` o `revert` de un commit de barrera ya aprobado pide aprobado de nuevo | base equivocada | 1 | `barreras.test`: cherry-pick de un commit aprobado a otra rama; revert en `main` |
+| h4 | El merge de upstream en un fork (el bot, OpenClaw): miles de rutas y contenido ajeno para gitleaks | base equivocada | 1 (con u9) | lo mismo que u9 con MERGE_HEAD **fuera** de la vigente (upstream): ¿qué dice, y qué tendría que decir? (no se afloja para upstream: se documenta el camino) |
+| h5 | Secretos o falsos positivos viejos en la historia aparecen recién en un merge (Hermes: un `auth_uid` en `docs/legacy`) | antes de la adopción | 2 | `adoptar --mirar` corre `gitleaks detect` sobre toda la historia y lista `archivo:línea · regla` **sin el valor**, con la propuesta (rotar si es real; si no, `.gitleaksignore` con su porqué) |
+| h6 | Worktrees fuera de `.claude/worktrees/` confunden `worktree estado`, `cerrar`, el `doctor` o la flota | antes de la adopción | 2 (con u4) | `worktree.test` con dos worktrees en `../` |
+| h7 | Con una ventana, el hook de `main` (rc nueva) convive con los scripts y la ficha del worktree (rc vieja), o al revés: ¿choca un formato? | una ventana | 1 (con u1) | una prueba que corre los hooks del molde nuevo sobre un árbol con los scripts y la ficha de la `rc.4`, y al revés |
+| h8 | Dos sesiones en el mismo árbol: `barreras --indice` o el candado le cargan a una lo que la otra dejó en el índice | una ventana | 1 (con rt-6) | se razona sobre el código y una prueba: lo que deja una en el índice entra en el commit de la otra (rt-6 ya lo frena en `donde`) |
+| h9 | `.worktreeinclude` copia `config*.ini` con credenciales a cada worktree: ¿lo cubren el corrector de secretos y el deny? | una ventana | 2 (con u6) | `worktree.test`: un `config.local.ini` ignorado con una clave de mentira, copiado; `secretos.cjs` y el deny sobre esa ruta |
+| h10 | Un hook o comando del kit llama a `sh` y falla desde una sesión en PowerShell sin `sh` en el PATH; el `doctor` lee mal la versión de `claude` de la terminal | otra PC | 2 | `git grep` de `sh`/`spawn('sh'` en el molde y los scripts; `doctor.test` con una salida de `claude --version` como la de Juan (`prueba/juan`, `52e0ca3`) |
+
 ### Vuelta 2 — el resto de lo que dolió
 
 #### u4 · Lo que queda fuera del repo: `--mirar` y el `doctor` lo avisan
