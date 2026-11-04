@@ -472,7 +472,8 @@ de un repo) sale `mezclado` o `al día`; (c) en un clon del bot: la adopción co
 - **D8r4-9 · "Mezclar agentes" no es un comando**: fundir instrucciones es criterio, no mecánica. `[mejor código]`
 - **D8r4-10 · Las lecciones de Hermes entran como una línea donde se lee**, nunca una sección nueva; seis no pasan la vara (tabla). `[acordarse de menos]`
 - **D8r4-11 · Dos vueltas, un tag**: la vuelta 1 (u1-u3) y la 2 (u4-u7) van en la `rc.5`. Si la 2 no entra sana en esta sesión, la `rc.5`
-  sale con la 1 y la 2 pasa a la `rc.6` junto a D8c.1 (se le avisa a la madre). `[workflow]`
+  sale con la 1 y la 2 pasa a la `rc.6` junto a D8c.1 (se le avisa a la madre). **Así quedó** (la madre, 2026-11-04): la `rc.5` es la
+  vuelta 1 (u1-u3, u9, u11, u12); la 2 y h12 van a la `rc.6`. `[workflow]`
 
 ## Lo que esto no cierra
 

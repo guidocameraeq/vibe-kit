@@ -1096,7 +1096,7 @@ fichas de fábrica de todo proyecto en Windows daban ROTA desde la `rc.3`, y al 
 La flota final (alfa, beta y gama; 2.4.2 → rc.3 → el dueño resuelve con `nueva` → rc.4 → otra vuelta) dio `mezclado` en los tres y después
 `al día` en los tres, con salida 0 en cada vuelta.
 
-Residual para la `rc.5`: un repo con `hooks-lib` esperando queda ROTA en la línea 7 con hooks que piden la lib nueva, y el mensaje no dice
+Residual para la `rc.6` (D8r.4, h12; era para la `rc.5`): un repo con `hooks-lib` esperando queda ROTA en la línea 7 con hooks que piden la lib nueva, y el mensaje no dice
 "resolvé hooks-lib primero". Lo arregla que los hooks esperen junto con la lib. Hermes y el analytics tienen `hooks-lib: molde`, así que no
 les pega.
 
@@ -1125,6 +1125,21 @@ les pega.
 - **D8r3-7 · Los textos no se reescriben ruta por ruta** (una línea en el arranque, el `/inicio`, el `/cierre` y `NUCLEO.md`); `portada
   armar` lee la carpeta de la ficha del disco (antes del push no hay vigente). **D8r3-8 · Esta tanda es la `rc.4`; D8c.1 pasa a la `rc.5`**
   (decisión de la sesión madre). `[acordarse de menos · workflow]`
+
+### D8r.4 · Decisiones sin Guido
+
+Las once del spec (`SPEC-paquete-8r4.md`, "Decisiones"); acá las que cambian lo que Guido ve, más las que salieron en el camino:
+- ⚠️ **D8r4-3 · El deny del `.env` del principal va al `settings.local.json` del principal**, no al `settings.json` del molde como
+  decía el pedido: una regla relativa no cubre un `.env` en una carpeta padre del worktree, y la del molde trababa `.env.example`.
+  *Qué cambia en tu día*: con una ventana, el `.env` de `main` sigue cerrado para el obrero. `[mejor código · coherencia]`
+- **D8r4-5 · La flota con obra (`--con-obra`) prueba el merge a cada módulo en su clon y no sube nada a una `modulo/*`**: a la rama la
+  trae el director con `worktree.cjs traer-main`, que aborta ante un choque o un rojo y te deja el `cambios nuevo` exacto. *Qué cambia en
+  tu día*: tu director no se encuentra la rama movida. `[workflow · coherencia]`
+- **D8r4-12 · El merge de `main` solo juzga lo que agrega** (el crit. 2 corregido): lo del módulo lo juzga el push del módulo. Un hook,
+  githook o gitleaks igual al del otro padre no cambia nada (u9). `[mejor código]`
+- **D8r4-13 · El `ask git merge` no entra al set del kit** (u13 b): el freno de un merge ya es el candado del pre-commit. `[filtro pragmático]`
+- **D8r4-14 · Esta tanda es la `rc.5` con la vuelta 1** (u1-u3, u9, u11, u12); la vuelta 2 (u4-u8, u13, u10 con h5-h11) y h12 (los
+  hooks que esperen junto con `hooks-lib`) van a la **`rc.6`** con D8c.1 (la sesión madre, 2026-11-04). `[workflow]`
 
 ## Abrir D8.1 sin Guido (el prompt)
 
@@ -1355,10 +1370,12 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
      Hermes, de antes de la adopción (NO VERIFICADO qué script los crea, ni si sigue vivo en la zona propia). Para la `rc.4`: que
      `adoptar --mirar` detecte un gate o temporales propios que escriben fuera del repo y ofrezca pasarlos al de `.claude/worktrees/`,
      y que el `doctor` o la flota avisen de carpetas hermanas del repo que son worktrees muertos.
-  2. **2026-11-04 · `gitleaks detect` sobre toda la historia de vibe-kit da 2** (no 0): dos claves de mentira en
+  2. ~~✅ D8r.4: `.gitleaksignore` con las dos huellas; `gitleaks detect` da 0~~ **2026-11-04 · `gitleaks detect` sobre toda la historia de vibe-kit da 2** (no 0): dos claves de mentira en
      `kit/skills/arquitecto-skills/scripts/doctor.test.cjs` (líneas 595 y 597, commit `f670568`, D6.1 E2, 2026-11-02), ya públicas. Son
      del test, no secretos reales. Arreglo de taller: un `.gitleaksignore` con sus dos huellas, así "push solo con 0" vuelve a medir algo.
-  3. **2026-11-04 · Una sola ventana: el obrero nace en `main` y el director le da el worktree** (el Arquitecto v3 en Hermes, rc.3).
+  3. ~~✅ D8r.4 (u1): `worktree.cjs donde`, `/obrero` y `/director` entran con EnterWorktree y verifican rama y rol; la apertura de una
+     ventana va primero; el deny del `.env` va al `settings.local.json` del principal (D8r4-3). Sigue NO VERIFICADO: EnterWorktree en
+     una sesión real de la extensión y las `allow` de AUTORIZADO (D8r4-4)~~ **2026-11-04 · Una sola ventana: el obrero nace en `main` y el director le da el worktree** (el Arquitecto v3 en Hermes, rc.3).
      `worktree.cjs crear`/`abrir` terminan con `code "<worktree>"` o una línea de `claude.exe`. **Guido trabaja en la extensión de
      Claude Code de VS Code, una ventana por proyecto** (los proyectos chicos, en la app): "New Session" nace en el workspace (`main`), y
      un `/director` o `/obrero` ahí corre en `main`, no en su rama. Probado: `EnterWorktree` (path) entra (`git branch` = `modulo/cashflow`,
@@ -1385,7 +1402,8 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
      fuera del módulo, con un obrero en `ui/cc-seguimiento-circuitos`, por mensaje (decisión de Guido, se mantiene). Queda fuera de
      `encargo.cjs verificar` y no hay cómo darle encargo (con el spec en BORRADOR `presentar --spec` sale 1; la rama no es
      `modulo/<x>--<ID>`). Insumo de D8c.1: encargos para un cierre suelto bajo un director.
-  6. **2026-11-04 · La flota saltea el repo con obra en curso, y eso choca con la beta.** `lib/flota.cjs:305`: una rama `modulo/*` del
+  6. ~~✅ D8r.4 (u2): `flota … --con-obra` avisa y recomienda no, actualiza `main` y prueba el merge a cada módulo en su clon; a la rama
+     la trae el director con `worktree.cjs traer-main` (D8r4-5)~~ **2026-11-04 · La flota saltea el repo con obra en curso, y eso choca con la beta.** `lib/flota.cjs:305`: una rama `modulo/*` del
      remoto sin mezclar → `salteado` ("no me meto en el medio"): no toca nada del repo, `main` incluido; y el worktree del módulo sigue
      con el molde viejo hasta traer `main`. El proyecto que más se prueba es el que menos arreglos recibe. **Decidido con Guido**:
      "quiero poder actualizar main y las ramas, que sea una opción. Que me recomiende no hacerlo, pero, por ejemplo, si yo sé que estoy
@@ -1393,7 +1411,8 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
      que avisa y recomienda no hacerlo, actualiza `main` y ofrece llevarlo a cada rama de módulo viva, con lo rojo de los frenos para
      que lo apruebe Guido.
   7. **2026-11-04 · `docs/NORTE.md` queda con `[completar]` después de la adopción** (Hermes): la adopción tendría que avisarlo.
-  9. **2026-11-04 · El pre-commit de un merge de `main` en una rama vieja** (Hermes, `ui/cc-seguimiento-circuitos`, 304 commits atrás,
+  9. ~~✅ D8r.4 (u9): `tocaContraUno` compara contenido; gitleaks del merge con `diff --cc` contra el árbol del índice; el pre-push
+     descuenta la vigente de origin. En el clon de Hermes: de 38 rutas a 0~~ **2026-11-04 · El pre-commit de un merge de `main` en una rama vieja** (Hermes, `ui/cc-seguimiento-circuitos`, 304 commits atrás,
      con conflictos; lo trajo la sesión madre): el candado (`barreras --indice`) da 36 rutas "sin un aprobado sellado" que son de `main`
      (ya juzgadas allá) y gitleaks (`diff --cached`, contra HEAD: `kit-githook.cjs` ~782) marca líneas viejas de `main`. El pre-push sí
      juzga contra el otro padre. La salida que da el kit (`cambios aprobar`) pide `main` y sin merge a medias: no sirve. Medido en el
@@ -1695,6 +1714,10 @@ Del spec, sección "Lo que hacés vos de nuevo". Acá solo cuándo toca, para qu
 | 2026-11-04 | **La tanda de taller de R1b es la `rc.3` (D8r.2, sin Guido)** y **D8c.1 pasa a ser la `rc.4`**. D1-D4 quedan para Guido a la mañana, con la mecánica lista; no hay una tercera revisión integral | Guido, la noche del 03-11: "no hay que hacer 800 revisiones integrales": una sola vuelta de corrección. Decisión de la sesión madre |
 | 2026-11-04 | **No hay una tercera revisión integral antes de la prueba**: la próxima es R2, después del primer módulo de Hermes y contra un clon suyo; mientras, cada `rc.N` lleva su chequeo frío. Y un repo de prueba parecido a Hermes para la `rc.4` (Pendientes, "De D8r.2", 6) | R1 encontró piezas que no se hablaban; R1b, el kit contra un proyecto real (lo que los repos de juguete no muestran). Una tercera sin uso real buscaría en el mismo lugar con rendimiento decreciente: lo que falta lo muestra Hermes. Decidido con Guido el 04-11 |
 | 2026-11-04 | **Una `rc.4` exprés (D8r.3) antes de D8c.1**, que pasa a la `rc.5`: `carpeta-docs:`, el arranque con el mismo nombre, el caché de Python en `barreras`, la línea `después:` y `resolver … nueva` sin informe | Guido necesitaba adoptar ya el bot de Arti (su `docs/` es el sitio de OpenClaw) y el primer `/cierre` de Hermes iba a dar rojo por 3 `.pyc`. Decisión de la sesión madre de la recta final |
+
+| 2026-11-04 | **La `rc.5` (D8r.4) sale con la vuelta 1; la vuelta 2 y D8c.1 van a la `rc.6`** | La vuelta 1 es lo que trababa el uso de Hermes hoy (una ventana, la flota con obra, el merge de `main`); la 2 no entraba sana en la misma sesión | La sesión madre |
+| 2026-11-04 | **El tope de las skills avisa, no frena, cuando lo pasa la zona propia** (la parte del kit sigue frenando) | Hermes salía ROTA en la flota por su zona propia (`/director` 13154 B) | Guido |
+| 2026-11-04 | **A `main` sube solo el director (o `integrar`), nunca un obrero** (h11; el freno, en la `rc.6`) | En Hermes un obrero pusheó directo a `origin main` (con el clic de Guido, porque CC va por mensaje) | Guido |
 
 ## Lecciones (insumo de la misión 6)
 
