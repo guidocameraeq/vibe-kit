@@ -57,6 +57,12 @@
 - [ ] Capturas del carrusel de @sabbb.md para cerrar el tip pendiente de la tanda 2.
 
 ## 🟢 Ideas / algún día
+- [ ] **Ideas para una versión futura del kit (después de la v3.0)**, de la prueba real:
+  - **Un protocolo de producción**: lo que Hermes ya tiene en la zona propia de sus skills, es decir la ALERTA con las filas
+    esperadas, la autorización por tramo con vencimiento (CM-7, 27 y 53 de Hermes) y los 4 pasos (ensayo, foto, revisión,
+    verificación). El kit hoy solo tiene `Riesgo: alto` y la clase 3. Guido, 2026-11-04: queda en Hermes y se anota para una
+    versión futura. Se reabre cuando lo pidan 3 proyectos (el analytics y el bot tocan un VPS real). Detalle: tracker, Pendientes,
+    "De la adopción real de Hermes", ítem 2.
 - [ ] **Fase 2 de `/relevamiento`**: 7 piezas diseñadas y no construidas (la más pedida: que lea sola
   el código de la app). Cada una tiene su condición de reapertura en REJ-014; el diseño, en
   `docs/SPEC-relevamiento.md` §Fase 2. Esperan evidencia de uso, no tiempo.
