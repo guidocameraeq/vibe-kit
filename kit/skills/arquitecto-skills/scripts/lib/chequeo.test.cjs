@@ -383,6 +383,28 @@ test('7 casos (RF-9): dos dueños que comparten un archivo de pruebas → un sol
   assert.equal(leer(cuenta), 'x\n');
 });
 
+test('8r3, 7 casos: los hooks del proyecto van a la copia como los guarda git, sin el \\r de un checkout con autocrlf', () => {
+  // Como fabrica.test.cjs: una prueba del molde lee un archivo de datos de hooks/lib/ y busca su cabecera con \n.
+  const m = nuevaCarpeta('molde-crlf');
+  fs.cpSync(moldeNuevo(), m, { recursive: true });
+  const L = (...r) => path.join(m, 'hooks', 'lib', ...r);
+  escribir(L('tabla.cjs'), "module.exports = require('fs').readFileSync(require('path').join(__dirname, 'tabla', 'datos.md'), 'utf8');\n");
+  escribir(L('tabla', 'datos.md'), '# cabecera de una línea\nresto\n');
+  escribir(L('tabla.test.cjs'), "'use strict';\nconst test = require('node:test');\nconst assert = require('node:assert/strict');\nconst t = require('./tabla.cjs');\ntest('la cabecera trae su \\\\n', () => assert.ok(t.includes('# cabecera de una línea\\n')));\ntest('el \\\\r suelto queda', () => assert.ok(t.includes('a\\rb')));\n");
+  const hl = (d, ...r) => path.join(d, '.claude', 'hooks', 'lib', ...r);
+  const p = armar({
+    antes: (d) => escribir(hl(d, 'tabla.cjs'), 'module.exports = "";\n'),
+    cambio: (d) => {
+      // el checkout de Windows: \r\n en cada renglón (y un \r suelto, que no es de git y se respeta)
+      escribir(hl(d, 'tabla.cjs'), leer(L('tabla.cjs')).replace(/\n/g, '\r\n'));
+      escribir(hl(d, 'tabla', 'datos.md'), '# cabecera de una línea\r\nresto a\rb\r\n');
+    },
+  });
+  const r = correr(p, { moldeNuevo: m });
+  nueveBienFormadas(r);
+  verde(r, 'casos');
+});
+
 test('7 casos (D6.2, F0): con moldeCrudo la copia sale del molde SIN instanciar ({{…}}); sin él, del moldeNuevo (instanciado: [completar: …])', () => {
   // crudo = como kit/molde/; m = lo que hace molde.cjs con los docs ({{marcador}} → [completar: marcador]). Ambos con el hook marca y su prueba.
   const MARCADOR = 'una acción ejecutable, nunca "seguir avanzando"';
