@@ -9,7 +9,8 @@
 // Instanciar: solo los .md y los .json (el código no lleva marcadores, y los *.test.cjs viajan tal cual: chequeo.cjs corre los del
 // molde nuevo). {{PROYECTO}} y cada {{NOMBRE_EN_MAYUSCULAS}} salen de vars: de la ficha (nombre-en-minusculas-con-guiones);
 // {{YYYY-MM-DD}} de la fecha. En 2.4, además, se va la frase del _LEEME del settings que el template pedía borrar. Con
-// `completar` (los docs, que nacen en el proyecto: chequear 1 no acepta un {{ suelto), lo que quede → [completar: …].
+// `completar` (los docs, que nacen en el proyecto: chequear 1 no acepta un {{ suelto), lo que quede → [completar: …]. Con
+// `carpetaDocs` (8r3 i1b: la `carpeta-docs:` de la ficha), la línea de la mesa de gitattributes.snippet nombra esa carpeta.
 // Todo sale en LF (el checkout de Windows puede traer CRLF).
 
 const fs = require('fs');
@@ -121,13 +122,21 @@ function formaDeTag(repo, ref) {
 
 // ---------------------------------------------------------------- materializar
 
+// 8r3 i1b: los renglones del .gitattributes del molde que nombran docs/ (la mesa: docs/modulos/**/mesa/**) van con la carpeta de
+// papeles (`carpeta-docs:` de la ficha). El molde mismo sigue con su docs/: el catálogo (rutaEnProyecto) lo lleva a <carpeta>/.
+const SNIPPET_CON_DOCS = 'gitattributes.snippet';
+function conCarpeta(rel, texto, carpeta) {
+  if (rel !== SNIPPET_CON_DOCS || !carpeta || carpeta === 'docs') return texto;
+  return texto.replace(/^docs\//gm, `${carpeta}/`);
+}
+
 function escribirMolde(archivos, forma, destino, opciones) {
   fs.mkdirSync(destino, { recursive: true });
   for (const [rel, t] of archivos) {
     const p = path.join(destino, ...rel.split('/'));
     fs.mkdirSync(path.dirname(p), { recursive: true });
-    const esDoc = rel.startsWith('docs/');
-    const texto = seInstancia(rel) ? instanciar(t, opciones.vars, { forma, fecha: opciones.fecha, completar: esDoc }) : t;
+    const esDoc = rel.startsWith('docs/'); // la ruta del molde: con carpeta-docs, el catálogo la lleva a <carpeta>/
+    const texto = seInstancia(rel) ? instanciar(t, opciones.vars, { forma, fecha: opciones.fecha, completar: esDoc }) : conCarpeta(rel, t, opciones.carpetaDocs);
     fs.writeFileSync(p, texto);
   }
   fs.writeFileSync(path.join(destino, '.forma-molde'), `${forma}\n`);

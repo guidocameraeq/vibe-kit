@@ -1034,7 +1034,7 @@ test('crit. 3 (8r2, t3): director, /inicio y /cierre propios → --mirar trae el
   const i = lineas.findIndex((l) => l.startsWith('# D1 · '));
   assert.equal(lineas[i + 1], '#   (A, recomendada) los del kit: --aplicar <propuesta> --director kit — las reglas tuyas que valgan pasan a la zona propia del CLAUDE.md o a cambios (los cambios de método ya migran)');
   assert.equal(lineas[i + 2], '#   (B) los tuyos: sin la opción — el módulo arranca solo, sin el director del kit');
-  assert.match(r.texto, /^# D4 · sensible: las cinco de sensible: quedan en no; recomendada: datos-reales con los comandos que tocan la base real — se cambia en la propuesta, como lista \(p\. ej\. datos-reales: \[sqlcmd\]; "sí" no se lee: va no o los comandos, como en kit\.ejemplo\.md\); el commit de la ficha da ROJO en barreras y eso lo aprueba Guido después del merge, desde su checkout \(cambios nuevo \+ cambios aprobar\)$/m);
+  assert.match(r.texto, /^# D4 · sensible: las cinco de sensible: quedan en no; recomendada: datos-reales con los comandos que tocan la base real — se cambia en la propuesta, como lista \(p\. ej\. datos-reales: \[sqlcmd\]; "sí" no se lee: va no o los comandos, como en kit\.ejemplo\.md\); el commit de la ficha da ROJO en barreras: sin remoto, ese rojo no queda en el clon: .*$/m); // 8r3 i4: el camino verdadero (sin remoto)
   // sin nada propio, no hay D1
   assert.doesNotMatch(mirar(conCodigo('limpio')).texto, /^# D1 · /m);
 });
@@ -1106,7 +1106,7 @@ test('crit. 3 (8r2, t3; rt-4): sin --director kit no se tocan; ni un --nuevo con
   }
 });
 
-test('8r2 t3 (modo-b.md B4): resolver … nueva sobre una pieza propia ya adoptada no anda (no hay informe); en la adopción, sí a mano + --aplicar + resolver … nueva sí', { ...deKit, timeout: 300000 }, async () => {
+test('8r2 t3 (modo-b.md B4): resolver … nueva sobre una pieza propia ya adoptada (8r3 i5: ahora anda sin informe); en la adopción, sí a mano + --aplicar + resolver … nueva sí', { ...deKit, timeout: 300000 }, async () => {
   const ACT = path.join(SCRIPTS, 'actualizar.cjs');
   const d = conDirectorPropio('hermes');
   const prop = propuestaDe(d);
@@ -1115,9 +1115,16 @@ test('8r2 t3 (modo-b.md B4): resolver … nueva sobre una pieza propia ya adopta
   assert.equal(r.codigo, 0, r.lineas.join('\n'));
   commitsDeLaLinea(d, r.lineas);
   fs.rmSync(path.join(d, '.kit-rol')); // el dueño: rol humano
+  // 8r3 i5: antes se negaba ("no hay … no hay nada que resolver"); sobre una propia, nueva trae la del molde sin informe
   const res = spawnSync(process.execPath, [ACT, 'resolver', '.', 'director-obrero', 'nueva', '--por', 'x'], { cwd: d, encoding: 'utf8' });
-  assert.equal(res.status, 1, res.stdout + res.stderr);
-  assert.match(res.stdout, /^resolver: no hay \.claude\/fusiones\/director-obrero\.md: no hay nada que resolver$/m);
+  assert.equal(res.status, 0, res.stdout + res.stderr);
+  assert.equal(leer(d, '.claude/skills/director/SKILL.md'), delMolde(d, 'skills/director/SKILL.md'));
+  // las otras salidas sin informe siguen negándose
+  git(d, 'checkout', '-q', '--', '.');
+  git(d, 'clean', '-fdq');
+  const q = spawnSync(process.execPath, [ACT, 'resolver', '.', 'director-obrero', 'quedarse', '--por', 'x'], { cwd: d, encoding: 'utf8' });
+  assert.equal(q.status, 1, q.stdout + q.stderr);
+  assert.match(q.stdout, /^resolver: no hay \.claude\/fusiones\/director-obrero\.md: no hay nada que resolver$/m);
   // el camino viejo, en la adopción: la propuesta a sí a mano → --aplicar la manda a la fusión (te espera) → resolver … nueva
   const e = conDirectorPropio('hermes2');
   const pe = propuestaDe(e);
@@ -1221,7 +1228,7 @@ test('crit. 9 (8r2, t9; rt-9): --aplicar --permisos recomendada --arranque kit �
   assert.equal(b3.status, 1, 'el tercero da rojo: toca reglas del settings');
   assert.match(b3.stdout + b3.stderr, /toca settings \(allow:Bash\(git add:\*\), ask:Bash\(git merge:\*\), hook:SessionStart\/\/bash \.claude\/hooks\/arranque-hermes\.sh\) sin un aprobado sellado/);
   assert.match(t, /^después: node \.claude\/scripts\/estructura\.cjs barreras --rango [0-9a-f]{40}\.\.HEAD → verde en las piezas y la ficha$/m);
-  assert.match(t, /^después: el commit de los permisos \(permisos: D2\/D3\) da ROJO en barreras \(toca reglas del settings sin un aprobado sellado\): eso lo aprueba Guido después del merge, desde su checkout \(cambios nuevo \+ cambios aprobar\); ya pusheado, no se rehace \(sería un push forzado\): si no se aprueba, se revierte con un commit nuevo \(git revert\) y queda la mezcla de siempre$/m);
+  assert.match(t, /^después: el commit de los permisos \(permisos: D2\/D3\) da ROJO en barreras \(toca reglas del settings sin un aprobado sellado\): sin remoto, ese rojo no queda en el clon: .*; ya pusheado no se rehace \(sería un push forzado\): si no lo querés, se revierte con un commit nuevo \(git revert\) y queda la mezcla de siempre$/m); // 8r3 i4
 });
 
 test('8r2 D4: datos-reales con una lista en la propuesta → --aplicar anda y la línea después: dice el camino; con "sí", la propuesta no se lee', { ...deKit, timeout: 240000 }, async () => {
@@ -1238,7 +1245,314 @@ test('8r2 D4: datos-reales con una lista en la propuesta → --aplicar anda y la
   const r = await aplicar(d, prop);
   assert.equal(r.codigo, 0, r.lineas.join('\n'));
   assert.deepEqual(F.leer(leer(d, '.claude/kit.md')).datos.sensible['datos-reales'], ['sqlcmd']);
-  assert.match(r.lineas.join('\n'), /^después: node \.claude\/scripts\/estructura\.cjs barreras --rango [0-9a-f]{40}\.\.HEAD da ROJO en el commit de la ficha \(sensible no es de fábrica\): eso lo aprueba Guido después del merge, desde su checkout \(cambios nuevo \+ cambios aprobar\)$/m);
+  assert.match(r.lineas.join('\n'), /^después: node \.claude\/scripts\/estructura\.cjs barreras --rango [0-9a-f]{40}\.\.HEAD da ROJO en el commit de la ficha \(sensible no es de fábrica\): sin remoto, ese rojo no queda en el clon: .*$/m); // 8r3 i4
   commitsDeLaLinea(d, r.lineas);
   assert.equal(barreras(d, antes).status, 1);
+});
+
+// ---------------------------------------------------------------- SPEC-paquete-8r3 (A): i1b, i2, i4, i5
+
+// Un repo como el bot de Arti: docs/ es un sitio publicado (docs.json, CNAME y 10 páginas), los papeles en arti-docs/ (el handoff,
+// el TODO y 8 sueltos que no son de los seis). Con o sin un session-start.cjs propio (o.arranque).
+const SUELTOS_ARTI = ['ARCHITECTURE.md', 'DECISIONS.md', 'MODELS.md', 'PROMPTS.md', 'RIESGOS.md', 'ROADMAP.md', 'TOOLS.md', 'USUARIOS.md'];
+const ARRANQUE_PROPIO = [
+  "'use strict';",
+  '// el arranque de arti: inyecta el handoff de arti-docs',
+  '// y el TODO, sin el kit',
+  "const fs = require('fs');",
+  "const path = require('path');",
+  "process.stdout.write(fs.readFileSync(path.join(process.cwd(), 'arti-docs', 'SESSION_HANDOFF.md'), 'utf8'));",
+  "process.stdout.write(fs.readFileSync('arti-docs/TODO.md', 'utf8'));",
+  '',
+].join('\n');
+function repoBot(nombre, o = {}) {
+  const a = { 'docs/docs.json': '{"nav":[]}\n', 'docs/CNAME': 'docs.openclaw.ai\n' };
+  for (let i = 0; i < 10; i++) a[`docs/pagina-${i}.md`] = `# página ${i}\n`;
+  a['arti-docs/SESSION_HANDOFF.md'] = '# handoff de arti\n';
+  a['arti-docs/TODO.md'] = '# TODO de arti\n';
+  for (const s of SUELTOS_ARTI) a[`arti-docs/${s}`] = `# ${s}\n`;
+  if (o.arranque) {
+    a['.claude/hooks/session-start.cjs'] = ARRANQUE_PROPIO;
+    // el settings con el comando del molde (el del bot): D3 de la rc.3 no ve nada que sacar
+    a['.claude/settings.json'] = `${JSON.stringify({ hooks: { SessionStart: [{ matcher: '', hooks: [{ type: 'command', command: 'node', args: ['${CLAUDE_PROJECT_DIR}/.claude/hooks/session-start.cjs'], timeout: 20 }] }] } }, null, 2)}\n`;
+  }
+  return conCodigo(nombre, { ...a, ...(o.extra || {}) });
+}
+const lineasDe = (texto, re) => texto.split('\n').filter((l) => re.test(l));
+
+test('crit. 2 (8r3 i1b; rt-4): --mirar sobre el bot → carpeta-docs: arti-docs, la línea papeles: y los 8 sueltos; dos con handoff → ninguna; docs/ con el handoff → como hoy; un nombre que no sirve → no la propone', deKit, () => {
+  const d = repoBot('arti');
+  const antes = foto(d);
+  const r = mirar(d);
+  assert.deepEqual(foto(d), antes, 'mirar no escribe');
+  assert.equal(r.datos['carpeta-docs'], 'arti-docs');
+  assert.match(r.texto, /^carpeta-docs: arti-docs$/m);
+  assert.match(r.texto, /^# papeles: arti-docs\/ \(tiene SESSION_HANDOFF\.md\) — docs\/ tiene 12 archivos y no es del método: queda del proyecto; en la propuesta, carpeta-docs: arti-docs$/m);
+  assert.match(r.texto, /^# papeles: arti-docs\/ tiene 8 que no son de los seis ni de las tres carpetas \(ARCHITECTURE\.md, DECISIONS\.md, MODELS\.md, PROMPTS\.md y 4 más\) — con el candado prendido \(candado:raiz\) van a referencia\/ o a modulos\/<x>\/; si no, candado: no, como en Hermes$/m);
+  // la pieza docs nace en arti-docs/ (nunca en docs/)
+  const docsLinea = lineaPieza(r.texto, 'docs');
+  assert.match(docsLinea, /arti-docs\/NORTE\.md/);
+  assert.match(docsLinea, /lo que ya hay en arti-docs\/ no se toca/);
+  assert.doesNotMatch(docsLinea, /[ (]docs\//);
+  // dos carpetas con handoff: ninguna, y la línea las nombra
+  const dos = mirar(repoPelado('dos', { 'CLAUDE.md': '# dos\n', 'a/SESSION_HANDOFF.md': '# a\n', 'b/c/SESSION_HANDOFF.md': '# b\n' }));
+  assert.equal(dos.datos['carpeta-docs'], undefined);
+  assert.doesNotMatch(dos.texto, /^carpeta-docs:/m);
+  assert.match(dos.texto, /^# papeles: hay SESSION_HANDOFF\.md seguido en a\/, b\/c\/ — no elegí ninguna: escribí carpeta-docs: <la del método> en la propuesta/m);
+  // docs/ con su handoff: sin la clave y sin línea de papeles (como la rc.3)
+  const comoHoy = mirar(repoV2('gama'));
+  assert.doesNotMatch(comoHoy.texto, /^carpeta-docs:|^# papeles:/m);
+  // un nombre que la ficha no acepta (mayúsculas): no se propone, y se dice
+  const mal = mirar(repoPelado('mal', { 'CLAUDE.md': '# mal\n', 'Arti-Docs/SESSION_HANDOFF.md': '# x\n' }));
+  assert.equal(mal.datos['carpeta-docs'], undefined);
+  assert.match(mal.texto, /^# papeles: Arti-Docs\/ tiene SESSION_HANDOFF\.md pero ese nombre no sirve de carpeta-docs:/m);
+  // sin ninguna y un docs/ ajeno: la línea que dice cómo elegir
+  const sin = mirar(repoPelado('sin', { 'CLAUDE.md': '# sin\n', 'docs/docs.json': '{}\n', 'docs/a.md': '# a\n' }));
+  assert.match(sin.texto, /^# papeles: docs\/ ya tiene docs\.json y 2 archivos que no son del método — si es de otra cosa, escribí carpeta-docs: <otra> en la propuesta/m);
+});
+
+test('crit. 2 (8r3 i1b; rt-5): --aplicar con carpeta-docs: arti-docs no toca docs/, escribe lo que falta en arti-docs/, la ficha tiene la clave, la mesa del .gitattributes y barreras verde; sin la clave y docs/ ajeno, se niega sin escribir', { ...deKit, timeout: 240000 }, async () => {
+  // rt-5: la propuesta sin la clave (la sesión la borró) → no escribe nada
+  const n = repoBot('arti-sin');
+  const pn = propuestaDe(n);
+  fs.writeFileSync(pn, fs.readFileSync(pn, 'utf8').replace('\ncarpeta-docs: arti-docs\n', '\n'));
+  rol(n);
+  const fn = foto(n);
+  const neg = await aplicar(n, pn);
+  assert.equal(neg.codigo, 1, neg.lineas.join('\n'));
+  assert.match(neg.lineas[0], /^adoptar: docs\/ no es del método \(tiene docs\.json, CNAME y 12 archivos que no son del método, sin SESSION_HANDOFF\.md\) y la propuesta no trae carpeta-docs: — escribí carpeta-docs: <la carpeta de los papeles> en la propuesta \(carpeta-docs: docs si van igual ahí\) y corré --aplicar de nuevo; no escribí nada$/);
+  assert.deepEqual(foto(n), fn, 'no escribió nada');
+
+  const d = repoBot('arti');
+  const prop = propuestaDe(d);
+  rol(d);
+  const antes = cabeza(d);
+  const r = await sinClaude(() => aplicar(d, prop));
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  assert.equal(git(d, 'status', '--porcelain', '--', 'docs'), '', 'docs/ de OpenClaw sin tocar');
+  for (const x of ['NORTE.md', 'MAPA.md', 'CHANGELOG.md', 'README.md']) assert.ok(leer(d, `arti-docs/${x}`), `arti-docs/${x} nace`);
+  assert.equal(leer(d, 'arti-docs/SESSION_HANDOFF.md'), '# handoff de arti\n', 'lo que ya había no se toca');
+  assert.equal(leer(d, 'arti-docs/TODO.md'), '# TODO de arti\n');
+  assert.match(leer(d, 'arti-docs/CHANGELOG.md'), new RegExp(`^kit ${VERSION.replace(/\./g, '\\.')}: adopción — piezas `, 'm'));
+  assert.ok(r.lineas.some((l) => l.startsWith('arti-docs/CHANGELOG.md · un renglón · kit ')), r.lineas.join('\n'));
+  assert.equal(F.leer(leer(d, '.claude/kit.md')).datos['carpeta-docs'], 'arti-docs');
+  const ga = leer(d, '.gitattributes');
+  assert.match(ga, /^arti-docs\/modulos\/\*\*\/mesa\/\*\* text eol=lf$/m);
+  assert.doesNotMatch(ga, /^docs\/modulos/m);
+  assert.equal(commitsDeLaLinea(d, r.lineas), 2);
+  assert.equal(git(d, 'status', '--porcelain'), '');
+  const b = barreras(d, antes);
+  assert.equal(b.status, 0, b.stdout + b.stderr);
+});
+
+test('crit. 3 (8r3 i2; rt-9): un session-start.cjs propio con el settings del molde → --mirar trae la línea, lo que hacía, lo que lee y el D3', deKit, () => {
+  const r = mirar(repoBot('arti', { arranque: true }));
+  const t = r.texto;
+  assert.equal(piezas(t)['hook-arranque'], 'propia');
+  const ls = t.split('\n');
+  const i = ls.indexOf('# arranque: tu .claude/hooks/session-start.cjs tiene el nombre del hook del kit y es otro — el settings del kit lo corre igual y el /inicio no encuentra su huella');
+  assert.ok(i > 0, t);
+  assert.equal(ls[i + 1], '#   lo que hacía: el arranque de arti: inyecta el handoff de arti-docs · y el TODO, sin el kit');
+  assert.equal(ls[i + 2], '#   lo que lee: arti-docs/SESSION_HANDOFF.md, arti-docs/TODO.md');
+  assert.equal(ls[i + 3], '#   lo que quieras conservar, a .claude/hooks/session-start.propio.sh (el del kit lo corre al final, con bash)');
+  const d3 = ls.indexOf('# D3 · el arranque:');
+  assert.ok(d3 > i, 'el bloque D3, aunque no haya otro SessionStart ni un handoff gordo');
+  assert.equal(ls[d3 + 1], '#   (recomendada) el del kit: --aplicar <propuesta> --arranque kit — lo reemplaza por el del kit (.claude/hooks/session-start.cjs, en el commit de las piezas; lo tuyo queda en la historia)');
+  assert.match(ls[d3 + 2], /^# {3}\(otra\) sin la opción: queda el tuyo/);
+  // el del molde en su lugar: ni la línea ni el D3
+  const limpio = mirar(repoBot('arti2')).texto;
+  assert.doesNotMatch(limpio, /^# arranque: tu |^# D3 · /m);
+});
+
+test('crit. 3 (8r3 i2; rt-9): --aplicar --arranque kit deja el session-start.cjs del molde, la ficha en molde con hash y barreras verde (las piezas antes de la ficha); sin la opción, no se toca', { ...deKit, timeout: 300000 }, async () => {
+  const d = repoBot('arti', { arranque: true });
+  const prop = propuestaDe(d);
+  rol(d);
+  const antes = cabeza(d);
+  const r = await sinClaude(() => aplicarCon(d, prop, '--arranque', 'kit'));
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  const t = r.lineas.join('\n');
+  assert.equal(leer(d, '.claude/hooks/session-start.cjs'), delMolde(d, 'hooks/session-start.cjs'));
+  const h = F.leer(leer(d, '.claude/kit.md')).datos.piezas['hook-arranque'];
+  assert.equal(h.estado, 'molde');
+  assert.equal(h.hash, F.hash(delMolde(d, 'hooks/session-start.cjs')));
+  assert.match(t, new RegExp(`^hook-arranque · molde · reemplacé el tuyo \\(D3: kit\\) — lo tuyo queda en la historia: git show ${antes}:\\.claude/hooks/session-start\\.cjs$`, 'm'));
+  assert.match(leer(d, 'arti-docs/CHANGELOG.md'), / — D3: kit, el arranque del kit reemplaza el tuyo$/m);
+  assert.equal(commitsDeLaLinea(d, r.lineas), 2, 'sin cambio en el settings: no hay tercer commit');
+  assert.equal(git(d, 'status', '--porcelain'), '');
+  assert.ok(git(d, 'show', '--name-only', '--format=', 'HEAD~1').split('\n').includes('.claude/hooks/session-start.cjs'), 'en el commit de las piezas');
+  // el verde: el commit de las piezas va antes del de la ficha (fuera del alcance: la ficha no existía), la ficha por la exención b
+  const b = barreras(d, antes);
+  assert.equal(b.status, 0, b.stdout + b.stderr);
+  assert.equal(git(d, 'show', `${antes}:.claude/hooks/session-start.cjs`), ARRANQUE_PROPIO, 'lo tuyo queda en la historia');
+  // sin la opción: el archivo no se toca y queda propia
+  const s = repoBot('arti2', { arranque: true });
+  const ps = propuestaDe(s);
+  rol(s);
+  const rs = await sinClaude(() => aplicar(s, ps));
+  assert.equal(rs.codigo, 0, rs.lineas.join('\n'));
+  assert.equal(leer(s, '.claude/hooks/session-start.cjs'), ARRANQUE_PROPIO);
+  assert.equal(F.leer(leer(s, '.claude/kit.md')).datos.piezas['hook-arranque'], 'propia');
+  assert.doesNotMatch(rs.lineas.join('\n'), /D3: kit/);
+});
+
+test('crit. 5 (8r3 i4; rt-3): la línea después: dice la verdad — con remoto, "solo en este clon, antes del push" y verde en la carpeta tras el push y el --traer; sin remoto, el rojo del primer /cierre; con core.hooksPath en el clon, el pre-commit lo frena', { ...deKit, timeout: 400000 }, async () => {
+  const conLista = (pr) => fs.writeFileSync(pr, fs.readFileSync(pr, 'utf8').replace('  datos-reales: no', '  datos-reales: [sqlcmd]'));
+  const ver = (lineas) => {
+    const t = lineas.filter((l) => l.startsWith('después:')).join('\n');
+    assert.doesNotMatch(t, /después del merge/);
+    assert.doesNotMatch(t, /cambios aprobar/);
+    return t;
+  };
+  // con remoto (un bare): rojo en el clon, verde en la carpeta después del push y del --traer
+  const { p, c } = bareYDos('remoto');
+  escribir(c, { 'CLAUDE.md': '# remoto\n', 'docs/SESSION_HANDOFF.md': '# handoff\n' });
+  git(c, 'add', '-A');
+  git(c, 'commit', '-q', '-m', 'base del método');
+  git(c, 'push', '-q', 'origin', 'main');
+  git(p, 'pull', '-q');
+  const prop = propuestaDe(c);
+  conLista(prop);
+  const antes = cabeza(c);
+  const r = await aplicarCon(c, prop, '--principal', p);
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  const t = ver(r.lineas);
+  assert.match(t, /^después: .* da ROJO en el commit de la ficha \(sensible no es de fábrica\): ese rojo es solo en este clon, antes del push: barreras mira origin\/main\.\.HEAD y, pusheado, ningún \/cierre lo vuelve a mirar; un aprobado de después no lo cubre \(el sello va antes del primer commit que toca\) — lo que se decidió queda en el commit y en el renglón del CHANGELOG de la adopción$/m);
+  commitsDeLaLinea(c, r.lineas);
+  assert.equal(barreras(c, antes).status, 1, 'en el clon, rojo');
+  git(c, 'push', '-q', 'origin', 'main');
+  const tr = await AD.main([c, '--traer', p]);
+  assert.equal(tr.codigo, 0, tr.lineas.join('\n'));
+  const enP = spawnSync(process.execPath, [path.join(p, '.claude', 'scripts', 'estructura.cjs'), 'barreras'], { cwd: p, encoding: 'utf8' });
+  assert.equal(enP.status, 0, `en la carpeta, verde: ${enP.stdout}${enP.stderr}`);
+
+  // sin remoto (el clon sale de la carpeta, como el Modo A): la línea dice el rojo del primer /cierre, y es verdad
+  const s = principalYClon('sinremoto');
+  escribir(s.p, { 'CLAUDE.md': '# sinremoto\n', 'docs/SESSION_HANDOFF.md': '# handoff\n' });
+  git(s.p, 'add', '-A');
+  git(s.p, 'commit', '-q', '-m', 'base del método');
+  git(s.c, 'pull', '-q');
+  const ps = propuestaDe(s.c);
+  conLista(ps);
+  const rs = await aplicarCon(s.c, ps, '--principal', s.p);
+  assert.equal(rs.codigo, 0, rs.lineas.join('\n'));
+  assert.match(ver(rs.lineas), /: sin remoto, ese rojo no queda en el clon: --traer lleva estos commits a tu carpeta y ahí estructura\.cjs todo \(tu primer \/cierre\) da ROJO en ese commit — /);
+  commitsDeLaLinea(s.c, rs.lineas);
+  const ts = await AD.main([s.c, '--traer', s.p]);
+  assert.equal(ts.codigo, 0, ts.lineas.join('\n'));
+  const todo = spawnSync(process.execPath, [path.join(s.p, '.claude', 'scripts', 'estructura.cjs'), 'todo'], { cwd: s.p, encoding: 'utf8' });
+  assert.equal(todo.status, 1, todo.stdout + todo.stderr);
+  assert.match(todo.stdout + todo.stderr, /candado:barreras · el commit [0-9a-f]+ toca .*sensible/);
+
+  // core.hooksPath prendido en el clon (una sesión arrancó ahí): la línea lo dice, y el pre-commit frena el commit de la ficha
+  const h = bareYDos('ganchos');
+  escribir(h.c, { 'CLAUDE.md': '# ganchos\n' });
+  git(h.c, 'add', '-A');
+  git(h.c, 'commit', '-q', '-m', 'base');
+  const ph = propuestaDe(h.c);
+  conLista(ph);
+  git(h.c, 'config', 'core.hooksPath', '.githooks');
+  const rh = await aplicar(h.c, ph);
+  assert.equal(rh.codigo, 0, rh.lineas.join('\n'));
+  assert.match(ver(rh.lineas), /; ⚠ en este clon core\.hooksPath apunta a \.githooks \(arrancó una sesión acá\): el pre-commit frena ese commit — el clon de la adopción va sin githooks \(r1-5\): git config --unset core\.hooksPath \(en tu carpeta los prende --traer\)$/m);
+  const cmds = rh.lineas.filter((l) => /^ {2}git add /.test(l)).map((l) => l.trim());
+  assert.equal(spawnSync(cmds[0], { cwd: h.c, shell: true, encoding: 'utf8' }).status, 0, 'las piezas pasan');
+  const fx = spawnSync(cmds[1], { cwd: h.c, shell: true, encoding: 'utf8' });
+  assert.notEqual(fx.status, 0, 'el commit de la ficha, frenado');
+  assert.match(fx.stdout + fx.stderr, /kit pre-commit: ROJO/);
+});
+
+// crit. 6 (8r3 i5) vive acá y no en actualizar.test: necesita un repo adoptado de verdad (las piezas del molde y su ficha).
+const ACT = path.join(SCRIPTS, 'actualizar.cjs');
+const resolverEn = (d, ...args) => spawnSync(process.execPath, [ACT, 'resolver', '.', ...args], { cwd: d, encoding: 'utf8' });
+// Un repo adoptado (los dos commits) con lo propio que dejó en propia, ya en rol humano (el dueño).
+async function adoptado(d, extra = []) {
+  const prop = propuestaDe(d);
+  rol(d);
+  const r = await sinClaude(() => aplicarCon(d, prop, ...extra));
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  commitsDeLaLinea(d, r.lineas);
+  fs.rmSync(path.join(d, '.kit-rol'));
+  assert.equal(git(d, 'status', '--porcelain'), '');
+  return d;
+}
+
+test('crit. 6 (8r3 i5): resolver … nueva sobre una propia sin informe — director-obrero: los del molde, la ficha en molde, el porqué al CHANGELOG; sin --por, uso; sucia, se niega sin escribir', { ...deKit, timeout: 300000 }, async () => {
+  const d = await adoptado(conDirectorPropio('hermes'));
+  assert.equal(F.leer(leer(d, '.claude/kit.md')).datos.piezas['director-obrero'], 'propia');
+  // sin --por: mal llamado (2), nada escrito
+  const sinPor = resolverEn(d, 'director-obrero', 'nueva');
+  assert.equal(sinPor.status, 2, sinPor.stdout + sinPor.stderr);
+  // con un archivo de la pieza sin commitear: se niega y no escribe nada
+  escribir(d, { '.claude/skills/director/SKILL.md': `${DIR_PROPIO}una línea más\n` });
+  const ficha0 = leer(d, '.claude/kit.md');
+  const sucia = resolverEn(d, 'director-obrero', 'nueva', '--por', 'x');
+  assert.equal(sucia.status, 1, sucia.stdout);
+  assert.match(sucia.stdout, /^resolver: \.claude\/skills\/director\/SKILL\.md tiene cambios sin commitear: commitealo o descartalo antes de tomar la nueva; no toqué nada$/m);
+  assert.equal(leer(d, '.claude/kit.md'), ficha0);
+  assert.equal(git(d, 'status', '--porcelain'), ' M .claude/skills/director/SKILL.md\n');
+  git(d, 'checkout', '-q', '--', '.');
+  // de otra versión del kit: poné al día primero
+  const otra = path.join(nuevaCarpeta('kit-otro'), 'kit');
+  fs.mkdirSync(path.join(otra, 'kit', 'molde'), { recursive: true });
+  fs.writeFileSync(path.join(otra, 'kit', 'VERSION'), '9.9.9\n');
+  fs.writeFileSync(path.join(otra, 'kit', 'molde', 'settings.json'), '{}\n');
+  const vieja = resolverEn(d, 'director-obrero', 'nueva', '--por', 'x', '--kit', otra);
+  assert.equal(vieja.status, 1, vieja.stdout);
+  assert.match(vieja.stdout, /^resolver: el molde del kit es 9\.9\.9 y la ficha dice kit: .* — poné al día primero/m);
+  assert.equal(git(d, 'status', '--porcelain'), '');
+  // la de verdad
+  const r = resolverEn(d, 'director-obrero', 'nueva', '--por', 'traer el director del kit');
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  for (const rel of ['skills/director/SKILL.md', 'skills/obrero/SKILL.md']) assert.equal(leer(d, `.claude/${rel}`), delMolde(d, rel), rel);
+  assert.equal(F.leer(leer(d, '.claude/kit.md')).datos.piezas['director-obrero'], 'molde', 'molde (varios archivos: sin hash, como aplicar)');
+  assert.match(leer(d, 'docs/CHANGELOG.md'), /^kit .*: director-obrero propia → molde \(resolver nueva, sin informe\): traer el director del kit$/m);
+  assert.doesNotMatch(r.stdout, /toca frenos/, 'director-obrero no es de frenos');
+  const commit = r.stdout.split('\n').find((l) => l.startsWith('commit por rutas: '));
+  assert.ok(commit, r.stdout);
+  assert.equal(spawnSync(commit.slice('commit por rutas: '.length), { cwd: d, shell: true, encoding: 'utf8' }).status, 0);
+  assert.equal(git(d, 'status', '--porcelain'), '', 'el commit lleva todo lo que escribió');
+});
+
+test('crit. 6 (8r3 i5; rt-7): resolver hook-arranque nueva sobre una propia — la línea da cambios nuevo (con --toca y los ids que pide barreras) → cambios aprobar → el commit; corrido en ese orden, barreras verde; al revés, rojo', { ...deKit, timeout: 400000 }, async () => {
+  const paso = (d, l) => {
+    const r = spawnSync(l.replace(/^ {2}\d\. /, '').replace(/ {3}\(el id .*$/, ''), { cwd: d, shell: true, encoding: 'utf8' });
+    assert.equal(r.status, 0, `${l}\n${r.stdout}${r.stderr}`);
+    return r.stdout;
+  };
+  const d = await adoptado(repoBot('arti', { arranque: true }));
+  assert.equal(F.leer(leer(d, '.claude/kit.md')).datos.piezas['hook-arranque'], 'propia');
+  const antes = cabeza(d);
+  const r = resolverEn(d, 'hook-arranque', 'nueva', '--por', 'el arranque del kit');
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  const ls = r.stdout.trim().split('\n');
+  assert.equal(leer(d, '.claude/hooks/session-start.cjs'), delMolde(d, 'hooks/session-start.cjs'), 'la pieza escrita en el disco');
+  const h = F.leer(leer(d, '.claude/kit.md')).datos.piezas['hook-arranque'];
+  assert.deepEqual([h.estado, h.hash], ['molde', F.hash(delMolde(d, 'hooks/session-start.cjs'))]);
+  assert.match(leer(d, 'arti-docs/CHANGELOG.md'), /^kit .*: hook-arranque propia → molde \(resolver nueva, sin informe\): el arranque del kit$/m, 'en la carpeta de papeles');
+  const i = ls.findIndex((l) => l.startsWith('hook-arranque toca frenos (hooks): el sello va ANTES del commit de la pieza'));
+  assert.ok(i > 0, r.stdout);
+  assert.match(ls[i + 1], /^ {2}1\. node \.claude\/scripts\/cambios\.cjs nuevo --slug kit-hook-arranque --clase 3-barrera --toca hooks --id "hooks:\.claude\/hooks\/session-start\.cjs" --origen "resolver hook-arranque nueva: el arranque del kit" --cuerpo ".*kit-resolver\/hook-arranque\.md"$/);
+  assert.match(ls[i + 2], /^ {2}2\. node \.claude\/scripts\/cambios\.cjs aprobar \d{4}-\d{2}-\d{2}-kit-hook-arranque {3}\(el id que dijo el paso 1/);
+  assert.match(ls[i + 3], /^ {2}3\. git add -A -- \.claude\/hooks\/session-start\.cjs \.claude\/kit\.md arti-docs\/CHANGELOG\.md && git commit -m "inicio: hook-arranque, nueva \(el arranque del kit\)"$/);
+  // el orden, de verdad: con la pieza escrita y sin commitear mientras se propone y se aprueba (el dueño corre aprobar: acá, el script directo)
+  paso(d, ls[i + 1]);
+  assert.match(git(d, 'status', '--porcelain'), /\.claude\/hooks\/session-start\.cjs/, 'la pieza sigue sin commitear');
+  paso(d, ls[i + 2]);
+  paso(d, ls[i + 3]);
+  assert.equal(git(d, 'status', '--porcelain'), '');
+  const b = barreras(d, antes);
+  assert.equal(b.status, 0, b.stdout + b.stderr);
+
+  // al revés (el commit de la pieza antes del sello): rojo — un aprobado de después no lo cubre
+  const e = await adoptado(repoBot('arti2', { arranque: true }));
+  const antesE = cabeza(e);
+  const re = resolverEn(e, 'hook-arranque', 'nueva', '--por', 'al revés');
+  assert.equal(re.status, 0, re.stdout);
+  const le = re.stdout.trim().split('\n');
+  const j = le.findIndex((l) => l.startsWith('hook-arranque toca frenos'));
+  paso(e, le[j + 3]);
+  paso(e, le[j + 1]);
+  paso(e, le[j + 2]);
+  assert.equal(barreras(e, antesE).status, 1, 'el sello después del commit no lo cubre');
 });

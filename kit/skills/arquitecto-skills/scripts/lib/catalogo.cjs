@@ -41,11 +41,15 @@ const SUELTOS = {
   'assets/banner.svg': 'assets/banner.svg',
 };
 
-// La ruta del proyecto de una ruta del molde, o null si no viaja.
-function rutaEnProyecto(rel) {
+// La carpeta de papeles por defecto (ficha.cjs CARPETA_DOCS): sin `carpeta-docs:` en la ficha, el docs/ del molde va a docs/.
+const CARPETA_DOCS = 'docs';
+
+// La ruta del proyecto de una ruta del molde, o null si no viaja. carpeta (8r3 i1b): la `carpeta-docs:` de la ficha — lo que en el
+// molde está en docs/ va a <carpeta>/ (el molde siempre lo trae en docs/).
+function rutaEnProyecto(rel, carpeta = CARPETA_DOCS) {
   const r = String(rel).replace(/\\/g, '/');
   if (Object.prototype.hasOwnProperty.call(SUELTOS, r)) return SUELTOS[r];
-  for (const [de, a] of PREFIJOS) if (r.startsWith(de)) return a + r.slice(de.length);
+  for (const [de, a] of PREFIJOS) if (r.startsWith(de)) return (de === 'docs/' ? `${carpeta}/` : a) + r.slice(de.length);
   return null;
 }
 
@@ -131,17 +135,17 @@ function sinDueno(forma, rutas) {
 }
 
 // El reparto de un molde: Map(id → { pieza, archivos: [{ molde, proyecto }] }), con TODAS las piezas del catálogo (también las
-// que no traen archivos). Tira si una ruta no tiene dueño.
-function repartir(forma, rutas) {
+// que no traen archivos). Tira si una ruta no tiene dueño. carpeta: la `carpeta-docs:` de la ficha (8r3 i1b; sin ella, docs).
+function repartir(forma, rutas, carpeta = CARPETA_DOCS) {
   const m = new Map();
   for (const p of piezasDe(forma)) m.set(p.id, { pieza: p, archivos: [] });
   const huerfanas = sinDueno(forma, rutas);
   if (huerfanas.length) throw new Error(`rutas del molde sin pieza en el catálogo: ${huerfanas.join(', ')}`);
   for (const rel of rutas) {
     const p = piezaDeRuta(forma, rel);
-    m.get(p.id).archivos.push({ molde: rel, proyecto: p.trato === 'no-viaja' ? null : rutaEnProyecto(rel) });
+    m.get(p.id).archivos.push({ molde: rel, proyecto: p.trato === 'no-viaja' ? null : rutaEnProyecto(rel, carpeta) });
   }
   return m;
 }
 
-module.exports = { BASE, OPCIONAL, CATALOGOS, piezasDe, piezaDeRuta, rutaEnProyecto, rutasDeMolde, sinDueno, repartir, esPrueba };
+module.exports = { BASE, OPCIONAL, CATALOGOS, CARPETA_DOCS, piezasDe, piezaDeRuta, rutaEnProyecto, rutasDeMolde, sinDueno, repartir, esPrueba };

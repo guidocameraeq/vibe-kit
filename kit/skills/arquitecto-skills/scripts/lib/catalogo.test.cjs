@@ -78,3 +78,15 @@ test('las rutas del proyecto: la forma de kit/molde/ al derecho (la misma que ru
   assert.equal(C.piezaDeRuta('3', 'hooks/lib/barreras.cjs').id, 'hooks-lib');
   assert.equal(C.piezaDeRuta('3', 'agents/revisor.md').id, 'director-obrero');
 });
+
+test('8r3 i1b: con carpeta-docs, el docs/ del molde va a <carpeta>/ y nada más cambia; sin ella, docs/', () => {
+  assert.equal(C.rutaEnProyecto('docs/NORTE.md', 'arti-docs'), 'arti-docs/NORTE.md');
+  assert.equal(C.rutaEnProyecto('docs/referencia/trampas.md', 'a/b-c'), 'a/b-c/referencia/trampas.md');
+  assert.equal(C.rutaEnProyecto('docs/NORTE.md'), 'docs/NORTE.md');
+  assert.equal(C.rutaEnProyecto('hooks/session-start.cjs', 'arti-docs'), '.claude/hooks/session-start.cjs');
+  assert.equal(C.rutaEnProyecto('CLAUDE.md', 'arti-docs'), 'CLAUDE.md');
+  const rep = C.repartir('3', ['docs/NORTE.md', 'docs/TODO.md', 'hooks/session-start.cjs'], 'arti-docs');
+  assert.deepEqual(rep.get('docs').archivos.map((a) => a.proyecto), ['arti-docs/NORTE.md', 'arti-docs/TODO.md']);
+  assert.deepEqual(rep.get('hook-arranque').archivos.map((a) => a.proyecto), ['.claude/hooks/session-start.cjs']);
+  assert.deepEqual(C.repartir('3', ['docs/NORTE.md']).get('docs').archivos.map((a) => a.proyecto), ['docs/NORTE.md']);
+});

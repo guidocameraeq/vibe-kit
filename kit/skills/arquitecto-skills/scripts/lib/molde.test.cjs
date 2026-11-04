@@ -136,3 +136,22 @@ test('materializarNuevo: el del disco del --kit (lo sin commitear también)', ()
     M.borrar(m.dir);
   }
 });
+
+test('8r3 i1b: con carpetaDocs, la línea de la mesa de gitattributes.snippet nombra la carpeta; sin ella (o docs), igual; los docs del molde siguen en docs/', () => {
+  const snip = '.claude/frenos.log merge=union\n.githooks/* text eol=lf\ndocs/modulos/**/mesa/** text eol=lf\n';
+  const kit = arbol({ 'kit/VERSION': '3.0.0\n', 'kit/molde/settings.json': '{}\n', 'kit/molde/gitattributes.snippet': snip, 'kit/molde/docs/NORTE.md': '# {{PROYECTO}}\n' });
+  const ver = (o) => {
+    const m = M.materializarNuevo(kit, o);
+    try {
+      const a = M.archivosDe(m.dir);
+      return { snip: a.get('gitattributes.snippet'), norte: a.get('docs/NORTE.md') };
+    } finally {
+      M.borrar(m.dir);
+    }
+  };
+  const con = ver({ vars: { proyecto: 'arti' }, carpetaDocs: 'arti-docs' });
+  assert.equal(con.snip, '.claude/frenos.log merge=union\n.githooks/* text eol=lf\narti-docs/modulos/**/mesa/** text eol=lf\n');
+  assert.equal(con.norte, '# arti\n', 'el molde lo sigue trayendo en docs/ (el catálogo lo lleva a la carpeta)');
+  assert.equal(ver({}).snip, snip);
+  assert.equal(ver({ carpetaDocs: 'docs' }).snip, snip);
+});
