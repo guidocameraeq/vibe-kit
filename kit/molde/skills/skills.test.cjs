@@ -377,7 +377,8 @@ test('inicio paso 6, paquete 8b: las fusiones del kit nombran las cuatro salidas
   const l = TEXTOS.inicio.split('\n').find((s) => s.includes('**Fusiones del kit.**'));
   assert.ok(l, 'la línea de las fusiones existe');
   assert.match(l, /leé `## Qué dice el kit`, las dos versiones y el `por:` de la pieza, y elegí una de `## Las salidas`/);
-  assert.match(l, /\(mezclar · quedarse con la propia · tomar la nueva · congelar\) con su razón en una línea/);
+  assert.match(l, /\(mezclar · quedarse con la tuya · tomar la nueva · congelar\) con su razón en una línea/);
+  assert.doesNotMatch(l, /quedarse con la propia/, '8r2 t10: la salida es quedarse (con la tuya); propia es congelar');
   assert.match(l, /Las demás: \*\*preguntá\*\* \(una sola `AskUserQuestion` por todas, la recomendada primera con su razón\)/);
   // las razones para preguntar (D8b-5 y r1-1)
   assert.match(l, /si la pieza no tiene `por:`/);
@@ -393,10 +394,11 @@ test('inicio paso 6, paquete 8b: las fusiones del kit nombran las cuatro salidas
 test('inicio paso 6, paquete 8r (3): si el motivo empieza con `la mezcla chocó`, pregunta siempre, con lo que pidió el dueño', () => {
   const l = TEXTOS.inicio.split('\n').find((s) => s.includes('**Fusiones del kit.**'));
   assert.ok(l, 'la línea de las fusiones existe');
-  assert.match(l, /\*\*Si el motivo empieza con `la mezcla chocó`, preguntá siempre\*\*/);
+  // 8r2 t1: un choque sin porqué también es choque (el motivo empieza igual): se pregunta charlado, no en la AskUserQuestion de las demás
+  assert.match(l, /\*\*Si el motivo empieza con `la mezcla chocó` \(con `por:` o sin él\), preguntá siempre\*\*/);
   assert.match(l, /nunca la resuelvas sola/);
   // las cuatro cosas: qué skill es, su por:, qué trae la nueva, dónde chocan
-  assert.match(l, /qué skill es, por qué la había adaptado \(su `por:`\), qué trae la nueva y dónde chocan \(`## Dónde chocan`\)/);
+  assert.match(l, /qué skill es, por qué la había adaptado \(su `por:`, o que no tiene\), qué trae la nueva y dónde chocan \(`## Dónde chocan`\)/);
   assert.match(l, /tu recomendación con criterio \(¿lo nuevo vale la pena frente a su porqué\?\) y las cuatro salidas, la recomendada primera/);
   assert.ok(l.indexOf('la mezcla chocó') < l.indexOf('Si no, corré'), 'la pregunta va antes de resolver solo');
   assert.doesNotMatch(l, /no hay propuesta/, 'desde 8r, la mezcla que choca puede traer la propuesta armada');
