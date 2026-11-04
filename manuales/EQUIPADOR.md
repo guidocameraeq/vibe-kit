@@ -132,8 +132,10 @@ Un repo que todavía no tiene el kit v3 **se adopta, no se actualiza**. Va en do
    como cambios. Y te pregunta, de a una con la recomendada primero: los comandos de setup y de test (en Python, con el `.venv` de
    cada worktree), cada base y su clase (`entornos:`: sin declararla, la de prueba cuenta como real), y lo que el comentario marque como
    **D1** (tu director, `/inicio` y `/cierre`, o los del kit: `--director kit`), **D2** (qué permisos se van y qué `ask` frenan al
-   director: `--permisos recomendada`), **D3** (dos hooks de arranque, el handoff gordo: `--arranque kit`) y **D4** (las cinco de
-   `sensible:`). Vos das el OK.
+   director: `--permisos recomendada`), **D3** (dos hooks de arranque, un `session-start.cjs` propio con el nombre del del kit, el
+   handoff gordo: `--arranque kit`, que en el caso del mismo nombre lo reemplaza por el del kit) y **D4** (las cinco de `sensible:`).
+   Si tus papeles no están en `docs/` (el bot: `docs/` es el sitio de OpenClaw y los papeles van en `arti-docs/`), la propuesta trae
+   `carpeta-docs: <carpeta>` y todo el método usa esa carpeta; con un `docs/` ajeno y sin la clave, `--aplicar` se niega. Vos das el OK.
 3. **Aplicar**, todo dentro de ese mismo OK. El clon sale del origin de tu carpeta (sin remoto, de tu carpeta misma) a un temporal;
    tu carpeta no se toca hasta el último paso.
    - `--aplicar <archivo> --principal <tu carpeta>` (y las opciones que elegiste): escribe las piezas en el clon y valida tu carpeta.
@@ -142,8 +144,9 @@ Un repo que todavía no tiene el kit v3 **se adopta, no se actualiza**. Va en do
      `/obrero`.
    - Si el proyecto tiene su registro de cambios propio (el `CAMBIOS.md` de Hermes), la migración: `migrar-cambios.cjs --plan` para
      ver, después `--commit` (ver abajo).
-   - Los commits (las piezas, la ficha y, si elegiste D2 o D3, el de los permisos), el chequeo de frenos (lo rojo lo aprobás vos
-     después: `cambios nuevo` + `cambios aprobar`) y push. Al final, `adoptar <clon> --traer <tu carpeta>`: trae lo adoptado a tu
+   - Los commits (las piezas, la ficha y, si elegiste D2 o D3, el de los permisos), el chequeo de frenos (lo rojo no se aprueba
+     después: el sello va antes del commit; con remoto el rojo es solo en el clon y, pusheado, ningún `/cierre` lo vuelve a mirar; sin
+     remoto lo ve tu primer `/cierre`: la línea `después:` dice cuál) y push. Al final, `adoptar <clon> --traer <tu carpeta>`: trae lo adoptado a tu
      carpeta (solo si está limpia y en la rama) y **después prende ahí los githooks** (`core.hooksPath` = `.githooks`, nunca en el
      clon; la línea `githooks ·` dice cómo quedó). La **portada** (el README que se ve en GitHub, armado
      desde `NORTE.md`); si el repo ya tiene un README propio, queda como está y te avisa *"portada: README propio, queda apagada"*.

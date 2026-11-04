@@ -5,6 +5,7 @@
 # Es un ejemplo de la forma, no una ficha para copiar: sus frenos quitados y autorizaciones son de muestra.
 kit: 2.4.3
 nivel: estandar                      # liviano (sin código) · estandar (con código)
+# carpeta-docs: arti-docs            # (opcional) la carpeta de papeles del método si no es docs/; en minúsculas; cambiarla es barrera
 vars:                                # con qué se instanció el molde: sin esto no se puede regenerar
   proyecto: ejemplo
   comando-test: node --test
