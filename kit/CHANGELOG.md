@@ -5,6 +5,38 @@ Una sección por versión, la más nueva arriba. Cada una trae su **nota de migr
 Es lo que lee el agente de la fusión al actualizar un proyecto. La historia de sesiones del repo vive aparte, en `docs/CHANGELOG.md`.
 `kit/VERSION` lleva la versión del último tag y se sube en el commit que pone el tag siguiente.
 
+## 3.0.0-rc.2
+
+La tanda de correcciones de la revisión integral R1 (2026-11-03, `docs/kit-v3/SPEC-paquete-8r.md`): que las piezas interactúen bien entre
+sí, para que el primer módulo con director de un proyecto adoptado arranque.
+
+- **Qué piezas cambiaron**:
+  - **Adoptar**: un repo con código (`estandar`) trae `director-obrero` y `estado` en `sí` (si ya tiene los suyos distintos, `propia`);
+    `--mirar` dice si al `CLAUDE.md` le falta "El tamaño del pedido" y si tiene su director/obrero propio, y `--aplicar … --claude-md`
+    suma la sección; la receta de `migrar-cambios`; el aviso si la PC está atrás del último tag; `npm ci` (o el install congelado) con
+    el lock commiteado; el aviso si la ficha existió antes en la historia.
+  - **La flota** saltea solo las ramas `modulo/*` **sin mezclar** en la rama por defecto (antes, cualquiera: un proyecto con un módulo
+    terminado quedaba salteado para siempre).
+  - **La mezcla de una pieza adaptada que choca nunca se resuelve sola**: queda en `.claude/fusiones/<pieza>.md` con qué pieza es, por qué
+    la habías adaptado (su `por:`), qué trae la versión nueva, `## Dónde chocan` y, si hubo `claude`, una propuesta armada que no se
+    aplicó; el motivo empieza con `la mezcla chocó` y el `/inicio` pregunta siempre, con una recomendada con criterio.
+  - **El sello** acepta la **tarea 0** (`- **Tarea 0**: montar la base de prueba` en `## Entorno de prueba`) con solo una base real, en un
+    módulo con director y con la ficha en `3.0.0-rc.2` o más; `worktree crear`, `encargo presentar` y `autorizado` frenan todo encargo que
+    no sea el `00` hasta que la ficha de `modulo/<x>` tenga el entorno de prueba.
+  - **`worktree.cjs`**: la apertura termina en `primer mensaje: /director` o `/obrero <x>--<ID>`; `cerrar` borra la rama de origin si está
+    mezclada en `origin/<madre>`; `integrar` termina en `después: /cierre …`; `integrados` nuevo; lo que el `comando-setup` deja sin
+    trackear va a `info/exclude`. `chequear` y `skills.test` leen el mismo tope por skill (el `/inicio`, 8.600 B).
+  - **Los textos**: el `/inicio` (paso 0: con `.kit-rol` y la rama de un módulo, deriva a `/director` u `/obrero`; `integrados` después
+    del pull; la mezcla que choca), el `/director` (la tarea 0, la línea de fondo con Bash, `integrar` y `cerrar`), el `/cierre` (quién
+    corre `cambios aprobar`: la sesión cuando el dueño lo pide, su clic es la firma; anotar con `cambios nuevo`), el `/obrero` y el
+    `CLAUDE.md` (el obrero en `auto`), la plantilla del encargo (el formato de `## GATE`).
+- **Automático o pide revisión**: pide revisión: el `/inicio`, el `/director`, el `/cierre`, el `/obrero` y el `CLAUDE.md` del molde
+  cambiaron, y son piezas que se adaptan. Con `por:` y una mezcla limpia, se fusionan solas; si chocan, te pregunta el `/inicio`.
+  `director-obrero` y `estado` no se prenden solos en un proyecto ya adoptado: `piezas.director-obrero: sí` y `piezas.estado: sí` en la
+  ficha, y la flota los trae.
+- **Qué chequear después**: `chequear` con las nueve líneas en ✅ (el `/inicio` en 8.600 B o menos); abrir el `/inicio` y ver que confirme en
+  tres líneas; `node .claude/scripts/worktree.cjs integrados` sale 0.
+
 ## 3.0.0-rc.1
 
 La beta de la v3 (2026-11-03): el molde v3 entero, más el paquete 8b. La `3.0.0` final saldrá con su sección propia; mientras tanto,
