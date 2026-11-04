@@ -1381,8 +1381,9 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
      con conflictos; lo trajo la sesión madre): el candado (`barreras --indice`) da 36 rutas "sin un aprobado sellado" que son de `main`
      (ya juzgadas allá) y gitleaks (`diff --cached`, contra HEAD: `kit-githook.cjs` ~782) marca líneas viejas de `main`. El pre-push sí
      juzga contra el otro padre. La salida que da el kit (`cambios aprobar`) pide `main` y sin merge a medias: no sirve. Medido en el
-     código (D8r.4): `--indice` ya junta MERGE_HEAD y descuenta por padre, pero el descuento se cae ("sin saber") cuando un padre o la
-     base no tienen la ficha (la rama es de antes de la adopción) — supuesto, a reproducir. **Para la rc.5** (D8r.4, u9, vuelta 1).
+     clon (D8r.4): rojo, 38 rutas; la causa es que `barreras.cjs tocaContraUno` da el par de los hooks y githooks **sin comparar
+     contenido**, así que en un merge nunca se descuentan (el settings y la ficha sí). **Para la rc.5** (D8r.4, u9, vuelta 1, con el
+     pre-push de una rama ya subida y el gitleaks del merge).
   8. **Dato, no pendiente**: los módulos de Hermes en curso: `lector` solo (rol de lectura en Supabase y `scripts/consultar.py`; sello
      y ready ✅, `2a708a4b`) y `cashflow` con director (spec en BORRADOR, `30427858`; `worktree crear cashflow` con salida 0).
 

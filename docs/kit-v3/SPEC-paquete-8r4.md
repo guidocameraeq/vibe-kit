@@ -159,27 +159,52 @@ Rutas: `molde` = `kit/molde/`, `lib` = `kit/molde/hooks/lib/`, `wt` = `kit/molde
   adopción) mergea `origin/main` con conflictos; al commitear, el candado da 36 rutas de barrera "sin un aprobado sellado" que llegaron
   iguales desde `main`, y gitleaks marca líneas viejas de `main`. La salida que da (`cambios aprobar`) pide estar en `main` y sin merge a
   medias. Es el mismo camino de `traer-main` (u2) y de "llevar `main` a una rama".
-- **Lo medido en el código**: gitleaks del pre-commit es `escanear(['diff', '--cached', …])` (`kit-githook.cjs` ~782): contra HEAD
-  siempre, también con MERGE_HEAD. El candado `--indice` sí junta MERGE_HEAD (`barreras.cjs` ~303-307) y descuenta por padre
-  (`tocaArchivo` ~347): **supuesto** de por qué falla igual: el descuento queda "sin saber" (`sinSaber`, no descuenta) cuando un padre o
-  la base del merge no tiene ficha legible (`imposible`): la rama vieja es de antes de la ficha. **Primero se reproduce** (una prueba en
-  rojo) y recién ahí se arregla lo que muestre.
-- **El arreglo esperado (se ajusta a lo que muestre la prueba)**:
-  - **Candado**: con MERGE_HEAD, una ruta de barrera cuyo blob en el índice es **igual al de MERGE_HEAD** y MERGE_HEAD está contenido en
-    la ref vigente (`origin/<def>`, o la rama por defecto local sin remoto: lo ya juzgado al subir allá) no pide aprobado. Todo lo demás,
-    como hoy: lo que el índice tiene distinto de los dos padres (la resolución del conflicto) o igual al lado de la rama (lo de la rama,
-    que ya juzgó su push) sigue por el descuento de siempre.
-  - **gitleaks**: con MERGE_HEAD, solo las líneas que el índice agrega **contra los dos padres** (un hallazgo de `diff --cached HEAD`
-    que no aparece en `diff --cached MERGE_HEAD` es una línea de `main`: no se reporta). Sin MERGE_HEAD, como hoy.
-  - **El texto del rojo** en un merge en curso: no manda a `cambios aprobar` (que pide `main`): dice *"esto vino distinto de los dos lados:
-    resolvelo igual a uno, o abortá (git merge --abort) y pedí el aprobado en main"*.
-- **crit. 9**: `kit-githook.test`/`barreras.test` — una rama de antes de la ficha, `main` con la ficha, un hook y el `settings.json`
-  cambiados con su aprobado, un conflicto en un archivo común: el pre-commit del merge resuelto **da verde** (hoy, el supuesto: rojo) y
-  una clave de mentira vieja de `main` no sale; la misma con la resolución del conflicto en `settings.json` distinta de los dos lados →
-  rojo con el texto nuevo; una clave de mentira nueva en la resolución → gitleaks rojo; un MERGE_HEAD que **no** está en la vigente (una
-  rama cualquiera) → como hoy. Mutación: sacar la condición "contenido en la vigente" o la de "igual al blob" deja un caso en rojo.
-- **Red team**: una ronda más, solo de u9 (toca un freno), antes de codearlo. Chequeo frío: un clon de Hermes con una rama vieja y el
-  merge de `main` con un conflicto (crit. 8 suma).
+- **La causa, medida** (2026-11-04, D8r.4, en un clon de Hermes del scratchpad: `ui/cc-seguimiento-circuitos` + `merge --no-commit
+  origin/main`, los dos conflictos `core/sql_catalog.json` y `docs/CHANGELOG.md` resueltos con el lado de `main`; el `barreras` del kit
+  con `--indice`): **rojo, 38 rutas** (`.githooks/*`, `.claude/hooks/**`, …). Por archivo: `.claude/settings.json` se descuenta bien
+  (`[]`); `.claude/hooks/git-seguro.cjs` y `.githooks/pre-commit` (idénticos a los de `main`) dan su par `hooks:`/`githooks:`. Es que
+  `tocaContraUno` (`barreras.cjs` ~384) devuelve el par de `hooks`, `githooks` y `gitleaks` **sin comparar contenido**: contra el padre
+  `main`, el archivo "cambió" aunque es igual, y `descontarMerge` no descuenta nunca. La ficha y el settings comparan contenido; por eso
+  las pruebas de merge (todas con ficha o settings) no lo vieron. El supuesto de antes ("sin saber" por la ficha) **no** era (una
+  reproducción chica con solo el settings da verde). Lo encontró también el red team de u9 leyendo el código.
+- **gitleaks**: `escanear(['diff', '--cached', …])` (`kit-githook.cjs` ~782), contra HEAD también con MERGE_HEAD: las líneas de `main`
+  le salen como nuevas.
+- **El arreglo (manda sobre la regla de "igual a MERGE_HEAD", que se cae: rt-u9-2)**:
+  - **Candado**: en `tocaContraUno`, para las categorías que no son ficha ni settings, el par va **solo si `nuevas(f)` no está vacío**
+    (algún después distinto del antes de ese padre); si no, nada. Corrige las dos mitades del descuento (lo distinto contra cada padre y
+    lo que cambió el otro desde la base), así rf-13 sigue valiendo para los hooks. Vale para `--indice` y para el merge commiteado
+    (`--rango`, el pre-push). Fuera de un merge no cambia nada (ahí solo se listan rutas que cambiaron).
+  - **gitleaks del pre-commit con MERGE_HEAD**: `T=$(git write-tree)` y el diff combinado de `T` contra HEAD y cada MERGE_HEAD (`--cc`),
+    con el `agregadas()` que ya entiende `@@@`: las mismas reglas con que el pre-push juzga el merge commiteado; una línea igual a la de un
+    padre en ese hunk no es nueva. **NO VERIFICADO** que `git diff --cc` acepte un árbol: se prueba primero; si no, `git commit-tree` a un
+    commit temporal sin ref (se lo lleva el gc).
+  - **El pre-push de una rama que ya está en el remoto** (rt-u9-3 a): el rango `<remoto>..<local>` trae todo lo de `main` que la rama no
+    tenía (304 commits, con los de antes de la adopción, que nunca se escanearon). Pasa a `<local> --not <remoto> <vigente>` en gitleaks y
+    en el candado: lo que ya está en la vigente lo juzgó su push. Sin vigente, como hoy.
+  - **El merge sin conflicto** corre `pre-merge-commit`, sin MERGE_HEAD y con el `diff --cached` contra HEAD (rt-u9-3 b): `traer-main`
+    hace siempre `merge --no-ff --no-commit` + `commit --no-edit` (así corre el pre-commit con MERGE_HEAD), y el rojo de `pre-merge-commit`
+    dice *"el merge quedó a medias: git commit lo juzga contra los dos padres"*.
+  - **El texto del rojo en un merge en curso** (rt-u9-2): *"esto vino distinto de los dos lados: en el merge dejalo como el lado que lo
+    cambió (casi siempre main: git checkout --theirs <archivo>), commiteá el merge, y tu cambio hacelo en un commit aparte con su
+    aprobado"*. No manda a `cambios aprobar` sobre el merge.
+- **crit. 9**: `barreras.test` y `kit-githook.test` — (a) una rama sin `.claude/`, `main` con la ficha, un `.claude/hooks/x.cjs`, un
+  `.githooks/pre-commit` y el `settings.json`, un conflicto en un archivo común resuelto: el pre-commit del merge **verde** (hoy rojo:
+  la prueba en rojo primero) y el push de la rama, que ya estaba en el remoto, **verde** (sin el candado sobre el sha del merge ni las claves
+  viejas de `main`); (b) rf-13 con un hook: la rama endureció `.claude/hooks/x.cjs` con su aprobado, `main` no lo tocó, la resolución usa
+  el de `main` → rojo en el pre-commit y en el push; (c) un MERGE_HEAD escrito a mano con un ancestro de HEAD → rojo; (d) el merge sin
+  conflicto por `traer-main` en una rama vieja → verde; (e) una clave de mentira nueva en la resolución, y otra idéntica en texto a una
+  línea de `main` en otra posición del mismo archivo → gitleaks rojo; una clave vieja de `main` → no sale; (f) un MERGE_HEAD de una rama
+  cualquiera con un hook cambiado sin aprobado: pre-commit verde (lo trae la rama) y el push de esa rama rojo en el commit de la rama.
+  Mutación: (i) `tocaContraUno` sin comparar → (a) rojo; (ii) comparar solo en lo distinto y no en lo que cambió desde la base → (b)
+  verde; (iii) gitleaks sin `--cc` o sin los dos padres → la clave vieja sale.
+- **Lo que trajo su red team** (una ronda, 2026-11-04, solo u9): **rt-u9-1** (ALTO) la causa es la de arriba, no "sin saber" (medido) ·
+  **rt-u9-2** (ALTO) la regla "igual a MERGE_HEAD y en la vigente" reabría rf-13 (resolver con el lado que no lo tocó), aceptaba un
+  MERGE_HEAD a mano ancestro de HEAD y, sin remoto, algo nunca juzgado: **se saca** (con rt-u9-1 sobra) · **rt-u9-3** (ALTO) el dolor
+  se mudaba al pre-push de una rama ya subida y al `pre-merge-commit` · **rt-u9-4** (MEDIO) gitleaks por el diff combinado, no cruzando
+  dos corridas · **rt-u9-5** (MEDIO) crit. 9 binario y con el push. Todo arriba.
+- **El despliegue**: el candado corre también con la versión de `origin/main` (`kit-githook.cjs` ~599-613): hasta que la `rc.5` llegue al
+  `main` de Hermes, la rama sigue en rojo. El chequeo frío actualiza `main` del clon primero. Mientras, en Hermes, ese merge espera la
+  `rc.5` (se lo dice la madre a Guido).
 
 #### u10 · Las trabas que todavía no saltaron (hipótesis; pedido de Guido por la madre, 2026-11-04)
 
