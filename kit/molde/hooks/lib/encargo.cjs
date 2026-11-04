@@ -17,6 +17,8 @@ const RE_SHA = /^[0-9a-f]{4,40}$/i;
 const T_GIT = 60000; // ls-tree, show y merge-base en un repo grande pasan los 5 s de git.cjs
 const GATE = 'gate:entorno-prueba';
 const escRe = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+// La forma de cualquier `carpeta-docs:` (8r3 i1): minúsculas, cifras, . _ -, con / (la exacta la valida ficha.cjs).
+const CARPETA_CUALQUIERA = '[a-z0-9][a-z0-9._-]*(?:/[a-z0-9][a-z0-9._-]*)*';
 
 // ---------------------------------------------------------------- el nombre
 
@@ -120,9 +122,10 @@ const LECTORES = {
     if (n && (m[1] !== n.rama || m[2] !== n.madre)) return { ok: false, por: `dice ${m[1]} desde ${m[2]}, y el encargo es ${n.rama} desde ${n.madre}` };
     return { ok: true, datos: { rama: m[1], madre: m[2], sha: m[3], fecha: m[4] } };
   },
-  Spec(v, n, carpeta = 'docs') {
-    const m = new RegExp(`^(${escRe(carpeta)}/modulos/([^/]+)/SPEC(?:-\\d+)?\\.md):(\\d+)(?:-(\\d+))?$`).exec(v);
-    if (!m) return { ok: false, por: `no es "${carpeta}/modulos/<x>/SPEC[-N].md:<línea>[-<línea>]"` };
+  Spec(v, n, carpeta) {
+    const c = carpeta ? escRe(carpeta) : CARPETA_CUALQUIERA;
+    const m = new RegExp(`^(${c}/modulos/([^/]+)/SPEC(?:-\\d+)?\\.md):(\\d+)(?:-(\\d+))?$`).exec(v);
+    if (!m) return { ok: false, por: `no es "${carpeta || 'docs'}/modulos/<x>/SPEC[-N].md:<línea>[-<línea>]"` };
     if (n && m[2] !== n.x) return { ok: false, por: `el spec es del módulo ${m[2]}, y el encargo es de ${n.x}` };
     return { ok: true, datos: { ruta: m[1], desde: Number(m[3]), hasta: m[4] ? Number(m[4]) : Number(m[3]) } };
   },
@@ -167,8 +170,9 @@ function itemsDe(cuerpo) {
 // leerEncargo(texto, nombre?) → { titulo, campos, secciones, errores }: el encargo según la plantilla. `errores` vacío = se lee.
 // campos: { partida, spec, skill, modelo, riesgo, apertura, suscripcion } ya leídos; secciones: { toca: { rutas, recursos },
 // alcance, noSeToca (renglones crudos), autorizado: [reglas] ([] si es (nada)), gate: [comandos] }.
-// `carpeta`: la carpeta de papeles del repo (8r3 i1; la da ubicarEncargo, o docs-ruta.deRaiz): el `- Spec:` vive en ella; docs sin ella.
-function leerEncargo(texto, nombre, carpeta = 'docs') {
+// `carpeta`: la carpeta de papeles del repo (8r3 i1; la da ubicarEncargo, o docs-ruta.deRaiz): con ella, el `- Spec:` tiene que vivir
+// ahí; sin ella, en la forma de cualquier `carpeta-docs:` (<c>/modulos/<x>/SPEC[-N].md).
+function leerEncargo(texto, nombre, carpeta) {
   const errores = [];
   let t = Buffer.isBuffer(texto) ? texto.toString('utf8') : String(texto);
   if (t.charCodeAt(0) === 0xfeff) t = t.slice(1);

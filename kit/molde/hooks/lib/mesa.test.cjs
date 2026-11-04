@@ -118,7 +118,10 @@ test('8r3 i1: validar y esRutaMesa con la carpeta de papeles; sin ella, docs (co
   assert.deepEqual(M.validar(MSG(), { ruta: A, carpeta: 'arti-docs' }), []);
   assert.match(ques(M.validar(MSG(), { ruta: RUTA, carpeta: 'arti-docs' })), /no tiene el nombre de la mesa/);
   assert.match(M.validar(MSG(), { ruta: RUTA, carpeta: 'arti-docs' })[0].hacer, /arti-docs\/modulos\/<x>\/mesa\//);
-  assert.match(ques(M.validar(MSG(), { ruta: A })), /no tiene el nombre de la mesa/, 'sin carpeta: docs');
+  assert.match(ques(M.validar(MSG(), { ruta: A, carpeta: 'docs' })), /no tiene el nombre de la mesa/);
+  // sin carpeta, el nombre en la forma de cualquier carpeta-docs (la ruta la arma mesa nuevo con la suya)
+  assert.deepEqual(M.validar(MSG(), { ruta: A }), []);
+  for (const r of [RUTA.replace(/^docs\//, 'Docs/'), RUTA.replace(/^docs\//, ''), RUTA.replace(/^docs\//, '../x/')]) assert.match(ques(M.validar(MSG(), { ruta: r })), /no tiene el nombre de la mesa/, r);
   assert.ok(M.esRutaMesa(A, 'arti-docs') && !M.esRutaMesa(RUTA, 'arti-docs') && M.esRutaMesa(RUTA) && !M.esRutaMesa(A));
   // la carpeta va escapada: el punto no es comodín
   assert.ok(M.reRuta('a.b').test(RUTA.replace(/^docs\//, 'a.b/')));

@@ -668,7 +668,10 @@ test('8r3 i1: leerEncargo con la carpeta: el - Spec: va en ella; sin carpeta, do
   const e = E.leerEncargo(t, N, 'arti-docs');
   assert.deepEqual(e.errores, []);
   assert.deepEqual(e.campos.spec, { ruta: 'arti-docs/modulos/x/SPEC-2.md', desde: 3, hasta: 9 });
-  assert.ok(E.leerEncargo(t, N).errores.some((x) => x.startsWith('- Spec: no es "docs/modulos/<x>/')), 'sin carpeta: docs');
+  assert.ok(E.leerEncargo(t, N, 'docs').errores.some((x) => x.startsWith('- Spec: no es "docs/modulos/<x>/')), 'con docs, arti-docs no');
+  // sin carpeta, la forma de cualquier carpeta-docs (los scripts que no la pasan siguen andando)
+  assert.deepEqual(E.leerEncargo(t, N).errores, []);
+  assert.ok(E.leerEncargo(encargo({ '- Spec:': '- Spec: Arti/modulos/x/SPEC.md:1' }), N).errores.some((x) => x.startsWith('- Spec: no es "docs/')));
   const d = E.leerEncargo(encargo(), N, 'arti-docs');
   assert.ok(d.errores.some((x) => x.startsWith('- Spec: no es "arti-docs/modulos/<x>/')), JSON.stringify(d.errores));
   // la carpeta va escapada: el punto no es comodín

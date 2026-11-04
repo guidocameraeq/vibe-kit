@@ -258,16 +258,30 @@ test('mesa nuevo: el módulo dueño en arti-docs/modulos/<x>/ y el mensaje en ar
   assert.equal(no.out, 'mesa: no está arti-docs/modulos/otro/README.md — el mensaje va en el módulo dueño de la conexión\n');
   const r = salidaDe((salida, error) => M.main(['nuevo', 'PEDIDO', 'beta/director', 'x', '--de', 'arti'], { cwd: p.d, salida, error, ahora: AHORA, entrada }));
   const ruta = 'arti-docs/modulos/x/mesa/beta/2026-11-04-1-PEDIDO.md';
-  if (r.codigo === 0) {
-    // con hooks/lib/mesa.cjs ya en la carpeta de la ficha (el encargo H de D8r.3): escrito, commiteado y subido
-    assert.ok(hay(p.d, ruta), r.out);
-    assert.match(r.out, new RegExp(`PEDIDO · arti → beta · la tabla de usuarios · arti:${ruta.replace(/\./g, '\\.')}@[0-9a-f]{12}\\n$`));
-  } else {
-    // mientras lib/mesa.cjs valide ^docs/modulos/ (de H): la ruta que arma el script ya es la de arti-docs, y no escribe nada
-    assert.match(r.out, new RegExp(`mesa: no lo escribo — ${ruta.replace(/\./g, '\\.')} no tiene el nombre de la mesa`));
-    assert.ok(!hay(p.d, ruta));
-  }
+  // hooks/lib/mesa.cjs valida el nombre en la carpeta de la ficha (el encargo H de D8r.3): escrito, commiteado y subido
+  assert.equal(r.codigo, 0, r.out);
+  assert.ok(hay(p.d, ruta), r.out);
+  assert.match(r.out, new RegExp(`PEDIDO · arti → beta · la tabla de usuarios · arti:${ruta.replace(/\./g, '\\.')}@[0-9a-f]{12}\\n$`));
+  // y candado:mesa lo acepta ahí (lib/mesa.cjs revisar, con la carpeta de la ficha vigente)
+  const Mlib = require('../hooks/lib/mesa.cjs');
+  assert.deepEqual(Mlib.revisar(p.d, { archivos: g(p.d, 'ls-files').split('\n') }), []);
   docsIntacto(p.d, antes);
+});
+
+// ---------------------------------------------------------------- el encargo del obrero (lib/encargo.cjs con arti-docs)
+
+test('tiempos: el encargo de arti-docs/modulos/<x>/bitacora/ se ubica y se lee (Spec en arti-docs/); los desvíos se juzgan con su ## Toca', () => {
+  const p = proyecto();
+  g(p.d, 'checkout', '-q', '-b', 'modulo/x');
+  commit(p.d, { 'arti-docs/modulos/x/SPEC.md': '# SPEC\n', 'arti-docs/modulos/x/bitacora/2026-11-02-encargo-01.md': encargo('x', '01') }, 'el encargo');
+  g(p.d, 'checkout', '-q', '-b', 'modulo/x--01');
+  const sha = commit(p.d, { 'src/a.js': '1\n', 'arti-docs/modulos/x/bitacora/2026-11-02-evidencia-01.md': '# Evidencia\n', 'src/fuera.js': 'x\n' }, 'sub-paso');
+  g(p.d, 'checkout', '-q', 'main');
+  const d = T.datosEncargo(p.d, 'x', { id: '01', rama: 'modulo/x--01', sha });
+  assert.equal(d.porQue, null, JSON.stringify(d));
+  assert.equal(d.subpasos, 1);
+  // src/a.js está en ## Toca y la evidencia en arti-docs/…/bitacora/: lo único fuera es src/fuera.js
+  assert.deepEqual(d.desvios.map((x) => x.fuera), [['src/fuera.js']]);
 });
 
 // ---------------------------------------------------------------- noche

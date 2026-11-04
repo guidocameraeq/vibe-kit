@@ -79,8 +79,9 @@ const parsearCita = (t) => {
 
 // validar(texto, { ruta, bytes }) → [{ que, hacer }]: lo que candado:mesa frena y `mesa nuevo` no deja escribir. El tope se cuenta
 // sin los \r (RF-fix 4): con core.autocrlf=true el mismo mensaje sale con CRLF y crecía en otra PC hasta pasar los 2000 B.
-// `carpeta`: la carpeta de papeles del repo donde vive `ruta` (8r3 i1; docs sin ella).
-function validar(texto, { ruta = null, bytes = null, carpeta = 'docs' } = {}) {
+// `carpeta`: la carpeta de papeles del repo donde vive `ruta` (8r3 i1): con ella, la ruta tiene que estar ahí (revisar y mensajesDe
+// la pasan); sin ella, vale el nombre de la mesa en la forma de cualquier `carpeta-docs:` (la ruta la arma `mesa nuevo` con la suya).
+function validar(texto, { ruta = null, bytes = null, carpeta = null } = {}) {
   const f = [];
   const mal = (que, hacer) => f.push({ que, hacer });
   const n = bytes === null ? Buffer.byteLength(String(texto).replace(/\r/g, ''), 'utf8') : bytes;
@@ -103,8 +104,8 @@ function validar(texto, { ruta = null, bytes = null, carpeta = 'docs' } = {}) {
   }
   for (const h of c.hechos) if (!RE_HECHO.test(h)) mal(`el hecho "${h}" no es <alias>:<archivo>[:<línea>]@<sha>`, 'un hecho sin cita no es un hecho: citalo');
   if (ruta !== null) {
-    const m = reRuta(carpeta).exec(ruta);
-    if (!m) mal(`${ruta} no tiene el nombre de la mesa`, `lo nombra \`mesa nuevo\`: ${carpeta}/modulos/<x>/mesa/<alias>/<fecha>-<n>-<TIPO>.md`);
+    const m = (carpeta ? reRuta(carpeta) : RE_RUTA_CUALQUIERA).exec(ruta);
+    if (!m) mal(`${ruta} no tiene el nombre de la mesa`, `lo nombra \`mesa nuevo\`: ${carpeta || 'docs'}/modulos/<x>/mesa/<alias>/<fecha>-<n>-<TIPO>.md`);
     else {
       if (tipo && m[5] !== tipo) mal(`el nombre dice ${m[5]} y la cabecera ${tipo}`, 'un mensaje no cambia de tipo: escribí otro');
       const para = RE_DIRECCION.exec(c.campos.para || '');
