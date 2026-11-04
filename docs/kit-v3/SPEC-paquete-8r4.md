@@ -167,6 +167,10 @@ Rutas: `molde` = `kit/molde/`, `lib` = `kit/molde/hooks/lib/`, `wt` = `kit/molde
   `main`, el archivo "cambió" aunque es igual, y `descontarMerge` no descuenta nunca. La ficha y el settings comparan contenido; por eso
   las pruebas de merge (todas con ficha o settings) no lo vieron. El supuesto de antes ("sin saber" por la ficha) **no** era (una
   reproducción chica con solo el settings da verde). Lo encontró también el red team de u9 leyendo el código.
+- **El mismo caso en el pre-push** (la madre, Hermes, 2026-11-04): `merge --no-ff bb6f2f5d` (padres `origin/main` y la rama de CC),
+  `git push origin HEAD:main`: rojo por `gitleaks:.gitleaksignore`, que contra `origin/main` no cambia y contra la rama trae +7 líneas ya
+  aprobadas (`697fdc90`) y aplicadas (`97dcf288`) en `main`. Es la categoría `gitleaks` de la misma línea de `tocaContraUno`: el arreglo lo
+  cubre; crit. 9 suma el caso, con `main` como primer padre y al revés, y el rf-13 de `.gitleaksignore`.
 - **gitleaks**: `escanear(['diff', '--cached', …])` (`kit-githook.cjs` ~782), contra HEAD también con MERGE_HEAD: las líneas de `main`
   le salen como nuevas.
 - **El arreglo (manda sobre la regla de "igual a MERGE_HEAD", que se cae: rt-u9-2)**:
@@ -261,6 +265,7 @@ de su clase.
 | h7 | Con una ventana, el hook de `main` (rc nueva) convive con los scripts y la ficha del worktree (rc vieja), o al revés: ¿choca un formato? | una ventana | 1 (con u1) | una prueba que corre los hooks del molde nuevo sobre un árbol con los scripts y la ficha de la `rc.4`, y al revés |
 | h8 | Dos sesiones en el mismo árbol: `barreras --indice` o el candado le cargan a una lo que la otra dejó en el índice | una ventana | 1 (con rt-6) | se razona sobre el código y una prueba: lo que deja una en el índice entra en el commit de la otra (rt-6 ya lo frena en `donde`) |
 | h9 | `.worktreeinclude` copia `config*.ini` con credenciales a cada worktree: ¿lo cubren el corrector de secretos y el deny? | una ventana | 2 (con u6) | `worktree.test`: un `config.local.ini` ignorado con una clave de mentira, copiado; `secretos.cjs` y el deny sobre esa ruta |
+| h11 | Un obrero (rol `obrero`, en su worktree) pushea directo a `origin main` (pasó en Hermes, con el clic de Guido, porque CC va por mensaje): ¿el kit lo frena en `git-seguro` o en el pre-push, como con el principal? | una ventana | 2 | primero se mira qué hace hoy `git-seguro` con un push a la rama por defecto desde rol `obrero`; la recomendada: negarlo (el texto de `/obrero` ya dice "nunca push a otra rama" y el que mergea a `main` es `integrar`). **Le cambia el día a Guido** (el flujo de CC por mensaje): va a él por la madre, con la recomendada, antes de codearlo |
 | h10 | Un hook o comando del kit llama a `sh` y falla desde una sesión en PowerShell sin `sh` en el PATH; el `doctor` lee mal la versión de `claude` de la terminal | otra PC | 2 | `git grep` de `sh`/`spawn('sh'` en el molde y los scripts; `doctor.test` con una salida de `claude --version` como la de Juan (`prueba/juan`, `52e0ca3`) |
 
 ### Vuelta 2 — el resto de lo que dolió
