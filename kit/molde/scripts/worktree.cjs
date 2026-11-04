@@ -451,9 +451,11 @@ function sumarDeny(wt, principal) {
 
 const rolDe = (n, noche) => (noche ? 'nocturno' : n.id === null ? 'director' : 'obrero');
 
-// Cómo se llama a `claude` (el del PATH o el de la extensión de VS Code) y el vigía: viven en hooks/lib/proceso.cjs (los comparte
-// con encargo.cjs).
-const { comandoClaude, VIGIA } = require('../hooks/lib/proceso.cjs');
+// Cómo se llama a `claude` (el del PATH o el de la extensión de VS Code), el vigía y la shell de los comandos de la ficha (Git Bash
+// en Windows, con el guardia de `cmd /c` / `cmd //c`; D8r.2 t6, rt-2): viven en hooks/lib/proceso.cjs (los comparte con encargo.cjs).
+// Las pruebas inyectan la shell con opciones.shell.
+const { comandoClaude, argsVigia, shellDeComandos, comandoQueNoCorre } = require('../hooks/lib/proceso.cjs');
+const shellDe = (opciones) => (opciones && opciones.shell !== undefined ? opciones.shell : shellDeComandos());
 
 // La apertura (rf-1): primero la vía de VS Code; la de terminal, solo si hay `claude`: el del PATH (PowerShell o Bash) o, si no, el
 // binario de la extensión de VS Code, que va entre comillas y en la forma de Git Bash (D-b de D5.1).
@@ -539,8 +541,14 @@ function correrSetup(L, wt, opciones) {
   }
   const cmd = datos && datos.vars ? datos.vars['comando-setup'] : undefined;
   if (typeof cmd !== 'string' || cmd.trim() === '') return { linea: 'la ficha no tiene vars.comando-setup: no corrí nada' };
+  const shell = shellDe(opciones);
+  const niega = comandoQueNoCorre(cmd, shell);
+  if (niega) {
+    const motivo = `comando-setup no se corre (${niega})`;
+    return { linea: `${motivo}: corregilo en la ficha y corrélo a mano adentro del worktree; no borré nada`, falla: true, motivo };
+  }
   const antes = estadoDelArbol(L, wt);
-  const r = spawnSync(cmd, { cwd: wt, shell: true, stdio: opciones.heredar === false ? 'pipe' : 'inherit', windowsHide: true });
+  const r = spawnSync(cmd, { cwd: wt, shell, stdio: opciones.heredar === false ? 'pipe' : 'inherit', windowsHide: true });
   if (r.error || r.status !== 0) {
     const como = r.error ? r.error.code || r.error.message : `salida ${r.status}`;
     const motivo = `comando-setup falló (${como})`;
@@ -1015,8 +1023,11 @@ function gate(L, tmp, base, punta, opciones) {
   }
   if (typeof cmd !== 'string' || cmd.trim() === '') return { verde: false, lineas: [...lineas, 'NO VERIFICADO: la ficha no tiene vars.comando-test — sumalo'] };
   const plazo = opciones.plazoTest || PLAZO_TEST;
+  const shell = shellDe(opciones);
+  const niega = comandoQueNoCorre(cmd, shell);
+  if (niega) return { verde: false, lineas: [...lineas, `NO VERIFICADO: comando-test no se corre (${niega}): ${cmd}`] };
   const t0 = Date.now();
-  const r = spawnSync(process.execPath, ['-e', VIGIA, cmd, String(plazo)], {
+  const r = spawnSync(process.execPath, argsVigia(cmd, plazo, shell), {
     cwd: tmp,
     stdio: opciones.heredar === false ? 'pipe' : 'inherit',
     windowsHide: true,

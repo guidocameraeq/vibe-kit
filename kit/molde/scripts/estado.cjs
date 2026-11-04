@@ -2,7 +2,7 @@
 // estado.cjs — la vista de /estado (SPEC-0 5.3; C §2.5, §3bis). Uso, desde el checkout principal:
 //   node .claude/scripts/estado.cjs            la vista corta del proyecto (no pregunta nada)
 //   node .claude/scripts/estado.cjs <x>        la del módulo <x>
-// Arriba, TE ESPERA (de las fichas docs/modulos/*/README.md, con "desde <fecha>" que da git: el commit en que entró el renglón).
+// Arriba, TE ESPERA (con `.kit-noche` en este checkout, antes una línea: "es de noche: el director trabaja solo"; de las fichas docs/modulos/*/README.md, con "desde <fecha>" que da git: el commit en que entró el renglón).
 // Después una línea por módulo activo (Estado: EN OBRA o PAUSADO): avance MEDIDO (tareas tildadas / tareas de la ficha; sin tareas,
 // "avance —": nunca inventado), encargos en obra y sub-pasos (de git, vía tiempos.cjs), "podés cerrar: …" (las pestañas de obrero
 // de "## Sesiones vivas" cuya rama ya está mergeada en modulo/<x>: el director ya verificó su CIERRE), las esperas (lo parado de la
@@ -28,6 +28,11 @@ const USO = [
 ].join('\n');
 
 const LINEAS_PROPIAS = '.claude/estado-lineas.md';
+// La marca de la noche (la escribe `noche.cjs me-voy` en la raíz del worktree del director; t12c de D8r.2): con ella en este
+// checkout, la primera línea lo dice, arriba de TE ESPERA.
+const ARCHIVO_NOCHE = '.kit-noche';
+const LINEA_NOCHE = 'es de noche: el director trabaja solo';
+const deNoche = (raiz) => (fs.existsSync(path.join(raiz, ARCHIVO_NOCHE)) ? [LINEA_NOCHE, ''] : []);
 const HORA_RESUMEN = 18;
 const T_GIT = 60000;
 const G = (cwd, args) => git.correr(args, { cwd, tiempo: T_GIT });
@@ -259,7 +264,7 @@ function vistaProyecto(raiz, opciones, ahora) {
   const ms = fichas(raiz);
   const act = ms.filter((m) => activo(m.ficha));
   const hoy = hoyDe(ahora);
-  const L = ['TE ESPERA'];
+  const L = [...deNoche(raiz), 'TE ESPERA'];
   const te = teEspera(raiz, act);
   L.push(...(te.length ? te : ['- nada']));
   L.push('', 'MÓDULOS');
@@ -284,7 +289,7 @@ function vistaModulo(raiz, m, opciones, ahora) {
   const fase = seccion(f, /^Fase/i).map((l) => l.trim()).filter(Boolean);
   if (fase.length) L.push(`fase: ${fase.slice(0, 3).join(' ')}`);
   L.push(p === null ? 'avance: —' : `avance: ${t.hechas} de ${t.total} tareas (${p}%)`);
-  L.push('', 'TE ESPERA');
+  L.push('', ...deNoche(raiz), 'TE ESPERA');
   const te = teEspera(raiz, [m]);
   L.push(...(te.length ? te : ['- nada']));
   const es = esperas(raiz, [m], hoy);
@@ -351,4 +356,4 @@ if (require.main === module) {
   process.exitCode = codigo;
 }
 
-module.exports = { USO, LINEAS_PROPIAS, HORA_RESUMEN, leerFicha, seccion, bullets, tareas, porcentaje, sesionesVivas, activo, fichas, desdeCuando, esperasVencidas, encargosDe, hoyDe, main };
+module.exports = { USO, LINEAS_PROPIAS, LINEA_NOCHE, HORA_RESUMEN, leerFicha, seccion, bullets, tareas, porcentaje, sesionesVivas, activo, fichas, desdeCuando, esperasVencidas, encargosDe, hoyDe, main };
