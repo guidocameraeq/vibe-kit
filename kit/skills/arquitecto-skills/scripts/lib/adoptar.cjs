@@ -2,10 +2,11 @@
 // adoptar.cjs — `actualizar.cjs adoptar`: el adoptador (SPEC-0 P7.2; SPEC-paquete-6 D6-1, D6-12, criterio 19; crit. 20 del kit).
 //
 //   node actualizar.cjs adoptar <carpeta> --kit <raíz del kit> --mirar [--nivel liviano|estandar] [--propuesta <archivo>] [--nuevo]
-//                               [--comando-test "<comando>"]
+//                               [--comando-test "<comando>"] [--principal <carpeta principal>]
 //   node actualizar.cjs adoptar <carpeta> --kit <raíz del kit> --aplicar <archivo de propuesta> [--fecha <AAAA-MM-DD>]
 //                               [--principal <carpeta principal>] [--claude-md]
 //                               [--director kit] [--permisos recomendada] [--arranque kit]   (D1-D3: SPEC-paquete-8r2, t3 y t9)
+//   node actualizar.cjs adoptar <clon> --traer <carpeta principal>     (el último paso: después de los commits y el push)
 //
 // Un script determinista (D6-1): MIRA y APLICA. La pantalla (NORTE, MAPA, el plano de docs/, las reglas propias como cambios) la
 // arma la sesión del Arquitecto con Guido delante, leyendo la propuesta (D6-12): eso necesita leer el código y no es de un script.
@@ -44,11 +45,16 @@
 // Después va barreras --rango <antes>..HEAD; chequear no, porque pide la ficha en la base (corre desde la primera puesta al día).
 // Una pieza en sí (las opcionales que prendió la sesión, o las de --nuevo) se trae como una molde.
 //
-// --principal (SPEC-paquete-8b (14), D8b-9): ya escrito el clon (ahí NO se prende: el pre-commit frenaría la ficha; r1-5), en la
-// carpeta principal, validada (r1-7: su raíz git, sin .kit-rol, y el origin del clon es ella o el mismo que el de ella),
-// core.hooksPath → .githooks con las reglas de ponerHooksPath del hook de arranque, más una (r1-6): vacío y sin .githooks/ en el
-// disco, solo si .git/hooks no tiene hooks propios (fuera de *.sample); con otro valor (husky, lefthook), solo si .githooks/ ya está
-// en el disco. Si no, "queda para el arranque" (el primer arranque después del pull). Solo --local; una línea "githooks · …".
+// --mirar --principal (t8 de 8r2): solo lectura; vars.proyecto = el nombre de la carpeta de Guido (con ese se busca el almacén de
+// credenciales). Sin él, el del clon, y la nota lo dice.
+// --aplicar --principal (8r2, D8r2-1): ya NO prende los githooks (antes del push no hay nada que traer): valida la carpeta (r1-7) y
+// la última línea da el comando del --traer, con las rutas.
+// --traer (t2; rt-7, rt-8): después de los commits y el push, la carpeta de Guido avanza con merge --ff-only (limpia, en la rama
+// del clon, y con el HEAD del clon ya en origin) y DESPUÉS, con .githooks/ en el disco, core.hooksPath → .githooks (prenderGithooks,
+// SPEC-paquete-8b (14), D8b-9): en el clon NO se prende (el pre-commit frenaría la ficha; r1-5); en la carpeta, validada (r1-7: su
+// raíz git, sin .kit-rol, y el origin del clon es ella o el mismo que el de ella), con las reglas de ponerHooksPath del hook de
+// arranque, más una (r1-6): vacío y sin .githooks/ en el disco, solo si .git/hooks no tiene hooks propios (fuera de *.sample); con
+// otro valor (husky, lefthook), solo si .githooks/ ya está en el disco. Si no, "queda para el arranque". Solo --local.
 
 const fs = require('fs');
 const os = require('os');
@@ -284,11 +290,34 @@ function inferirNivel(carpeta) {
     : { nivel: 'liviano', porque: 'no hay código (ni un manifiesto en la raíz ni archivos de código fuera de .claude/ y docs/)' };
 }
 
-function inferirVars(carpeta) {
-  const base = path.basename(real(carpeta));
+// t5 (8r2; D8r2-4): el Python de la PC para crear el venv. En win32, el lanzador `py -3` si está (el `python` del PATH puede ser
+// el alias de la Microsoft Store, que no corre nada); si no, `python`. Fuera de win32, `python3`.
+function hayLanzadorPy() {
+  const r = spawnSync('py', ['-3', '--version'], { encoding: 'utf8', windowsHide: true, timeout: 15000 });
+  return !r.error && r.status === 0;
+}
+// Los comandos de un repo Python, siempre con el venv del worktree (.venv, ignorado: cada worktree crea el suyo): nunca el pip ni
+// el pytest globales. Con barras "/": corren en Git Bash en Windows (t6). plataforma y hayPy se inyectan en las pruebas.
+function comandosPython({ requirements, pyproject, pytest }, plataforma = process.platform, hayPy = undefined) {
+  const win = plataforma === 'win32';
+  const venvPy = win ? '.venv/Scripts/python.exe' : '.venv/bin/python';
+  const py = win ? ((hayPy === undefined ? hayLanzadorPy() : hayPy) ? 'py -3' : 'python') : 'python3';
+  const out = {};
+  if (requirements) out.setup = `${py} -m venv .venv && ${venvPy} -m pip install -r requirements.txt`;
+  else if (pyproject) out.setup = `${py} -m venv .venv && ${venvPy} -m pip install -e .`;
+  if (pytest) out.test = `${venvPy} -m pytest`;
+  return out;
+}
+
+// inferirVars(carpeta, {principal, plataforma, hayPy}): principal (t8) = la carpeta de Guido, de donde sale vars.proyecto (el
+// almacén de credenciales se busca por ese nombre: worktree.cjs proyectoDe, cargar-secreto.sh); sin ella, el nombre del clon.
+function inferirVars(carpeta, opciones = {}) {
+  const base = path.basename(real(opciones.principal || carpeta));
   const proyecto = escribible(base) ? base : base.replace(/["\\\r\n]/g, '-');
   const vars = { proyecto };
-  const notas = [`proyecto = ${proyecto} (el nombre de la carpeta)`];
+  const notas = [opciones.principal
+    ? `proyecto = ${proyecto} (el nombre de tu carpeta)`
+    : `proyecto = ${proyecto} (el nombre del clon: si no es el de tu carpeta, corré con --principal)`];
   const pj = leerP(carpeta, 'package.json');
   if (pj !== null) {
     let p = null;
@@ -311,13 +340,14 @@ function inferirVars(carpeta) {
   } else {
     const req = leerP(carpeta, 'requirements.txt');
     const py = leerP(carpeta, 'pyproject.toml');
-    if (req !== null) {
-      vars['comando-setup'] = 'pip install -r requirements.txt';
-      notas.push('comando-setup = pip install -r requirements.txt (requirements.txt)');
-    }
-    if (/\bpytest\b/.test(`${req || ''}\n${py || ''}`)) {
-      vars['comando-test'] = 'pytest';
-      notas.push('comando-test = pytest (lo nombra requirements.txt o pyproject.toml)');
+    if (req !== null || py !== null) {
+      const c = comandosPython({ requirements: req !== null, pyproject: py !== null, pytest: /\bpytest\b/.test(`${req || ''}\n${py || ''}`) }, opciones.plataforma, opciones.hayPy);
+      vars['comando-setup'] = c.setup;
+      notas.push(`comando-setup = ${c.setup} (${req !== null ? 'requirements.txt' : 'pyproject.toml, sin requirements.txt'}: el venv .venv de cada worktree, nunca el pip global)`);
+      if (c.test) {
+        vars['comando-test'] = c.test;
+        notas.push(`comando-test = ${c.test} (lo nombra requirements.txt o pyproject.toml; el pytest del venv)`);
+      }
     }
   }
   if (Object.keys(vars).length === 1) notas.push('sin comando-test ni comando-setup: no salen de ningún manifiesto (la sesión los suma si hay)');
@@ -409,7 +439,44 @@ function registroDeCambios(carpeta) {
   return out;
 }
 
-// mirar(carpeta, {kit, nivel, fecha, nuevo, comandoTest}) → { texto: la propuesta, datos } — no escribe nada en <carpeta> ni en su .git.
+// t4 (8r2): sin entornos: declarados, la base de prueba cuenta como real (la guardia de db pregunta como en producción). La
+// pantalla lo pregunta, con la gramática de kit.ejemplo.md; y avisa que la herramienta del ejemplo no es de este proyecto.
+function lineasEntornos() {
+  return [
+    'entornos: ninguno declarado — preguntale a Guido cada base y su clase (real · prueba · dummy); sin declararla, la base de prueba cuenta como real',
+    '  así se declaran (la gramática de kit.ejemplo.md; van en la ficha, al nivel de vars:):',
+    '    entornos:',
+    '      base-real:',
+    '        clase: real',
+    '      base-prueba:',
+    '        clase: prueba',
+    'herramientas: ninguna — el ejemplo de kit.ejemplo.md ("db ping") no es un comando de este proyecto: si se copia, entorno da rojo',
+  ];
+}
+
+// t12 (a): los archivos de config local de la raíz (config*.ini, *.local.*) que git ignora: worktree crear no los copia sin un
+// .worktreeinclude (sin él copia solo los .env y .env.*). Solo los nombres: nunca se leen. Los .env* ni se miran (van solos, por
+// el filtro de credenciales de worktree.cjs). → la línea, o null.
+const RE_CONFIG_LOCAL = /^(config[^/]*\.ini|[^.][^/]*\.local\.[^/]+)$/i;
+function lineaWorktreeinclude(carpeta) {
+  let nombres;
+  try {
+    nombres = fs.readdirSync(carpeta, { withFileTypes: true }).filter((e) => e.isFile() && !/^\.env/i.test(e.name) && RE_CONFIG_LOCAL.test(e.name)).map((e) => e.name).sort();
+  } catch {
+    return null;
+  }
+  if (!nombres.length) return null;
+  const r = spawnSync('git', ['check-ignore', '--stdin'], { cwd: carpeta, input: `${nombres.join('\n')}\n`, encoding: 'utf8', windowsHide: true, env: { ...process.env, GIT_OPTIONAL_LOCKS: '0' } });
+  if (r.error || (r.status !== 0 && r.status !== 1)) return null;
+  const ign = new Set(String(r.stdout || '').split(/\r?\n/).filter(Boolean));
+  const cand = nombres.filter((x) => ign.has(x));
+  if (!cand.length) return null;
+  if (hay(carpeta, '.worktreeinclude')) return `config local ignorada en la raíz: ${listaCorta(cand)} — ya hay .worktreeinclude: worktree crear copia lo que lista (mirá que las nombre)`;
+  return `config local ignorada en la raíz: ${listaCorta(cand)} — worktree crear no la copia (sin .worktreeinclude copia solo los .env): con el OK de Guido, un .worktreeinclude en la raíz con estas líneas (los .env también: con el archivo dejan de ir solos): .env · .env.* · ${cand.join(' · ')}`;
+}
+
+// mirar(carpeta, {kit, nivel, fecha, nuevo, comandoTest, principal, plataforma, hayPy}) → { texto: la propuesta, datos } — no
+// escribe nada en <carpeta> ni en su .git (ni en --principal: de ahí solo sale el nombre).
 function mirar(carpeta, opciones) {
   revisarRaiz(carpeta);
   const version = A.versionDelKit(opciones.kit);
@@ -418,7 +485,8 @@ function mirar(carpeta, opciones) {
   try {
     const inf = inferirNivel(carpeta);
     const nivel = opciones.nivel || inf.nivel;
-    const { vars, notas } = inferirVars(carpeta);
+    if (opciones.principal !== undefined && !esCarpeta(opciones.principal)) throw new Negativa(`--principal ${opciones.principal} no es una carpeta`);
+    const { vars, notas } = inferirVars(carpeta, { principal: opciones.principal, plataforma: opciones.plataforma, hayPy: opciones.hayPy });
     if (opciones.comandoTest !== undefined) {
       // el de "Entorno de prueba" del SPEC-0 (Modo A): le gana al de los manifiestos; sin él, un repo sin scripts.test traba el sello
       vars['comando-test'] = opciones.comandoTest;
@@ -505,6 +573,13 @@ function mirar(carpeta, opciones) {
     if (fichaVieja) o(`⚠ ${lineaFichaVieja(fichaVieja)}`);
     o(`nivel: ${nivel} (${opciones.nivel ? 'pedido con --nivel' : `inferido: ${inf.porque}`}; la regla: con código → estandar, sin código → liviano)`);
     o(`vars: ${notas.join(' · ')}`);
+    // t5: los dos comandos, en su línea, para la pantalla
+    o(`comandos: setup ${vars['comando-setup'] || 'ninguno'} · test ${vars['comando-test'] || 'ninguno'}`);
+    // t4: las bases y las herramientas (la propuesta de mirar nunca trae entornos: los declara la sesión con Guido)
+    for (const l of lineasEntornos()) o(l);
+    // t12 (a): la config local ignorada en la raíz, que worktree crear no copia sin .worktreeinclude
+    const wti = lineaWorktreeinclude(carpeta);
+    if (wti) o(wti);
     o('piezas (id · estado · qué pasa al aplicar):');
     for (const p of piezas) o(`  ${p.id} · ${p.estado} · ${p.que}`);
     if (nuevoRepo) o('proyecto nuevo (--nuevo): lo base en molde, el candado prendido y director-obrero y estado en sí (nace con módulos)');
@@ -805,8 +880,9 @@ function aplicarPropuesta(carpeta, opciones) {
       if (h.error || h.status !== 0) return { codigo: 1, lineas: [...lineas, `adoptar: no pude guardar la mezcla del settings para el commit de las piezas (${String(h.stderr || (h.error && h.error.message) || '').trim()}) — los archivos quedaron escritos; es el clon: \`git checkout -- . && git clean -fd\` y corré de nuevo`] };
       blobPlano = h.stdout.trim();
     }
-    // los githooks, en la carpeta principal (en el clon no: r1-5)
-    lineas.push(opciones.principal ? prenderGithooks(carpeta, opciones.principal) : 'githooks · sin --principal · no los prendí (van con --principal <la carpeta de Guido> en el --aplicar): los prende el primer arranque después del pull');
+    // t2 (8r2; D8r2-1): lo adoptado llega a la carpeta de Guido, y los githooks se prenden ahí, en un paso propio DESPUÉS de los
+    // commits y el push (--traer); acá, con --principal, solo se valida la carpeta y se da el comando (en el clon no: r1-5)
+    const traer = lineaTraer(carpeta, opciones.principal); // va la última
     const msg = `kit: adopción ${version}`;
     if (algo) {
       // los githooks sh con +x en el índice (en Windows el disco no lo lleva; en la flota lo pone flota, acá el commit)
@@ -835,6 +911,7 @@ function aplicarPropuesta(carpeta, opciones) {
     else lineas.push(`después: ${rango} → verde${blobPlano ? ' en las piezas y la ficha' : ''}`);
     // rt-9: el tercero toca reglas del settings sin un aprobado sellado (lo dice barreras, regla por regla)
     if (blobPlano) lineas.push(`después: el commit de los permisos (${MSG_PERMISOS}) da ROJO en barreras (toca reglas del settings sin un aprobado sellado): ${APRUEBA}, y ese commit se rehace después del sello (o se revierte: queda la mezcla de siempre)`);
+    lineas.push(traer);
     return { codigo: 0, lineas };
   } finally {
     M.borrar(plan.tmp);
@@ -1028,12 +1105,16 @@ function hooksPropiosDeGit(principal) {
 
 // prenderGithooks(clon, principal) → la línea "githooks · <carpeta> · <puesto | ya estaba | queda para el arranque | no pude: …>".
 // Solo --local, solo core.hooksPath y kit.hooksPathPrevio; nunca --global.
+// r1-7: ¿principal es la carpeta de Guido de este clon? Su raíz git, sin .kit-rol, otra que el clon, y el mismo repo.
+function esLaPrincipal(clon, principal) {
+  const top = esCarpeta(principal) ? gitEn(principal, ['rev-parse', '--show-toplevel']) : { ok: false };
+  return top.ok && comparable(top.out.trim()) === comparable(principal) && !hay(principal, '.kit-rol') && comparable(principal) !== comparable(clon) && mismoRepo(clon, principal);
+}
+const NO_ES_LA_PRINCIPAL = 'no pude: no es el mismo repo (tiene que ser la raíz de tu carpeta, sin .kit-rol, y el clon salir de ella o de su mismo origin) — no toqué nada';
+
 function prenderGithooks(clon, principal) {
   const linea = (que) => `githooks · ${principal} · ${que}`;
-  const top = esCarpeta(principal) ? gitEn(principal, ['rev-parse', '--show-toplevel']) : { ok: false };
-  if (!top.ok || comparable(top.out.trim()) !== comparable(principal) || hay(principal, '.kit-rol') || comparable(principal) === comparable(clon) || !mismoRepo(clon, principal)) {
-    return linea('no pude: no es el mismo repo (tiene que ser la raíz de tu carpeta, sin .kit-rol, y el clon salir de ella o de su mismo origin) — no toqué nada');
-  }
+  if (!esLaPrincipal(clon, principal)) return linea(NO_ES_LA_PRINCIPAL);
   const enDisco = esCarpeta(path.join(principal, HOOKS_PATH));
   const g = gitEn(principal, ['config', '--get', 'core.hooksPath']);
   const actual = g.ok ? g.out.trim() : '';
@@ -1052,11 +1133,92 @@ function prenderGithooks(clon, principal) {
   return linea(actual ? `puesto (el anterior, ${actual}, quedó en ${CLAVE_PREVIO}: el runner lo encadena)` : 'puesto');
 }
 
+// ---------------------------------------------------------------- --traer: lo adoptado llega a la carpeta de Guido (t2; rt-7, rt-8)
+
+const ACTUALIZAR = 'node "$HOME/.claude/skills/arquitecto-skills/scripts/actualizar.cjs"';
+const barras = (p) => String(p).replace(/\\/g, '/'); // las rutas de un comando para pegar: en Git Bash y en cmd andan igual
+const comandoTraer = (clon, principal) => `${ACTUALIZAR} adoptar "${barras(clon)}" --traer "${barras(principal)}"`;
+
+// La última línea de --aplicar: el comando del --traer (con --principal, validada la carpeta y con sus rutas). No toca nada.
+function lineaTraer(clon, principal) {
+  const paso = 'el último paso, después de los dos commits, barreras y el push';
+  if (principal === undefined) return `traer · sin --principal · ${paso}: ${comandoTraer(clon, '<tu carpeta>')} (trae lo adoptado a tu carpeta y prende ahí los githooks)`;
+  if (!esLaPrincipal(clon, principal)) return `traer · ${principal} · ⚠ no es la carpeta de este clon (tiene que ser la raíz de tu carpeta, sin .kit-rol, y el clon salir de ella o de su mismo origin): --traer ahí no va a andar — corregí la ruta`;
+  return `traer · ${principal} · ${paso}: ${comandoTraer(clon, principal)} (trae lo adoptado y prende ahí los githooks)`;
+}
+
+// vars.comando-setup de la ficha que quedó en la carpeta, o null.
+function setupDeLaFicha(carpeta) {
+  const t = leerP(carpeta, RUTA_FICHA);
+  if (t === null) return null;
+  try {
+    const v = F.leer(t).datos.vars;
+    return esMapa(v) && typeof v['comando-setup'] === 'string' && v['comando-setup'].trim() ? v['comando-setup'] : null;
+  } catch {
+    return null;
+  }
+}
+const sinCommitear = (carpeta) => gitEn(carpeta, ['status', '--porcelain']).out.split(/\r?\n/).filter(Boolean).map((l) => l.slice(3)).filter((p) => p !== '.kit-rol');
+
+// traer(clon, principal) → { codigo, lineas }. D8r2-1: después del push, el ff de la carpeta de Guido y DESPUÉS los githooks
+// (con .githooks/ ya en el disco). rt-7: primero se mira que el HEAD del clon llegó (a origin; sin origin en la carpeta, se trae
+// del clon); después, que la carpeta esté limpia y en la rama del clon; recién ahí merge --ff-only. Lo que no se puede: una línea
+// con qué correr, sin tocar nada (salida 0). Salida 1: el clon o la carpeta no son lo que tienen que ser, o el merge falló y la
+// dejó a medias (la línea da el reset --hard). rt-8: si la ficha tiene comando-setup y la carpeta no lo corrió, la línea de una vez.
+function traer(clon, principal) {
+  const linea = (que) => `traer · ${principal} · ${que}`;
+  const top = esCarpeta(clon) ? gitEn(clon, ['rev-parse', '--show-toplevel']) : { ok: false };
+  if (!top.ok || comparable(top.out.trim()) !== comparable(clon)) return { codigo: 1, lineas: [`traer · ${clon} no es la raíz de un repo git (el clon de la adopción) — no toqué nada`] };
+  if (!esLaPrincipal(clon, principal)) return { codigo: 1, lineas: [linea(NO_ES_LA_PRINCIPAL)] };
+  const sha = gitEn(clon, ['rev-parse', 'HEAD']).out.trim();
+  const ramaC = gitEn(clon, ['symbolic-ref', '-q', '--short', 'HEAD']);
+  if (!sha || !ramaC.ok) return { codigo: 1, lineas: [linea('no pude: el clon no está parado en una rama — no toqué nada')] };
+  const rama = ramaC.out.trim();
+  const corto = sha.slice(0, 7);
+  const P = barras(principal);
+
+  // rt-7: ¿llegó? Con origin en la carpeta, contra origin/<rama>; sin origin, se trae del clon (como el Modo A)
+  const conOrigin = !!origenDe(principal);
+  const f = conOrigin ? gitEn(principal, ['fetch', '-q', 'origin']) : gitEn(principal, ['fetch', '-q', clon, rama]);
+  if (!f.ok) return { codigo: 1, lineas: [linea(`no pude: git fetch ${conOrigin ? 'origin' : 'del clon'} (${f.err.trim().split(/\r?\n/)[0] || 'sin detalle'}) — no toqué tu carpeta`)] };
+  const destino = conOrigin ? `refs/remotes/origin/${rama}` : 'FETCH_HEAD';
+  if (!gitEn(principal, ['merge-base', '--is-ancestor', sha, destino]).ok) {
+    return { codigo: 0, lineas: [linea(`el HEAD del clon (${corto}) no llegó a origin/${rama}: pusheá primero (git -C "${barras(clon)}" push origin ${rama}) y corré de nuevo — no toqué tu carpeta`)] };
+  }
+  // la carpeta: limpia y en la rama del clon
+  const sucio = sinCommitear(principal);
+  if (sucio.length) return { codigo: 0, lineas: [linea(`no toqué nada: tu carpeta tiene cambios sin commitear (${listaCorta(sucio)}) — commitealos o guardalos (git -C "${P}" status) y corré de nuevo`)] };
+  const ramaP = gitEn(principal, ['symbolic-ref', '-q', '--short', 'HEAD']);
+  if (!ramaP.ok || ramaP.out.trim() !== rama) {
+    return { codigo: 0, lineas: [linea(`no toqué nada: tu carpeta está en ${ramaP.ok ? ramaP.out.trim() : 'un HEAD suelto'} y lo adoptado está en ${rama} — git -C "${P}" switch ${rama} y corré de nuevo`)] };
+  }
+  // recién ahí, el ff
+  const antes = gitEn(principal, ['rev-parse', 'HEAD']).out.trim();
+  const m = gitEn(principal, ['merge', '--ff-only', '-q', destino]);
+  if (!m.ok) {
+    const motivo = m.err.trim().split(/\r?\n/)[0] || 'sin detalle';
+    if (sinCommitear(principal).length || gitEn(principal, ['rev-parse', 'HEAD']).out.trim() !== antes) {
+      return { codigo: 1, lineas: [linea(`el merge --ff-only falló (${motivo}) y dejó tu carpeta a medias: volvela a como estaba con git -C "${P}" reset --hard ${antes} — no prendí los githooks`)] };
+    }
+    return { codigo: 0, lineas: [linea(`no toqué nada: no se avanza sin mezclar (${motivo}) — tu carpeta tiene commits que ${conOrigin ? `origin/${rama}` : 'el clon'} no tiene: mezclalos a mano y corré de nuevo`)] };
+  }
+  const despues = gitEn(principal, ['rev-parse', 'HEAD']).out.trim();
+  const lineas = [linea(antes === despues ? `ya tenía ${corto}: nada que traer` : `traje ${antes.slice(0, 7)}..${despues.slice(0, 7)} (${conOrigin ? `origin/${rama}` : 'del clon'})`)];
+  lineas.push(prenderGithooks(clon, principal)); // ahora sí, con .githooks/ en el disco
+  // rt-8: el venv (o node_modules) vive en cada checkout: el sello en tu carpeta corre comando-test acá
+  const setup = setupDeLaFicha(principal);
+  if (setup) {
+    const marca = /\.venv\b/.test(setup) ? '.venv' : /^(npm|pnpm|yarn)\b/.test(setup) ? 'node_modules' : null;
+    if (marca === null || !hay(principal, marca)) lineas.push(`en tu carpeta, una vez: ${setup} (el sello corre comando-test acá)`);
+  }
+  return { codigo: 0, lineas };
+}
+
 // ---------------------------------------------------------------- línea de comandos
 
 function leerArgs(argv) {
   const o = { mirar: false, nuevo: false, claudeMd: false };
-  const conValor = { '--kit': 'kit', '--nivel': 'nivel', '--propuesta': 'propuesta', '--aplicar': 'aplicar', '--fecha': 'fecha', '--principal': 'principal', '--comando-test': 'comandoTest' };
+  const conValor = { '--kit': 'kit', '--nivel': 'nivel', '--propuesta': 'propuesta', '--aplicar': 'aplicar', '--fecha': 'fecha', '--principal': 'principal', '--comando-test': 'comandoTest', '--traer': 'traer' };
   Object.assign(conValor, DECISIONES); // D1-D3 (8r2): --director kit, --permisos recomendada, --arranque kit
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -1072,10 +1234,12 @@ function leerArgs(argv) {
     } else if (!a.startsWith('--') && o.carpeta === undefined) o.carpeta = a;
     else return null;
   }
+  // --traer (t2): solo <clon> --traer <carpeta>, sin --kit ni nada más
+  if (o.traer !== undefined) return o.carpeta && Object.keys(o).every((k) => ['carpeta', 'traer', 'mirar', 'nuevo', 'claudeMd'].includes(k)) && !o.mirar && !o.nuevo && !o.claudeMd ? o : null;
   if (!o.carpeta || !o.kit || o.mirar === (o.aplicar !== undefined)) return null;
   if (!o.mirar && (o.nivel !== undefined || o.propuesta !== undefined || o.nuevo || o.comandoTest !== undefined)) return null;
   if (o.comandoTest !== undefined && !escribible(o.comandoTest)) return null; // va entre comillas en la ficha: sin comillas dobles, barras invertidas ni saltos
-  if (o.mirar && (o.principal !== undefined || o.claudeMd)) return null;
+  if (o.mirar && o.claudeMd) return null; // --principal sí va con --mirar (t8: de ahí sale vars.proyecto, solo lectura)
   // D1-D3 (8r2): solo con --aplicar, y cada una con su único valor
   for (const [flag, k] of Object.entries(DECISIONES)) if (o[k] !== undefined && (o.mirar || o[k] !== VALOR_DECISION[flag])) return null;
   if (o.nivel !== undefined && !NIVELES.includes(o.nivel)) return null;
@@ -1093,11 +1257,12 @@ async function main(argv) {
   const o = leerArgs(argv);
   if (!o) return null;
   const carpeta = path.resolve(o.carpeta);
+  if (o.traer !== undefined) return traer(carpeta, path.resolve(o.traer));
   const kit = path.resolve(o.kit);
   try {
     if (o.mirar) {
       if (o.propuesta !== undefined && dentroDe(carpeta, o.propuesta)) throw new Negativa(`--propuesta ${o.propuesta} cae adentro de ${carpeta}: --mirar no escribe ahí — elegí otro lugar`);
-      const r = mirar(carpeta, { kit, nivel: o.nivel, fecha: o.fecha, nuevo: o.nuevo, comandoTest: o.comandoTest });
+      const r = mirar(carpeta, { kit, nivel: o.nivel, fecha: o.fecha, nuevo: o.nuevo, comandoTest: o.comandoTest, principal: o.principal === undefined ? undefined : path.resolve(o.principal) });
       const lineas = r.texto.replace(/\n$/, '').split('\n');
       if (o.propuesta !== undefined) {
         const destino = path.resolve(o.propuesta);
@@ -1116,4 +1281,4 @@ async function main(argv) {
   }
 }
 
-module.exports = { mirar, aplicarPropuesta, main, avisoKitAtras, fichaEnLaHistoria, prenderGithooks, normalizarOrigen, casaPlantilla, contenidoPropio, sinObservaciones, MARCA_INI, MARCA_FIN };
+module.exports = { mirar, aplicarPropuesta, main, traer, inferirVars, comandosPython, avisoKitAtras, fichaEnLaHistoria, prenderGithooks, normalizarOrigen, casaPlantilla, contenidoPropio, sinObservaciones, MARCA_INI, MARCA_FIN };
