@@ -170,7 +170,7 @@ function nuevo(L, g, a, opciones) {
   const abs = path.join(raiz, ...carpeta.split('/'));
   const n = siguienteN(L, raiz, carpeta, abs, fecha);
   const ruta = `${carpeta}/${fecha}-${n}-${a.tipo}.md`;
-  const fallas = L.M.validar(texto, { ruta });
+  const fallas = L.M.validar(texto, { ruta, carpeta: L.docs.deRaiz(raiz) });
   if (fallas.length) return no(...fallas.map((f) => `mesa: no lo escribo — ${f.que} — ${f.hacer}`));
 
   const avisos = [];

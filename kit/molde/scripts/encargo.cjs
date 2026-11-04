@@ -206,7 +206,7 @@ function presentar(L, g, a, opciones) {
   // 2. El encargo, commiteado y según la plantilla.
   const u = L.E.ubicarEncargo(g.raiz, n);
   if (!u.ok) return no(u.por);
-  const e = L.E.leerEncargo(u.texto, n);
+  const e = L.E.leerEncargo(u.texto, n, u.carpeta);
   if (e.errores.length) return no(`el encargo ${u.ruta} no sigue la plantilla: ${e.errores.join('; ')}: que el director lo corrija y lo commitee`);
   // 3. El spec de - Spec:, con su sello y READY.
   const s = chequearSpec(L, g.raiz, u.ref, e.campos.spec.ruta);
@@ -302,7 +302,7 @@ function comandoTest(datos) {
 function encargoLeido(L, raiz, n) {
   const u = L.E.ubicarEncargo(raiz, n);
   if (!u.ok) return { ok: false, por: u.por };
-  const e = L.E.leerEncargo(u.texto, n);
+  const e = L.E.leerEncargo(u.texto, n, u.carpeta);
   if (e.errores.length) return { ok: false, por: `el encargo ${u.ruta} no sigue la plantilla: ${e.errores.join('; ')}: que el director lo corrija y lo commitee` };
   return { ok: true, u, e };
 }
