@@ -703,6 +703,7 @@ test('automode: el bloque escrito = el que generan las fichas ✓ (con lo de Gui
   const e = escenario();
   const proy = path.join(e.proyectos, 'alfa-p', '.claude');
   fs.mkdirSync(proy, { recursive: true });
+  fs.mkdirSync(path.join(e.proyectos, 'alfa-p', '.git')); // 8r2 (t7): un proyecto es un repo (con .git)
   fs.writeFileSync(path.join(proy, 'kit.md'), FICHA);
   const gen = P.generarAutoMode(e.proyectos).entradas;
   assert.equal(gen.length, 1, gen.join(' | '));
