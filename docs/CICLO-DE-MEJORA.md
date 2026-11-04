@@ -174,6 +174,31 @@ mostraron nada de esto, y los repos reales lo mostraron en horas:
 
 Están en el tracker de la v3, Pendientes, "De la prueba real".
 
+### 3.6 Los arreglos del uso (las `rc.N`, los hotfix): tres niveles de control
+
+Mientras se usa la beta, cada arreglo sale como `rc.N`, pero **no todos pagan el circuito entero**. La cicatriz (2026-11-04): la `rc.4`
+y la `rc.5` pasaron por todo y cada una tardó unas 4 h: delta, red team, chequeo frío, la suite entera (~50 min sola, 102 con otra
+tanda al lado) y la flota de prueba en `alfa`, `beta` y `gama` (~1,5 h). Guido: "ahora que ya tenemos ensayado todo, ¿no podemos hacer
+ajustes más quirúrgicos sin pasar por todo el ciclo?". Pero ese mismo día la flota encontró un bug real antes del tag (la línea 7 de
+`casos` con el `\r` de Windows), así que el ensayo de actualización no se saca: se achica.
+
+| Nivel | Cuándo | Qué corre | Reloj |
+|---|---|---|---|
+| **Liviano** | Textos, avisos, manuales, guía, la nota de migración | Las pruebas de los archivos tocados (las de texto y `skills.test` si toca una skill) | minutos |
+| **Medio** | Código que no decide un freno ni cómo se actualiza un proyecto | Lo del liviano + chequeo frío corto (un revisor, el día de Guido) + **la suite entera una sola vez, al final** + la flota contra **un** clon real (Hermes) | ~1,5 h |
+| **Medio-alto** | Toca un freno o el actualizador, pero el cambio es acotado y el diseño ya está hablado | Lo del medio + red team de una ronda **solo del cambio que toca el freno** + mutación en ese freno | ~2 h |
+| **Completo** | Pieza nueva, o un freno o el actualizador rediseñados | Todo: delta, red team, revisor frío, la suite, la flota en los tres repos de prueba y en los clones reales (§3.5) | ~4 h |
+
+- **El nivel de cada cambio lo pone la sesión** (es técnico, ADR-034) y queda escrito en el delta, en la tabla de sus cambios. **La `rc` va
+  con el nivel que elija Guido** si lo pide (la `rc.6` va en medio-alto, por pedido suyo, 2026-11-04); si no, con el más alto de sus cambios.
+- **Planear bien es lo que permite bajar de nivel**: un delta que dice qué archivos toca cada cambio y qué prueba lo cubre deja correr solo
+  esas pruebas mientras se trabaja; la suite entera queda para el final.
+- **Nunca dos tandas pesadas a la vez en una PC** (suite + suite, suite + flota): todo tarda el doble y salen rojas de carga que no son
+  del código.
+- **Cómo se corre cada cosa** (no se repite acá): la suite, `node --test "kit/**/*.test.cjs"`, sola y en segundo plano; la flota de prueba,
+  `bash pruebas/rehacer.sh` y después la flota contra esos repos, con la receta del prompt de cada tanda en el tracker de la versión; los
+  clones reales, en el scratchpad, nunca sobre las carpetas del proyecto.
+
 ## 4. Cómo trabajamos de verdad (la vuelta 1)
 
 Sale de leer los 42 chats recortados (`recortar.py --modo contraste`: los 420 mensajes de Guido enteros, la primera línea de Claude y los
