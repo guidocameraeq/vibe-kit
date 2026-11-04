@@ -935,7 +935,7 @@ test('u2 crit. 2: sin --con-obra, salteado y el porqué nombra la bandera; con e
 
 // todo: hoy da "barreras rojo: hooks:.claude/hooks/sensible.cjs" — el hook que llega idéntico desde main no se descuenta en un merge
 // (u9; lo arregla el encargo M en kit/molde/hooks/lib/barreras.cjs). Sacar el todo después del merge de M: tiene que pasar.
-test('u2 rt-3: el verde trae de main settings.json Y un hook ya aprobado allá (barreras --indice descuenta lo que llega igual)', { todo: 'espera el arreglo de M (barreras.cjs, u9)' }, async () => {
+test('u2 rt-3: el verde trae de main settings.json Y un hook ya aprobado allá (barreras --indice descuenta lo que llega igual)', async () => {
   const canon = armarCanon({ molde: MOLDE_SETTINGS_Y_HOOK });
   const P = nuevaCarpeta('proyectos');
   const x = armarRepo(P, 'alfa', { remoto: (b) => ramaEnRemoto(b, 'modulo/a') });
