@@ -528,3 +528,51 @@ test('settings.json del molde: session-start en exec, timeout 20 y sin onFailure
   const s = JSON.parse(SETTINGS_MOLDE);
   assert.deepEqual(s.hooks.SessionStart, [{ matcher: '', hooks: [{ type: 'command', command: 'node', args: ['${CLAUDE_PROJECT_DIR}/.claude/hooks/session-start.cjs'], timeout: 20 }] }]);
 });
+
+// ---------------------------------------------------------------- 8r3 i1: la carpeta de papeles (carpeta-docs:)
+
+const fichaArti = (c = 'arti-docs') => fichaKit().replace(/---\n$/, `carpeta-docs: ${c}\n---\n`);
+
+test('8r3 i1 (el hook): con carpeta-docs: arti-docs y un docs/ ajeno, inyecta arti-docs/SESSION_HANDOFF.md y dice papeles:', () => {
+  const { d, hook } = repoCon({ '.claude/kit.md': fichaArti(), 'docs/SESSION_HANDOFF.md': handoff('AJENO'), 'docs/docs.json': '{}\n', 'arti-docs/SESSION_HANDOFF.md': handoff('ARTI'), 'arti-docs/TODO.md': '# TODO\n' });
+  const r = correr(hook, { cwd: d, session_id: 'arti' });
+  assert.equal(r.lineas[1], 'papeles: arti-docs/ (carpeta-docs de la ficha) — donde el método dice docs/, es esta carpeta');
+  assert.ok(r.lineas.includes('=== handoff (arti-docs/SESSION_HANDOFF.md) ==='), r.out);
+  assert.ok(r.out.includes('ARTI-paso'));
+  assert.ok(!r.out.includes('AJENO'));
+  chequearHuella(r);
+});
+
+test('8r3 i1 (de emergencia): error interno → el handoff crudo de arti-docs/, leída la clave del disco con la regex cruda', () => {
+  const { d, hook } = repoCon({ '.claude/kit.md': fichaArti(), 'docs/SESSION_HANDOFF.md': handoff('AJENO'), 'arti-docs/SESSION_HANDOFF.md': handoff('ARTI', 'x'.repeat(6000)) });
+  const previo = path.join(carpeta('previo'), 'forzar.cjs');
+  fs.writeFileSync(previo, `require(${JSON.stringify(path.join(path.dirname(hook), 'lib', 'inyeccion.cjs'))}).armar = () => { throw new Error('forzado'); };\n`);
+  const r = correr(hook, { cwd: d, session_id: 'err-arti' }, { previo });
+  assert.equal(r.lineas[0], 'hook de arranque: error interno — corré doctor');
+  assert.ok(r.out.includes('ARTI-paso') && !r.out.includes('AJENO'), r.out);
+  assert.ok(r.out.includes('… (CORTADO: sigue en arti-docs/SESSION_HANDOFF.md)'));
+  chequearHuella(r);
+  // sin el handoff en arti-docs/: lo dice con la ruta de los papeles
+  const e = carpeta('emer');
+  escribir(e, '.claude/kit.md', fichaArti());
+  escribir(e, 'docs/SESSION_HANDOFF.md', handoff('AJENO'));
+  assert.equal(ss.deEmergencia({ cwd: e }).split('\n')[1], '(no se pudo leer arti-docs/SESSION_HANDOFF.md)');
+});
+
+test('8r3 i1 (de emergencia): carpetaDeEmergencia — comillas, comentario, de dos tramos; lo que no se entiende, docs', () => {
+  const con = (texto) => {
+    const e = carpeta('ce');
+    if (texto !== null) escribir(e, '.claude/kit.md', texto);
+    return ss.carpetaDeEmergencia(e);
+  };
+  assert.equal(con(fichaArti()), 'arti-docs');
+  assert.equal(con(fichaArti('"arti-docs"')), 'arti-docs');
+  assert.equal(con(fichaArti('arti-docs  # los papeles')), 'arti-docs');
+  assert.equal(con(fichaArti('a/b-c')), 'a/b-c');
+  for (const malo of ['../x', '/x', 'x/', 'Docs', 'x.', 'con', 'a\\b', 'a'.repeat(81), '[a]', '"x" y']) assert.equal(con(fichaArti(malo)), 'docs', malo);
+  assert.equal(con(fichaKit()), 'docs');
+  assert.equal(con(fichaKit().replace(/---\n$/, '  carpeta-docs: arti-docs\n---\n')), 'docs', 'indentada no es de arriba');
+  assert.equal(con(null), 'docs');
+  // la forma copiada es la de ficha.cjs
+  assert.equal(String(ss.RE_CARPETA_DOCS), String(require('./lib/ficha.cjs').RE_CARPETA_DOCS));
+});

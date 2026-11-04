@@ -1,5 +1,5 @@
 'use strict';
-// arbol.cjs — el árbol de docs/ en cuatro capas (B §4) y la regla 1 del candado (B §14) sobre UNA ruta.
+// arbol.cjs — el árbol de docs/ (o de la `carpeta-docs:` de la ficha: 8r3 i1) en cuatro capas (B §4) y la regla 1 del candado (B §14) sobre UNA ruta.
 // Lo usan el hook de escritura (P4.2) y `candado:raiz` (P6.1). Juzga solo la ruta: no mira el disco ni el contenido.
 // Node estándar, cero dependencias. Es .cjs a propósito: corre igual en proyectos con "type": "module".
 
@@ -61,20 +61,41 @@ function relativa(raiz, ruta) {
   return null;
 }
 
-// juzgarRuta(raiz, ruta) → null si pasa, o { id: 'candado:raiz', mensaje, ruta } si es un archivo suelto en la raíz de docs/
-// que no es de los seis, o algo adentro de una carpeta que no es de las tres. Lo de afuera de docs/ (o del repo) → null.
-// Sin distinguir mayúsculas (Docs/x.md y DOCS\x.md son docs/x.md en Windows).
-function juzgarRuta(raiz, ruta) {
+// juzgarRuta(raiz, ruta, carpeta) → null si pasa, o { id: 'candado:raiz', mensaje, ruta } si es un archivo suelto en la raíz de la
+// carpeta de papeles que no es de los seis, o algo adentro de una carpeta que no es de las tres. Lo de afuera (o del repo) → null.
+// `carpeta`: la `carpeta-docs:` de la ficha vigente (docs-ruta.cjs; 8r3 i1), `docs` sin ella. La pasa quien llama: así esto sigue
+// sin mirar el disco ni git. Sin distinguir mayúsculas (Docs/x.md y DOCS\x.md son docs/x.md en Windows).
+function juzgarRuta(raiz, ruta, carpeta) {
   if (typeof raiz !== 'string' || raiz === '' || typeof ruta !== 'string' || ruta.trim() === '') return null;
+  const c = (typeof carpeta === 'string' && carpeta ? carpeta : 'docs').split('/');
+  const n = c.length;
   const rel = relativa(raiz, ruta);
-  if (!rel || rel.length < 2 || minus(rel[0]) !== 'docs') return null;
+  if (!rel || rel.length < n + 1 || !empiezaCon(rel, c)) return null;
   const mostrar = rel.join('/');
-  if (rel.length === 2) {
-    if (SEIS_MIN.includes(minus(rel[1]))) return null;
-    return { id: ID, mensaje: `\`${rel[0]}/${rel[1]}\` no va ahí: a \`modulos/<x>/\` o a \`referencia/\``, ruta: mostrar };
+  const papeles = rel.slice(0, n).join('/');
+  if (rel.length === n + 1) {
+    if (SEIS_MIN.includes(minus(rel[n]))) return null;
+    return { id: ID, mensaje: `\`${papeles}/${rel[n]}\` no va ahí: a \`modulos/<x>/\` o a \`referencia/\``, ruta: mostrar };
   }
-  if (TRES_MIN.includes(minus(rel[1]))) return null;
-  return { id: ID, mensaje: `\`${rel[0]}/${rel[1]}/\` no va ahí: a \`modulos/<x>/\` o a \`referencia/\``, ruta: mostrar };
+  if (TRES_MIN.includes(minus(rel[n]))) return null;
+  return { id: ID, mensaje: `\`${papeles}/${rel[n]}/\` no va ahí: a \`modulos/<x>/\` o a \`referencia/\``, ruta: mostrar };
 }
 
-module.exports = { SEIS, TRES, ID, juzgarRuta };
+// carpetaDelDisco(raiz) → la `carpeta-docs:` del .claude/kit.md DEL DISCO, o null (sin ficha, sin la clave o con un valor que no se
+// acepta). NO es la vigente (esa sale de git, docs-ruta.cjs): es una pista barata para lo que decide sin git (el atajo del hook de
+// escritura; el arranque cuando git no respondió a tiempo). Una línea de arriba, cruda, como el arranque de emergencia (8r3 i1).
+const RE_CLAVE_DISCO = /^carpeta-docs:[ \t]*(?:"([^"\r\n]*)"|([^\s"#]+))[ \t]*(?:#[^\r\n]*)?\r?$/m;
+function carpetaDelDisco(raiz) {
+  if (typeof raiz !== 'string' || raiz === '') return null;
+  let t;
+  try {
+    t = require('fs').readFileSync(require('path').join(raiz, '.claude', 'kit.md'), 'utf8');
+  } catch (e) {
+    return null;
+  }
+  const m = RE_CLAVE_DISCO.exec(t);
+  const v = m ? (m[1] !== undefined ? m[1] : m[2]) : null;
+  return v && require('./ficha.cjs').RE_CARPETA_DOCS.test(v) ? v : null;
+}
+
+module.exports = { SEIS, TRES, ID, juzgarRuta, carpetaDelDisco };

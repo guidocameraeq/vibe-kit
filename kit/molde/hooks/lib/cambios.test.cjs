@@ -800,3 +800,23 @@ test('verificarCambio: lo mismo que verificar, archivo por archivo (lo usa el ac
   assert.deepEqual(C.verificarCambio(d, C.listarArchivos(d).find((a) => a.id === id)), [], 'sin ctx, lo arma solo');
   assert.ok(C.verificarCambio(d, C.listarArchivos(d).find((a) => a.id === otro)).length);
 });
+
+test('8r3 i1: toca de la ficha — cambiar carpeta-docs: (ponerla, sacarla o cambiarla) da frenos:carpeta-docs; el mismo valor, no', () => {
+  const F = (c) => FICHA().replace(/---\n$/, `${c === null ? '' : `carpeta-docs: ${c}\n`}---\n`);
+  const d = repo({ '.claude/kit.md': F(null) });
+  const paso = (c) => C.toca(d, commit(d, { '.claude/kit.md': F(c) }));
+  const si = { categorias: ['frenos'], ids: ['carpeta-docs'] };
+  const nada = { categorias: [], ids: [] };
+  assert.deepEqual(paso('arti-docs'), si, 'ponerla');
+  assert.deepEqual(paso('"arti-docs"'), nada, 'el mismo valor, entre comillas');
+  assert.deepEqual(paso('otra/papeles'), si, 'cambiarla');
+  assert.deepEqual(paso(null), si, 'sacarla');
+  assert.deepEqual(paso('docs'), nada, 'docs es lo mismo que no ponerla');
+  assert.deepEqual(paso(null), nada);
+  // crearla con la clave la cuenta (la exención de la adopción la da barreras, no esto)
+  const e = repo({ 'a.txt': 'a\n' });
+  assert.ok(C.toca(e, commit(e, { '.claude/kit.md': F('arti-docs') })).ids.includes('carpeta-docs'));
+  // y un 3-barrera de frenos la puede nombrar
+  const t = C.armar({ clase: '3-barrera', toca: ['frenos'], ids: ['carpeta-docs'], origen: 'o', cicatriz: 'no', chico: 'sí', urgente: 'no', cuerpo: CUERPO });
+  assert.deepEqual(C.leer(t).datos.ids, ['carpeta-docs']);
+});

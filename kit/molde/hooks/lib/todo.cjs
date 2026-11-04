@@ -102,10 +102,10 @@ function items(texto) {
 
 // ---------------------------------------------------------------- la cabecera (lo que ve el hook)
 
-// cabecera(texto, tope) → el texto de 🔴 y luego 🟠 (solo ítems abiertos), cortado en ítem entero; nunca más de `tope`
+// cabecera(texto, tope, ruta) → el texto de 🔴 y luego 🟠 (solo ítems abiertos), cortado en ítem entero; nunca más de `tope`
 // caracteres. Si se corta, el último renglón dice cuántos ítems quedaron afuera (cuenta para el tope).
-// Sin tope, el de topes.BLOQUES.cabeceraTodo.
-function cabecera(texto, tope) {
+// Sin tope, el de topes.BLOQUES.cabeceraTodo. `ruta`: la del TODO en la carpeta de papeles, para la marca (8r3 i1; docs sin ella).
+function cabecera(texto, tope, ruta = 'docs/TODO.md') {
   if (tope === undefined || tope === null) tope = require('./topes.cjs').BLOQUES.cabeceraTodo;
   const a = analizar(texto);
   const grupos = [];
@@ -116,7 +116,7 @@ function cabecera(texto, tope) {
     grupos.push({ titulo: sec ? sec.titulo : '## ' + EMOJI[tipo], items: abiertos });
   }
   const total = grupos.reduce((n, g) => n + g.items.length, 0);
-  const marca = (n) => `… (${n} más en docs/TODO.md)`;
+  const marca = (n) => `… (${n} más en ${ruta})`;
 
   // Los bloques en orden de prioridad (🔴 antes que 🟠): cada uno con el título de su sección si es el primero de ella.
   const bloques = [];

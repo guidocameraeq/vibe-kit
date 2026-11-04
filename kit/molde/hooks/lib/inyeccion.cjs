@@ -23,13 +23,26 @@ const topes = require('./topes.cjs');
 const todo = require('./todo.cjs');
 const ficha = require('./ficha.cjs');
 const { DENY_FABRICA } = require('./fabrica.cjs');
+const docsRuta = require('./docs-ruta.cjs');
+const arbol = require('./arbol.cjs');
 
 const B = topes.BLOQUES;
 const PRESUPUESTO = topes.PRESUPUESTO;
 
+// Con la carpeta de papeles por defecto (docs); la de cada corrida sale de la ficha vigente (rutasDe; 8r3 i1).
 const RUTA_HANDOFF = 'docs/SESSION_HANDOFF.md';
 const RUTA_TODO = 'docs/TODO.md';
 const CARPETA_MODULOS = 'docs/modulos';
+// rutasDe(carpeta) → { carpeta, handoff, todo, modulos }: las rutas del árbol del método en la carpeta de papeles.
+const rutasDe = (carpeta) => ({
+  carpeta,
+  handoff: docsRuta.rel(carpeta, 'SESSION_HANDOFF.md'),
+  todo: docsRuta.rel(carpeta, 'TODO.md'),
+  modulos: docsRuta.rel(carpeta, 'modulos'),
+});
+const RUTAS_DOCS = rutasDe(docsRuta.POR_DEFECTO);
+// La línea de la cabecera con una carpeta que no es docs (8r3 i1): los textos del método dicen docs/ y no se reescriben (D8r3-3).
+const lineaPapeles = (carpeta) => `papeles: ${carpeta}/ (carpeta-docs de la ficha) — donde el método dice docs/, es esta carpeta`;
 const RUTA_PROPIO = '.claude/hooks/session-start.propio.sh';
 
 const MS_DIA = 24 * 60 * 60 * 1000;
@@ -122,13 +135,13 @@ function edadesDe(cwd, ruta, rev) {
   return git.edades(ruta, { cwd, rev: rev || undefined, tiempo: tiempoBlame });
 }
 
-// ¿Hubo commits fuera de docs/ entre `sha` y `punta`? (el "estado viejo" de B §9)
-const yaVistos = new Map(); // cwd|sha|punta → bool, dentro de una misma corrida (Estado y Próximo paso suelen ser el mismo commit)
-function huboCodigoDespues(cwd, sha, punta) {
+// ¿Hubo commits fuera de la carpeta de papeles (docs/) entre `sha` y `punta`? (el "estado viejo" de B §9)
+const yaVistos = new Map(); // cwd|sha|punta|carpeta → bool, en una misma corrida (Estado y Próximo paso suelen ser el mismo commit)
+function huboCodigoDespues(cwd, sha, punta, carpeta = docsRuta.POR_DEFECTO) {
   if (!sha || !punta) return false;
-  const clave = `${cwd}|${sha}|${punta}`;
+  const clave = `${cwd}|${sha}|${punta}|${carpeta}`;
   if (!yaVistos.has(clave)) {
-    const n = git.texto(['rev-list', '--count', `${sha}..${punta}`, '--', '.', ':(exclude)docs'], { cwd });
+    const n = git.texto(['rev-list', '--count', `${sha}..${punta}`, '--', '.', `:(exclude)${carpeta}`], { cwd });
     yaVistos.set(clave, !!n && Number(n) > 0);
   }
   return yaVistos.get(clave);
@@ -179,13 +192,13 @@ function datosFichaModulo(texto) {
 
 // La cabecera de la ficha del módulo (1.000), con la edad al lado de `Estado:`.
 // `rev`: de dónde salen las edades (null = el disco). → { lineas, cortado }
-function bloqueFichaModulo({ cwd, texto, ruta, origen, rev, ahora, cupo, gitOk }) {
+function bloqueFichaModulo({ cwd, texto, ruta, origen, rev, ahora, cupo, gitOk, rutas = RUTAS_DOCS }) {
   const lineas = renglones(texto);
   const c = cortarRenglones(lineas, B.cabeceraFichaModulo, () => `… (CORTADO: sigue en ${origen})`);
   const d = datosFichaModulo(texto);
   if (d.iEstado >= 0 && d.iEstado < c.lineas.length && !(c.cortado && d.iEstado === c.lineas.length - 1) && gitOk) {
     const info = masNuevo(edadesDe(cwd, ruta, rev), d.iEstado, d.iEstado + 1);
-    const viejo = info && info.sha && d.rama ? huboCodigoDespues(cwd, info.sha, d.rama) : false;
+    const viejo = info && info.sha && d.rama ? huboCodigoDespues(cwd, info.sha, d.rama, rutas.carpeta) : false;
     c.lineas[d.iEstado] = pegarEdad(c.lineas[d.iEstado], textoEdad(info, ahora, viejo), cupo);
   }
   return c;
@@ -201,8 +214,8 @@ function esTitulo(linea, titulo) {
 }
 
 // El handoff (5.000), con la edad al lado de `## Estado` y `## Próximo paso` y "estado viejo" si después hubo commits
-// fuera de docs/ en `punta`. `rev` null = el del disco. → { lineas, cortado }
-function bloqueHandoff({ cwd, texto, origen, rev, punta, ahora, cupo, gitOk }) {
+// fuera de docs/ (la carpeta de papeles) en `punta`. `rev` null = el del disco. → { lineas, cortado }
+function bloqueHandoff({ cwd, texto, origen, rev, punta, ahora, cupo, gitOk, rutas = RUTAS_DOCS }) {
   const lineas = renglones(texto);
   const c = cortarRenglones(lineas, B.handoff, () => `… (CORTADO: sigue en ${origen})`);
   if (!gitOk) return c;
@@ -215,9 +228,9 @@ function bloqueHandoff({ cwd, texto, origen, rev, punta, ahora, cupo, gitOk }) {
     const i = lineas.findIndex((l) => esTitulo(l, t));
     if (i < 0 || i >= c.lineas.length || (c.cortado && i === c.lineas.length - 1)) continue;
     const fin = titulos.find((k) => k > i);
-    if (edades === undefined) edades = edadesDe(cwd, RUTA_HANDOFF, rev);
+    if (edades === undefined) edades = edadesDe(cwd, rutas.handoff, rev);
     const info = masNuevo(edades, i, fin === undefined ? lineas.length : fin);
-    const viejo = info && info.sha ? huboCodigoDespues(cwd, info.sha, punta) : false;
+    const viejo = info && info.sha ? huboCodigoDespues(cwd, info.sha, punta, rutas.carpeta) : false;
     c.lineas[i] = pegarEdad(c.lineas[i], textoEdad(info, ahora, viejo), cupo);
   }
   return c;
@@ -225,11 +238,12 @@ function bloqueHandoff({ cwd, texto, origen, rev, punta, ahora, cupo, gitOk }) {
 
 // ---------------------------------------------------------------- los módulos activos (300)
 
-function bloqueModulos({ raiz, ahora, gitOk }) {
+function bloqueModulos({ raiz, ahora, gitOk, rutas = RUTAS_DOCS }) {
+  const carpetaMods = rutas.modulos;
   let nombres = [];
   try {
     nombres = fs
-      .readdirSync(path.join(raiz, ...CARPETA_MODULOS.split('/')), { withFileTypes: true })
+      .readdirSync(path.join(raiz, ...carpetaMods.split('/')), { withFileTypes: true })
       .filter((d) => d.isDirectory())
       .map((d) => d.name)
       .sort();
@@ -239,8 +253,8 @@ function bloqueModulos({ raiz, ahora, gitOk }) {
   // Los activos: por `git show <rama>:` si la ficha tiene `rama:` (y la rama existe), si no del disco.
   const activos = [];
   for (const x of nombres) {
-    const ruta = `${CARPETA_MODULOS}/${x}/README.md`;
-    const disco = leerDisco(path.join(raiz, CARPETA_MODULOS, x, 'README.md'));
+    const ruta = `${carpetaMods}/${x}/README.md`;
+    const disco = leerDisco(path.join(raiz, ...carpetaMods.split('/'), x, 'README.md'));
     if (disco === null) continue;
     let d = datosFichaModulo(disco);
     let rev = null;
@@ -261,25 +275,25 @@ function bloqueModulos({ raiz, ahora, gitOk }) {
     let edad = '';
     if (gitOk && usado <= B.modulos) {
       const info = masNuevo(edadesDe(raiz, ruta, rev), d.iEstado, d.iEstado + 1);
-      const viejo = info && info.sha && d.rama ? huboCodigoDespues(raiz, info.sha, d.rama) : false;
+      const viejo = info && info.sha && d.rama ? huboCodigoDespues(raiz, info.sha, d.rama, rutas.carpeta) : false;
       edad = ' ' + textoEdad(info, ahora, viejo);
     }
     const l = `${acortar(x, 40)} · ${acortar(d.estado, 40)}${edad} · próximo: ${d.proximo ? acortar(d.proximo, 120) : '(sin "Próximo paso:")'}`;
     lineas.push(l);
     usado += l.length + 1;
   }
-  return cortarRenglones(lineas, B.modulos, (n) => `… (${n} más en ${CARPETA_MODULOS}/)`);
+  return cortarRenglones(lineas, B.modulos, (n) => `… (${n} más en ${carpetaMods}/)`);
 }
 
 // ---------------------------------------------------------------- git (800)
 
-function bloqueGit({ raiz, pest, rv }) {
+function bloqueGit({ raiz, pest, rv, rutas = RUTAS_DOCS }) {
   const arriba = [];
   // "origin tiene un handoff más nuevo": con lo ya traído, sin fetch. El obrero no ve el handoff: tampoco este aviso.
   if (rv && rv.origen !== 'local' && pest.tipo !== 'obrero') {
     const base = pest.tipo === 'director' ? (existeRef(raiz, `refs/heads/${rv.nombre}`) ? `refs/heads/${rv.nombre}` : null) : 'HEAD';
     if (base) {
-      const nh = git.texto(['rev-list', '--count', `${base}..${rv.ref}`, '--', RUTA_HANDOFF], { cwd: raiz });
+      const nh = git.texto(['rev-list', '--count', `${base}..${rv.ref}`, '--', rutas.handoff], { cwd: raiz });
       if (nh && Number(nh) > 0) {
         const n = git.texto(['rev-list', '--count', `${base}..${rv.ref}`], { cwd: raiz });
         arriba.push(`origin tiene un handoff más nuevo (${n} commits): hacé pull`);
@@ -346,10 +360,10 @@ function textoModo(entrada, raiz, home) {
   return 'modo default (configurado)';
 }
 
-function textoHandoffCommit(raiz, ref) {
+function textoHandoffCommit(raiz, ref, rutaHandoff = RUTAS_DOCS.handoff) {
   const args = ['log', '-1', '--format=%h %cd', '--date=format:%Y-%m-%d %H:%M'];
   if (ref) args.push(ref);
-  args.push('--', RUTA_HANDOFF);
+  args.push('--', rutaHandoff);
   const r = git.correr(args, { cwd: raiz });
   if (r.error === 'plazo') return null; // sin tiempo no es "sin commit": se calla
   const t = r.ok ? r.stdout.replace(/\s+$/, '') : '';
@@ -357,19 +371,21 @@ function textoHandoffCommit(raiz, ref) {
 }
 
 // gitSinTiempo / fichaSinTiempo: el plazo no dejó saber si hay git o ficha (no es lo mismo que no haber).
-function bloqueCabecera({ raiz, nombreRama, ramaSinTiempo, fv, entrada, home, gitOk, refHandoff, verHandoff, gitSinTiempo, fichaSinTiempo }) {
+function bloqueCabecera({ raiz, nombreRama, ramaSinTiempo, fv, entrada, home, gitOk, refHandoff, verHandoff, gitSinTiempo, fichaSinTiempo, rutas = RUTAS_DOCS }) {
   const segundo = [];
   const datos = fv.estado === 'ok' ? fv.datos : null;
   if (!gitOk) segundo.push(gitSinTiempo ? GIT_SIN_TIEMPO : SIN_GIT);
   else if (fv.estado === 'rota') segundo.push(`ficha rota: ${fv.donde} — corré doctor`);
   else if (fv.estado !== 'ok') segundo.push(fichaSinTiempo ? FICHA_SIN_TIEMPO : SIN_FICHA);
+  // 8r3 i1: la carpeta de papeles, si no es docs. Cuenta en los 250 de la cabecera como el resto (el primer renglón se achica).
+  if (rutas.carpeta !== docsRuta.POR_DEFECTO) segundo.push(lineaPapeles(rutas.carpeta));
   const proyecto = datos && datos.vars && typeof datos.vars.proyecto === 'string' && datos.vars.proyecto ? datos.vars.proyecto : path.basename(raiz);
   const segs = [acortar(proyecto, 50), acortar(nombreRama || (ramaSinTiempo ? '(rama sin leer)' : '(sin rama)'), 50)];
   if (datos && typeof datos.kit === 'string') segs.push(textoKit(datos.kit, home));
   if (datos && typeof datos.nivel === 'string') segs.push(`nivel ${acortar(datos.nivel, 20)}`);
   segs.push(textoModo(entrada, raiz, home));
   if (gitOk && verHandoff) {
-    const h = textoHandoffCommit(raiz, refHandoff);
+    const h = textoHandoffCommit(raiz, refHandoff, rutas.handoff);
     if (h) segs.push(h);
   }
   const lugar = B.cabecera - segundo.reduce((n, l) => n + l.length + 1, 0);
@@ -497,8 +513,8 @@ function bloqueLineasF({ raiz, gitOk, fv, home, ahora, hooksPath, env }) {
 
 // ---------------------------------------------------------------- el encargo del obrero
 
-function bloqueEncargo({ raiz, pest, gitOk }) {
-  const dir = `${CARPETA_MODULOS}/${pest.modulo}/bitacora`;
+function bloqueEncargo({ raiz, pest, gitOk, rutas = RUTAS_DOCS }) {
+  const dir = `${rutas.modulos}/${pest.modulo}/bitacora`;
   const sufijo = `-encargo-${pest.id}.md`;
   let hallados = [];
   try {
@@ -593,6 +609,10 @@ function armar(opciones = {}) {
   const fv = gitOk ? contexto.fichaVigente(raiz) : { estado: 'sin-git' };
   const fichaSinTiempo = fv.estado === 'sin-ficha' && sinTiempo();
   const rv = refDe(fv.ref); // la rama por defecto sale de la misma regla de 4.7 (sin repetir sus ~5 llamadas a git)
+  // 8r3 i1: la carpeta de papeles, de la ficha vigente (rota: la última que se lee). Si git no respondió a tiempo, la pista del disco
+  // (como el handoff del disco: es mejor que nada); sin git, docs.
+  const carpeta = fv.estado === 'ok' || fv.estado === 'rota' ? docsRuta.deVigente(fv, raiz) : gitSinTiempo || fichaSinTiempo ? arbol.carpetaDelDisco(raiz) || docsRuta.POR_DEFECTO : docsRuta.POR_DEFECTO;
+  const rutas = rutasDe(carpeta);
   const cupo = { queda: B.edades };
   const cortes = [];
   const bloques = []; // cada uno: lista de renglones
@@ -616,6 +636,7 @@ function armar(opciones = {}) {
       verHandoff: pest.tipo !== 'obrero',
       gitSinTiempo,
       fichaSinTiempo,
+      rutas,
     })
   );
 
@@ -625,12 +646,12 @@ function armar(opciones = {}) {
   // 4 · por pestaña (con 5, las edades)
   if (pest.tipo === 'director' || pest.tipo === 'obrero') {
     const x = pest.modulo;
-    const ruta = `${CARPETA_MODULOS}/${x}/README.md`;
+    const ruta = `${rutas.modulos}/${x}/README.md`;
     let texto;
     let origen;
     let rev = null;
     if (pest.tipo === 'director') {
-      texto = leerDisco(path.join(raiz, CARPETA_MODULOS, x, 'README.md'));
+      texto = leerDisco(path.join(raiz, ...ruta.split('/')));
       origen = ruta;
     } else {
       rev = existeRef(raiz, `refs/heads/modulo/${x}`) ? `modulo/${x}` : `refs/remotes/origin/modulo/${x}`;
@@ -643,67 +664,68 @@ function armar(opciones = {}) {
     } else if (texto === null) {
       bloques.push([titulo, `no hay ${ruta}${pest.tipo === 'obrero' ? ` en modulo/${x}` : ' en este worktree'}`]);
     } else {
-      const c = bloqueFichaModulo({ cwd: raiz, texto, ruta, origen, rev, ahora, cupo, gitOk });
+      const c = bloqueFichaModulo({ cwd: raiz, texto, ruta, origen, rev, ahora, cupo, gitOk, rutas });
       if (c.cortado) cortes.push({ que: `la ficha de ${x}`, ruta: origen });
       bloques.push([titulo].concat(c.lineas));
     }
   }
   if (pest.tipo === 'obrero') {
-    bloques.push([`=== el encargo ${pest.id} ===`].concat(bloqueEncargo({ raiz, pest, gitOk })));
+    bloques.push([`=== el encargo ${pest.id} ===`].concat(bloqueEncargo({ raiz, pest, gitOk, rutas })));
   } else {
+    const rh = rutas.handoff;
     let texto;
     let origen;
     let rev = null;
     let punta = 'HEAD';
     let nota = '';
     if (pest.tipo === 'director') {
-      origen = refDefecto ? `git show ${refDefecto}:${RUTA_HANDOFF}` : RUTA_HANDOFF;
-      texto = refDefecto ? mostrar(raiz, refDefecto, RUTA_HANDOFF) : null;
+      origen = refDefecto ? `git show ${refDefecto}:${rh}` : rh;
+      texto = refDefecto ? mostrar(raiz, refDefecto, rh) : null;
       rev = refDefecto;
       punta = refDefecto;
       // Sin tiempo para resolver la ref o leerla: el del disco de este worktree, y dicho en el título (es mejor que nada).
       if (texto === null && sinTiempo()) {
-        texto = leerDisco(path.join(raiz, ...RUTA_HANDOFF.split('/')));
-        origen = RUTA_HANDOFF;
+        texto = leerDisco(path.join(raiz, ...rh.split('/')));
+        origen = rh;
         nota = ' — el del disco: git no respondió a tiempo';
         rev = null;
         punta = 'HEAD';
       }
     } else {
-      origen = RUTA_HANDOFF;
-      texto = leerDisco(path.join(raiz, ...RUTA_HANDOFF.split('/')));
+      origen = rh;
+      texto = leerDisco(path.join(raiz, ...rh.split('/')));
     }
     const titulo = `=== handoff (${origen})${nota} ===`;
     if (texto === null) {
-      bloques.push([titulo, `no hay ${RUTA_HANDOFF}${pest.tipo === 'director' ? ` en ${refDefecto || 'la rama por defecto'}` : ''}`]);
+      bloques.push([titulo, `no hay ${rh}${pest.tipo === 'director' ? ` en ${refDefecto || 'la rama por defecto'}` : ''}`]);
     } else {
-      const c = bloqueHandoff({ cwd: raiz, texto, origen, rev, punta, ahora, cupo, gitOk });
+      const c = bloqueHandoff({ cwd: raiz, texto, origen, rev, punta, ahora, cupo, gitOk, rutas });
       if (c.cortado) cortes.push({ que: 'el handoff', ruta: origen });
       bloques.push([titulo].concat(c.lineas));
     }
   }
 
   // 6 · módulos activos
-  const mods = bloqueModulos({ raiz, ahora, gitOk });
+  const mods = bloqueModulos({ raiz, ahora, gitOk, rutas });
   if (mods) {
-    if (mods.cortado) cortes.push({ que: 'los módulos activos', ruta: `${CARPETA_MODULOS}/` });
+    if (mods.cortado) cortes.push({ que: 'los módulos activos', ruta: `${rutas.modulos}/` });
     bloques.push(['=== módulos activos ==='].concat(mods.lineas));
   }
 
   // 7 · cabecera del TODO (🔴 y 🟠)
-  const tituloTodo = `=== TODO ${todo.EMOJI.rojo} y ${todo.EMOJI.naranja} (${RUTA_TODO}) ===`;
-  const textoTodo = leerDisco(path.join(raiz, ...RUTA_TODO.split('/')));
+  const tituloTodo = `=== TODO ${todo.EMOJI.rojo} y ${todo.EMOJI.naranja} (${rutas.todo}) ===`;
+  const textoTodo = leerDisco(path.join(raiz, ...rutas.todo.split('/')));
   if (textoTodo === null) {
-    bloques.push([tituloTodo, `no hay ${RUTA_TODO}`]);
+    bloques.push([tituloTodo, `no hay ${rutas.todo}`]);
   } else {
     const t = limpiar(textoTodo);
-    const cab = todo.cabecera(t, B.cabeceraTodo);
-    if (cab !== todo.cabecera(t, Infinity)) cortes.push({ que: 'el TODO', ruta: RUTA_TODO });
+    const cab = todo.cabecera(t, B.cabeceraTodo, rutas.todo);
+    if (cab !== todo.cabecera(t, Infinity, rutas.todo)) cortes.push({ que: 'el TODO', ruta: rutas.todo });
     bloques.push([tituloTodo].concat(cab ? cab.split('\n') : [`nada abierto en ${todo.EMOJI.rojo} ni ${todo.EMOJI.naranja}`]));
   }
 
   // 8 · git
-  if (gitOk) bloques.push(['=== git ==='].concat(bloqueGit({ raiz, pest, rv })));
+  if (gitOk) bloques.push(['=== git ==='].concat(bloqueGit({ raiz, pest, rv, rutas })));
 
   // 9 · el recordatorio de /inicio
   bloques.push([RECORDATORIO]);
@@ -745,6 +767,8 @@ module.exports = {
   RUTA_TODO,
   RUTA_PROPIO,
   CARPETA_MODULOS,
+  rutasDe,
+  lineaPapeles,
   TIEMPO_BLAME,
   RECORDATORIO,
   SIN_FICHA,

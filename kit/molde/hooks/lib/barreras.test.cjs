@@ -1827,3 +1827,77 @@ test('r1-7: el arreglo del rebase (rf3-8) ve un subio-al-kit igual que un aplica
   assert.deepEqual(C.verificar(d), []);
   verde(d);
 });
+
+// ---------------------------------------------------------------- 8r3 i1 · rt-2: carpeta-docs: y el rango sin remoto
+
+const conCarpeta = (c, o = {}) => FICHA(o).replace('kit: 2.4.3\n', `kit: 2.4.3\ncarpeta-docs: ${c}\n`);
+const DENY_UNO = '{"permissions": {"deny": ["Bash(git stash:*)"]}}\n';
+
+test('8r3 rt-2: sin remoto, X pone carpeta-docs: nada y vacía un deny → X entra al rango y da rojo', () => {
+  const s = repo({ remoto: false, archivos: { '.claude/settings.json': DENY_UNO } });
+  commit(s, { 'docs/SESSION_HANDOFF.md': '# Handoff\n' }, 'cierre 1');
+  const x = commit(s, { '.claude/kit.md': conCarpeta('nada'), '.claude/settings.json': '{}\n' }, 'mueve la carpeta y vacía el deny');
+  const r = B.rango(s);
+  assert.ok(r.commits.includes(x), JSON.stringify(r));
+  assert.match(r.como, /último cambio de carpeta-docs:/);
+  const f = rojo(s);
+  assert.ok(f.some((y) => y.commit === x && /settings/.test(y.que)), JSON.stringify(f.map((y) => [y.commit === x, y.que])));
+  assert.ok(f.some((y) => y.commit === x && /carpeta-docs/.test(y.que)), 'y el cambio de la clave pide su aprobado');
+});
+
+test('8r3 rt-2: sin remoto, X pone carpeta-docs: zzz y un Y crea zzz/SESSION_HANDOFF.md → X igual se juzga (rojo)', () => {
+  const s = repo({ remoto: false });
+  commit(s, { 'docs/SESSION_HANDOFF.md': '# Handoff\n' }, 'cierre 1');
+  const x = commit(s, { '.claude/kit.md': conCarpeta('zzz') }, 'mueve la carpeta');
+  const y = commit(s, { 'zzz/SESSION_HANDOFF.md': '# Handoff nuevo\n' }, 'el handoff en la carpeta nueva');
+  const r = B.rango(s);
+  assert.deepEqual(r.commits, [x, y], JSON.stringify(r));
+  const f = rojo(s, /carpeta-docs/);
+  assert.equal(f[0].commit, x);
+  // con un cierre más en zzz/ el rango sigue arrancando en X (el residual de rt-2)
+  const z = commit(s, { 'zzz/SESSION_HANDOFF.md': '# Handoff 2\n' }, 'cierre 2');
+  assert.deepEqual(B.rango(s).commits, [x, y, z]);
+});
+
+test('8r3 rt-2: cambiar carpeta-docs: con su aprobado sellado antes → verde; sacarla también pide aprobado', () => {
+  const s = repo({ remoto: false });
+  commit(s, { 'docs/SESSION_HANDOFF.md': '# Handoff\n' }, 'cierre 1');
+  aprobado(s, { toca: 'frenos', ids: ['carpeta-docs'] });
+  const x = commit(s, { '.claude/kit.md': conCarpeta('arti-docs'), 'arti-docs/SESSION_HANDOFF.md': '# H\n' }, 'los papeles a arti-docs');
+  assert.ok(B.rango(s).commits.includes(x));
+  verde(s);
+  const sale = commit(s, { '.claude/kit.md': FICHA() }, 'vuelve a docs');
+  assert.equal(rojo(s, /carpeta-docs/).find((f) => /carpeta-docs/.test(f.que)).commit, sale);
+});
+
+test('8r3 rt-2: la adopción con la clave no traba (la ficha nace con carpeta-docs:; el handoff antes o después)', () => {
+  const a = repo({ remoto: false, ficha: false });
+  commit(a, { 'arti-docs/SESSION_HANDOFF.md': '# H\n', '.claude/kit.md': conCarpeta('arti-docs'), '.claude/settings.json': '{"permissions": {"allow": ["Bash(*)"]}}\n' }, 'adopción');
+  assert.match(B.rango(a).como, /creó la ficha/);
+  verde(a);
+  const b = repo({ remoto: false, ficha: false });
+  commit(b, { '.claude/kit.md': conCarpeta('arti-docs') }, 'adopción sin el handoff');
+  const y = commit(b, { 'arti-docs/SESSION_HANDOFF.md': '# H\n' }, 'el primer cierre');
+  assert.deepEqual(B.rango(b).commits, [y]);
+  assert.doesNotMatch(B.rango(b).como, /carpeta-docs/);
+  verde(b);
+  // tocar el renglón sin cambiar el valor (entre comillas) no es un cambio de carpeta: el rango sigue desde el cierre
+  const q0 = repo({ remoto: false, ficha: false });
+  commit(q0, { '.claude/kit.md': conCarpeta('arti-docs') }, 'adopción');
+  commit(q0, { '.claude/kit.md': conCarpeta('"arti-docs"') }, 'las comillas');
+  const yq = commit(q0, { 'arti-docs/SESSION_HANDOFF.md': '# H\n' }, 'el primer cierre');
+  assert.deepEqual(B.rango(q0).commits, [yq]);
+  assert.doesNotMatch(B.rango(q0).como, /carpeta-docs/);
+  // sin la clave en la historia, el rango es el de siempre
+  const c = repo({ remoto: false });
+  commit(c, { 'docs/SESSION_HANDOFF.md': '# H\n' }, 'cierre');
+  assert.doesNotMatch(B.rango(c).como, /carpeta-docs/);
+});
+
+test('8r3 i1: con carpeta-docs: arti-docs, la base sale de arti-docs/SESSION_HANDOFF.md (el docs/ ajeno no mueve el rango)', () => {
+  const a = repo({ remoto: false, ficha: false });
+  commit(a, { '.claude/kit.md': conCarpeta('arti-docs'), 'arti-docs/SESSION_HANDOFF.md': '# H\n' }, 'adopción');
+  const h = commit(a, { 'arti-docs/SESSION_HANDOFF.md': '# H2\n' }, 'cierre');
+  const ajeno = commit(a, { 'docs/SESSION_HANDOFF.md': '# del sitio\n' }, 'el sitio');
+  assert.deepEqual(B.rango(a).commits, [h, ajeno]);
+});

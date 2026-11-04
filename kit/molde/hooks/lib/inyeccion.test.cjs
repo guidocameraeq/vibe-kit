@@ -869,3 +869,98 @@ test('líneas de F: en la pestaña del obrero también (después de la cabecera)
   assert.ok(lineas(r.texto).some((x) => x.startsWith('pre-commit:')));
   chequearHuella(r);
 });
+
+// ---------------------------------------------------------------- 8r3 i1: la carpeta de papeles (carpeta-docs:)
+
+// Un fork cuyo docs/ es un sitio ajeno (como el de OpenClaw) y los papeles del método en arti-docs/.
+function repoArti(o = {}) {
+  const d = o.d || repo();
+  commit(d, {
+    '.claude/kit.md': fichaKit().replace(/---\n$/, `carpeta-docs: ${o.carpeta || 'arti-docs'}\n---\n`),
+    'docs/SESSION_HANDOFF.md': handoff('AJENO'),
+    'docs/TODO.md': TODO_CHICO.replace(/ROJO-1/, 'AJENO-ROJO'),
+    'docs/docs.json': '{}\n',
+    'docs/guia.md': 'del sitio\n',
+    'docs/modulos/z/README.md': fichaModulo('z', 'EN OBRA', { proximo: 'AJENO-MOD' }),
+    [`${o.carpeta || 'arti-docs'}/SESSION_HANDOFF.md`]: handoff('ARTI'),
+    [`${o.carpeta || 'arti-docs'}/TODO.md`]: TODO_CHICO.replace(/ROJO-1/, 'ARTI-ROJO'),
+    [`${o.carpeta || 'arti-docs'}/modulos/m/README.md`]: fichaModulo('m', 'EN OBRA', { proximo: 'ARTI-MOD' }),
+  }, 'arti', T0);
+  return d;
+}
+
+test('8r3 i1: con carpeta-docs: arti-docs, el arranque inyecta arti-docs/ (handoff, TODO, módulos) y dice papeles:', () => {
+  const d = repoArti();
+  const r = armar(d);
+  const l = lineas(r.texto);
+  assert.ok(l.includes('=== handoff (arti-docs/SESSION_HANDOFF.md) ==='), r.texto);
+  assert.ok(r.texto.includes('ARTI-correr el smoke'));
+  assert.ok(l.includes(`=== TODO ${EMOJI.rojo} y ${EMOJI.naranja} (arti-docs/TODO.md) ===`));
+  assert.ok(r.texto.includes('ARTI-ROJO'));
+  assert.ok(r.texto.includes('ARTI-MOD'));
+  assert.ok(!r.texto.includes('AJENO'), 'nada del docs/ ajeno');
+  // la cabecera: el renglón de los papeles, y los dos renglones dentro de los 250
+  const i = l.indexOf(iny.lineaPapeles('arti-docs'));
+  assert.equal(i, 1, l.slice(0, 3).join('\n'));
+  assert.equal(l[i], 'papeles: arti-docs/ (carpeta-docs de la ficha) — donde el método dice docs/, es esta carpeta');
+  assert.ok(l[0].includes('handoff: '), l[0]);
+  assert.ok(l.slice(0, 2).join('\n').length <= 250);
+  chequearHuella(r);
+});
+
+test('8r3 i1: sin la clave (o con carpeta-docs: docs) no hay renglón papeles: y se lee docs/', () => {
+  for (const extra of ['', 'carpeta-docs: docs\n']) {
+    const d = repo();
+    commit(d, { '.claude/kit.md': fichaKit().replace(/---\n$/, `${extra}---\n`), 'docs/SESSION_HANDOFF.md': handoff('H'), 'docs/TODO.md': TODO_CHICO });
+    const r = armar(d);
+    assert.ok(!r.texto.includes('papeles:'), extra);
+    assert.ok(lineas(r.texto).includes('=== handoff (docs/SESSION_HANDOFF.md) ==='));
+  }
+});
+
+test('8r3 i1: una carpeta larga (80) achica el primer renglón, la cabecera sigue en 250', () => {
+  const largo = `${'a'.repeat(39)}/${'b'.repeat(40)}`;
+  const d = repoArti({ carpeta: largo });
+  const r = armar(d);
+  const l = lineas(r.texto);
+  assert.equal(l[1], iny.lineaPapeles(largo));
+  assert.ok(l.slice(0, 2).join('\n').length <= 250, String(l.slice(0, 2).join('\n').length));
+  assert.ok(lineas(r.texto).includes(`=== handoff (${largo}/SESSION_HANDOFF.md) ===`));
+});
+
+test('8r3 i1: con arti-docs, un commit en el docs/ ajeno es código (estado viejo); uno en arti-docs/, no', () => {
+  const d = repoArti();
+  commit(d, { 'arti-docs/referencia/x.md': 'x\n' }, 'papeles', T1);
+  let r = armar(d);
+  assert.ok(lineas(r.texto).includes('## Estado (hace 5 días)'), r.texto);
+  commit(d, { 'docs/guia.md': 'otra\n' }, 'el sitio', T1);
+  r = armar(d);
+  assert.ok(lineas(r.texto).includes('## Estado (hace 5 días · estado viejo)'), r.texto);
+});
+
+test('8r3 i1: el obrero busca su encargo en arti-docs/modulos/<x>/bitacora/', () => {
+  const d = repoArti();
+  commit(d, { 'arti-docs/modulos/m/bitacora/2026-10-01-encargo-E1.md': '# Encargo\n' });
+  g(d, 'branch', 'modulo/m');
+  g(d, 'checkout', '-q', '-b', 'modulo/m--E1');
+  const r = armar(d);
+  assert.ok(r.texto.includes('encargo E1: arti-docs/modulos/m/bitacora/2026-10-01-encargo-E1.md'), r.texto);
+  assert.ok(r.texto.includes('=== ficha del módulo m (git show modulo/m:arti-docs/modulos/m/README.md) ==='));
+});
+
+test('8r3 i1: con la ficha sin commitear (no vigente) la clave no vale: docs/', () => {
+  const d = repo();
+  commit(d, { 'docs/SESSION_HANDOFF.md': handoff('H'), 'arti-docs/SESSION_HANDOFF.md': handoff('ARTI') });
+  escribir(d, '.claude/kit.md', fichaKit().replace(/---\n$/, 'carpeta-docs: arti-docs\n---\n'));
+  const r = armar(d);
+  assert.ok(lineas(r.texto).includes('=== handoff (docs/SESSION_HANDOFF.md) ==='));
+  assert.ok(!r.texto.includes('papeles:'));
+});
+
+test('8r3 i1: plazo vencido (sin git): la pista del disco lleva a arti-docs/', () => {
+  const d = repoArti();
+  const r = conPlazo(0, () => armar(d));
+  assert.ok(r.texto.includes('=== handoff (arti-docs/SESSION_HANDOFF.md) ==='), r.texto);
+  assert.ok(r.texto.includes('ARTI-correr el smoke'));
+  chequearHuella(r);
+});

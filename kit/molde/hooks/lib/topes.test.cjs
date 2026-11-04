@@ -328,3 +328,32 @@ test('revisarTopes: lo que inyectaría el hook — más de 9.700 (con el mismo i
     iny.armar = original;
   }
 });
+
+// ---------------------------------------------------------------- 8r3 i1: la carpeta de papeles (carpeta-docs:)
+
+// El molde instanciado en arti-docs/ (la ficha con la clave, commiteada) y un docs/ ajeno con lo que en docs/ daría rojo.
+function moldeArti(cambios = {}) {
+  const d = pathT.join(TMP_T, `a${nT++}`);
+  fsT.cpSync(MOLDE_DOCS, pathT.join(d, 'arti-docs'), { recursive: true });
+  const h = fsT.readFileSync(pathT.join(MOLDE_DOCS, 'SESSION_HANDOFF.md'), 'utf8') + '\n' + '- relleno\n'.repeat(600);
+  escribirT(d, 'docs/SESSION_HANDOFF.md', h);
+  escribirT(d, 'docs/MAPA.md', '# MAPA\n' + 'x'.repeat(6000));
+  escribirT(d, 'docs/modulos/a/README.md', fichaModuloT('EN OBRA', 5100));
+  escribirT(d, '.claude/kit.md', FICHA_ESTANDAR.replace(/---\n$/, 'carpeta-docs: arti-docs\n---\n'));
+  gT(d, 'init', '-q', '-b', 'main');
+  gT(d, 'add', '-A');
+  gT(d, 'commit', '-q', '-m', 'molde');
+  for (const [rel, texto] of Object.entries(cambios)) escribirT(d, rel, texto);
+  return d;
+}
+
+test('8r3 i1: revisarTopes con carpeta-docs: arti-docs mira arti-docs/ (el docs/ ajeno pasado de topes no cuenta)', () => {
+  assert.deepEqual(revisar(moldeArti()), []);
+  const h = fsT.readFileSync(pathT.join(MOLDE_DOCS, 'SESSION_HANDOFF.md'), 'utf8') + '\n' + '- relleno\n'.repeat(600);
+  const f = revisar(moldeArti({ 'arti-docs/SESSION_HANDOFF.md': h, 'arti-docs/MAPA.md': '# MAPA\n' + 'x'.repeat(5000), 'arti-docs/modulos/b/README.md': fichaModuloT('EN OBRA', 5100) }));
+  assert.equal(f.find((x) => x.detalle === 'tamano').archivo, 'arti-docs/SESSION_HANDOFF.md');
+  assert.deepEqual(f.filter((x) => x.tipo === 'ficha').map((x) => x.archivo), ['arti-docs/modulos/b/README.md']);
+  const m = f.find((x) => x.tipo === 'mapa');
+  assert.equal(m.archivo, 'arti-docs/MAPA.md');
+  assert.match(m.mensaje, /^arti-docs\/MAPA\.md pesa /);
+});

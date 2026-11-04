@@ -500,6 +500,9 @@ function idsFicha(antesB, despuesB) {
   const publicasA = new Set(nombresDe(A, 'publicas'));
   for (const x of nombresDe(D, 'publicas')) if (!publicasA.has(x)) pares.add(par('frenos', `publicas:${x}`));
   if (tiene(D, 'datos-de-prueba') && canon(A['datos-de-prueba']) !== canon(D['datos-de-prueba'])) pares.add(par('frenos', 'datos-de-prueba'));
+  // 8r3 i1: carpeta-docs: en los dos sentidos (ponerla, sacarla o cambiarla): mueve lo que miran el candado y la base de barreras.
+  // Cuenta el valor que vale (sin la clave, docs): escribir `carpeta-docs: docs` donde no estaba no mueve nada.
+  if (ficha.carpetaDocs(A) !== ficha.carpetaDocs(D)) pares.add(par('frenos', 'carpeta-docs'));
   // sensible y autorizado, por clave
   for (const cat of ['sensible', 'autorizado']) {
     const ma = esMapa(A[cat]) ? A[cat] : {};

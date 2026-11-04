@@ -403,3 +403,48 @@ test('estadoPieza: texto, {estado, hash}, ausente', () => {
   assert.equal(ed.estadoPieza({ piezas: { candado: 'molde' } }), null);
   assert.equal(ed.estadoPieza({}), null);
 });
+
+// ---------------------------------------------------------------- 8r3 i1: la carpeta de papeles (carpeta-docs:)
+
+test('8r3 i1: con carpeta-docs: arti-docs, el docs/ ajeno pasa y un suelto en arti-docs/ frena (el hook entero)', () => {
+  const A = repo({ '.claude/kit.md': ficha('  hook-escritura: molde\n', 'carpeta-docs: arti-docs\n'), 'docs/docs.json': '{}\n', 'docs/guia.md': 'x\n', 'arti-docs/TODO.md': '# TODO\n' });
+  pasa(A, path.join(A, 'docs', 'x.md'));
+  pasa(A, path.join(A, 'docs', 'sitio', 'otra.md'));
+  pasa(A, path.join(A, 'arti-docs', 'SESSION_HANDOFF.md'));
+  pasa(A, path.join(A, 'arti-docs', 'modulos', 'm', 'README.md'));
+  const f = frena(A, path.join(A, 'arti-docs', 'suelto.md'), msj('arti-docs/suelto.md'));
+  assert.match(f.renglon, RE_RENGLON);
+  assert.equal(RE_RENGLON.exec(f.renglon)[3], 'arti-docs/suelto.md');
+  frena(A, path.join(A, 'Arti-Docs', 'specs', 'x.md'), msj('Arti-Docs/specs/'));
+});
+
+test('8r3 i1: una carpeta de dos tramos (papeles/metodo) se juzga entera', () => {
+  const A = repo({ '.claude/kit.md': ficha('  hook-escritura: molde\n', 'carpeta-docs: papeles/metodo\n') });
+  pasa(A, path.join(A, 'papeles', 'suelto.md'));
+  pasa(A, path.join(A, 'papeles', 'metodo', 'TODO.md'));
+  frena(A, path.join(A, 'papeles', 'metodo', 'suelto.md'), msj('papeles/metodo/suelto.md'));
+});
+
+test('8r3 i1: manda la ficha vigente — la clave solo en el disco no mueve el juicio; commiteada, sí', () => {
+  const A = repo({ '.claude/kit.md': ficha() });
+  escribir(A, '.claude/kit.md', ficha('  hook-escritura: molde\n', 'carpeta-docs: arti-docs\n'));
+  frena(A, path.join(A, 'docs', 'x.md'), msj('docs/x.md'));
+  pasa(A, path.join(A, 'arti-docs', 'suelto.md')); // la vigente es docs: arti-docs/ es una carpeta cualquiera
+  g(A, 'add', '-A');
+  g(A, 'commit', '-q', '-m', 'la clave');
+  pasa(A, path.join(A, 'docs', 'x.md'));
+  frena(A, path.join(A, 'arti-docs', 'suelto.md'), msj('arti-docs/suelto.md'));
+});
+
+test('8r3 i1: nombraDocs con otra carpeta y candidatas (docs y la pista del disco)', () => {
+  assert.ok(ed.nombraDocs('/p/arti-docs/x.md', 'arti-docs'));
+  assert.ok(ed.nombraDocs('C:\\p\\ARTI-DOCS.\\x.md', 'arti-docs'));
+  assert.ok(!ed.nombraDocs('/p/docs/x.md', 'arti-docs'));
+  assert.ok(ed.nombraDocs('/p/a/b/x.md', 'a/b'));
+  assert.ok(!ed.nombraDocs('/p/a/c/b/x.md', 'a/b'));
+  const A = repo({ '.claude/kit.md': ficha('  hook-escritura: molde\n', 'carpeta-docs: arti-docs\n') });
+  assert.deepEqual(ed.candidatas(path.join(A, 'src')), ['docs', 'arti-docs']);
+  const B = repo({ '.claude/kit.md': ficha('  hook-escritura: molde\n', 'carpeta-docs: ../afuera\n') });
+  assert.deepEqual(ed.candidatas(B), ['docs']);
+  assert.deepEqual(ed.candidatas(carpeta('suelta')), ['docs']);
+});

@@ -174,9 +174,25 @@ function ponerHooksPath(raiz) {
 
 // ---------------------------------------------------------------- de emergencia (error interno)
 
+// 8r3 i1 (rt-8): la carpeta de papeles sin las librerías: la `carpeta-docs:` del .claude/kit.md del disco, con una regex cruda de un
+// renglón y la forma de ficha.RE_CARPETA_DOCS copiada (si cambia allá, cambia acá); lo que no se entiende, docs. Es la de emergencia:
+// la vigente (de git) la lee lib/docs-ruta.cjs en el arranque normal.
+const RE_CLAVE_CARPETA = /^carpeta-docs:[ \t]*(?:"([^"\r\n]*)"|([^\s"#]+))[ \t]*(?:#[^\r\n]*)?\r?$/m;
+const RE_CARPETA_DOCS = /^(?=.{1,80}$)(?!(?:.*\/)?(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.[^/]*)?(?:\/|$))[a-z0-9](?:[a-z0-9._-]*[a-z0-9_-])?(?:\/[a-z0-9](?:[a-z0-9._-]*[a-z0-9_-])?)*$/;
+function carpetaDeEmergencia(raiz) {
+  try {
+    const m = RE_CLAVE_CARPETA.exec(fs.readFileSync(path.join(raiz, '.claude', 'kit.md'), 'utf8'));
+    const v = m ? (m[1] !== undefined ? m[1] : m[2]) : null;
+    return v && RE_CARPETA_DOCS.test(v) ? v : 'docs';
+  } catch (e) {
+    return 'docs';
+  }
+}
+
 // Sin las librerías: la línea de error, el handoff crudo hasta 5.000 bytes (cortado en renglón) y la huella.
 function deEmergencia(entrada) {
   const lineas = [ERROR_INTERNO];
+  let rel = 'docs/SESSION_HANDOFF.md';
   try {
     const cwd = cwdDe(entrada);
     let raiz = cwd;
@@ -184,7 +200,8 @@ function deEmergencia(entrada) {
     for (const v of ['GIT_DIR', 'GIT_WORK_TREE', 'GIT_COMMON_DIR', 'GIT_INDEX_FILE']) delete env[v];
     const r = spawnSync('git', ['rev-parse', '--show-toplevel'], { cwd, encoding: 'utf8', timeout: 5000, windowsHide: true, env });
     if (r.status === 0 && r.stdout && r.stdout.trim()) raiz = r.stdout.trim();
-    let b = fs.readFileSync(path.join(raiz, 'docs', 'SESSION_HANDOFF.md'));
+    rel = `${carpetaDeEmergencia(raiz)}/SESSION_HANDOFF.md`;
+    let b = fs.readFileSync(path.join(raiz, ...rel.split('/')));
     let cortado = false;
     if (b.length > HANDOFF_CRUDO_BYTES) {
       b = b.subarray(0, HANDOFF_CRUDO_BYTES);
@@ -193,9 +210,9 @@ function deEmergencia(entrada) {
       cortado = true;
     }
     lineas.push('', b.toString('utf8').replace(/\r\n?/g, '\n').replace(/\s+$/, ''));
-    if (cortado) lineas.push('… (CORTADO: sigue en docs/SESSION_HANDOFF.md)');
+    if (cortado) lineas.push(`… (CORTADO: sigue en ${rel})`);
   } catch (e) {
-    lineas.push('(no se pudo leer docs/SESSION_HANDOFF.md)');
+    lineas.push(`(no se pudo leer ${rel})`);
   }
   const pre = lineas.join('\n') + '\n';
   return pre + `inyectado: ${miles(pre.length)} de 9.700`;
@@ -266,5 +283,7 @@ if (require.main === module) {
     correrPropio,
     dejarMarca,
     deEmergencia,
+    carpetaDeEmergencia,
+    RE_CARPETA_DOCS,
   };
 }
