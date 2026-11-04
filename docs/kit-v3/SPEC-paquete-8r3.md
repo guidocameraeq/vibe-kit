@@ -115,8 +115,7 @@ Rutas: `molde` = `kit/molde/`, `lib` = `kit/molde/hooks/lib/`, `adoptar` = `kit/
 - **Un repo ya adoptado con `hook-arranque: propia`** (el camino del analytics, ahora en un comando): ver i5.
 - **El `/inicio` sin huella**: "falta la huella: el arranque que corrió no es el del kit, o no corrió — corré doctor; si tu
   `session-start.cjs` es propio: `actualizar.cjs resolver . hook-arranque nueva --por "<por qué>"`", y lee a mano el handoff y el TODO de
-  la carpeta de papeles. El `doctor` dice `hook-arranque: el archivo no es el del molde` cuando la ficha lo tiene en `molde` y el hash no
-  da (si ya lo dice, se verifica).
+  la carpeta de papeles. (El `doctor` no mira el hash del arranque: no entra en esta tanda; la línea del `/inicio` ya da el arreglo.)
 - **crit. 3**: `adoptar.test` — un repo con un `session-start.cjs` propio y el settings con el comando del molde: `--mirar` trae la línea
   y `D3`; `--aplicar --arranque kit` deja el archivo igual al del molde, la ficha `hook-arranque: {estado: molde, hash: …}` y `barreras
   --rango` verde en los commits de las piezas y la ficha; sin la opción, el archivo no se toca. `skills.test`: el `/inicio` nombra el
@@ -169,6 +168,68 @@ Rutas: `molde` = `kit/molde/`, `lib` = `kit/molde/hooks/lib/`, `adoptar` = `kit/
   escribe los archivos del molde, la ficha queda `molde` con hash; con `hook-arranque: propia`, igual y la línea pide el aprobado antes del
   commit; sin `--por`, se niega; con cambios sin commitear en la pieza, se niega sin escribir.
 
+### Lo que trajo el red team (manda sobre lo de arriba)
+
+Una ronda (2026-11-04): 2 ALTOS, 5 MEDIOS, 3 BAJOS, todos integrados.
+
+- **rt-1 (ALTO, i3) · La excepción de los `.pyc` se cae: i3 se rehace.** Los hooks de Hermes **cargan** `bloquear_python_stdin.py` en
+  cada corrida con `spec_from_file_location` (`bloquear_git_destructivo.py` ~61-66, `bloquear_metacaracteres_tests.py` ~51): ese
+  cargador **lee** `__pycache__/*.pyc` si la cabecera coincide (`-B` apaga la escritura, no la lectura), y la cabecera (por fecha o por
+  hash, PEP 552) se calca en cinco líneas: no ata el código al fuente. Un `.pyc` fabricado vaciaría el freno de git de Hermes con
+  `barreras` verde. **El arreglo nuevo**: `barreras`, antes de juntar lo pendiente, **borra** los `.pyc` ignorados que están en una carpeta
+  `__pycache__` bajo `.claude/hooks`, `.claude/scripts` o `.githooks` (archivos comunes, nunca un enlace; `__pycache__` sin mirar
+  mayúsculas) y lo dice en una línea (`borré N cachés de Python ignorados (se rehacen solos): <rutas>`). Un caché borrado se rehace del
+  fuente seguido; uno fabricado deja de estar. Si no lo puede borrar, cuenta como hoy (rojo). Todo otro ignorado, como hoy (rf-6 b
+  intacta). El residual: un `.pyc` fabricado corre **hasta el próximo `barreras`**, que lo borra y lo nombra. `PYTHONDONTWRITEBYTECODE`
+  sigue sin hacer falta. Reemplaza i3 y crit. 4 (abajo, "i3 · el arreglo que va").
+- **rt-2 (ALTO, i1) · Sin remoto, el commit que cambia `carpeta-docs:` se sacaba solo del rango.** Sin origin la vigente es `main`: un
+  commit X que pone `carpeta-docs: nada` y vacía los `deny` deja a `rango()` sin base (`git log -- nada/SESSION_HANDOFF.md` vacío → solo
+  lo pendiente); o X pone `zzz` y un Y crea `zzz/SESSION_HANDOFF.md` y la base es Y. **Arreglo**: sin remoto, la base nunca es posterior
+  al último commit que cambió el valor de `carpeta-docs:` (X entra al rango; la ficha que nace con la clave, la adopción, no cuenta: ya la
+  cubre `esAdopcion`). Y la clave va **solo en minúsculas** (`Docs` en Windows es `docs` en el disco y otra ruta para git). crit. 1 suma
+  los dos casos en `barreras.test`. El rango arranca en X hasta que la clave vuelva a cambiar o haya remoto (dicho en "Lo que esto no cierra").
+- **rt-3 (MEDIO, i4) · La línea depende de si hay origin.** Sin origin, `--traer` adelanta la carpeta desde el clon y el rango del primer
+  `/cierre` de Guido arranca en el último commit del handoff (anterior a la adopción): los commits rojos caen ahí, no "solo en el clon".
+  Y si en el clon arrancó una sesión después de `--arranque kit`, el hook del kit prendió `core.hooksPath` y el `pre-push` frena el push.
+  La línea dice cada caso (con origin: rojo solo antes del push; sin origin: lo ve tu primer `/cierre` y un aprobado posterior no lo
+  cubre: el sello va antes del commit, o se revierte). crit. 5 suma el caso sin origin y el del `pre-push` prendido.
+- **rt-4 (MEDIO, i1b) · `arti-docs/` tiene 8 sueltos en la raíz** (`ARCHITECTURE`, `DECISIONS`, `MODELS`, …): con la clave vigente y el
+  candado prendido, `candado:raiz` da rojo (como pasó en Hermes, que se adoptó con `candado: no`). `--mirar` los nombra ("no son de los
+  seis: con el candado prendido van a `referencia/`; si no, `candado: no` como en Hermes") y crit. 9 (a) corre `estructura.cjs todo`.
+- **rt-5 (MEDIO, i1b) · Un `docs/` ajeno sin la clave en la propuesta**: `--aplicar` **se niega** (no escribe nada) si `docs/` es ajeno
+  (tiene `docs.json`, `mkdocs.yml`, `CNAME`, o archivos que no son del método) y la propuesta no trae `carpeta-docs:`; la línea dice cómo
+  elegir. crit. 2 lo suma.
+- **rt-6 (MEDIO, i3)**: el remedio `git clean -fX` lo niega `git-seguro` (y el freno propio de Hermes): con el borrado de rt-1 ya no hay
+  remedio que dar.
+- **rt-7 (MEDIO, i5) · El aprobado exacto.** La línea imprime el `cambios nuevo …` entero, con `--toca` y los ids que `barreras` va a pedir
+  (salen de `categoriaDe`/`idsSettings` sobre las rutas de la pieza, no de una lista a mano), y el orden: `cambios nuevo` → `cambios
+  aprobar` (commit del sello, que solo toca el cambio y `frenos.log`) → el commit de la pieza. La prueba corre ese orden con la pieza
+  escrita en el disco y sin commitear mientras se aprueba, y `barreras` sale verde.
+- **rt-8 (BAJO, i1) · Lugares que faltaban**: `hooks/session-start.cjs` ~187-198 (el arranque de emergencia, sin `docs-ruta`: lee la
+  clave de la ficha del disco con una regex cruda; si no la entiende, `docs`), `inyeccion.cjs` ~131 (`:(exclude)docs`), `encargo.cjs`
+  ~122 y ~535 (las citas `docs/modulos`), `adoptar.cjs` ~92 (`NO_MIRAR`), ~219 (el `docs/` salteado al casar el molde v2), ~427-438 (los
+  cambios propios buscados en `docs/`), `migrar-cambios.cjs` ~36 (`FUENTE`). Se suman a H, S y A.
+- **rt-9 (BAJO, i2) · Lo que hacía el hook propio**: `--mirar` muestra sus primeras líneas de comentario y lo que lee (las rutas que
+  nombra) y dice `lo que quieras conservar, a .claude/hooks/session-start.propio.sh (el del kit lo corre)`. Y el porqué del verde: el
+  commit de las piezas va **antes** del de la ficha (`barreras.cjs` ~659), no por la exención b; la prueba no afirma la exención b.
+- **rt-10 (BAJO, i1) · Bordes**: la validación rechaza los nombres reservados de Windows en cualquier segmento (`con`, `nul`, `aux`,
+  `prn`, `com1-9`, `lpt1-9`, con o sin extensión). Con la ficha vigente rota, `docs-ruta` usa la última ficha que se lee (como el
+  candado, `barreras.ultimaFichaQueSeLee`). Un `docs` (o una carpeta) que es un enlace a otro lado: igual que hoy con `docs/`, no se
+  cubre (no lo agranda esta tanda).
+
+### i3 · el arreglo que va (reemplaza al de arriba, por rt-1)
+
+- `cambios.cjs` (y su copia `pc/lib/`): `limpiarCachePython(raiz)` → `[rel]` borrados: de `git ls-files --others --ignored
+  --exclude-standard` bajo `IGNORADOS_BARRERA`, los que terminan en `.pyc` y cuya carpeta madre se llama `__pycache__` (sin mirar
+  mayúsculas), `lstat` archivo común; `unlinkSync` cada uno (el que falla no va en la lista y sigue contando). Lo llama `barreras`
+  antes de juntar lo pendiente (`rutasPendientes`, `rutasPendientesContra`), y su salida suma la línea `borré N cachés de Python
+  ignorados (se rehacen solos del .py seguido): <hasta 5 rutas>…`. `ignoradosDeBarrera` no cambia.
+- **crit. 4 (el que va)**: `barreras.test` — con `__pycache__/` en `.gitignore`: `.claude/hooks/__pycache__/h.cpython-314.pyc` (y uno en
+  `.githooks/__pycache__/`, y `__PyCache__/` en mayúsculas) → `barreras` verde, el archivo ya no está y la línea lo nombra; un enlace
+  llamado así, un `.pyc` suelto al lado (`h.pyc` fuera de `__pycache__`), un `.pyo` y el `.propio.sh` ignorado de rf-6 b → rojo como hoy y
+  el archivo sigue; un `.pyc` en `__pycache__` **fuera** de las tres carpetas (en `src/`) no se toca. Mutación: sacar cada condición pone
+  verde un caso rojo o borra algo que no debía.
+
 ## NO SE TOCA
 
 - Lo que frenan los porteros (`git-seguro`, `niega-aprobar`, `sensible`, `secretos`). La gramática de la ficha salvo la clave nueva.
@@ -198,8 +259,8 @@ copiados a su `__pycache__/` ignorado, `estructura.cjs todo` sin el rojo de los 
   que miran el candado y las barreras editando el disco. Y cambiarla es barrera. `[mejor código]`
 - **D8r3-3 · Los textos de las skills no se reescriben ruta por ruta**: una línea en el arranque y una en los rituales ("`docs/` es la
   carpeta de papeles"). Reescribir ~200 menciones rompe los topes de las skills y no cambia lo que hace un script. `[acordarse de menos]`
-- **D8r3-4 · El `.pyc` de un `.py` seguido no es barrera; todo otro ignorado sí** (rf-6 b intacta). `PYTHONDONTWRITEBYTECODE` no se pone.
-  `[mejor código · coherencia]`
+- **D8r3-4 · `barreras` borra el caché de Python ignorado de las tres carpetas de barrera y lo dice**; todo otro ignorado sigue en rojo
+  (rf-6 b intacta). No hay excepción (rt-1: los hooks de Hermes leen ese caché) ni `PYTHONDONTWRITEBYTECODE`. `[mejor código · coherencia]`
 - **D8r3-5 · `--arranque kit` reemplaza el archivo con el mismo nombre**, como `--director kit`: un comando, y lo tuyo en la historia.
   `[workflow]`
 - **D8r3-6 · El pendiente 1 de "De D8r.2" entra** (i5): es el mismo camino que pedía el analytics para el arranque. `[workflow]`
@@ -207,8 +268,10 @@ copiados a su `__pycache__/` ignorado, `estructura.cjs todo` sin el rojo de los 
 
 ## Lo que esto no cierra
 
-- **Residual de i3**: un `.pyc` por fecha fabricado a mano con la cabecera calcada de un `.py` de hook seguido, en un proyecto donde otro
-  hook en Python lo importe. Mismo alcance que el `site-packages` del intérprete, que `barreras` no ve hoy.
+- **Residual de i3** (rt-1): un `.pyc` fabricado bajo `.claude/hooks/__pycache__/` corre hasta el próximo `barreras`, que lo borra y
+  lo nombra en una línea (antes lo decía en rojo y quedaba).
+- **Residual de rt-2**: en un repo **sin remoto** que cambió `carpeta-docs:` después de adoptar, el rango de `barreras` arranca en ese
+  commit hasta que la clave vuelva a cambiar o haya remoto (más commits por `/cierre`, nunca menos).
 - Los textos que nombran `docs/…` en las skills y los manuales siguen diciendo `docs/` (D8r3-3).
 - La adopción real del bot y la flota a los repos de Guido: las propone la sesión madre.
 

@@ -14,8 +14,20 @@ const POR_DEFECTO = ficha.CARPETA_DOCS;
 // deDatos(datos) → la carpeta de una ficha ya leída ({ datos } de ficha.leer o de fichaVigente).
 const deDatos = (datos) => ficha.carpetaDocs(datos);
 
-// deVigente(fv) → la carpeta de un resultado de contexto.fichaVigente (ok → la clave o docs; sin ficha o rota → docs).
-const deVigente = (fv) => (fv && fv.estado === 'ok' ? deDatos(fv.datos) : POR_DEFECTO);
+// deVigente(fv, raiz) → la carpeta de un resultado de contexto.fichaVigente: ok → la clave o docs; sin ficha → docs; rota → la de la
+// última ficha que se lee (como el candado, rt-10: si no, una ficha rota vuelve a mirar el docs/ ajeno), y sin ninguna, docs.
+function deVigente(fv, raiz) {
+  if (fv && fv.estado === 'ok') return deDatos(fv.datos);
+  if (fv && fv.estado === 'rota' && fv.ref && raiz) {
+    try {
+      const u = require('./barreras.cjs').ultimaFichaQueSeLee(raiz, fv.ref);
+      if (u) return deDatos(ficha.leer(u.texto.toString('utf8')).datos);
+    } catch (e) {
+      /* sin la anterior: docs */
+    }
+  }
+  return POR_DEFECTO;
+}
 
 // deRaiz(raiz) → la carpeta del checkout, leída de la ficha vigente una vez por proceso y por raíz.
 const guardadas = new Map();
@@ -25,7 +37,7 @@ function deRaiz(raiz) {
   let c = POR_DEFECTO;
   try {
     // require tardío: contexto.cjs requiere git.cjs y ficha.cjs; así docs-ruta se puede cargar sin git a mano (pruebas, arbol.cjs)
-    c = deVigente(require('./contexto.cjs').fichaVigente(clave));
+    c = deVigente(require('./contexto.cjs').fichaVigente(clave), clave);
   } catch (e) {
     c = POR_DEFECTO;
   }

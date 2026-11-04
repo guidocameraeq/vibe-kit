@@ -308,14 +308,15 @@ const CASOS = [
   ['datos-de-prueba no es texto', ficha('datos-de-prueba: [a]\n'), 6, /"datos-de-prueba" tiene que ser un texto/],
   ['datos-de-prueba como mapa', ficha('datos-de-prueba: {a: b}\n'), 6, /"datos-de-prueba" tiene que ser un texto/],
   // --- carpeta-docs (8r3, i1): una carpeta del repo, nunca afuera ni adentro de .claude
-  ...['../x', 'a/../b', '/x', 'x/', '.claude', '.claude/docs', 'x.', 'a./b', 'a//b', '"a b"', 'año', `${'a'.repeat(81)}`, '-x', '_x/y']
+  ...['../x', 'a/../b', '/x', 'x/', '.claude', '.claude/docs', 'x.', 'a./b', 'a//b', '"a b"', 'año', `${'a'.repeat(81)}`, '-x', '_x/y',
+    'Docs', 'arti-Docs', 'nul', 'con.txt', 'a/com1', 'lpt9/x', 'aux.md/y']
     .map((v) => [`carpeta-docs: ${v}`, ficha(`carpeta-docs: ${v}\n`), 6, /"carpeta-docs" tiene un valor que no se acepta — tiene que ser una carpeta del repo/]),
   ['carpeta-docs como lista', ficha('carpeta-docs: [a]\n'), 6, /"carpeta-docs" tiene que ser un texto/],
 ];
 
 test('carpeta-docs (8r3): las carpetas buenas se aceptan; sin la clave, docs', () => {
   const F = require('./ficha.cjs');
-  for (const v of ['docs', 'arti-docs', 'a/b-c', 'A1.x/y_z', 'x'.repeat(80)]) {
+  for (const v of ['docs', 'arti-docs', 'a/b-c', 'a1.x/y_z', 'x'.repeat(80), 'console', 'nula', 'com10', 'lpt', 'auxiliar/con-x']) {
     const r = leer(ficha(`carpeta-docs: ${v}\n`));
     assert.equal(r.datos['carpeta-docs'], v);
     assert.equal(F.carpetaDocs(r.datos), v);

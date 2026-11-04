@@ -233,8 +233,9 @@ const CONOCIDOS = ['kit', 'nivel', 'vars', 'piezas', 'frenos', 'autorizado', 'se
   'herramientas', 'entornos', 'datos-de-prueba', 'push-publica', 'aprueba', 'mesa', 'multi-llm', 'carpeta-docs'];
 
 // La carpeta de papeles del método (SPEC-paquete-8r3, i1): `carpeta-docs:`, `docs` sin ella. Una ruta relativa con `/`: segmentos de
-// [A-Za-z0-9._-] que empiezan con letra o número y no terminan en punto (Windows los ignora), sin `..`, sin `/` en las puntas, ≤ 80.
-const RE_CARPETA_DOCS = /^(?=.{1,80}$)[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9_-])?(?:\/[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9_-])?)*$/;
+// [a-z0-9._-] (solo minúsculas: `Docs` es `docs` en el disco de Windows y otra ruta para git; rt-2) que empiezan con letra o número y
+// no terminan en punto (Windows los ignora), sin `..`, sin `/` en las puntas, ≤ 80, y ningún nombre reservado de Windows (rt-10).
+const RE_CARPETA_DOCS = /^(?=.{1,80}$)(?!(?:.*\/)?(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.[^/]*)?(?:\/|$))[a-z0-9](?:[a-z0-9._-]*[a-z0-9_-])?(?:\/[a-z0-9](?:[a-z0-9._-]*[a-z0-9_-])?)*$/;
 const CARPETA_DOCS = 'docs';
 // carpetaDocs(datos) → la carpeta de papeles de una ficha ya leída (sin la clave, o sin ficha: `docs`).
 const carpetaDocs = (datos) => (datos && typeof datos['carpeta-docs'] === 'string' ? datos['carpeta-docs'] : CARPETA_DOCS);
@@ -441,7 +442,7 @@ function validar(datos, st, cierre, avisos) {
   if (tiene(datos, 'datos-de-prueba')) texto('datos-de-prueba', datos['datos-de-prueba']);
   if (tiene(datos, 'carpeta-docs')) {
     patron('carpeta-docs', datos['carpeta-docs'], RE_CARPETA_DOCS,
-      'tiene que ser una carpeta del repo con / (como docs o arti-docs): letras, números, . _ -, cada parte empieza con letra o número, sin .. ni / en las puntas, hasta 80');
+      'tiene que ser una carpeta del repo con / (como docs o arti-docs): minúsculas, números, . _ -, cada parte empieza con letra o número, sin .. ni / en las puntas ni nombres reservados de Windows (con, nul…), hasta 80');
   }
 
   // Campos de arriba desconocidos: aviso, no error (una PC atrasada no se tiene que trabar).

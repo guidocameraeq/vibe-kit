@@ -54,3 +54,14 @@ test('deRaiz lee la ficha vigente (commiteada), no el disco', () => {
   const sinClave = repo(FICHA(''));
   assert.equal(D.deRaiz(sinClave), 'docs');
 });
+
+test('deRaiz con la ficha vigente rota: la de la última ficha que se lee (rt-10)', () => {
+  D.olvidar();
+  const r = repo(FICHA('carpeta-docs: arti-docs\n'));
+  fs.writeFileSync(path.join(r, '.claude', 'kit.md'), "---\nkit: 'roto'\n---\n");
+  g(r, 'commit', '-q', '-am', 'rompe la ficha');
+  assert.equal(D.deRaiz(r), 'arti-docs');
+  D.olvidar();
+  const s = repo("---\nkit: 'roto'\n---\n");
+  assert.equal(D.deRaiz(s), 'docs');
+});
