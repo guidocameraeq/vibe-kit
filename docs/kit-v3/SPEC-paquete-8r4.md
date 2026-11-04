@@ -142,7 +142,10 @@ Rutas: `molde` = `kit/molde/`, `lib` = `kit/molde/hooks/lib/`, `wt` = `kit/molde
   traer-main <x>` entre dos encargos, nunca con un obrero a mitad de un sub-paso que toque lo mismo"*.
 - **crit. 2**: `flota.test` — un remoto con `modulo/a` viva: sin `--con-obra` sale `salteado` y el porqué nombra la bandera; con ella,
   `main` avanza un commit, `modulo/a` en el remoto queda **igual** (mismo sha) y "te espera" trae la línea de `modulo/a` (verde); un
-  `modulo/b` que cambió `.claude/settings.json` sin aprobado → la línea dice rojo con sus ids; uno que choca con el kit → "choca".
+  módulo que tocó **el mismo freno que el kit** sin chocar (lo que el merge deja distinto de los dos padres) → la línea dice rojo con sus
+  ids; uno que choca con el kit → "choca". *(Corregido por D8r.4 con lo que midió F: un `modulo/b` que cambió `.claude/settings.json` sin
+  aprobado da **verde** en el merge, y está bien: `descontarMerge` descuenta lo que quedó igual a un padre que lo cambió, y eso lo juzga
+  el push del propio módulo, no el merge. `[coherencia]`)*
   `worktree.test` — `traer-main` verde (commit con dos padres, push al bare), choca (aborta, el árbol y HEAD como antes, 1), rojo
   (aborta, 1, imprime el `cambios nuevo`), árbol sucio (1 sin tocar), parado en `main` (1). Mutación de `traer-main`: sacar el
   `--abort` del rojo, o el chequeo de rama, deja una prueba en rojo.
@@ -167,6 +170,10 @@ Rutas: `molde` = `kit/molde/`, `lib` = `kit/molde/hooks/lib/`, `wt` = `kit/molde
   `main`, el archivo "cambió" aunque es igual, y `descontarMerge` no descuenta nunca. La ficha y el settings comparan contenido; por eso
   las pruebas de merge (todas con ficha o settings) no lo vieron. El supuesto de antes ("sin saber" por la ficha) **no** era (una
   reproducción chica con solo el settings da verde). Lo encontró también el red team de u9 leyendo el código.
+- **El mismo caso en el pre-push** (la madre, Hermes, 2026-11-04): `merge --no-ff bb6f2f5d` (padres `origin/main` y la rama de CC),
+  `git push origin HEAD:main`: rojo por `gitleaks:.gitleaksignore`, que contra `origin/main` no cambia y contra la rama trae +7 líneas ya
+  aprobadas (`697fdc90`) y aplicadas (`97dcf288`) en `main`. Es la categoría `gitleaks` de la misma línea de `tocaContraUno`: el arreglo lo
+  cubre; crit. 9 suma el caso, con `main` como primer padre y al revés, y el rf-13 de `.gitleaksignore`.
 - **gitleaks**: `escanear(['diff', '--cached', …])` (`kit-githook.cjs` ~782), contra HEAD también con MERGE_HEAD: las líneas de `main`
   le salen como nuevas.
 - **El arreglo (manda sobre la regla de "igual a MERGE_HEAD", que se cae: rt-u9-2)**:
@@ -206,6 +213,46 @@ Rutas: `molde` = `kit/molde/`, `lib` = `kit/molde/hooks/lib/`, `wt` = `kit/molde
   `main` de Hermes, la rama sigue en rojo. El chequeo frío actualiza `main` del clon primero. Mientras, en Hermes, ese merge espera la
   `rc.5` (se lo dice la madre a Guido).
 
+#### u11 · `.claude/frenos.log` tapado por un `*.log` del proyecto (lo trajo la madre, de Hermes, 2026-11-04)
+
+- **El dolor**: `cambios aprobar` decía *"no — .claude/frenos.log está ignorado en .gitignore"*: Hermes tiene un `*.log` genérico
+  (`.gitignore:110`) y el snippet del molde no lo contemplaba; en cualquier proyecto con `*.log`, aprobar falla siempre. Hermes lo tapó a
+  mano con `!.claude/frenos.log` (`f1c2de92`).
+- **Vuelta 1**: `gitignore.snippet` suma `!/.claude/frenos.log`. El actualizador y la adopción suman lo que falta del snippet **al final**
+  del `.gitignore` (`actualizar.cjs`, paso 5), así que la negación queda después del `*.log` del proyecto. Prueba: `kit/molde/gitignore.test.cjs`
+  (con `*.log`: sin el snippet ignorado —el rojo, medido con el snippet viejo—, con él no; los otros `.log` y lo del kit siguen ignorados).
+- **Vuelta 2** (con A): `adoptar --mirar`/`--aplicar` y el `doctor` avisan si `git check-ignore .claude/frenos.log` da ignorado (un
+  `*.log` escrito **después** del bloque del kit).
+
+#### u12 · El tope de las skills avisa, no frena, cuando lo pasa la zona propia (DECIDIDO por Guido, 2026-11-04)
+
+- **El dolor** (lo midió D8r.3 en un clon de Hermes): la flota a Hermes sale ROTA en la línea 4 de `chequear` (skills): `cierre` 8975 B,
+  `director` 13154, `inicio` 9171 y `tramo` 9179, contra 8000 y 8600. Lo que los pasa es su **zona propia**; ya pasaban en la `rc.3`, con
+  la que se adoptó directo (nunca corrió una flota), y `adoptar --aplicar` con D1 A no lo avisa. Sin esto, Hermes no recibe ni la `rc.4` ni
+  la `rc.5`, con obra o sin ella.
+- **Decidido con Guido** (por la madre): *"que avise, no que frene"*. El tope sigue midiendo. Si lo que lo pasa es la zona propia, la
+  línea 4 da ⚠ y no ROTA, con cuánto se pasa, y la actualización sigue; el `doctor` lo avisa igual. Si lo que lo pasa es la parte del kit
+  (el texto sin lo de adentro de la zona), sigue ROTA: es un error nuestro. El aviso sugiere *"mové a un anexo lo propio que no hace falta
+  siempre, nunca lo de producción"*.
+- **Encargo S** (`chequeo.cjs` línea 4 y `doctor.cjs`, sus pruebas). **crit. 10**: `chequeo.test` — la zona propia que pasa el tope → la
+  línea no es roja y dice cuánto; la parte del kit que lo pasa → roja; el `/inicio` con su 8600; `doctor.test` la línea ⚠. Chequeo frío:
+  un clon de Hermes, flota `rc.3` → `rc.5` con la obra en curso y `--con-obra`: tiene que llegar (crit. 8 suma).
+- **El salto del bot** (la madre, 2026-11-04): Guido adopta `Arti-bot-eq` hoy con la `rc.4`; el chequeo frío suma un clon suyo adoptado
+  con la `rc.4` y "poné al día" `rc.4` → `rc.5`: tiene que llegar limpio.
+
+#### u13 · Lo que D2 recomendada saca, y qué lo cubre (lo trajo la madre, de Hermes, 2026-11-04; vuelta 2)
+
+- **El dolor**: la adopción de Hermes con D2 recomendada (`9056c05b`) sacó de las `ask` `Bash(git merge:*)`, `git push *--force*` y
+  `PowerShell(git merge *)`. El push forzado lo sigue frenando `git-seguro`; un `git merge` a mano en `main` ya no pide nada, y el
+  `CLAUDE.md` de Hermes dice que sí. Con una ventana, un obrero nace en `main` con rol humano antes de entrar.
+- **(a) entra**: `adoptar --mirar` lista, en el bloque D2, cada `ask`/`deny` propio que la recomendada saca, con el freno del kit que lo
+  cubre (`git-seguro: <regla>`, `sensible: <clave>`) o `ninguno` (`frenaAlDirector` ya los separa; falta decir qué los cubre). Con
+  `ninguno`, la línea lo dice así, para que Guido elija con eso. **crit.**: `adoptar.test`.
+- **(b) no entra**, con la vara: `ask Bash(git merge:*)` **no** va al set recomendado del kit. El director mergea a mano cada obrero
+  (`/director` paso 6: `git merge --no-ff <sha7>`, "sin preguntar"): un `ask` lo frenaría en cada encargo, que es justo por qué D2 lo saca
+  (`frenaAlDirector`). El obrero que nace en `main` lo cubre el paso 0 (rt-2: ningún comando antes de `adentro:`), y un merge del dueño en
+  `main` es suyo. `[workflow · coherencia]`. Lo de Hermes (volver a poner su `ask`) lo decide Guido aparte.
+
 #### u10 · Las trabas que todavía no saltaron (hipótesis; pedido de Guido por la madre, 2026-11-04)
 
 Inferidas de lo que dolió hoy. **Cada una se reproduce primero** (una prueba o un clon del scratchpad); la que no se reproduce va al
@@ -216,13 +263,15 @@ de su clase.
 |---|---|---|---|---|
 | h1 | `integrar` de un módulo que ya trajo `main` (`traer-main`) ve el merge como barrera sin aprobar | base equivocada | 1 (con u9) | `worktree.test`: módulo → `traer-main` (main con un hook aprobado) → `integrar` verde |
 | h2 | `git pull` con conflicto **en `main`** (el remoto trajo un freno aprobado en la otra PC): el pre-commit del merge sale rojo | base equivocada | 1 (con u9) | `kit-githook.test`: dos clones, uno aprueba y pushea un cambio de `settings.json`, el otro pull con conflicto → pre-commit |
-| h3 | `cherry-pick` o `revert` de un commit de barrera ya aprobado pide aprobado de nuevo | base equivocada | 1 | `barreras.test`: cherry-pick de un commit aprobado a otra rama; revert en `main` |
+| h3 | `cherry-pick` o `revert` de un commit de barrera ya aprobado pide aprobado de nuevo | base equivocada | — | **probada, no pasa** (en la vida real: el cherry-pick de 11 commits de `cc-ui` en Hermes anduvo sin pedir aprobados, la madre, 2026-11-04); el `revert` no se probó |
 | h4 | El merge de upstream en un fork (el bot, OpenClaw): miles de rutas y contenido ajeno para gitleaks | base equivocada | 1 (con u9) | lo mismo que u9 con MERGE_HEAD **fuera** de la vigente (upstream): ¿qué dice, y qué tendría que decir? (no se afloja para upstream: se documenta el camino) |
 | h5 | Secretos o falsos positivos viejos en la historia aparecen recién en un merge (Hermes: un `auth_uid` en `docs/legacy`) | antes de la adopción | 2 | `adoptar --mirar` corre `gitleaks detect` sobre toda la historia y lista `archivo:línea · regla` **sin el valor**, con la propuesta (rotar si es real; si no, `.gitleaksignore` con su porqué) |
 | h6 | Worktrees fuera de `.claude/worktrees/` confunden `worktree estado`, `cerrar`, el `doctor` o la flota | antes de la adopción | 2 (con u4) | `worktree.test` con dos worktrees en `../` |
 | h7 | Con una ventana, el hook de `main` (rc nueva) convive con los scripts y la ficha del worktree (rc vieja), o al revés: ¿choca un formato? | una ventana | 1 (con u1) | una prueba que corre los hooks del molde nuevo sobre un árbol con los scripts y la ficha de la `rc.4`, y al revés |
 | h8 | Dos sesiones en el mismo árbol: `barreras --indice` o el candado le cargan a una lo que la otra dejó en el índice | una ventana | 1 (con rt-6) | se razona sobre el código y una prueba: lo que deja una en el índice entra en el commit de la otra (rt-6 ya lo frena en `donde`) |
 | h9 | `.worktreeinclude` copia `config*.ini` con credenciales a cada worktree: ¿lo cubren el corrector de secretos y el deny? | una ventana | 2 (con u6) | `worktree.test`: un `config.local.ini` ignorado con una clave de mentira, copiado; `secretos.cjs` y el deny sobre esa ruta |
+| h11 | Un obrero (rol `obrero`, en su worktree) pushea directo a `origin main` (pasó en Hermes, con el clic de Guido, porque CC va por mensaje): ¿el kit lo frena en `git-seguro` o en el pre-push, como con el principal? | una ventana | 2 | primero se mira qué hace hoy `git-seguro` con un push a la rama por defecto desde rol `obrero`; la recomendada: negarlo (el texto de `/obrero` ya dice "nunca push a otra rama" y el que mergea a `main` es `integrar`). **DECIDIDO por Guido (2026-11-04, por la madre)**: a `main` sube solo el director (o `integrar`), nunca un obrero. Va a la `rc.6` (vuelta 2) |
+| h12 | Un repo con `hooks-lib` "te espera" (una fusión sin resolver) queda ROTA en toda versión cuyos hooks pidan la lib nueva, y el mensaje no dice "resolvé hooks-lib primero" (la flota de D8r.3 en alfa y beta: rc.3 → rc.4 ROTA, la línea 7 lo atajó; con la lib vieja el hook de escritura falla abierto, por diseño). Hermes y el analytics tienen `hooks-lib: molde`: no les pega | flota | rc.6 | el arreglo de fondo (que los hooks esperen junto con su lib, sin bajarlos si su lib queda esperando) es de diseño de piezas: va a la `rc.6`; la flota de prueba de la `rc.5` repite el paso del dueño que D8r.3 sumó en alfa y beta (resolver `hooks-lib`) antes del salto rc.4 → rc.5 |
 | h10 | Un hook o comando del kit llama a `sh` y falla desde una sesión en PowerShell sin `sh` en el PATH; el `doctor` lee mal la versión de `claude` de la terminal | otra PC | 2 | `git grep` de `sh`/`spawn('sh'` en el molde y los scripts; `doctor.test` con una salida de `claude --version` como la de Juan (`prueba/juan`, `52e0ca3`) |
 
 ### Vuelta 2 — el resto de lo que dolió
@@ -423,7 +472,8 @@ de un repo) sale `mezclado` o `al día`; (c) en un clon del bot: la adopción co
 - **D8r4-9 · "Mezclar agentes" no es un comando**: fundir instrucciones es criterio, no mecánica. `[mejor código]`
 - **D8r4-10 · Las lecciones de Hermes entran como una línea donde se lee**, nunca una sección nueva; seis no pasan la vara (tabla). `[acordarse de menos]`
 - **D8r4-11 · Dos vueltas, un tag**: la vuelta 1 (u1-u3) y la 2 (u4-u7) van en la `rc.5`. Si la 2 no entra sana en esta sesión, la `rc.5`
-  sale con la 1 y la 2 pasa a la `rc.6` junto a D8c.1 (se le avisa a la madre). `[workflow]`
+  sale con la 1 y la 2 pasa a la `rc.6` junto a D8c.1 (se le avisa a la madre). **Así quedó** (la madre, 2026-11-04): la `rc.5` es la
+  vuelta 1 (u1-u3, u9, u11, u12); la 2 y h12 van a la `rc.6`. `[workflow]`
 
 ## Lo que esto no cierra
 

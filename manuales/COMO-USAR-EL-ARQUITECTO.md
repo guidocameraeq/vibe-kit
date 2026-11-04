@@ -117,9 +117,9 @@ Los pasos:
 5. **Termina armando**: sello → tu OK (si cambiás algo, sella de nuevo) → READY. Con ficha: un commit en la rama por defecto **solo
    con lo del módulo** (nunca `git add -A`), push si hay remoto y, si es con director, `worktree.cjs crear <x>` (la rama
    `modulo/<x>` y su carpeta aparte). Si el proyecto no tiene `worktree.cjs`, lo dice y no arma el worktree a mano.
-6. **La línea**: módulo solo → chat nuevo en la carpeta, `inicio — ejecutá docs/modulos/<x>/SPEC.md (está READY)`; con director → la
-   línea `code "<worktree>"` que imprimió el script y, en esa ventana, la pestaña de Claude con Opus, con el primer mensaje
-   `/director` (la línea `primer mensaje:` del script); sin ficha → `inicio — ejecutá el spec docs/SPEC-<x>.md (está READY)`.
+6. **La línea**: módulo solo → chat nuevo en la carpeta, `inicio — ejecutá docs/modulos/<x>/SPEC.md (está READY)`; con director → en tu
+   ventana de siempre, una sesión nueva con Opus y el primer mensaje `/director`: entra sola al worktree (`worktree.cjs donde` y
+   EnterWorktree); la alternativa, `code "<worktree>"` en otra ventana; sin ficha → `inicio — ejecutá el spec docs/SPEC-<x>.md (está READY)`.
 
 Implementado, el spec no se archiva: su estado pasa a `COMPLETO <fecha>`.
 

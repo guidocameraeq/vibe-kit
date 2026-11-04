@@ -2,7 +2,8 @@
 // flota.cjs — `actualizar.cjs flota`: la flota de punta a punta (SPEC-paquete-6 P7.1, D6.2; E §6; D6-1, D6-6, D6-11, D6-15, D6-16).
 //
 //   node actualizar.cjs flota <repo>… | todo --canon <url o dir> [--tag vX.Y.Z[-rc.N]] [--proyectos <carpeta>] [--plazo <min>]
-//                                             [--fecha <AAAA-MM-DD>] [--molde-viejo <dir>] [--claude <exe> | no]
+//                                             [--fecha <AAAA-MM-DD>] [--molde-viejo <dir>] [--claude <exe> | no] [--con-obra]
+// --con-obra (u2, SPEC-paquete-8r4): las modulo/* vivas no saltean; ver probarModulos.
 //
 // Un script determinista (D6-1): nadie lo corre en bypass; el único agente es el de la fusión (aplicar → lib/fusion.cjs). En orden:
 //   (0) el canónico: git clone de --canon a un temporal, con tags, parado en --tag (sin él, el último tag v* ANOTADO por versión).
@@ -281,9 +282,105 @@ function pendienteDeSubir(clon, kit, version, datosFicha) {
   return aplicados.some((c) => !!CU.cubre(cub.entradas, [alias === null ? null : `${alias} ${c.id}`, typeof c.datos.cita === 'string' ? c.datos.cita : null], version));
 }
 
+// ---------------------------------------------------------------- u2: las modulo/* vivas con --con-obra (SPEC-paquete-8r4)
+
+const SI_SABES = 'si sabés que podés: --con-obra (no lo recomiendo con un director trabajando: su rama queda atrás de main hasta que la traiga)';
+const RAMA_PRUEBA = 'kit-flota/prueba-de-modulo'; // solo en el clon temporal: nunca se sube
+
+// Las rutas y los ids de lo que barreras dijo en rojo (las líneas "candado:barreras · <qué> · <hacer>"; la del caché de Python no
+// frena). → { ids: [..], cats: [..], que: [..] }. Los ids y las categorías salen del "toca <cats> (<ids>) sin un aprobado sellado".
+function rojosDeBarreras(salida) {
+  const que = [];
+  const cats = new Set();
+  const ids = new Set();
+  for (const l of String(salida || '').split(/\r?\n/)) {
+    const m = /^candado:barreras · (.*) · (.*)$/.exec(l.trim());
+    if (!m || m[2] === 'no hace falta nada') continue;
+    que.push(m[1]);
+    const t = /toca (.+?) \((.+?)\) sin un aprobado sellado/.exec(m[1]);
+    if (!t) continue;
+    for (const c of t[1].split(/, | y /)) if (!/^\d+ más$/.test(c)) cats.add(c.trim());
+    for (const i of t[2].split(/, | y /)) if (!/^\d+ más$/.test(i)) ids.add(i.trim());
+  }
+  return { que, cats: [...cats], ids: [...ids] };
+}
+
+// Por cada modulo/<x> viva, en el clon y sin subir nada: checkout -B de origin/modulo/<x>, merge --no-ff --no-commit de la rama por
+// defecto ya actualizada y `estructura.cjs barreras --indice` (rt-3: a secas no descuenta lo que llega igual de main), sin --molde.
+// Los githooks del clon no corren: core.hooksPath = una carpeta vacía en cada git de la prueba (el merge nunca se commitea). Entre un
+// módulo y otro, merge --abort + reset --hard + clean (rt-7 d). → las líneas de "te espera" (sin el nombre del repo).
+function probarModulos(clon, def, modulos, ctx, subido) {
+  const vacia = path.join(ctx.tmp, `sin-hooks-${ctx.n}`);
+  fs.mkdirSync(vacia, { recursive: true });
+  const g = (args, o = {}) => git(clon, ['-c', `core.hooksPath=${vacia.replace(/\\/g, '/')}`, ...args], { env: IDENTIDAD, ...o });
+  // la rama por defecto como quedó en el remoto (con el commit del kit); si el fetch no sale, lo que se acaba de subir
+  const f = g(['fetch', '-q', 'origin', `+refs/heads/${def}:refs/remotes/origin/${def}`], { plazo: PLAZO_RED });
+  const trae = f.ok ? `refs/remotes/origin/${def}` : subido;
+  const sha7 = g(['rev-parse', '--short=7', trae]).out.trim();
+  const limpiar = () => {
+    g(['merge', '--abort']); // sale 128 si no había merge: da igual
+    g(['reset', '-q', '--hard']);
+    g(['clean', '-fdq', '-e', KIT_ROL]);
+  };
+  const lineas = [];
+  for (const rm of modulos) {
+    const x = rm.slice('modulo/'.length);
+    const pre = `${rm}: trae ${def} con worktree.cjs traer-main ${x} (lo corre el director) — `;
+    limpiar();
+    const co = g(['checkout', '-q', '-f', '-B', RAMA_PRUEBA, `refs/remotes/origin/${rm}`]);
+    if (!co.ok) {
+      lineas.push(`${pre}no pude probarla (${primera(co.err)})`);
+      continue;
+    }
+    const m = g(['merge', '-q', '--no-ff', '--no-commit', trae]);
+    if (!m.ok) {
+      const u = g(['diff', '--name-only', '--diff-filter=U']).out.split(/\r?\n/).filter(Boolean);
+      lineas.push(u.length ? `${pre}choca en ${u.join(', ')}: es un encargo del director` : `${pre}no pude probarla (${primera(m.err || m.out)})`);
+      continue;
+    }
+    if (!fs.existsSync(path.join(clon, '.git', 'MERGE_HEAD'))) {
+      lineas.push(`${rm}: ya trae ${def} @${sha7}`);
+      continue;
+    }
+    const script = path.join(clon, '.claude', 'scripts', 'estructura.cjs');
+    if (!fs.existsSync(script)) {
+      lineas.push(`${pre}sin .claude/scripts/estructura.cjs: barreras NO VERIFICADO`);
+      continue;
+    }
+    const b = spawnSync(process.execPath, [script, 'barreras', '--indice', '--sin-log'], {
+      cwd: clon, encoding: 'utf8', windowsHide: true, timeout: PLAZO_RED, killSignal: 'SIGKILL',
+      env: entorno(), // barreras solo lee: no corre ningún hook
+    });
+    if (b.status === 0) lineas.push(`${pre}barreras verde`);
+    else if (b.status === 1) {
+      const r = rojosDeBarreras(b.stdout);
+      const ids = r.ids.length ? r.ids : r.que.length ? r.que : [primera(b.stdout) || 'sin salida'];
+      const cambio = r.cats.length && r.ids.length
+        ? `node .claude/scripts/cambios.cjs nuevo --slug trae-${def.replace(/[^\w-]+/g, '-')}-${x.replace(/[^\w-]+/g, '-')} --clase 3-barrera --toca ${r.cats.join(',')}${r.ids.map((i) => ` --id ${i}`).join('')} --origen "modulo/${x} trae ${def} @${sha7}"`
+        : 'cambios nuevo (3-barrera, un --id por cada uno)';
+      lineas.push(`${pre}barreras rojo: ${ids.join(', ')} (lo apruebas vos antes: ${cambio})`);
+    } else lineas.push(`${pre}barreras NO VERIFICADO (${b.error ? b.error.code || b.error.message : `salió con ${b.status}`})`);
+  }
+  limpiar();
+  return lineas;
+}
+
 // actualizarRepo(nombre, url, ctx) → fila {repo, antes, despues, resultado, porque, espera: [], falla}. Escribe solo en su clon temporal
-// y en el remoto. ctx = {kit, version, tmp, n, moldeViejo, fecha, plazoMs, claude, aplicar, chequear}.
+// y en el remoto (nunca en una modulo/*). ctx = {kit, version, tmp, n, moldeViejo, fecha, plazoMs, claude, aplicar, chequear, conObra}.
+// Con ctx.conObra y modulo/* vivas: main por el camino de siempre y, solo si salió `mezclado`, la prueba por módulo (probarModulos);
+// si main quedó esperando (te espera, ROTA, o kit/<tag> que ya estaba), cada módulo dice "primero mezclá kit/<tag> en <def>" (rt-7 e).
 async function actualizarRepo(nombre, url, ctx) {
+  const est = {};
+  const fila = await actualizarMain(nombre, url, ctx, est);
+  if (!ctx.conObra || !est.modulos || !est.modulos.length) return fila;
+  let lineas = [];
+  if (fila.resultado === 'mezclado') lineas = probarModulos(est.clon, est.def, est.modulos, ctx, est.subido);
+  else if (est.rama && ['te espera', 'ROTA', 'salteado'].includes(fila.resultado)) lineas = est.modulos.map((m) => `${m}: primero mezclá ${est.rama} en ${est.def}`);
+  fila.espera.push(...lineas.map((l) => `${nombre}: ${l}`));
+  return fila;
+}
+
+async function actualizarMain(nombre, url, ctx, est) {
   const fila = { repo: nombre, antes: '?', despues: '?', resultado: '', porque: '', espera: [], falla: false };
   const fin = (resultado, porque, extra = {}) => Object.assign(fila, { resultado, porque }, extra);
   const clon = path.join(ctx.tmp, `repo-${ctx.n}`);
@@ -302,7 +399,9 @@ async function actualizarRepo(nombre, url, ctx) {
   // solo las no mezcladas en origin/<def> (SPEC-paquete-8r, 1; D8r-7): una ya mezclada que nadie borró no es obra en curso
   const mezclada = (r) => git(clon, ['merge-base', '--is-ancestor', `refs/remotes/origin/${r}`, `refs/remotes/origin/${def}`]).ok;
   const modulos = ramas.filter((r) => r.startsWith('modulo/') && !mezclada(r));
-  if (modulos.length) return fin('salteado', `obra en curso: ${modulos.join(', ')} viva${modulos.length > 1 ? 's' : ''} en el remoto, sin mezclar en ${def} — no me meto en el medio (si la mezclaste con squash en GitHub, borrá la rama desde la web)`);
+  if (modulos.length && !ctx.conObra) return fin('salteado', `obra en curso: ${modulos.join(', ')} viva${modulos.length > 1 ? 's' : ''} en el remoto, sin mezclar en ${def} — no me meto en el medio (si la mezclaste con squash en GitHub, borrá la rama desde la web); ${SI_SABES}`);
+  // u2 (--con-obra): main sigue por el camino de siempre; las modulo/* se prueban después (actualizarRepo), sin subir nada
+  Object.assign(est, { clon, def, modulos });
   const rf = path.join(clon, ...RUTA_FICHA.split('/'));
   if (!fs.existsSync(rf)) return fin('sin tocar', `sin ficha (${RUTA_FICHA}): eso es adoptarlo, no actualizarlo`);
   let datos;
@@ -319,6 +418,7 @@ async function actualizarRepo(nombre, url, ctx) {
   // …salvo que tenga algo que subir al kit (RF-fix rf-4; con un -rc no se sube nada: r1-6)
   if (datos.kit === ctx.version && (esRc || !pendienteDeSubir(clon, ctx.kit, ctx.version, datos))) return fin('al día', `la ficha ya dice ${ctx.version}`);
   const rama = `kit/${tag}`;
+  est.rama = rama;
   let rehecha = false;
   if (ramas.includes(rama)) {
     const s = git(clon, ['log', '-1', '--format=%s', `refs/remotes/origin/${rama}`]);
@@ -407,6 +507,7 @@ async function actualizarRepo(nombre, url, ctx) {
   }
   if (fus.fusionadas.length) notas.push(`fusionadas: ${fus.fusionadas.join(', ')}`);
   if (fus.esperan.length) notas.push(`te espera: ${fus.esperan.join(', ')}`);
+  notas.push(...require('./chequeo.cjs').avisosDe(ch.lineas)); // D8r.4 (S): un ⚠ de chequear (la zona propia que pasa el tope) va a la fila; no la vuelve ROTA
   // las que esperan viajan en el commit (.claude/fusiones/): las ve la sesión del proyecto cuando el commit está en su rama
   const avisarFusiones = () => {
     if (fus.esperan.length) fila.espera.push(`en ${nombre}, la próxima sesión te pregunta por ${fus.esperan.join(', ')}`);
@@ -427,6 +528,7 @@ async function actualizarRepo(nombre, url, ctx) {
   const p = git(clon, ['push', '-q', 'origin', `HEAD:refs/heads/${def}`], { env, plazo: PLAZO_RED });
   if (p.ok) {
     avisarFusiones();
+    est.subido = git(clon, ['rev-parse', 'HEAD']).out.trim();
     return fin('mezclado', conNotas(`un commit a ${def}`), { despues: ctx.version });
   }
   // sin red: ni kit/v… (tampoco saldría); el pre-push u otro error local: falla con su línea
@@ -514,6 +616,9 @@ function leerArgs(argv) {
     if (Object.prototype.hasOwnProperty.call(conValor, a)) {
       if (i + 1 >= argv.length || !argv[i + 1]) return null;
       o[conValor[a]] = argv[++i];
+    } else if (a === '--con-obra') {
+      if (o.conObra) return null;
+      o.conObra = true; // u2 (SPEC-paquete-8r4): las modulo/* vivas no saltean el repo
     } else if (!a.startsWith('--') && a) o.repos.push(a);
     else return null;
   }
@@ -538,7 +643,8 @@ async function main(argv) {
     fecha: o.fecha,
     moldeViejo: o.moldeViejo ? path.resolve(o.moldeViejo) : undefined,
     claude: o.claude && /[\\/]/.test(o.claude) ? path.resolve(o.claude) : o.claude, // sin él: el del PATH (lo busca aplicar)
+    conObra: !!o.conObra,
   });
 }
 
-module.exports = { flota, main, leerArgs, entorno, porqueNoSubio, actualizarRepo, pendienteDeSubir, hooksDelMolde, prepararCanon, tagsDe, elegirTag, compararTags, versionDeTag, origenDe, resolverOrigen, todosLosRepos, rutaDeRepo, fusionDe, primeraRoja, porqueRechazo, tabla, Negativa, RE_ROTA };
+module.exports = { flota, main, leerArgs, probarModulos, rojosDeBarreras, SI_SABES, entorno, porqueNoSubio, actualizarRepo, pendienteDeSubir, hooksDelMolde, prepararCanon, tagsDe, elegirTag, compararTags, versionDeTag, origenDe, resolverOrigen, todosLosRepos, rutaDeRepo, fusionDe, primeraRoja, porqueRechazo, tabla, Negativa, RE_ROTA };

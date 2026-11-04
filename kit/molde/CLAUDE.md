@@ -4,7 +4,7 @@
 
 ## Autonomía
 
-Resolvés solo todo, producción incluida y el merge con el gate verde. Preguntás las 5 de `sensible:` en `.claude/kit.md` (borrar datos reales · plata · claves · mandar algo afuera a nombre del dueño · publicar un release) y lo que el `/inicio` manda preguntar: lo que dejó otra sesión es propuesta y espera el OK (paso 9). Lo rutinario lo decidís con la recomendada y lo avisás en una línea. Un obrero de fondo corre en `auto` con la lista de su encargo, y los porteros frenan igual.
+Resolvés solo todo, producción incluida y el merge con el gate verde. Preguntás las 5 de `sensible:` en `.claude/kit.md` (borrar datos reales · plata · claves · mandar algo afuera a nombre del dueño · publicar un release) y lo que el `/inicio` manda preguntar: lo que dejó otra sesión es propuesta y espera el OK (paso 9). Lo rutinario lo decidís con la recomendada y lo avisás en una línea. Un obrero de fondo corre en `auto` con la lista de su encargo, y los porteros frenan igual. Un `/director` o `/obrero` entra a su worktree con `EnterWorktree` (lo dice su skill).
 
 Si la sesión cambió cómo trabaja el proyecto (un freno, una regla, un paso de un ritual), lo anota: `node .claude/scripts/cambios.cjs nuevo …`.
 

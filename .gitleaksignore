@@ -1,0 +1,4 @@
+# Huellas de gitleaks que no son secretos (repo PÚBLICO: solo con su porqué). SPEC-paquete-8r4 u3.
+# Dos claves de mentira de la prueba del doctor (D6.1 E2, 2026-11-02): "push solo con 0" vuelve a medir algo.
+f670568d986aabdfead82993b317cc0db91a038f:kit/skills/arquitecto-skills/scripts/doctor.test.cjs:generic-api-key:595
+f670568d986aabdfead82993b317cc0db91a038f:kit/skills/arquitecto-skills/scripts/doctor.test.cjs:generic-api-key:597

@@ -269,7 +269,7 @@ test('crit. 5 (8r, 1): una modulo/x ya mezclada en main en el remoto no saltea; 
   assert.equal(vacio.base, git(vacio.bare, 'rev-parse', 'main^'));
   const f = fila(r, 'obra');
   assert.equal(f.resultado, 'salteado', texto);
-  assert.equal(f.porque, 'obra en curso: modulo/z viva en el remoto, sin mezclar en main — no me meto en el medio (si la mezclaste con squash en GitHub, borrá la rama desde la web)');
+  assert.equal(f.porque, 'obra en curso: modulo/z viva en el remoto, sin mezclar en main — no me meto en el medio (si la mezclaste con squash en GitHub, borrá la rama desde la web); si sabés que podés: --con-obra (no lo recomiendo con un director trabajando: su rama queda atrás de main hasta que la traiga)');
   assert.ok(!f.porque.includes('modulo/x'), 'la mezclada no cuenta');
 });
 
@@ -869,4 +869,144 @@ test('RF-fix rf-4: rc → final — el rc solo "subiría"; el final no saltea po
   const r3 = await correr({ repos: ['alfa'], canon, tag: 'v3.0.0', proyectos: P });
   assert.equal(fila(r3, 'alfa').resultado, 'al día', r3.lineas.join('\n'));
   assert.match(fila(r3, 'alfa').porque, /la ficha ya dice 3\.0\.0/);
+});
+
+// ---------------------------------------------------------------- u2 (SPEC-paquete-8r4): la flota con obra en curso, --con-obra
+
+const editar = (d, rel, fn) => {
+  const p = path.join(d, ...rel.split('/'));
+  const t = fs.readFileSync(p, 'utf8');
+  const u = fn(t);
+  assert.notEqual(u, t, `editar ${rel}: no cambió nada`);
+  fs.writeFileSync(p, u);
+};
+// Un molde nuevo como MOLDE_NUEVO (el paso más del cierre) y además lo que haga `mas(d)`.
+const moldeCon = (mas) => {
+  const d = conCierre('- Un paso más del molde 3.0.0: mirá que el handoff diga la versión del kit.');
+  mas(d);
+  return d;
+};
+const SETTINGS_DEL_KIT = (d) => editar(d, 'settings.json', (t) => t.replace('"Read(~/.aws/**)",', '"Read(~/.aws/**)",\n      "Read(~/.azure/**)",'));
+const HOOK_DEL_KIT = (d) => editar(d, 'hooks/sensible.cjs', (t) => `${t.replace(/\s*$/, '')}\n// un renglón nuevo del kit 3.0.0\n`);
+const MOLDE_SETTINGS = moldeCon(SETTINGS_DEL_KIT);
+const MOLDE_SETTINGS_Y_HOOK = moldeCon((d) => { SETTINGS_DEL_KIT(d); HOOK_DEL_KIT(d); });
+// Una modulo/<x> en el remoto: un commit sobre main con lo que haga `cambiar(clon)`.
+function moduloQue(bare, rama, cambiar) {
+  const c = path.join(nuevaCarpeta('clon-aux'), 'c');
+  git(T, 'clone', '-q', bare, c);
+  git(c, 'checkout', '-q', '-b', rama);
+  cambiar(c);
+  git(c, 'add', '-A');
+  git(c, 'commit', '-q', '-m', `obra de ${rama}`);
+  git(c, 'push', '-q', 'origin', rama);
+}
+const CHOCA = (c) => editar(c, '.claude/skills/cierre/SKILL.md', (t) => t.replace('<!-- kit:propio -->', '- Un paso del módulo, justo donde el kit pone el suyo.\n\n<!-- kit:propio -->'));
+// un deny menos (una allow nueva no es freno: no la juzga barreras)
+const SETTINGS_DEL_MODULO = (c) => editar(c, '.claude/settings.json', (t) => t.replace(/\n\s*"Read\(~\/\.config\/gh\/\*\*\)",/, ''));
+// chequear ya tiene sus pruebas (crit. 15 y 16): acá lo que se mira es la prueba por módulo.
+const chequearVerde = async () => ({ codigo: 0, lineas: ['(chequear de mentira: verde)'] });
+const ramasDe = (bare) => git(bare, 'for-each-ref', '--format=%(refname) %(objectname)', 'refs/heads').split('\n').filter(Boolean);
+const RE_VERDE = (repo, x) => new RegExp(`^${repo}: modulo/${x}: trae main con worktree\\.cjs traer-main ${x} \\(lo corre el director\\) — barreras verde$`);
+
+test('u2 crit. 2: sin --con-obra, salteado y el porqué nombra la bandera; con ella, main avanza un commit (trae settings.json del kit), modulo/a igual y su línea verde', async () => {
+  const canon = armarCanon({ molde: MOLDE_SETTINGS });
+  const P = nuevaCarpeta('proyectos');
+  const x = armarRepo(P, 'alfa', { remoto: (b) => ramaEnRemoto(b, 'modulo/a') });
+  const shaA = git(x.bare, 'rev-parse', 'refs/heads/modulo/a');
+  const r1 = await correr({ repos: ['alfa'], canon, proyectos: P, chequear: chequearVerde });
+  const f1 = fila(r1, 'alfa');
+  assert.equal(f1.resultado, 'salteado', r1.lineas.join('\n'));
+  assert.match(f1.porque, /^obra en curso: modulo\/a viva en el remoto, sin mezclar en main — no me meto en el medio/);
+  assert.ok(f1.porque.endsWith('si sabés que podés: --con-obra (no lo recomiendo con un director trabajando: su rama queda atrás de main hasta que la traiga)'), f1.porque);
+  assert.equal(git(x.bare, 'rev-parse', 'main'), x.base);
+  const r2 = await correr({ repos: ['alfa'], canon, proyectos: P, chequear: chequearVerde, conObra: true });
+  const t2 = r2.lineas.join('\n');
+  const f2 = fila(r2, 'alfa');
+  assert.equal(r2.codigo, 0, t2);
+  assert.equal(f2.resultado, 'mezclado', t2);
+  assert.equal(git(x.bare, 'rev-list', '--count', `${x.base}..main`), '1', 'main avanza un commit');
+  assert.match(git(x.bare, 'diff', '--name-only', x.base, 'main'), /^\.claude\/settings\.json$/m, 'rt-3: main trae un cambio de settings.json');
+  assert.equal(git(x.bare, 'rev-parse', 'refs/heads/modulo/a'), shaA, 'la flota nunca sube a una modulo/*');
+  assert.deepEqual(ramasDe(x.bare).map((l) => l.split(' ')[0]).sort(), ['refs/heads/main', 'refs/heads/modulo/a'], 'ninguna rama más en el remoto');
+  assert.deepEqual(f2.espera.filter((e) => /modulo\//.test(e)).length, 1, t2);
+  assert.ok(f2.espera.some((e) => RE_VERDE('alfa', 'a').test(e)), t2);
+  assert.match(t2, /^ {2}- alfa: modulo\/a: trae main con worktree\.cjs traer-main a/m, 'en "te espera:"');
+});
+
+// todo: hoy da "barreras rojo: hooks:.claude/hooks/sensible.cjs" — el hook que llega idéntico desde main no se descuenta en un merge
+// (u9; lo arregla el encargo M en kit/molde/hooks/lib/barreras.cjs). Sacar el todo después del merge de M: tiene que pasar.
+test('u2 rt-3: el verde trae de main settings.json Y un hook ya aprobado allá (barreras --indice descuenta lo que llega igual)', async () => {
+  const canon = armarCanon({ molde: MOLDE_SETTINGS_Y_HOOK });
+  const P = nuevaCarpeta('proyectos');
+  const x = armarRepo(P, 'alfa', { remoto: (b) => ramaEnRemoto(b, 'modulo/a') });
+  const r = await correr({ repos: ['alfa'], canon, proyectos: P, chequear: chequearVerde, conObra: true });
+  const t = r.lineas.join('\n');
+  assert.equal(fila(r, 'alfa').resultado, 'mezclado', t);
+  const cambio = git(x.bare, 'diff', '--name-only', x.base, 'main');
+  assert.match(cambio, /^\.claude\/settings\.json$/m);
+  assert.match(cambio, /^\.claude\/hooks\/sensible\.cjs$/m);
+  assert.ok(fila(r, 'alfa').espera.some((e) => RE_VERDE('alfa', 'a').test(e)), t);
+});
+
+// modulo/c cambió settings.json (un deny menos) sin aprobado: el merge NO lo vuelve a juzgar — quedó igual al padre que lo cambió,
+// y eso "lo trajo la rama y lo juzgan sus commits" (descontarMerge, cambios.cjs). Lo juzgó (o no) el pre-commit del módulo: verde.
+test('u2 rt-7 (d): tres módulos — el primero choca con el kit, el segundo da verde (el abort entre uno y otro), el tercero cambió settings.json y también da verde; las modulo/* del remoto, igual', async () => {
+  const canon = armarCanon();
+  const P = nuevaCarpeta('proyectos');
+  const x = armarRepo(P, 'dos', { remoto: (b) => { moduloQue(b, 'modulo/a', CHOCA); ramaEnRemoto(b, 'modulo/b'); moduloQue(b, 'modulo/c', SETTINGS_DEL_MODULO); } });
+  const antes = ramasDe(x.bare).filter((l) => !l.startsWith('refs/heads/main '));
+  const r = await correr({ repos: ['dos'], canon, proyectos: P, chequear: chequearVerde, conObra: true });
+  const t = r.lineas.join('\n');
+  assert.equal(r.codigo, 0, t);
+  assert.equal(fila(r, 'dos').resultado, 'mezclado', t);
+  assert.equal(git(x.bare, 'rev-list', '--count', `${x.base}..main`), '1');
+  assert.deepEqual(ramasDe(x.bare).filter((l) => !l.startsWith('refs/heads/main ')), antes, 'las modulo/* en el remoto, igual');
+  const ed = fila(r, 'dos').espera;
+  assert.ok(ed.includes('dos: modulo/a: trae main con worktree.cjs traer-main a (lo corre el director) — choca en .claude/skills/cierre/SKILL.md: es un encargo del director'), t);
+  assert.ok(ed.some((e) => RE_VERDE('dos', 'b').test(e)), `el segundo arranca limpio\n${t}`);
+  assert.ok(ed.some((e) => RE_VERDE('dos', 'c').test(e)), t);
+});
+
+// Rojo de verdad en un merge: el kit y el módulo cambian el MISMO freno (un hook) sin chocar en el texto — el resultado no es igual
+// a ningún padre, nadie lo juzgó. (Hoy también da rojo por el bug que arregla M; después de M sigue rojo por esto.)
+test('u2: un módulo que tocó el mismo hook que el kit, sin chocar → barreras rojo con su id y la línea de cambios nuevo', async () => {
+  const canon = armarCanon({ molde: moldeCon(HOOK_DEL_KIT) });
+  const P = nuevaCarpeta('proyectos');
+  const x = armarRepo(P, 'rojo', { remoto: (b) => moduloQue(b, 'modulo/b', (c) => editar(c, '.claude/hooks/sensible.cjs', (t) => t.replace("'use strict';\n", "'use strict';\n// un renglón del módulo b\n"))) });
+  const shaB = git(x.bare, 'rev-parse', 'refs/heads/modulo/b');
+  const r = await correr({ repos: ['rojo'], canon, proyectos: P, chequear: chequearVerde, conObra: true });
+  const t = r.lineas.join('\n');
+  assert.equal(fila(r, 'rojo').resultado, 'mezclado', t);
+  assert.equal(git(x.bare, 'rev-parse', 'refs/heads/modulo/b'), shaB);
+  const er = fila(r, 'rojo').espera.find((e) => e.startsWith('rojo: modulo/b: '));
+  assert.ok(er, t);
+  assert.match(er, /^rojo: modulo\/b: trae main con worktree\.cjs traer-main b \(lo corre el director\) — barreras rojo: hooks:\.claude\/hooks\/sensible\.cjs \(lo apruebas vos antes: node \.claude\/scripts\/cambios\.cjs nuevo --slug trae-main-b --clase 3-barrera --toca hooks --id hooks:\.claude\/hooks\/sensible\.cjs --origen "modulo\/b trae main @[0-9a-f]{7}"\)$/);
+});
+
+test('u2 rt-7 (e): main que sale "te espera" (protegida) → la línea de cada módulo es "primero mezclá kit/<tag> en main", sin prueba', async () => {
+  const canon = armarCanon();
+  const P = nuevaCarpeta('proyectos');
+  const x = armarRepo(P, 'alfa', {
+    remoto: (b) => {
+      const h = path.join(b, 'hooks', 'pre-receive');
+      fs.writeFileSync(h, '#!/bin/sh\nwhile read viejo nuevo ref; do\n  if [ "$ref" = refs/heads/main ]; then echo "main está protegida" >&2; exit 1; fi\ndone\nexit 0\n');
+      fs.chmodSync(h, 0o755);
+      ramaEnRemoto(b, 'modulo/a');
+    },
+  });
+  const shaA = git(x.bare, 'rev-parse', 'refs/heads/modulo/a');
+  const r = await correr({ repos: ['alfa'], canon, tag: 'v3.0.0-rc.1', proyectos: P, chequear: chequearVerde, conObra: true });
+  const t = r.lineas.join('\n');
+  const f = fila(r, 'alfa');
+  assert.equal(f.resultado, 'te espera', t);
+  assert.ok(f.espera.includes('alfa: modulo/a: primero mezclá kit/v3.0.0-rc.1 en main'), t);
+  assert.ok(!f.espera.some((e) => /traer-main/.test(e)), t);
+  assert.equal(git(x.bare, 'rev-parse', 'refs/heads/modulo/a'), shaA);
+});
+
+test('u2: --con-obra en la CLI (leerArgs) y en el USO', () => {
+  assert.equal(FL.leerArgs(['alfa', '--canon', 'c', '--con-obra']).conObra, true);
+  assert.equal(FL.leerArgs(['alfa', '--canon', 'c']).conObra, undefined);
+  assert.equal(FL.leerArgs(['alfa', '--canon', 'c', '--con-obra', '--con-obra']), null, 'una sola vez');
+  assert.match(A.USO, /\[--con-obra\]/);
 });

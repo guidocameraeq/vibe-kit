@@ -5,6 +5,35 @@ Una sección por versión, la más nueva arriba. Cada una trae su **nota de migr
 Es lo que lee el agente de la fusión al actualizar un proyecto. La historia de sesiones del repo vive aparte, en `docs/CHANGELOG.md`.
 `kit/VERSION` lleva la versión del último tag y se sube en el commit que pone el tag siguiente.
 
+## 3.0.0-rc.5
+
+Las correcciones del uso real, primera vuelta (2026-11-04, `docs/kit-v3/SPEC-paquete-8r4.md`): lo que dolió en la primera semana de la
+beta en Hermes Desktop y el analytics de Arti, y lo que Guido decidió y quiere ya.
+
+- **Qué piezas cambiaron**:
+  - **Una sola ventana** (decidido por Guido): `/obrero` y `/director` pueden nacer en `main`. Su primer paso es
+    `worktree.cjs donde <x>[--<ID>]` (nuevo, solo lee): si dice `entrar: <ruta>`, entran con EnterWorktree y verifican rama y `.kit-rol`
+    antes de tocar nada; si no coinciden, PARADA. `crear`/`abrir` imprimen primero esa vía (`code "<ruta>"` queda de alternativa) y suman
+    el deny del `.env` del principal también al `.claude/settings.local.json` del principal (una regla relativa no cubre un `.env` en una
+    carpeta padre del worktree). La ventana de `cambios aprobar` dice *"si te lo pide una sesión de /obrero o /director, decí que no"*.
+  - **La flota con obra en curso es una opción** (decidido por Guido): `actualizar.cjs flota … --con-obra` actualiza `main` igual y prueba,
+    en el clon y sin subir nada, traer `main` a cada `modulo/*` viva (verde · rojo con el `cambios nuevo` exacto · choca). El director lo
+    trae con `worktree.cjs traer-main <x>` (nuevo): aborta si choca o si `barreras --indice` da rojo; en verde, commit y push de su rama.
+  - **El merge de `main` en una rama vieja** ya no da rojo por lo que llegó igual desde `main` (Hermes, `cc-ui`: 38 rutas): el candado
+    compara contenido en hooks, githooks y `.gitleaksignore` contra cada padre; gitleaks del pre-commit de un merge mira el diff combinado
+    contra los dos padres; el pre-push de una rama ya subida no vuelve a juzgar lo que ya está en `origin/<def>`; el rojo de un merge en curso
+    dice cómo resolverlo (dejalo como el lado que lo cambió). rf-13 sigue: deshacer un freno de un lado en el merge es rojo.
+  - **El tope de las skills avisa, no frena, cuando lo pasa la zona propia** (decidido por Guido): la línea 4 de `chequear` da ⚠ (no
+    ROTA) con cuánto se pasa; la parte del kit que pasa el tope sigue ROTA. El `doctor` lo avisa por skill (`tope-skills`).
+  - **`gitignore.snippet`** suma `!/.claude/frenos.log`: un `*.log` del proyecto lo tapaba y `cambios aprobar` fallaba siempre.
+  - Textos: `/obrero`, `/director` (el paso 0, `traer-main` entre encargos), `NUCLEO.md` (el gate desde el worktree del director), el
+    `CLAUDE.md` del molde (una línea de EnterWorktree), el modo FLOTA del Equipador y `flota.md`.
+- **Automático o pide revisión**: pide revisión en `/obrero` y `/director` si su zona propia nombra la apertura con `code "…"`. El commit
+  del kit toca hooks (`niega-aprobar`, `barreras`), githooks y el snippet: como todo commit de la flota, va con la exención del actualizador.
+- **Qué chequear después**: `node .claude/scripts/worktree.cjs donde <x>` desde `main` dice `entrar:` con la ruta del worktree; una flota
+  con obra sale `salteado` con la bandera nombrada; `doctor` lista `tope-skills` si alguna skill pasa su tope por la zona propia;
+  `git check-ignore .claude/frenos.log` no lo da ignorado.
+
 ## 3.0.0-rc.4
 
 La `rc.4` exprés (2026-11-04, `docs/kit-v3/SPEC-paquete-8r3.md`): lo que trababa la adopción del bot de Arti (un fork de OpenClaw cuyo

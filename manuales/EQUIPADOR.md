@@ -91,7 +91,10 @@ trabajo nunca se toca** (todo pasa en clones temporales del repo remoto).
    con un commit `kit: ROTA — <qué falló>` (la próxima vuelta la rehace). **Push rechazado** (rama protegida) → la rama queda
    "te espera".
 
-Te devuelve **una tabla** (mezclado · salteado con su porqué · ROTA · te espera) y la lista "te espera:".
+Te devuelve **una tabla** (mezclado · salteado con su porqué · ROTA · te espera) y la lista "te espera:". **Con obra en curso**
+(ramas `modulo/*` vivas) sale `salteado`; si sabés que podés, `--con-obra` actualiza `main` igual y prueba en el clon, sin subir nada,
+traer `main` a cada módulo: "te espera:" dice por módulo verde, rojo (lo aprobás vos antes) o choca, y lo trae su director con
+`worktree.cjs traer-main <x>`. Una skill que pasa su tope **por su zona propia** da ⚠ y no ROTA (decidido por Guido, 2026-11-04).
 
 **`todo` sin `--tag` reparte el último tag anotado, rc incluido, a todo proyecto con ficha.** Hoy solo Hermes tiene ficha; cuando se
 sumen otros, una beta les llega igual: para repartir solo una versión final (sin beta), pasá `--tag v<X.Y.Z>`.

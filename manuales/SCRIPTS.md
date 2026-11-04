@@ -90,7 +90,7 @@ Poda `docs/TODO.md` (lo que lleva 90 días sin tocarse baja a 🟢) y imprime `T
 
 ### worktree
 Los worktrees de los módulos: nacen, se abren y se cierran por script.
-`node .claude/scripts/worktree.cjs crear|abrir <x>[--<ID>] [--noche] [--model <m>]` · `sync-env` · `cerrar <x>[--<ID>] [--cancelado]` · `integrar <x> [--ok-de-guido]` · `integrados`
+`node .claude/scripts/worktree.cjs crear|abrir <x>[--<ID>] [--noche] [--model <m>]` · `donde <x>[--<ID>]` · `traer-main <x>` · `sync-env` · `cerrar <x>[--<ID>] [--cancelado]` · `integrar <x> [--ok-de-guido]` · `integrados`
 `crear`/`abrir` escriben `.kit-rol`, copian los `.env` ignorados **sacando todo nombre que esté en el almacén de secretos**, corren `vars.comando-setup` (lo que deja sin trackear va al `info/exclude` del repo y un trackeado que cambió, como un lock, vuelve con `git checkout --`: cada cosa con su línea) e imprimen la línea de apertura, que termina en `primer mensaje: /director` (un módulo, también con `--noche`) o `primer mensaje: /obrero <x>--<ID>` (un encargo). `cerrar` hace todos los chequeos antes de borrar y nunca fuerza (salvo `--cancelado`); después de la rama local borra la de origin **solo si** el fetch anduvo y ya está mezclada en `origin/<madre>` (si no, la deja y lo dice en una línea). `integrar` lleva el módulo terminado a la rama por defecto: merge `--no-ff`, el gate y el push sin `--force`; nada sube si algo falla; termina en `después: /cierre en tu carpeta principal …`. `integrados` (lo corre el `/inicio` después del `pull`): una línea por cada `integrar: módulo <x>` de la rama por defecto local posterior al último commit que tocó el handoff, con "corré /cierre"; nada si no hay; sale 0 siempre.
 
 ---

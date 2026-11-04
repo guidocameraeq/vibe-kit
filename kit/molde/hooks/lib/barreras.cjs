@@ -220,9 +220,13 @@ function resolverRango(raiz, r) {
   if (!hasta) return { error: `--rango: ${r.hasta} no es un commit de este repo` };
   return { desde, hasta };
 }
-// Los commits de desde..hasta (o, con desde null, los de hasta que ningún remoto tiene), del más viejo al más nuevo.
+// Los commits de desde..hasta (o, con desde null, los de hasta que ningún remoto tiene), del más viejo al más nuevo. u9 (D8r.4,
+// rt-u9-3 a): con una ref vigente del remoto (origin/<rama por defecto>), tampoco lo que ya está en ella: lo juzgó su push (si no,
+// el push de una rama ya subida que mergeó main trae todo main, con lo de antes de la adopción). Sin vigente del remoto, como antes.
 function commitsDelRango(raiz, r) {
-  const que = r.desde === null ? [r.hasta, '--not', '--remotes'] : [`${r.desde}..${r.hasta}`];
+  const rv = contexto.refVigente(raiz);
+  const vig = rv && rv.origen !== 'local' ? shaDe(raiz, rv.ref) : null;
+  const que = r.desde === null ? [r.hasta, '--not', '--remotes'] : [r.hasta, '--not', r.desde, ...(vig ? [vig] : [])];
   return lista(raiz, ['rev-list', '--reverse', '--topo-order', ...que]).stdout.split('\n').map((s) => s.trim()).filter(Boolean);
 }
 
@@ -381,7 +385,9 @@ function tocaContraUno(raiz, f) {
     return { pares: C.paresArchivo('ficha', f.rel, antes, nuevas(f)), imposible };
   }
   if (f.cat === 'settings') return { pares: C.paresArchivo('settings', f.rel, f.antes, f.despues), imposible };
-  return { pares: C.paresArchivo(f.cat, f.rel, null, []), imposible };
+  // u9 (D8r.4): un hook, githook o gitleaks igual al de este padre no cambia nada contra él (si no, en un merge el lado del que vino
+  // igual no lo descuenta nunca, ni "lo que cambió el otro desde la base" deja de contar lo que nadie cambió: rf-13 sigue).
+  return { pares: nuevas(f).length ? C.paresArchivo(f.cat, f.rel, null, []) : new Set(), imposible };
 }
 
 // Lo que toca UN archivo: { cats: Set, ids: Set, imposible: texto | null }. imposible = rojo que ningún cambio cubre.
@@ -826,8 +832,11 @@ function revisarBarreras(raiz, opciones = {}) {
     const que = validos.length
       ? `${quien} toca ${listaCorta([...n.cats].sort())} y los aprobados que lo cubren no nombran ${listaCorta(faltanCats.length ? faltanCats : faltanIds)}`
       : `${quien} toca ${listaCorta([...n.cats].sort())} (${listaCorta(faltanIds)}) sin un aprobado sellado que lo cubra`;
+    // u9 (rt-u9-2): en un merge en curso, cambios aprobar no anda (pide main y sin merge a medias): se dice cómo cerrarlo.
     const hacer =
-      esPendiente(cual)
+      cual === INDICE && mergeHeads(raiz).length
+        ? 'esto vino distinto de los dos lados: en el merge dejalo como el lado que lo cambió (casi siempre main: git checkout --theirs <archivo>), commiteá el merge, y tu cambio hacelo en un commit aparte con su aprobado'
+        : esPendiente(cual)
         ? `proponelo con cambios nuevo (3-barrera, un --id por cada uno) y que el dueño lo apruebe con cambios aprobar antes de commitear; o sacalo${cual === INDICE ? ' del índice (git restore --staged <archivo>)' : ''}`
         : 'proponé el cambio (cambios nuevo), que el dueño lo apruebe (cambios aprobar) y rehacé ese commit después del sello; o revertilo';
     fallas.push({ id: ID, commit: cual, detalle, que, hacer });
