@@ -2,7 +2,7 @@
 Todo lo que encontró la revisión integral de la `rc.1` (`REVISION-INTEGRAL-rc1.md`): los cuatro que traban el módulo con director en
 Hermes (T1-T4), los ocho que le cambian algo a Guido, lo de taller y las dos preguntas con su opción A. Que las piezas interactúen bien
 entre sí (ADR-034). Cierra con la beta `v3.0.0-rc.2`.
-- Estado: READY
+- Estado: ✅ IMPLEMENTADO 2026-11-04 (D8r.1, la beta `v3.0.0-rc.2`)
 - Fecha: 2026-11-03 · Misión: 5, director **D8r.1** (tracker, "Después de la rc.1", fila 2b; la vara: ADR-030 y ADR-034; el presupuesto: ADR-029)
 - Sello del Arquitecto: `arquitecto: 2026-11-03 · kit 3.0.0-rc.1 · chequeos: tamaño — (paquete del método) · entorno — (sin ficha del kit) · tope ✅ · hash 6836231ae338`
 - Plano: [`SPEC-0-kit-v3.md`](SPEC-0-kit-v3.md); la fuente: [`REVISION-INTEGRAL-rc1.md`](REVISION-INTEGRAL-rc1.md) (las citas `R:<n>` de

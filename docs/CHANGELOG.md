@@ -2,6 +2,31 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-11-03 — Misión 5, D8r.1: la tanda de correcciones de la revisión integral R1 · v3.0.0-rc.2
+
+Sin Guido, la noche del 03-11 al 04-11 (PC `Guido-PC-eQ`, Opus, ~4,8 h, 8 encargos), lanzada por la sesión madre. Delta
+`docs/kit-v3/SPEC-paquete-8r.md` (sellado por script, red team 1 ronda); revisor frío que corrió el día de Guido de punta a punta.
+
+**Fixed** (todo lo de `REVISION-INTEGRAL-rc1.md`)
+- T1: un repo con código adoptado trae `/director`, `/obrero` y `/estado`; el Modo B mira la ficha antes de planear director.
+- T2: la pestaña nueva arranca en su rol (el `/inicio` lee `.kit-rol` y la rama; los scripts dicen el primer mensaje).
+- T3 (pregunta 1, A): el sello acepta la tarea 0 con solo la base real, con su freno en `crear`, `presentar` y `autorizado`.
+- T4: la guía y el manual ya no dicen que "preparame esta PC" no anda.
+- La flota saltea solo los módulos sin mezclar (Hermes no queda salteado para siempre); `cerrar` borra de GitHub la rama ya mezclada.
+- La mezcla de una adaptada que choca nunca se resuelve sola (pregunta 2, A, como la quiere Guido): informe con su `por:`, qué trae lo
+  nuevo y `## Dónde chocan`; el `/inicio` pregunta siempre con una recomendada.
+- `adoptar --aplicar … --claude-md`; `integrar` termina en `después: /cierre`; `worktree.cjs integrados`; quién corre `cambios aprobar`,
+  dicho igual en todos lados; `cambios nuevo` en el molde; los manuales, el consultorio, `SCRIPTS.md`, `MOLDE.md` y el README al día.
+- Del revisor frío: `chequear` y `skills.test` con el mismo tope por skill (la flota a la rc.2 dejaba ROTA a todo repo); el aviso de PC
+  atrás al adoptar; el lockfile del `comando-setup` a `info/exclude` y `npm ci` con lock; y 7 más chicos.
+
+**Changed**
+- `templates/universales/` a `legacy/templates-universales-v2/`; `kit-sync.sh sync` retira de `~/.claude` lo que el kit retiró.
+- El plan: esta tanda es la `rc.2`; D8c.1 pasa a ser la `rc.3`. Sigue R1b (la revisión integral otra vez) y la mañana con Guido.
+
+**Verificado**: suite 2.825/2.825 (dos re-corridas); flota 2.4.2 → rc.1 → rc.2 sale 0, con un módulo mezclado pasa y con uno sin
+mezclar saltea; `kit-sync` LIMPIO.
+
 ## 2026-11-03 — El repaso de las decisiones con Guido, el plan después de la rc.1 y la misión 6a
 
 En el chat de D8.1 (PC `Guido-PC-eQ`, Opus, con Guido): el repaso de las ~150 decisiones sin él, y desde ahí la sesión madre orquestó
