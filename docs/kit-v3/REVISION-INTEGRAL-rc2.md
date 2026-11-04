@@ -53,3 +53,20 @@ Decidido por la sesión (ADR-034). Cada uno con su escenario en el informe de ca
 - No se decide nada de D1-D4 sin vos: si a la mañana elegís B en D1, el módulo arranca con el método de Hermes y el kit se prueba en la
   adopción, la flota y los cambios.
 - Regla de esta noche: después de D8r.2 **no hay una tercera revisión integral**; un chequeo corto de lo arreglado y la suite.
+
+## Resultado de la tanda D8r.2 (2026-11-04, la `v3.0.0-rc.3`)
+
+La corrió D8r.2 sin Guido (`SPEC-paquete-8r2.md`; tracker, "D8r.2 · Decisiones sin Guido"). **D1-D4 no se decidieron**: la pantalla de
+adopción las muestra con la recomendada primero, y cada camino anda en un comando (`--director kit`, `--permisos recomendada`,
+`--arranque kit`; D4 en la propuesta, `datos-reales:` con los comandos).
+
+- **Quedó**: t1 (un choque sin porqué también pregunta charlado) · t2 (`adoptar <clon> --traer <carpeta>`: el pull y después los
+  githooks) · t3 (D1 en un paso con `--director kit`) · t4 (`entornos: ninguno declarado` y `herramientas:`) · t5 (Python con el
+  `.venv` de cada worktree) · t6 (el gate, el setup, `chequear` y el `sello` en Git Bash; `cmd /c` o `cmd //c` sin Git Bash → `no-corrio`) ·
+  t7 (la flota de la PC a dos niveles, una fila por repo) · t8 (`--mirar --principal`: el nombre de tu carpeta) · t9 (lo que se va del
+  settings, los `ask` que frenan al director, el SessionStart propio y el handoff gordo, con D2 y D3) · t10 (`quedarse`) · t11 (la
+  receta, el PLAYBOOK, las referencias) · t12 (a) el `.worktreeinclude`, (b) el informe de la adopción, (c) `/estado` de noche, (d) `/smoke`
+  solo si está.
+- **El chequeo frío sobre un clon de Hermes**: el día anduvo de punta a punta; tres de sus cuatro arreglados en la misma tanda.
+- **No quedó** (Pendientes del tracker, "De D8r.2", con su porqué): traer el director a un repo **ya** adoptado con la pieza en `propia`;
+  el plazo del `sello` con un `comando-test` de 7 minutos; que el setup sume solo el `web/` de npm.

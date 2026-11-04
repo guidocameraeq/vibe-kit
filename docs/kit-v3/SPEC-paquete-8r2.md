@@ -2,8 +2,9 @@
 Los doce de taller (t1-t12) de `REVISION-INTEGRAL-rc2.md`. **D1-D4 son de Guido y no se deciden acá**: lo que hace esta tanda es dejar la
 mecánica lista para que mañana él elija en la pantalla de adopción y el camino que elija ande **en un solo paso**. Única vuelta de
 corrección (regla de Guido, 2026-11-03): nada de agrandar el alcance; lo que no entra, a Pendientes con su porqué.
-- Estado: SELLADO sin Guido (D8r.2, después del red team)
+- Estado: ✅ IMPLEMENTADO 2026-11-04 (D8r.2, la beta `v3.0.0-rc.3`)
 - Fecha: 2026-11-04 · Misión: 5, director **D8r.2** (tracker, "Después de la rc.1"; la vara: ADR-030 y ADR-034; el presupuesto: ADR-029)
+- Sello del Arquitecto: `arquitecto: 2026-11-04 · kit 3.0.0-rc.3 · chequeos: tamaño — (paquete del método) · entorno — (sin ficha del kit) · tope ✅ · hash c98b6188d4fd`
 - Plano: [`SPEC-0-kit-v3.md`](SPEC-0-kit-v3.md); la fuente: [`REVISION-INTEGRAL-rc2.md`](REVISION-INTEGRAL-rc2.md) (sus `t<n>` y `D<n>`).
   El obrero de cierre de tramo y los experimentos no entran: pasan a la `rc.4` (D8c.1).
 - Red team: **sí, una ronda** (toca el gate, `adoptar`, la mezcla y los permisos): 5 ALTOS (rt-1 a rt-5), 4 MEDIOS, 1 BAJO, todos

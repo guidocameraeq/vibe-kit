@@ -2,6 +2,29 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-11-04 — Misión 5, D8r.2: la tanda de taller de la revisión integral R1b · v3.0.0-rc.3
+
+Sin Guido (PC `Guido-PC-eQ`, Opus, ~5 h, 8 encargos), lanzada por la sesión madre. Delta `docs/kit-v3/SPEC-paquete-8r2.md` (red team
+1 ronda: 5 ALTOS, 4 MEDIOS, 1 BAJO, integrados); chequeo frío sobre un clon de Hermes con remoto falso, de punta a punta.
+
+**Fixed** (t1-t12 de `REVISION-INTEGRAL-rc2.md`)
+- t1: un choque sin `por:` también es `la mezcla chocó` y se pregunta charlado. t10: la salida `quedarse` (`propia`, alias).
+- t2: `adoptar <clon> --traer <carpeta>`, después del push: trae lo adoptado (`merge --ff-only`, limpia y en la rama) y recién ahí prende
+  los githooks; `--aplicar --principal` solo valida. `modo-a.md`, `flota.md`, el Equipador y sus manuales lo dicen igual.
+- t3 y t9: la pantalla de adopción trae D1-D4 con la recomendada primero; cada camino en un comando (`--director kit`, `--permisos
+  recomendada`, `--arranque kit`; los dos últimos en un tercer commit). D1-D4 no se decidieron: son de Guido.
+- t4, t5, t8: `entornos: ninguno declarado` y `herramientas:`; Python con el `.venv` de cada worktree; `--mirar --principal` (el nombre).
+- t6: el gate, el setup, `chequear` y el `sello` corren en Git Bash en Windows (`proceso.cjs shellDeComandos`); `cmd /c` en Git Bash o
+  `cmd //c` sin él salen `no-corrio` (antes, verde sin correr nada). `chequear` acepta `&&`.
+- t7: la flota de la PC a dos niveles, una fila por repo (`repos.cjs`, nuevo), rutas absolutas.
+- t11: la receta "Tengo un módulo con director andando", el PLAYBOOK (adoptá X en el kit v3; el atajo es v2), tres referencias.
+- t12: el `.worktreeinclude` (mirado en la carpeta de Guido), el informe de fusión de una adopción, `/estado` de noche, `/smoke` si está.
+- Del chequeo frío: el `web/package.json` que el setup no instala se avisa; el commit de permisos se revierte, no se rehace.
+
+**Changed**
+- `kit/VERSION` 3.0.0-rc.3 y su nota en `kit/CHANGELOG.md`; tag anotado `v3.0.0-rc.3`. D8c.1 pasa a ser la `rc.4` (tracker).
+- Suite 2.867/2.867 (dos re-corridas); flota 2.4.2 → rc.2 → rc.3 sale 0.
+
 ## 2026-11-03 — Misión 5, D8r.1: la tanda de correcciones de la revisión integral R1 · v3.0.0-rc.2
 
 Sin Guido, la noche del 03-11 al 04-11 (PC `Guido-PC-eQ`, Opus, ~4,8 h, 8 encargos), lanzada por la sesión madre. Delta
