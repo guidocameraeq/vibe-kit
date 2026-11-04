@@ -13,6 +13,8 @@ Dos modos: **`cierre`** (completo) y **`cierre parcial`** (el contexto se llenó
 
 ## Pasos (modo completo, en este orden)
 
+`docs/` es la carpeta de papeles: la `carpeta-docs:` de la ficha si la hay (el arranque la nombra en `papeles:`).
+
 1. **¿Cambió algo?** `git status --short` (ignorá `.claude/frenos.log`, que los hooks ensucian) y los commits desde el último que tocó el handoff. Nada → una línea, *"Nada que cerrar"*, y terminá sin tocar el handoff.
 2. **Cruce anunciado contra anotado.** Cada pendiente que el handoff nombra tiene su ítem en el TODO o en la ficha de su módulo, y en uno solo; cada 🔴 que el handoff da por resuelto se borra; cada tarea terminada está tildada en la ficha con su commit. Si se tocó un entorno externo, verificá su estado real: la realidad gana.
 3. **Docs al día, leyendo lo mínimo.** Del CHANGELOG y de `docs/referencia/DECISIONS.md`, solo las primeras 20 líneas; del TODO, la cabecera y los ítems que tocaste. Entero, solo el handoff y las fichas.

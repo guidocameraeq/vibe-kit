@@ -3,6 +3,7 @@
 Lo leen `/director` y `/obrero` antes de empezar (no es una skill). Si un encargo choca con esto, gana esto; si algo choca con git, gana git.
 
 ## 1. Roles y quién escribe qué
+`docs/` es la carpeta de papeles: la `carpeta-docs:` de la ficha si la hay (el arranque la nombra en `papeles:`).
 - **Director** (rama `modulo/<x>`): escribe solo `docs/modulos/<x>/` (ficha, encargos, bitácora), `.claude/cambios/` y su zona propia. Nunca código.
 - **Obrero** (rama `modulo/<x>--<ID>`): escribe código y **un** archivo de `docs/`, su evidencia: `docs/modulos/<x>/bitacora/<fecha>-evidencia-<ID>.md`.
 - Un escritor por rama, por worktree y por archivo. Nadie corre `/cierre` salvo en la rama por defecto.
