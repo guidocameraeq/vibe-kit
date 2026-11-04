@@ -6,8 +6,9 @@ corrección (regla de Guido, 2026-11-03): nada de agrandar el alcance; lo que no
 - Fecha: 2026-11-04 · Misión: 5, director **D8r.2** (tracker, "Después de la rc.1"; la vara: ADR-030 y ADR-034; el presupuesto: ADR-029)
 - Plano: [`SPEC-0-kit-v3.md`](SPEC-0-kit-v3.md); la fuente: [`REVISION-INTEGRAL-rc2.md`](REVISION-INTEGRAL-rc2.md) (sus `t<n>` y `D<n>`).
   El obrero de cierre de tramo y los experimentos no entran: pasan a la `rc.4` (D8c.1).
-- Red team: **sí, una ronda** (toca el gate, `adoptar`, la mezcla y los permisos). Chequeo corto con un agente frío al cerrar, sobre un
-  clon de Hermes y la flota (no una revisión integral: ADR-034, "no hay una tercera").
+- Red team: **sí, una ronda** (toca el gate, `adoptar`, la mezcla y los permisos): 5 ALTOS (rt-1 a rt-5), 4 MEDIOS, 1 BAJO, todos
+  integrados ("Lo que trajo el red team", que manda sobre lo de arriba donde lo corrige). Chequeo corto con un agente frío al cerrar,
+  sobre un clon de Hermes y la flota (no una revisión integral: ADR-034, "no hay una tercera").
 
 ## Por qué (el dolor)
 
@@ -160,6 +161,38 @@ propone un `.worktreeinclude` con esas rutas (sin leerlas). (b) El informe de fu
 nota" (en una adopción, "adopción: el molde v2 contra el del kit <v>"). (c) `/estado` con `.kit-noche`: "es de noche: el director trabaja
 solo" arriba de TE ESPERA. (d) `modo-b.md` B6: `/smoke` solo si el proyecto lo tiene (`piezas.smoke`); si no, "probalo a mano".
 - **crit. 12**: una prueba por cada uno que entre; lo que no, a Pendientes.
+
+### Lo que trajo el red team (manda sobre lo de arriba)
+
+- **rt-1 (ALTO, t5×G)**: `chequeo.cjs` `RE_TUBERIA` niega todo `&`: el setup nuevo de Python saldría NO VERIFICADO. Acepta `&&` y sigue
+  negando `|`, `;`, `<`, `>`, un `&` solo, backtick y `$(`. crit. 6 suma: `chequear` con un setup `a && b` lo corre.
+- **rt-2 (ALTO, t6)**: en Git Bash, `cmd /c …` (una barra) vuelve a dar un cmd interactivo que sale 0. `proceso.cjs` exporta
+  `comandoQueNoCorre(cmd, shell)` y lo usan los cuatro lugares: con Git Bash, `cmd /…` o `cmd.exe /…` con una barra → `no-corrio` ("en Git
+  Bash es `cmd //c`"); sin Git Bash, `cmd //…` → `no-corrio`. crit. 6 suma: con Git Bash, `cmd /c exit 0` nunca sale verde.
+- **rt-3 (ALTO, t2)**: `modo-a.md` (pasos 5, 6 y 11), `arquitecto-skills/SKILL.md` y la nota de migración dicen que `--aplicar
+  --principal` prende los githooks: pasan a `adoptar "<clon>" --traer "<carpeta>"` (entran al crit. 13).
+- **rt-4 (ALTO, t3)**: `--aplicar` no distingue un `sí` escrito a mano de uno de `mirar --nuevo`. **El OK de D1 es una opción, como D2 y
+  D3: `--aplicar … --director kit`** (D1: A). Solo con ella, y solo en `director-obrero`, `estado`, `inicio` y `cierre`, lo distinto se
+  reemplaza con lo del kit (la ficha, `molde`/`sí` con su hash). Sin ella, todo como hoy (`propia` o desvío). El bloque `D1` de `--mirar`
+  dice esa opción. crit. 3 suma dos en contra: un `--nuevo` con director propio sin la opción no se toca; un `githooks` propio puesto en
+  `molde` tampoco.
+- **rt-5 (ALTO, t7)**: `rutaDeRepo('Hermes/Hermes.exe')` resuelve contra el cwd y la fila sale "sin tocar"; y `--git-common-dir` en el
+  principal es `.git` relativo. Los cuatro recorridos devuelven rutas absolutas; se agrupa por `git rev-parse --path-format=absolute
+  --git-common-dir`, comparable (real, minúsculas en win32). crit. 7 pide que la fila de Hermes **no** diga "sin tocar".
+- **rt-6 (MEDIO, t7)**: try/catch en cada carpeta del segundo nivel (se saltea), y no se baja a `$*` ni a `System Volume Information`; un
+  grupo con solo worktrees da una línea ("el principal está fuera de --proyectos").
+- **rt-7 (MEDIO, t2)**: `--traer` primero `fetch` y `merge-base --is-ancestor <HEAD del clon> <origin>/<rama del clon>` (sin origin: el
+  clon); si no está, la línea "no llegó" y nada más. La carpeta tiene que estar en la rama del clon y limpia; recién ahí `merge
+  --ff-only`. Si el merge falla y deja la carpeta sucia: la línea con `git -C "<carpeta>" reset --hard <HEAD de antes>`, sin githooks y
+  salida 1.
+- **rt-8 (MEDIO, t5×sello)**: con el venv solo en los worktrees, el `sello` en la carpeta de Guido da rojo. `--traer` termina con "en tu
+  carpeta, una vez: <comando-setup>" si hay setup y falta `.venv`; y el rojo del `sello` (G) suma "¿corriste el comando-setup en esta
+  carpeta? (<setup>)" cuando hay setup.
+- **rt-9 (MEDIO, t9)**: `--permisos`/`--arranque` sacan reglas propias: rompe la exención de `barreras` del commit de las piezas. Van en
+  un **tercer commit** propio (`kit: adopción <v> (permisos: D2/D3)`), y la línea `después:` da el camino (`cambios nuevo` + `cambios
+  aprobar`) si ese commit sale rojo. crit. 9 verifica la línea.
+- **rt-10 (BAJO, t7)**: dos checkouts del mismo origin (normalizado con `normalizarOrigen`): el de HEAD más nuevo, y una línea que nombra
+  los dos.
 
 ## NO SE TOCA
 
