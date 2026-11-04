@@ -230,7 +230,7 @@ test('inicio: CORTADO, la huella y el hook que no corrió', () => {
   assert.match(t, /inyectado: N de 9\.700/);
   // 8r3 i2: sin huella, el arranque puede ser otro (un session-start.cjs propio): el arreglo en un comando; i1: la carpeta de papeles
   assert.match(t, /el arranque no es el del kit \(o no corrió\)/);
-  assert.match(t, /actualizar\.cjs resolver \. hook-arranque nueva --por/);
+  assert.match(t, /actualizar\.cjs resolver \. hook-arranque nueva --kit <clon>/);
   assert.match(t, /si no, doctor/);
   assert.match(t, /`carpeta-docs:` de la ficha/);
 });
