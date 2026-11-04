@@ -292,6 +292,14 @@ segunda copia dice `papeles: arti-docs/ …`, inyecta `arti-docs/SESSION_HANDOFF
   formato de todo renglón `soloLista` del candado); un clon del bot con más de ~120 caracteres de prefijo da `Filename too long` sin
   `core.longpaths`.
 
+### Lo que trajo la flota de prueba (alfa, beta y gama: 2.4.2 → rc.3 → rc.4)
+
+- **Arreglado acá** (`fe226a6`): la línea 7 (casos) copia los hooks del proyecto como los guarda git, sin el `\r` de `core.autocrlf`. Antes, las
+  fichas de fábrica de un checkout de Windows daban ROTA en toda puesta al día desde la `rc.3`: `fabrica.test.cjs` busca el `\n` de la cabecera.
+  Con el arreglo, la flota da `mezclado` y en la vuelta repetida `al día` en los tres.
+- **Para la `rc.5`**: con `hooks-lib` esperando ("te espera"), los hooks nuevos bajan sin su lib y la línea 7 da ROTA sin decir "resolvé
+  `hooks-lib` primero" (los fixtures alfa y beta). Lo arregla que los hooks esperen junto con la lib.
+
 ## Los encargos (el director reparte, lee cada diff y corre las pruebas de cada uno)
 
 Presupuesto (ADR-029): ~7 → RT, **cuatro de trabajo**, el chequeo frío. Cada uno en `scratchpad/<x>/wt`. La clave en `ficha.cjs`, sus

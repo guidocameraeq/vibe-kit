@@ -1082,7 +1082,23 @@ ADR-034: la `rc.4` exprés, para adoptar ya el bot de Arti (`Arti-bot-eq`) y des
 delta (`SPEC-paquete-8r3.md`, "Decisiones (la vara)" y "Lo que trajo el red team"). **6 encargos** (red team, H, S, A, P, el chequeo
 frío), todos Opus; la base (`carpeta-docs:` en la ficha y `docs-ruta.cjs`) y los textos, el director. Red team 1 ronda: 2 ALTOS (la
 excepción de los `.pyc` era un agujero: los hooks de Hermes **leen** ese caché; sin remoto, cambiar la carpeta sacaba su propio commit del
-rango), 5 MEDIOS, 3 BAJOS, todos integrados. Mutación: H 42/42, S 19/19, A 14/14, P 13/13. RESULTADOS_D8R3
+rango), 5 MEDIOS, 3 BAJOS, todos integrados. Mutación: H 42/42, S 19/19, A 14/14, P 13/13. Suite entera, sola: 2957/2961.
+Hubo 3 rojas de carga (kit-githook rf3-1, noche "despertador en loop", cambios-flota crit. 5), que dieron verdes corridas solas. Hubo 1
+real: la prueba "1 llaves" de `chequeo` engordaba el `/inicio` a 8.622 B, sobre su tope de 8.600; ahora engorda `estado`.
+
+El chequeo frío anduvo en los dos lados (el bot con `arti-docs` de punta a punta; Hermes borra sus `.pyc`). Trajo dos arreglos: el tope de
+las skills sin el `\r` de `autocrlf` y la línea `traer`. También trajo el ALTO de las skills de Hermes sobre el tope, que pasó a la madre.
+
+**La flota de prueba encontró un bug real antes del tag**: la línea 7 (casos) copiaba los hooks del proyecto con el `\r` del checkout. Las
+fichas de fábrica de todo proyecto en Windows daban ROTA desde la `rc.3`, y al analytics real le pasaba (`i/lf w/crlf`). Arreglo en
+`fe226a6`: copia como guarda git. Pruebas: `chequeo.test` 35/35, mutación 2/2.
+
+La flota final (alfa, beta y gama; 2.4.2 → rc.3 → el dueño resuelve con `nueva` → rc.4 → otra vuelta) dio `mezclado` en los tres y después
+`al día` en los tres, con salida 0 en cada vuelta.
+
+Residual para la `rc.5`: un repo con `hooks-lib` esperando queda ROTA en la línea 7 con hooks que piden la lib nueva, y el mensaje no dice
+"resolvé hooks-lib primero". Lo arregla que los hooks esperen junto con la lib. Hermes y el analytics tienen `hooks-lib: molde`, así que no
+les pega.
 
 - **D8r3-1 · `carpeta-docs:` en la ficha, para todo el árbol del método** (no solo el handoff), en minúsculas y sin nombres reservados
   de Windows. Se lee de la **ficha vigente**, como todo lo que leen los hooks, y **cambiarla es barrera** (`frenos:carpeta-docs`).
