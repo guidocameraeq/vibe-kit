@@ -1196,6 +1196,28 @@ entre piezas, lo técnico lo decide la sesión, la revisión integral como paso 
 > entera, la prueba de la flota con un canónico `bare`, y si todo da verde: `kit/VERSION` `3.0.0-rc.4`, su nota, tag anotado, push, y
 > "poné al día la flota" sobre Hermes (en `auto`; si el clasificador frena el push, la línea la corre Guido). `/cierre` completo.
 
+### Abrir la sesión de la prueba hasta la v3.0 (el prompt, con Guido a ratos)
+
+> Pedida por Guido el 2026-11-04: **una sesión que lo acompaña de la prueba a la versión final** y orquesta el resto (las filas 2 a 7 de
+> la tabla de arriba). Se pega en un chat nuevo de vibe-kit, en Opus, después de "preparame esta PC".
+
+> inicio — misión 5, **la recta final: de la prueba en Hermes a la `v3.0`**. Sos la sesión que me acompaña y orquesta, con la vara del
+> ADR-030 y el ADR-034 (lo técnico lo decidís vos; lo de diseño, conmigo, la recomendada primero y en criollo) y las reglas de la
+> revisión integral del ciclo (`docs/CICLO-DE-MEJORA.md` §3.4). El orden es la tabla "Después de la rc.1" del tracker:
+> 1. **La mañana conmigo**: D1-D4 de `REVISION-INTEGRAL-rc2.md`, las ⚠️ de D8r.1 y D8r.2, adoptar Hermes y arrancar su módulo nuevo
+>    con `/arquitecto` (tracker, "Mañana con Guido"; mi guía en PDF está en el Escritorio).
+> 2. **El diseño de "probar una idea nueva"** conmigo (prompt en el tracker), cuando yo pueda.
+> 3. **La `rc.4`** (D8c.1) y **cada arreglo que salga del uso** como `rc.N`: no los codeás vos; los lanzás como sesiones o subagentes
+>    con su prompt (spec delta, red team si toca un freno, chequeo frío, suite, flota), revisás lo que vuelve y me contás en criollo.
+> 4. **Mientras uso Hermes**: anotás lo que yo cuente y lo que se rompa (Pendientes del tracker); nada me frena el trabajo.
+> 5. **Al cerrar el primer módulo**: mis impresiones + los números (la corrida mensual contra `mediciones/2026-11-03.md` y lo de leer
+>    los chats) → **la 6b** (§3.5 y §8 del ciclo) → **R2**, la revisión integral final contra un clon de Hermes, con **una** tanda de
+>    corrección → **la `v3.0`** (tag idéntico al último rc; publicar con mi OK) → el repo cerrado (README, guía, TODO, ADR si hace falta).
+> 6. **Al final**: los chats de vibe-kit al privado (`vibe-research`, `chats/<pc>/`, con `condensar.py`) y el diario; `/cierre` completo.
+>
+> Cuidá tu contexto: lo pesado va a subagentes o sesiones; si se llena, `/cierre` parcial y el handoff dice desde dónde seguir.
+> Arrancá por el punto 1.
+
 ## Paralelizar: decidido que no (DP, 2026-10-29)
 
 **La misión 5 sigue en secuencia: un director por vez, en el orden de la tabla de arriba.** Guido: "Prefiero hacerlo bien y que tarde
