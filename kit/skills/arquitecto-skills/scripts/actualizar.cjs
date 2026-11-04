@@ -2,7 +2,8 @@
 'use strict';
 // actualizar.cjs — el actualizador del kit, el núcleo (SPEC-paquete-6 P7.1, D6.1; E §4-§6; D6-1, D6-5, D6-7, D6-15; r1-2..r1-5).
 // Un script de node determinista: nadie lo corre en bypass. El único agente es el de la fusión de una pieza adaptada con
-// conflictos (lib/fusion.cjs, D6-19: un `claude -p` en acceptEdits con herramientas estrechas, en el clon). La flota (clon, rama,
+// conflictos (lib/fusion.cjs, D6-19: un `claude -p` en acceptEdits con herramientas estrechas, en el clon, que solo ARMA la
+// propuesta: la mezcla que choca nunca se resuelve sola, SPEC-paquete-8r §3). La flota (clon, rama,
 // mezcla, push; D6.2) vive en lib/flota.cjs y el adoptador (P7.2, D6-12) en lib/adoptar.cjs: acá solo se despacha
 // (`flota`/`adoptar` → su main; uso → este USO).
 const USO = [
@@ -50,8 +51,9 @@ const USO = [
   '  --molde-viejo  el molde del que viene el proyecto (sin él: git archive v<kit de la ficha> del --kit; con la misma',
   '                 versión, el mismo molde nuevo). Acepta la raíz de un kit, kit/molde/ o templates/universales/.',
   '  --plan         lo mismo, sin escribir nada (y sin lanzar claude).',
-  '  --claude       el claude de la fusión de una adaptada con conflictos (sin la bandera: claude del PATH, si está; no = sin él:',
-  '                 esas piezas van a "te espera" del proyecto, .claude/fusiones/<pieza>.md).',
+  '  --claude       el claude que arma la propuesta de una adaptada cuya mezcla chocó (sin la bandera: claude del PATH, si está;',
+  '                 no = sin él). Con o sin él, la que chocó nunca se aplica sola: va a "te espera" del proyecto',
+  '                 (.claude/fusiones/<pieza>.md, "la mezcla chocó…"), con la propuesta de claude si la armó.',
   '  --fecha        la fecha de los docs que nacen ({{YYYY-MM-DD}}); sin ella, hoy (las pruebas la fijan).',
   '  --plazo        minutos para el comando de pruebas del proyecto en chequear (30 por defecto; en flota, el de cada repo).',
   'Salidas: 0 bien · 1 se negó, algo falló o un ❌ (flota: algún repo ROTA o con error propio) · 2 uso.',
@@ -63,7 +65,7 @@ const USO = [
 // huella coincide con el hash de la ficha, o ya es el del molde nuevo. Intacto → se reemplaza (o mezclarTexto: la zona queda
 // byte a byte). Uno solo no intacto → la pieza entera no se toca y pasa a "adaptada (desvío detectado)". Pieza nueva con la
 // ruta ocupada y distinta → desvío (r1-3). adaptada, y la que el guardia acaba de ver en desvío → la FUSIÓN (lib/fusion.cjs,
-// D6-19): sola con porqué, o "te espera" (.claude/fusiones/<pieza>.md). propia → no se toca.
+// D6-19): sola con porqué y sin choque, o "te espera" (.claude/fusiones/<pieza>.md; la que chocó, siempre). propia → no se toca.
 // (3) Bajas: lo que el viejo traía y el nuevo no; intacto → se borra, editado → se deja; las de propia/adaptada no se borran.
 // (4) settings por mezclarSettings (lo quitado no vuelve; lo retirado que el proyecto tenía igual se va: las deny Write(...)).
 // (5) los .snippet renglón por renglón. (6) core.hooksPath NO (r1-5). (7) la ficha: kit y los hashes de lo reemplazado, el
@@ -353,7 +355,7 @@ function armar(plan, carpeta, { textoFicha, datos, nuevo, viejo, opciones = {} }
   const claude = opciones.plan ? null : FU.buscarClaude(opciones.claude);
   const noFusionar = opciones.noFusionar || {};
 
-  // La fusión de una pieza adaptada (D6-19). Fusionada → estado adaptada, el hash del molde nuevo si es de un archivo (lo que
+  // La fusión de una pieza adaptada (D6-19; claude nunca aplica, solo propone: 8r §3). Fusionada → estado adaptada, el hash del molde nuevo si es de un archivo (lo que
   // escribió el molde DEBAJO de la adaptación: si alguien la vuelve a molde, el guardia no toma lo fusionado por intacto) y su
   // `por:` si lo tenía (el del git log no se copia: la ficha guarda solo el de Guido). Te espera → la pieza como estaba y su informe.
   // Un .claude/fusiones/<pieza>.md de antes (el dueño todavía no contestó): la pieza NO se fusiona sola y el informe se rehace
@@ -392,16 +394,22 @@ function armar(plan, carpeta, { textoFicha, datos, nuevo, viejo, opciones = {} }
         if (!b) {
           const ya = actual === 'adaptada' || actual === ADAPTADA;
           if (!ya) cambiosFicha.set(id, valorPieza(ADAPTADA, hFicha, porDe(piezas[id])));
-          linea(id, ya ? actual : ADAPTADA, previo !== null
-            ? `te espera: todavía espera tu respuesta (desde el kit ${vBase}); el --kit no tiene el tag v${vBase}: el informe queda como estaba`
-            : `te espera: te quedaste con la tuya (desde el kit ${vBase}); el --kit no tiene el tag v${vBase}: no la toqué`);
+          // un informe de un choque sigue diciendo "la mezcla chocó" (rt-6: el /inicio pregunta siempre por él)
+          const choco = previo !== null && FU.motivoDeInforme(previo).startsWith(FU.CHOCO);
+          linea(id, ya ? actual : ADAPTADA, choco
+            ? `te espera: ${FU.CHOCO} (todavía espera tu respuesta desde el kit ${vBase}; el --kit no tiene el tag v${vBase}: el informe queda como estaba)`
+            : previo !== null
+              ? `te espera: todavía espera tu respuesta (desde el kit ${vBase}); el --kit no tiene el tag v${vBase}: el informe queda como estaba`
+              : `te espera: te quedaste con la tuya (desde el kit ${vBase}); el --kit no tiene el tag v${vBase}: no la toqué`);
           return;
         }
         mapV = new Map((b.rep.has(id) ? b.rep.get(id).archivos : []).map((a) => [a.proyecto, b.a.get(a.molde)]));
       }
+      // forzado: no se fusiona sola. Si además la mezcla chocó, fusion.cjs usa `corto` entre paréntesis ("la mezcla chocó (…)") y,
+      // con claude, lo lanza igual para dejar la propuesta nueva (claude nunca aplica: SPEC-paquete-8r §3).
       forzado = forzado || (previo !== null
-        ? `todavía espera tu respuesta (desde el kit ${vBase}): no se fusiona sola`
-        : `te quedaste con la tuya en el kit ${vBase}: se te vuelve a ofrecer desde ahí, no se fusiona sola`);
+        ? { motivo: `todavía espera tu respuesta (desde el kit ${vBase}): no se fusiona sola`, corto: `todavía espera tu respuesta desde el kit ${vBase}` }
+        : { motivo: `te quedaste con la tuya en el kit ${vBase}: se te vuelve a ofrecer desde ahí, no se fusiona sola`, corto: `te quedaste con la tuya en el kit ${vBase}, se te vuelve a ofrecer desde ahí` });
     }
     const rels = [...new Set([...mapV.keys(), ...mapN.keys()])];
     const r = FU.fusionar({

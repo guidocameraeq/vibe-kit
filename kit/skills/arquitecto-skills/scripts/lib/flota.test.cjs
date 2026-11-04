@@ -673,9 +673,10 @@ test('fusionDe, primeraRoja, porqueRechazo, resolverOrigen', () => {
   assert.equal(FL.primeraRoja(['1. llaves · ✅ · bien', '2. arranque · ❌ · 9.800', '3. settings · ❌ · x']), '2. arranque · ❌ · 9.800');
   assert.equal(FL.primeraRoja(['actualizador roto: corré doctor (x)', 'NO VERIFICADO']), 'actualizador roto: corré doctor (x)');
   assert.deepEqual(FL.fusionDe([
-    'a · molde · reemplazada', 'b · adaptada · fusionada (sola, el paso · seis)', 'c · adaptada · fusionada (claude)',
-    'd · adaptada (desvío detectado) · te espera: sin porqué · desvío: no se tocó (x)', 'e · adaptada · sin cambios', 'b · adaptada · fusionada (claude)',
-  ]), { fusionadas: ['b', 'c'], esperan: ['d'] });
+    'a · molde · reemplazada', 'b · adaptada · fusionada (sola, el paso · seis)', 'c · adaptada · fusionada (sola, otro)',
+    'd · adaptada (desvío detectado) · te espera: sin porqué · desvío: no se tocó (x)', 'e · adaptada · sin cambios', 'b · adaptada · fusionada (sola, el paso · seis)',
+    'f · adaptada · te espera: la mezcla chocó: la propuesta la armó claude, elegí vos',
+  ]), { fusionadas: ['b', 'c'], esperan: ['d', 'f'] });
   assert.equal(FL.porqueRechazo('! [remote rejected] main -> main (pre-receive hook declined)'), 'la rama por defecto está protegida');
   assert.equal(FL.porqueRechazo(' ! [rejected] main -> main (fetch first)'), 'la rama por defecto se movió mientras actualizaba');
   const d = path.join(T, 'x');

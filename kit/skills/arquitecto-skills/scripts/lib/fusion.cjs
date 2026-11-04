@@ -10,15 +10,21 @@
 // Si ningún archivo necesita tres vías, se aplica sin más (el molde no tocó lo adaptado). Si alguno la necesita, EL GATE DEL PORQUÉ:
 // SOLO `por:` de la pieza en la ficha (D8b-4: el git log ya no cuenta; cada adaptada pregunta una vez).
 //   - sin porqué → "te espera" (no se fusiona aunque salga limpio: lo decide el dueño);
-//   - con porqué y merge-file limpio → esa es la fusión; con conflictos → un `claude -p` en el clon, que resuelve sobre una copia en
-//     .kit-fusion/<archivo> (acceptEdits, --allowedTools Read y Edit de .kit-fusion/**, las mismas allow en .claude/settings.local.json
-//     del clon, deny Bash; nunca el modo que saltea permisos). Sin claude, si falla, si se pasa de 5 min o si toca otra ruta → "te espera".
-// Todo lo que sale (limpio o de claude) se valida: sin marcadores de conflicto, la zona propia intacta y los .js/.cjs/.mjs con
-// node --check; si no → "te espera". "Te espera" = .claude/fusiones/<pieza>.md (viaja en el commit del kit): el motivo, los dos
-// diffs por archivo (molde viejo → nuevo; molde viejo → lo del proyecto), la fusión propuesta si merge-file dio una, la versión
-// nueva entera, lo que dice kit/CHANGELOG.md de las versiones del medio (`nota`) y las cuatro salidas (paquete 8b: mezclar, quedarse
-// con la propia, tomar la nueva, congelar — esta no en una pieza de FRENOS). La pieza queda como estaba. /inicio elige o pregunta y
-// lo escribe `actualizar.cjs resolver` (no el modelo); para no pisar trabajo, el informe guarda la huella de lo tuyo por archivo.
+//   - con porqué y merge-file limpio (y validado) → esa es la fusión, sola;
+//   - LA MEZCLA CHOCÓ (merge-file con conflictos, un choque, o lo limpio que no pasa validar) → NUNCA se resuelve sola (SPEC-paquete-8r
+//     §3, la opción A de Guido): "te espera", y el motivo empieza siempre con "la mezcla chocó" (el /inicio pregunta siempre). Si hay
+//     conflictos y claude (no en --plan; también cuando la pieza ya esperaba), un `claude -p` en el clon ARMA LA PROPUESTA sobre una
+//     copia en .kit-fusion/<archivo> (acceptEdits, --allowedTools Read y Edit de .kit-fusion/**, las mismas allow en
+//     .claude/settings.local.json del clon, deny Bash; nunca el modo que saltea permisos): validada, va al informe como la fusión
+//     propuesta ("la mezcla chocó: la propuesta la armó claude, elegí vos") y no se aplica. Sin claude, si falla, si se pasa de 5 min,
+//     si toca otra ruta o si lo suyo no valida → "la mezcla chocó (<por qué>)", sin propuesta.
+// Lo que sale (limpio o de claude) se valida: sin marcadores de conflicto, la zona propia intacta y los .js/.cjs/.mjs con
+// node --check. "Te espera" = .claude/fusiones/<pieza>.md (viaja en el commit del kit): qué pieza es, el motivo, su `por:`, lo que
+// dice kit/CHANGELOG.md de las versiones del medio (`nota`), `## Dónde chocan` (los pedazos en conflicto, lo tuyo y lo nuevo), los
+// dos diffs por archivo (molde viejo → nuevo; molde viejo → lo del proyecto), la fusión propuesta si la hay, la versión nueva entera
+// y las cuatro salidas (paquete 8b: mezclar, quedarse con la propia, tomar la nueva, congelar — esta no en una pieza de FRENOS), con
+// la línea de la recomendación con criterio. La pieza queda como estaba. /inicio recomienda, lo decide con el dueño y lo escribe
+// `actualizar.cjs resolver` (no el modelo); para no pisar trabajo, el informe guarda la huella de lo tuyo por archivo.
 // El informe guarda en una línea fija (`base: <versión>`) la versión del molde del que viene la pieza. Mientras exista, la pieza
 // NUNCA se fusiona sola: la flota siguiente lo rehace contra el molde nuevo DESDE ESA BASE (aplicar lo fuerza), así no se pierde
 // lo que trajo la versión intermedia. Cuando el dueño contesta y el archivo se borra, la base vuelve a ser `kit:` de la ficha.
@@ -302,6 +308,8 @@ const bloque = (lang, t) => {
 
 // La pregunta, textual (D6-19): la lee /inicio. Abre "## Las salidas".
 const pregunta = (id) => `Actualicé ${id}; acá la tenías distinta así; ¿la mejoramos con esto? Elegí una de estas salidas.`;
+// La recomendación, debajo de la pregunta (SPEC-paquete-8r §3, la vara del ADR-030).
+const RECOMIENDA = 'La sesión te recomienda una con criterio (la vara: si lo nuevo vale la pena frente a tu porqué) y la decide con vos: nada se elige solo.';
 // El comando que escribe la salida elegida (lo corre /inicio, en el checkout del proyecto).
 const RESOLVER = 'node "$HOME/.claude/skills/arquitecto-skills/scripts/actualizar.cjs" resolver .';
 // La huella de lo tuyo por archivo (r1-2): ficha.hash del texto entero (con la zona), o - si no lo tenés.
@@ -324,6 +332,61 @@ function baseDeInforme(texto) {
   return m ? m[1] : null;
 }
 
+// El motivo de un informe (la línea "**Por qué no se fusionó sola:**"). → el texto o ''.
+function motivoDeInforme(texto) {
+  const m = /^- \*\*Por qué no se fusionó sola:\*\* (.*)$/m.exec(lf(String(texto || '')));
+  return m ? m[1] : '';
+}
+// Los pedazos en conflicto de la salida de merge-file (diff3): [{renglon (de lo tuyo), tuyo, viejo, nuevo}], cada lado con su \n.
+function pedazos(texto) {
+  const out = [];
+  let renglon = 1;
+  let actual = null;
+  let lado = null;
+  for (const l of lf(String(texto || '')).split('\n')) {
+    if (!actual && /^<{7}(?: |$)/.test(l)) {
+      actual = { renglon, tuyo: '', viejo: '', nuevo: '' };
+      lado = 'tuyo';
+    } else if (actual && /^\|{7}(?: |$)/.test(l)) lado = 'viejo';
+    else if (actual && l === '=======') lado = 'nuevo';
+    else if (actual && /^>{7}(?: |$)/.test(l)) {
+      renglon += actual.tuyo.split('\n').length - 1;
+      out.push(actual);
+      actual = lado = null;
+    } else if (actual) actual[lado] += `${l}\n`;
+    else renglon++;
+  }
+  return out;
+}
+// "## Dónde chocan" (SPEC-paquete-8r §3): por archivo, los pedazos en conflicto con lo tuyo y lo nuevo, uno al lado del otro.
+// [] si ningún archivo choca.
+function dondeChocan(archivos) {
+  const conf = archivos.filter((a) => (a.tipo === 'tres' && (!a.limpio || a.invalida)) || a.tipo === 'choque');
+  if (!conf.length) return [];
+  const out = ['', '## Dónde chocan', '', 'Lo que el kit cambió en el mismo lugar que vos (fuera de tu zona propia). En cada pedazo: lo tuyo, lo nuevo del kit y cómo estaba antes (el molde viejo).'];
+  for (const a of conf) {
+    out.push('', `### \`${a.rel}\``, '');
+    if (a.tipo === 'choque') {
+      out.push(`No se mezcla renglón por renglón: ${String(a.problema).replace(/^[^:]*: /, '')}.`);
+      continue;
+    }
+    if (a.limpio) {
+      out.push(`La mezcla salió sin conflictos pero no pasó el chequeo (${String(a.invalida).replace(/^[^:]*: /, '')}): mirá el cambio del molde y lo tuyo, abajo.`);
+      continue;
+    }
+    const ext = path.extname(a.rel).slice(1);
+    const ps = pedazos(a.texto);
+    ps.forEach((x, i) => {
+      if (i) out.push('');
+      out.push(`#### Pedazo ${i + 1} de ${ps.length} (cerca del renglón ${x.renglon} de lo tuyo)`, '');
+      out.push('**Lo tuyo:**', '', x.tuyo ? bloque(ext, x.tuyo) : '(nada: lo sacaste)', '');
+      out.push('**Lo nuevo del kit:**', '', x.nuevo ? bloque(ext, x.nuevo) : '(nada: el kit lo saca)', '');
+      out.push('**Antes (el molde viejo):**', '', x.viejo ? bloque(ext, x.viejo) : '(no estaba)');
+    });
+  }
+  return out;
+}
+
 // nota: lo que dice kit/CHANGELOG.md del --kit para las versiones > viejo y ≤ nuevo (lo lee actualizar.cjs), o null.
 function informe({ id, versiones, motivo, porque, archivos, tmp, nota = null }) {
   const out = [
@@ -337,12 +400,15 @@ function informe({ id, versiones, motivo, porque, archivos, tmp, nota = null }) 
     '> sin mezclar, la próxima versión se te vuelve a ofrecer. Mientras esté, la pieza no se fusiona sola: la próxima versión lo',
     '> rehace desde la misma base.',
     '',
+    `- **Qué pieza es:** \`${id}\` (${archivos.filter((a) => a.p !== null || a.n !== null).map((a) => `\`${a.rel}\``).join(', ') || 'sin archivos'})`,
     `- **Por qué no se fusionó sola:** ${motivo}`,
-    `- **El porqué que encontré:** ${porque ? `${porque.texto} (la ficha)` : 'ninguno (la pieza no tiene `por:` en la ficha)'}`,
+    `- **Por qué la habías adaptado:** ${porque ? `${porque.texto} (su \`por:\` en la ficha)` : 'ninguno (la pieza no tiene `por:` en la ficha)'}`,
+    '- **Qué trae la versión nueva:** lo que dice el kit, acá abajo, y el cambio del molde en cada archivo (molde viejo → molde nuevo).',
     '',
     '## Qué dice el kit',
     '',
     ...(nota ? lf(nota).replace(/\n+$/, '').split('\n').map((l) => (l ? `> ${l}` : '>')) : ['el kit no dejó nota para estas versiones']),
+    ...dondeChocan(archivos),
   ];
   for (const a of archivos) {
     if (!alInforme(a)) continue;
@@ -360,7 +426,10 @@ function informe({ id, versiones, motivo, porque, archivos, tmp, nota = null }) 
     out.push(a.p === null ? '(no lo tenés: lo borraste)' : dp ? bloque('diff', dp) : '(igual al molde viejo)');
     out.push('', '### La fusión propuesta', '');
     if (a.tipo === 'molde') out.push('Lo tuyo está igual al molde viejo: va el molde nuevo tal cual (con tu zona propia).');
-    else if (a.tipo === 'tres' && a.propuesta) out.push(bloque(path.extname(a.rel).slice(1), a.propuesta));
+    else if (a.tipo === 'tres' && a.propuesta) {
+      if (a.deClaude) out.push('La armó claude sobre los pedazos que chocan y NO se aplicó: mirala antes de elegir mezclar.', '');
+      out.push(bloque(path.extname(a.rel).slice(1), a.propuesta));
+    } else if (a.tipo === 'tres' && a.invalida) out.push(`La mezcla salió sin conflictos pero no pasó el chequeo (${a.invalida}): armala con los dos diffs de arriba.`);
     else if (a.tipo === 'tres') out.push(`git merge-file no dio una fusión limpia (${a.conflictos} conflicto(s)): armala con los dos diffs de arriba.`);
     else out.push(`No hay: ${a.problema}.`);
     out.push('', '### La versión nueva, entera', '');
@@ -368,8 +437,9 @@ function informe({ id, versiones, motivo, porque, archivos, tmp, nota = null }) 
   }
   const sinPropuesta = archivos.filter((a) => (a.tipo === 'tres' && !a.propuesta) || a.tipo === 'choque').map((a) => a.rel);
   const perdes = archivos.filter((a) => alInforme(a) && a.p !== null && a.tipo !== 'molde' && nuevaEntera(a) !== null).map((a) => a.rel);
-  out.push('', '## Las salidas', '', pregunta(id), '');
-  out.push(`- **mezclar**: lo tuyo encima de lo nuevo (la fusión propuesta de cada archivo)${sinPropuesta.length ? `; falta la de ${sinPropuesta.join(', ')}: armala a mano y corré con --a-mano` : ''}.`);
+  const deClaude = archivos.filter((a) => a.deClaude).map((a) => a.rel);
+  out.push('', '## Las salidas', '', pregunta(id), '', RECOMIENDA, '');
+  out.push(`- **mezclar**: lo tuyo encima de lo nuevo (la fusión propuesta de cada archivo${deClaude.length ? `; la de ${deClaude.join(', ')} la armó claude` : ''})${sinPropuesta.length ? `; falta la de ${sinPropuesta.join(', ')}: armala a mano y corré con --a-mano` : ''}.`);
   out.push(`- **quedarse con la propia**: sigue \`adaptada\`, sin cambios; la próxima versión se te vuelve a ofrecer desde el kit ${versiones.viejo}.`);
   out.push(`- **tomar la nueva del kit**: la versión nueva entera; la pieza pasa a \`molde\` y se actualiza sola de ahí en más. Lo que perdés (lo tuyo fuera de la zona propia): ${perdes.length ? perdes.join(', ') : 'nada'}.`);
   if (esFreno(id)) out.push(`- (congelar no va: \`${id}\` es una pieza de frenos)`);
@@ -415,9 +485,16 @@ function leerInforme(texto) {
 
 // ---------------------------------------------------------------- la pieza entera
 
-// fusionar(o) → { resultado: 'sin cambios' | 'sola' | 'claude' | 'espera', destinos: Map(rel → texto), motivo, porque, informe }
-// o = { carpeta, id, archivos: [{rel, v, n, p}] (textos en LF o null), valorFicha, claude (ruta o null), plan, forzado (motivo),
+// Todo motivo de una mezcla con conflicto empieza así (SPEC-paquete-8r §3, rt-6): el /inicio pregunta siempre por él.
+const CHOCO = 'la mezcla chocó';
+const PROPUESTA_CLAUDE = `${CHOCO}: la propuesta la armó claude, elegí vos`;
+
+// fusionar(o) → { resultado: 'sin cambios' | 'sola' | 'espera', destinos: Map(rel → texto), motivo, porque, informe }
+// o = { carpeta, id, archivos: [{rel, v, n, p}] (textos en LF o null), valorFicha, claude (ruta o null), plan,
+//       forzado (un motivo, o {motivo, corto}: corto es el que va entre paréntesis si además la mezcla chocó),
 //       versiones: {viejo, nuevo}, plazo, nota (lo que dice kit/CHANGELOG.md de las versiones del medio, o null) }
+// Un choque (merge-file con conflictos, un `choque`, lo limpio que no pasa validar) NUNCA se resuelve solo: 'espera', sin destinos.
+// Con claude (no en --plan) se lanza igual, también forzado, pero solo para ARMAR la propuesta: su texto validado va al informe.
 function fusionar(o) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'kit-fusion-'));
   try {
@@ -435,31 +512,53 @@ function fusionar(o) {
       if (val.ok) a.propuesta = val.texto;
       else a.invalida = val.problema;
     }
+    const fz = !o.forzado ? null : typeof o.forzado === 'string' ? { motivo: o.forzado, corto: o.forzado } : o.forzado;
     const porque = tres.length || choques.length ? porqueDe(o.valorFicha) : null;
     const espera = (motivo) => ({
       resultado: 'espera', destinos: new Map(), motivo, porque,
       informe: informe({ id: o.id, versiones: o.versiones, motivo, porque, archivos, tmp, nota: o.nota }),
     });
-    if (o.forzado) return espera(o.forzado);
-    if (!tres.length && !choques.length) return { resultado: 'sola', destinos, porque: { de: 'molde', texto: 'el molde no tocó lo adaptado' } };
-    // EL GATE: sin porqué no se fusiona, ni limpio
-    if (!porque) return espera('sin porqué (la pieza no tiene `por:` en la ficha)');
-    if (choques.length) return espera(`conflicto sin resolver (${choques[0].problema})`);
-    const invalida = tres.find((a) => a.invalida);
-    if (invalida) return espera(`no pasó chequear (${invalida.invalida})`);
-    for (const a of tres.filter((x) => x.limpio)) destinos.set(a.rel, a.propuesta);
-    const conflictos = tres.filter((a) => !a.limpio);
-    if (!conflictos.length) return { resultado: 'sola', destinos, porque };
-    if (o.plan) return espera('conflicto sin resolver (con --plan no lanzo claude)');
-    if (!o.claude) return espera('conflicto sin resolver (sin claude: --claude no, o no está en el PATH)');
-    const rc = conClaude({ carpeta: o.carpeta, exe: o.claude, id: o.id, versiones: o.versiones, porque: porque.texto, conflictos, plazo: o.plazo });
-    if (!rc.ok) return espera(`conflicto sin resolver (claude ${rc.problema})`);
-    for (const a of conflictos) {
-      const val = validar(a.rel, rc.textos.get(a.rel), a.p, tmp);
-      if (!val.ok) return espera(`no pasó chequear (lo de claude: ${val.problema})`);
-      destinos.set(a.rel, val.texto);
+    if (!tres.length && !choques.length) {
+      if (fz) return espera(fz.motivo);
+      return { resultado: 'sola', destinos, porque: { de: 'molde', texto: 'el molde no tocó lo adaptado' } };
     }
-    return { resultado: 'claude', destinos, porque };
+    // EL GATE: sin porqué no se fusiona, ni limpio (y no es un choque: falta el porqué antes de mezclar)
+    if (!porque) return espera(fz ? fz.motivo : 'sin porqué (la pieza no tiene `por:` en la ficha)');
+    const conflictos = tres.filter((a) => !a.limpio);
+    const invalida = tres.find((a) => a.invalida);
+    if (!choques.length && !invalida && !conflictos.length) {
+      if (fz) return espera(fz.motivo);
+      for (const a of tres) destinos.set(a.rel, a.propuesta);
+      return { resultado: 'sola', destinos, porque };
+    }
+    // CHOCÓ: nunca se resuelve sola. Lo que se pueda, se deja armado en el informe.
+    const por = [];
+    if (fz) por.push(fz.corto);
+    if (choques.length) por.push(choques[0].problema);
+    if (invalida) por.push(`no pasó chequear: ${invalida.invalida}`);
+    let deClaude = false;
+    if (conflictos.length) {
+      if (o.plan) por.push('con --plan no lanzo claude');
+      else if (!o.claude) por.push('sin claude: --claude no, o no está en el PATH');
+      else {
+        const rc = conClaude({ carpeta: o.carpeta, exe: o.claude, id: o.id, versiones: o.versiones, porque: porque.texto, conflictos, plazo: o.plazo });
+        if (!rc.ok) por.push(`claude ${rc.problema}`);
+        else {
+          const vals = conflictos.map((a) => ({ a, val: validar(a.rel, rc.textos.get(a.rel), a.p, tmp) }));
+          const mala = vals.find((x) => !x.val.ok);
+          if (mala) por.push(`no pasó chequear lo de claude: ${mala.val.problema}`);
+          else {
+            for (const { a, val } of vals) {
+              a.propuesta = val.texto;
+              a.deClaude = true;
+            }
+            deClaude = true;
+          }
+        }
+      }
+    }
+    const resto = por.length ? ` (${por.join('; ')})` : '';
+    return espera(deClaude ? `${PROPUESTA_CLAUDE}${resto}` : `${CHOCO}${resto}`);
   } finally {
     try { fs.rmSync(tmp, { recursive: true, force: true }); } catch { /* el temporal */ }
   }
@@ -468,7 +567,6 @@ function fusionar(o) {
 // La línea de aplicar para una adaptada: lo que pasó.
 function que(r) {
   if (r.resultado === 'sola') return `fusionada (sola, ${corto(r.porque.texto, 50)})`;
-  if (r.resultado === 'claude') return 'fusionada (claude)';
   if (r.resultado === 'espera') return `te espera: ${r.motivo}`;
   return 'sin cambios';
 }
@@ -476,7 +574,7 @@ function que(r) {
 const rutaInforme = (id) => `${RUTA_FUSIONES}/${id}.md`;
 
 module.exports = {
-  fusionar, que, porqueDe, validar, clasificar, mergeFile, vaciarZonas, buscarClaude, lanzador, conClaude, informe, pregunta, baseDeInforme,
+  fusionar, que, porqueDe, validar, clasificar, mergeFile, vaciarZonas, buscarClaude, lanzador, conClaude, informe, pregunta, baseDeInforme, motivoDeInforme,
   leerInforme, esFreno, huellaTuya, rutaInforme, RUTA_FUSIONES, CARPETA_FUSION, ARGS_CLAUDE, PERMITIDAS, PLAZO_CLAUDE, ADAPTADA, FRENOS,
-  SALIDAS, RESOLVER,
+  SALIDAS, RESOLVER, RECOMIENDA, CHOCO, PROPUESTA_CLAUDE, dondeChocan, pedazos,
 };
