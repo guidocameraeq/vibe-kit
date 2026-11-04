@@ -5,6 +5,7 @@
 //                               [--comando-test "<comando>"]
 //   node actualizar.cjs adoptar <carpeta> --kit <raíz del kit> --aplicar <archivo de propuesta> [--fecha <AAAA-MM-DD>]
 //                               [--principal <carpeta principal>] [--claude-md]
+//                               [--director kit] [--permisos recomendada] [--arranque kit]   (D1-D3: SPEC-paquete-8r2, t3 y t9)
 //
 // Un script determinista (D6-1): MIRA y APLICA. La pantalla (NORTE, MAPA, el plano de docs/, las reglas propias como cambios) la
 // arma la sesión del Arquitecto con Guido delante, leyendo la propuesta (D6-12): eso necesita leer el código y no es de un script.
@@ -143,7 +144,9 @@ function fichaEnLaHistoria(carpeta) {
   const r = gitEn(carpeta, ['log', '--all', '-1', '--format=%h', '--', RUTA_FICHA]);
   return r.ok && r.out.trim() ? r.out.trim() : null;
 }
-const lineaFichaVieja = (sha) => `${RUTA_FICHA} ya estuvo en la historia (commit ${sha}) y la exención b pide que no haya existido nunca: el commit de la ficha da ROJO en barreras — eso lo aprueba Guido después del merge, desde su checkout (cambios nuevo + cambios aprobar)`;
+// El camino de un commit de la adopción que da rojo en barreras (la ficha distinta de fábrica, D4, los permisos de D2/D3).
+const APRUEBA = 'eso lo aprueba Guido después del merge, desde su checkout (cambios nuevo + cambios aprobar)';
+const lineaFichaVieja = (sha) => `${RUTA_FICHA} ya estuvo en la historia (commit ${sha}) y la exención b pide que no haya existido nunca: el commit de la ficha da ROJO en barreras — ${APRUEBA}`;
 
 // La carpeta: la raíz de un repo git, sin ficha.
 function revisarRaiz(carpeta) {
@@ -435,6 +438,7 @@ function mirar(carpeta, opciones) {
     const base = conClaude || nuevoRepo; // lo base va en molde; sin CLAUDE.md y sin --nuevo, todo en no (criterio 19)
 
     const piezas = []; // { id, estado, que }
+    const d1 = []; // { id, distintos }: las del director (D1_PIEZAS) que quedan propia por un archivo distinto
     for (const [id, { pieza, archivos }] of repN) {
       if (['nunca', 'no-viaja', 'snippet'].includes(pieza.trato)) continue;
       const pone = (estado, que) => piezas.push({ id, estado, que });
@@ -464,16 +468,9 @@ function mirar(carpeta, opciones) {
         else pone('molde', proyecto === null ? 'nace' : 'se mezcla regla por regla: lo propio queda, lo del molde v2 sin tocar se va');
         continue;
       }
-      const mapN = new Map(archivos.map((a) => [a.proyecto, aN.get(a.molde)]));
-      const mapV = new Map((repV.has(id) ? repV.get(id).archivos : []).map((a) => [a.proyecto, aV.get(a.molde)]));
-      const distintos = [];
-      const delV2 = [];
-      for (const rel of new Set([...mapN.keys(), ...mapV.keys()])) {
-        const t = leerP(carpeta, rel);
-        if (t === null || (mapN.has(rel) && iguales(rel, t, mapN.get(rel)))) continue;
-        if (mapV.has(rel) && iguales(rel, t, mapV.get(rel))) delV2.push(rel);
-        else distintos.push(rel);
-      }
+      const { distintos, delV2 } = distintosDe(carpeta, mapaDe(repN, aN, id), mapaDe(repV, aV, id));
+      // D1 (8r2, t3): una de las cuatro del director con un archivo distinto (acá siempre sale propia) → el bloque D1 de abajo
+      if (distintos.length && D1_PIEZAS.includes(id)) d1.push({ id, distintos });
       const ocupada = distintos.length ? `${listaCorta(distintos)} ya está y es distinto del molde` : '';
       if (conModulos) {
         if (!distintos.length) pone('sí', 'repo con código: el módulo con director necesita /director y /obrero');
@@ -558,7 +555,10 @@ function mirar(carpeta, opciones) {
       o(`registro de cambios de método: ${listaCorta(reg)} → migración, dentro del OK de la adopción: ${MIGRAR} --repo <clon>${fuente} --plan, después lo mismo con --commit`);
     }
     o('docs-fyd: se ofrece — la documentación de auditoría FyD (si va, piezas.docs-fyd: sí)');
-    o(`al aplicar: dos commits (las piezas, después la ficha sola: la exención b mira la fábrica en el árbol del padre)`);
+    if (base) {
+      for (const l of bloquesDecision(carpeta, { d1, settings: { viejo: aV.has('settings.json') ? aV.get('settings.json') : null, nuevo: aN.get('settings.json'), proyecto: leerP(carpeta, RUTA_SETTINGS) } })) o(l);
+    }
+    o(`al aplicar: dos commits (las piezas, después la ficha sola: la exención b mira la fábrica en el árbol del padre; con --permisos o --arranque, un tercero: los permisos)`);
 
     const lineasVars = Object.entries(vars).map(([k, v]) => `  ${k}: ${valorTexto(v)}`);
     const texto = [
@@ -632,7 +632,11 @@ function aplicarPropuesta(carpeta, opciones) {
   const version = A.versionDelKit(opciones.kit);
   if (datos.kit !== version) throw new Negativa(`la propuesta es del kit ${datos.kit} y el --kit es ${version} — corré --mirar de nuevo; no escribí nada`);
   const propuestas = esMapa(datos.piezas) ? datos.piezas : {};
-  const estado = (id) => (Object.prototype.hasOwnProperty.call(propuestas, id) ? estadoDe(propuestas[id]) : undefined);
+  const estadoPropuesto = (id) => (Object.prototype.hasOwnProperty.call(propuestas, id) ? estadoDe(propuestas[id]) : undefined);
+  // D1 (--director kit, rt-4): las del director que se reemplazan, con el estado que toman (una propia → sí o molde)
+  const d1 = []; // { id, estado, distintos }
+  const elegidoD1 = new Map();
+  const estado = (id) => (elegidoD1.has(id) ? elegidoD1.get(id) : estadoPropuesto(id));
   const trae = (id) => TRAE.includes(estado(id));
   const fecha = opciones.fecha || hoy();
   const antes = gitEn(carpeta, ['rev-parse', 'HEAD']).out.trim();
@@ -642,8 +646,28 @@ function aplicarPropuesta(carpeta, opciones) {
   let plan;
   try {
     const viejo = moldeV2(opciones.kit, carpeta, path.join(tmp, 'viejo'));
+    let fichaPlan = fichaTexto;
+    if (opciones.director === 'kit') {
+      // lo distinto con la misma vara de --mirar; solo las cuatro del director, y solo las que vienen (o las propia de --mirar)
+      const nuevo = M.materializarNuevo(opciones.kit, { vars: esMapa(datos.vars) ? datos.vars : {}, fecha }, path.join(tmp, 'nuevo'));
+      const aN = M.archivosDe(nuevo.dir);
+      const repN0 = C.repartir(nuevo.forma, C.rutasDeMolde(nuevo.dir));
+      const aV = viejo ? M.archivosDe(viejo.dir) : new Map();
+      const repV0 = viejo ? C.repartir(viejo.forma, C.rutasDeMolde(viejo.dir)) : new Map();
+      for (const id of D1_PIEZAS) {
+        const e = estadoPropuesto(id);
+        if (e !== 'propia' && !TRAE.includes(e)) continue;
+        const { distintos } = distintosDe(carpeta, mapaDe(repN0, aN, id), mapaDe(repV0, aV, id));
+        if (!distintos.length) continue;
+        const toma = e === 'propia' ? (MODULOS.includes(id) ? 'sí' : 'molde') : e;
+        d1.push({ id, estado: toma, distintos });
+        elegidoD1.set(id, toma);
+      }
+      // al planificador le llegan en propia: así no pasan por el guardia ni por la fusión (nada de claude); se escriben abajo
+      if (d1.length) fichaPlan = A.reescribirFicha(fichaTexto, null, new Map(d1.map((x) => [x.id, 'propia'])));
+    }
     // el planificador de aplicar: se niega como aplicar (sucia salvo .kit-rol, .kit-rol ≠ actualizador)
-    plan = A.planear(carpeta, { kit: opciones.kit, moldeViejo: viejo ? viejo.dir : opciones.kit, fecha, ficha: fichaTexto });
+    plan = A.planear(carpeta, { kit: opciones.kit, moldeViejo: viejo ? viejo.dir : opciones.kit, fecha, ficha: fichaPlan });
   } finally {
     M.borrar(tmp);
   }
@@ -671,6 +695,24 @@ function aplicarPropuesta(carpeta, opciones) {
     let ficha = plan.fichaNueva || fichaTexto;
     const forzar = new Map();
     for (const [id, v] of Object.entries(propuestas)) if (!trae(id)) forzar.set(id, valorEstado(estadoDe(v)));
+    // D1: A — los del kit sobre los tuyos, como una traída normal: el molde nuevo entero, y la ficha en molde (con su hash si es
+    // un archivo, y molde+propio si trae zona) o en sí
+    if (d1.length) {
+      const aN = M.archivosDe(plan.moldeNuevo);
+      for (const x of d1) {
+        const archivos = repN.has(x.id) ? repN.get(x.id).archivos : [];
+        for (const a of archivos) {
+          const t = aN.get(a.molde);
+          const actual = leerP(carpeta, a.proyecto);
+          if (actual === null || lf(actual) !== t) ops.set(a.proyecto, t);
+        }
+        const unico = archivos.length === 1 ? archivos[0] : null;
+        let e = x.estado;
+        if (e === 'molde' && unico && /\.md$/i.test(unico.proyecto) && (Z.zonas(aN.get(unico.molde)).zonas || []).length) e = 'molde+propio';
+        const h = unico && e !== 'sí' ? huella(unico.proyecto, aN.get(unico.molde)) : undefined;
+        forzar.set(x.id, h ? `{estado: ${valorEstado(e)}, hash: ${h}}` : valorEstado(e));
+      }
+    }
     if (forzar.size) ficha = A.reescribirFicha(ficha, null, forzar);
     const final = F.leer(ficha).datos;
 
@@ -698,8 +740,32 @@ function aplicarPropuesta(carpeta, opciones) {
     let renglon = null;
     if (lc && ops.has(RUTA_CHANGELOG)) {
       const viejoR = lc.slice(`${RUTA_CHANGELOG} · un renglón · `.length);
-      renglon = `kit ${version}: adopción — piezas ${traidas.join(', ')}`;
+      renglon = `kit ${version}: adopción — piezas ${traidas.join(', ')}${d1.length ? ' — D1: A, los del kit reemplazan los propios' : ''}`;
       ops.set(RUTA_CHANGELOG, ops.get(RUTA_CHANGELOG).split('\n').map((l) => (l === viejoR ? renglon : l)).join('\n'));
+    }
+    // D2 (--permisos recomendada) y D3 (--arranque kit), rt-9: en el disco el settings elegido; en el commit de las piezas, la
+    // mezcla de siempre (su blob va al índice: git update-index), así ese commit pasa barreras como hoy. El cambio, en un tercero.
+    const lineasD = [];
+    let permisos = null; // { plano, texto } cuando hay tercer commit
+    if (opciones.permisos || opciones.arranque) {
+      const nombre = [opciones.permisos ? 'D2 (--permisos recomendada)' : '', opciones.arranque ? 'D3 (--arranque kit)' : ''].filter(Boolean).join(' y ');
+      const sV = repV.has('settings') && repV.get('settings').archivos.length ? path.join(plan.moldeViejo, ...repV.get('settings').archivos[0].molde.split('/')) : null;
+      const sN = repN.has('settings') && repN.get('settings').archivos.length ? path.join(plan.moldeNuevo, ...repN.get('settings').archivos[0].molde.split('/')) : null;
+      const proyecto = leerP(carpeta, RUTA_SETTINGS);
+      const plano = ops.has(RUTA_SETTINGS) ? ops.get(RUTA_SETTINGS) : proyecto;
+      const quitados = esMapa(final.frenos) && Array.isArray(final.frenos.quitados) ? final.frenos.quitados : [];
+      const el = trae('settings') && sN && proyecto !== null
+        ? settingsElegido({ viejo: sV && fs.existsSync(sV) ? fs.readFileSync(sV, 'utf8') : null, nuevo: fs.readFileSync(sN, 'utf8'), proyecto, quitados }, { permisos: !!opciones.permisos, arranque: !!opciones.arranque })
+        : null;
+      if (!el) lineasD.push(`settings · ${nombre}: no hay nada que elegir (${trae('settings') ? 'sin un settings propio que se mezcle' : 'la pieza settings no viene'}) — no toqué nada`);
+      else {
+        if (opciones.permisos) lineasD.push(`settings · D2 (--permisos recomendada): ${[el.quedan.length ? `quedan ${el.quedan.join(', ')} (la mezcla las sacaba)` : 'ninguna allow que la mezcla sacara', el.salen.length ? `salen ${el.salen.join(', ')} (frenaban al director)` : 'ningún ask que frene al director'].join('; ')}`);
+        if (opciones.arranque) lineasD.push(`settings · D3 (--arranque kit): ${el.fuera.length ? `sale del settings ${el.fuera.join(', ')} — su archivo queda` : 'no hay un SessionStart propio: nada que sacar'}`);
+        if (plano === null || lf(plano) !== el.texto) {
+          permisos = { plano, texto: el.texto };
+          ops.set(RUTA_SETTINGS, el.texto);
+        } else lineasD.push(`settings · ${nombre}: queda igual a la mezcla — no hay tercer commit`);
+      }
     }
     ops.set(RUTA_FICHA, ficha); // la ficha, la última
 
@@ -708,7 +774,9 @@ function aplicarPropuesta(carpeta, opciones) {
     const lineas = [];
     for (const id of Object.keys(propuestas)) {
       const e = estadoDe(final.piezas[id]);
-      if (trae(id)) lineas.push(dePlan.has(id) ? `${id} · ${e} · ${dePlan.get(id).split(' · ').slice(2).join(' · ')}` : `${id} · ${e} · sin cambios`);
+      const x = d1.find((y) => y.id === id);
+      if (x) lineas.push(`${id} · ${e} · reemplacé los tuyos (D1: A) — lo tuyo queda en la historia: ${x.distintos.map((r) => `git show ${antes || '<el HEAD de antes>'}:${r}`).join(', ')}`);
+      else if (trae(id)) lineas.push(dePlan.has(id) ? `${id} · ${e} · ${dePlan.get(id).split(' · ').slice(2).join(' · ')}` : `${id} · ${e} · sin cambios`);
       else if (id === 'candado' && candadoCorre) lineas.push(`${id} · ${e} · apagado hasta migrar (estructura.cjs vino: barreras corre)`);
       else lineas.push(`${id} · ${e} · ${e === 'propia' ? 'propia: no se toca' : 'no se trae'}`);
     }
@@ -723,11 +791,19 @@ function aplicarPropuesta(carpeta, opciones) {
     const fab = F.leer(fs.readFileSync(path.join(plan.moldeNuevo, 'hooks', 'lib', 'fabrica', `ficha.${final.nivel}.md`), 'utf8')).datos;
     const distintas = distintasDeFabrica(final, fab);
     lineas.push(`ficha · ${RUTA_FICHA} · kit ${version}, nivel ${final.nivel} · ${distintas.length ? `${distintas.join(', ')} distinto de fábrica` : 'frenos, sensible y autorizado de fábrica'}`);
+    lineas.push(...lineasD);
 
     try {
       A.ejecutar(carpeta, ops, opciones.io);
     } catch (e) {
       return { codigo: 1, lineas: [...lineas, `adoptar: no pude escribir ${e.ruta || '?'} (${e.code || e.message}) — cada archivo quedó entero, el viejo o el nuevo. Es el clon: \`git checkout -- . && git clean -fd\` (deja .kit-rol) y corré de nuevo`] };
+    }
+    // rt-9: el blob de la mezcla de siempre, para el índice del commit de las piezas (un objeto suelto en .git: no es un commit)
+    let blobPlano = null;
+    if (permisos) {
+      const h = spawnSync('git', ['hash-object', '-w', '--path', RUTA_SETTINGS, '--stdin'], { cwd: carpeta, input: permisos.plano, encoding: 'utf8', windowsHide: true });
+      if (h.error || h.status !== 0) return { codigo: 1, lineas: [...lineas, `adoptar: no pude guardar la mezcla del settings para el commit de las piezas (${String(h.stderr || (h.error && h.error.message) || '').trim()}) — los archivos quedaron escritos; es el clon: \`git checkout -- . && git clean -fd\` y corré de nuevo`] };
+      blobPlano = h.stdout.trim();
     }
     // los githooks, en la carpeta principal (en el clon no: r1-5)
     lineas.push(opciones.principal ? prenderGithooks(carpeta, opciones.principal) : 'githooks · sin --principal · no los prendí (van con --principal <la carpeta de Guido> en el --aplicar): los prende el primer arranque después del pull');
@@ -736,9 +812,17 @@ function aplicarPropuesta(carpeta, opciones) {
       // los githooks sh con +x en el índice (en Windows el disco no lo lleva; en la flota lo pone flota, acá el commit)
       const sh = [...ops.keys()].filter((rel) => /^\.githooks\/[^/.]+$/.test(rel) && ops.get(rel) !== null);
       const x = sh.length ? ` && git update-index --chmod=+x -- ${sh.join(' ')}` : '';
-      lineas.push('van dos commits, en este orden (la exención b compara la ficha con la de fábrica del árbol del padre: la ficha va sola, después):');
-      lineas.push(`  git add -A -- . ":(exclude)${RUTA_FICHA}"${x} && git commit -m "${msg} (piezas)"`);
-      lineas.push(`  git add -- ${RUTA_FICHA} && git commit -m "${msg} (ficha)"`);
+      if (blobPlano) {
+        // rt-9: tres — en las piezas va la mezcla de siempre (el blob, al índice); D2/D3 en el tercero, solo
+        lineas.push(`van tres commits, en este orden (la exención b compara la ficha con la de fábrica del árbol del padre: la ficha va sola, después; lo de ${MSG_PERMISOS} va aparte, en el tercero):`);
+        lineas.push(`  git add -A -- . ":(exclude)${RUTA_FICHA}" ":(exclude)${RUTA_SETTINGS}" && git update-index --add --cacheinfo 100644,${blobPlano},${RUTA_SETTINGS}${x} && git commit -m "${msg} (piezas)"`);
+        lineas.push(`  git add -- ${RUTA_FICHA} && git commit -m "${msg} (ficha)"`);
+        lineas.push(`  git add -- ${RUTA_SETTINGS} && git commit -m "${msg} (${MSG_PERMISOS})"`);
+      } else {
+        lineas.push('van dos commits, en este orden (la exención b compara la ficha con la de fábrica del árbol del padre: la ficha va sola, después):');
+        lineas.push(`  git add -A -- . ":(exclude)${RUTA_FICHA}"${x} && git commit -m "${msg} (piezas)"`);
+        lineas.push(`  git add -- ${RUTA_FICHA} && git commit -m "${msg} (ficha)"`);
+      }
     } else {
       lineas.push('va un commit, solo la ficha (no vino ninguna pieza):');
       lineas.push(`  git add -- ${RUTA_FICHA} && git commit -m "${msg} (ficha)"`);
@@ -746,13 +830,155 @@ function aplicarPropuesta(carpeta, opciones) {
     // chequear no va: pide la ficha en la base, y antes de la adopción no hay (corre desde la primera puesta al día de la flota)
     const rango = `node .claude/scripts/estructura.cjs barreras --rango ${antes || '<el HEAD de antes>'}..HEAD`;
     if (!algo) lineas.push(`después: barreras da ROJO en el commit de la ficha (sin la fábrica en el árbol del padre no hay exención b): lo aprueba Guido`);
-    else if (distintas.length) lineas.push(`después: ${rango} da ROJO en el commit de la ficha (${distintas.join(', ')} no es de fábrica): eso lo aprueba Guido después del merge, desde su checkout (cambios nuevo + cambios aprobar)`);
+    else if (distintas.length) lineas.push(`después: ${rango} da ROJO en el commit de la ficha (${distintas.join(', ')} no es de fábrica): ${APRUEBA}`);
     else if (fichaVieja) lineas.push(`después: ${rango} da ROJO: ${lineaFichaVieja(fichaVieja)}`);
-    else lineas.push(`después: ${rango} → verde`);
+    else lineas.push(`después: ${rango} → verde${blobPlano ? ' en las piezas y la ficha' : ''}`);
+    // rt-9: el tercero toca reglas del settings sin un aprobado sellado (lo dice barreras, regla por regla)
+    if (blobPlano) lineas.push(`después: el commit de los permisos (${MSG_PERMISOS}) da ROJO en barreras (toca reglas del settings sin un aprobado sellado): ${APRUEBA}, y ese commit se rehace después del sello (o se revierte: queda la mezcla de siempre)`);
     return { codigo: 0, lineas };
   } finally {
     M.borrar(plan.tmp);
   }
+}
+
+// ---------------------------------------------------------------- D1-D4: las decisiones de la adopción (SPEC-paquete-8r2 t3, t9; rt-4, rt-9)
+//
+// Ninguna se decide acá (D8r2-2): --mirar las muestra con la recomendada del informe primero, y cada camino es UN paso de
+// --aplicar. Sin opciones, todo como antes. D1 (--director kit): las cuatro del director con un archivo distinto del molde se
+// reemplazan con las del kit. D2 (--permisos recomendada) y D3 (--arranque kit): el settings, en un tercer commit propio (rt-9: el
+// de las piezas sigue pasando barreras). D4 (sensible:) no tiene opción: se cambia en la propuesta.
+
+const DECISIONES = { '--director': 'director', '--permisos': 'permisos', '--arranque': 'arranque' };
+const VALOR_DECISION = { '--director': 'kit', '--permisos': 'recomendada', '--arranque': 'kit' };
+const D1_PIEZAS = ['director-obrero', 'estado', 'inicio', 'cierre'];
+const PASOS_DIRECTOR = ['git merge', 'git push', 'git worktree', 'git branch -d']; // los que corre el director (un ask lo frena)
+const RUTA_HANDOFF = 'docs/SESSION_HANDOFF.md';
+const TOPE_HANDOFF = 5000; // el del hook de arranque (hooks/lib/topes.cjs, HANDOFF_BYTES)
+const MSG_PERMISOS = 'permisos: D2/D3';
+
+const mapaDe = (rep, a, id) => new Map((rep.has(id) ? rep.get(id).archivos : []).map((x) => [x.proyecto, a.get(x.molde)]));
+// Los archivos de una pieza que ya están en el proyecto y no son ni el molde nuevo ni el v2 sin editar (distintos), y los que son
+// el v2 sin editar (delV2). La misma vara en --mirar (propia) y en --aplicar --director kit (qué se reemplaza).
+function distintosDe(carpeta, mapN, mapV) {
+  const distintos = [];
+  const delV2 = [];
+  for (const rel of new Set([...mapN.keys(), ...mapV.keys()])) {
+    const t = leerP(carpeta, rel);
+    if (t === null || (mapN.has(rel) && iguales(rel, t, mapN.get(rel)))) continue;
+    if (mapV.has(rel) && iguales(rel, t, mapV.get(rel))) delV2.push(rel);
+    else distintos.push(rel);
+  }
+  return { distintos, delV2 };
+}
+
+// ¿Una regla ask frena un paso del director? Bash(…)/PowerShell(…) cuyo prefijo cubre git merge, git push, git worktree o
+// git branch -d. `git push --force` o `git branch -D` no frenan nada del director (no los corre).
+function frenaAlDirector(regla) {
+  const m = /^(?:Bash|PowerShell)\((.*)\)$/.exec(String(regla).trim());
+  if (!m) return false;
+  const p = m[1].replace(/(:\*|\s*\*)$/, '').trim();
+  if (!p) return false;
+  return PASOS_DIRECTOR.some((d) => d === p || d.startsWith(`${p} `) || (p.startsWith(`${d} `) && !/\s(--force|-f\b)/.test(p.slice(d.length))));
+}
+
+const leerSettings = (t) => {
+  if (t == null) return {};
+  const r = Z.leerJsonSinDuplicados(t);
+  return r.ok && esMapa(r.valor) ? r.valor : null;
+};
+const textoRegla = (id) => id.replace(/^(allow|ask|deny):/, '$1 ');
+const textoHook = (x) => `hook ${x.evento} ${x.matcher || '*'}: ${x.comando}`;
+
+// Lo del settings para D2 y D3, o null (sin settings, o uno que no se lee o no se mezcla: eso ya lo dice la pieza settings).
+// → { sevan: ids de permisos que la mezcla saca (los iguales al molde v2), frenan: los ask (texto) que frenan al director,
+//     arranque: los hooks SessionStart propios (de Z.reglas), P y V: los valores leídos (para elegir) }
+function decisionesSettings({ viejo, nuevo, proyecto, quitados = [] }) {
+  if (proyecto == null) return null;
+  const P = leerSettings(proyecto);
+  const V = leerSettings(viejo);
+  const N = leerSettings(nuevo);
+  if (!P || !V || !N) return null;
+  const r = Z.mezclarSettings({ viejo, nuevo, proyecto, quitados });
+  if (!r.ok) return null;
+  const sevan = r.informe.retiradas.filter((id) => /^(allow|ask|deny):/.test(id));
+  const ask = esMapa(P.permissions) && Array.isArray(P.permissions.ask) ? P.permissions.ask : [];
+  const delMolde = new Set([...Z.reglas(N), ...Z.reglas(V)].map((x) => x.id));
+  const arranque = Z.reglas(P).filter((x) => x.tipo === 'hook' && x.evento === 'SessionStart' && !delMolde.has(x.id));
+  return { sevan, frenan: ask.filter(frenaAlDirector), arranque, P, V };
+}
+
+// El settings con D2 y/o D3 elegidas: la misma mezcla, con el v2 sin las allow que se iban (así quedan donde están) y el proyecto
+// sin los ask que frenan y sin el SessionStart propio. → { texto, quedan, salen, fuera } o null (no hay nada que elegir).
+function settingsElegido(entrada, { permisos, arranque }) {
+  const d = decisionesSettings(entrada);
+  if (!d) return null;
+  const { P, V } = d;
+  const quedan = [];
+  const salen = [];
+  const fuera = [];
+  if (permisos) {
+    const iban = new Set(d.sevan.filter((id) => id.startsWith('allow:')));
+    if (esMapa(V.permissions) && Array.isArray(V.permissions.allow)) {
+      V.permissions.allow = V.permissions.allow.filter((t) => !iban.has(Z.normalizarId(`allow:${t}`)));
+    }
+    for (const id of iban) quedan.push(textoRegla(id));
+    if (d.frenan.length) {
+      P.permissions.ask = P.permissions.ask.filter((t) => !frenaAlDirector(t));
+      salen.push(...d.frenan.map((t) => `ask ${t}`));
+    }
+  }
+  if (arranque && d.arranque.length) {
+    const sacar = new Set(d.arranque.map((x) => x.entrada)); // las mismas entradas de P (Z.reglas no copia)
+    const grupos = P.hooks.SessionStart.map((g) => ({ ...g, hooks: g.hooks.filter((h) => !sacar.has(h)) })).filter((g) => g.hooks.length);
+    if (grupos.length) P.hooks.SessionStart = grupos;
+    else delete P.hooks.SessionStart;
+    fuera.push(...d.arranque.map(textoHook));
+  }
+  const r = Z.mezclarSettings({ viejo: JSON.stringify(V), nuevo: entrada.nuevo, proyecto: JSON.stringify(P), quitados: entrada.quitados || [] });
+  if (!r.ok) return null;
+  return { texto: r.texto, quedan, salen, fuera };
+}
+
+// Los bloques de --mirar: lo que se ve (a)-(d) y D1-D4, cada uno con la recomendada del informe primero y cómo se elige.
+function bloquesDecision(carpeta, { d1, settings }) {
+  const out = [];
+  if (d1.length) {
+    const rutas = d1.flatMap((x) => x.distintos.map((r) => `${r} (${x.id})`));
+    out.push(`D1 · el director, /inicio y /cierre: ya hay unos tuyos distintos de los del kit — ${listaCorta(rutas, 6)}`);
+    out.push('  (A, recomendada) los del kit: --aplicar <propuesta> --director kit — las reglas tuyas que valgan pasan a la zona propia del CLAUDE.md o a cambios (los cambios de método ya migran)');
+    out.push('  (B) los tuyos: sin la opción — el módulo arranca solo, sin el director del kit');
+  }
+  const d = decisionesSettings(settings);
+  if (d) {
+    if (d.sevan.length) {
+      out.push('settings: se van con la mezcla (iguales al molde v2):');
+      for (const id of d.sevan) out.push(`  se va: ${textoRegla(id)}`);
+    }
+    if (d.frenan.length) {
+      out.push('settings: ask que frenan un paso del director (git merge, git push, git worktree, git branch -d):');
+      for (const t of d.frenan) out.push(`  frena: ask ${t}`);
+    }
+    if (d.sevan.length || d.frenan.length) {
+      out.push('D2 · los permisos:');
+      out.push('  (recomendada) dejar las allow que se iban y sacar los ask que frenan al director (el del kit ya frena el merge solo): --aplicar <propuesta> --permisos recomendada — va en un tercer commit, aparte');
+      out.push('  (otra) sin la opción: la mezcla como siempre — esas allow se van (fuera de auto, cada una pide permiso) y los ask quedan (frenan al director de noche)');
+    }
+    for (const x of d.arranque) out.push(`arranque: un SessionStart propio (no es del molde): ${textoHook(x)}`);
+  }
+  let handoff = null;
+  try {
+    const st = fs.statSync(path.join(carpeta, ...RUTA_HANDOFF.split('/')));
+    if (st.isFile() && st.size > TOPE_HANDOFF) handoff = st.size;
+  } catch { /* no hay handoff */ }
+  if (handoff !== null) out.push(`arranque: ${RUTA_HANDOFF} pesa ${handoff} B y el tope del hook es ${TOPE_HANDOFF} B: cada arranque lo inyecta CORTADO`);
+  if ((d && d.arranque.length) || handoff !== null) {
+    out.push('D3 · el arranque:');
+    out.push('  (recomendada) el del kit: --aplicar <propuesta> --arranque kit — el SessionStart propio sale del settings (su archivo queda); el /cierre del kit mantiene el handoff bajo el tope (va con la A de D1) — va en un tercer commit, aparte');
+    out.push('  (otra) sin la opción: quedan los dos hooks de arranque y el handoff entra cortado (dos veces, si el tuyo también lo inyecta)');
+  }
+  // la gramática de la ficha: no, o la lista de los comandos que duelen (pregunta el que empieza así); un "sí" no se lee
+  out.push(`D4 · sensible: las cinco de sensible: quedan en no; recomendada: datos-reales con los comandos que tocan la base real — se cambia en la propuesta, como lista (p. ej. datos-reales: [sqlcmd]; "sí" no se lee: va no o los comandos, como en kit.ejemplo.md); el commit de la ficha da ROJO en barreras y ${APRUEBA}`);
+  return out;
 }
 
 // ---------------------------------------------------------------- los githooks en la carpeta principal (SPEC-paquete-8b (14))
@@ -831,6 +1057,7 @@ function prenderGithooks(clon, principal) {
 function leerArgs(argv) {
   const o = { mirar: false, nuevo: false, claudeMd: false };
   const conValor = { '--kit': 'kit', '--nivel': 'nivel', '--propuesta': 'propuesta', '--aplicar': 'aplicar', '--fecha': 'fecha', '--principal': 'principal', '--comando-test': 'comandoTest' };
+  Object.assign(conValor, DECISIONES); // D1-D3 (8r2): --director kit, --permisos recomendada, --arranque kit
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--mirar') o.mirar = true;
@@ -849,6 +1076,8 @@ function leerArgs(argv) {
   if (!o.mirar && (o.nivel !== undefined || o.propuesta !== undefined || o.nuevo || o.comandoTest !== undefined)) return null;
   if (o.comandoTest !== undefined && !escribible(o.comandoTest)) return null; // va entre comillas en la ficha: sin comillas dobles, barras invertidas ni saltos
   if (o.mirar && (o.principal !== undefined || o.claudeMd)) return null;
+  // D1-D3 (8r2): solo con --aplicar, y cada una con su único valor
+  for (const [flag, k] of Object.entries(DECISIONES)) if (o[k] !== undefined && (o.mirar || o[k] !== VALOR_DECISION[flag])) return null;
   if (o.nivel !== undefined && !NIVELES.includes(o.nivel)) return null;
   if (o.fecha !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(o.fecha)) return null;
   return o;
@@ -879,7 +1108,8 @@ async function main(argv) {
       }
       return { codigo: 0, lineas };
     }
-    return aplicarPropuesta(carpeta, { kit, propuesta: path.resolve(o.aplicar), fecha: o.fecha, principal: o.principal === undefined ? undefined : path.resolve(o.principal), claudeMd: o.claudeMd });
+    return aplicarPropuesta(carpeta, { kit, propuesta: path.resolve(o.aplicar), fecha: o.fecha, principal: o.principal === undefined ? undefined : path.resolve(o.principal), claudeMd: o.claudeMd,
+      director: o.director, permisos: o.permisos, arranque: o.arranque });
   } catch (e) {
     if (e instanceof Negativa) return { codigo: 1, lineas: [`adoptar: ${e.message}`] };
     throw e;
