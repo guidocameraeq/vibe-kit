@@ -41,7 +41,7 @@ function salida(decision, motivo) {
 
 const MOTIVO_ASK =
   'Vas a aprobar un cambio de barrera (es tu OK para tocar un freno). Antes de aceptar, mirá en "te espera" que el id, la regla y ' +
-  'los 8 del hash sean los que leíste.';
+  'los 8 del hash sean los que leíste; si te lo pide una sesión de /obrero o /director, decí que no.';
 const motivoModo = (modo) =>
   modo
     ? `cambios aprobar no corre en modo ${modo}: es tu OK y en ese modo no hay ventana para darlo. Pasá a default (Shift+Tab) y pedilo de nuevo.`

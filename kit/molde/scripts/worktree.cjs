@@ -8,15 +8,21 @@
 //   node .claude/scripts/worktree.cjs cerrar <x>--<ID> --cancelado
 //   node .claude/scripts/worktree.cjs integrar <x> [--ok-de-guido]
 //   node .claude/scripts/worktree.cjs integrados
+//   node .claude/scripts/worktree.cjs donde <x>[--<ID>]
+//   node .claude/scripts/worktree.cjs traer-main <x>
 // Rama modulo/<x> → carpeta .claude/worktrees/modulo--<x> (director); modulo/<x>--<ID> → .claude/worktrees/modulo--<x>--<ID> (obrero).
 // Las carpetas van SIEMPRE bajo el checkout principal (el padre del git-common-dir), también corrido desde el worktree del director.
 // `crear`/`abrir` escriben .kit-rol (ASCII, sin BOM, LF: los mismos bytes desde PowerShell o Bash), copian lo que lista
 // .worktreeinclude (sin él: los .env y .env.* ignorados) SACANDO todo renglón cuyo nombre esté en el almacén del proyecto
 // (~/.config/kit-secretos/<proyecto>.env: de ahí se leen solo los NOMBRES; ningún valor sale por pantalla), suman al
-// .claude/settings.local.json del worktree un deny absoluto al .env del principal, corren vars.comando-setup e imprimen la
-// apertura: primero `code "<ruta>"` y la pestaña de Claude (VS Code), la línea de terminal solo si hay `claude` (rf-1): la de PowerShell
-// con el del PATH, o la de Git Bash con el binario de la extensión de VS Code (D-b de D5.1),
-// y al final `primer mensaje: /director` (módulo, también con --noche) o `primer mensaje: /obrero <x>--<ID>` (encargo; 8r T2).
+// .claude/settings.local.json del worktree Y al del principal (8r4 rt-1) un deny absoluto al .env del principal, corren
+// vars.comando-setup e imprimen la apertura: primero la vía de una ventana (8r4 u1: una sesión nueva en la ventana de siempre, con el
+// primer mensaje `/director` —módulo, también con --noche— o `/obrero <x>--<ID>`, que entra sola con `donde` + EnterWorktree), después
+// `o en otra ventana: code "<ruta>"` y la pestaña de Claude, la línea de terminal solo si hay `claude` (rf-1): la de PowerShell con
+// el del PATH, o la de Git Bash con el binario de la extensión de VS Code (D-b de D5.1).
+// `donde` (8r4 u1; rt-4, rt-6): solo mira; `adentro:` (0), `entrar: <ruta>` (0), `no hay worktree` (1) o `PARADA:` (1).
+// `traer-main` (8r4 u2; rt-3, rt-7): en el worktree del director, merge --no-ff --no-commit de origin/<def>, barreras --indice,
+// commit --no-edit y push de modulo/<x>; choca o rojo → merge --abort y 1. Nunca --force, nunca otra rama.
 // El filtro falla cerrado: almacén ilegible, o un .env* trackeado con un nombre del almacén → 1 sin crear nada.
 // `cerrar`: fetch de origin (rf-5), todos los chequeos primero (desde adentro, sin mergear en su madre local u origin, sucio;
 // frenos.log mudado al <git-common-dir>/kit-frenos.log), después `git worktree remove` sin --force, y solo si anduvo,
@@ -48,6 +54,8 @@ const USO = [
   '  cerrar <x>--<ID> --cancelado                  cancela el encargo: con "cancelado <ID> @<sha7>" commiteado en la ficha',
   '  integrar <x> [--ok-de-guido]                  merge --no-ff de modulo/<x> en la rama por defecto de origin, con el gate',
   '  integrados                                    los módulos integrados después del último handoff (para el /inicio; sale 0)',
+  '  donde <x>[--<ID>]                             solo mira: ¿estás adentro de ese worktree, o a qué ruta entrar? (/obrero, /director)',
+  '  traer-main <x>                                en el worktree del director: trae la rama por defecto de origin a modulo/<x>',
 ].join('\n');
 
 const ROTO = 'worktree roto: corré doctor';
@@ -84,7 +92,7 @@ function nombreDe(token) {
 function leerArgumentos(argv) {
   const [comando, ...resto] = argv;
   if (!comando) malLlamado('Falta el comando.');
-  if (!['crear', 'abrir', 'sync-env', 'cerrar', 'integrar', 'integrados'].includes(comando)) malLlamado(`Comando desconocido: ${comando}`);
+  if (!['crear', 'abrir', 'sync-env', 'cerrar', 'integrar', 'integrados', 'donde', 'traer-main'].includes(comando)) malLlamado(`Comando desconocido: ${comando}`);
   const conOpciones = comando === 'crear' || comando === 'abrir';
   const a = { comando, nombre: null, noche: false, modelo: null, okDeGuido: false, cancelado: false };
   const pos = [];
@@ -114,6 +122,7 @@ function leerArgumentos(argv) {
   if (pos.length !== cuantos) malLlamado(`${comando} lleva ${cuantos} argumento(s) además de las banderas.`);
   if (cuantos) a.nombre = nombreDe(pos[0]);
   if (comando === 'integrar' && a.nombre.id !== null) malLlamado('integrar va con el módulo (<x>), no con un encargo: el encargo se mergea en modulo/<x>.');
+  if (comando === 'traer-main' && a.nombre.id !== null) malLlamado('traer-main va con el módulo (<x>), no con un encargo: lo corre el director en modulo/<x>.');
   if (a.cancelado && a.nombre.id === null) malLlamado('--cancelado va con un encargo (<x>--<ID>): un módulo no se cancela así.');
   return a;
 }
@@ -459,18 +468,23 @@ const rolDe = (n, noche) => (noche ? 'nocturno' : n.id === null ? 'director' : '
 const { comandoClaude, argsVigia, shellDeComandos, comandoQueNoCorre } = require('../hooks/lib/proceso.cjs');
 const shellDe = (opciones) => (opciones && opciones.shell !== undefined ? opciones.shell : shellDeComandos());
 
-// La apertura (rf-1): primero la vía de VS Code; la de terminal, solo si hay `claude`: el del PATH (PowerShell o Bash) o, si no, el
-// binario de la extensión de VS Code, que va entre comillas y en la forma de Git Bash (D-b de D5.1).
+// La apertura (rf-1; SPEC-paquete-8r4 u1): primero la vía de una ventana (una sesión nueva en la ventana de siempre, que entra sola
+// al worktree con `donde` + EnterWorktree); después, como alternativa, otra ventana de VS Code; la de terminal, solo si hay `claude`:
+// el del PATH (PowerShell o Bash) o, si no, el binario de la extensión de VS Code, entre comillas y en la forma de Git Bash (D-b de
+// D5.1). El primer mensaje sale del nombre (no del rol: `crear x --noche` es el director de noche; 8r T2, rt-5).
 function lineasApertura(wt, n, modelo, opciones) {
   const sesion = n.id === null ? `director-${n.x}` : `obrero-${n.x}--${n.id}`;
   const m = modelo || (n.id === null ? 'opus' : 'sonnet');
   const nombre = /^[a-z]+$/.test(m) ? m[0].toUpperCase() + m.slice(1) : m;
-  const lineas = [`abrilo en VS Code: code "${barras(wt)}"`, `en esa ventana, abrí la pestaña de Claude y elegí ${nombre} (nombre sugerido para la sesión: ${sesion})`];
+  const primero = n.id === null ? '/director' : `/obrero ${n.x}--${n.id}`;
+  const lineas = [
+    `en tu ventana de siempre, una sesión nueva de Claude; primer mensaje: ${primero} (entra sola al worktree)`,
+    `o en otra ventana: code "${barras(wt)}"`,
+    `en esa ventana, abrí la pestaña de Claude y elegí ${nombre}, con el mismo primer mensaje (nombre sugerido para la sesión: ${sesion})`,
+  ];
   const claude = comandoClaude(opciones);
   if (claude === 'claude') lineas.push(`o en una terminal: cd "${barras(wt)}"; claude --name ${sesion} --model ${m}`);
   else if (claude) lineas.push(`o en una terminal de Git Bash: cd "${barras(wt)}" && ${claude} --name ${sesion} --model ${m}`);
-  // SPEC-paquete-8r T2 (rt-5): qué escribir en la pestaña nueva, según el nombre (no el rol: `crear x --noche` es el director de noche).
-  lineas.push(n.id === null ? 'primer mensaje: /director' : `primer mensaje: /obrero ${n.x}--${n.id}`);
   return lineas;
 }
 
@@ -521,6 +535,15 @@ function equipar(L, wt, principal, n, a, copia, opciones) {
   lineas.push(...copiarArchivos(wt, copia));
   if (!sumarDeny(wt, principal)) {
     lineas.push('no pude sumar el deny al .env del principal: .claude/settings.local.json del worktree no es un JSON de objeto — arreglalo y corré abrir de nuevo');
+    codigo = 1;
+  }
+  // SPEC-paquete-8r4 rt-1: con EnterWorktree la sesión nace en el principal y el .env del principal es un PADRE del worktree (las
+  // reglas ./** del settings.json no lo cubren): las mismas cuatro absolutas también en el settings.local.json del principal.
+  const localP = `${barras(principal)}/.claude/settings.local.json`;
+  if (sumarDeny(principal, principal)) {
+    lineas.push(`deny del .env del principal: en ${localP} (no viaja por git: cada PC lo arma con su primer crear o abrir)`);
+  } else {
+    lineas.push(`no pude sumar el deny al .env del principal: ${localP} no es un JSON de objeto — arreglalo y corré abrir de nuevo`);
     codigo = 1;
   }
   const s = correrSetup(L, wt, opciones);
@@ -1227,6 +1250,218 @@ function integrar(L, u, n, a, opciones) {
   return { codigo: r.codigo, lineas: todas };
 }
 
+// ---------------------------------------------------------------- donde (SPEC-paquete-8r4 u1; rt-4, rt-6)
+
+const ramaDe = (L, cwd) => {
+  const r = G(L, ['symbolic-ref', '-q', '--short', 'HEAD'], cwd);
+  return r.ok ? r.stdout.trim() : null;
+};
+// Solo mira: --no-optional-locks para que el status no refresque el índice (donde no escribe nada).
+const porcelanaSinEscribir = (L, wt) => {
+  const r = G(L, ['--no-optional-locks', 'status', '--porcelain', '--untracked-files=all'], wt);
+  return r.ok ? r.stdout.split('\n').map((s) => s.replace(/\r$/, '')).filter(Boolean) : null;
+};
+const sinLog = (st) => st.filter((l) => l.slice(3).replace(/^"|"$/g, '') !== LOG);
+
+// donde <x>[--<ID>]: ¿el cwd es el worktree de ese nombre, con su rama y su rol? Si no, ¿a qué ruta entrar? No escribe nada ni hace
+// fetch. Con <ID> el rol esperado es obrero o nocturno; sin él, director o nocturno (rt-4: `crear … --noche` escribe nocturno).
+// Un obrero con el árbol con cambios sin commitear (frenos.log no cuenta) → 1: puede haber otra sesión adentro (rt-6).
+function donde(L, u, n) {
+  const P = u.principal;
+  const wt = path.join(P, ...CARPETAS.split('/'), n.carpeta);
+  const roles = n.id === null ? ['director', 'nocturno'] : ['obrero', 'nocturno'];
+  const parada = (m) => ({ codigo: 1, lineas: [`PARADA: ${m} — no toques nada y avisale al director`] });
+  const adentro = mismaRuta(u.raiz, wt);
+  if (adentro) {
+    const rama = ramaDe(L, wt);
+    if (rama !== n.rama) return parada(`${barras(wt)} tiene ${rama || 'un HEAD desprendido'}, no ${n.rama}`);
+  } else {
+    const w = worktrees(L, P).find((x) => mismaRuta(x.ruta, wt));
+    if (!w || !fs.existsSync(wt)) {
+      return { codigo: 1, lineas: [`no hay worktree: el director corre worktree crear ${n.id === null ? n.x : `${n.x}--${n.id}`} (o abrir, en otra PC)`] };
+    }
+    if (w.rama !== `refs/heads/${n.rama}`) return parada(`${barras(wt)} tiene ${w.rama ? sinPrefijo(w.rama) : 'un HEAD desprendido'}, no ${n.rama}`);
+  }
+  const rol = L.contexto.rol(wt);
+  if (!roles.includes(rol)) {
+    return parada(rol === 'humano' ? `${barras(wt)} no tiene .kit-rol (esperaba ${roles.join(' o ')})` : `.kit-rol de ${barras(wt)} dice ${rol}, no ${roles.join(' o ')}`);
+  }
+  if (n.id !== null) {
+    const st = porcelanaSinEscribir(L, wt);
+    if (st === null) return parada(`no pude leer el estado de ${barras(wt)}`);
+    const otros = sinLog(st);
+    if (otros.length) {
+      return { codigo: 1, lineas: [`¿hay otra sesión en este worktree? ${barras(wt)} tiene cambios sin commitear (${otros.slice(0, 3).join(' | ')}${otros.length > 3 ? ' …' : ''}): no entres; avisale al director`] };
+    }
+  }
+  if (adentro) return { codigo: 0, lineas: [`adentro: ${n.rama} · rol ${rol} · ${barras(wt)}`] };
+  return { codigo: 0, lineas: [`entrar: ${barras(wt)}`, 'con la herramienta EnterWorktree (path = esa ruta); después volvé a correr donde'] };
+}
+
+// ---------------------------------------------------------------- traer-main (SPEC-paquete-8r4 u2; rt-3, rt-7; u9)
+
+// frenos.log con renglones agregados no es "sucio" (rt-7 a, el trato de integrar): se aparta antes del merge y vuelve al final,
+// sobre lo que quedó (commiteado con el merge, o en el disco si el merge se abortó). → { extra, enHead } o null si no hay nada.
+function apartarFrenos(L, wt) {
+  const f = frenosContraHead(L, wt);
+  if (f.estado !== 'agregado' || f.extra === '') return null;
+  const archivo = path.join(wt, ...LOG.split('/'));
+  if (f.enHead) G(L, ['checkout', '--', LOG], wt);
+  else fs.rmSync(archivo);
+  return { extra: f.extra };
+}
+function devolverFrenos(wt, extra) {
+  if (!extra) return;
+  const archivo = path.join(wt, ...LOG.split('/'));
+  let previo = '';
+  try {
+    previo = fs.readFileSync(archivo, 'utf8');
+  } catch (e) {
+    previo = '';
+  }
+  const sep = previo && !previo.endsWith('\n') ? '\n' : '';
+  fs.mkdirSync(path.dirname(archivo), { recursive: true });
+  fs.writeFileSync(archivo, `${previo}${sep}${extra.endsWith('\n') ? extra : `${extra}\n`}`);
+}
+// Lo que barreras escribió en frenos.log durante el merge en curso (su renglón de la frenada): se suma a lo apartado, el archivo
+// vuelve a como está en el índice (si no, `merge --abort` no puede con un archivo que el merge cambió y el disco también).
+function frenosDelMerge(L, wt) {
+  const archivo = path.join(wt, ...LOG.split('/'));
+  let disco;
+  try {
+    disco = fs.readFileSync(archivo, 'utf8').replace(/\r\n/g, '\n');
+  } catch (e) {
+    return '';
+  }
+  // Sin la versión del índice (en conflicto, o no seguido) o con algo que no es solo agregado al final: no se toca (el abort decide).
+  const idx = G(L, ['show', `:${LOG}`], wt);
+  if (!idx.ok) return '';
+  const base = idx.salida.toString('utf8').replace(/\r\n/g, '\n');
+  if (disco === base || !disco.startsWith(base)) return '';
+  G(L, ['checkout', '--', LOG], wt);
+  return disco.slice(base.length).replace(/^\n/, '');
+}
+
+// Lo que el merge en curso toca de barreras (el índice contra cada padre, con el descuento del merge): las categorías y los ids, para
+// la línea de `cambios nuevo` (como resolver nueva en actualizar.cjs, i5 de la rc.4). Sin las exenciones: puede nombrar de más.
+function tocaDelMerge(wt) {
+  const B = require('../hooks/lib/barreras.cjs');
+  const cats = new Set();
+  const ids = new Set();
+  const rutas = [];
+  for (const f of B.archivosDe(wt, B.INDICE, {})) {
+    const t = B.tocaArchivo(wt, f);
+    if (!t.cats.size && !t.ids.size) continue;
+    t.cats.forEach((x) => cats.add(x));
+    t.ids.forEach((x) => ids.add(x));
+    rutas.push(f.rel);
+  }
+  return { categorias: [...cats].sort(), ids: [...ids].sort(), rutas };
+}
+const entreComillas = (s) => `"${String(s).replace(/["\\$`]/g, '')}"`;
+
+function lineaCambiosNuevo(L, u, n, def, corto, toca) {
+  const slug = `traer-main-${n.x}`;
+  const origen = `traer ${def} @${corto} a ${n.rama} (worktree.cjs traer-main) da rojo en barreras`;
+  const cuerpo = path.join(u.gitComun, 'kit-traer-main', `${n.x}.md`);
+  try {
+    fs.mkdirSync(path.dirname(cuerpo), { recursive: true });
+    fs.writeFileSync(cuerpo, [
+      '## Caso de origen', origen, '',
+      '## Regla', `lo que ${def} trae a ${n.rama} y el merge cambia de los frenos: ${toca.ids.join(', ') || '(ver barreras)'}`, '',
+      '## Dónde vive', toca.rutas.join(', ') || '(ver barreras)', '',
+      '## Medición', '| antes | después |', '|---|---|', `| ${n.rama} sin ${def} @${corto} | con ${def} @${corto} |`, '',
+    ].join('\n'));
+  } catch (e) {
+    return null;
+  }
+  const args = [
+    'node .claude/scripts/cambios.cjs nuevo', `--slug ${slug}`, '--clase 3-barrera', `--toca ${toca.categorias.join(',') || 'hooks'}`,
+    ...toca.ids.map((x) => `--id ${entreComillas(x)}`), `--origen ${entreComillas(origen)}`, `--cuerpo ${entreComillas(barras(cuerpo))}`,
+  ];
+  return args.join(' ');
+}
+
+function traerMain(L, u, n) {
+  const lineas = [];
+  const no = (m) => ({ codigo: 1, lineas: [...lineas, `worktree traer-main: no — ${m}`] });
+  const wt = u.raiz;
+  const remotos = (G(L, ['remote'], wt).stdout || '').split('\n').map((s) => s.trim());
+  if (!remotos.includes('origin')) return no('traer-main necesita origin');
+  const f = G(L, ['fetch', '-q', 'origin'], wt);
+  if (!f.ok) return no(`no pude hacer fetch de origin (${primeraLinea(f.stderr) || f.error}): no toqué nada`);
+  const rama = ramaDe(L, wt);
+  if (rama !== n.rama) return no(`estás en ${rama || 'un HEAD desprendido'}, no en ${n.rama}: traer-main se corre en el worktree del director (${CARPETAS}/${n.carpeta}); no toqué nada`);
+  const rv = L.contexto.refVigente(wt);
+  if (!rv || rv.origen === 'local') return no('origin no tiene la rama por defecto (main o master)');
+  const def = rv.nombre;
+  const st = porcelana(L, wt);
+  if (st === null) return no('no pude leer el estado del worktree');
+  const otros = sinLog(st);
+  if (otros.length) return no(`el worktree tiene cambios sin commitear: ${otros.slice(0, 5).join(' | ')}${otros.length > 5 ? ' …' : ''} — commitealos (o esperá a que el obrero termine); no toqué nada`);
+  const fr = frenosContraHead(L, wt);
+  if (fr.estado === 'cambiado' || (fr.estado === 'nada' && st.length)) return no(`${LOG} cambió en el medio (no solo renglones al final): revisalo y commitealo a mano; no toqué nada`);
+  const punta = sha(L, wt, `refs/remotes/origin/${def}`);
+  const corto = punta.slice(0, 7);
+  if (G(L, ['merge-base', '--is-ancestor', punta, 'HEAD'], wt).ok) return { codigo: 0, lineas: [`worktree traer-main: ${n.rama} ya al día con origin/${def} (@${corto})`] };
+  const antes = sha(L, wt, 'HEAD');
+  const apartado = apartarFrenos(L, wt);
+  let extra = apartado ? apartado.extra : '';
+  const abortar = () => {
+    extra = [extra, frenosDelMerge(L, wt)].filter((s) => s.trim() !== '').map((s) => s.replace(/\n*$/, '\n')).join('');
+    const ab = G(L, ['merge', '--abort'], wt);
+    if (!ab.ok) lineas.push(`git merge --abort falló (${primeraLinea(ab.stderr) || ab.error}): corrélo a mano antes de seguir`);
+    devolverFrenos(wt, extra);
+  };
+  // u9 (rt-u9-3 b): siempre --no-ff --no-commit y después commit --no-edit, así el pre-commit del proyecto corre con MERGE_HEAD.
+  const m = G(L, ['merge', '--no-ff', '--no-commit', '-q', `refs/remotes/origin/${def}`], wt, { tiempo: 120000 });
+  if (!m.ok) {
+    const conflicto = (G(L, ['diff', '--name-only', '--diff-filter=U'], wt).stdout || '').split('\n').map((s) => s.trim()).filter(Boolean);
+    abortar();
+    if (conflicto.length) return no(`traer ${def} choca en ${conflicto.join(', ')}: es un encargo del director (merge abortado: ${n.rama} quedó como estaba)`);
+    return no(`git merge falló (${primeraLinea(m.stderr) || m.error}): merge abortado, ${n.rama} quedó como estaba`);
+  }
+  if (extra) {
+    devolverFrenos(wt, extra);
+    G(L, ['add', '--', LOG], wt);
+  }
+  // rt-3: barreras --indice (sin --molde) juzga el merge en curso contra cada padre; a secas compararía solo contra HEAD.
+  const E = require('./estructura.cjs');
+  let out = '';
+  const c = E.main(['barreras', '--indice'], { cwd: wt, salida: (s) => (out += s), error: (s) => (out += s) });
+  const salidaB = out.split('\n').map((s) => s.replace(/\r$/, '')).filter(Boolean);
+  if (c !== 0) {
+    let toca = { categorias: [], ids: [], rutas: [] };
+    try {
+      toca = tocaDelMerge(wt);
+    } catch (e) {
+      /* sin los ids: la línea va igual con lo que dijo barreras */
+    }
+    const nuevo = lineaCambiosNuevo(L, u, n, def, corto, toca);
+    abortar();
+    lineas.push(...salidaB);
+    lineas.push(`barreras en rojo${toca.ids.length ? `: ${toca.ids.join(', ')}` : ''} — merge abortado, ${n.rama} quedó como estaba`);
+    if (nuevo) {
+      lineas.push(`para el dueño, en su checkout principal y en ${def}: ${nuevo}`);
+      lineas.push(`después cambios aprobar <el id que dé> (lo aprieta el dueño: un agente no aprueba) y traer-main ${n.x} de nuevo`);
+    }
+    return no('barreras en rojo: nada se commiteó ni subió');
+  }
+  if (fs.existsSync(path.join(wt, ...LOG.split('/')))) G(L, ['add', '--', LOG], wt);
+  const ci = G(L, ['commit', '-q', '--no-edit', '-m', `módulo ${n.x}: trae ${def} @${corto}`], wt, { tiempo: 120000 });
+  if (!ci.ok) {
+    const salidaC = `${ci.stdout || ''}\n${ci.stderr || ''}`.split('\n').map((s) => s.replace(/\r$/, '')).filter(Boolean);
+    abortar();
+    return { codigo: 1, lineas: [...lineas, ...salidaC.slice(0, 20), `worktree traer-main: no — el commit del merge falló (el pre-commit del proyecto): merge abortado, ${n.rama} quedó como estaba`] };
+  }
+  const merge = sha(L, wt, 'HEAD');
+  lineas.push(`worktree traer-main: ${n.rama} trae ${def} @${corto} — merge ${merge.slice(0, 7)} (antes ${antes.slice(0, 7)})`);
+  const push = G(L, ['push', '-q', 'origin', `refs/heads/${n.rama}:refs/heads/${n.rama}`], wt, { tiempo: 120000 });
+  if (!push.ok) return { codigo: 1, lineas: [...lineas, `worktree traer-main: no pude subir ${n.rama} (${primeraLinea(push.stderr) || push.error}): el merge quedó en tu rama local; subilo con git push origin ${n.rama} (nunca --force)`] };
+  lineas.push(`subí ${n.rama} a origin`);
+  return { codigo: 0, lineas };
+}
+
 // ---------------------------------------------------------------- principal
 
 function main(argv, opciones = {}) {
@@ -1253,6 +1488,10 @@ function main(argv, opciones = {}) {
       r = syncEnv(L, u);
     } else if (a.comando === 'integrar') {
       r = integrar(L, u, a.nombre, a, opciones);
+    } else if (a.comando === 'donde') {
+      r = donde(L, u, a.nombre);
+    } else if (a.comando === 'traer-main') {
+      r = traerMain(L, u, a.nombre);
     } else {
       r = cerrar(L, u, a.nombre, a.cancelado);
     }
