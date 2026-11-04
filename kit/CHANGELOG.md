@@ -5,6 +5,33 @@ Una sección por versión, la más nueva arriba. Cada una trae su **nota de migr
 Es lo que lee el agente de la fusión al actualizar un proyecto. La historia de sesiones del repo vive aparte, en `docs/CHANGELOG.md`.
 `kit/VERSION` lleva la versión del último tag y se sube en el commit que pone el tag siguiente.
 
+## 3.0.0-rc.4
+
+La `rc.4` exprés (2026-11-04, `docs/kit-v3/SPEC-paquete-8r3.md`): lo que trababa la adopción del bot de Arti (un fork de OpenClaw cuyo
+`docs/` es el sitio publicado de OpenClaw) y el primer `/cierre` en Hermes.
+
+- **Qué piezas cambiaron**:
+  - **La carpeta de papeles se configura**: `carpeta-docs: <carpeta>` en la ficha (opcional; sin ella, `docs`; en minúsculas). La leen
+    de la ficha vigente el arranque (que la nombra: `papeles: <carpeta>/`), el candado, `barreras`, el hook de escritura y todos los
+    scripts del molde y del Arquitecto (`docs-ruta.cjs`, nuevo en `hooks/lib/`). Cambiarla es barrera (`frenos:carpeta-docs`); sin
+    remoto, el commit que la cambia entra siempre al rango. Los rituales y `NUCLEO.md` dicen una vez que `docs/` es esa carpeta.
+  - **Adoptar**: `--mirar` detecta la carpeta de papeles (la única con `SESSION_HANDOFF.md` seguido) y la propone, nombra los sueltos de
+    su raíz y avisa de un `docs/` ajeno; `--aplicar` escribe todo el árbol ahí (el CHANGELOG de la adopción, las plantillas, la línea de
+    la mesa del `.gitattributes`) y **se niega** con un `docs/` ajeno sin la clave. Un `session-start.cjs` propio con el nombre del del
+    kit abre `D3` (con lo que hacía y el puntero a `session-start.propio.sh`), y `--arranque kit` lo reemplaza por el del kit. La línea
+    `después:` dice la verdad: el sello va antes del commit; con remoto el rojo es solo en el clon antes del push, sin remoto lo ve el
+    primer `/cierre`.
+  - **`resolver <carpeta> <pieza> nueva --kit <clon> --por …`** trae la del kit a una pieza `propia` sin informe (el `director-obrero` o
+    el arranque de un repo ya adoptado); si es de frenos, imprime el `cambios nuevo` exacto y el orden (aprobado, después el commit).
+  - **`barreras` borra el caché de Python ignorado** (`*.pyc` en un `__pycache__/`) de `.claude/hooks`, `.claude/scripts` y `.githooks`
+    antes de juntar lo pendiente, y lo dice en una línea que no frena; todo otro ignorado de esas carpetas sigue en rojo. `cambios.cjs`
+    se copia byte a byte a `pc/lib/`.
+  - **El `/inicio` sin huella** dice que el arranque puede ser otro y da el `resolver … hook-arranque nueva`.
+- **Automático o pide revisión**: automático. Sin `carpeta-docs:` todo queda como en la `rc.3`. Si tus papeles no están en `docs/`, se
+  agrega la clave con un aprobado (es barrera).
+- **Qué chequear después**: `estructura.cjs todo` sin el rojo de los `.pyc` (en Hermes, `.claude/hooks/__pycache__/`); el arranque
+  termina con la huella `inyectado: N de 9.700`.
+
 ## 3.0.0-rc.3
 
 La tanda de taller de la segunda revisión integral R1b (2026-11-04, `docs/kit-v3/SPEC-paquete-8r2.md`): lo que se vio corriendo el día de
