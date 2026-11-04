@@ -701,13 +701,15 @@ test('los docs dicen lo que hace el script: los dos commits de --aplicar, el --p
   const kit = path.resolve(__dirname, '..', '..', '..');
   for (const rel of [['arquitecto', 'anexos', 'flota.md'], ['arquitecto-skills', 'SKILL.md']]) {
     const t = fs.readFileSync(path.join(kit, ...rel), 'utf8');
+    // 8r2 (t2): los commits que imprime (dos, o tres con D2/D3), barreras --rango, y el último paso es --traer (los githooks ahí)
     const l = t.split('\n').find((x) => /--aplicar <archivo>/.test(x));
-    assert.match(l, /los \*\*dos\*\* commits que imprime \(piezas, ficha\)/, rel.join('/'));
-    assert.match(l, /barreras --rango <antes>\.\.HEAD`/, rel.join('/'));
-    assert.match(l, /estructura/, rel.join('/'));
-    assert.match(l, /--aplicar <archivo> --principal <la carpeta de Guido>`/, rel.join('/'));
-    assert.match(l, /`chequear`: desde la primera flota/, rel.join('/'));
-    assert.doesNotMatch(l, /commit, `chequear`/, rel.join('/'));
+    assert.match(l, /--aplicar <archivo> --principal <(la carpeta de Guido|su carpeta)>`/, rel.join('/'));
+    const a = t.slice(t.indexOf(l));
+    assert.match(a, /los commits que imprime/i, rel.join('/'));
+    assert.match(a, /barreras --rango <antes>\.\.HEAD`/, rel.join('/'));
+    assert.match(a, /adoptar <clon> --traer <(la carpeta de Guido|su carpeta)>`/, rel.join('/'));
+    assert.ok(a.indexOf('barreras --rango') < a.lastIndexOf('--traer'), `${rel.join('/')}: --traer va al final`);
+    assert.doesNotMatch(l, /los \*\*dos\*\* commits que imprime \(piezas, ficha\)/, rel.join('/'));
   }
 });
 
@@ -976,6 +978,21 @@ test('t12 (a) (8r2): config local ignorada en la raíz (config*.ini, *.local.*) 
   assert.doesNotMatch(mirar(conCodigo('sin-conf')).texto, /config local/);
 });
 
+test('CF-1 y CF-2 (8r2, el chequeo frío): con --principal la config local se mira en la carpeta de Guido; un package.json en una subcarpeta que el setup no instala se avisa', deKit, () => {
+  // CF-1: el clon no tiene los ignorados; la carpeta de Guido sí
+  const p = repoPelado('guido-conf', { '.gitignore': 'config.ini\n', 'CLAUDE.md': '# conf\n' });
+  escribir(p, { 'config.ini': '[db]\n' });
+  const c = repoPelado('clon-conf', { '.gitignore': 'config.ini\n', 'CLAUDE.md': '# conf\n' });
+  assert.doesNotMatch(mirar(c).texto, /config local/, 'sin --principal: el clon no tiene nada');
+  assert.match(mirar(c, { principal: p }).texto, /^# config local ignorada en la raíz: config\.ini — worktree crear no la copia/m);
+  // CF-2: web/package.json y un setup de Python → la línea; con el setup que lo nombra, nada
+  const w = repoPelado('web-py', { 'requirements.txt': 'pytest\n', 'CLAUDE.md': '# w\n', 'web/package.json': '{}\n', 'node_modules/x/package.json': '{}\n' });
+  const t = mirar(w).texto;
+  assert.match(t, /^# otro manifiesto: web\/package\.json — el comando-setup no lo instala/m);
+  assert.doesNotMatch(t, /node_modules\/package\.json/);
+  assert.doesNotMatch(mirar(conCodigo('sin-web')).texto, /otro manifiesto/);
+});
+
 // ---------------------------------------------------------------- SPEC-paquete-8r2: t3 (crit. 3, rt-4) y t9 (crit. 9, rt-9) — A1
 
 // Sin claude en el PATH mientras corre fn: una pieza que va a la fusión no lanza un `claude -p` de verdad.
@@ -1204,7 +1221,7 @@ test('crit. 9 (8r2, t9; rt-9): --aplicar --permisos recomendada --arranque kit �
   assert.equal(b3.status, 1, 'el tercero da rojo: toca reglas del settings');
   assert.match(b3.stdout + b3.stderr, /toca settings \(allow:Bash\(git add:\*\), ask:Bash\(git merge:\*\), hook:SessionStart\/\/bash \.claude\/hooks\/arranque-hermes\.sh\) sin un aprobado sellado/);
   assert.match(t, /^después: node \.claude\/scripts\/estructura\.cjs barreras --rango [0-9a-f]{40}\.\.HEAD → verde en las piezas y la ficha$/m);
-  assert.match(t, /^después: el commit de los permisos \(permisos: D2\/D3\) da ROJO en barreras \(toca reglas del settings sin un aprobado sellado\): eso lo aprueba Guido después del merge, desde su checkout \(cambios nuevo \+ cambios aprobar\), y ese commit se rehace después del sello \(o se revierte: queda la mezcla de siempre\)$/m);
+  assert.match(t, /^después: el commit de los permisos \(permisos: D2\/D3\) da ROJO en barreras \(toca reglas del settings sin un aprobado sellado\): eso lo aprueba Guido después del merge, desde su checkout \(cambios nuevo \+ cambios aprobar\); ya pusheado, no se rehace \(sería un push forzado\): si no se aprueba, se revierte con un commit nuevo \(git revert\) y queda la mezcla de siempre$/m);
 });
 
 test('8r2 D4: datos-reales con una lista en la propuesta → --aplicar anda y la línea después: dice el camino; con "sí", la propuesta no se lee', { ...deKit, timeout: 240000 }, async () => {

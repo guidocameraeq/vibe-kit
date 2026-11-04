@@ -454,6 +454,14 @@ function lineasEntornos() {
   ];
 }
 
+// CF-2: los package.json de las subcarpetas de primer nivel (fuera de NO_MIRAR) que el comando-setup no nombra. → ['web/package.json', …]
+function manifiestosSinSetup(carpeta, setup) {
+  let es;
+  try { es = fs.readdirSync(carpeta, { withFileTypes: true }); } catch { return []; }
+  return es.filter((e) => e.isDirectory() && !NO_MIRAR.has(e.name) && !e.name.startsWith('.') && hay(carpeta, `${e.name}/package.json`))
+    .map((e) => e.name).sort().filter((d) => !(setup || '').includes(d)).map((d) => `${d}/package.json`);
+}
+
 // t12 (a): los archivos de config local de la raíz (config*.ini, *.local.*) que git ignora: worktree crear no los copia sin un
 // .worktreeinclude (sin él copia solo los .env y .env.*). Solo los nombres: nunca se leen. Los .env* ni se miran (van solos, por
 // el filtro de credenciales de worktree.cjs). → la línea, o null.
@@ -576,9 +584,13 @@ function mirar(carpeta, opciones) {
     // t5: los dos comandos, en su línea, para la pantalla
     o(`comandos: setup ${vars['comando-setup'] || 'ninguno'} · test ${vars['comando-test'] || 'ninguno'}`);
     // t4: las bases y las herramientas (la propuesta de mirar nunca trae entornos: los declara la sesión con Guido)
+    // CF-2: un manifiesto de npm en una subcarpeta que el setup no instala (el web/ en React de Hermes): el gate da rojo sin él
+    const sub = manifiestosSinSetup(carpeta, vars['comando-setup']);
+    if (sub.length) o(`otro manifiesto: ${listaCorta(sub)} — el comando-setup no lo instala: preguntale a Guido si las pruebas lo necesitan (si sí, sumalo al setup, p. ej. … && npm --prefix ${sub[0].replace(/\/package\.json$/, '')} ci)`);
     for (const l of lineasEntornos()) o(l);
     // t12 (a): la config local ignorada en la raíz, que worktree crear no copia sin .worktreeinclude
-    const wti = lineaWorktreeinclude(carpeta);
+    // CF-1: en la carpeta de Guido (con --principal): un clon recién hecho nunca tiene los ignorados
+    const wti = lineaWorktreeinclude(opciones.principal !== undefined ? opciones.principal : carpeta);
     if (wti) o(wti);
     o('piezas (id · estado · qué pasa al aplicar):');
     for (const p of piezas) o(`  ${p.id} · ${p.estado} · ${p.que}`);
@@ -910,7 +922,7 @@ function aplicarPropuesta(carpeta, opciones) {
     else if (fichaVieja) lineas.push(`después: ${rango} da ROJO: ${lineaFichaVieja(fichaVieja)}`);
     else lineas.push(`después: ${rango} → verde${blobPlano ? ' en las piezas y la ficha' : ''}`);
     // rt-9: el tercero toca reglas del settings sin un aprobado sellado (lo dice barreras, regla por regla)
-    if (blobPlano) lineas.push(`después: el commit de los permisos (${MSG_PERMISOS}) da ROJO en barreras (toca reglas del settings sin un aprobado sellado): ${APRUEBA}, y ese commit se rehace después del sello (o se revierte: queda la mezcla de siempre)`);
+    if (blobPlano) lineas.push(`después: el commit de los permisos (${MSG_PERMISOS}) da ROJO en barreras (toca reglas del settings sin un aprobado sellado): ${APRUEBA}; ya pusheado, no se rehace (sería un push forzado): si no se aprueba, se revierte con un commit nuevo (git revert) y queda la mezcla de siempre`);
     lineas.push(traer);
     return { codigo: 0, lineas };
   } finally {
