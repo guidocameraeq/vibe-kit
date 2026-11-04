@@ -239,6 +239,24 @@ test('cierre y NUCLEO (8r3 i1): docs/ es la carpeta de papeles, la carpeta-docs:
   for (const t of [TEXTOS.cierre, NUCLEO]) assert.match(t, /`docs\/` es la carpeta de papeles: la `carpeta-docs:` de la ficha si la hay/);
 });
 
+test('obrero y director (8r4 u1): una sola ventana — worktree.cjs donde y EnterWorktree antes de todo, sin ExitWorktree', () => {
+  const o = TEXTOS.obrero;
+  assert.match(o, /worktree\.cjs donde <x>--<ID>/);
+  assert.match(o, /`EnterWorktree`/);
+  assert.match(o, /Nunca `ExitWorktree`/);
+  assert.match(o, /ningún comando más que la PARADA/);
+  assert.ok(o.indexOf('worktree.cjs donde') < o.indexOf('encargo.cjs presentar'), 'el paso 0 va antes de presentar');
+  const d = TEXTOS.director;
+  assert.match(d, /worktree\.cjs donde <x>/);
+  assert.match(d, /`EnterWorktree`/);
+  assert.match(d, /nunca `ExitWorktree`/);
+  assert.ok(d.indexOf('worktree.cjs donde') < d.indexOf('Leé el relevo') || d.indexOf('worktree.cjs donde') < d.indexOf('el relevo'), 'donde antes de leer el relevo');
+  // u2: el director trae main entre encargos
+  assert.match(d, /worktree\.cjs traer-main <x>/);
+  // NUCLEO: el gate desde el worktree del director
+  assert.match(NUCLEO, /el director, desde su worktree; nunca en una carpeta fuera del repo/);
+});
+
 test('inicio: fetch, cruce con git, aprobados nuevos y confirmación, en ese orden', () => {
   const t = TEXTOS.inicio;
   const pos = [
@@ -672,7 +690,7 @@ test('director y obrero citan el núcleo', () => {
   for (const n of ['director', 'obrero', 'tramo']) assert.match(TEXTOS[n], /nucleo\/NUCLEO\.md/, `${n} no cita nucleo/NUCLEO.md`);
 });
 
-test('obrero: el primer paso es presentar, y es el primer comando del texto', () => {
+test('obrero: el paso 0 es entrar (worktree donde), el 1 es presentar, y esos son los dos primeros comandos del texto (8r4 u1)', () => {
   const t = TEXTOS.obrero;
   const paso1 = /^1\. \*\*Presentación\.\*\*[^\n]*$/m.exec(t);
   assert.ok(paso1, 'el paso 1 es la presentación');
@@ -680,7 +698,9 @@ test('obrero: el primer paso es presentar, y es el primer comando del texto', ()
   assert.match(paso1[0], /en segundo plano/);
   assert.match(paso1[0], /Salida 1: PARADA con lo que dice el script, sin tocar nada/);
   assert.match(paso1[0], /spec sin Arquitecto: corré Modo B/);
-  const [primero] = comandos(t);
+  const [cero, primero] = comandos(t);
+  assert.equal(cero.script, 'worktree');
+  assert.equal(cero.sub, 'donde');
   assert.equal(primero.script, 'encargo');
   assert.equal(primero.sub, 'presentar');
   const pos = ['**Presentación.**', '**Chequeo base.**', '**Por sub-paso**', '**Lo que no está en AUTORIZADO.**', '**CIERRE.**'].map((s) => t.indexOf(s));

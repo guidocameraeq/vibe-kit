@@ -92,7 +92,8 @@ Nunca edites `~/.claude/settings.json` a mano ni toques secretos: el instalador 
 ## Modo FLOTA — "poné al día la flota" / "adoptá X"
 
 Los deriva el Arquitecto; los pasos y la pantalla están en su `anexos/flota.md`. Corrés `node "$HOME/.claude/skills/arquitecto-skills/scripts/actualizar.cjs"`:
-- `flota <X>… | todo --canon <url> [--proyectos <carpeta>]`: la tabla y "te espera:". Si `auto` no deja pushear, la corre Guido. Una mezcla que choca nunca se resuelve sola: te espera (`flota.md`).
+- `flota <X>… | todo --canon <url> [--proyectos <carpeta>]`: la tabla y "te espera:". Si `auto` no deja pushear, la corre Guido. Una mezcla que choca te espera (`flota.md`).
+- `salteado` por obra: AskUserQuestion (esperar, Recomendado · `--con-obra`).
 - Antes de adoptar, `ultimo-tag <clon>` contra `~/.claude/VERSION`: si el tag es más nuevo, la PC está atrás → primero "actualizate" (`--mirar` lo avisa con `⚠ el --kit tiene el tag …`).
 - `adoptar <clon> --kit <clon del kit> --mirar --principal <la carpeta de Guido> --propuesta <archivo>` → la pantalla con Guido (D1-D4: `flota.md`) → con el OK, `--aplicar <archivo> --principal <su carpeta>` y lo elegido, en un clon con `.kit-rol` = `actualizador`, los commits que imprime, `barreras --rango <antes>..HEAD` (lo rojo lo aprueba Guido), push, y `adoptar <clon> --traer <su carpeta>` (trae y **después** prende ahí los githooks).
 

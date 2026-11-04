@@ -36,7 +36,7 @@ La primera línea es el tipo, en mayúsculas y **sin tilde** (con tilde se acept
 Por rutas (`git commit -- <rutas>`), uno por entregable, primera línea que se entiende sola. Nunca `git add -A`, nunca `--no-verify`.
 
 ## 6. Las cinco reglas del gate
-1. Lo corre un script, nunca a mano.
+1. Lo corre un script, nunca a mano: el director, desde su worktree; nunca en una carpeta fuera del repo.
 2. Sin tuberías: `| tail` tapa el código de salida.
 3. Se mira el código de salida y la última línea.
 4. Rojo donde antes había verde = regresión: PARADA.
