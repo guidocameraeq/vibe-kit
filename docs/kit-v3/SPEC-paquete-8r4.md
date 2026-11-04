@@ -231,6 +231,19 @@ Rutas: `molde` = `kit/molde/`, `lib` = `kit/molde/hooks/lib/`, `wt` = `kit/molde
   línea no es roja y dice cuánto; la parte del kit que lo pasa → roja; el `/inicio` con su 8600; `doctor.test` la línea ⚠. Chequeo frío:
   un clon de Hermes, flota `rc.3` → `rc.5` con la obra en curso y `--con-obra`: tiene que llegar (crit. 8 suma).
 
+#### u13 · Lo que D2 recomendada saca, y qué lo cubre (lo trajo la madre, de Hermes, 2026-11-04; vuelta 2)
+
+- **El dolor**: la adopción de Hermes con D2 recomendada (`9056c05b`) sacó de las `ask` `Bash(git merge:*)`, `git push *--force*` y
+  `PowerShell(git merge *)`. El push forzado lo sigue frenando `git-seguro`; un `git merge` a mano en `main` ya no pide nada, y el
+  `CLAUDE.md` de Hermes dice que sí. Con una ventana, un obrero nace en `main` con rol humano antes de entrar.
+- **(a) entra**: `adoptar --mirar` lista, en el bloque D2, cada `ask`/`deny` propio que la recomendada saca, con el freno del kit que lo
+  cubre (`git-seguro: <regla>`, `sensible: <clave>`) o `ninguno` (`frenaAlDirector` ya los separa; falta decir qué los cubre). Con
+  `ninguno`, la línea lo dice así, para que Guido elija con eso. **crit.**: `adoptar.test`.
+- **(b) no entra**, con la vara: `ask Bash(git merge:*)` **no** va al set recomendado del kit. El director mergea a mano cada obrero
+  (`/director` paso 6: `git merge --no-ff <sha7>`, "sin preguntar"): un `ask` lo frenaría en cada encargo, que es justo por qué D2 lo saca
+  (`frenaAlDirector`). El obrero que nace en `main` lo cubre el paso 0 (rt-2: ningún comando antes de `adentro:`), y un merge del dueño en
+  `main` es suyo. `[workflow · coherencia]`. Lo de Hermes (volver a poner su `ask`) lo decide Guido aparte.
+
 #### u10 · Las trabas que todavía no saltaron (hipótesis; pedido de Guido por la madre, 2026-11-04)
 
 Inferidas de lo que dolió hoy. **Cada una se reproduce primero** (una prueba o un clon del scratchpad); la que no se reproduce va al
