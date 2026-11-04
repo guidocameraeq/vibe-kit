@@ -2,7 +2,7 @@
 
 > **Para cuando te piden algo en el laburo.** Vos hablás, ella ordena, y sale el método de cuatro
 > etapas con un PDF por etapa. En tus proyectos personales no aparece nunca.
-> · vibe-kit v2.4 · el porqué está en ADR-016/017/018 · las recetas completas, en `GUIA-DE-USO.md`
+> · el porqué está en ADR-016/017/018 · las recetas completas, en `GUIA-DE-USO.md`
 
 ---
 

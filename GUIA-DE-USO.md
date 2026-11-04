@@ -85,6 +85,9 @@ Chat nuevo **en la carpeta de esa app** → **`/arquitecto`** (o lo llama la ses
 pestaña del módulo y su primer mensaje, `/director`).
 → [`manuales/COMO-USAR-EL-ARQUITECTO.md`](manuales/COMO-USAR-EL-ARQUITECTO.md) §4
 
+### 🧭 "Tengo un módulo con director andando"
+Quién hace qué y qué te toca a vos: el director → [`manuales/ROLES.md`](manuales/ROLES.md) §3, el obrero → §4, lo que es solo tuyo → §9.
+
 ### 👋 "Me voy" (y quedó un módulo con director andando)
 Decile **"me voy"** al director: sin preguntarte nada te muestra el checklist de la noche y qué queda andando. Cuando volvés, tu
 `/inicio` o `/estado` le avisa que ya es de día. → [`manuales/ROLES.md`](manuales/ROLES.md) §7

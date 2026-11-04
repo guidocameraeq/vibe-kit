@@ -150,7 +150,7 @@ Estas dos entradas **derivan, no ejecutan**: el Arquitecto no instala nada ni to
   sin código · versión del kit · repo · con qué se conecta. Una ficha rota sale debajo, una línea por cada una. Solo lee las fichas
   `.claude/kit.md` de los repos clonados en esa carpeta; el registro de la empresa es capa privada y no entra.
 - **"Poné al día X"**, **"poné al día la flota"**, **"adoptá X"**, **"qué se repite en la flota"** → `la flota: te paso al Equipador`.
-  El detalle: `manuales/EQUIPADOR.md` §4 y §5.
+  El detalle: `manuales/EQUIPADOR.md` §5.
 
 ---
 
@@ -163,7 +163,7 @@ Qué mira `sello` antes de escribir la línea:
 - **tamaño**: que "Ejecución" diga `módulo solo` o `módulo con director` en su primera línea, y que coincida con la ficha del módulo.
 - **entorno** (solo con ficha): que haya dónde probar. Si la ficha declara un entorno real, tiene que haber uno de prueba al lado (o,
   en un módulo con director y con el kit ≥ `3.0.0-rc.2`, la tarea 0 en el spec: el sello dice `entorno — (tarea 0: montar el entorno
-  de prueba)`); si no, `comando-test` tiene que dar verde. Y las herramientas que nombra la ficha tienen que andar.
+  de prueba)`); si no, `comando-test` tiene que dar verde (corre en la misma consola que el gate: Git Bash en Windows; si da rojo y la ficha tiene `comando-setup`, el sello te pregunta si lo corriste en esa carpeta). Y las herramientas que nombra la ficha tienen que andar.
 - **tope**: el tamaño del spec contra su límite (avisa; si decidiste seguir entero, va `--no-partir "Guido"`).
 
 Si niega, dice qué falta en una línea; se arregla y se vuelve a correr. Si después del sello alguien toca el spec, el sello deja de

@@ -24,7 +24,7 @@ es un ejemplo de la forma, no una ficha para copiar.
 |---|---|
 | `kit` | La versión del kit con la que está al día el proyecto (la sube el actualizador): la versión entera, también una beta (`3.0.0-rc.2`). |
 | `nivel` | `liviano` (sin código) o `estandar` (con código). |
-| `vars` | Con qué se armó el molde: `proyecto`, `comando-test`, `comando-setup`, `lenguajes`. Sin esto no se puede regenerar. |
+| `vars` | Con qué se armó el molde: `proyecto`, `comando-test`, `comando-setup`, `lenguajes`. Sin esto no se puede regenerar. `comando-test` y `comando-setup` corren en Git Bash en Windows (la consola del director): `&&` vale; `\|`, `;` y redirecciones no; `cmd /c` ahí no corre nada (es `cmd //c`) y sale `no-corrio`. |
 | `piezas` | Cada pieza del molde con su estado (`molde`, `molde+propio`, `adaptada`, `propia`, `sí`, `no`) y su `hash` (12 hexa de lo que escribió el molde). Una `adaptada` o `propia` lleva `por:` (el porqué): con él, si la mezcla sale limpia, el actualizador la fusiona sola; si choca, te pregunta (§11). `desde:` lo escribe `resolver` cuando te quedás con la tuya: la versión desde la que se te vuelve a ofrecer. |
 | `frenos` | `opcionales` y `quitados`: cada freno quitado con su `id`, la razón (`por`) y hasta cuándo (`hasta`: una fecha o `siempre`). |
 | `autorizado` | Lo que **no** es pregunta en este proyecto (por ejemplo `merge-a-main: con-gate-verde`). |
@@ -32,7 +32,7 @@ es un ejemplo de la forma, no una ficha para copiar.
 | `secretos` · `publicas` | Los **nombres** de las variables secretas y de las que parecen secreto y no lo son. Nunca valores. |
 | `herramientas` · `entornos` | Qué herramientas se pueden usar (un chequeo de una línea y si necesita a Guido) y cada entorno (`real`, `prueba` o `dummy`) con las suyas. |
 | `datos-de-prueba` · `push-publica` · `aprueba` | Dónde están los datos de prueba, si el push es público, y un alias (nunca un nombre real) de quien aprueba. |
-| `mesa` | Los otros proyectos con los que habla este director (§9 de `manuales/ROLES.md`). |
+| `mesa` | Los otros proyectos con los que habla este director (§8 de `manuales/ROLES.md`). |
 | `multi-llm` | `sí` genera un `AGENTS.md` desde el `CLAUDE.md` (`agents.cjs`). |
 
 Debajo de la cabecera, en prosa: "Cómo se adaptó el kit a este proyecto". **La ficha vigente es la de la rama por defecto**, no la

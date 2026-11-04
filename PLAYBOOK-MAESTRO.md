@@ -77,6 +77,8 @@ los errores técnicos causados por amnesia post-compactación; y ~45 mensajes de
 
 ## 1.3 Los archivos y sus reglas de oro
 
+> **En el kit v3 esto lo pone el molde**: *adoptá X* (`manuales/MOLDE.md`). Evidencia: R1b (2026-11-04), la adopción de Hermes probada sobre su clon.
+
 ```
 proyecto/
 ├── README.md               ← identidad pública
@@ -408,10 +410,14 @@ régimen. Los pasos de abajo quedan como referencia y para montarlo a mano.
 
 ### Proyecto existente
 
-Igual, pero antes: §1.8 (auditar y respetar los docs que ya funcionan). El CLAUDE.md nuevo
+> **En el kit v3 esto lo pone el molde**: *adoptá X* (`manuales/MOLDE.md`). Evidencia: R1b (2026-11-04), la adopción de Hermes probada sobre su clon.
+
+A mano (v2): igual, pero antes: §1.8 (auditar y respetar los docs que ya funcionan). El CLAUDE.md nuevo
 referencia los docs con SUS nombres.
 
-### El atajo — prompt para copiar/pegar en un chat del proyecto
+### El atajo (v2) — prompt para copiar/pegar en un chat del proyecto
+
+> **En el kit v3 esto lo pone el molde**: *adoptá X* (`manuales/MOLDE.md`). Evidencia: R1b (2026-11-04), la adopción de Hermes probada sobre su clon. El atajo de abajo es el camino v2.
 
 > Leé `C:\Users\Usuario\Desktop\Proyectos\Guia de vibe coding\PLAYBOOK-MAESTRO.md` y aplicá ese
 > sistema a este proyecto: auditá cómo se trabaja acá (git, docs existentes, rituales repetidos),

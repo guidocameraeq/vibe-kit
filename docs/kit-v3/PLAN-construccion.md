@@ -339,7 +339,7 @@ sin poder decidirse con la vara: **no hay preguntas nuevas arriba de Pendientes*
   en tres lugares · `/inicio` con un módulo sin sello invoca, con "cambió después del sello" no · la línea de apertura con `;` · `crear` se niega
   si `.kit-rol`, `worktrees/` o `settings.local.json` no están ignorados · guía y manual solo la regla vieja · `$HOME` en PowerShell · las
   corridas por prioridad (D4-18).
-- **De los encargos**: J1 · `comando-test` y los `chequeo` corren en la shell del sistema (cmd.exe en Windows); `--no-aplica tamano` sin ñ
+- **De los encargos**: J1 · `comando-test` y los `chequeo` corren en la shell del sistema (cmd.exe en Windows; desde la rc.3, Git Bash: D8r2-3); `--no-aplica tamano` sin ñ
   también vale; un sello inválido o un módulo sin `SPEC.md` cuentan como "sin sello". J2 · un `.env*` trackeado traba solo si el valor del nombre
   del almacén no está vacío (un `.env.example` con `CLAVE=` pasa); nombres sin distinguir mayúsculas (Windows); un `.env` del principal en UTF-16
   → 1. J3 · los `Estado:` de la ficha del módulo son los de B §13 (`EN OBRA`, `PAUSADO`, `COMPLETO <fecha>`, `ABANDONADO <fecha>`); el OK del Modo B
@@ -1099,7 +1099,7 @@ trabajo. Cada paso, con quién lo hace:
 | # | Paso | La sesión | Guido |
 |---|---|---|---|
 | 0 | **El informe de R1 ya está arreglado** (D8r.1, la `rc.2`; y lo que diga R1b): las dos preguntas ya las contestó Guido el 03-11 (la 1: Hermes **sí** tiene base de prueba; la 2: la A, como la quiere vivir). Lo que queda: repasar las ⚠️ de D8r.1 | las cuenta en criollo | las confirma o corrige |
-| 1 | **"preparame esta PC"** con la beta (`v3.0.0-rc.1`), en cada PC (`Guido-PC-eQ` y la otra) | corre el Equipador, muestra el plan (`--plan`) y lo que cambia en `settings.json` | dice sí a la pregunta; en la segunda PC, la abre él |
+| 1 | **"preparame esta PC"** con la beta (la última rc), en cada PC (`Guido-PC-eQ` y la otra) | corre el Equipador, muestra el plan (`--plan`) y lo que cambia en `settings.json` | dice sí a la pregunta; en la segunda PC, la abre él |
 | 2 | **El corrector viejo**: cruzar los cinco regex de `~/.claude/hooks/block_secrets.ps1` (está en `Guido-PC-eQ`) con los de `secretos.cjs` (pendiente (e) de D3.2) | lee los dos y dice qué frena el viejo que el nuevo no; si falta alguno, delta chico como G5b | decide si se saca el viejo (`--sacar-viejo`) |
 | 3 | **`adoptar --mirar`** sobre Hermes Desktop (en un clon, como dice `anexos/flota.md`) | muestra la propuesta: bases, piezas adaptadas, qué herramienta de hooks usa | la lee |
 | 4 | **`entornos:`** en la propuesta: cada base de Hermes con su clase (**Hermes tiene base de prueba**, Guido 2026-11-03: se declara con `clase: prueba` y el sello anda sin tarea 0; la tarea 0 queda para otros proyectos) | la escribe con lo que diga Guido | dice cuáles son y de qué clase (la de producción, la de prueba) |

@@ -123,14 +123,14 @@ test('flota.md (adoptar) y modo-a.md: piezas.portada: sí SOLO si portada.cjs ar
 
 // SPEC-paquete-8b (15), D8b-8: el Modo A monta el molde v3 con el adoptador sobre un clon (--nuevo, --principal), no templates/;
 // el SPEC-0 vive en docs/modulos/v1/SPEC.md y el Paso 0 busca también los SPEC-0.md de antes.
-test('modo-a.md (8b, 15): el Paso 5 nombra adoptar --nuevo y --principal, el pull --ff-only antes del sello; no templates/; el SPEC-0 en docs/modulos/v1/', () => {
+test('modo-a.md (8b, 15): el Paso 5 nombra adoptar --nuevo y --principal, el --traer (el pull y los githooks) antes del sello; no templates/; el SPEC-0 en docs/modulos/v1/', () => {
   const t = leer(path.join(SCRIPTS, '..', '..', 'arquitecto', 'anexos', 'modo-a.md'));
   assert.doesNotMatch(t, /templates\//);
   assert.doesNotMatch(t, /molde v2/);
   const p5 = /## Paso 5[\s\S]*?(?=\n## )/.exec(t)[0];
-  for (const x of ['--mirar --nuevo', '--comando-test "<comando>"', 'gate:entorno-prueba', '--principal "<carpeta>"', 'pull --ff-only', '.kit-rol', 'docs/modulos/v1/SPEC.md', 'docs/modulos/v1/README.md']) assert.ok(p5.includes(x), `el Paso 5 no nombra ${x}`);
+  for (const x of ['--mirar --nuevo', '--comando-test "<comando>"', 'gate:entorno-prueba', '--principal "<carpeta>"', '--traer "<carpeta>"', '.kit-rol', 'docs/modulos/v1/SPEC.md', 'docs/modulos/v1/README.md']) assert.ok(p5.includes(x), `el Paso 5 no nombra ${x}`);
   // el orden: el adoptador, el pull y recién ahí el sello y ready; después la portada
-  const pos = ['--mirar --nuevo', '--aplicar', 'pull --ff-only', '<arq> sello', '<arq> ready', 'portada.cjs armar'].map((x) => p5.indexOf(x));
+  const pos = ['--mirar --nuevo', '--aplicar', '--traer "<carpeta>"', '<arq> sello', '<arq> ready', 'portada.cjs armar'].map((x) => p5.indexOf(x));
   assert.ok(pos.every((v, i) => v >= 0 && (i === 0 || v > pos[i - 1])), `el orden del Paso 5: ${pos.join(' ')}`);
   assert.match(t, /\*\*nunca lleva `\.kit-rol`\*\*/);
   const p0 = /## Paso 0[\s\S]*?(?=\n## )/.exec(t)[0];
@@ -176,7 +176,7 @@ test('flota.md (8r §3): la mezcla que choca nunca se resuelve sola; se pregunta
   for (const x of ['qué skill es', 'por qué la había adaptado (su `por:`)', 'qué trae la nueva', '`## Dónde chocan`', 'ADR-030', 'recomendada primera']) {
     assert.ok(t.includes(x), `flota.md no dice ${x}`);
   }
-  assert.match(t, /\*\*mezclar · quedarse con la suya · tomar la nueva · congelar\*\*/);
+  assert.match(t, /\*\*mezclar · quedarse con la tuya \(`quedarse`\) · tomar la nueva · congelar\*\*/);
   assert.doesNotMatch(t, /con porqué se fusionan solas;/, 'el texto viejo: con porqué se fusionaba sola aunque chocara');
 });
 
@@ -264,7 +264,7 @@ test('crit. 6 (8r, 2): quién corre aprobar, dicho igual en los manuales y la gu
 
 test('crit. 10 (8r, 6-8): EQUIPADOR.md con las cuatro salidas y core.hooksPath; el manual del Arquitecto con el molde v3', { skip: SIN_REPO }, () => {
   const eq = leer(enRepo('manuales/EQUIPADOR.md'));
-  for (const x of ['**mezclar**', '**quedarse con la propia**', '**tomar la nueva**', '**congelar**', 'core.hooksPath', '--principal', '--claude-md', 'la mezcla que choca', 'nunca se resuelve sola']) {
+  for (const x of ['**mezclar**', '**quedarse con la tuya**', '--traer', '**tomar la nueva**', '**congelar**', 'core.hooksPath', '--principal', '--claude-md', 'la mezcla que choca', 'nunca se resuelve sola']) {
     assert.ok(eq.includes(x), `EQUIPADOR.md no nombra ${x}`);
   }
   assert.match(eq, /Perdés/, 'qué pierde cada una');
