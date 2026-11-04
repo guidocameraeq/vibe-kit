@@ -7,7 +7,8 @@
 // "avance —": nunca inventado), encargos en obra y sub-pasos (de git, vía tiempos.cjs), "podés cerrar: …" (las pestañas de obrero
 // de "## Sesiones vivas" cuya rama ya está mergeada en modulo/<x>: el director ya verificó su CIERRE), las esperas (lo parado de la
 // ficha, con "desde", y los `espera hasta:` vencidos de docs/TODO.md) y el uso: la primera línea de contexto.cjs, tal cual
-// (`uso: NO VERIFICADO (falta contexto.cjs)` si no está). Las líneas propias del proyecto van en .claude/estado-lineas.md (una por
+// (`uso: NO VERIFICADO (falta contexto.cjs)` si no está). docs/ es la carpeta de papeles: la `carpeta-docs:` de la ficha vigente si
+// la hay (SPEC-paquete-8r3 i1; lib/docs-ruta.cjs). Las líneas propias del proyecto van en .claude/estado-lineas.md (una por
 // renglón; vacíos y # no cuentan) y se suman tal cual al final, en cualquier pestaña y PC. Si son las 18 h o más y falta el
 // resumen del día, la última línea dice cuál comando correr (resumen.cjs): /estado lo corre y lo muestra una sola vez.
 // Solo información: nada frena y nadie decide por esto. Salidas: 0 anduvo · 1 el módulo no existe · 2 mal llamado.
@@ -18,7 +19,11 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 const git = require('../hooks/lib/git.cjs');
 const E = require('../hooks/lib/encargo.cjs');
+const docsRuta = require('../hooks/lib/docs-ruta.cjs');
 const T = require('./tiempos.cjs');
+
+// Una ruta dentro de la carpeta de papeles del checkout (8r3 i1): papeles(raiz, 'TODO.md') → docs/TODO.md sin la clave.
+const papeles = (raiz, sub) => docsRuta.rel(docsRuta.deRaiz(raiz), sub);
 
 const USO = [
   'Uso: node .claude/scripts/estado.cjs [<x>]   (desde el checkout principal)',
@@ -92,7 +97,7 @@ const activo = (f) => /^(EN OBRA|PAUSADO)/.test(f.campos.estado || '');
 
 // Las fichas del checkout: [{ x, ruta, texto, ficha }]. Con `rama:` se lee la más nueva de esa rama (git manda); si no, el disco.
 function fichas(raiz) {
-  const dir = path.join(raiz, 'docs', 'modulos');
+  const dir = path.join(raiz, ...papeles(raiz, 'modulos').split('/'));
   let nombres;
   try {
     nombres = fs.readdirSync(dir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name).sort();
@@ -101,7 +106,7 @@ function fichas(raiz) {
   }
   const out = [];
   for (const x of nombres) {
-    const rel = `docs/modulos/${x}/README.md`;
+    const rel = papeles(raiz, `modulos/${x}/README.md`);
     let texto = null;
     try {
       texto = fs.readFileSync(path.join(raiz, rel), 'utf8');
@@ -145,7 +150,7 @@ const conDesde = (raiz, rel, t) => {
 function esperasVencidas(raiz, hoy) {
   let t;
   try {
-    t = fs.readFileSync(path.join(raiz, 'docs', 'TODO.md'), 'utf8').replace(/\r\n/g, '\n');
+    t = fs.readFileSync(path.join(raiz, ...papeles(raiz, 'TODO.md').split('/')), 'utf8').replace(/\r\n/g, '\n');
   } catch (e) {
     return [];
   }
@@ -268,7 +273,7 @@ function vistaProyecto(raiz, opciones, ahora) {
   const te = teEspera(raiz, act);
   L.push(...(te.length ? te : ['- nada']));
   L.push('', 'MÓDULOS');
-  if (!act.length) L.push(`- (ningún módulo activo${ms.length ? '' : ': no hay fichas en docs/modulos/'})`);
+  if (!act.length) L.push(`- (ningún módulo activo${ms.length ? '' : `: no hay fichas en ${papeles(raiz, 'modulos/')}`})`);
   for (const m of act) L.push(`- ${lineaModulo(raiz, m)}`);
   const es = esperas(raiz, act, hoy);
   if (es.length) L.push('', 'ESPERAS', ...es);
@@ -336,7 +341,7 @@ function main(argv, opciones = {}) {
   if (argv[0]) {
     const m = fichas(raiz).find((f) => f.x === argv[0]);
     if (!m) {
-      salida(`estado: no hay ficha de "${argv[0]}" (docs/modulos/${argv[0]}/README.md). Módulos con ficha: ${fichas(raiz).map((f) => f.x).join(', ') || 'ninguno'}\n`);
+      salida(`estado: no hay ficha de "${argv[0]}" (${papeles(raiz, `modulos/${argv[0]}/README.md`)}). Módulos con ficha: ${fichas(raiz).map((f) => f.x).join(', ') || 'ninguno'}\n`);
       return 1;
     }
     salida(`${vistaModulo(raiz, m, opciones, ahora).join('\n')}\n`);
@@ -356,4 +361,4 @@ if (require.main === module) {
   process.exitCode = codigo;
 }
 
-module.exports = { USO, LINEAS_PROPIAS, LINEA_NOCHE, HORA_RESUMEN, leerFicha, seccion, bullets, tareas, porcentaje, sesionesVivas, activo, fichas, desdeCuando, esperasVencidas, encargosDe, hoyDe, main };
+module.exports = { USO, LINEAS_PROPIAS, LINEA_NOCHE, HORA_RESUMEN, papeles, leerFicha, seccion, bullets, tareas, porcentaje, sesionesVivas, activo, fichas, desdeCuando, esperasVencidas, encargosDe, hoyDe, main };

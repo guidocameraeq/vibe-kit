@@ -54,6 +54,7 @@ function libs() {
     git: require('../hooks/lib/git.cjs'),
     E: require('../hooks/lib/encargo.cjs'),
     uso: require('./contexto.cjs'),
+    docs: require('../hooks/lib/docs-ruta.cjs'), // 8r3 i1: la carpeta de papeles (docs sin la clave)
   };
 }
 
@@ -101,9 +102,12 @@ function hace(segundos, ahora) {
   return `hace ${Math.round(m / 1440)} días`;
 }
 
+// La bitácora del módulo, en la carpeta de papeles (8r3 i1): docs/modulos/<x>/bitacora sin la clave.
+const bitacoraDe = (L, cwd, x) => L.docs.rel(L.docs.deRaiz(cwd), `modulos/${x}/bitacora`);
+
 // La evidencia del encargo en un commit: el texto de docs/modulos/<x>/bitacora/*-evidencia-<ID>.md, o null.
 function evidenciaEn(L, cwd, sha, x, id) {
-  const dir = `docs/modulos/${x}/bitacora`;
+  const dir = bitacoraDe(L, cwd, x);
   const r = G(L, cwd, ['ls-tree', '-z', '--name-only', sha, '--', `${dir}/`]);
   if (!r.ok) return null;
   const ruta = r.stdout.split('\0').find((p) => path.posix.dirname(p) === dir && new RegExp(`^.+-evidencia-${id}\\.md$`).test(path.posix.basename(p)));
@@ -121,7 +125,7 @@ function paradaDe(texto) {
 // ---------------------------------------------------------------- me-voy
 
 function encargosAbiertos(L, raiz, x, ahora) {
-  const dir = `docs/modulos/${x}/bitacora`;
+  const dir = bitacoraDe(L, raiz, x);
   const r = G(L, raiz, ['ls-tree', '-z', '--name-only', 'HEAD', '--', `${dir}/`]);
   if (!r.ok) return [];
   const ids = [];

@@ -30,6 +30,7 @@
 // borra siempre (con --force: es suyo). Si el push anduvo, sale 0 aunque el temporal no se borre (un aviso). Sin /cierre: termina en
 // "después: /cierre en tu carpeta principal …" (D5-3; 8r, 5). `integrados` (8r, 5): los merges "integrar: módulo <x>" de la rama por
 // defecto local posteriores al último commit que tocó docs/SESSION_HANDOFF.md, una línea cada uno; sale 0 siempre.
+// docs/ es la carpeta de papeles: la `carpeta-docs:` de la ficha vigente si la hay (SPEC-paquete-8r3 i1; lib/docs-ruta.cjs).
 // Salidas: 0 anduvo · 1 negado o con fallas (una línea por qué) · 2 mal llamado. Un error propio: "worktree roto: corré doctor", 1.
 // Node estándar, cero dependencias. Es .cjs a propósito: corre igual en proyectos con "type": "module".
 
@@ -126,6 +127,7 @@ function libs() {
     ficha: require('../hooks/lib/ficha.cjs'),
     frenosLog: require('../hooks/lib/frenos-log.cjs'),
     fabrica: require('../hooks/lib/fabrica.cjs'),
+    docs: require('../hooks/lib/docs-ruta.cjs'), // 8r3 i1: la carpeta de papeles (docs sin la clave)
   };
 }
 
@@ -607,8 +609,9 @@ function crear(L, u, n, a, opciones) {
   if (faltan.length) return no(lineaIgnorados(faltan));
   const def = porDefectoLocal(L, P);
   if (!def) return no('no encuentro la rama por defecto en esta PC (main o master)');
-  if (!G(L, ['cat-file', '-e', `refs/heads/${def}:docs/modulos/${n.x}/README.md`], P).ok) {
-    return no(`docs/modulos/${n.x}/README.md no está commiteado en ${def} — primero el commit del módulo (H §8.2)`);
+  const fichaModulo = L.docs.rel(L.docs.deRaiz(P), `modulos/${n.x}/README.md`);
+  if (!G(L, ['cat-file', '-e', `refs/heads/${def}:${fichaModulo}`], P).ok) {
+    return no(`${fichaModulo} no está commiteado en ${def} — primero el commit del módulo (H §8.2)`);
   }
   const wt = path.join(P, ...CARPETAS.split('/'), n.carpeta);
   if (existeRef(L, P, `refs/heads/${n.rama}`) || existeRef(L, P, `refs/remotes/origin/${n.rama}`)) return no(`la rama ${n.rama} ya existe — eso es abrir`);
@@ -839,7 +842,7 @@ function cancelar(L, u, n, lineas, conOrigin) {
   // 1. El renglón en la ficha commiteada.
   const ref = E.refMasNueva(P, n.madre);
   if (!ref.ok) return no(ref.por);
-  const rutaFicha = `docs/modulos/${n.x}/README.md`;
+  const rutaFicha = L.docs.rel(L.docs.deRaiz(P), `modulos/${n.x}/README.md`);
   const buf = E.leerEn(P, ref.sha, rutaFicha);
   const re = new RegExp(`(?:^|[\\s(\`*-])cancelado ${n.id}(?![0-9])(?:[^@\\n]*@([0-9a-f]{7,40}))?`, 'm');
   const m = buf ? re.exec(buf.toString('utf8')) : null;
@@ -1095,7 +1098,6 @@ function enElTemporal(L, P, tmp, n, def, base, punta, okLinea, opciones) {
 
 // ---------------------------------------------------------------- integrados (SPEC-paquete-8r 5; D8r-5)
 
-const HANDOFF = 'docs/SESSION_HANDOFF.md';
 const RE_INTEGRAR = /^integrar: módulo (\S+)$/;
 
 // Los merges `integrar: módulo <x>` del primer padre de la rama por defecto LOCAL posteriores al último commit que tocó
@@ -1106,7 +1108,8 @@ function integrados(L, u) {
   const P = u.principal;
   const def = porDefectoLocal(L, P);
   if (!def) return no('no hay rama por defecto local');
-  const ult = G(L, ['log', '-1', '--format=%H', `refs/heads/${def}`, '--', HANDOFF], P);
+  const handoff = L.docs.rel(L.docs.deRaiz(P), 'SESSION_HANDOFF.md'); // 8r3 i1
+  const ult = G(L, ['log', '-1', '--format=%H', `refs/heads/${def}`, '--', handoff], P);
   if (!ult.ok) return no(primeraLinea(ult.stderr) || ult.error || 'git log falló');
   const desde = ult.stdout.trim();
   const rango = desde ? `${desde}..refs/heads/${def}` : `refs/heads/${def}`;
