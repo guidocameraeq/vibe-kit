@@ -217,6 +217,20 @@ Rutas: `molde` = `kit/molde/`, `lib` = `kit/molde/hooks/lib/`, `wt` = `kit/molde
 - **Vuelta 2** (con A): `adoptar --mirar`/`--aplicar` y el `doctor` avisan si `git check-ignore .claude/frenos.log` da ignorado (un
   `*.log` escrito **después** del bloque del kit).
 
+#### u12 · El tope de las skills avisa, no frena, cuando lo pasa la zona propia (DECIDIDO por Guido, 2026-11-04)
+
+- **El dolor** (lo midió D8r.3 en un clon de Hermes): la flota a Hermes sale ROTA en la línea 4 de `chequear` (skills): `cierre` 8975 B,
+  `director` 13154, `inicio` 9171 y `tramo` 9179, contra 8000 y 8600. Lo que los pasa es su **zona propia**; ya pasaban en la `rc.3`, con
+  la que se adoptó directo (nunca corrió una flota), y `adoptar --aplicar` con D1 A no lo avisa. Sin esto, Hermes no recibe ni la `rc.4` ni
+  la `rc.5`, con obra o sin ella.
+- **Decidido con Guido** (por la madre): *"que avise, no que frene"*. El tope sigue midiendo. Si lo que lo pasa es la zona propia, la
+  línea 4 da ⚠ y no ROTA, con cuánto se pasa, y la actualización sigue; el `doctor` lo avisa igual. Si lo que lo pasa es la parte del kit
+  (el texto sin lo de adentro de la zona), sigue ROTA: es un error nuestro. El aviso sugiere *"mové a un anexo lo propio que no hace falta
+  siempre, nunca lo de producción"*.
+- **Encargo S** (`chequeo.cjs` línea 4 y `doctor.cjs`, sus pruebas). **crit. 10**: `chequeo.test` — la zona propia que pasa el tope → la
+  línea no es roja y dice cuánto; la parte del kit que lo pasa → roja; el `/inicio` con su 8600; `doctor.test` la línea ⚠. Chequeo frío:
+  un clon de Hermes, flota `rc.3` → `rc.5` con la obra en curso y `--con-obra`: tiene que llegar (crit. 8 suma).
+
 #### u10 · Las trabas que todavía no saltaron (hipótesis; pedido de Guido por la madre, 2026-11-04)
 
 Inferidas de lo que dolió hoy. **Cada una se reproduce primero** (una prueba o un clon del scratchpad); la que no se reproduce va al
