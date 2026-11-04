@@ -206,6 +206,17 @@ Rutas: `molde` = `kit/molde/`, `lib` = `kit/molde/hooks/lib/`, `wt` = `kit/molde
   `main` de Hermes, la rama sigue en rojo. El chequeo frío actualiza `main` del clon primero. Mientras, en Hermes, ese merge espera la
   `rc.5` (se lo dice la madre a Guido).
 
+#### u11 · `.claude/frenos.log` tapado por un `*.log` del proyecto (lo trajo la madre, de Hermes, 2026-11-04)
+
+- **El dolor**: `cambios aprobar` decía *"no — .claude/frenos.log está ignorado en .gitignore"*: Hermes tiene un `*.log` genérico
+  (`.gitignore:110`) y el snippet del molde no lo contemplaba; en cualquier proyecto con `*.log`, aprobar falla siempre. Hermes lo tapó a
+  mano con `!.claude/frenos.log` (`f1c2de92`).
+- **Vuelta 1**: `gitignore.snippet` suma `!/.claude/frenos.log`. El actualizador y la adopción suman lo que falta del snippet **al final**
+  del `.gitignore` (`actualizar.cjs`, paso 5), así que la negación queda después del `*.log` del proyecto. Prueba: `kit/molde/gitignore.test.cjs`
+  (con `*.log`: sin el snippet ignorado —el rojo, medido con el snippet viejo—, con él no; los otros `.log` y lo del kit siguen ignorados).
+- **Vuelta 2** (con A): `adoptar --mirar`/`--aplicar` y el `doctor` avisan si `git check-ignore .claude/frenos.log` da ignorado (un
+  `*.log` escrito **después** del bloque del kit).
+
 #### u10 · Las trabas que todavía no saltaron (hipótesis; pedido de Guido por la madre, 2026-11-04)
 
 Inferidas de lo que dolió hoy. **Cada una se reproduce primero** (una prueba o un clon del scratchpad); la que no se reproduce va al
@@ -216,7 +227,7 @@ de su clase.
 |---|---|---|---|---|
 | h1 | `integrar` de un módulo que ya trajo `main` (`traer-main`) ve el merge como barrera sin aprobar | base equivocada | 1 (con u9) | `worktree.test`: módulo → `traer-main` (main con un hook aprobado) → `integrar` verde |
 | h2 | `git pull` con conflicto **en `main`** (el remoto trajo un freno aprobado en la otra PC): el pre-commit del merge sale rojo | base equivocada | 1 (con u9) | `kit-githook.test`: dos clones, uno aprueba y pushea un cambio de `settings.json`, el otro pull con conflicto → pre-commit |
-| h3 | `cherry-pick` o `revert` de un commit de barrera ya aprobado pide aprobado de nuevo | base equivocada | 1 | `barreras.test`: cherry-pick de un commit aprobado a otra rama; revert en `main` |
+| h3 | `cherry-pick` o `revert` de un commit de barrera ya aprobado pide aprobado de nuevo | base equivocada | — | **probada, no pasa** (en la vida real: el cherry-pick de 11 commits de `cc-ui` en Hermes anduvo sin pedir aprobados, la madre, 2026-11-04); el `revert` no se probó |
 | h4 | El merge de upstream en un fork (el bot, OpenClaw): miles de rutas y contenido ajeno para gitleaks | base equivocada | 1 (con u9) | lo mismo que u9 con MERGE_HEAD **fuera** de la vigente (upstream): ¿qué dice, y qué tendría que decir? (no se afloja para upstream: se documenta el camino) |
 | h5 | Secretos o falsos positivos viejos en la historia aparecen recién en un merge (Hermes: un `auth_uid` en `docs/legacy`) | antes de la adopción | 2 | `adoptar --mirar` corre `gitleaks detect` sobre toda la historia y lista `archivo:línea · regla` **sin el valor**, con la propuesta (rotar si es real; si no, `.gitleaksignore` con su porqué) |
 | h6 | Worktrees fuera de `.claude/worktrees/` confunden `worktree estado`, `cerrar`, el `doctor` o la flota | antes de la adopción | 2 (con u4) | `worktree.test` con dos worktrees en `../` |
