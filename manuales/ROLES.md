@@ -6,7 +6,8 @@
 > kit, manda el kit: `kit/molde/skills/{nucleo,director,obrero,tramo,estado}/`.
 
 Todo esto viene con el **molde v3** (un proyecto con `.claude/kit.md`). Lo normal sigue siendo **una sola sesión**: `/inicio`, el
-pedido, `/cierre`. El director aparece solo si el Arquitecto lo decidió en Modo B (`manuales/COMO-USAR-EL-ARQUITECTO.md` §2).
+pedido, `/cierre`. El director aparece solo si el Arquitecto lo decidió en Modo B (`manuales/COMO-USAR-EL-ARQUITECTO.md` §2) y la
+ficha del proyecto lo trae (`piezas.director-obrero: sí`; al adoptar un repo con código viene prendido).
 
 ---
 
@@ -14,7 +15,11 @@ pedido, `/cierre`. El director aparece solo si el Arquitecto lo decidió en Modo
 
 - **`/inicio`**: cruza lo que inyectó el hook de arranque con git y te confirma en tres líneas (estado · próximo paso · bloqueos). Te
   avisa los cambios aprobados nuevos, los mensajes de la mesa, los módulos sin sello y las fusiones del kit que te esperan (una sola
-  pregunta). Con tu pedido en el mensaje, **la primera línea es el tamaño**: chico lo hace; más que chico llama al Arquitecto.
+  pregunta; una mezcla que choca te la cuenta y la decide con vos, siempre). Después del `pull`, si se integró un módulo después del
+  último handoff (`worktree.cjs integrados`), te propone `/cierre` para poner los papeles al día. Con tu pedido en el mensaje, **la
+  primera línea es el tamaño**: chico lo hace; más que chico llama al Arquitecto.
+- **En la pestaña de un módulo**, el `/inicio` mira primero el rol de la carpeta (`.kit-rol`) y la rama: si es la del director, invoca
+  `/director`; si es la de un obrero, `/obrero <x>--<ID>`. Así da igual si pegás "inicio" o el primer mensaje que te dio el script.
 - **`/cierre`**: docs al día (el handoff con tope, "Te espera"), el candado en verde, commit y push. Solo en la rama por defecto.
 
 El detalle de lo que tocan (el handoff, el TODO, el candado): `manuales/MOLDE.md`.
@@ -38,13 +43,17 @@ El detalle de lo que tocan (el handoff, el TODO, el candado): `manuales/MOLDE.md
 ## 3. El director (`/director`)
 
 La sesión que dirige un módulo con director. Abre en el worktree del módulo (la línea `code "<ruta>"` que te dio el Arquitecto) y
-arranca con `inicio — ejecutá docs/modulos/<x>/SPEC.md`.
+su **primer mensaje es `/director`** (la última línea que imprime `worktree.cjs crear`: `primer mensaje: /director`).
 
-1. **Chequea el sello** del spec (`encargo.cjs presentar --spec`). Sin sello no reparte: llama al Arquitecto en Modo B corto.
+1. **Chequea el sello** del spec (`encargo.cjs presentar --spec`). Sin sello no reparte: llama al Arquitecto en Modo B corto. Si el
+   sello dice `entorno — (tarea 0: montar el entorno de prueba)` (el proyecto tiene la base real y ninguna de prueba), el primer
+   encargo es el `00`: monta la base de prueba y la suma a la ficha en `modulo/<x>`; hasta entonces, `autorizado` y `presentar` frenan
+   todo otro encargo.
 2. **Arma cada encargo** desde la plantilla, **por referencia** al spec (nunca resumido): modelo y esfuerzo con razón, `Riesgo: alto` si
    toca datos reales, permisos, plata, producción o login, lo `AUTORIZADO` estrecho y el `GATE`. Lo commitea, lo pushea y crea el
    worktree del obrero (`worktree.cjs crear`) y su línea de apertura (`encargo.cjs autorizado`).
-3. **La apertura del obrero la hacés vos** por defecto, con la línea que te da; él lanza solo si se lo pedís o el encargo lo dice.
+3. **La apertura del obrero la hacés vos** por defecto, con la línea que te da (termina en el primer mensaje: `/obrero <x>--<ID>`);
+   él lanza solo si se lo pedís o el encargo lo dice, con la herramienta Bash.
 4. **Silencio**: no contesta los AVANCE ni un aviso sin commit nuevo. Contesta CONSULTAS contra el spec; una PARADA de clase 3 va a
    "Te espera" de la ficha.
 5. **Verifica y mergea por script**: ante un CIERRE corre `encargo.cjs verificar` (seis líneas). Todo verde → merge del SHA, sin
@@ -52,7 +61,9 @@ arranca con `inicio — ejecutá docs/modulos/<x>/SPEC.md`.
 6. **Se muda a ~40 % de contexto** (la cifra la da `contexto.cjs`, no su cabeza): deja un relevo commiteado y uno nuevo sigue desde ahí.
    Al cerrar cada tramo mide los tiempos (`tiempos.cjs`) y la **alarma** (más de 3 intervenciones tuyas en el tramo).
 7. **Termina el módulo** con `worktree.cjs integrar <x>`: lo lleva a la rama por defecto. Si la ficha pide tu OK para mergear, te
-   pregunta. Después te da la línea para cerrar el worktree.
+   pregunta. La última línea dice `después: /cierre en tu carpeta principal`: los papeles de la rama por defecto quedaron atrás del
+   módulo. Después te da la línea para cerrar el worktree (`worktree.cjs cerrar`: borra la rama local y, si ya está mezclada en
+   origin, también la de origin; así la flota no saltea el proyecto).
 
 Nunca escribe código, ni resuelve un conflicto (eso es un encargo), ni corre `/cierre`.
 
@@ -127,9 +138,9 @@ resumen del día). Un obrero no escribe en la mesa. NO VERIFICADO: el envío del
 ## 9. Lo que es solo tuyo
 
 - **Aprobar un cambio de freno**: cuando una sesión propone tocar un freno del proyecto, el cambio queda "propuesto" y aparece en
-  **"Te espera"** del handoff con su regla. Se aprueba con `cambios.cjs aprobar <id>` **en la pestaña principal, en la rama por
-  defecto**: aparece la ventana de permiso y **tu clic es la firma** (queda un commit `cambios: aprobado <id>`). Desde la pestaña de un
-  director, un obrero, de noche o en bypass, se niega solo. El registro de cambios a fondo: `manuales/MOLDE.md`.
+  **"Te espera"** del handoff con su regla. Se aprueba **en la pestaña principal, en la rama por defecto**, y queda un commit
+  `cambios: aprobado <id>`. `cambios aprobar` lo corre la sesión cuando el dueño lo pide, y su clic en la ventana es la firma; nunca por su cuenta.
+  Desde la pestaña de un director, un obrero, de noche o en bypass, se niega solo. El registro de cambios a fondo: `manuales/MOLDE.md`.
 - **Abrir las pestañas** de los obreros (la línea que te da el director), y las decisiones de clase 3.
 - **El OK de integrar** si la ficha del módulo lo pide, y cerrar el worktree al final (la línea que te da el director).
 

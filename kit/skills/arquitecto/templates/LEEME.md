@@ -1,18 +1,9 @@
-# Templates del sistema de trabajo — qué es cada cosa
+# Templates del Arquitecto — qué queda acá
 
-Moldes extraídos de las instancias reales de Perseo, materializan el PLAYBOOK-MAESTRO (repo vibe-kit). **Quién los instancia**: el Arquitecto al montar un proyecto nuevo, o el prompt de aplicación del §2.9 del playbook pegado a mano en un chat del proyecto. Instanciar = copiar al proyecto, reemplazar los `{{...}}`, borrar lo que no aplique.
-
-## `universales/` — van en TODO proyecto, desde el día cero
-
-| Template | Va a | Qué es |
-|---|---|---|
-| `skills/inicio/SKILL.md` | `.claude/skills/inicio/` | Ritual de arranque: usa el contexto del hook, cruza handoff vs git, 3 líneas, espera OK. |
-| `skills/cierre/SKILL.md` | `.claude/skills/cierre/` | Ritual de cierre completo + modo `parcial` (emergencia pre-compact). |
-| `hooks/session-start.sh` | `.claude/hooks/` | Inyecta handoff + TODO + git en cada chat nuevo y post-compact. |
-| `hooks/check-code.js` | `.claude/hooks/` | Valida sintaxis al editar, según extensión (activar las del stack). |
-| `settings.template.json` | `.claude/settings.json` | Hooks + allowlist moderada. |
-| `CLAUDE.template.md` | `CLAUDE.md` (raíz) | El rol: reglas de comportamiento con slots. |
-| `docs/*.md` | `docs/` | Esqueletos de SESSION_HANDOFF (se sobreescribe entero), TODO (única fuente de pendientes, completado→borrar) y CHANGELOG (entrada por cierre). |
+El **sistema de trabajo** de un proyecto (`/inicio`, `/cierre`, los hooks, el `settings.json`, el `CLAUDE.md`, los docs) ya no sale de
+acá: es el molde v3 (`kit/molde/` en el repo del kit) y lo monta el adoptador, `actualizar.cjs adoptar` (`--nuevo` en el Modo A,
+`anexos/modo-a.md`; "adoptá X" para un repo v2, `anexos/flota.md`), nunca a mano. El molde v2 que vivía en `universales/` está en
+`legacy/templates-universales-v2/` del repo del kit, con su lápida.
 
 ## `adaptables/` — recién cuando el ritual real existe (regla de 3+)
 
@@ -20,6 +11,8 @@ Moldes extraídos de las instancias reales de Perseo, materializan el PLAYBOOK-M
 |---|---|
 | `smoke.contrato.md` | Contrato universal de verificación con evidencia; se instancia como `/smoke` con los pasos reales del proyecto. |
 | `deploy.contrato.md` | Contrato de publicación (push → aplicar → salud → smoke); se instancia como `/deploy` o `/release`. |
+
+Instanciar = copiar al proyecto, reemplazar los `{{...}}`, borrar lo que no aplique.
 
 ## La regla molde-vs-instancia (§1.2.9 del playbook)
 

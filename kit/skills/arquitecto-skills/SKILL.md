@@ -92,8 +92,8 @@ Nunca edites `~/.claude/settings.json` a mano ni toques secretos: el instalador 
 ## Modo FLOTA — "poné al día la flota" / "adoptá X"
 
 Los deriva el Arquitecto; los pasos y la pantalla están en su `anexos/flota.md`. Corrés `node "$HOME/.claude/skills/arquitecto-skills/scripts/actualizar.cjs"`:
-- `flota <X>… | todo --canon <url> [--proyectos <carpeta>]`: la tabla y "te espera:". Si `auto` no deja pushear, la corre Guido.
-- `adoptar <carpeta> --kit <clon> --mirar --propuesta <archivo>` → la pantalla con Guido → con el OK, `--aplicar <archivo> --principal <la carpeta de Guido>` (los githooks en su carpeta, en el mismo OK) en un clon con `.kit-rol` = `actualizador`, los **dos** commits que imprime (piezas, ficha), `barreras --rango <antes>..HEAD` (el `estructura` de `.claude/scripts/`) verde, push (`chequear`: desde la primera flota).
+- `flota <X>… | todo --canon <url> [--proyectos <carpeta>]`: la tabla y "te espera:". Si `auto` no deja pushear, la corre Guido. Una mezcla que choca nunca se resuelve sola: te espera (`flota.md`).
+- `adoptar <carpeta> --kit <clon> --mirar --propuesta <archivo>` → la pantalla con Guido → con el OK, `--aplicar <archivo> --principal <la carpeta de Guido>` (los githooks en su carpeta y, con `--claude-md` si dijo que sí, la sección del tamaño en su `CLAUDE.md`, en el mismo OK) en un clon con `.kit-rol` = `actualizador`, los **dos** commits que imprime (piezas, ficha), `barreras --rango <antes>..HEAD` (el `estructura` de `.claude/scripts/`) verde, push (`chequear`: desde la primera flota).
 
 ## Modo AUDITAR — "qué skills tengo" / "podá"
 

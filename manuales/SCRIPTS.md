@@ -31,7 +31,7 @@ Escribe `AGENTS.md` solo si la ficha vigente dice `multi-llm: sí`; con otro val
 ### cambios
 El registro de cambios del método (`.claude/cambios/`).
 `node .claude/scripts/cambios.cjs nuevo --slug <s> --clase 2|3-barrera --toca <a,b> (--origen "<t>" | --cita "<alias> <id>") […]` · `listar [--te-espera | --aprobados-nuevos]` · `verificar` · `anotar-sha <id> <sha>` · `rechazar <id> "<motivo>"` · `aprobar <id>` · `subio-al-kit <id> <N.N.N>`
-Escribe un archivo por cambio y hace su propio commit por rutas. **`aprobar` es del dueño**: pasa por la ventana de permiso y se niega solo desde un agente, un modo sin ventana, un worktree o con la ficha rota. Detalle: [`MOLDE.md`](MOLDE.md) §7.
+Escribe un archivo por cambio y hace su propio commit por rutas. **`aprobar` es del dueño**: `cambios aprobar` lo corre la sesión cuando el dueño lo pide, y su clic en la ventana es la firma; nunca por su cuenta. Se niega solo desde un agente, un modo sin ventana, un worktree o con la ficha rota. `nuevo` lo usa la sesión cuando cambió cómo trabaja el proyecto (un freno, una regla, un paso de un ritual). Detalle: [`MOLDE.md`](MOLDE.md) §7.
 
 ### contexto
 Cuánto contexto lleva usada esta sesión y cuánto le falta (lee el transcript de la sesión).
@@ -41,7 +41,7 @@ Imprime `contexto: <usado>k de <ventana>k (<pct>%) · faltan <falta>k · <modelo
 ### encargo
 El encargo por script: lo que usan el director y el obrero.
 `node .claude/scripts/encargo.cjs partida <x>--<ID>` · `presentar <x>--<ID> [--sin-base] | --spec` · `mensaje <TIPO> [<ruta>[@<sha>]]` · `autorizado <x>--<ID>` · `verificar <x>--<ID> [--plazo <min>]`
-Lee el encargo y el spec **de git**, nunca del disco. `partida` imprime la línea `- Partida:`. `presentar` chequea rama, encargo y sello del spec. `mensaje` dice si un aviso vale (git tiene que respaldarlo). `autorizado` reescribe `permissions.allow` del `settings.local.json` del worktree e imprime las líneas de apertura. `verificar` imprime **seis líneas** (remoto · limpio · pruebas · alcance · main · barreras) y sale 0 si ninguna es ❌.
+Lee el encargo y el spec **de git**, nunca del disco. `partida` imprime la línea `- Partida:`. `presentar` chequea rama, encargo y sello del spec. `mensaje` dice si un aviso vale (git tiene que respaldarlo). `autorizado` reescribe `permissions.allow` del `settings.local.json` del worktree e imprime las líneas de apertura; la de Guido termina en `→ primer mensaje: /obrero <x>--<ID>`. **La tarea 0**: con el sello `entorno — (tarea 0: montar el entorno de prueba)` en el spec, `presentar` y `autorizado` niegan (1) todo encargo que no sea el `00` mientras la `.claude/kit.md` de la punta de `modulo/<x>` no tenga un entorno `dummy` o `prueba`. `verificar` imprime **seis líneas** (remoto · limpio · pruebas · alcance · main · barreras) y sale 0 si ninguna es ❌.
 
 ### estado
 La vista de `/estado`.
@@ -71,7 +71,7 @@ Junta el diff contra HEAD, el `git status`, los avisos de `afirmaciones` y la sa
 ### portada
 Arma el `README.md` de la raíz.
 `node .claude/scripts/portada.cjs armar [--plan] [--raiz <dir>]` · `chequear [--raiz <dir>]`
-`armar` escribe `README.md` (y `assets/banner.svg`) desde `docs/NORTE.md` y la ficha; no pisa lo que se tocó a mano; con el marcador `{{…}}` sin llenar no escribe. `--plan` dice qué haría. `chequear` sale 0 si cumple, 1 con una línea por lo que falta. Detalle: [`MOLDE.md`](MOLDE.md) §8.
+`armar` escribe `README.md` (y `assets/banner.svg`) desde `docs/NORTE.md` y la ficha; no pisa lo que se tocó a mano; con el marcador `{{…}}` sin llenar no escribe. Con un README propio sale 1 y, si el banner quedó, un renglón: `el banner quedó en assets/banner.svg: enlazalo arriba del README si querés`. `--plan` dice qué haría. `chequear` sale 0 si cumple, 1 con una línea por lo que falta. Detalle: [`MOLDE.md`](MOLDE.md) §8.
 
 ### resumen
 El resumen del día.
@@ -90,8 +90,8 @@ Poda `docs/TODO.md` (lo que lleva 90 días sin tocarse baja a 🟢) y imprime `T
 
 ### worktree
 Los worktrees de los módulos: nacen, se abren y se cierran por script.
-`node .claude/scripts/worktree.cjs crear|abrir <x>[--<ID>] [--noche] [--model <m>]` · `sync-env` · `cerrar <x>[--<ID>] [--cancelado]` · `integrar <x> [--ok-de-guido]`
-`crear`/`abrir` escriben `.kit-rol`, copian los `.env` ignorados **sacando todo nombre que esté en el almacén de secretos**, corren `vars.comando-setup` e imprimen la línea de apertura. `cerrar` hace todos los chequeos antes de borrar y nunca fuerza (salvo `--cancelado`). `integrar` lleva el módulo terminado a la rama por defecto: merge `--no-ff`, el gate y el push sin `--force`; nada sube si algo falla.
+`node .claude/scripts/worktree.cjs crear|abrir <x>[--<ID>] [--noche] [--model <m>]` · `sync-env` · `cerrar <x>[--<ID>] [--cancelado]` · `integrar <x> [--ok-de-guido]` · `integrados`
+`crear`/`abrir` escriben `.kit-rol`, copian los `.env` ignorados **sacando todo nombre que esté en el almacén de secretos**, corren `vars.comando-setup` e imprimen la línea de apertura, que termina en `primer mensaje: /director` (un módulo, también con `--noche`) o `primer mensaje: /obrero <x>--<ID>` (un encargo). `cerrar` hace todos los chequeos antes de borrar y nunca fuerza (salvo `--cancelado`); después de la rama local borra la de origin **solo si** el fetch anduvo y ya está mezclada en `origin/<madre>` (si no, la deja y lo dice en una línea). `integrar` lleva el módulo terminado a la rama por defecto: merge `--no-ff`, el gate y el push sin `--force`; nada sube si algo falla; termina en `después: /cierre en tu carpeta principal …`. `integrados` (lo corre el `/inicio` después del `pull`): una línea por cada `integrar: módulo <x>` de la rama por defecto local posterior al último commit que tocó el handoff, con "corré /cierre"; nada si no hay; sale 0 siempre.
 
 ---
 
@@ -128,8 +128,10 @@ Corre gitleaks sobre lo que entra (staged, o lo que sube el push; lo arma él pa
 
 ### actualizar
 El actualizador del kit. Un script determinista; el único agente es el de la fusión de una pieza adaptada con conflictos.
-`node actualizar.cjs aplicar <carpeta> --kit <raíz> [--molde-viejo <dir>] [--plan] [--claude <exe>|no]` · `chequear <carpeta> --kit <raíz> --base <sha>` · `flota <repo>…|todo --canon <url|dir> [--tag <vX.Y.Z>] [--proyectos <carpeta>]` · `adoptar <carpeta> --kit <raíz> --mirar | --aplicar <propuesta>`
-`aplicar` pone al día una carpeta pieza por pieza según su ficha (no commitea ni pushea). `chequear` imprime las nueve líneas del chequeo mecánico. `flota` lo hace repo por repo en un clon temporal: verde → un commit a la rama por defecto; rojo → rama `kit/<tag>` ROTA; protegida → te espera; imprime la tabla y "te espera:". `adoptar` pasa un proyecto sin ficha al kit (`--mirar` solo propone). Salidas: 0 · 1 se negó o falló · 2 uso. Detalle: [`EQUIPADOR.md`](EQUIPADOR.md).
+`node actualizar.cjs aplicar <carpeta> --kit <raíz> [--molde-viejo <dir>] [--plan] [--claude <exe>|no]` · `chequear <carpeta> --kit <raíz> --base <sha>` · `flota <repo>…|todo --canon <url|dir> [--tag <vX.Y.Z[-rc.N]>] [--proyectos <carpeta>]` · `adoptar <carpeta> --kit <raíz> --mirar [--nuevo] [--nivel …] [--comando-test "<c>"] | --aplicar <propuesta> [--principal <carpeta>] [--claude-md]` · `resolver <carpeta> <pieza> mezclar|propia|nueva|congelar --por "<texto>" [--a-mano]` · `ultimo-tag <clon del kit>`
+`aplicar` pone al día una carpeta pieza por pieza según su ficha (no commitea ni pushea). `chequear` imprime las nueve líneas del chequeo mecánico. `flota` lo hace repo por repo en un clon temporal: verde → un commit a la rama por defecto; rojo → rama `kit/<tag>` ROTA; protegida → te espera; imprime la tabla y "te espera:". Saltea el repo con ramas `modulo/*` del remoto **sin mezclar** en su rama por defecto (la línea dice: si la mezclaste con squash en GitHub, borrá la rama desde la web). Sin `--tag` reparte el último tag anotado (el de `ultimo-tag`: **rc incluido**, y `v3.0.0` le gana a `v3.0.0-rc.N`) a todo proyecto con ficha; la versión se compara entera, también con `-rc`.
+`adoptar` pasa un proyecto sin ficha al kit. `--mirar` solo propone: con `--nuevo` (un repo recién nacido, el Modo A) las bases en molde, el candado, `director-obrero` y `estado`; en un repo con código, `director-obrero` y `estado` en `sí` (o `propia` si ya hay unos distintos); dice si al `CLAUDE.md` le falta "El tamaño del pedido" y si tiene un director/obrero propio, y la receta de `migrar-cambios` si hay registro propio. `--aplicar` escribe en el clon; `--principal` prende `core.hooksPath` = `.githooks` en la carpeta principal (nunca en el clon); `--claude-md` le suma al `CLAUDE.md` la sección "El tamaño del pedido" del molde.
+**Una pieza adaptada que choca nunca se resuelve sola**: queda en `.claude/fusiones/<pieza>.md` con el motivo `la mezcla chocó…` (si hay `claude`, con su propuesta, sin aplicar), `## Dónde chocan` y las cuatro salidas. `resolver` escribe la que eligió el dueño, en su checkout: lo del informe, la ficha (estado, `por:` y, con `propia`, `desde:`: la versión desde la que se le vuelve a ofrecer) y borra el informe; no commitea. Salidas: 0 · 1 se negó o falló · 2 uso. Detalle: [`EQUIPADOR.md`](EQUIPADOR.md).
 
 ### cambios-flota
 Lo que la flota aprendió, contado.
@@ -163,7 +165,7 @@ Un archivo por `CM-n` en `.claude/cambios/`, con cabecera y las cuatro secciones
 ### arquitecto
 Los chequeos y el sello del Arquitecto. **El sello lo escribe este script, nunca el modelo.**
 `node <skill>/scripts/arquitecto.cjs sello <spec> [--no-partir "<quién>"] [--no-aplica tamaño|entorno "<razón>"]` · `ready <spec>` · `ready --pendientes` · `tope <spec>` · `entorno` · `registro <carpeta de proyectos>`
-`sello` corre los chequeos (tamaño, entorno, tope) y escribe la línea con el hash del spec. `ready` se niega sin sello válido o con el spec tocado después, y cambia BORRADOR por READY y nada más. `tope` mide el spec y avisa (no corta). `entorno` chequea el gate de entorno de prueba contra la ficha. `registro` lee la ficha de cada proyecto de la carpeta (adaptador de ejemplo). Salidas: 0 · 1 negado o con fallas · 2 mal llamado.
+`sello` corre los chequeos (tamaño, entorno, tope) y escribe la línea con el hash del spec. Con la base real y ninguna de prueba, acepta la **tarea 0** (el renglón `- **Tarea 0**: …` primero en `## Entorno de prueba`) solo en un módulo con director y con el `kit:` de la ficha ≥ `3.0.0-rc.2`: el sello dice `entorno — (tarea 0: montar el entorno de prueba)`. `ready` se niega sin sello válido o con el spec tocado después, y cambia BORRADOR por READY y nada más. `tope` mide el spec y avisa (no corta). `entorno` chequea el gate de entorno de prueba contra la ficha. `registro` lee la ficha de cada proyecto de la carpeta (adaptador de ejemplo). Salidas: 0 · 1 negado o con fallas · 2 mal llamado.
 
 ---
 

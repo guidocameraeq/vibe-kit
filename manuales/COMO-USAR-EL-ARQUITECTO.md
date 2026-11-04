@@ -14,7 +14,7 @@ que dice por qué entrada fue** (ADR-031):
 
 | Decís algo como… | Entrada | Su primera línea | Qué pasa |
 |---|---|---|---|
-| "quiero una app para…" (no existe todavía) | **proyecto nuevo** | `más que chico: proyecto nuevo (Modo A)` | Entrevista → `SPEC-0.md` sellado → monta el proyecto (§3) |
+| "quiero una app para…" (no existe todavía) | **proyecto nuevo** | `más que chico: proyecto nuevo (Modo A)` | Entrevista → SPEC-0 sellado → monta el proyecto (§3) |
 | "agregale X a esta app" (estás parado en ella) | **feature** | `más que chico: feature (Modo B)` | Explora el código → spec delta sellado → arma el módulo (§4) |
 | "¿cómo le pido esto a Claude?", "armame el prompt" | **consultorio** | `consultorio` | Sale con un prompt pegable, un veredicto o el brief de una skill (§5) |
 | "preparame esta máquina", "actualizate", "corré el doctor" | **la PC** | `la PC: te paso al Equipador` | Lo hace el Equipador (§6) |
@@ -65,20 +65,21 @@ módulo **hermano**; vos decidís con un clic.
    código: documentos, relevamientos, estudio). Dónde vive no lo pregunta: si la carpeta donde corre la sesión está vacía, ahí; si
    no, `<carpeta de proyectos>/<nombre>`.
 3. **La entrevista**: una pregunta por vez, con opciones y una "(Recomendado)", en criollo. Cada tanda queda escrita en el borrador
-   (`SPEC-0.md`, `Estado: BORRADOR`): si te vas a la mitad, no se pierde nada. Atajo: **"dale con los defaults"** → solo confirma
+   (el SPEC-0, en `docs/modulos/v1/SPEC.md` del proyecto nuevo, `Estado: BORRADOR`; es el primer módulo, con su ficha
+   `docs/modulos/v1/README.md`): si te vas a la mitad, no se pierde nada y la próxima vez te ofrece retomarlo. Atajo: **"dale con los defaults"** → solo confirma
    las dos ⚠️ y el tipo de app; lo demás va a "Supuestos".
 4. **Las dos ⚠️, siempre y por separado**: ¿lo van a usar varias empresas separadas algún día (multi-tenant)? ¿va a existir en más de
    un idioma (i18n)? Cambiarlas después es rehacer media app. Después, la checklist de *concerns* (roles, listas configurables,
    errores, auditoría…).
 5. **El gate**: te muestra 2-3 enfoques con pros y contras y uno recomendado, en Plan Mode. Si toca plata, permisos o datos de
    terceros, antes pasa el red team. **Tu aprobación es la puerta**: sin ella no escribe nada más que el borrador.
-6. **El montaje**: sella el SPEC-0 (§7), lo pasa a READY, corre el scaffolding del stack, `git init`, el sistema del proyecto
-   (`CLAUDE.md`, `docs/`, `/inicio`, `/cierre`, hooks) y, si es `estandar`, te pregunta si lleva también `docs-fyd`. Primer commit y
-   una tabla con lo montado.
-7. **La línea**: te da la ruta y la frase para pegar en un chat nuevo ahí (`inicio — ejecutá el SPEC-0 …`). Y se apaga.
-
-**Ojo, lo construido hoy**: el Modo A **todavía monta el molde v2** (`kit/skills/arquitecto/templates/`). El molde v3 con
-`docs/modulos/` llega con el instanciador (D4-6); el Modo A con el molde v3 está **NO VERIFICADO** (va al piloto).
+6. **El montaje**: corre el scaffolding del stack y `git init`, y monta **el molde v3 con el adoptador** (`adoptar --nuevo`) sobre
+   un clon del proyecto, nunca a mano: la ficha `.claude/kit.md`, `CLAUDE.md`, `docs/`, `/inicio`, `/cierre`, los frenos, los hooks,
+   el candado prendido y `/director` y `/obrero` (todo proyecto nuevo nace con módulos). Los githooks se prenden en tu carpeta
+   (`--principal`) y el resultado vuelve a ella con un `pull`. Con la ficha puesta, sella el SPEC-0 (§7) y lo pasa a READY; si es
+   `estandar`, te pregunta si lleva también `docs-fyd`. Termina con una tabla de lo montado.
+7. **La línea**: te da la ruta y la frase para pegar en un chat nuevo ahí (`inicio — ejecutá docs/modulos/v1/SPEC.md (está READY)`).
+   Y se apaga.
 
 **Si venís de un relevamiento** (la invocación nombra un `HANDOFF.md`): honra lo ya contestado, arranca en las preguntas de
 solución y **no monta**: devuelve el plano a `/relevamiento` para la propuesta de valor. Monta recién con la propuesta aprobada.
@@ -108,13 +109,17 @@ Los pasos:
      sello** (te lo avisa `/inicio`: *"el módulo <x> nació sin sello: llamo al Arquitecto (Modo B corto)"*) y el que llama el
      director cuando su spec no tiene sello.
 4. **El spec delta**: "Pedido original, textual" (nunca inventado), AGREGA / MODIFICA / **NO SE TOCA** (obligatoria), "Ejecución" y
-   "Entorno de prueba". Con ficha corre el chequeo del entorno: si da rojo, montarlo es la tarea 0.
+   "Entorno de prueba". El director va solo si la ficha del proyecto lo trae (`piezas.director-obrero: sí`); si no, módulo solo y te
+   dice cómo prenderlo. Con ficha corre el chequeo del entorno: si da rojo, montarlo es **la tarea 0**. Si el proyecto tiene la base
+   real y ninguna de prueba, en un módulo con director la tarea 0 va como primer renglón de "Entorno de prueba"
+   (`- **Tarea 0**: montar la base de prueba`): el sello la acepta y el primer encargo, el `00`, monta la base; hasta que esté,
+   ningún otro obrero arranca. En un módulo solo no vale: la base de prueba es un módulo previo.
 5. **Termina armando**: sello → tu OK (si cambiás algo, sella de nuevo) → READY. Con ficha: un commit en la rama por defecto **solo
    con lo del módulo** (nunca `git add -A`), push si hay remoto y, si es con director, `worktree.cjs crear <x>` (la rama
    `modulo/<x>` y su carpeta aparte). Si el proyecto no tiene `worktree.cjs`, lo dice y no arma el worktree a mano.
 6. **La línea**: módulo solo → chat nuevo en la carpeta, `inicio — ejecutá docs/modulos/<x>/SPEC.md (está READY)`; con director → la
-   línea `code "<worktree>"` que imprimió el script y, en esa ventana, la pestaña de Claude con Opus; sin ficha → `inicio — ejecutá el
-   spec docs/SPEC-<x>.md (está READY)`.
+   línea `code "<worktree>"` que imprimió el script y, en esa ventana, la pestaña de Claude con Opus, con el primer mensaje
+   `/director` (la línea `primer mensaje:` del script); sin ficha → `inicio — ejecutá el spec docs/SPEC-<x>.md (está READY)`.
 
 Implementado, el spec no se archiva: su estado pasa a `COMPLETO <fecha>`.
 
@@ -156,8 +161,9 @@ specs READY. El obrero de un módulo con director también frena si el spec no t
 
 Qué mira `sello` antes de escribir la línea:
 - **tamaño**: que "Ejecución" diga `módulo solo` o `módulo con director` en su primera línea, y que coincida con la ficha del módulo.
-- **entorno** (solo con ficha): que haya dónde probar. Si la ficha declara un entorno real, tiene que haber uno de prueba al lado; si
-  no, `comando-test` tiene que dar verde. Y las herramientas que nombra la ficha tienen que andar.
+- **entorno** (solo con ficha): que haya dónde probar. Si la ficha declara un entorno real, tiene que haber uno de prueba al lado (o,
+  en un módulo con director y con el kit ≥ `3.0.0-rc.2`, la tarea 0 en el spec: el sello dice `entorno — (tarea 0: montar el entorno
+  de prueba)`); si no, `comando-test` tiene que dar verde. Y las herramientas que nombra la ficha tienen que andar.
 - **tope**: el tamaño del spec contra su límite (avisa; si decidiste seguir entero, va `--no-partir "Guido"`).
 
 Si niega, dice qué falta en una línea; se arregla y se vuelve a correr. Si después del sello alguien toca el spec, el sello deja de
