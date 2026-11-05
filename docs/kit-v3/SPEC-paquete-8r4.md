@@ -494,6 +494,15 @@ de un repo) sale `mezclado` o `al día`; (c) en un clon del bot: la adopción co
 - **Bajo, para la `rc.6`**: `abrir <x>` dice `primer mensaje: /director` sin el módulo; con dos módulos, la skill tiene que adivinar el `<x>`.
 - NO VERIFICADO: EnterWorktree en una sesión real; `traer-main` con los githooks puestos; que gitleaks cace una clave nueva en un merge.
 
+## Lo que trajo la suite entera (sola, 22:10-22:44, 2994/2996)
+
+- **Real, de esta tanda**: la línea de EnterWorktree del `CLAUDE.md` del molde, pegada al renglón del obrero, dejaba sin el renglón que
+  usa la prueba RF-fix 4 de `adoptar` (un renglón del molde que nombra al obrero sin `/obrero`). Va en su propio párrafo.
+- **Real, de antes (desde que existe el resumen del día)**: `node .claude/scripts/estado.cjs` después de las 18 h salía 2 con `estado
+  roto: S.papeles is not a function`. `resumen.cjs` pide `estado.cjs`, y por la línea de comandos `main()` corría antes del
+  `module.exports`. De día no salta: por eso ninguna suite lo vio. El `module.exports` va antes del arranque; la prueba nueva fija el reloj
+  a las 20 h (mutación: sin el arreglo, roja con ese mensaje).
+
 ## Lo que esto no cierra
 
 - **EnterWorktree en una sesión real** de la extensión (el paso 0 del `/obrero` de punta a punta) y si `./**` del settings sigue resolviendo

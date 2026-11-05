@@ -27,6 +27,8 @@ beta en Hermes Desktop y el analytics de Arti, y lo que Guido decidió y quiere 
     dice cómo resolverlo (dejalo como el lado que lo cambió). rf-13 sigue: deshacer un freno de un lado en el merge es rojo.
   - **El tope de las skills avisa, no frena, cuando lo pasa la zona propia** (decidido por Guido): la línea 4 de `chequear` da ⚠ (no
     ROTA) con cuánto se pasa; la parte del kit que pasa el tope sigue ROTA. El `doctor` lo avisa por skill (`tope-skills`).
+  - **`/estado` después de las 18 h** ya no sale `estado roto: S.papeles is not a function` (el resumen del día pedía `estado.cjs` antes
+    de que exportara; lo trajo la suite de la rc.5, corrida a la noche).
   - **`gitignore.snippet`** suma `!/.claude/frenos.log`: un `*.log` del proyecto lo tapaba y `cambios aprobar` fallaba siempre.
   - Textos: `/obrero`, `/director` (el paso 0, `traer-main` entre encargos), `NUCLEO.md` (el gate desde el worktree del director), el
     `CLAUDE.md` del molde (una línea de EnterWorktree), el modo FLOTA del Equipador y `flota.md`.

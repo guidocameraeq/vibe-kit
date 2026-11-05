@@ -351,6 +351,9 @@ function main(argv, opciones = {}) {
   return 0;
 }
 
+// Antes de main(): resumen.cjs pide este módulo (después de las 18 h) y con los exports al final lo veía vacío (D8r.4).
+module.exports = { USO, LINEAS_PROPIAS, LINEA_NOCHE, HORA_RESUMEN, papeles, leerFicha, seccion, bullets, tareas, porcentaje, sesionesVivas, activo, fichas, desdeCuando, esperasVencidas, encargosDe, hoyDe, main };
+
 if (require.main === module) {
   let codigo = 2;
   try {
@@ -360,5 +363,3 @@ if (require.main === module) {
   }
   process.exitCode = codigo;
 }
-
-module.exports = { USO, LINEAS_PROPIAS, LINEA_NOCHE, HORA_RESUMEN, papeles, leerFicha, seccion, bullets, tareas, porcentaje, sesionesVivas, activo, fichas, desdeCuando, esperasVencidas, encargosDe, hoyDe, main };

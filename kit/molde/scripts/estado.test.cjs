@@ -278,6 +278,22 @@ test('resumen del día sin módulos con director: la marca de "ya mostrado" lo a
   assert.doesNotMatch(estado(dir, [], { ahora }).out, /resumen del día: falta/);
 });
 
+// D8r.4 (la suite de la rc.5, a las 22 h): después de las 18 h, resumenPendiente pide resumen.cjs, que pide estado.cjs; por la línea
+// de comandos main() corría antes del module.exports y resumen veía un estado vacío ("estado roto: S.papeles is not a function").
+test('por la línea de comandos, después de las 18 h (el resumen del día): anda y sale 0', () => {
+  const dir = mundo();
+  const reloj = path.join(TMP, 'reloj-20h.cjs');
+  fs.writeFileSync(reloj, [
+    'const D = Date; const T = new D(2026, 10, 2, 20, 0).getTime();',
+    'global.Date = class extends D { constructor(...a) { if (a.length) super(...a); else super(T); } static now() { return T; } };',
+    '',
+  ].join('\n'));
+  const r = spawnSync(process.execPath, ['--require', reloj, SCRIPT], { cwd: dir, encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr);
+  assert.doesNotMatch(r.stderr, /estado roto/);
+  assert.match(r.stdout, /resumen\.cjs/, 'a las 20 h pide el resumen del día');
+});
+
 test('por la línea de comandos: anda, sale 0 y no pregunta', () => {
   const dir = mundo();
   const r = spawnSync(process.execPath, [SCRIPT], { cwd: dir, encoding: 'utf8' });
