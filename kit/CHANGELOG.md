@@ -14,12 +14,14 @@ analytics y el bot.
 - **Qué piezas cambiaron**:
   - **El obrero de cierre de tramo**: el director ya no escribe la ficha. Al cerrar un tramo (cuándo, lo dice `- Cierre de tramo:` de la
     ficha del módulo; sin el renglón, cada encargo) copia `skills/director/plantilla-cierre.md` (nueva) como cualquier encargo, lo lanza,
-    lo verifica y lo mergea. La ficha suma `- Próximo paso:` y `- Tramo: <N> cerrado <fecha>`; el arranque y `/estado` muestran
-    `<x> · tramo <N> cerrado <edad> · próximo: …`, también desde la otra PC (caen a `origin/modulo/<x>`).
+    lo verifica y lo mergea. La ficha suma `- Próximo paso:` y `- Tramo: <N> cerrado <fecha>`; el arranque muestra
+    `<x> · tramo <N> cerrado (hace <edad>) · próximo: …` y `/estado` `tramo <N> cerrado · … · próximo: …`, también desde la otra PC
+    (caen a `origin/modulo/<x>`). El director mide los tiempos de cada encargo **antes** de `cerrar` (si no, se perdían).
   - **A la rama por defecto sube solo el director** (decidido por Guido): el pre-push lleva una lista de lo que sube cada rol. El obrero,
     solo su `modulo/<x>--<ID>` (también sin `.kit-rol`: el rol sale de la rama); el nocturno y un rol desconocido, solo `modulo/*`;
     `humano`, `director` y `actualizador`, como antes. `git-seguro` lo avisa antes en una sesión de obrero (un destino explícito fuera de
-    `modulo/*`, un tag, `--all`/`--branches`/`--tags`). `integrar` y la flota no cambian.
+    `modulo/*`, un tag, `--all`/`--branches`/`--tags`). Borrar una rama de origin va por la misma lista (el obrero no borra la del
+    director). `integrar` y la flota no cambian.
   - **La apertura del director dice `/director <x>`** (con dos módulos, la skill ya no adivina cuál).
   - **El lock del proyecto atrasado**: `adoptar --mirar` y el `doctor` lo leen (npm, pnpm con workspaces a cualquier profundidad, yarn) y
     dicen cómo arreglarlo; nunca lo arreglan solos. En la flota, si el `comando-setup` ya fallaba antes de la actualización por un lock
@@ -44,8 +46,8 @@ analytics y el bot.
   ficha") o un push a `main` del obrero. El commit del kit toca githooks y hooks (`git-seguro`): va con la exención del actualizador.
   **Si tu proyecto se adoptó sin director y lo querés**: poné `piezas.director-obrero: propia` en la ficha y corré
   `actualizar.cjs resolver . director-obrero nueva --kit <clon del kit> --por "<por qué>"`.
-- **Qué chequear después**: desde el worktree de un obrero, `git push origin main` sale 1 con "a la rama por defecto sube solo el
-  director"; `worktree.cjs crear <x>` termina en `primer mensaje: /director <x>`; el `doctor` parado en el proyecto lista `vecinos` y
+- **Qué chequear después**: desde el worktree de un obrero, `git push origin HEAD:main` sale 1 con "no sube un obrero: a la rama por
+  defecto sube solo el director" (`git push origin main` con tu `main` al día dice `Everything up-to-date` y no sube nada); `worktree.cjs crear <x>` termina en `primer mensaje: /director <x>`; el `doctor` parado en el proyecto lista `vecinos` y
   `locks`; si la flota dijo "lock atrasado", regenerá el lock en el proyecto y commitealo.
 
 ## 3.0.0-rc.5

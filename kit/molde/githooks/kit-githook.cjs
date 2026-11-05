@@ -744,8 +744,19 @@ function refsQueSuben(stdin) {
     if (!l.trim()) continue;
     const p = l.trim().split(/\s+/);
     if (p.length !== 4 || !RE_SHA.test(p[1]) || !RE_SHA.test(p[3])) falla('el pre-push recibió una línea que no entiendo');
-    if (CEROS.test(p[1])) continue; // borrar una ref remota no sube nada (git-seguro decide si se puede)
+    if (CEROS.test(p[1])) continue; // borrar una ref remota no sube nada (git-seguro decide si se puede; h11 la mira en refsQueBorran)
     out.push({ refLocal: p[0], local: p[1], refRemota: p[2], remoto: p[3], nueva: CEROS.test(p[3]) });
+  }
+  return out;
+}
+
+// Los borrados de esas mismas líneas (sha local en ceros) → [refRemota]. h11 (chequeo frío de la rc.6): el borrado también va por la
+// lista de cada rol, porque desde la terminal o un script no hay git-seguro (un obrero borraba modulo/<x> del director en origin).
+function refsQueBorran(stdin) {
+  const out = [];
+  for (const l of String(stdin || '').split(/\r?\n/)) {
+    const p = l.trim().split(/\s+/);
+    if (p.length === 4 && CEROS.test(p[1])) out.push(p[2]);
   }
   return out;
 }
@@ -812,6 +823,12 @@ function principal(argv, opciones = {}) {
       const refs = refsQueSuben(stdin);
       let escaner = true;
       const rama = ramaHead(o);
+      for (const ref of refsQueBorran(stdin)) {
+        if (puedeSubir(rol, ref, rama)) continue;
+        rojo = true;
+        anotar(repo.raiz, rol, cual, 'githook:solo-el-director', ref, o);
+        lineas.push(textoSoloElDirector(ref, rol, rama).replace(' no sube ', ' no la borra '));
+      }
       for (const x of refs) {
         const donde = ` · ${x.refLocal}`;
         // h11 (D8c-2, rt-10): primero lo que sube cada rol; un obrero que apunta a main no recibe el "pull --rebase" del adelantado.

@@ -37,7 +37,8 @@ const REVISOR = fs.readFileSync(path.join(DIR_MOLDE, 'agents', 'revisor.md'), 'u
 
 // estructura.cjs lo escribe otro encargo (F4): su uso está fijado en el delta, no se lee el archivo.
 const USO_FIJO = {
-  estructura: ['todo', 'parcial'],
+  // todo · parcial · o los ids sueltos (el uso de estructura.cjs: `<id>…`; el gate del obrero de cierre los nombra sin estado-viejo)
+  estructura: ['todo', 'parcial', 'raiz', 'rutas', 'topes', 'mesa', 'estados', 'lecturas', 'estado-viejo', 'barreras', 'datos', 'portada'],
 };
 
 const MARCA_ABRE = ['<!-- kit', 'propio -->'].join(':');
@@ -862,10 +863,11 @@ test('8c c1: el paso 7 nombra plantilla-cierre.md y no sobreescribe la ficha; la
   const pos = campos.map((c) => CIERRE_TRAMO.indexOf(c));
   assert.ok(pos.every((p) => p >= 0), `falta: ${campos.filter((c, i) => pos[i] < 0).join(' | ')}`);
   assert.deepEqual([...pos].sort((a, b) => a - b), pos, 'orden');
-  for (const x of ['tiempos.cjs tiempos <x>', 'tiempos.cjs contador <x>', '`- Próximo paso:`', '`- Tramo: <N> cerrado <AAAA-MM-DD>`', 'Parado y Te espera', 'resumen.cjs <x>', 'estructura.cjs todo']) {
+  for (const x of ['tiempos.cjs tiempos <x>', 'tiempos.cjs contador <x>', '`- Próximo paso:`', '`- Tramo: <N> cerrado <AAAA-MM-DD>`', 'Parado y Te espera', 'resumen.cjs <x>', 'estructura.cjs raiz rutas topes mesa estados lecturas barreras datos']) {
     assert.ok(CIERRE_TRAMO.includes(x), `la plantilla de cierre no nombra ${x}`);
   }
   assert.deepEqual(SIN_PERSONA(datosDeProyecto(CIERRE_TRAMO)), []);
+  assert.ok(!CIERRE_TRAMO.includes('estructura.cjs todo'), 'el gate del cierre no corre estado-viejo: en modulo/<x> el handoff no cambia (chequeo frío de la rc.6)');
   assert.deepEqual(comandosRotos(CIERRE_TRAMO), []);
   // copiada y llena (x, ID, N, Partida, Spec), la lee el script sin errores y su AUTORIZADO vale
   const E = require(path.join(DIR_MOLDE, 'hooks', 'lib', 'encargo.cjs'));
@@ -876,7 +878,7 @@ test('8c c1: el paso 7 nombra plantilla-cierre.md y no sobreescribe la ficha; la
   assert.deepEqual(e.errores, []);
   assert.deepEqual(E.validarAutorizado(e.secciones.autorizado), []);
   assert.deepEqual(e.secciones.toca.rutas, ['docs/modulos/x/README.md', 'docs/modulos/x/bitacora/**', 'docs/modulos/x/tiempos.md']);
-  assert.deepEqual(e.secciones.gate, ['node .claude/scripts/estructura.cjs todo']);
+  assert.deepEqual(e.secciones.gate, ['node .claude/scripts/estructura.cjs raiz rutas topes mesa estados lecturas barreras datos']);
 });
 
 test('8r4 lecciones de Hermes (3, 63): el paso 3 cruza el NO SE TOCA con lo decidido después y avisa el entregable que no se parte', () => {

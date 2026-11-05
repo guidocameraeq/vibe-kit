@@ -87,7 +87,8 @@ sesión nueva en tu ventana de siempre, primer mensaje `/director <x>`; entra so
 
 ### 🧭 "Tengo un módulo con director andando"
 Quién hace qué y qué te toca a vos: el director → [`manuales/ROLES.md`](manuales/ROLES.md) §3, el obrero → §4, lo que es solo tuyo → §9.
-Al cerrar cada tramo, un obrero de cierre deja la ficha al día: el arranque te dice `tramo N cerrado · próximo: …`. A `main` sube solo el director.
+Al cerrar cada tramo (el grupo de encargos entre dos cierres), un obrero de cierre deja la ficha al día: el arranque te dice
+`tramo N cerrado · próximo: …`. A `main` sube solo el director (o vos, desde tu carpeta principal).
 
 ### 👋 "Me voy" (y quedó un módulo con director andando)
 Decile **"me voy"** al director: sin preguntarte nada te muestra el checklist de la noche y qué queda andando. Cuando volvés, tu

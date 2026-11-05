@@ -30,5 +30,6 @@ y el Spec (la línea de la Ejecución que cita este tramo). Con `carpeta-docs:` 
 - Bash(node .claude/scripts/tiempos.cjs contador <x>)
 - Bash(node .claude/scripts/resumen.cjs <x>)
 ## GATE
-- `node .claude/scripts/estructura.cjs todo`
-<!-- el candado, si está prendido (`piezas.candado` de la ficha no es `no`); si no, el renglón es - (nada) -->
+- `node .claude/scripts/estructura.cjs raiz rutas topes mesa estados lecturas barreras datos`
+<!-- el candado, si está prendido (`piezas.candado` de la ficha no es `no`); si no, el renglón es - (nada). Sin estado-viejo: mira el
+"## Próximo paso" del handoff de la rama por defecto, que en modulo/<x> no cambia y que este obrero no toca (chequeo frío de la rc.6). -->

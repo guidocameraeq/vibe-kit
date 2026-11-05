@@ -63,8 +63,9 @@ El obrero, igual, con `/obrero <x>--<ID>`.
    **Al cerrar cada tramo** (cuándo, lo dice `- Cierre de tramo:` de la ficha; sin el renglón, cada encargo) lanza un **obrero de
    cierre** desde `plantilla-cierre.md`: mide los tiempos (`tiempos.cjs`) y la **alarma** (más de 3 intervenciones tuyas en el tramo),
    y deja la ficha al día (`- Próximo paso:`, `- Tramo: <N> cerrado <fecha>`, lo que te espera). El director lo verifica y lo mergea
-   como cualquier encargo: **la ficha no la escribe él**. Por eso el arranque y `/estado` te muestran `tramo 2 cerrado hace 1 d ·
-   próximo: …`, también desde la otra PC.
+   como cualquier encargo: **la ficha no la escribe él**. Por eso el arranque te muestra `tramo 2 cerrado (hace 1 día) · próximo:
+   …` (y `/estado`, lo mismo sin la edad), también desde la otra PC. Un **tramo** es el grupo de encargos entre dos cierres: no es
+   la skill `/tramo` (§5).
 7. **Termina el módulo** con `worktree.cjs integrar <x>`: lo lleva a la rama por defecto. Si la ficha pide tu OK para mergear, te
    pregunta. La última línea dice `después: /cierre en tu carpeta principal`: los papeles de la rama por defecto quedaron atrás del
    módulo. Después te da la línea para cerrar el worktree (`worktree.cjs cerrar`: borra la rama local y, si ya está mezclada en

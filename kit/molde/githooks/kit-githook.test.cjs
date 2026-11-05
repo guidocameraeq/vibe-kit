@@ -1685,3 +1685,30 @@ test('h11 (rt-10): un obrero con el remoto adelantado que pushea a main recibe e
   assert.doesNotMatch(r.err, /pull --rebase/);
   assert.doesNotMatch(logLocal(d), /remoto-adelantado/);
 });
+
+// h11 (chequeo frío de la rc.6): desde la terminal no hay git-seguro, así que el pre-push mira también los borrados por la lista del rol.
+test('h11: el obrero no borra otra rama de origin (modulo/x del director, main); el nocturno borra modulo/*, no main; el director, como hoy', () => {
+  const d = repo();
+  g(d, ['push', '-q', '--no-verify', 'origin', 'main:modulo/x']);
+  const w = wtH11(d, 'modulo/x--01', 'obrero');
+  const antes = enRemoto(w, 'origin', 'refs/heads/modulo/x');
+  const r = empujar(w, 'origin', ':refs/heads/modulo/x');
+  assert.notEqual(r.codigo, 0, r.err);
+  assert.match(r.err, new RegExp(`pre-push: a ${reTexto('refs/heads/modulo/x')} no la borra un obrero`), r.err);
+  assert.equal(enRemoto(w, 'origin', 'refs/heads/modulo/x'), antes, 'modulo/x sigue en origin');
+  const m = empujar(w, 'origin', ':refs/heads/main');
+  assert.notEqual(m.codigo, 0, m.err);
+  assert.match(m.err, /no la borra un obrero/);
+  // su propia rama sí (es la que sube)
+  sube(w, 'origin', 'modulo/x--01', 'refs/heads/modulo/x--01');
+  assert.equal(empujar(w, 'origin', ':refs/heads/modulo/x--01').codigo, 0);
+  // el nocturno borra modulo/*, no main
+  const n = wtH11(d, 'modulo/z--03', 'nocturno');
+  g(d, ['push', '-q', '--no-verify', 'origin', 'main:modulo/z']);
+  assert.equal(empujar(n, 'origin', ':refs/heads/modulo/z').codigo, 0);
+  assert.equal(enRemoto(n, 'origin', 'refs/heads/modulo/z'), null);
+  assert.match(empujar(n, 'origin', ':refs/heads/main').err, /no la borra el turno de noche/);
+  // el director borra modulo/x (lo hace worktree cerrar)
+  escribir(d, '.kit-rol', 'director\n');
+  assert.equal(empujar(d, 'origin', ':refs/heads/modulo/x').codigo, 0);
+});
