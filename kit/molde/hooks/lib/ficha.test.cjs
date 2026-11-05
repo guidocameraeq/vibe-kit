@@ -110,6 +110,7 @@ const BASE = 'kit: 2.4.3\nnivel: liviano\nvars:\n  proyecto: x\n';
 const ficha = (extra) => `---\n${BASE}${extra}---\n`;
 const fichaSolo = (kit, nivel, proyecto) => `---\nkit: ${kit}\nnivel: ${nivel}\nvars:\n  proyecto: ${proyecto}\n---\n`;
 const HERR = 'herramientas:\n  db: {chequeo: x, necesita-guido: no}\n'; // declara "db": ocupa las líneas 6 y 7
+const conPlazo = (v) => ficha('').replace('  proyecto: x\n', `  proyecto: x\n  plazo-test: ${v}\n`); // vars.plazo-test cae en la línea 6
 const quitado = (cuerpo) => ficha(`frenos:\n  quitados:\n    - ${cuerpo}\n`); // el ítem cae en la línea 8
 
 // [nombre, texto, línea esperada, regex del mensaje]
@@ -312,7 +313,32 @@ const CASOS = [
     'Docs', 'arti-Docs', 'nul', 'con.txt', 'a/com1', 'lpt9/x', 'aux.md/y']
     .map((v) => [`carpeta-docs: ${v}`, ficha(`carpeta-docs: ${v}\n`), 6, /"carpeta-docs" tiene un valor que no se acepta — tiene que ser una carpeta del repo/]),
   ['carpeta-docs como lista', ficha('carpeta-docs: [a]\n'), 6, /"carpeta-docs" tiene que ser un texto/],
+  // --- andamiaje (8r4 u7): agentes o con-ok-de-guido, como push-publica
+  ...['si', 'guido', 'Agentes', 'con ok de guido', '"agentes "']
+    .map((v) => [`andamiaje: ${v}`, ficha(`andamiaje: ${v}\n`), 6, /"andamiaje" tiene un valor que no se acepta — tiene que ser uno de: agentes, con-ok-de-guido/]),
+  ['andamiaje como lista', ficha('andamiaje: [agentes]\n'), 6, /"andamiaje" tiene que ser un texto/],
+  // --- vars.plazo-test (8r4 u8): minutos, entero de 1 a 60
+  ...['0', '61', '100', '-1', '1.5', '05', 'diez', '10 min', '""']
+    .map((v) => [`vars.plazo-test: ${v}`, conPlazo(v), 6, /"vars\.plazo-test" tiene un valor que no se acepta — tienen que ser los minutos del test, un entero de 1 a 60/]),
+  ['vars.plazo-test como lista', conPlazo('[5]'), 6, /"vars\.plazo-test" tiene que ser un texto/],
 ];
+
+test('andamiaje (8r4 u7): agentes y con-ok-de-guido se aceptan sin avisos; sin la clave, no está', () => {
+  for (const v of ['agentes', 'con-ok-de-guido']) {
+    const r = leer(ficha(`andamiaje: ${v}\n`));
+    assert.equal(r.datos.andamiaje, v);
+    assert.deepEqual(r.avisos, []);
+  }
+  assert.equal(Object.prototype.hasOwnProperty.call(leer(ficha('')).datos, 'andamiaje'), false);
+});
+
+test('vars.plazo-test (8r4 u8): de 1 a 60 se acepta sin avisos', () => {
+  for (const v of ['1', '7', '10', '59', '60']) {
+    const r = leer(conPlazo(v));
+    assert.equal(r.datos.vars['plazo-test'], v);
+    assert.deepEqual(r.avisos, []);
+  }
+});
 
 test('carpeta-docs (8r3): las carpetas buenas se aceptan; sin la clave, docs', () => {
   const F = require('./ficha.cjs');
@@ -587,6 +613,8 @@ const OCULTOS = [
   ['clave de autorizado con una lista', ficha(`autorizado:\n  ${z}: [a]\n`), z],
   ['alias de la mesa con transporte inválido', ficha(`mesa:\n  ${z}: {contacto: x, transporte: paloma}\n`), z],
   ['datos-de-prueba como lista', ficha(`datos-de-prueba: [${Z}]\n`), Z],
+  ['andamiaje', ficha(`andamiaje: ${Z}\n`), Z],
+  ['plazo-test', conPlazo(Z), Z],
 ];
 
 test('hay al menos 10 fichas inválidas con centinela', () => {

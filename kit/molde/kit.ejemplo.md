@@ -6,9 +6,11 @@
 kit: 2.4.3
 nivel: estandar                      # liviano (sin código) · estandar (con código)
 # carpeta-docs: arti-docs            # (opcional) la carpeta de papeles del método si no es docs/; en minúsculas; cambiarla es barrera
+# andamiaje: con-ok-de-guido         # (opcional) agentes (sin ella) · con-ok-de-guido: tocar CLAUDE.md, skills o agentes es clase 3
 vars:                                # con qué se instanció el molde: sin esto no se puede regenerar
   proyecto: ejemplo
   comando-test: node --test
+  # plazo-test: 10                   # (opcional) los minutos que el sello espera a comando-test, de 1 a 60; sin él, 5
   comando-setup: npm install
   lenguajes: [js, ts]
 piezas:                              # molde · molde+propio · adaptada · propia · sí · no; hash: 12 hexa de lo que escribió el molde
