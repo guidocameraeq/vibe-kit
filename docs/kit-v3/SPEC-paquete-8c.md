@@ -262,6 +262,15 @@ Rutas: `molde` = `kit/molde/`, `dir` = `kit/molde/skills/director/`, `lib` = `ki
   por las dudas). **D8r.2-6 (el repo de prueba parecido a Hermes)**: no entra en esta `rc` (es grande y no arregla un dolor de uso; va
   antes de R2: se le avisa a la madre).
 
+### r2 · Lo que el chequeo frío de la `rc.5` dejó para la `rc.6` (PLAN-construccion, "De D8r.4", 2026-11-04)
+
+- **D8r.4-1** (el `comando-setup` con el lock atrasado) = p1.
+- **D8r.4-2, `crear`/`abrir <x>` dice `primer mensaje: /director` sin el módulo**: con dos módulos (Hermes), la skill adivina el `<x>`
+  de `donde`. Arreglo: `worktree.cjs lineasApertura` (`:478`) dice `/director <x>` (también con `--noche`). Nivel liviano. **crit.**:
+  `worktree.test` (la línea de apertura del director con su `<x>`). Va con el encargo C.
+- **D8r.4-3** (NO VERIFICADO: `traer-main` con los githooks puestos; gitleaks cazando una clave nueva en un merge): lo cubre lo que la
+  flota contra el clon de Hermes alcance (con los githooks puestos); si no, sigue NO VERIFICADO.
+
 ## NO SE TOCA
 
 - Lo que frenan los porteros fuera de h11: `sensible`, `secretos`, `niega-aprobar`, `escritura`. Lo que frena `git-seguro` hoy (force,
@@ -332,7 +341,7 @@ Presupuesto: ~2 h de reloj y ~6 encargos de trabajo, más el red team y el chequ
 | P | h11 + su mutación | `git-seguro.cjs`, `kit-githook.cjs`, sus pruebas | crit. h11 |
 | L | h12 (el aviso) + p1 (b) y su mutación | `chequeo.cjs`, `flota.cjs`, sus pruebas | crit. h12, la mitad (b) de p1 |
 | RT2 | Red team, una ronda, **solo p1 (b)** | — | — |
-| C | c1 + los textos de `/director` (u5 paso 2, lecciones del paso 3) | `dir/*`, `formato-spec.md`, `inyeccion.cjs`, `estado.cjs`, sus pruebas | crit. c1 |
+| C | c1 + r2 (D8r.4-2) + los textos de `/director` (u5 paso 2, lecciones del paso 3) | `dir/*`, `formato-spec.md`, `inyeccion.cjs`, `estado.cjs`, `worktree.cjs` (`lineasApertura`), sus pruebas | crit. c1, r2 |
 | V | u4 + h6 + h9 + h10 + p1 (a) | `lib/vecinos.cjs`, `lib/locks.cjs`, `adoptar.cjs` (solo `mirar`, la línea de vecinos), `doctor.cjs`, `worktree.test` | crit. 4, h6, h9, h10 |
 | D | u6 + u13 a + h5 | `adoptar.cjs`, `actualizar.cjs` (solo el renglón del CHANGELOG), `cierre/SKILL.md`, sus pruebas | crit. u6, u13, h5 |
 | K | u7 código + u8 | `ficha.cjs` y sus copias, `arquitecto.cjs`, `kit.ejemplo.md`, sus pruebas | `ficha`, `copias`, `arquitecto` |
