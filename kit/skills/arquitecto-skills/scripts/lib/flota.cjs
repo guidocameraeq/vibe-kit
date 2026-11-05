@@ -325,7 +325,7 @@ function probarModulos(clon, def, modulos, ctx, subido) {
   const lineas = [];
   for (const rm of modulos) {
     const x = rm.slice('modulo/'.length);
-    const pre = `${rm}: trae ${def} con worktree.cjs traer-main ${x} (lo corre el director) — `;
+    const pre = `${rm}: trae ${def} con node ../../../.claude/scripts/worktree.cjs traer-main ${x} (lo corre el director, desde su worktree: el script de main) — `;
     limpiar();
     const co = g(['checkout', '-q', '-f', '-B', RAMA_PRUEBA, `refs/remotes/origin/${rm}`]);
     if (!co.ok) {

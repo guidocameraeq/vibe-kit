@@ -906,7 +906,7 @@ const SETTINGS_DEL_MODULO = (c) => editar(c, '.claude/settings.json', (t) => t.r
 // chequear ya tiene sus pruebas (crit. 15 y 16): acá lo que se mira es la prueba por módulo.
 const chequearVerde = async () => ({ codigo: 0, lineas: ['(chequear de mentira: verde)'] });
 const ramasDe = (bare) => git(bare, 'for-each-ref', '--format=%(refname) %(objectname)', 'refs/heads').split('\n').filter(Boolean);
-const RE_VERDE = (repo, x) => new RegExp(`^${repo}: modulo/${x}: trae main con worktree\\.cjs traer-main ${x} \\(lo corre el director\\) — barreras verde$`);
+const RE_VERDE = (repo, x) => new RegExp(`^${repo}: modulo/${x}: trae main con node \\.\\./\\.\\./\\.\\./\\.claude/scripts/worktree\\.cjs traer-main ${x} \\(lo corre el director, desde su worktree: el script de main\\) — barreras verde$`);
 
 test('u2 crit. 2: sin --con-obra, salteado y el porqué nombra la bandera; con ella, main avanza un commit (trae settings.json del kit), modulo/a igual y su línea verde', async () => {
   const canon = armarCanon({ molde: MOLDE_SETTINGS });
@@ -930,7 +930,7 @@ test('u2 crit. 2: sin --con-obra, salteado y el porqué nombra la bandera; con e
   assert.deepEqual(ramasDe(x.bare).map((l) => l.split(' ')[0]).sort(), ['refs/heads/main', 'refs/heads/modulo/a'], 'ninguna rama más en el remoto');
   assert.deepEqual(f2.espera.filter((e) => /modulo\//.test(e)).length, 1, t2);
   assert.ok(f2.espera.some((e) => RE_VERDE('alfa', 'a').test(e)), t2);
-  assert.match(t2, /^ {2}- alfa: modulo\/a: trae main con worktree\.cjs traer-main a/m, 'en "te espera:"');
+  assert.match(t2, /^ {2}- alfa: modulo\/a: trae main con node \.\.\/\.\.\/\.\.\/\.claude\/scripts\/worktree\.cjs traer-main a/m, 'en "te espera:"');
 });
 
 // todo: hoy da "barreras rojo: hooks:.claude/hooks/sensible.cjs" — el hook que llega idéntico desde main no se descuenta en un merge
@@ -962,7 +962,7 @@ test('u2 rt-7 (d): tres módulos — el primero choca con el kit, el segundo da 
   assert.equal(git(x.bare, 'rev-list', '--count', `${x.base}..main`), '1');
   assert.deepEqual(ramasDe(x.bare).filter((l) => !l.startsWith('refs/heads/main ')), antes, 'las modulo/* en el remoto, igual');
   const ed = fila(r, 'dos').espera;
-  assert.ok(ed.includes('dos: modulo/a: trae main con worktree.cjs traer-main a (lo corre el director) — choca en .claude/skills/cierre/SKILL.md: es un encargo del director'), t);
+  assert.ok(ed.includes('dos: modulo/a: trae main con node ../../../.claude/scripts/worktree.cjs traer-main a (lo corre el director, desde su worktree: el script de main) — choca en .claude/skills/cierre/SKILL.md: es un encargo del director'), t);
   assert.ok(ed.some((e) => RE_VERDE('dos', 'b').test(e)), `el segundo arranca limpio\n${t}`);
   assert.ok(ed.some((e) => RE_VERDE('dos', 'c').test(e)), t);
 });
@@ -980,7 +980,7 @@ test('u2: un módulo que tocó el mismo hook que el kit, sin chocar → barreras
   assert.equal(git(x.bare, 'rev-parse', 'refs/heads/modulo/b'), shaB);
   const er = fila(r, 'rojo').espera.find((e) => e.startsWith('rojo: modulo/b: '));
   assert.ok(er, t);
-  assert.match(er, /^rojo: modulo\/b: trae main con worktree\.cjs traer-main b \(lo corre el director\) — barreras rojo: hooks:\.claude\/hooks\/sensible\.cjs \(lo apruebas vos antes: node \.claude\/scripts\/cambios\.cjs nuevo --slug trae-main-b --clase 3-barrera --toca hooks --id hooks:\.claude\/hooks\/sensible\.cjs --origen "modulo\/b trae main @[0-9a-f]{7}"\)$/);
+  assert.match(er, /^rojo: modulo\/b: trae main con node \.\.\/\.\.\/\.\.\/\.claude\/scripts\/worktree\.cjs traer-main b \(lo corre el director, desde su worktree: el script de main\) — barreras rojo: hooks:\.claude\/hooks\/sensible\.cjs \(lo apruebas vos antes: node \.claude\/scripts\/cambios\.cjs nuevo --slug trae-main-b --clase 3-barrera --toca hooks --id hooks:\.claude\/hooks\/sensible\.cjs --origen "modulo\/b trae main @[0-9a-f]{7}"\)$/);
 });
 
 test('u2 rt-7 (e): main que sale "te espera" (protegida) → la línea de cada módulo es "primero mezclá kit/<tag> en main", sin prueba', async () => {

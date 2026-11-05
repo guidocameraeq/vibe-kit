@@ -475,6 +475,25 @@ de un repo) sale `mezclado` o `al día`; (c) en un clon del bot: la adopción co
   sale con la 1 y la 2 pasa a la `rc.6` junto a D8c.1 (se le avisa a la madre). **Así quedó** (la madre, 2026-11-04): la `rc.5` es la
   vuelta 1 (u1-u3, u9, u11, u12); la 2 y h12 van a la `rc.6`. `[workflow]`
 
+## Lo que trajo el chequeo frío (sobre clones en el scratchpad, con el canónico en `0d2795c`)
+
+- **Hermes** (rc.3 → rc.5): sin `--con-obra`, `salteado` con la bandera nombrada; con ella (24 min), `mezclado`, el ⚠ del tope por la zona
+  propia (director 13.391 B, 5.391 de más) sin ROTA, `modulo/cashflow` verde y `modulo/lector` choca (5 archivos: un encargo del
+  director). `abrir cashflow` deja los 4 deny absolutos del `.env` en el `settings.local.json` del principal; `donde` da `no hay` →
+  `entrar:` → `adentro:`; `crear cashflow--01` y su `donde`, verdes. **u9 verde**: el merge de `main` en `ui/cc-seguimiento-circuitos`
+  (334 atrás, 11 conflictos de la app) pasa el pre-commit (candado y gitleaks) y el pre-push; antes eran 38 rutas.
+- **ALTO, arreglado acá**: un módulo de antes de la rc.5 trae el `worktree.cjs` viejo: adentro de su worktree, `donde` y `traer-main` daban
+  `Comando desconocido` y el director quedaba trabado. Ahora `/director`, `/obrero`, la línea "te espera:" de la flota, `flota.md` y
+  `MOLDE.md` usan el script de `main` desde el worktree (`node ../../../.claude/scripts/worktree.cjs …`); con él, `traer-main cashflow`
+  dio verde (merge y push). Prueba en `skills.test` y `flota.test`.
+- **El analytics y el bot salen ROTA en la línea 8 por su proyecto**, no por el kit: `npm --prefix chat-syncer ci` (el lock no tiene
+  `openai`, desde abril) y `pnpm install --frozen-lockfile` (`pnpm-lock.yaml` atrasado). Hasta arreglar el lock, la flota no les llega.
+  **Para la `rc.6`**: que `adoptar --mirar` pruebe el `comando-setup` o la línea 8 distinga "ya fallaba antes del kit" (⚠).
+- **El bot** se adopta con la rc.4 de punta a punta (`carpeta-docs: arti-docs`, `git status -- docs` vacío; el rojo del commit de
+  permisos, anunciado por la salida).
+- **Bajo, para la `rc.6`**: `abrir <x>` dice `primer mensaje: /director` sin el módulo; con dos módulos, la skill tiene que adivinar el `<x>`.
+- NO VERIFICADO: EnterWorktree en una sesión real; `traer-main` con los githooks puestos; que gitleaks cace una clave nueva en un merge.
+
 ## Lo que esto no cierra
 
 - **EnterWorktree en una sesión real** de la extensión (el paso 0 del `/obrero` de punta a punta) y si `./**` del settings sigue resolviendo

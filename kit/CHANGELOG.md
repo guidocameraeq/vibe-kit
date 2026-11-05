@@ -19,6 +19,8 @@ beta en Hermes Desktop y el analytics de Arti, y lo que Guido decidió y quiere 
   - **La flota con obra en curso es una opción** (decidido por Guido): `actualizar.cjs flota … --con-obra` actualiza `main` igual y prueba,
     en el clon y sin subir nada, traer `main` a cada `modulo/*` viva (verde · rojo con el `cambios nuevo` exacto · choca). El director lo
     trae con `worktree.cjs traer-main <x>` (nuevo): aborta si choca o si `barreras --indice` da rojo; en verde, commit y push de su rama.
+    Adentro del worktree, `donde` y `traer-main` van con el script de `main` (`node ../../../.claude/scripts/worktree.cjs …`): un
+    módulo de antes de la rc.5 trae el `worktree.cjs` viejo, que no los tiene.
   - **El merge de `main` en una rama vieja** ya no da rojo por lo que llegó igual desde `main` (Hermes, `cc-ui`: 38 rutas): el candado
     compara contenido en hooks, githooks y `.gitleaksignore` contra cada padre; gitleaks del pre-commit de un merge mira el diff combinado
     contra los dos padres; el pre-push de una rama ya subida no vuelve a juzgar lo que ya está en `origin/<def>`; el rojo de un merge en curso

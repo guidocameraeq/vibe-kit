@@ -196,7 +196,7 @@ Lo que hacen los scripts del módulo que vale saber desde acá (el detalle, en `
 - **Una sola ventana** (rc.5): `worktree.cjs crear` arranca con `en tu ventana de siempre, una sesión nueva de Claude; primer mensaje:
   /director` (o `/obrero <x>--<ID>`): la skill corre `worktree.cjs donde`, entra con EnterWorktree y verifica rama y `.kit-rol` antes de
   tocar nada. `code "<ruta>"` queda de alternativa. El deny del `.env` del principal vive en su `.claude/settings.local.json` (no viaja
-  por git: cada PC lo arma con su primer `crear` o `abrir`). Entre encargos, el director trae `main` con `worktree.cjs traer-main <x>`.
+  por git: cada PC lo arma con su primer `crear` o `abrir`). Entre encargos, el director trae `main` con `worktree.cjs traer-main <x>`; adentro del worktree, `donde` y `traer-main` van con el script de `main` (`node ../../../.claude/scripts/worktree.cjs …`): un módulo de antes de la rc.5 trae el viejo, sin esos comandos.
 - **La tarea 0**: con el sello `entorno — (tarea 0: montar el entorno de prueba)`, `encargo.cjs autorizado` niega todo encargo que no
   sea el `00` hasta que la ficha de `modulo/<x>` tenga un entorno `dummy` o `prueba`.
 - **Después de integrar**: `integrar` termina en `después: /cierre en tu carpeta principal …`, y `worktree.cjs integrados` (lo corre el

@@ -253,6 +253,11 @@ test('obrero y director (8r4 u1): una sola ventana — worktree.cjs donde y Ente
   assert.ok(d.indexOf('worktree.cjs donde') < d.indexOf('Leé el relevo') || d.indexOf('worktree.cjs donde') < d.indexOf('el relevo'), 'donde antes de leer el relevo');
   // u2: el director trae main entre encargos
   assert.match(d, /worktree\.cjs traer-main <x>/);
+  // chequeo frío de la rc.5 (Hermes): un módulo de antes de la rc.5 trae el worktree.cjs viejo (sin donde ni traer-main); adentro
+  // del worktree van con el script de main
+  assert.match(d, /`node \.\.\/\.\.\/\.\.\/\.claude\/scripts\/worktree\.cjs donde <x>`/);
+  assert.match(d, /`node \.\.\/\.\.\/\.\.\/\.claude\/scripts\/worktree\.cjs traer-main <x>`/);
+  assert.match(o, /`node \.\.\/\.\.\/\.\.\/\.claude\/scripts\/worktree\.cjs donde <x>--<ID>`/);
   // NUCLEO: el gate desde el worktree del director
   assert.match(NUCLEO, /el director, desde su worktree; nunca en una carpeta fuera del repo/);
 });
