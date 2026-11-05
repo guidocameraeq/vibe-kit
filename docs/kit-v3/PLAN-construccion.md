@@ -1393,6 +1393,16 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
       restart]`, y el deploy lo cuida `/deploy` del bot (pide el OK siempre) — una regla de texto, no un freno. **Para pensar** (con Guido,
       no es de taller): que `partir` abra el comando remoto de `ssh <host> <cmd>` como abre `bash -c`, así una entrada de `sensible`
       matchea adentro; o una forma de entrada `ssh:<cmd>`. Lo mismo pasa en el analytics (su VPS: "mirar libre, tocar pregunta").
+  13. **2026-11-05 · Adoptar un repo que ya tiene su propio director cuesta una charla de diseño, no un flag** (Hermes Mobile, rc.6).
+      Sus skills de director, obrero y tramo pesaban ~160 KB contra ~35 KB las del kit, y Guido las había aprobado ese mismo día.
+      `--mirar` ofreció D1 sin decir qué de lo propio ya cubre el kit. Preparar PC recomendó primero quedarse con las suyas (B) y,
+      después de comparar regla por regla, mezclar (A, con zonas y anexos). La comparación separó cuatro grupos: (a) ya lo cubre el kit,
+      (b) genérico que conviene subir al kit, (c) propio y (d) viejo. Guido: "en los repos donde no había director fue fácil; ¿cuando
+      saquemos una versión nueva va a haber fricciones así de vuelta?". **Para la rc.7 o R2** (diseño, con Guido):
+      - que `adoptar --mirar` haga esa comparación a/b/c/d cuando el repo trae su propio director/obrero;
+      - que lo propio que no entra en la zona vaya a un **anexo** que la zona señala, y que el actualizador nunca lo toque;
+      - que los (b) suban al kit por el ciclo, así los repos no se separan con el tiempo.
+      Los (b) de Mobile los manda Preparar PC.
 
 - **La prueba de Juan** (2026-11-04, pedida por Guido): Juan prueba la beta en su PC y sus proyectos y sube pruebas duras e impresiones
   a la rama huérfana `prueba/juan` de este repo (sin el kit: su `CLAUDE.md`, `PLAN.md`, `pruebas/`, `impresiones.md`, proyectos con
