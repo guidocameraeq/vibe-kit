@@ -20,7 +20,6 @@ del Arquitecto: él monta proyectos; vos equipás máquinas.
    Nunca de copias locales viejas. **Excepción acotada — entradas kit-owned (`docs-fyd`, `relevamiento`):**
    no tienen repo externo; se COPIAN del kit local (o del Arquitecto ya instalado), con el diff
    mostrado antes de pisar. Es la 2da excepción (la 1ra es shadcn, por CLI); NO se generaliza.
-   En vibe-kit el sync kit→instalado lo hace `/cierre`: la excepción es solo para máquinas consumidoras.
 3. **Nunca pisar ediciones locales sin mostrar el diff.** Antes de actualizar una skill
    instalada, compará con lo fresco: idéntica → avisar "sin cambios"; upstream cambió →
    mostrar resumen del diff y preguntar; hay ediciones locales → ⚠️ mostrarlas y preguntar
@@ -83,7 +82,7 @@ El corrector de secretos de esta PC (hooks en `~/.claude/hooks/kit/`). Los scrip
    claves repetidas), no preguntes: contale el motivo, se arregla a mano.
 3. Sí → el mismo comando **sin** `--plan`. Después `node …/scripts/doctor.cjs` (el completo: 26 chequeos, solo lee; sin red dice "NO VERIFICADO") y pegale las líneas **y el
    inventario de frenos** (las líneas `inventario ·`): cada `✗` trae cómo se arregla; los `⚠` no traban. Cerrá con **"reiniciá Claude Code"** (los hooks nuevos cargan al reiniciar).
-4. **Sacar el anti-secretos viejo**: cuando Guido confirme que el del kit anda → `… instalar-hooks-pc.cjs --sacar-viejo`
+4. **Sacar el anti-secretos viejo**: cuando Guido confirme que el del kit anda, cruzá los patrones del viejo con los del kit (`hooks/kit/secretos`) y decile cuáles faltan → `… instalar-hooks-pc.cjs --sacar-viejo`
    (saca solo su registro; el archivo queda). **Deshacer todo**: `… --quitar` (deja el `settings.json` como estaba).
 5. Un archivo de `hooks/kit/` editado a mano: el `doctor` lo reporta y el instalador lo pisa con el del kit — decile antes a
    Guido si la edición debe llevarse al repo madre.
