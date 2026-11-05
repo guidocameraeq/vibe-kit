@@ -561,7 +561,7 @@ test('la tabla de P4.4: cada caso frena (Bash y PowerShell), todo rol y todo mod
   }
   // cada fila de la tabla que es de sintaxis tiene al menos un caso acá (las de contexto van aparte, abajo)
   for (const caso of Object.keys(gs.MENSAJES)) {
-    if (['historia-defecto', 'historia-defecto-sin-remoto', 'push-borrar', 'hooks-path-ausente', 'config-agente', 'plomeria', 'rama-huerfana', 'salir-del-worktree'].includes(caso)) continue;
+    if (['historia-defecto', 'historia-defecto-sin-remoto', 'push-borrar', 'hooks-path-ausente', 'config-agente', 'plomeria', 'rama-huerfana', 'salir-del-worktree', 'push-otra-rama'].includes(caso)) continue;
     assert.ok(vistos.has(caso), `falta un caso que frene para ${caso}`);
   }
 });
@@ -1084,6 +1084,32 @@ test('config-agente: en sesión de agente toda escritura de config frena (con la
   // obrero por la rama sola, sin .kit-rol
   const w2 = worktree(d, 'modulo/otro--4');
   niega(w2, 'git config pull.rebase true', 'config-agente', { ps: true });
+});
+
+test('h11 push-otra-rama: en sesión de agente, un destino explícito fuera de modulo/* (main, HEAD:main, x:refs/heads/main, un tag) o --all/--branches/--tags → deny; modulo/* y git push a secas pasan; fuera de agente, como hoy', () => {
+  const { d } = conRemoto();
+  const w = worktree(d, 'modulo/x--01', 'obrero');
+  const sinRol = worktree(d, 'modulo/y--02'); // obrero por la rama sola
+  const frenan = ['git push origin main', 'git push origin HEAD:main', 'git push origin x:refs/heads/main', 'git push origin v1', 'git push origin refs/tags/v1', 'git push --all origin', 'git push origin --branches', 'git push --tags origin', 'git push -u origin HEAD:trunk', 'git push origin modulo/x--01 main'];
+  for (const c of frenan) {
+    niega(w, c, 'push-otra-rama');
+    niega(sinRol, c, 'push-otra-rama', { ps: true });
+  }
+  const m = niega(w, 'git push origin HEAD:main', 'push-otra-rama').salida.hookSpecificOutput.permissionDecisionReason;
+  assert.match(m, /hook:git-seguro\/push-otra-rama\) \[main\]/);
+  assert.match(m, /a la rama por defecto sube solo el director \(worktree\.cjs integrar\) o vos desde la carpeta principal; vos pusheás `modulo\/<x>--<ID>`/);
+  for (const c of ['git push', 'git push origin modulo/x--01', 'git push -u origin HEAD', 'git push origin HEAD:modulo/x--01', 'git push origin HEAD:refs/heads/modulo/x--01', 'git push -u origin modulo/x--01:modulo/x--01']) pasa(w, c);
+  // HEAD a secas es la rama de esa sesión: en modulo/* pasa; un nocturno en main, no
+  const noche = repo();
+  fs.writeFileSync(path.join(noche, '.kit-rol'), 'nocturno\n');
+  niega(noche, 'git push origin HEAD', 'push-otra-rama');
+  pasa(noche, 'git push origin HEAD:refs/heads/modulo/x');
+  // fuera de agente (humano, director, actualizador), como hoy
+  for (const rol of [null, 'director', 'actualizador']) {
+    const h = repo();
+    if (rol) fs.writeFileSync(path.join(h, '.kit-rol'), `${rol}\n`);
+    for (const c of ['git push origin main', 'git push origin HEAD:main', 'git push --all origin', 'git push --tags origin', 'git push origin v1']) pasa(h, c);
+  }
 });
 
 test('plomeria: en sesión de agente frena; un humano la puede usar', () => {
