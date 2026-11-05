@@ -5,6 +5,47 @@ Una sección por versión, la más nueva arriba. Cada una trae su **nota de migr
 Es lo que lee el agente de la fusión al actualizar un proyecto. La historia de sesiones del repo vive aparte, en `docs/CHANGELOG.md`.
 `kit/VERSION` lleva la versión del último tag y se sube en el commit que pone el tag siguiente.
 
+## 3.0.0-rc.6
+
+El obrero de cierre de tramo y la segunda vuelta del uso real (2026-11-05, `docs/kit-v3/SPEC-paquete-8c.md`): lo que quedó de la
+`rc.5`, lo que Guido decidió (a `main` sube solo el director) y lo que trajo el chequeo frío de la `rc.5` en los clones de Hermes, el
+analytics y el bot.
+
+- **Qué piezas cambiaron**:
+  - **El obrero de cierre de tramo**: el director ya no escribe la ficha. Al cerrar un tramo (cuándo, lo dice `- Cierre de tramo:` de la
+    ficha del módulo; sin el renglón, cada encargo) copia `skills/director/plantilla-cierre.md` (nueva) como cualquier encargo, lo lanza,
+    lo verifica y lo mergea. La ficha suma `- Próximo paso:` y `- Tramo: <N> cerrado <fecha>`; el arranque y `/estado` muestran
+    `<x> · tramo <N> cerrado <edad> · próximo: …`, también desde la otra PC (caen a `origin/modulo/<x>`).
+  - **A la rama por defecto sube solo el director** (decidido por Guido): el pre-push lleva una lista de lo que sube cada rol. El obrero,
+    solo su `modulo/<x>--<ID>` (también sin `.kit-rol`: el rol sale de la rama); el nocturno y un rol desconocido, solo `modulo/*`;
+    `humano`, `director` y `actualizador`, como antes. `git-seguro` lo avisa antes en una sesión de obrero (un destino explícito fuera de
+    `modulo/*`, un tag, `--all`/`--branches`/`--tags`). `integrar` y la flota no cambian.
+  - **La apertura del director dice `/director <x>`** (con dos módulos, la skill ya no adivina cuál).
+  - **El lock del proyecto atrasado**: `adoptar --mirar` y el `doctor` lo leen (npm, pnpm con workspaces a cualquier profundidad, yarn) y
+    dicen cómo arreglarlo; nunca lo arreglan solos. En la flota, si el `comando-setup` ya fallaba antes de la actualización por un lock
+    desincronizado (la misma firma en las dos corridas) y el kit no tocó ni locks ni el setup, la línea 8 da ⚠ y no ROTA: el repo sale
+    `mezclado` y "te espera:" dice que los tests no se probaron hasta regenerar el lock.
+  - **`hooks-lib` esperando**: la línea 7 sigue ROTA, pero dice que la resuelvas primero (`resolver . hooks-lib …`); la flota lo mismo.
+  - **La adopción mira más**: los vecinos (worktrees fuera de `.claude/worktrees/`, carpetas `gate-*`), gitleaks sobre toda la historia
+    (solo `archivo:línea · regla`, nunca el valor), qué freno del kit cubre cada `ask`/`deny` que saca D2, y los avisos de la adopción
+    (el `NORTE.md` con `[completar`, el CHANGELOG con `## [Unreleased]`). El `doctor` suma `vecinos` y `locks` (⚠).
+  - **La ficha**: `andamiaje:` (`agentes` · `con-ok-de-guido`: tocar `CLAUDE.md`, skills o agentes es clase 3) y `vars.plazo-test`
+    (minutos, 1-60, lo que el sello espera a `comando-test`).
+  - **`worktree.cjs crear`**: un archivo de `.worktreeinclude` que no es `.env` (un `config.local.ini`) pasa por el mismo filtro del
+    almacén: una clave que vive ahí no llega al worktree.
+  - **El `doctor` lee el `claude` de la terminal en Windows** (`claude.cmd`): antes probaba el script de sh y decía "no dio su versión".
+  - Textos: `/director` (el paso 7, el paso 2: el diseño lo hace una sesión de Arquitecto aparte), `/obrero` (nunca push a otra rama; cada
+    pendiente con su destino), `/cierre`, `NUCLEO.md` (`andamiaje:`, el mutante vivo, un archivo con credencial no se lee entero),
+    `modo-a.md` (con director, el worktree de `v1` y `/director v1`), `modo-b.md` (nacer o retomar; el BORRADOR bajo director),
+    `flota.md` (D4 con la bandera de producción, solo si el script no acepta abreviaturas), el `explorador`, la plantilla del encargo.
+- **Automático o pide revisión**: pide revisión en `/director` y `/obrero` si su zona propia nombra el paso 7 viejo ("sobreescribí la
+  ficha") o un push a `main` del obrero. El commit del kit toca githooks y hooks (`git-seguro`): va con la exención del actualizador.
+  **Si tu proyecto se adoptó sin director y lo querés**: poné `piezas.director-obrero: propia` en la ficha y corré
+  `actualizar.cjs resolver . director-obrero nueva --kit <clon del kit> --por "<por qué>"`.
+- **Qué chequear después**: desde el worktree de un obrero, `git push origin main` sale 1 con "a la rama por defecto sube solo el
+  director"; `worktree.cjs crear <x>` termina en `primer mensaje: /director <x>`; el `doctor` parado en el proyecto lista `vecinos` y
+  `locks`; si la flota dijo "lock atrasado", regenerá el lock en el proyecto y commitealo.
+
 ## 3.0.0-rc.5
 
 Las correcciones del uso real, primera vuelta (2026-11-04, `docs/kit-v3/SPEC-paquete-8r4.md`): lo que dolió en la primera semana de la
