@@ -1321,6 +1321,7 @@ Lo que se evaluó, para no volver a evaluarlo de cero (insumo de la misión 6):
   - qué cuenta como "porqué" de una pieza adaptada → la ❓ de D6.2
   - el acople de los `hook-*` con `hooks-lib` (nivel completo) → "De D8c.1", 1
   - `secretos.cjs` no frena leer un `config.local.ini` (es un freno: con red team) → "De D8c.1", 2
+  - 🔴 que `comando-test` no corra contra una base de clase `real` (el analytics escribiría en producción) → "De la prueba real", 14
   - adoptar un repo con director propio: la comparación a/b/c/d y los anexos, y las 8 reglas genéricas de Mobile. 🔴 La 3 (Grep sobre
     credenciales) es un freno → "De la prueba real", 13
 - **Antes de R2 / después**:
@@ -1457,6 +1458,21 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
       - `migraciones.py` de Mobile tampoco tiene `allow_abbrev=False`. Es lo mismo que en Hermes ("Para Hermes"), código del proyecto.
       - Pendientes de Mobile: `flutter pub get` una vez, el `NORTE` con 5 `[completar]`, y `COMPACTION_PROTOCOL.md` todavía nombrado en
         su `CLAUDE.md`.
+  14. 🔴 **2026-11-05 · El `comando-test` del analytics escribiría en producción** (Preparar PC, rc.6). `test.js` es de la época de
+      SQLite (`DB_PATH`), pero `db.js` exige `DATABASE_URL`, que es la Supabase real: sin ella sale 1, y con el `.env` real la suite
+      escribiría en la base viva. La ficha tiene `comando-test: npm --prefix chat-syncer test`, y la flota, el sello o un gate lo pueden
+      correr. **Para el kit** (es un freno: red team): que todo lo que corre `comando-test` lo haga sin las variables de las bases de clase
+      `real` declaradas en `entornos:`, o que avise y frene si `comando-test` toca una clase real. **Para el proyecto** (Guido decide):
+      reescribir el test contra una base de prueba, o sacarlo de `comando-test` mientras tanto.
+  15. **2026-11-05 · "Regenerá el lock" puede cambiar dependencias de producción** (el bot). Regenerar el lock entero movía
+      `libsignal` 2.0.1 → 6.0.0 y `protobufjs` 6 → 7, porque Baileys depende de una rama de GitHub que se mueve. Salió parcheando solo el
+      importer que faltaba (6 renglones, `77b0f505`). **Para la rc.7**: el aviso de p1 dice "revisá el diff del lock" y sugiere parchear
+      solo lo que falta.
+  16. **2026-11-05 · gitleaks de la historia "no terminó en 120 s"** en el `--mirar` del bot: la historia completa quedó sin mirar.
+      Ya estaba como NO VERIFICADO en la rc.6 ("De D8c.1", 7); ahora está visto. **Para la rc.7**: más plazo, o correrlo en segundo
+      plano y avisar el resultado.
+  - **Dato**: 5 repos en la `rc.6` (analytics, bot, Hermes.exe, Hub, Mobile). Devoluciones, visor-buzon y Millennium-Clipboard quedan
+    sin ficha a propósito. En Hermes, el `traer-main` de `modulo/lector` choca en 5 archivos: es un encargo de su director.
 
 - **La prueba de Juan** (2026-11-04, pedida por Guido): Juan prueba la beta en su PC y sus proyectos y sube pruebas duras e impresiones
   a la rama huérfana `prueba/juan` de este repo (sin el kit: su `CLAUDE.md`, `PLAN.md`, `pruebas/`, `impresiones.md`, proyectos con
