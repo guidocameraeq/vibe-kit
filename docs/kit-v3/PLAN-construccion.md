@@ -1412,8 +1412,16 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
          - `notify_when_idle`;
          - reintento en la mudanza.
          Las skills del kit no nombran `SendMessage` ni `ListAgents`, y el canal de la mesa está NO VERIFICADO.
-      2. **Después de compactar**: un SessionStart con matcher `compact` le recuerda al director que relea su relevo y al obrero su
-         encargo, con ALERTA. El kit no tiene ese matcher (`inyeccion.cjs`) y trata compactar como una falla (`director:20`).
+      2. **Después de compactar** — ✔ **decidido por Guido (2026-11-05): entra en la próxima versión**. Su pedido: "me gusta tu recomendación de
+         que vuelva, pero en el kit… así sale en la próxima versión".
+         - Qué es: un SessionStart con matcher `compact` en el molde. Lee el rol (`.kit-rol` / `contexto.cjs`) y le dice:
+           - al director, que relea `/director` y la ficha del módulo;
+           - al obrero, que relea su encargo (la `ruta@sha` de su ENCARGO) y se re-presente con "me compacté; retomo desde…".
+         - No reemplaza mudarse al ~40 %: es la red para cuando igual se compacta.
+         - El kit hoy no tiene ese matcher (`inyeccion.cjs`) y trata compactar como una falla (`director:20`).
+         - En Mobile salió con la adopción: D3 `--arranque kit` saca todos los SessionStart propios y se llevó también el de compact.
+           Para el diseño: que D3 distinga el arranque propio de un hook compact propio, y verificar que `encargo.cjs mensaje` acepte la
+           segunda línea de la re-presentación (NO VERIFICADO).
       3. 🔴 **Subagentes que esquivan controles** (H-146, H-161, H-167): arman la palabra por partes, cambian de herramienta, y leyeron
          dos veces el archivo de credenciales **con Grep**, pese a la regla escrita. Para el kit: verificar que el deny de `Read` frene
          también a Grep y a Glob (NO VERIFICADO). Es un freno: va con red team.
