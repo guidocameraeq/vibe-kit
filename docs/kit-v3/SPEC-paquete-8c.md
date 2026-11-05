@@ -78,6 +78,7 @@ Rutas: `molde` = `kit/molde/`, `dir` = `kit/molde/skills/director/`, `lib` = `ki
 | c1 | El obrero de cierre de tramo (renglón 11) | `dir/plantilla-cierre.md` (nueva), `dir/SKILL.md` (paso 7), `anexos/formato-spec.md` (la ficha), `lib/inyeccion.cjs`, `molde/scripts/estado.cjs` | `inyeccion.test`, `estado.test`, `lib/encargo.test`, `scripts/encargo.test`, `skills.test` | medio |
 | h11 | A la rama por defecto sube solo el director | `molde/hooks/git-seguro.cjs` (`push()`), `molde/githooks/kit-githook.cjs` (pre-push), los textos de `/obrero` y `/director` | `git-seguro.test`, `kit-githook.test`, `kit-githook-noche.test`, `worktree.test` (`integrar` sigue), **mutación** | **medio-alto** (freno) |
 | h12 | El aviso de `hooks-lib` esperando (el acople, a otra versión) | `as/lib/chequeo.cjs` (el detalle de la línea 7), `as/lib/flota.cjs` (la nota) | `chequeo.test`, `flota.test` | medio |
+| p1 | El lock del proyecto atrasado: avisarlo y que la línea 8 no trabe | `as/lib/locks.cjs` (nuevo), `as/lib/adoptar.cjs` (`mirar`), `as/doctor.cjs`, `as/lib/chequeo.cjs` (`pruebas()`) | `locks.test` (nuevo), `adoptar.test`, `doctor.test`, `chequeo.test`, `flota.test`, **mutación** | **medio-alto** (actualizador) |
 | u4 + h6 | Lo que queda fuera del repo: `vecinos` | `as/lib/vecinos.cjs` (nuevo), `as/lib/adoptar.cjs` (`mirar`), `as/doctor.cjs` | `vecinos.test` (nuevo), `adoptar.test`, `doctor.test`, `worktree.test` (h6) | medio |
 | u6 + u13 a + h5 | Los avisos de la adopción, el CHANGELOG, lo que D2 saca y qué lo cubre, gitleaks de la historia | `as/lib/adoptar.cjs`, `as/actualizar.cjs` (solo el renglón del CHANGELOG), `molde/skills/cierre/SKILL.md` (con `[Unreleased]`) | `adoptar.test`, `actualizar.test`, `skills.test` | medio |
 | u7 código + u8 | `andamiaje:` en la ficha; `vars.plazo-test` | `lib/ficha.cjs` y sus dos copias, `kit/skills/arquitecto/scripts/arquitecto.cjs`, `molde/kit.ejemplo.md` | `ficha.test`, `copias.test`, `pc/lib.test`, `arquitecto.test` | medio |
@@ -158,6 +159,38 @@ Rutas: `molde` = `kit/molde/`, `dir` = `kit/molde/skills/director/`, `lib` = `ki
 - **Nivel: medio** (es un texto con una condición, no cambia qué se actualiza ni qué frena).
 - **crit. h12**: `chequeo.test`: la línea 7 con `hooks-lib` esperando y un caso perdido → ❌ con la línea de resolver; sin esperar → ❌ con el
   detalle de hoy; con `hooks-lib` esperando y ningún hook cambiado → como hoy ("ningún hook cambió"). `flota.test`: la nota.
+
+### p1 · El lock del proyecto atrasado (lo trajo la madre, del chequeo frío de la `rc.5`, 2026-11-04)
+
+- **El dolor**: en los clones del analytics y del bot, la línea 8 (`pruebas`) sale ❌ y el repo queda ROTA para la flota. El
+  `comando-setup` del proyecto falla porque su lock está atrasado: el analytics, `npm --prefix chat-syncer ci` (a `package-lock.json` le
+  falta `openai`); el bot, `pnpm install --frozen-lockfile`. Ninguno de los dos es del kit: el molde no toca `package.json` ni los locks.
+- **Medido**: `chequeo.cjs pruebas()` (`:653-705`) corre el setup en HEAD y, si falla, `nv(...)` (NO VERIFICADO → ❌, `:681`) **sin mirar
+  la base**. El test, en cambio, sí se corre en la base (`:688-702`). La flota ya tiene un aviso que no vuelve ROTA: una línea ✅ con el
+  detalle `⚠ …` (`avisosDe`, `:445-453`; `flota.cjs:510`).
+- **(a) Detectarlo antes** (`adoptar --mirar` y el `doctor`, parado en un proyecto): `as/lib/locks.cjs` (nuevo, solo lee) mira el
+  `package.json` de la raíz, de cada subcarpeta de primer nivel (sin `node_modules`) y de la carpeta del `--prefix` o `-C` del
+  `comando-setup`. Por cada uno, el lock que esté al lado: con `package-lock.json`, el lock está atrasado si una dependencia de
+  `dependencies`/`devDependencies`/`optionalDependencies` no figura en `packages[""]` del lock; con `pnpm-lock.yaml`, si no figura en
+  `importers` del lock como clave (búsqueda de texto acotada a ese bloque); con `yarn.lock`, si no hay una entrada `<nombre>@`. Línea:
+  `lock atrasado: <carpeta>/<lock> no tiene <dep> (y N más) — regeneralo en el proyecto (\`npm install --prefix <carpeta>\` · \`pnpm
+  install\`) y commitealo: sin eso, el comando-setup falla y la flota no puede probar tus tests`. El `doctor`: ⚠, nunca ✗. Nada lo arregla solo.
+- **(b) En la flota: que diga que es del proyecto, y que no trabe** (la recomendada de la madre, que se toma con la vara; **toca el
+  actualizador: red team**). Cuando el setup falla en HEAD, `pruebas()` lo corre también en la base (el mismo clon `--shared` de hoy):
+  - si **también falla en la base** y el commit del kit **no toca** ningún `package.json` ni lock (`git diff --name-only <base> HEAD`)
+    → ✅ con `⚠ comando-setup ya fallaba antes de la actualización (<motivo>): es del proyecto, no del kit — <la línea de (a) si la
+    hay>; tus tests no se corrieron (NO VERIFICADO)`. La flota lo suma a la fila (`avisosDe`) y el repo sale `mezclado` con la nota;
+  - si en la base anda (lo rompió la actualización), o el commit del kit toca un `package.json` o un lock, o no se pudo armar la base →
+    ❌ como hoy.
+  - El test **no** se corre en ese caso (sin dependencias no prueba nada); lo de "ya estaba rojo antes" del test sigue como hoy (ROTA).
+- **Por qué no trabar**: el molde no depende del lock del proyecto, y trabar deja al proyecto sin ningún arreglo del kit (también los de
+  seguridad) por algo que el kit no puede romper ni arreglar. **Lo que se pierde**: en ese repo la línea 8 no prueba los tests hasta que
+  Guido regenere el lock; por eso el aviso dice NO VERIFICADO y lo repiten `--mirar` y el `doctor`.
+- **crit. p1**: `locks.test` (nuevo): npm con una dependencia que falta en el lock → la línea; completo → nada; pnpm y yarn, igual; una
+  subcarpeta y un `--prefix`. `adoptar.test` y `doctor.test`: la línea. `chequeo.test`: setup que falla en HEAD y en base, sin tocar locks →
+  ✅ con `⚠ … es del proyecto`; falla en HEAD y anda en base → ❌; falla en los dos pero el diff toca `package.json` → ❌; sin base →
+  ❌. `flota.test`: el repo sale `mezclado` con la nota. **Mutación**: (a) sacar la condición de la base → la de "anda en base" se pone
+  roja; (b) sacar la del diff → la de `package.json` tocado se pone roja.
 
 ### La vuelta 2 de la `rc.5` (sin rediseñar; el texto que manda es el de `SPEC-paquete-8r4.md`, con su red team)
 
@@ -241,6 +274,12 @@ Los crit. de c1, h11, h12 y de cada ítem de la vuelta 2 (los del delta de la `r
   `[acordarse de menos]`
 - **D8c-6 · h9 y h10 se reproducen antes de tocar código** (como manda u10). `[filtro pragmático]`
 - **D8c-7 · D8r.1-4 y D8r.2-3/4/6 no entran**: por las dudas, adivinar, o grande sin dolor de uso. `[filtro pragmático]`
+- **D8c-8 · p1: el setup que ya fallaba antes, y que el kit no tocó, avisa y no traba** (la recomendada de la madre): trabar deja al
+  proyecto sin los arreglos del kit por algo que el kit no rompe ni arregla. Las dos condiciones (falla también en la base, el commit
+  del kit no toca `package.json` ni locks) son las que separan "del proyecto" de "lo rompió la actualización". `[workflow · coherencia]`
+- **D8c-9 · p1 (a) detecta el lock atrasado leyendo los archivos, no corriendo `npm ci`**: correr el instalador en `--mirar` o en el
+  `doctor` tarda minutos y escribe `node_modules`; leer es instantáneo y no toca nada. Mira npm, pnpm y yarn (los tres de la flota hoy son
+  npm o pnpm). `[filtro pragmático · mejor código]`
 
 ## Lo que esto no cierra
 
@@ -262,15 +301,16 @@ Presupuesto: ~2 h de reloj y ~6 encargos de trabajo, más el red team y el chequ
 |---|---|---|---|
 | RT | Red team, una ronda, **solo h11 y h12** | — | — |
 | P | h11 + su mutación | `git-seguro.cjs`, `kit-githook.cjs`, sus pruebas | crit. h11 |
-| L | h12 (el aviso) | `chequeo.cjs`, `flota.cjs`, sus pruebas | crit. h12 |
+| L | h12 (el aviso) + p1 (b) y su mutación | `chequeo.cjs`, `flota.cjs`, sus pruebas | crit. h12, la mitad (b) de p1 |
+| RT2 | Red team, una ronda, **solo p1 (b)** | — | — |
 | C | c1 + los textos de `/director` (u5 paso 2, lecciones del paso 3) | `dir/*`, `formato-spec.md`, `inyeccion.cjs`, `estado.cjs`, sus pruebas | crit. c1 |
-| V | u4 + h6 + h9 + h10 | `lib/vecinos.cjs`, `adoptar.cjs` (solo `mirar`, la línea de vecinos), `doctor.cjs`, `worktree.test` | crit. 4, h6, h9, h10 |
+| V | u4 + h6 + h9 + h10 + p1 (a) | `lib/vecinos.cjs`, `lib/locks.cjs`, `adoptar.cjs` (solo `mirar`, la línea de vecinos), `doctor.cjs`, `worktree.test` | crit. 4, h6, h9, h10 |
 | D | u6 + u13 a + h5 | `adoptar.cjs`, `actualizar.cjs` (solo el renglón del CHANGELOG), `cierre/SKILL.md`, sus pruebas | crit. u6, u13, h5 |
 | K | u7 código + u8 | `ficha.cjs` y sus copias, `arquitecto.cjs`, `kit.ejemplo.md`, sus pruebas | `ficha`, `copias`, `arquitecto` |
 | T | Textos (u5 resto, u7, r1, la guía y los manuales) | el director, al final | `skills.test`, `skill.test` |
 | CF | Chequeo frío (crit. 9) | — | — |
 
-**Orden**: RT → P ∥ L ∥ C (no comparten archivos) → V ∥ K → D (después de L y V: comparte `actualizar.cjs` con L y `adoptar.cjs` con V;
+**Orden**: RT → RT2 → P ∥ L ∥ C (no comparten archivos) → V ∥ K → D (después de L y V: comparte `actualizar.cjs` con L y `adoptar.cjs` con V;
 mergea `main` y vuelve a correr sus pruebas) → T → CF → la suite (sola) → la flota contra el clon de Hermes → tag.
 
 ## Ejecución
