@@ -1565,7 +1565,10 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
   6. **Dos agentes con el mismo `name:`** después de `--agentes renombrar`: NO VERIFICADO si Claude Code se confunde. La línea le pide
      a Guido que cambie el `name:`.
   7. **NO VERIFICADO de la `rc.6`**:
-     - EnterWorktree y la pestaña con una sola ventana;
+     - EnterWorktree y la pestaña con una sola ventana: **visto en uso real (2026-11-05, Guido, captura)**. En Hermes, el director
+       de cashflow corre en la extensión de VS Code con una sola ventana, y la extensión marca "This session is in worktree
+       `modulo--cashflow`" con el botón "Open worktree". Sigue NO VERIFICADO si los permisos del worktree (el deny del `.env`) son
+       los que rigen en esa sesión;
      - el obrero de cierre lanzado por un director de verdad;
      - gitleaks de la historia en un repo grande (plazo de 120 s);
      - la firma de yarn, que sale del manual;
