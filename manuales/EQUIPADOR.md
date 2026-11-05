@@ -62,10 +62,12 @@ Nunca se edita `~/.claude/settings.json` a mano: el instalador es el único que 
 
 `doctor.cjs` revisa la PC y el repo donde estás parado. **Solo lee**: no cambia nada.
 
-- Una línea por chequeo (26), siempre en el mismo orden: `✓ / ✗ / ⚠ · qué · cómo se arregla`. Debajo, el **inventario de frenos** del
+- Una línea por chequeo (29), siempre en el mismo orden: `✓ / ✗ / ⚠ · qué · cómo se arregla`. Debajo, el **inventario de frenos** del
   repo (las líneas `inventario ·`).
 - Mira, entre otras cosas: la versión de Claude Code, `gh`, gitleaks, los hooks de la PC, copias del kit, frenos vencidos, el
-  pre-commit y la ficha del repo, y las variables de la capa privada (por nombre).
+  pre-commit y la ficha del repo, y las variables de la capa privada (por nombre). Parado en un proyecto, además: los **vecinos**
+  (worktrees fuera de `.claude/worktrees/`, carpetas `gate-*`) y el **lock atrasado** (un `package.json` que su lock no tiene al día:
+  regeneralo y commitealo, o la flota no puede probar tus tests). Los dos son ⚠.
 - Sin red o sin poder correr algo: `⚠ NO VERIFICADO: <por qué>`, nunca ✓. Los `⚠` no traban; cada `✗` dice cómo se arregla.
 
 NO VERIFICADO: que encuentre la ruta de la app de escritorio de Claude Code (con la app abierta tiene que decir `claude-code ✓`).
@@ -95,6 +97,9 @@ Te devuelve **una tabla** (mezclado · salteado con su porqué · ROTA · te esp
 (ramas `modulo/*` vivas) sale `salteado`; si sabés que podés, `--con-obra` actualiza `main` igual y prueba en el clon, sin subir nada,
 traer `main` a cada módulo: "te espera:" dice por módulo verde, rojo (lo aprobás vos antes) o choca, y lo trae su director con
 `worktree.cjs traer-main <x>`. Una skill que pasa su tope **por su zona propia** da ⚠ y no ROTA (decidido por Guido, 2026-11-04).
+**El lock del proyecto atrasado** (el `comando-setup` ya fallaba antes de la actualización por eso, y el kit no tocó ni el lock ni el
+setup) tampoco traba: el repo sale `mezclado` y "te espera:" dice que tus tests no se probaron hasta que regeneres el lock. Si
+`hooks-lib` te espera y un hook nuevo la necesita, la fila dice que la resuelvas primero (`resolver . hooks-lib …`).
 
 **`todo` sin `--tag` reparte el último tag anotado, rc incluido, a todo proyecto con ficha.** Hoy solo Hermes tiene ficha; cuando se
 sumen otros, una beta les llega igual: para repartir solo una versión final (sin beta), pasá `--tag v<X.Y.Z>`.
@@ -130,7 +135,9 @@ Un repo que todavía no tiene el kit v3 **se adopta, no se actualiza**. Va en do
    propuesta: la ficha que tendría el repo, qué piezas trae, cuáles son propias del proyecto y no se pisan. En un repo con código trae
    también `/director` y `/obrero` (el módulo con director los necesita); si ya tenés los tuyos y son distintos, quedan `propia` y la
    sesión lo resuelve con vos (D1, abajo). Corré `--mirar` con `--principal <tu carpeta>`: de ahí sale el nombre del proyecto (el que
-   usa `cargar-secreto`). Del `CLAUDE.md` te dice si le falta "El tamaño del pedido" y si habla de un director u obrero propio.
+   usa `cargar-secreto`). Del `CLAUDE.md` te dice si le falta "El tamaño del pedido" y si habla de un director u obrero propio. También
+   te muestra lo que queda fuera del repo (los vecinos), un lock atrasado, y lo que gitleaks encuentra en la historia (solo
+   `archivo:línea · regla`, nunca el valor).
 2. **La pantalla, con vos delante**: la sesión arma el `NORTE.md`, el mapa, el plano de `docs/` y las reglas propias del proyecto
    como cambios. Y te pregunta, de a una con la recomendada primero: los comandos de setup y de test (en Python, con el `.venv` de
    cada worktree), cada base y su clase (`entornos:`: sin declararla, la de prueba cuenta como real), y lo que el comentario marque como

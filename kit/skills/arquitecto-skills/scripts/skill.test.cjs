@@ -294,7 +294,7 @@ test('crit. 11 (8r t8): SCRIPTS.md y MOLDE.md con lo nuevo; el README manda a "p
     assert.ok(mo.includes(x), `MOLDE.md no nombra ${x}`);
   }
   const ro = leer(enRepo('manuales/ROLES.md'));
-  for (const x of ['primer mensaje es `/director`', '/obrero <x>--<ID>', '.kit-rol', 'después: /cierre', 'integrados']) assert.ok(ro.includes(x), `ROLES.md no nombra ${x}`);
+  for (const x of ['primer mensaje es `/director <x>`', '/obrero <x>--<ID>', '.kit-rol', 'después: /cierre', 'integrados']) assert.ok(ro.includes(x), `ROLES.md no nombra ${x}`);
   const instalar = seccion(leer(enRepo('README.md')), '## Instalar');
   assert.ok(instalar, 'el README trae ## Instalar');
   assert.match(instalar, /preparame esta PC/);

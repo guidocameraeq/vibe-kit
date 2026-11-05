@@ -43,7 +43,7 @@ El detalle de lo que tocan (el handoff, el TODO, el candado): `manuales/MOLDE.md
 ## 3. El director (`/director`)
 
 La sesión que dirige un módulo con director. Nace donde sea (en tu ventana de siempre, una sesión nueva) y
-su **primer mensaje es `/director`**: entra solo al worktree del módulo (`worktree.cjs donde` + EnterWorktree) y verifica rama y rol.
+su **primer mensaje es `/director <x>`** (con el módulo): entra solo al worktree del módulo (`worktree.cjs donde` + EnterWorktree) y verifica rama y rol.
 El obrero, igual, con `/obrero <x>--<ID>`.
 
 1. **Chequea el sello** del spec (`encargo.cjs presentar --spec`). Sin sello no reparte: llama al Arquitecto en Modo B corto. Si el
@@ -60,7 +60,11 @@ El obrero, igual, con `/obrero <x>--<ID>`.
 5. **Verifica y mergea por script**: ante un CIERRE corre `encargo.cjs verificar` (seis líneas). Todo verde → merge del SHA, sin
    preguntarte. Rojo o NO VERIFICADO → nunca merge.
 6. **Se muda a ~40 % de contexto** (la cifra la da `contexto.cjs`, no su cabeza): deja un relevo commiteado y uno nuevo sigue desde ahí.
-   Al cerrar cada tramo mide los tiempos (`tiempos.cjs`) y la **alarma** (más de 3 intervenciones tuyas en el tramo).
+   **Al cerrar cada tramo** (cuándo, lo dice `- Cierre de tramo:` de la ficha; sin el renglón, cada encargo) lanza un **obrero de
+   cierre** desde `plantilla-cierre.md`: mide los tiempos (`tiempos.cjs`) y la **alarma** (más de 3 intervenciones tuyas en el tramo),
+   y deja la ficha al día (`- Próximo paso:`, `- Tramo: <N> cerrado <fecha>`, lo que te espera). El director lo verifica y lo mergea
+   como cualquier encargo: **la ficha no la escribe él**. Por eso el arranque y `/estado` te muestran `tramo 2 cerrado hace 1 d ·
+   próximo: …`, también desde la otra PC.
 7. **Termina el módulo** con `worktree.cjs integrar <x>`: lo lleva a la rama por defecto. Si la ficha pide tu OK para mergear, te
    pregunta. La última línea dice `después: /cierre en tu carpeta principal`: los papeles de la rama por defecto quedaron atrás del
    módulo. Después te da la línea para cerrar el worktree (`worktree.cjs cerrar`: borra la rama local y, si ya está mezclada en
@@ -79,6 +83,8 @@ Ejecuta **un** encargo commiteado, en su worktree.
 3. **Lo que no está autorizado**: de día lo pide (te aparece la ventana); de noche o sin ventana, es PARADA. Nunca un rodeo.
 4. **CIERRE**: la evidencia (qué se probó, con qué comando y su salida; qué no se miró), un commit, push de su rama y el mensaje. No
    corre `/cierre`: verifica y mergea el director.
+5. **A `main` no sube nunca**: solo pushea su rama `modulo/<x>--<ID>`. Si lo intenta, el pre-push lo frena ("a la rama por defecto
+   sube solo el director"). A `main` llega el módulo entero con `worktree.cjs integrar`, o vos desde tu carpeta principal.
 
 ## 5. El tramo (`/tramo <x>--<ID>`)
 

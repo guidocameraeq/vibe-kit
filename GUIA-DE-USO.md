@@ -82,11 +82,12 @@ Cambió la misión → cambiá el chat. Compactar es emergencia (*"cierre parcia
 ### 🏗️ "Quiero una feature más que chica en una app existente"
 Chat nuevo **en la carpeta de esa app** → **`/arquitecto`** (o lo llama la sesión sola, si midió "más que chico"): explora el código
 (Modo B), deja el **spec delta sellado** y el módulo armado, y te da la línea para la sesión que lo construye (con director: una
-sesión nueva en tu ventana de siempre, primer mensaje `/director`; entra sola al worktree del módulo).
+sesión nueva en tu ventana de siempre, primer mensaje `/director <x>`; entra sola al worktree del módulo).
 → [`manuales/COMO-USAR-EL-ARQUITECTO.md`](manuales/COMO-USAR-EL-ARQUITECTO.md) §4
 
 ### 🧭 "Tengo un módulo con director andando"
 Quién hace qué y qué te toca a vos: el director → [`manuales/ROLES.md`](manuales/ROLES.md) §3, el obrero → §4, lo que es solo tuyo → §9.
+Al cerrar cada tramo, un obrero de cierre deja la ficha al día: el arranque te dice `tramo N cerrado · próximo: …`. A `main` sube solo el director.
 
 ### 👋 "Me voy" (y quedó un módulo con director andando)
 Decile **"me voy"** al director: sin preguntarte nada te muestra el checklist de la noche y qué queda andando. Cuando volvés, tu

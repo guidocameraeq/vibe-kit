@@ -34,6 +34,8 @@ es un ejemplo de la forma, no una ficha para copiar.
 | `datos-de-prueba` · `push-publica` · `aprueba` | Dónde están los datos de prueba, si el push es público, y un alias (nunca un nombre real) de quien aprueba. |
 | `mesa` | Los otros proyectos con los que habla este director (§8 de `manuales/ROLES.md`). |
 | `multi-llm` | `sí` genera un `AGENTS.md` desde el `CLAUDE.md` (`agents.cjs`). |
+| `andamiaje` | Quién toca `CLAUDE.md`, skills y agentes: `agentes` (sin la clave) o `con-ok-de-guido` (es clase 3: te preguntan). |
+| `vars.plazo-test` | Los minutos (1-60) que el sello espera a `comando-test`; sin él, 5. Para un proyecto con tests largos (Hermes). |
 
 Debajo de la cabecera, en prosa: "Cómo se adaptó el kit a este proyecto". **La ficha vigente es la de la rama por defecto**, no la
 que tengas en el disco: así nadie se baja un freno editando un archivo en una rama suelta.
