@@ -1421,6 +1421,25 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
      pre-push de una rama ya subida y el gitleaks del merge).
   8. **Dato, no pendiente**: los módulos de Hermes en curso: `lector` solo (rol de lectura en Supabase y `scripts/consultar.py`; sello
      y ready ✅, `2a708a4b`) y `cashflow` con director (spec en BORRADOR, `30427858`; `worktree crear cashflow` con salida 0).
+  10. **2026-11-05 · El clon de la adopción y el de la flota no ponen `core.longpaths`** (adopción del Hub, `dashboard-implementaciones`,
+      rc.6). `git clone` al scratchpad dio `Filename too long` en ~80 archivos de `oficina/facturas/(2) Servicios Resto de la empresa/…`
+      y dejó el clon a medias, **con borrados falsos en el índice** (`D .claude/agents/…`): un `--mirar` sobre ese clon mira mal sin
+      avisar. Salió con `git -c core.longpaths=true clone`. Es la **segunda vez**: el bot ya lo había dado en el chequeo de la rc.4
+      (SPEC-paquete-8r3, "Bajos que quedan"). `worktree.cjs` sí lo pone (`:666`, `:709`, `:1240`); `lib/flota.cjs`, `lib/adoptar.cjs`
+      y el paso 1 de `anexos/flota.md` no. **Para la rc.7**: en Windows, todo clon del Equipador con `-c core.longpaths=true` (y
+      `config core.longpaths true` en el clon), y `adoptar --mirar` se niega si el clon tiene el checkout incompleto.
+  11. **2026-11-05 · `adoptar --traer` se niega por archivos sin trackear que no chocan** (Arti-bot-eq: 8 rutas de `(1) New/`, los
+      pedidos a Marketing de Guido). `lib/adoptar.cjs:1539` cuenta todo `status --porcelain`, `??` incluidos; un `merge --ff-only` con
+      archivos sin trackear que los commits no traen es seguro (git solo frena si alguno se pisaría). Salida de hoy: `git stash push -u`
+      → `--traer` → `git stash pop`, sin commitear lo de Guido. **Para la rc.7**: el `--traer` deja pasar los `??` que no están en el
+      rango (o hace él el stash y lo devuelve) y frena solo por cambios trackeados.
+  12. **2026-11-05 · `sensible.cjs` no ve lo que corre adentro de un `ssh`** (Arti-bot-eq, D4). Medido con `lib/comando.cjs partir`:
+      `ssh root@<vps> "cd … && docker compose up -d --force-recreate"` sale como **un** comando de 3 palabras (el remoto, una sola
+      cadena), y `ssh root@<vps> pm2 restart all` empieza con `ssh`. Guido no quiere que pregunte "cada vez que toca ssh, es super molesto",
+      pero sí al deployar o reiniciar el bot: el kit no puede distinguirlo. Hoy: salió el `ask Bash(ssh:*)`, `sensible.release: [pm2
+      restart]`, y el deploy lo cuida `/deploy` del bot (pide el OK siempre) — una regla de texto, no un freno. **Para pensar** (con Guido,
+      no es de taller): que `partir` abra el comando remoto de `ssh <host> <cmd>` como abre `bash -c`, así una entrada de `sensible`
+      matchea adentro; o una forma de entrada `ssh:<cmd>`. Lo mismo pasa en el analytics (su VPS: "mirar libre, tocar pregunta").
 
 - **La prueba de Juan** (2026-11-04, pedida por Guido): Juan prueba la beta en su PC y sus proyectos y sube pruebas duras e impresiones
   a la rama huérfana `prueba/juan` de este repo (sin el kit: su `CLAUDE.md`, `PLAN.md`, `pruebas/`, `impresiones.md`, proyectos con
