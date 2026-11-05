@@ -901,6 +901,49 @@ test('integrar verde: frenos.log del director commiteado antes, merge --no-ff en
   assert.equal(cli(p.P, ['cerrar', 'x']).codigo, 0);
 });
 
+// h11 (SPEC-paquete-8c): con los githooks del molde puestos, el pre-push deja pasar a integrar — modulo/x sube desde el principal y
+// main desde el temporal (.kit-rol director, desprendido); también con la marca .kit-noche en el worktree del director.
+function githooksDelMolde() {
+  const out = {};
+  const recorrer = (de, a) => {
+    for (const e of fs.readdirSync(de, { withFileTypes: true })) {
+      if (e.isDirectory()) recorrer(path.join(de, e.name), `${a}/${e.name}`);
+      else if (!e.name.endsWith('.test.cjs')) out[`${a}/${e.name}`] = fs.readFileSync(path.join(de, e.name), 'utf8');
+    }
+  };
+  recorrer(path.join(MOLDE, 'hooks'), '.claude/hooks');
+  recorrer(path.join(MOLDE, 'githooks'), '.githooks');
+  for (const s of ['estructura.cjs', 'cambios.cjs']) out[`.claude/scripts/${s}`] = fs.readFileSync(path.join(MOLDE, 'scripts', s), 'utf8');
+  return out;
+}
+for (const noche of [false, true]) {
+  test(`h11: integrar sigue subiendo con el pre-push del molde${noche ? ', también con .kit-noche en el worktree del director' : ''}`, () => {
+    const p = proyectoI({ archivos: githooksDelMolde() });
+    const wx = moduloX(p);
+    if (noche) fs.writeFileSync(path.join(wx, '.kit-noche'), 'desde 2026-11-04T22:00-03:00\n');
+    g(p.P, 'config', 'core.hooksPath', '.githooks');
+    if (!WIN) for (const d of [p.P, wx]) for (const h of ['pre-commit', 'pre-merge-commit', 'pre-push']) fs.chmodSync(path.join(d, '.githooks', h), 0o755);
+    const r = cli(p.P, ['integrar', 'x']);
+    assert.equal(r.codigo, 0, r.out + r.err);
+    assert.doesNotMatch(r.out + r.err, /no sube/);
+    assert.match(r.out, /worktree integrar: módulo x en origin\/main — merge [0-9a-f]+/);
+    assert.equal(enOrigin(p, 'modulo/x'), g(p.P, 'rev-parse', 'modulo/x'));
+    assert.equal(g(p.remoto, 'show', 'main:m.txt'), 'del módulo');
+    sinTemporal(p);
+    // el control: el pre-push está puesto en este proyecto — desde el director de noche o un obrero, una ref fuera de lo suyo
+    // no sube (una ref nueva: a main, que ya tiene el merge, git la rechaza antes del hook por no ser fast-forward)
+    const desde = noche ? wx : p.wt('h11-obrero');
+    if (!noche) {
+      g(p.P, 'worktree', 'add', '-q', '-b', 'modulo/x--01', desde, 'modulo/x');
+      fs.writeFileSync(path.join(desde, '.kit-rol'), 'obrero\n');
+    }
+    const ctl = spawnSync('git', ['push', '-q', 'origin', 'HEAD:refs/heads/trunk'], { cwd: desde, encoding: 'utf8', env: process.env });
+    assert.notEqual(ctl.status, 0, ctl.stderr);
+    assert.match(ctl.stderr, /pre-push: a refs\/heads\/trunk no sube .*: a la rama por defecto sube solo el director/);
+    assert.ok(!gOk(p.remoto, 'rev-parse', '--verify', '-q', 'refs/heads/trunk'), 'trunk no subió');
+  });
+}
+
 test('integrar con un encargo abierto (local o solo en origin) → 1 y nada sube; mergeado en modulo/x → sigue', () => {
   const p = proyectoI();
   const wx = moduloX(p);

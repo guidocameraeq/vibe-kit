@@ -678,7 +678,8 @@ test('pre-push sin gitleaks: humano sube en rojo con aviso; nocturno → 1; borr
   assert.match(r.err, /sin escáner en esta PC.*pasa por ser humano, en rojo/);
   commitArmado(d, { 'c.txt': 'c\n' });
   escribir(d, '.kit-rol', 'nocturno\n');
-  r = g(d, ['push', '-q', 'origin', 'main'], { env: entorno(null), puede: true });
+  // a modulo/* (lo único que sube un nocturno, h11): el freno que salta es el del escáner
+  r = g(d, ['push', '-q', 'origin', 'HEAD:refs/heads/modulo/n'], { env: entorno(null), puede: true });
   assert.notEqual(r.codigo, 0);
   assert.match(r.err, /con rol nocturno no se pushea sin escáner/);
   assert.deepEqual(kg.refsQueSuben(`(delete) ${'0'.repeat(40)} refs/heads/x ${'a'.repeat(40)}\n`), []);
@@ -1566,4 +1567,121 @@ test('u9 crit. 9 (e) con el gitleaks de verdad: en la resolución, una clave nue
     }
     assert.ok(!r.err.includes(claveDePrueba().slice(4)) && !r.err.includes(claveN(1).slice(4)), 'el valor no sale');
   }
+});
+
+// ---------------------------------------------------------------- h11: a la rama por defecto sube solo el director (D8c-1, D8c-2)
+
+const H11 = 'a la rama por defecto sube solo el director (worktree.cjs integrar) o vos desde la carpeta principal; vos pusheás';
+const reTexto = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+// Un worktree de `d` en `rama` (con .kit-rol `rol`, o sin él) y un commit propio.
+function wtH11(d, rama, rol) {
+  const w = path.join(TMP, `wt-h11-${n++}`);
+  g(d, ['worktree', 'add', '-q', '-b', rama, w]);
+  if (!ES_WIN) for (const h of kg.CUALES) fs.chmodSync(path.join(w, '.githooks', h), 0o755);
+  if (rol) escribir(w, '.kit-rol', `${rol}\n`);
+  commitArmado(w, { [`${rama.replace(/\//g, '-')}.txt`]: 'x\n' });
+  return w;
+}
+const empujar = (w, remoto, refspec) => g(w, ['push', '-q', remoto, refspec], { env: entorno('verde'), puede: true });
+const enRemoto = (w, remoto, ref) => (gt(w, 'ls-remote', remoto, ref).split(/\s/)[0] || null);
+// El push de `refspec` → 1 con el texto de h11 para `ref` y `sujeto`, y la ref del remoto no cambia.
+function noSube(w, remoto, refspec, ref, sujeto) {
+  const antes = enRemoto(w, remoto, ref);
+  const r = empujar(w, remoto, refspec);
+  assert.notEqual(r.codigo, 0, `${refspec} debía frenar: ${r.err}`);
+  assert.match(r.err, new RegExp(`pre-push: a ${reTexto(ref)} no sube ${reTexto(sujeto)}: ${reTexto(H11)}`), r.err);
+  assert.match(r.err, /kit pre-push: ROJO/);
+  assert.equal(enRemoto(w, remoto, ref), antes, `${ref} no cambió en ${remoto}`);
+  return r;
+}
+function sube(w, remoto, refspec, ref) {
+  const r = empujar(w, remoto, refspec);
+  assert.equal(r.codigo, 0, `${refspec} debía subir: ${r.err}`);
+  assert.doesNotMatch(r.err, /no sube/);
+  assert.equal(enRemoto(w, remoto, ref), head(w));
+  return r;
+}
+
+test('h11: el obrero sube solo su modulo/<x>--<ID> — a main, a trunk (otro remoto), a modulo/x, a otro obrero y un tag → 1 con el texto; la suya, como hoy', () => {
+  const d = repo();
+  const trunk = carpeta('origen-trunk');
+  g(trunk, ['init', '-q', '--bare', '-b', 'trunk']);
+  g(d, ['remote', 'add', 't', trunk]);
+  g(d, ['push', '-q', '--no-verify', 't', 'main:trunk']);
+  const w = wtH11(d, 'modulo/x--01', 'obrero');
+  g(w, ['tag', 'v1']);
+  const r = noSube(w, 'origin', 'HEAD:main', 'refs/heads/main', 'un obrero');
+  assert.match(r.err, /vos pusheás modulo\/x--01/);
+  noSube(w, 't', 'HEAD:trunk', 'refs/heads/trunk', 'un obrero');
+  noSube(w, 'origin', 'HEAD:refs/heads/modulo/x', 'refs/heads/modulo/x', 'un obrero');
+  noSube(w, 'origin', 'HEAD:modulo/x--02', 'refs/heads/modulo/x--02', 'un obrero');
+  noSube(w, 'origin', 'v1', 'refs/tags/v1', 'un obrero');
+  assert.match(logLocal(d), / · obrero · modulo\/x--01 · githook:solo-el-director · pre-push · refs\/heads\/main/);
+  const s = sube(w, 'origin', 'modulo/x--01', 'refs/heads/modulo/x--01');
+  assert.match(s.err, /kit pre-push: en verde/);
+});
+
+test('h11: un obrero sin .kit-rol (lo borró) sigue siendo obrero por la rama — a main 1; la suya sube', () => {
+  const d = repo();
+  const w = wtH11(d, 'modulo/y--02', null);
+  assert.equal(kg.rolEfectivo(w, { cwd: w, env: entorno('verde') }), 'obrero');
+  noSube(w, 'origin', 'HEAD:main', 'refs/heads/main', 'un obrero');
+  sube(w, 'origin', 'modulo/y--02', 'refs/heads/modulo/y--02');
+  // "humano" escrito a mano no es uno de los cuatro: desconocido, que tampoco sube a main
+  escribir(w, '.kit-rol', 'humano\n');
+  assert.equal(kg.rolEfectivo(w, { cwd: w, env: entorno('verde') }), 'desconocido');
+  noSube(w, 'origin', 'HEAD:refs/heads/main', 'refs/heads/main', 'un rol desconocido (.kit-rol ilegible)');
+});
+
+test('h11: nocturno y desconocido suben solo modulo/* — modulo/x pasa; main y un tag → 1', () => {
+  const d = repo();
+  commitArmado(d, { 'noche.txt': 'n\n' });
+  escribir(d, '.kit-rol', 'nocturno\n');
+  sube(d, 'origin', 'HEAD:refs/heads/modulo/x', 'refs/heads/modulo/x');
+  noSube(d, 'origin', 'HEAD:main', 'refs/heads/main', 'el turno de noche (nocturno)');
+  g(d, ['tag', 'v2']);
+  noSube(d, 'origin', 'v2', 'refs/tags/v2', 'el turno de noche (nocturno)');
+  escribir(d, '.kit-rol', 'jefe\n');
+  noSube(d, 'origin', 'HEAD:main', 'refs/heads/main', 'un rol desconocido (.kit-rol ilegible)');
+  commitArmado(d, { 'otra.txt': 'o\n' });
+  sube(d, 'origin', 'HEAD:refs/heads/modulo/x', 'refs/heads/modulo/x');
+});
+
+test('h11: el director con .kit-noche es nocturno — su modulo/x sube; a main → 1 (a main de noche, integrar)', () => {
+  const d = repo();
+  const w = wtH11(d, 'modulo/x', 'director');
+  fs.writeFileSync(path.join(w, '.kit-noche'), 'desde 2026-11-04T22:00-03:00\n');
+  assert.equal(kg.rolEfectivo(w, { cwd: w, env: entorno('verde') }), 'nocturno');
+  sube(w, 'origin', 'modulo/x', 'refs/heads/modulo/x');
+  noSube(w, 'origin', 'HEAD:main', 'refs/heads/main', 'el turno de noche (nocturno)');
+});
+
+test('h11: director, humano y actualizador suben a main como hoy', () => {
+  // director, en su worktree
+  let d = repo();
+  const w = wtH11(d, 'modulo/z', 'director');
+  sube(w, 'origin', 'HEAD:main', 'refs/heads/main');
+  // humano, en el principal
+  d = repo();
+  commitArmado(d, { 'h.txt': 'h\n' });
+  sube(d, 'origin', 'main', 'refs/heads/main');
+  // actualizador, en su clon
+  d = repo();
+  escribir(d, '.kit-rol', 'actualizador\n');
+  commitArmado(d, { 'act.txt': 'a\n' });
+  sube(d, 'origin', 'main', 'refs/heads/main');
+  assert.equal(kg.puedeSubir('humano', 'refs/tags/v1', 'main'), true);
+  assert.equal(kg.puedeSubir('obrero', 'refs/heads/modulo/x--01', null), false, 'HEAD suelto: nada');
+});
+
+test('h11 (rt-10): un obrero con el remoto adelantado que pushea a main recibe el texto de h11, no el de pull --rebase', () => {
+  const d = repo();
+  const otro = carpeta('otro-h11');
+  g(TMP, ['clone', '-q', gt(d, 'remote', 'get-url', 'origin'), otro]);
+  commitArmado(otro, { 'otro.txt': 'o\n' });
+  g(otro, ['push', '-q', '--no-verify', 'origin', 'main']);
+  const w = wtH11(d, 'modulo/x--01', 'obrero');
+  const r = noSube(w, 'origin', 'HEAD:main', 'refs/heads/main', 'un obrero');
+  assert.doesNotMatch(r.err, /pull --rebase/);
+  assert.doesNotMatch(logLocal(d), /remoto-adelantado/);
 });

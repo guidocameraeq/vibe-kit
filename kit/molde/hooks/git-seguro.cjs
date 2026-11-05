@@ -51,6 +51,8 @@ const MENSAJES = {
   'push-borrar':
     'borrar ramas de origin (`--delete`, `:rama`, `--prune`, `--mirror`) pierde trabajo si no están mergeadas, y la rama por defecto no se borra nunca. Si ya está mergeada pasa; si no, `worktree cerrar` (con `git fetch` antes, para que se vea lo último de origin).',
   'push-punto': '`git push .` mueve refs locales por la puerta de atrás. Usá `git merge` o `git switch` comunes.',
+  'push-otra-rama':
+    'a esa ref no sube un obrero (ni una sesión de agente): a la rama por defecto sube solo el director (worktree.cjs integrar) o vos desde la carpeta principal; vos pusheás `modulo/<x>--<ID>` (`git push -u origin HEAD` desde tu worktree). Tampoco `--all`, `--branches` ni `--tags`; el pre-push lo frena igual.',
   'update-ref': '`git update-ref` escribe refs a mano (falsifica la historia que leen los frenos). Usá commit, merge o branch.',
   replace: '`git replace` cambia lo que git muestra de un commit sin que se note. No se usa en el kit.',
   'symbolic-ref':
@@ -838,6 +840,24 @@ function push(g, dir, ctx, hallar, raiz) {
   if (remoto === '.') hallar('push-punto', 'deny');
   const refspecs = pos.slice(1);
   const todas = rest.some((a) => ['--all', '--branches', '--tags', '--mirror'].includes(a));
+
+  // h11 (D8c-1): en sesión de agente, el aviso temprano — un destino explícito fuera de modulo/* (main, HEAD:main,
+  // x:refs/heads/main, un tag) o --all/--branches/--tags. `git push` a secas no se adivina: lo ataja el pre-push.
+  if (!borrar) {
+    enAgente(ctx, () => {
+      for (const a of rest) if (['--all', '--branches', '--tags'].includes(a)) hallar('push-otra-rama', 'deny', a);
+      for (const r of refspecs) {
+        const s = r.replace(/^\+/, '');
+        if (!s || s.startsWith(':')) continue; // borrar: lo juzga push-borrar
+        const k = s.indexOf(':');
+        let destino = k === -1 ? s : s.slice(k + 1);
+        if (destino === 'HEAD' || destino === '@') destino = ctx.rama(raiz()) || '';
+        if (!destino) continue; // HEAD suelto: git no sabe a dónde (y el pre-push mira lo que suba)
+        destino = sinRefsHeads(destino);
+        if (!/^modulo\/[^/]/.test(destino)) hallar('push-otra-rama', 'deny', destino);
+      }
+    });
+  }
 
   // force: solo sobre kit/*
   const forzadas = refspecs.filter((r) => r.startsWith('+'));

@@ -21,7 +21,7 @@ El argumento es `<x>--<ID>`. Leé `.claude/skills/nucleo/NUCLEO.md` (roles, mens
 
 - Una PARADA es primero un archivo: la evidencia arranca con `PARADA: <por qué>`, se commitea y se pushea antes del mensaje, salvo la PARADA de `presentar`, que no commitea (y la de un `cancelado`).
 - Revisor: hasta 10 hallazgos, cada uno con su escenario del día normal. Los que no tienen escenario se descartan.
-- Nunca merge, nunca push a otra rama, nunca `--no-verify`.
+- Nunca merge, nunca `--no-verify`, nunca push a otra rama: a `main` sube solo el director, y el pre-push lo frena.
 
 <!-- kit:propio -->
 ## Lo propio de este proyecto

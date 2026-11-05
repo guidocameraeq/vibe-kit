@@ -6,6 +6,9 @@
 // pre-merge-commit (un merge automático no corre pre-commit): gitleaks y el previo, SIN candado (rf3-1): git no escribe MERGE_HEAD
 // antes de este hook, así que el candado juzgaría el merge solo contra HEAD y frenaría lo aprobado en la otra rama; el merge lo
 // juzga el pre-push, contra cada padre. (Un merge con conflictos se cierra con git commit: ahí corre el pre-commit, con MERGE_HEAD.)
+// pre-push, antes que nada (h11, D8c-1/D8c-2): lo que sube cada rol — el obrero (también sin .kit-rol, por la rama) solo su
+// modulo/<x>--<ID>; nocturno y desconocido solo modulo/*; humano, director y actualizador todo. Si no, 1: a la rama por defecto
+// sube solo el director (worktree.cjs integrar). Los borrados no se miran (los decide git-seguro).
 // pre-push: por cada ref que sube, lo que el remoto no tiene
 // (`<remoto>..<local>`, o para una ref nueva `<ceros>..<local>`: lo que ningún remoto tiene): gitleaks y `barreras --rango` (rf-7).
 // El candado corre DOS veces (r4-3, r1-2 a): la versión de la ref vigente (con remoto origin/<rama por defecto>; sin remoto la rama
@@ -64,6 +67,9 @@ const RUTAS_BARRERA = Object.freeze([
   '.gitleaks.toml',
 ]);
 const SIN_ESCANER = '⚠️ sin escáner en esta PC: corré "preparame esta PC"';
+// h11: la rama de un obrero (contexto.pestana) y el corazón del texto (el mismo que el de git-seguro push-otra-rama).
+const RE_RAMA_OBRERO = /^modulo\/([^/]+?)--([^/]+)$/;
+const SOLO_EL_DIRECTOR = 'a la rama por defecto sube solo el director (worktree.cjs integrar) o vos desde la carpeta principal';
 const ROTO = 'error interno — corré doctor';
 const CEROS = /^0+$/;
 const RE_SHA = /^[0-9a-f]{40}([0-9a-f]{24})?$/;
@@ -182,8 +188,7 @@ function marcaDeNoche(raiz, o) {
   };
   if (hay(raiz)) return true;
   try {
-    const rama = gitTexto(['symbolic-ref', '--short', '-q', 'HEAD'], o);
-    const m = /^modulo\/([^/]+?)--([^/]+)$/.exec(rama || '');
+    const m = RE_RAMA_OBRERO.exec(ramaHead(o) || '');
     if (!m) return false;
     const t = gitTexto(['worktree', 'list', '--porcelain'], o);
     if (!t) return false;
@@ -198,10 +203,33 @@ function marcaDeNoche(raiz, o) {
   return false;
 }
 
-// El rol con el que se juzga: el de .kit-rol, y uno de día (humano, director, obrero) con la marca .kit-noche pasa a nocturno.
+// La rama del HEAD de este checkout (null con HEAD suelto o sin git).
+function ramaHead(o) {
+  return gitTexto(['symbolic-ref', '--short', '-q', 'HEAD'], o) || null;
+}
+
+// El rol con el que se juzga: el de .kit-rol; sin .kit-rol (o humano) en una rama de obrero (modulo/<x>--<ID>), obrero (h11 rt-6,
+// como agente.cjs: un obrero que borra su .kit-rol sigue siendo obrero); y uno de día (humano, director, obrero) con la marca
+// .kit-noche pasa a nocturno.
 function rolEfectivo(raiz, o) {
-  const rol = rolDe(raiz);
+  let rol = rolDe(raiz);
+  if (rol === 'humano' && RE_RAMA_OBRERO.test(ramaHead(o) || '')) rol = 'obrero';
   return ROLES_PASAN_SIN_ESCANER.includes(rol) && marcaDeNoche(raiz, o) ? 'nocturno' : rol;
+}
+
+// h11 (D8c-2): lo que sube cada rol, por la ref remota. obrero: solo refs/heads/<su HEAD>, si es modulo/<x>--<ID>; nocturno y
+// desconocido: solo refs/heads/modulo/*; humano, director y actualizador: todo (los demás frenos deciden). → true si puede.
+function puedeSubir(rol, refRemota, rama) {
+  if (rol === 'obrero') return !!rama && RE_RAMA_OBRERO.test(rama) && refRemota === `refs/heads/${rama}`;
+  if (rol === 'nocturno' || rol === 'desconocido') return /^refs\/heads\/modulo\/[^/]/.test(refRemota);
+  return true;
+}
+
+// El texto de h11, con el sujeto del rol.
+function textoSoloElDirector(refRemota, rol, rama) {
+  const quien = rol === 'obrero' ? 'un obrero' : rol === 'nocturno' ? 'el turno de noche (nocturno)' : 'un rol desconocido (.kit-rol ilegible)';
+  const tuya = rol === 'obrero' ? (rama && RE_RAMA_OBRERO.test(rama) ? rama : 'modulo/<x>--<ID>') : 'modulo/<x> o modulo/<x>--<ID>';
+  return `pre-push: a ${refRemota} no sube ${quien}: ${SOLO_EL_DIRECTOR}; vos pusheás ${tuya}`;
 }
 
 // La ref vigente, como contexto.refVigente (regla de 4.7): origin/HEAD si apunta a una candidata; si no origin/<candidata>; sin
@@ -783,8 +811,16 @@ function principal(argv, opciones = {}) {
       const head = gitTexto(['rev-parse', '-q', '--verify', 'HEAD^{commit}'], o);
       const refs = refsQueSuben(stdin);
       let escaner = true;
+      const rama = ramaHead(o);
       for (const x of refs) {
         const donde = ` · ${x.refLocal}`;
+        // h11 (D8c-2, rt-10): primero lo que sube cada rol; un obrero que apunta a main no recibe el "pull --rebase" del adelantado.
+        if (!puedeSubir(rol, x.refRemota, rama)) {
+          rojo = true;
+          anotar(repo.raiz, rol, cual, 'githook:solo-el-director', x.refRemota, o);
+          lineas.push(textoSoloElDirector(x.refRemota, rol, rama));
+          continue;
+        }
         if (!x.nueva && !existeCommit(x.remoto, o)) {
           rojo = true;
           anotar(repo.raiz, rol, cual, 'githook:remoto-adelantado', x.refRemota, o);
@@ -903,6 +939,9 @@ module.exports = {
   rolDe,
   marcaDeNoche,
   rolEfectivo,
+  puedeSubir,
+  textoSoloElDirector,
+  SOLO_EL_DIRECTOR,
   refVigente,
   buscarGitleaks,
   leerReporte,
