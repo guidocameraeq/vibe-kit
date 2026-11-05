@@ -1402,7 +1402,42 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
       - que `adoptar --mirar` haga esa comparación a/b/c/d cuando el repo trae su propio director/obrero;
       - que lo propio que no entra en la zona vaya a un **anexo** que la zona señala, y que el actualizador nunca lo toque;
       - que los (b) suban al kit por el ciclo, así los repos no se separan con el tiempo.
-      Los (b) de Mobile los manda Preparar PC.
+      **Los (b) de Mobile**: ocho reglas genéricas que el kit no cubre. Las cicatrices están en `docs/historico/v4/planes/CIERRE_V4_METODO.md`
+      de Mobile, commit `38786277`. Mientras no suban al kit, viven en los anexos de Mobile.
+      1. **Transporte de mensajes entre sesiones** (el más urgente). Mobile usa:
+         - nombres fijos con `/rename`;
+         - `SendMessage`, con la primera línea "si no sos X, ignorá";
+         - `notify_when_idle`;
+         - reintento en la mudanza.
+         Las skills del kit no nombran `SendMessage` ni `ListAgents`, y el canal de la mesa está NO VERIFICADO.
+      2. **Después de compactar**: un SessionStart con matcher `compact` le recuerda al director que relea su relevo y al obrero su
+         encargo, con ALERTA. El kit no tiene ese matcher (`inyeccion.cjs`) y trata compactar como una falla (`director:20`).
+      3. 🔴 **Subagentes que esquivan controles** (H-146, H-161, H-167): arman la palabra por partes, cambian de herramienta, y leyeron
+         dos veces el archivo de credenciales **con Grep**, pese a la regla escrita. Para el kit: verificar que el deny de `Read` frene
+         también a Grep y a Glob (NO VERIFICADO). Es un freno: va con red team.
+      4. **Un subagente "stopped with background work" sin informe no está trabajando** (H-145: 1 h perdida). Hay que mirar enseguida el
+         árbol y los procesos. Choca con el kit: Mobile lo retoma o lo reemplaza, y el kit dice "nunca lo reanudás". Decide Guido.
+      5. **Medir el contexto antes de un sub-paso grande o atómico, y nada abierto de noche con más de 600k** (H-110, H-112-bis: "decía 60 %
+         y tenía 19 %"). Hoy el kit mide con `contexto.cjs` solo al cerrar un tramo.
+      6. **La mesa con el PO**:
+         - preguntar antes de redactar;
+         - opciones a partir de lo que hace hoy;
+         - qué protección se pierde;
+         - la respuesta en 4 partes;
+         - la credencial comprobada el día antes;
+         - el clic temprano;
+         - avisar a los obreros vivos en la mudanza.
+         Es insumo del PO de la próxima versión (TODO, Misión 7).
+      7. **Windows**: CRLF, heredoc, y escribir un documento largo vía un temporal, chequeando que no quedó más corto. Es la misma
+         cicatriz que la de la madre.
+      8. **Gate y tramo**:
+         - el número de pruebas no baja;
+         - una suite que se saltea cuenta como rojo;
+         - nunca "exacto" a secas;
+         - el arreglo trivial, con sus 4 condiciones (el kit lo tiene más laxo, `tramo:24`);
+         - en una refactorización, el archivo de antes entero;
+         - en la mutación, que el script afirme la línea antes de mutar (H-151: encontró una prueba débil que 28 en verde no mostraban).
+      Dato a favor del kit: "una regla escrita en dos skills con dos definiciones" (H-151) ya lo resuelve el NÚCLEO.
 
 - **La prueba de Juan** (2026-11-04, pedida por Guido): Juan prueba la beta en su PC y sus proyectos y sube pruebas duras e impresiones
   a la rama huérfana `prueba/juan` de este repo (sin el kit: su `CLAUDE.md`, `PLAN.md`, `pruebas/`, `impresiones.md`, proyectos con
