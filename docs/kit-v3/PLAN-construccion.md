@@ -1223,7 +1223,7 @@ entre piezas, lo técnico lo decide la sesión, la revisión integral como paso 
 | 3 | **Diseño: los experimentos de método** (`vibe-kit M5 · Diseño: probar una idea nueva (experimentos)`) | **sí** | cuando Guido pueda, 2026-11-04 o 05 | el Arquitecto (Modo B sobre vibe-kit) charla con Guido y deja el spec sellado de la pieza nueva |
 | 2e ✅ | **D8r.3 · La `rc.4` exprés: el bot de Arti y los `.pyc`** (`vibe-kit M5 · D8r.3`; la lanzó la sesión madre de la recta final) | no | ✅ 2026-11-04 | `SPEC-paquete-8r3.md`: `carpeta-docs:` en la ficha, el arranque con el mismo nombre, `barreras` borra el caché de Python, la línea `después:` que dice la verdad y `resolver … nueva` sin informe; la beta `v3.0.0-rc.4` taggeada. La flota a los repos de Guido y la adopción del bot, las propone la sesión madre |
 | 2f ✅ | **D8r.4 · La `rc.5`: las correcciones del uso real** (`vibe-kit M5 · D8r.4`; la lanzó la sesión madre de la recta final) | no | ✅ 2026-11-04 | `SPEC-paquete-8r4.md` (READY, con red team): una sola ventana (`worktree.cjs donde`, `/obrero` y `/director` entran con EnterWorktree), la flota con obra (`--con-obra`, `worktree.cjs traer-main`), el merge de `main` en una rama vieja (u9), y lo de Pendientes que dolió en Hermes y el analytics; la beta `v3.0.0-rc.5`. Desde el tag `v3.0.0-rc.4` |
-| 4 | **D8c.1 · La rc.6** (`vibe-kit M5 · D8c.1 · La rc.6: cierre de tramo y la vuelta 2`; era la rc.5 hasta el 2026-11-04) | no | después de la 2f (el tag `rc.5`); la 3 ya no la traba | **Una sola `rc`, en nivel medio-alto** (Guido, 2026-11-04; `CICLO-DE-MEJORA.md` §3.6): el obrero de cierre de tramo (renglón 11) con h11 (a `main` sube solo el director), la vuelta 2 de `SPEC-paquete-8r4.md` (u4-u8, u13, h5-h12) y lo de Pendientes "De D8r.1" y "De D8r.2". **Los experimentos salen de la v3.0** (próxima versión, TODO Misión 7) |
+| 2g ✅ | **D8c.1 · La `rc.6`: el obrero de cierre de tramo y la vuelta 2 del uso real** (`vibe-kit M5 · D8c.1`; la lanzó la madre; una sola `rc` en nivel medio-alto, `CICLO-DE-MEJORA.md` §3.6) | no | ✅ 2026-11-05 | `SPEC-paquete-8c.md` (READY, dos red teams: h11/h12 y p1). Trae: el obrero de cierre de tramo (`plantilla-cierre.md`, la ficha con `Próximo paso:`/`Tramo:`, el arranque y `/estado`); h11, a `main` sube solo el director (el pre-push con la lista por rol, también para borrados, y `git-seguro` que avisa antes); h12, el aviso de `hooks-lib`; p1, el lock atrasado (`--mirar` y el doctor lo leen, la línea 8 avisa sin trabar); u4-u8, u13a, h5, h9 y h10 (vecinos, avisos de la adopción, el CHANGELOG con `[Unreleased]`, gitleaks de la historia, `andamiaje:` y `plazo-test`, el filtro del almacén en `.worktreeinclude`, `claude.cmd` en Windows); r1/r2 (`/director <x>` y el Modo A con director). Chequeo frío: 1 ALTO y 3 MEDIOS, arreglados. Suite 3068/3070 (1 roja de carga, sola verde; 1 salteada). Flota contra un clon de Hermes rc.5 → rc.6 `--con-obra`: mezclado y al día. Tag `v3.0.0-rc.6` sobre `3d206d6`. Los experimentos salieron de la v3.0 ("Cambios al plan") |
 | 5 | **D9.x · Acompañar la prueba real** | a ratos | mientras dure el primer módulo de Hermes | cada arreglo del uso como `rc.N` |
 | 6 | **M6b · El ciclo, segunda parte** | sí, corta | cuando cierre el primer módulo de Hermes | §3.5 y §8 del ciclo con lo vivido; la fecha de la próxima vuelta |
 | 7 | **R2 · Revisión integral final + D10.1 · `v3.0`** | no / OK de Guido para publicar | después de la 6 | la tercera revisión integral (ADR-034; R1 y R1b fueron las dos primeras), **con lo que haya mostrado el uso de Hermes y contra un clon suyo**, la medición contra `mediciones/2026-11-03.md`, el tag `v3.0` idéntico al último rc |
@@ -1425,6 +1425,18 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
 - **La prueba de Juan** (2026-11-04, pedida por Guido): Juan prueba la beta en su PC y sus proyectos y sube pruebas duras e impresiones
   a la rama huérfana `prueba/juan` de este repo (sin el kit: su `CLAUDE.md`, `PLAN.md`, `pruebas/`, `impresiones.md`, proyectos con
   alias). La sesión madre la lee con `git fetch origin prueba/juan`; lo que sirva entra acá, en esta sección.
+  - **Pasos 0-2 (`52e0ca3`, rc.3 en `pc-juan`)**: el `doctor` dio 0 ✗ y 5 ⚠, de los que salen tres hallazgos:
+    - el doctor no lee la versión de `claude` de la terminal (2.1.252 a mano contra ≥ 2.1.295; h10 de la `rc.6` usa esa salida);
+    - `automode` da ⚠ por dos checkouts del mismo origin;
+    - `copias-kit` da ⚠ por 2 proyectos con copia propia de `arquitecto`.
+  - **Suite**: 35 min, 2858 de 2867, 8 rojas y 1 salteada. Repetidas por archivo pasan las 287.
+    - La roja `no hay sh` (kit-githook) depende de la terminal: falla en PowerShell sin `sh` en el PATH y pasa en Git Bash (h10).
+    - Las otras 7 vienen de la carga de la PC (Docker) o de la terminal, sin atribuir. Fue la primera corrida fuera de las PCs de Guido:
+      hay pruebas sensibles a la carga.
+- **Para Hermes, cuando le llegue la `rc.5`/`rc.6`** (código de Hermes: lo hace Guido o su sesión, no el kit):
+  - `allow_abbrev=False` en el argparse de `scripts/aplicar_migracion.py`, así `datos-reales` puede exigir `--confirmar-produccion`;
+    hoy `--confirmar` abrevia y esquiva la pregunta (rt-8).
+  - `andamiaje: con-ok-de-guido` en su ficha, que es la opción de editar reglas.
 
 - **De D8r.4, para la `rc.6`** (D8c.1; el chequeo frío de la `rc.5`, en `SPEC-paquete-8r4.md`):
   1. **La adopción propone un `comando-setup` que nunca prueba** (`npm ci`, `pnpm install --frozen-lockfile`): el analytics y el bot
@@ -1574,6 +1586,31 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
   re-medir con un corpus nuevo y bajar los falsos positivos a 0, con el método escrito en "D5.3 · Decisiones sin Guido"). El `.claude/paquetes/`
   sin trackear lo cierra `aplicar` (pega el `gitignore.snippet` nuevo) cuando la flota corra.
 - **Paquete 1 · menor**: una ficha en Latin-1 da "valor inválido" (sin eco) en vez de "guardala en UTF-8". Se arregla si aparece en la flota.
+
+- **De D8c.1 (la `rc.6`), para después** (cada uno con su porqué en `SPEC-paquete-8c.md`):
+  1. **El acople de los `hook-*` con `hooks-lib`** (h12 de raíz: rt-1/2/3/8/9 del red team). Es nivel completo, porque rediseña cómo
+     espera y resuelve el actualizador. Hoy no le pega a ningún proyecto real.
+  2. **`secretos.cjs` no frena leer un `config.local.ini`** (h9). Su lista cubre `.env`, `.env.*`, `*.pem` y `*.key`, y el deny cubre
+     solo los `.env` del principal. La copia al worktree ya filtra desde la `rc.6`. Es un freno: va con red team.
+  3. **`/director` (7.983 B) y `/cierre` (7.994 B) quedaron al borde del tope de 8.000.** La próxima línea no entra: hay que recortar o
+     mover a un anexo.
+  4. **`resolver director-obrero nueva` en un repo con `scripts: no`** no avisa que faltan scripts, githooks y `hooks-lib`, y
+     `/director` se rompe en el paso 1. Es MEDIO-6 del chequeo frío. A Hermes no le pega (`scripts: molde`).
+  5. BAJOS:
+     - el commit de `resolver` dice "inicio:" para cualquier pieza (`actualizar.cjs:1119`);
+     - `barreras` sobre el rango de la adopción avisa "candado apagado" porque lee la ficha de la base (`candado.cjs:532`).
+  6. **Dos agentes con el mismo `name:`** después de `--agentes renombrar`: NO VERIFICADO si Claude Code se confunde. La línea le pide
+     a Guido que cambie el `name:`.
+  7. **NO VERIFICADO de la `rc.6`**:
+     - EnterWorktree y la pestaña con una sola ventana;
+     - el obrero de cierre lanzado por un director de verdad;
+     - gitleaks de la historia en un repo grande (plazo de 120 s);
+     - la firma de yarn, que sale del manual;
+     - D8r.1-5 y D8r.2-5;
+     - D8r.4-3: `traer-main` con los githooks puestos.
+  8. **D8r.2-6**: un repo de prueba parecido a Hermes, antes de R2.
+  9. **Hermes, cuando le llegue la `rc.6`**: su próxima sesión resuelve `scripts` y `director-obrero`. Son mezclas de tres vías, porque
+     tiene adaptados `/director`, `/obrero` y `estado.cjs`.
 
 ## NO VERIFICADO, para tachar
 
@@ -1725,8 +1762,17 @@ Del spec, sección "Lo que hacés vos de nuevo". Acá solo cuándo toca, para qu
 | 2026-11-04 | **La `rc.5` (D8r.4) sale con la vuelta 1; la vuelta 2 y D8c.1 van a la `rc.6`** | La vuelta 1 es lo que trababa el uso de Hermes hoy (una ventana, la flota con obra, el merge de `main`); la 2 no entraba sana en la misma sesión | La sesión madre |
 | 2026-11-04 | **El tope de las skills avisa, no frena, cuando lo pasa la zona propia** (la parte del kit sigue frenando) | Hermes salía ROTA en la flota por su zona propia (`/director` 13154 B) | Guido |
 | 2026-11-04 | **A `main` sube solo el director (o `integrar`), nunca un obrero** (h11; el freno, en la `rc.6`) | En Hermes un obrero pusheó directo a `origin main` (con el clic de Guido, porque CC va por mensaje) | Guido |
+| 2026-11-04 | **"Probar una idea nueva" (los experimentos) sale de la v3.0**: va a la próxima versión, con el buzón y un PO como skill (TODO, Misión 7). La sesión 3 de la tabla (su diseño) queda para entonces | "Vamos a sacar esta versión bien armada y en la próxima versión traemos eso de la idea nueva" | Guido |
+| 2026-11-04 | **La `rc.6` es una sola, en nivel medio-alto** (`CICLO-DE-MEJORA.md` §3.6), con el cierre de tramo, h11 y la vuelta 2 juntos | "No quiero splitearlo en dos RC… si la planeamos bien, puede ser quirúrgica"; las `rc` de 4 h eran mucho | Guido |
+| 2026-11-05 | **En la `rc.6`, la suite corre en paralelo con el chequeo frío** (el revisor casi solo lee) y la primera vuelta de la flota se reusa de la `rc.5`. El tag, siempre después de la suite | Guido la quería en ~1,5 h. La suite encontró rojas reales en la `rc.4` (1), la `rc.5` (2) y el chequeo frío de la `rc.6` (1 ALTO): no se taggea antes | La sesión madre |
 
 ## Lecciones (insumo de la misión 6)
+
+- 2026-11-04/05 · **Las `rc` del uso real: dos tandas pesadas a la vez en una PC se frenan las dos.** La suite de la `rc.4` tardó 102 min
+  contra unos 50 porque las pruebas de la `rc.5` corrían al lado, y salieron rojas de carga. Desde ahí, las tandas van en fila y cada
+  `rc` paga el control que pide su riesgo (`CICLO-DE-MEJORA.md` §3.6). **Y la suite entera nunca dio solo verde**: rc.4 1 real, rc.5 2
+  reales (una vieja: `/estado` después de las 18 h); el chequeo frío de la `rc.6` encontró que el gate del cierre de tramo daba rojo
+  siempre. Por eso el tag va después de la suite, aunque apure.
 
 - 2026-11-04 · **R1b: la revisión que corrió sobre un clon del proyecto real encontró lo que tres revisores sobre repos de juguete no
   vieron** (el director propio de Hermes, su `venv`, la carpeta dos niveles abajo y un gate que daba verde sin correr). Los repos de
