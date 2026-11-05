@@ -2,6 +2,33 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-11-05 — Misión 5, D8c.1: la rc.6, el obrero de cierre de tramo y la vuelta 2 del uso real · v3.0.0-rc.6
+
+Sin Guido (PC `Guido-PC-eQ`, Opus, ~13 h con ~10 h esperando el tag de la rc.5), lanzada por la sesión madre de la recta final. Delta
+`docs/kit-v3/SPEC-paquete-8c.md` (dos red teams: h11/h12 y p1); siete encargos en ramas del scratchpad, un merge a `main`. La nota de
+migración está en `kit/CHANGELOG.md`.
+
+**Added**
+- El obrero de cierre de tramo: `plantilla-cierre.md`; la ficha con `Próximo paso:` y `Tramo:`; el arranque y `/estado` lo muestran,
+  también desde la otra PC.
+- h11, a `main` sube solo el director (decidido por Guido): el pre-push con lo que sube (y borra) cada rol; `git-seguro` avisa antes.
+- p1, el lock del proyecto atrasado: `--mirar` y el `doctor` lo leen (npm, pnpm con workspaces, yarn); la línea 8 de la flota avisa y no
+  traba cuando ya fallaba antes y el kit no tocó nada del instalador.
+- La adopción mira los vecinos, gitleaks de la historia y qué freno cubre cada `ask` que saca D2; `--agentes renombrar`,
+  `--worktreeinclude`; el CHANGELOG con `[Unreleased]`. La ficha: `andamiaje:` y `vars.plazo-test`.
+
+**Changed**
+- `/director <x>` en la apertura; el `/director` paso 7 lanza al obrero de cierre (nunca escribe la ficha) y el paso 6 mide los tiempos
+  antes de `cerrar`. Textos de `modo-a`, `modo-b`, `NUCLEO.md`, `flota.md`, el Equipador, `/obrero`, `/cierre`; la guía y los manuales.
+
+**Fixed**
+- h9: un `config.local.ini` de `.worktreeinclude` llevaba una clave del almacén al worktree. h10: el `doctor` no leía el `claude` de la
+  terminal en Windows. h12: la línea 7 dice que resuelvas `hooks-lib` primero.
+- Lo encontró el chequeo frío: el gate del obrero de cierre daba rojo siempre; un obrero borraba la rama del director en origin.
+
+Suite 3068/3070 (1 de carga, sola verde). Flota contra un clon de Hermes rc.5 → rc.6 `--con-obra`: mezclado y al día. La fila del tracker
+y los Pendientes nuevos los pasa la madre (nota `D8c1-plan.md`). El chat condensado y la fila del diario, en el privado.
+
 ## 2026-11-04 — Misión 5, D8r.4: la rc.5, correcciones del uso real · v3.0.0-rc.5
 
 Sin Guido (PC `Guido-PC-eQ`, Opus, ~15,5 h con las esperas), lanzada por la sesión madre de la recta final. Delta

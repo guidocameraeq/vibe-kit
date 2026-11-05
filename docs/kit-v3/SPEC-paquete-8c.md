@@ -3,7 +3,7 @@ La `rc.6` junta tres cosas ya diseñadas: **el obrero de cierre de tramo** (el r
 [`SPEC-paquete-8b.md`](SPEC-paquete-8b.md) "(11)"), **la vuelta 2 de [`SPEC-paquete-8r4.md`](SPEC-paquete-8r4.md)** (u4-u8, u13, h5-h12,
 que pasó red team con ese delta) y **lo de Pendientes "De D8r.1" y "De D8r.2"** del tracker. Lo nuevo de diseño es solo **h11** (a
 `main` sube solo el director, decidido con Guido) y el cómo de **h12**.
-- Estado: READY (D8c.1, 2026-11-04, después de una ronda de red team sobre h11 y h12: 4 ALTOS, 3 MEDIOS, 4 BAJOS, integrados)
+- Estado: ✅ IMPLEMENTADO 2026-11-05 (tag `v3.0.0-rc.6`). READY desde el 2026-11-04, después de una ronda de red team sobre h11 y h12 (4 ALTOS, 3 MEDIOS, 4 BAJOS, integrados) y otra sobre p1
 - Fecha: 2026-11-04 · Misión: 5, director **D8c.1** (lo lanzó la sesión madre de la recta final; la vara: ADR-030 y ADR-034; el
   presupuesto: ~2 h de reloj después del tag de la `rc.5` y ~6 encargos, pedido de Guido)
 - **Nivel de la `rc`: MEDIO-ALTO** (`docs/CICLO-DE-MEJORA.md` §3.6, pedido de Guido, 2026-11-04). Cada cambio dice su nivel en la tabla
@@ -368,6 +368,13 @@ mergea `main` y vuelve a correr sus pruebas) → T → CF → la suite (sola) �
   nueva --kit <…> --por "<por qué>"`. De punta a punta en un repo sin ningún archivo de director: NO VERIFICADO.
 - **Topes**: `/director` 7.984 B, `/cierre` 7.994 B (de 8.000): ninguno admite otra línea sin recortar.
 - **Mutación**: h11 (a)-(d) y p1 (b) (a)-(d): cada una pone roja la prueba que dice el delta.
+- **El chequeo frío** (un revisor, una vuelta, un proyecto de juguete con el kit): ALTO, el gate de `plantilla-cierre.md` (`estructura.cjs
+  todo`) daba rojo siempre en un módulo con código (`estado-viejo` mira el "## Próximo paso" del handoff de la rama por defecto, que el
+  obrero de cierre no toca) → los ids sin `estado-viejo`. MEDIOS: un obrero borraba `modulo/<x>` del director en origin desde la terminal
+  (el pre-push salteaba los borrados) → los borrados van por la misma lista del rol, con prueba y mutación; los tiempos de un encargo se
+  perdían al `cerrar` → el paso 6 los mide antes; textos (`HEAD:main` en el chequeo de la nota, qué es un tramo). El resto, a Pendientes.
+- **Suite**: 3068/3070 (una roja de carga, `cambios-flota` crit. 5, verde sola; una salteada). **Flota** contra un clon de Hermes, rc.5 →
+  rc.6 con `--con-obra`: `mezclado`, salida 0, `modulo/cashflow` igual; repetida, `al día` (rc.3 → rc.5 es la de D8r.4).
 
 ## Ejecución
 
