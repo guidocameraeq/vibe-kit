@@ -164,14 +164,20 @@ Rutas: `molde` = `kit/molde/`, `dir` = `kit/molde/skills/director/`, `lib` = `ki
 
 - **El dolor**: en los clones del analytics y del bot, la línea 8 (`pruebas`) sale ❌ y el repo queda ROTA para la flota. El
   `comando-setup` del proyecto falla: en el analytics, `npm --prefix chat-syncer ci` (a `package-lock.json` le falta `openai`); en el bot,
-  `pnpm install --frozen-lockfile`. **La primera línea de error del bot: NO VERIFICADO** (se le pide a la madre; si no es un lock
-  desincronizado, p1 no le arregla el dolor al bot y se dice así). El molde no toca `package.json` ni los locks.
+  `pnpm install --frozen-lockfile`. **Las salidas reales** (D8r.4, chequeo frío de la `rc.5`, logs `scratchpad/frio/bot-1.log` y
+  `analytics-1.log` de su sesión): el bot, `Scope: all 36 workspace projects ERR_PNPM_OUTDATED_LOCKFILE Cannot install with…`, por
+  `pnpm-lock.yaml is not up to date with extensions\twilio-whatsapp\package.json` (`added: openclaw@workspace:*`: un miembro del workspace
+  **dos niveles abajo**); el analytics, `npm error code EUSAGE … \`npm ci\` can only install packages wh…`, por `Missing: openai@4.104.0 from
+  lock file` (desde `3e11ad1`, abril). Los dos son un lock desincronizado: p1 les sirve a los dos. El molde no toca `package.json` ni los locks.
 - **Medido**: `chequeo.cjs pruebas()` (`:653-705`) corre el setup en HEAD y, si falla, `nv(...)` (NO VERIFICADO → ❌, `:681`) **sin mirar
   la base**. El test sí se corre en la base (`:688-702`). La flota ya tiene un aviso que no vuelve ROTA: una línea ✅ con el detalle
   `⚠ …` (`avisosDe`, `:445-453`; `flota.cjs:510`). Las dos corridas usan la shell, el entorno y el plazo del kit nuevo (`:664`, `:71-75`).
 - **(a) Detectarlo antes** (`adoptar --mirar` y el `doctor`, parado en un proyecto): `as/lib/locks.cjs` (nuevo, solo lee). Mira el
   `package.json` de la raíz, de cada subcarpeta de primer nivel (sin `node_modules`) y de las carpetas que nombra el `comando-setup`
-  (`--prefix x`, `--prefix=x`, `-C x`, `--dir x`, `cd x &&`). Por cada uno:
+  (`--prefix x`, `--prefix=x`, `-C x`, `--dir x`, `cd x &&`). **Con un workspace** (`pnpm-workspace.yaml`, o `workspaces` en el
+  `package.json` de la raíz), además cada importer del lock de la raíz contra el `package.json` de su ruta, a cualquier profundidad (el
+  bot: `extensions/twilio-whatsapp`), y cada `package.json` de los patrones del workspace que no tenga importer → `falta en el lock`. Las
+  dependencias `workspace:*` se comparan como texto (el `specifier` es el mismo). Por cada uno:
   - **sin lock** (ni al lado ni el de la raíz con su importer) y con dependencias → `sin lock`;
   - **npm** (`package-lock.json`, `lockfileVersion` ≥ 2): cada dependencia de `dependencies`/`devDependencies`/`optionalDependencies`
     tiene que estar en `packages["<ruta>"]` (`""` en la raíz) con el **mismo rango**; si no, `atrasado: falta <dep>` o `<dep>: <rango
@@ -190,9 +196,9 @@ Rutas: `molde` = `kit/molde/`, `dir` = `kit/molde/skills/director/`, `lib` = `ki
     base; si se cuelga o no arranca en la base → ❌ `en base no se sabe`;
   - **la firma del lock desincronizado en las dos corridas** (HEAD y base): npm, la salida con `npm ci` + `in sync` (*"can only install
     packages when your package.json and package-lock.json … are in sync"*) o el código `EUSAGE` con esa frase; pnpm,
-    `ERR_PNPM_OUTDATED_LOCKFILE`; yarn, `YN0028` o *"lockfile would have been modified"*. Las firmas se fijan con pruebas que usan salidas
-    reales (la del analytics, que la trae la madre; las otras, del manual de cada herramienta). Otra salida, o firmas distintas en HEAD y en
-    la base → ❌ como hoy;
+    `ERR_PNPM_OUTDATED_LOCKFILE`; yarn, `YN0028` o *"lockfile would have been modified"*. Las firmas se fijan con pruebas que usan las salidas
+    reales de arriba (npm y pnpm; la de yarn, del manual). **La firma se busca en la salida entera del setup, no en el detalle**, que
+    `corto()` recorta a 80 caracteres (la de npm queda cortada en `wh…`). Otra salida, o firmas distintas en HEAD y en la base → ❌ como hoy;
   - **el commit del kit no toca lo que mueve al instalador** (rt-4): `git diff --name-only <base> HEAD` sin ningún `package.json`, lock,
     `.npmrc`, `.yarnrc`, `.yarnrc.yml`, `pnpm-workspace.yaml`, `.nvmrc`, `.node-version`, `.tool-versions` ni `.gitattributes`, y
     `vars.comando-setup` igual en la ficha de la base y en la de HEAD.
@@ -206,7 +212,7 @@ Rutas: `molde` = `kit/molde/`, `dir` = `kit/molde/skills/director/`, `lib` = `ki
   seguridad) por algo que el kit no rompe ni arregla. **Lo que se pierde**: en ese repo la línea 8 no prueba los tests hasta que Guido
   regenere el lock; por eso el aviso dice NO VERIFICADO y va a `te espera:`.
 - **crit. p1**: `locks.test` (nuevo): npm con una dependencia que falta, con un rango distinto, sin lock, con `lockfileVersion: 1` (→ "no sé
-  leer"), un workspace con el lock en la raíz; pnpm con el importer de la raíz y uno de subcarpeta, un nombre que es prefijo de otro
+  leer"), un workspace con el lock en la raíz; pnpm con el importer de la raíz, uno de subcarpeta y un miembro dos niveles abajo con un `workspace:*` nuevo (el caso del bot), un miembro sin importer, un nombre que es prefijo de otro
   (`openai` y `openai-edge`) y una clave con `@scope` entre comillas, pnpm sin `importers`; yarn con claves juntadas; completo → nada; el
   `--prefix` y el `cd x &&`. `adoptar.test` y `doctor.test`: la línea. `chequeo.test`: firma de npm en HEAD y en base, sin tocar nada → ✅⚠;
   firma en HEAD y anda en base → ❌; firma en HEAD y en base otra cosa (red) → ❌; HEAD colgado → ❌ sin correr la base; base colgada → ❌;
