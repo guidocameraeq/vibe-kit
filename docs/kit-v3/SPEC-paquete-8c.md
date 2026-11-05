@@ -160,37 +160,60 @@ Rutas: `molde` = `kit/molde/`, `dir` = `kit/molde/skills/director/`, `lib` = `ki
 - **crit. h12**: `chequeo.test`: la línea 7 con `hooks-lib` esperando y un caso perdido → ❌ con la línea de resolver; sin esperar → ❌ con el
   detalle de hoy; con `hooks-lib` esperando y ningún hook cambiado → como hoy ("ningún hook cambió"). `flota.test`: la nota.
 
-### p1 · El lock del proyecto atrasado (lo trajo la madre, del chequeo frío de la `rc.5`, 2026-11-04)
+### p1 · El lock del proyecto atrasado (lo trajo la madre, del chequeo frío de la `rc.5`, 2026-11-04; rehecho por su red team)
 
 - **El dolor**: en los clones del analytics y del bot, la línea 8 (`pruebas`) sale ❌ y el repo queda ROTA para la flota. El
-  `comando-setup` del proyecto falla porque su lock está atrasado: el analytics, `npm --prefix chat-syncer ci` (a `package-lock.json` le
-  falta `openai`); el bot, `pnpm install --frozen-lockfile`. Ninguno de los dos es del kit: el molde no toca `package.json` ni los locks.
+  `comando-setup` del proyecto falla: en el analytics, `npm --prefix chat-syncer ci` (a `package-lock.json` le falta `openai`); en el bot,
+  `pnpm install --frozen-lockfile`. **La primera línea de error del bot: NO VERIFICADO** (se le pide a la madre; si no es un lock
+  desincronizado, p1 no le arregla el dolor al bot y se dice así). El molde no toca `package.json` ni los locks.
 - **Medido**: `chequeo.cjs pruebas()` (`:653-705`) corre el setup en HEAD y, si falla, `nv(...)` (NO VERIFICADO → ❌, `:681`) **sin mirar
-  la base**. El test, en cambio, sí se corre en la base (`:688-702`). La flota ya tiene un aviso que no vuelve ROTA: una línea ✅ con el
-  detalle `⚠ …` (`avisosDe`, `:445-453`; `flota.cjs:510`).
-- **(a) Detectarlo antes** (`adoptar --mirar` y el `doctor`, parado en un proyecto): `as/lib/locks.cjs` (nuevo, solo lee) mira el
-  `package.json` de la raíz, de cada subcarpeta de primer nivel (sin `node_modules`) y de la carpeta del `--prefix` o `-C` del
-  `comando-setup`. Por cada uno, el lock que esté al lado: con `package-lock.json`, el lock está atrasado si una dependencia de
-  `dependencies`/`devDependencies`/`optionalDependencies` no figura en `packages[""]` del lock; con `pnpm-lock.yaml`, si no figura en
-  `importers` del lock como clave (búsqueda de texto acotada a ese bloque); con `yarn.lock`, si no hay una entrada `<nombre>@`. Línea:
-  `lock atrasado: <carpeta>/<lock> no tiene <dep> (y N más) — regeneralo en el proyecto (\`npm install --prefix <carpeta>\` · \`pnpm
-  install\`) y commitealo: sin eso, el comando-setup falla y la flota no puede probar tus tests`. El `doctor`: ⚠, nunca ✗. Nada lo arregla solo.
-- **(b) En la flota: que diga que es del proyecto, y que no trabe** (la recomendada de la madre, que se toma con la vara; **toca el
-  actualizador: red team**). Cuando el setup falla en HEAD, `pruebas()` lo corre también en la base (el mismo clon `--shared` de hoy):
-  - si **también falla en la base** y el commit del kit **no toca** ningún `package.json` ni lock (`git diff --name-only <base> HEAD`)
-    → ✅ con `⚠ comando-setup ya fallaba antes de la actualización (<motivo>): es del proyecto, no del kit — <la línea de (a) si la
-    hay>; tus tests no se corrieron (NO VERIFICADO)`. La flota lo suma a la fila (`avisosDe`) y el repo sale `mezclado` con la nota;
-  - si en la base anda (lo rompió la actualización), o el commit del kit toca un `package.json` o un lock, o no se pudo armar la base →
-    ❌ como hoy.
-  - El test **no** se corre en ese caso (sin dependencias no prueba nada); lo de "ya estaba rojo antes" del test sigue como hoy (ROTA).
+  la base**. El test sí se corre en la base (`:688-702`). La flota ya tiene un aviso que no vuelve ROTA: una línea ✅ con el detalle
+  `⚠ …` (`avisosDe`, `:445-453`; `flota.cjs:510`). Las dos corridas usan la shell, el entorno y el plazo del kit nuevo (`:664`, `:71-75`).
+- **(a) Detectarlo antes** (`adoptar --mirar` y el `doctor`, parado en un proyecto): `as/lib/locks.cjs` (nuevo, solo lee). Mira el
+  `package.json` de la raíz, de cada subcarpeta de primer nivel (sin `node_modules`) y de las carpetas que nombra el `comando-setup`
+  (`--prefix x`, `--prefix=x`, `-C x`, `--dir x`, `cd x &&`). Por cada uno:
+  - **sin lock** (ni al lado ni el de la raíz con su importer) y con dependencias → `sin lock`;
+  - **npm** (`package-lock.json`, `lockfileVersion` ≥ 2): cada dependencia de `dependencies`/`devDependencies`/`optionalDependencies`
+    tiene que estar en `packages["<ruta>"]` (`""` en la raíz) con el **mismo rango**; si no, `atrasado: falta <dep>` o `<dep>: <rango
+    del package.json> en el package.json y <el del lock> en el lock`;
+  - **pnpm** (`pnpm-lock.yaml` con `importers`): el importer de la ruta (`.` en la raíz), leído por clave exacta (con o sin comillas,
+    renglón por renglón con su sangría, sin buscar texto suelto); cada dependencia con su `specifier` igual al rango;
+  - **yarn** (`yarn.lock`): una clave anclada al comienzo del renglón, con o sin comillas, partida por `, `, que tenga `<nombre>@<rango>`
+    (o `<nombre>@npm:<rango>`);
+  - `lockfileVersion` < 2, pnpm sin `importers` o un lock que no se puede leer → `no sé leer este lock: lo prueba la flota` (nunca inventa
+    faltantes).
+  Línea: `lock atrasado: <carpeta>/<lock> — <el primero> (y N más): regeneralo en el proyecto (\`npm install --prefix <carpeta>\` ·
+  \`pnpm install\` · \`yarn install\`) y commitealo; sin eso, el comando-setup falla y la flota no puede probar tus tests`. El `doctor`:
+  ⚠, nunca ✗. Nada lo arregla solo.
+- **(b) En la flota: que diga que es del proyecto y que no trabe**, **solo** si la falla es un lock desincronizado de verdad (rt-1, rt-2):
+  - **solo cuenta una salida con código distinto de 0** (rt-3): si el setup de HEAD se colgó o no arrancó → ❌ como hoy, sin correr la
+    base; si se cuelga o no arranca en la base → ❌ `en base no se sabe`;
+  - **la firma del lock desincronizado en las dos corridas** (HEAD y base): npm, la salida con `npm ci` + `in sync` (*"can only install
+    packages when your package.json and package-lock.json … are in sync"*) o el código `EUSAGE` con esa frase; pnpm,
+    `ERR_PNPM_OUTDATED_LOCKFILE`; yarn, `YN0028` o *"lockfile would have been modified"*. Las firmas se fijan con pruebas que usan salidas
+    reales (la del analytics, que la trae la madre; las otras, del manual de cada herramienta). Otra salida, o firmas distintas en HEAD y en
+    la base → ❌ como hoy;
+  - **el commit del kit no toca lo que mueve al instalador** (rt-4): `git diff --name-only <base> HEAD` sin ningún `package.json`, lock,
+    `.npmrc`, `.yarnrc`, `.yarnrc.yml`, `pnpm-workspace.yaml`, `.nvmrc`, `.node-version`, `.tool-versions` ni `.gitattributes`, y
+    `vars.comando-setup` igual en la ficha de la base y en la de HEAD.
+  Con las tres: ✅ con `⚠ comando-setup ya fallaba antes de la actualización (lock atrasado: <firma>): es del proyecto, no del kit —
+  regenerá el lock y commitealo; tus tests no se corrieron (NO VERIFICADO)`. El test no se corre (sin dependencias no prueba nada). Lo de
+  "ya estaba rojo antes" del test sigue como hoy.
+- **Que Guido no lo pierda de vista** (rt-5): además de la nota de la fila (`mezclado`), una línea en `te espera:` (`fila.espera`):
+  `<repo>: tus tests no se probaron, el lock está atrasado — regenerá <lock> y commitealo`. Se repite en cada versión nueva del kit (no en
+  cada vuelta: con la misma versión el repo sale `al día` sin chequear), y lo repiten `--mirar` y el `doctor` mientras (a) lo vea.
 - **Por qué no trabar**: el molde no depende del lock del proyecto, y trabar deja al proyecto sin ningún arreglo del kit (también los de
-  seguridad) por algo que el kit no puede romper ni arreglar. **Lo que se pierde**: en ese repo la línea 8 no prueba los tests hasta que
-  Guido regenere el lock; por eso el aviso dice NO VERIFICADO y lo repiten `--mirar` y el `doctor`.
-- **crit. p1**: `locks.test` (nuevo): npm con una dependencia que falta en el lock → la línea; completo → nada; pnpm y yarn, igual; una
-  subcarpeta y un `--prefix`. `adoptar.test` y `doctor.test`: la línea. `chequeo.test`: setup que falla en HEAD y en base, sin tocar locks →
-  ✅ con `⚠ … es del proyecto`; falla en HEAD y anda en base → ❌; falla en los dos pero el diff toca `package.json` → ❌; sin base →
-  ❌. `flota.test`: el repo sale `mezclado` con la nota. **Mutación**: (a) sacar la condición de la base → la de "anda en base" se pone
-  roja; (b) sacar la del diff → la de `package.json` tocado se pone roja.
+  seguridad) por algo que el kit no rompe ni arregla. **Lo que se pierde**: en ese repo la línea 8 no prueba los tests hasta que Guido
+  regenere el lock; por eso el aviso dice NO VERIFICADO y va a `te espera:`.
+- **crit. p1**: `locks.test` (nuevo): npm con una dependencia que falta, con un rango distinto, sin lock, con `lockfileVersion: 1` (→ "no sé
+  leer"), un workspace con el lock en la raíz; pnpm con el importer de la raíz y uno de subcarpeta, un nombre que es prefijo de otro
+  (`openai` y `openai-edge`) y una clave con `@scope` entre comillas, pnpm sin `importers`; yarn con claves juntadas; completo → nada; el
+  `--prefix` y el `cd x &&`. `adoptar.test` y `doctor.test`: la línea. `chequeo.test`: firma de npm en HEAD y en base, sin tocar nada → ✅⚠;
+  firma en HEAD y anda en base → ❌; firma en HEAD y en base otra cosa (red) → ❌; HEAD colgado → ❌ sin correr la base; base colgada → ❌;
+  falla sin firma en las dos (un `copy` en Bash) → ❌; firma en las dos con `.npmrc` en el diff → ❌; `comando-setup` distinto en la ficha de
+  la base → ❌. `flota.test`: el repo sale `mezclado` con la nota y la línea en `te espera:`. **Mutación**: (a) sacar la firma → la del
+  `copy` se pone roja; (b) sacar la condición de la base → la de "anda en base" roja; (c) sacar el diff → la del `.npmrc` roja; (d) dejar
+  pasar el colgado → la de HEAD colgado roja.
 
 ### La vuelta 2 de la `rc.5` (sin rediseñar; el texto que manda es el de `SPEC-paquete-8r4.md`, con su red team)
 
@@ -274,8 +297,8 @@ Los crit. de c1, h11, h12 y de cada ítem de la vuelta 2 (los del delta de la `r
   `[acordarse de menos]`
 - **D8c-6 · h9 y h10 se reproducen antes de tocar código** (como manda u10). `[filtro pragmático]`
 - **D8c-7 · D8r.1-4 y D8r.2-3/4/6 no entran**: por las dudas, adivinar, o grande sin dolor de uso. `[filtro pragmático]`
-- **D8c-8 · p1: el setup que ya fallaba antes, y que el kit no tocó, avisa y no traba** (la recomendada de la madre): trabar deja al
-  proyecto sin los arreglos del kit por algo que el kit no rompe ni arregla. Las dos condiciones (falla también en la base, el commit
+- **D8c-8 · p1: el setup que ya fallaba antes por un lock desincronizado (con su firma), y que el kit no tocó, avisa y no traba** (la recomendada de la madre; las condiciones, por su red team): trabar deja al
+  proyecto sin los arreglos del kit por algo que el kit no rompe ni arregla. Las tres condiciones (la firma del lock en las dos corridas, el commit
   del kit no toca `package.json` ni locks) son las que separan "del proyecto" de "lo rompió la actualización". `[workflow · coherencia]`
 - **D8c-9 · p1 (a) detecta el lock atrasado leyendo los archivos, no corriendo `npm ci`**: correr el instalador en `--mirar` o en el
   `doctor` tarda minutos y escribe `node_modules`; leer es instantáneo y no toca nada. Mira npm, pnpm y yarn (los tres de la flota hoy son
