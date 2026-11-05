@@ -64,7 +64,7 @@ En orden, mostrando qué hacés. `<carpeta>` = la del proyecto, por ruta absolut
    - **"Los dos" + `/docs-fyd` instalado** (`~/.claude/skills/docs-fyd/`): invocá `/docs-fyd` UNA vez para sembrar `docs-fyd/`, `piezas.docs-fyd: sí` en la ficha. **Pre-cargá `_CAMPOS-NEGOCIO.md` desde el SPEC-0** (función / quiénes / criticidad salen de la entrevista; el 4º, proceso manual alternativo, si la entrevista lo capturó, o `[completar]`). Sumá `docs-fyd/` al "Mapa de documentación" del `CLAUDE.md` (una línea: doc técnica de auditoría FyD, regenerable; `/docs-fyd` la genera). **Registrás y disparás, no duplicás el motor**: el molde vive en la skill global. Un commit.
    - **"Solo el mío"**: no sembrás nada.
    - **"Los dos" sin `/docs-fyd` instalado**: un stub en el handoff (*"falta instalar /docs-fyd (Equipador) y correrlo acá"*) y **no rompas el montaje**.
-10. **El handoff, el último** (`candado:estado-viejo` pide que `## Próximo paso` cambie en el mismo tramo que el último código: la portada y `docs-fyd/` cuentan): `docs/SESSION_HANDOFF.md` entero, cero `[completar`, con `## Próximo paso` = la línea del Paso 6. Un commit: `git add -A` y `git commit -m "v1: el handoff"`.
+10. **El handoff, el último** (`candado:estado-viejo` pide que `## Próximo paso` cambie en el mismo tramo que el último código: la portada y `docs-fyd/` cuentan): `docs/SESSION_HANDOFF.md` entero, cero `[completar`, con `## Próximo paso` = la línea del Paso 6. Un commit: `git add -A` y `git commit -m "v1: el handoff"`. **Con director** (la Ejecución dice `módulo con director`: la ficha de v1 con `director: sí` y `rama: modulo/v1`), después, desde `<carpeta>`: `node .claude/scripts/worktree.cjs crear v1` (timeout 600000; la vía de una ventana): arma `modulo/v1` y su worktree e imprime la apertura; si niega, su línea tal cual y una pregunta, nunca el worktree a mano.
 11. **Checklist final visible**: la tabla de lo montado (✅ por ítem, con evidencia): la ficha `.claude/kit.md` con `kit:` = la de `~/.claude/VERSION`; `node .claude/scripts/estructura.cjs todo` → 0 (si frena, su renglón queda en `.claude/frenos.log`: arreglá lo que dice y commiteá los dos); `<arq> ready --pendientes` → nada; `git config core.hooksPath` → `.githooks`; `git status` limpio; cero `{{` y cero `[completar` (los del punto 7 y el handoff); el SHA de cada commit.
 
 ## Paso 6 — Handoff (y te apagás)
@@ -73,7 +73,7 @@ Cerrá con EXACTAMENTE esto, listo para copiar (la línea es la de "Ejecución" 
 
 > **El proyecto quedó montado y en régimen.** Para construirlo:
 > 1. Abrí un chat nuevo de Claude Code en `<ruta absoluta de la carpeta>`
-> 2. Pegá: `inicio — ejecutá docs/modulos/v1/SPEC.md (está READY)`
+> 2. Pegá: `inicio — ejecutá docs/modulos/v1/SPEC.md (está READY)`; **con director**, en esa misma ventana, una sesión nueva con Opus y el primer mensaje `/director v1` (entra solo al worktree con `donde`), como lo imprimió `worktree.cjs crear v1`
 >
 > La sesión nueva arranca con el sistema puesto (el hook le inyecta el contexto), construye por el spec y cierra con `cierre`. Vos aprobás y verificás, como siempre.
 

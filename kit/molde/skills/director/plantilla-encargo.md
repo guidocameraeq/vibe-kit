@@ -8,6 +8,7 @@
 - Suscripción: <cuándo avisar, una línea> | —
 ## Toca
 ## Alcance
+<!-- un sub-paso no mezcla capas: datos, lógica o pantalla, una por sub-paso -->
 ## NO SE TOCA
 ## AUTORIZADO
 ## GATE

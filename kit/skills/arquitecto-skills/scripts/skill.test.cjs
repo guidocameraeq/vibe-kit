@@ -136,6 +136,10 @@ test('modo-a.md (8b, 15): el Paso 5 nombra adoptar --nuevo y --principal, el --t
   const p0 = /## Paso 0[\s\S]*?(?=\n## )/.exec(t)[0];
   assert.ok(p0.includes('*/docs/modulos/v1/SPEC.md') && p0.includes('*/SPEC-0.md'), 'el Paso 0 busca los dos');
   assert.ok(t.includes('`inicio — ejecutá docs/modulos/v1/SPEC.md (está READY)`'), 'la línea para abrir');
+  // 8c r1 (D8r.1-1): con director, el Paso 5 arma el worktree de v1 y la línea del Paso 6 es /director v1
+  assert.ok(p5.includes('`node .claude/scripts/worktree.cjs crear v1`'), 'el Paso 5 con director arma el worktree de v1');
+  const p6 = /## Paso 6[\s\S]*?(?=\n## )/.exec(t)[0];
+  assert.ok(p6.includes('`/director v1`'), 'la línea del Paso 6 con director');
   // formato-spec.md dice lo mismo (renglones 5 y 104)
   const fs0 = leer(path.join(SCRIPTS, '..', '..', 'arquitecto', 'anexos', 'formato-spec.md'));
   assert.ok(fs0.includes('`docs/modulos/v1/SPEC.md`') && !fs0.includes('(SPEC-0.md, está READY)'), 'formato-spec.md');
@@ -206,7 +210,11 @@ test('modo-b.md y formato-spec.md (8r T1, T2, T3): el director pide la ficha; su
   const director = b6.split('\n').find((l) => l.includes('**Con director**'));
   assert.ok(director, 'B6 trae la línea con director');
   assert.doesNotMatch(director, /inicio — ejecutá/);
-  assert.match(director, /`\/director`/);
+  assert.match(director, /`\/director <x>`/, 'D8r.4-2: con el módulo, como lo imprime worktree.cjs');
+  assert.doesNotMatch(mb, /primer mensaje: \/director`/, 'B5: la apertura dice /director <x>');
+  // 8r4 u5: B0 nacer/retomar; B5, el worktree con el spec en BORRADOR bajo el director
+  assert.match(seccion(mb, '## B0'), /\*\*Nacer\*\*[\s\S]*\*\*Retomar\*\* un módulo que ya nació/);
+  assert.match(b5, /el worktree puede armarse con el spec todavía en BORRADOR/);
   assert.match(b5, /adoptar/, 'B5.6 apunta a adoptar');
   assert.doesNotMatch(mb, /templates de esta skill/);
   const fs0 = leer(path.join(ARQ, 'anexos', 'formato-spec.md'));
