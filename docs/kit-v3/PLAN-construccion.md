@@ -1321,6 +1321,8 @@ Lo que se evaluó, para no volver a evaluarlo de cero (insumo de la misión 6):
   - qué cuenta como "porqué" de una pieza adaptada → la ❓ de D6.2
   - el acople de los `hook-*` con `hooks-lib` (nivel completo) → "De D8c.1", 1
   - `secretos.cjs` no frena leer un `config.local.ini` (es un freno: con red team) → "De D8c.1", 2
+  - adoptar un repo con director propio: la comparación a/b/c/d y los anexos, y las 8 reglas genéricas de Mobile. 🔴 La 3 (Grep sobre
+    credenciales) es un freno → "De la prueba real", 13
 - **Antes de R2 / después**:
   - un repo de prueba parecido a Hermes → "De D8r.2", 6 (= "De D8c.1", 8)
   - los NO VERIFICADO de la `rc.6` (EnterWorktree real, el obrero de cierre real, `traer-main` con githooks…) → "De D8c.1", 7 (y "De D8r.4", 3; "De D8r.2", 5; "De D8r.1", 5; "De D8b.1", 3)
