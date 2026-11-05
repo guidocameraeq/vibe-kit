@@ -1306,119 +1306,72 @@ Lo que se evaluó, para no volver a evaluarlo de cero (insumo de la misión 6):
 
 ## Pendientes de cada paquete
 
+**Lo abierto, de un vistazo (2026-11-05)** (el detalle, en cada ítem de abajo):
+- **Para la `rc.7` (taller)**:
+  - todo clon del Equipador con `core.longpaths`; `--mirar` se niega si el checkout quedó a medias → "De la prueba real", 10
+  - `adoptar --traer` deja pasar los `??` que no chocan → "De la prueba real", 11
+  - `/director` y `/cierre` al borde del tope de 8.000: recortar o anexo → "De D8c.1", 3
+  - `resolver director-obrero nueva` con `scripts: no` no avisa lo que falta → "De D8c.1", 4
+  - BAJOS: el commit de `resolver` dice "inicio:"; "candado apagado" en el rango de la adopción → "De D8c.1", 5
+  - el `doctor` de Juan: `automode` y `copias-kit` en ⚠; la suite sensible a la carga y la roja `no hay sh` → "La prueba de Juan"
+- **De diseño, con Guido**:
+  - `sensible` no ve lo que corre adentro de un `ssh` → "De la prueba real", 12
+  - un director para dos cosas (encargos para un cierre suelto): Guido decidió que CC va por mensaje; el diseño, con los
+    experimentos de la próxima versión → "De la prueba real", 5
+  - qué cuenta como "porqué" de una pieza adaptada → la ❓ de D6.2
+  - el acople de los `hook-*` con `hooks-lib` (nivel completo) → "De D8c.1", 1
+  - `secretos.cjs` no frena leer un `config.local.ini` (es un freno: con red team) → "De D8c.1", 2
+- **Antes de R2 / después**:
+  - un repo de prueba parecido a Hermes → "De D8r.2", 6 (= "De D8c.1", 8)
+  - los NO VERIFICADO de la `rc.6` (EnterWorktree real, el obrero de cierre real, `traer-main` con githooks…) → "De D8c.1", 7 (y "De D8r.4", 3; "De D8r.2", 5; "De D8r.1", 5; "De D8b.1", 3)
+  - dos agentes con el mismo `name:` después de `--agentes renombrar` → "De D8c.1", 6
+  - Hermes con la `rc.6`: resolver `scripts` y `director-obrero`; `allow_abbrev=False` y `andamiaje:` en su ficha → "De D8c.1", 9 y "Para Hermes"
+  - `cargar-secreto` con el módulo del lector → "De la adopción real de Hermes", 10
+  - los choques de diseño de Hermes contra el kit: **decidido con Guido (2026-11-04), queda lo del kit hasta R2**, y R2 los mira →
+    "De la adopción real de Hermes", 9
+- **Decidido, no se hace en la v3**: el protocolo de producción queda en Hermes; es una idea para una versión futura (Guido,
+  2026-11-04; TODO 🟢) → "De la adopción real de Hermes", 2
+  - lo que te espera a vos de los paquetes 2 a 6 (pestañas reales, hooks por PC, "preparame esta PC") → cada "te espera a vos, Guido"
+  - los "para después" de los paquetes 1, 6, 7 y 8, y "Del piloto" → cada uno
+
 Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (queda en el CHANGELOG).
 
-- **De la adopción real de Hermes (2026-11-04, con Guido), para la `rc.5`** (D8c.1; la `rc.4` exprés, D8r.3, se llevó el 11 (a) y (b)). Hermes quedó adoptado con la `rc.3` (`main` @
+- **De la adopción real de Hermes (2026-11-04, con Guido)** (lo resuelto salió en la `rc.4`, la `rc.5` y la `rc.6`). Hermes quedó adoptado con la `rc.3` (`main` @
   `5f824544`, `eQ-Repositorio/Hermes-desktop`): D1 A con lo propio de Hermes en la zona propia de las 5 skills, D2/D3 las recomendadas,
   D4 `datos-reales` con 8 comandos, `merge-a-main: con-ok-de-guido`, las reglas de la casa solo con el clic de Guido (CM-14 de Hermes).
   Lo que dolió en el kit:
-  1. **El renglón de CHANGELOG de la adopción ignora el formato del proyecto**: lo metió suelto arriba de la última versión de un
-     CHANGELOG Keep a Changelog que lee `publicar.bat` (`### Para usuarios`). Y el `/cierre` del kit impone `## AAAA-MM-DD — <tema>`: en
-     Hermes rompería las notas del release. Se tapó con la zona propia del `/cierre`. Arreglo: que la adopción y el `/cierre` detecten
-     `[Unreleased]` (o un `formato-changelog:` en la ficha) y escriban ahí.
+  1. ✅ rc.6 · con `## [Unreleased]`, el renglón va en `### Método (kit)` (SPEC-paquete-8c, u6; sin clave en la ficha: D8r4-7)
   2. **El kit no tiene protocolo de producción**: solo `Riesgo: alto` y la clase 3. Hermes tiene la ALERTA con las filas esperadas, la
      autorización por tramo con vencimiento (CM-7, 27, 53) y los 4 pasos (ensayo, foto, revisión, verificación). Quedó en su zona propia;
      el principio es del método.
-  3. **`NUCLEO.md` deja que los agentes editen `CLAUDE.md`, skills y agentes como clase 1/2**: Guido eligió para Hermes que solo con su
-     clic. Que sea una opción de la ficha, no una regla fija.
-  4. **El `implementador` del kit no trae las reglas que Hermes tenía en sus agentes** (`db-migr-*`, CM-29 a 44): quedan en el brief, por
-     la zona propia del `/tramo`, y los `db-migr-*` sin usar. Arreglo: que la adopción ofrezca renombrar o mezclar agentes propios.
-  5. **`sensible: datos-reales` no distingue entorno**: `scripts/aplicar_migracion.py` pregunta también contra el ensayo.
-  6. **El Equipador no dice que antes de `--sacar-viejo` se crucen los patrones** del corrector viejo con los de `secretos.cjs` (paso 2
-     de "Mañana con Guido"): esta sesión lo sacó primero y lo cruzó después (los 5 del viejo están en el nuevo). Arreglo: el modo HOOKS
-     POR PC del Equipador, paso 4, lo pide.
-  7. **`.worktreeinclude`**: `--mirar` lo propone pero `--aplicar` no tiene la opción; se escribió a mano.
-  8. **Las lecciones de Hermes que el kit no tiene** (sus `CM`, en `.claude/cambios/` de Hermes): los pendientes no quedan huérfanos y
-     llevan su destino (CM-15, 37, 101); el plan con una fila por decisión, el camino en papel y "qué ve hoy / qué va a ver" (CM-16, 70,
-     81; NO VERIFICADO si el Modo B del Arquitecto ya lo pide); partir sin mezclar capas, tope de 3 archivos por sub-paso; abrir la
-     función entera antes de citar (CM-34), contar los números de un documento contra el código (CM-17), un "X ya no existe" lleva su
-     medición y una premisa corregida reabre la decisión (CM-6, 74, 88); una mutación que queda verde es un agujero de la prueba, se mira
-     dónde cayó y va en el código (CM-31, 42, 55, 85); antes de borrar un módulo, la suite entera con él bloqueado y el recuento de
-     aserciones (CM-93, 95); no armar texto por partes para esquivar un control y sin atribuciones en el código (CM-32, 63, 96); el gate
-     prueba primero el camino de la mayoría (CM-28); el obrero sale con trabajo de reserva (CM-25); el entregable que no se puede hacer
-     por mitades se avisa antes (CM-3); un archivo con una credencial adentro no se lee entero (CM-87); cruzar el NO SE TOCA con
-     decisiones posteriores al spec (CM-63). Cada una con su cicatriz en el `CM` de Hermes; entran si pasan la vara del ADR-030.
+  3. ✅ rc.6 · `andamiaje: con-ok-de-guido` en la ficha: andamiaje es clase 3 (SPEC-paquete-8c, u7)
+  4. ✅ rc.6 · `--aplicar --agentes renombrar` pasa el propio a `<nombre>-propio.md` (SPEC-paquete-8c, u6; "mezclar" no es comando: D8r4-9)
+  5. ✅ rc.6 · `flota.md` D4: la entrada lleva la bandera de producción (SPEC-paquete-8c, u7, rt-8; lo de Hermes, abajo en "Para Hermes")
+  6. ✅ rc.6 · el Equipador, paso 4, pide cruzar los patrones antes (SPEC-paquete-8c, u7)
+  7. ✅ rc.6 · `--aplicar --worktreeinclude` escribe lo que propuso `--mirar` (SPEC-paquete-8c, u6)
+  8. ✅ rc.6 · las nueve lecciones que pasaron la vara, una línea cada una (SPEC-paquete-8c, u7; las que no, con su porqué en la tabla de u7 de SPEC-paquete-8r4)
   9. **Choques de diseño que Guido decidió para Hermes y conviene mirar en el kit**: la mutación de cada prueba nueva (Hermes) contra
      solo en `Riesgo: alto` (kit); hasta 2 vueltas de revisor con lo abierto declarado (CM-76) contra PARADA; el handoff con 2 banners y
      archivo contra sobreescribir. Hoy en Hermes rigen los del kit.
-  11. **De la adopción de los repos de Artibot (el mismo día)**. El analytics (`eQ-Repositorio/Arti-bot-analytics-eq`) quedó adoptado
-     (`main` @ `8519427`); **el bot (`Arti-bot-eq`) esperaba la `rc.4`** por (a), que ya salió (D8r.3):
-     ~~(a)~~ ✅ D8r.3 (`carpeta-docs:` en la ficha; `--mirar` la detecta, `--aplicar` la toma) — (a) **la carpeta de papeles es fija, `docs/`** (`RUTA_HANDOFF` en `inyeccion.cjs`, `candado.cjs` y `barreras.cjs`, y los rituales):
-         el bot es un fork de OpenClaw cuyo `docs/` es el sitio publicado de OpenClaw (699 archivos, `docs.json`, `CNAME`) y sus papeles
-         viven en `arti-docs/`. Adoptarlo metía el handoff, el TODO y el NORTE del kit en la documentación de OpenClaw. Arreglo: una
-         `carpeta-docs:` en la ficha que lean el hook, el candado, las barreras y los rituales; después, "poné al día la flota" lo adopta.
-     ~~(b)~~ ✅ D8r.3 (`--mirar` lo dice y abre D3; `--arranque kit` lo reemplaza; en un repo ya adoptado, `resolver . hook-arranque nueva --kit <clon>`) — (b) **Un hook de arranque propio con el mismo nombre que el del kit** (`.claude/hooks/session-start.cjs`, en los dos repos): con
-         `hook-arranque: propia` la adopción no lo toca, `--arranque kit` saca su renglón del settings y queda el del molde, que apunta
-         al mismo archivo, o sea al hook viejo: el `/inicio` del kit no encuentra su huella y nadie avisa. Con `molde` sale "te espera:
-         la mezcla chocó" y `resolver … nueva` lo arregla, pero solo en la carpeta del dueño (el clon es `actualizador`) y el commit pide
-         un aprobado (el hook es de frenos). Arreglo: que `--mirar` lo diga y `--arranque kit` traiga el del kit.
-     (c) **La regla `ask` de un comando le gana al "no volver a preguntar"**: el analytics tenía `ask Bash(ssh:*)` y Guido aprobaba cada
-         ssh al VPS ("me vuelve loco"). Decidido con él: mirar el VPS libre (allow con los comandos exactos de solo lectura que corren
-         los rituales) y tocar pregunta la primera vez (sale el `ask`). Lo mismo con `ask git commit` (frena a un obrero en cada sub-paso).
-         Arreglo: que la pantalla de adopción liste los `ask` propios que van a preguntar en cada vuelta, no solo los que frenan al director.
-  10. ~~El NO VERIFICADO de `barreras` después de `cambios aprobar`~~ **NO APLICA** (medido por la sesión "Preparar PC": `rango()` es `origin/main..HEAD` y esos commits ya están en `origin/main`, así que ningún `/cierre` los mira; un aprobado posterior no los cubre: el sello va antes del primer commit que toca; salida en el analytics: `candado: en verde (barreras)`, 0). La línea `después:` de `adoptar` ya lo dice así (D8r.3, i4). **Verificado en esta adopción**: el `comando-setup` (con `npm --prefix web ci`) corrió en la carpeta de Guido con Python 3.14.0,
-     salida 0. **Sigue NO VERIFICADO**: que `barreras` quede verde después de `cambios aprobar` sobre los dos commits ya pusheados (la
-     ficha y los permisos); los githooks no los traban (pre-commit mira el índice, pre-push lo que origin no tiene). La portada quedó
-     apagada (README propio). `cargar-secreto` (paso 5 de "Mañana con Guido") no se hizo: va con el módulo del usuario de lectura de Supabase.
+  11. **De la adopción de los repos de Artibot (el mismo día)**:
+     (a) ✅ rc.4 · `carpeta-docs:` en la ficha; `--mirar` la detecta (SPEC-paquete-8r3, i1/i1b)
+     (b) ✅ rc.4 · `--mirar` abre D3; `--arranque kit` trae el del kit (SPEC-paquete-8r3, i2)
+     (c) ✅ rc.6 · `--mirar` lista los `ask` que preguntan cada vuelta (SPEC-paquete-8c, u6)
+  10. Falta: `cargar-secreto` (paso 5 de "Mañana con Guido"), que va con el módulo del usuario de lectura de Supabase. (Lo demás, ✕ no
+     aplica: medido, ningún `/cierre` mira esos commits ya pusheados; la línea `después:` lo dice, SPEC-paquete-8r3, i4.)
 
 - **De la prueba real, lo que cuenta Guido** (la sesión madre de la recta final; cada uno con su fecha):
-  1. **2026-11-04 · Las carpetas de gate de Hermes ensucian `D:\`.** El Arquitecto, al ordenar el disco: 9 copias de Hermes sueltas en
-     `D:\` (4 ya en `main`, 3 con ramas viejas del 21/10, 1 vacía, 1 viva: la del obrero `cc-ui`, 4 commits sobre `main`) y **66 carpetas
-     `gate-*` en `D:\Hermes\`** (del 6/10 al 3/11), más logs de Mobile y una carpeta con nombre roto (`Hermes.exe;C`). Los worktrees del
-     kit ya van adentro del repo (`.claude/worktrees/`); **el gate del kit también** (`worktree integrar` arma su temporal en
-     `.claude/worktrees/` y lo borra al final: `kit/molde/scripts/worktree.cjs`, `CARPETAS`). Los `gate-*` vienen del gate propio de
-     Hermes, de antes de la adopción (NO VERIFICADO qué script los crea, ni si sigue vivo en la zona propia). Para la `rc.4`: que
-     `adoptar --mirar` detecte un gate o temporales propios que escriben fuera del repo y ofrezca pasarlos al de `.claude/worktrees/`,
-     y que el `doctor` o la flota avisen de carpetas hermanas del repo que son worktrees muertos.
-  2. ~~✅ D8r.4: `.gitleaksignore` con las dos huellas; `gitleaks detect` da 0~~ **2026-11-04 · `gitleaks detect` sobre toda la historia de vibe-kit da 2** (no 0): dos claves de mentira en
-     `kit/skills/arquitecto-skills/scripts/doctor.test.cjs` (líneas 595 y 597, commit `f670568`, D6.1 E2, 2026-11-02), ya públicas. Son
-     del test, no secretos reales. Arreglo de taller: un `.gitleaksignore` con sus dos huellas, así "push solo con 0" vuelve a medir algo.
-  3. ~~✅ D8r.4 (u1): `worktree.cjs donde`, `/obrero` y `/director` entran con EnterWorktree y verifican rama y rol; la apertura de una
-     ventana va primero; el deny del `.env` va al `settings.local.json` del principal (D8r4-3). Sigue NO VERIFICADO: EnterWorktree en
-     una sesión real de la extensión y las `allow` de AUTORIZADO (D8r4-4)~~ **2026-11-04 · Una sola ventana: el obrero nace en `main` y el director le da el worktree** (el Arquitecto v3 en Hermes, rc.3).
-     `worktree.cjs crear`/`abrir` terminan con `code "<worktree>"` o una línea de `claude.exe`. **Guido trabaja en la extensión de
-     Claude Code de VS Code, una ventana por proyecto** (los proyectos chicos, en la app): "New Session" nace en el workspace (`main`), y
-     un `/director` o `/obrero` ahí corre en `main`, no en su rama. Probado: `EnterWorktree` (path) entra (`git branch` = `modulo/cashflow`,
-     `.kit-rol` = director). Los hooks leen bien el rol (`contexto.cjs:6,30`: la raíz por `rev-parse` desde el cwd de la entrada, nunca
-     `CLAUDE_PROJECT_DIR`), pero los scripts de hook y los permisos quedan los del settings de arranque (`main`). **Medido por la madre**:
-     el `settings.json` de Hermes ya trae `Read(./**/.env)` y `Read(./**/.env.*)`, que cubren el principal y `.claude/worktrees/**`; lo
-     que el worktree suma (`settings.local.json`) es `Read`/`Edit` absolutos del `.env` del principal: con EnterWorktree falta solo el
-     **`Edit`**, y las `allow` de AUTORIZADO no cargan (más preguntas, no menos frenos). NO VERIFICADO que `./**` siga resolviendo contra
-     `main` después de EnterWorktree, ni si la extensión deja elegir la carpeta de una sesión nueva (multi-raíz). **Decidido con Guido,
-     desde hoy**: "esa forma de antes es muchísimo más práctica. Porque yo levanto al director en un worktree que lo planeo, eso con el
-     arquitecto, eso está bien. Pero una vez ahí, ya el director logra gestionar a los obreros. Lo mismo pasará eventualmente con los
-     gates". **Para la rc.5**: ese es el camino del kit: el obrero nace donde sea, `/obrero` se presenta, el director corre `abrir` y le
-     da la ruta, el obrero entra (EnterWorktree) y verifica rama y `.kit-rol` antes de tocar nada (si no coinciden, para); el `Edit` del
-     `.env` del principal, al `settings.json` del molde; `crear`/`abrir` imprimen esa vía; los gate, también desde el director.
-  4. **2026-11-04 · Diseñar un módulo ya armado, adentro de su worktree** (el Arquitecto v3, `cashflow`). `modo-b.md` B0 ("parado en
-     otra rama… el módulo nace en la rama por defecto") protege el NACIMIENTO (`worktree.cjs:610` exige la ficha en `main`) pero se lee
-     como si prohibiera el retome; `/director` paso 2 manda a `/arquitecto` en `modulo/<x>`. Se contradicen; `arquitecto.cjs` (sello y
-     ready) no mira la rama, solo `rama: modulo/<x>` en la ficha (`:225`): la traba es de texto. Y B5 dice crear el worktree después del
-     ready; se creó con el spec en BORRADOR porque Guido quiere que el diseño corra bajo el director. Workaround de hoy: una sesión
-     `arquitecto-cashflow` entra al worktree, commitea por rutas solo `docs/modulos/cashflow/SPEC.md` y `prototipo/` en `modulo/cashflow`
-     y pushea esa rama; el director corre `presentar --spec` con el READY. **Para la rc.5**: B0 distingue nacer (en `main`) de retomar
-     (en `modulo/<x>`), B5 admite el worktree en borrador, y `/director` dice si diseña él o una sesión de Arquitecto aparte.
+  1. ✅ rc.6 · `vecinos` en `--mirar` y el `doctor` (⚠, nunca borra) (SPEC-paquete-8c, u4+h6; los `gate-*` se cuentan sin consejo de mudarlos: rt-9)
+  2. ✅ rc.5 · `.gitleaksignore` con las dos huellas de mentira (SPEC-paquete-8r4, u3)
+  3. ✅ rc.5 · `worktree.cjs donde` + EnterWorktree; la vía de una ventana primero (SPEC-paquete-8r4, u1, rt-1; la sesión real sigue NO VERIFICADO: "De D8c.1", 7)
+  4. ✅ rc.6 · B0 nacer/retomar, B5 con BORRADOR, `/director` paso 2 (SPEC-paquete-8c, u5)
   5. **2026-11-04 · Un director para dos cosas** (tensión, sin decidir): el de `cashflow` también conduce ajustes de Cuenta Corriente
      fuera del módulo, con un obrero en `ui/cc-seguimiento-circuitos`, por mensaje (decisión de Guido, se mantiene). Queda fuera de
      `encargo.cjs verificar` y no hay cómo darle encargo (con el spec en BORRADOR `presentar --spec` sale 1; la rama no es
      `modulo/<x>--<ID>`). Insumo de D8c.1: encargos para un cierre suelto bajo un director.
-  6. ~~✅ D8r.4 (u2): `flota … --con-obra` avisa y recomienda no, actualiza `main` y prueba el merge a cada módulo en su clon; a la rama
-     la trae el director con `worktree.cjs traer-main` (D8r4-5)~~ **2026-11-04 · La flota saltea el repo con obra en curso, y eso choca con la beta.** `lib/flota.cjs:305`: una rama `modulo/*` del
-     remoto sin mezclar → `salteado` ("no me meto en el medio"): no toca nada del repo, `main` incluido; y el worktree del módulo sigue
-     con el molde viejo hasta traer `main`. El proyecto que más se prueba es el que menos arreglos recibe. **Decidido con Guido**:
-     "quiero poder actualizar main y las ramas, que sea una opción. Que me recomiende no hacerlo, pero, por ejemplo, si yo sé que estoy
-     en un momento en el que puedo, quiero poder hacerlo". **Para la rc.5**: la opción explícita (la flota, o "poné al día X" con obra),
-     que avisa y recomienda no hacerlo, actualiza `main` y ofrece llevarlo a cada rama de módulo viva, con lo rojo de los frenos para
-     que lo apruebe Guido.
-  7. **2026-11-04 · `docs/NORTE.md` queda con `[completar]` después de la adopción** (Hermes): la adopción tendría que avisarlo.
-  9. ~~✅ D8r.4 (u9): `tocaContraUno` compara contenido; gitleaks del merge con `diff --cc` contra el árbol del índice; el pre-push
-     descuenta la vigente de origin. En el clon de Hermes: de 38 rutas a 0~~ **2026-11-04 · El pre-commit de un merge de `main` en una rama vieja** (Hermes, `ui/cc-seguimiento-circuitos`, 304 commits atrás,
-     con conflictos; lo trajo la sesión madre): el candado (`barreras --indice`) da 36 rutas "sin un aprobado sellado" que son de `main`
-     (ya juzgadas allá) y gitleaks (`diff --cached`, contra HEAD: `kit-githook.cjs` ~782) marca líneas viejas de `main`. El pre-push sí
-     juzga contra el otro padre. La salida que da el kit (`cambios aprobar`) pide `main` y sin merge a medias: no sirve. Medido en el
-     clon (D8r.4): rojo, 38 rutas; la causa es que `barreras.cjs tocaContraUno` da el par de los hooks y githooks **sin comparar
-     contenido**, así que en un merge nunca se descuentan (el settings y la ficha sí). **Para la rc.5** (D8r.4, u9, vuelta 1, con el
-     pre-push de una rama ya subida y el gitleaks del merge).
+  6. ✅ rc.5 · `flota … --con-obra` y `worktree.cjs traer-main` (SPEC-paquete-8r4, u2)
+  7. ✅ rc.6 · `--aplicar` avisa los `[completar]` que quedan en `NORTE.md` (SPEC-paquete-8c, u6)
+  9. ✅ rc.5 · `tocaContraUno` compara contenido; gitleaks del merge con `--cc` (SPEC-paquete-8r4, u9)
   8. **Dato, no pendiente**: los módulos de Hermes en curso: `lector` solo (rol de lectura en Supabase y `scripts/consultar.py`; sello
      y ready ✅, `2a708a4b`) y `cashflow` con director (spec en BORRADOR, `30427858`; `worktree crear cashflow` con salida 0).
   10. **2026-11-05 · El clon de la adopción y el de la flota no ponen `core.longpaths`** (adopción del Hub, `dashboard-implementaciones`,
@@ -1445,7 +1398,7 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
   a la rama huérfana `prueba/juan` de este repo (sin el kit: su `CLAUDE.md`, `PLAN.md`, `pruebas/`, `impresiones.md`, proyectos con
   alias). La sesión madre la lee con `git fetch origin prueba/juan`; lo que sirva entra acá, en esta sección.
   - **Pasos 0-2 (`52e0ca3`, rc.3 en `pc-juan`)**: el `doctor` dio 0 ✗ y 5 ⚠, de los que salen tres hallazgos:
-    - el doctor no lee la versión de `claude` de la terminal (2.1.252 a mano contra ≥ 2.1.295; h10 de la `rc.6` usa esa salida);
+    - ✅ rc.6 · el `doctor` lee el `claude.cmd` de la terminal (SPEC-paquete-8c, h10);
     - `automode` da ⚠ por dos checkouts del mismo origin;
     - `copias-kit` da ⚠ por 2 proyectos con copia propia de `arquitecto`.
   - **Suite**: 35 min, 2858 de 2867, 8 rojas y 1 salteada. Repetidas por archivo pasan las 287.
@@ -1458,42 +1411,33 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
   - `andamiaje: con-ok-de-guido` en su ficha, que es la opción de editar reglas.
 
 - **De D8r.4, para la `rc.6`** (D8c.1; el chequeo frío de la `rc.5`, en `SPEC-paquete-8r4.md`):
-  1. **La adopción propone un `comando-setup` que nunca prueba** (`npm ci`, `pnpm install --frozen-lockfile`): el analytics y el bot
-     tienen el lock atrasado desde antes del kit y la flota les da ROTA en la línea 8 en cada versión. Arreglo: que `adoptar --mirar` lo
-     pruebe, o que la línea 8 distinga "ya fallaba antes del kit" (⚠). Mientras, Guido arregla el lock de cada repo.
-  2. **`abrir <x>` dice `primer mensaje: /director` sin el módulo**: con dos módulos (Hermes), la skill adivina el `<x>` de `donde`.
+  1. ✅ rc.6 · `locks` en `--mirar`/`doctor`; la línea 8 da ⚠ (SPEC-paquete-8c, p1; regenerar el lock de cada repo sigue siendo de Guido)
+  2. ✅ rc.6 · la apertura dice `/director <x>` (SPEC-paquete-8c, r2, D8r.4-2)
   3. NO VERIFICADO: `traer-main` con los githooks puestos; gitleaks cazando una clave nueva en un merge.
 
 - **De D8r.2, para la `rc.5`** (D8c.1), con su porqué (no entraron en la única vuelta de corrección):
-  1. ~~✅ D8r.3: `resolver . <pieza> nueva --kit <clon> --por …` anda sin informe sobre una `propia`~~ **Un repo ya adoptado con `director-obrero` en `propia` no tenía un paso que la traiga**: la flota saltea una ficha al día y
-     `resolver … nueva` pide un informe de fusión (`modo-b.md` B4 lo dice así). Para Hermes no aplica (se trae al adoptar con
-     `--director kit`). Arreglo: que `resolver . <pieza> nueva` ande sin informe sobre una `propia`.
-  2. **CF-3**: el `comando-test` de Hermes tarda ~7 min y el plazo del `sello` es 5 (`ARQUITECTO_PLAZO_TEST_MS`): en un proyecto sin
-     base real, el sello daría "colgado". Hoy Hermes declara base real y el sello no corre el test. Arreglo: el plazo en la ficha.
-  3. **CF-2, la mitad**: `--mirar` avisa del `web/package.json` que el setup no instala, pero no lo suma solo; el test de Hermes que
-     necesita `node_modules` (supuesto, NO VERIFICADO) sigue rojo en cada worktree hasta que el setup lo nombre (se decide en la pantalla).
-  4. **t12 (a) mira solo el nombre** (`config*.ini`, `*.local.*`), no si el código lee el archivo.
-  5. **NO VERIFICADO**: `barreras` verde en el commit de los permisos después de `cambios aprobar`; los casos "no llegó" y "otra rama" de
-     `--traer` sobre el clon de Hermes (probados en las pruebas, no sobre Hermes); `claude -p` armando una mezcla real que choca.
+  1. ✅ rc.4 · `resolver . <pieza> nueva --por …` sin informe sobre una `propia` (SPEC-paquete-8r3, i5)
+  2. ✅ rc.6 · `vars.plazo-test` en la ficha, lo lee el `sello` (SPEC-paquete-8c, u8)
+  3. ✕ hacerlo solo es adivinar: `--mirar` ya lo avisa y se decide en la pantalla con Guido (SPEC-paquete-8r4, "De la `rc.4`"; D8c-7)
+  4. ✕ por las dudas: la línea ya lo deja a Guido (SPEC-paquete-8r4, "De la `rc.4`"; D8c-7)
+  5. **NO VERIFICADO**: los casos "no llegó" y "otra rama" de `--traer` sobre el clon de Hermes (probados en las pruebas, no sobre
+     Hermes); `claude -p` armando una mezcla real que choca. (Lo de `barreras` después de `cambios aprobar`, ✕ no aplica: Hermes, 10.)
   6. **Un repo de prueba parecido a Hermes** (lección de R1b, pedido por Guido el 2026-11-04): `pruebas/rehacer.sh` suma uno con lo que
      los de juguete no tienen: su propio `director`/`obrero`/`inicio`/`cierre`, Python con su `venv` y pruebas por un `.bat`, el repo dos
      niveles abajo de la carpeta de proyectos, una subcarpeta `web/` con su `package.json`, un `SessionStart` propio, un handoff por
      encima del tope y un `settings.json` con `ask` de `git merge`. Con datos genéricos (repo PÚBLICO: nada del Hermes real). Las
      revisiones integrales y los revisores fríos corren contra ese repo y, cuando exista, contra un clon del proyecto real.
 - **De D8r.1, para la `rc.5`** (D8c.1):
-  1. **El Modo A con director**: `modo-a.md` no arma el worktree de `v1` y su línea dice `inicio — ejecutá docs/modulos/v1/SPEC.md`; si
-     `v1` nace con director, el paso 0 del `/inicio` no aplica (estás en `main`). No estaba en el delta.
-  2. **La portada en la adopción** (`flota.md` paso 4) hace un commit después del push del paso 3: conviene el push después.
-  3. **Un repo ya adoptado no prende `director-obrero` solo**: hay que poner `piezas.director-obrero: sí` en la ficha (lo dice la nota de
-     la rc.2); para Hermes no aplica (se adopta con la rc.2).
-  4. **Una rama de obrero mezclada solo en la madre local** queda en GitHub después de integrar: la flota la ignora, es ruido.
+  1. ✅ rc.6 · con director, `modo-a.md` arma `v1` y dice `/director v1` (SPEC-paquete-8c, r1, D8r.1-1)
+  2. ✅ rc.6 · verificado contra `adoptar.cjs`: el texto ya decía el orden real (SPEC-paquete-8c, r1, D8r.1-2)
+  3. ✅ rc.6 · `director-obrero: propia` + `resolver … nueva`, en `flota.md` y la nota (SPEC-paquete-8c, r1, D8r.1-3; de punta a punta, NO VERIFICADO)
+  4. ✕ es ruido, no rompe; `integrar` ya borra la remota de su obrero (SPEC-paquete-8c, r1, D8c-7)
   5. **NO VERIFICADO**: el `claude` real armando la propuesta de una mezcla que choca; un lockfile commiteado que el setup modifica
      (probado con uno de prueba, no con el de Hermes); `flota todo` sin `--tag` mandando un rc a varios proyectos (escrito, t9).
 
 - **De D8b.1, para el `rc.2`** (los arregla la sesión de la madre que acompañe la prueba en Hermes, D9.1):
-  1. **El renglón (11)**, el obrero de cierre de tramo (delta, sección (11) y la fila D de su tabla): no corrió (D8b.1-c). **Pasa a la
-     `rc.3`** (D8c.1).
-  2. ~~Textos que quedaron viejos~~ (el ruteo del Modo A y `flota.md:23`): ✅ D8r.1.
+  1. ✅ rc.6 · el obrero de cierre de tramo, con `plantilla-cierre.md` (SPEC-paquete-8c, c1)
+  2. ✅ rc.2 · los textos viejos: el ruteo del Modo A y `flota.md:23` (SPEC-paquete-8r, D8r.1)
   3. **NO VERIFICADO**: el Modo A `liviano` con el gate quitado, de punta a punta (D8b.1-e); `adoptar --kit` con un kit sin ningún tag
      v2 cae al molde nuevo y dejaría `/inicio` y `/cierre` en "te espera" (lo vio A, no lo arregló); un "no" del clasificador adentro
      del `-p` del obrero en `auto` (D8b-1).
