@@ -17,7 +17,7 @@
 // (~/.config/kit-secretos/<proyecto>.env: de ahí se leen solo los NOMBRES; ningún valor sale por pantalla), suman al
 // .claude/settings.local.json del worktree Y al del principal (8r4 rt-1) un deny absoluto al .env del principal, corren
 // vars.comando-setup e imprimen la apertura: primero la vía de una ventana (8r4 u1: una sesión nueva en la ventana de siempre, con el
-// primer mensaje `/director` —módulo, también con --noche— o `/obrero <x>--<ID>`, que entra sola con `donde` + EnterWorktree), después
+// primer mensaje `/director <x>` —módulo, también con --noche; D8r.4-2— o `/obrero <x>--<ID>`, que entra sola con `donde` + EnterWorktree), después
 // `o en otra ventana: code "<ruta>"` y la pestaña de Claude, la línea de terminal solo si hay `claude` (rf-1): la de PowerShell con
 // el del PATH, o la de Git Bash con el binario de la extensión de VS Code (D-b de D5.1).
 // `donde` (8r4 u1; rt-4, rt-6): solo mira; `adentro:` (0), `entrar: <ruta>` (0), `no hay worktree` (1) o `PARADA:` (1).
@@ -476,7 +476,8 @@ function lineasApertura(wt, n, modelo, opciones) {
   const sesion = n.id === null ? `director-${n.x}` : `obrero-${n.x}--${n.id}`;
   const m = modelo || (n.id === null ? 'opus' : 'sonnet');
   const nombre = /^[a-z]+$/.test(m) ? m[0].toUpperCase() + m.slice(1) : m;
-  const primero = n.id === null ? '/director' : `/obrero ${n.x}--${n.id}`;
+  // Con el módulo (D8r.4-2: con dos módulos, la skill adivinaba el <x> de `donde`).
+  const primero = n.id === null ? `/director ${n.x}` : `/obrero ${n.x}--${n.id}`;
   const lineas = [
     `en tu ventana de siempre, una sesión nueva de Claude; primer mensaje: ${primero} (entra sola al worktree)`,
     `o en otra ventana: code "${barras(wt)}"`,

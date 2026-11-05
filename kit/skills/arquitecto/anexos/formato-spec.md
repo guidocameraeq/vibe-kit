@@ -101,7 +101,7 @@ Tamaño: módulo solo
 
 - **Su primera línea con texto dice `módulo solo` o `módulo con director`**, una sola de las dos (la lee `sello`). Con ficha, coincide con la ficha del módulo: `módulo solo` ↔ `director: no`; `módulo con director` ↔ `director: sí` y `rama: modulo/<x>`.
 - **Director, solo** con dos o más tareas que se escriben a la vez o noche sin Guido, y con `piezas.director-obrero: sí` (o `molde`) en la ficha del proyecto; varias sesiones seguidas son módulo solo.
-- **La línea para abrir**: módulo solo, `inicio — ejecutá docs/modulos/<x>/SPEC.md (está READY)` en un chat nuevo en la raíz del proyecto; con director, lo que imprime `worktree.cjs`: primero la vía de VS Code (`code "<ruta del worktree>"` y, en esa ventana, la pestaña de Claude con Opus, sesión `director-<x>`) y, solo si hay `claude`, la de terminal: con `claude` en el PATH, `cd "<ruta>"; claude --name director-<x> --model opus` (con `;` y no `&&`: PowerShell 5.1 no tiene `&&`); si no, con el binario de la extensión de VS Code, la de Git Bash (`cd "<ruta>" && "<ese binario>" --name director-<x> --model opus`); adentro, el primer mensaje es `/director` (lo imprime `worktree.cjs`: `primer mensaje: /director`); SPEC-0, la de módulo solo con `v1`: `inicio — ejecutá docs/modulos/v1/SPEC.md (está READY)`; sin ficha, `inicio — ejecutá el spec docs/SPEC-<x>.md (está READY)`.
+- **La línea para abrir**: módulo solo, `inicio — ejecutá docs/modulos/<x>/SPEC.md (está READY)` en un chat nuevo en la raíz del proyecto; con director, lo que imprime `worktree.cjs`: primero la vía de VS Code (`code "<ruta del worktree>"` y, en esa ventana, la pestaña de Claude con Opus, sesión `director-<x>`) y, solo si hay `claude`, la de terminal: con `claude` en el PATH, `cd "<ruta>"; claude --name director-<x> --model opus` (con `;` y no `&&`: PowerShell 5.1 no tiene `&&`); si no, con el binario de la extensión de VS Code, la de Git Bash (`cd "<ruta>" && "<ese binario>" --name director-<x> --model opus`); adentro, el primer mensaje es `/director <x>` (lo imprime `worktree.cjs`: `primer mensaje: /director <x>`); SPEC-0, la de módulo solo con `v1`: `inicio — ejecutá docs/modulos/v1/SPEC.md (está READY)`; sin ficha, `inicio — ejecutá el spec docs/SPEC-<x>.md (está READY)`.
 
 ## La sección Entorno de prueba (todo spec READY la lleva)
 
@@ -224,12 +224,15 @@ El estado del módulo, para que el hook, el TODO y `/estado` lo vean desde el pr
 - director: no
 - parte-de: <iniciativa>
 - rama: modulo/<x>
+- Próximo paso: <uno, concreto>
+- Tramo: <N> cerrado <AAAA-MM-DD>
+- Cierre de tramo: cada encargo | cada <N> encargos | al checkpoint
 
 ## Qué es
 3 líneas: qué es el módulo y para qué, con la fecha del pedido. El pedido textual va en el `SPEC.md`, no acá.
 
 ## Fase y próximo paso
-La fase y **un próximo paso concreto**.
+La fase; el próximo paso va arriba, en `- Próximo paso:` (lo leen el arranque y `/estado`).
 
 ## Tareas
 - [ ] Una línea por tarea; se tilda solo con evidencia (el commit).
@@ -247,5 +250,6 @@ Solo con `director: sí`; lo mantiene el director. Un renglón por sesión abier
 - **`Estado:` de la ficha, valores fijos**: `EN OBRA` · `PAUSADO (hasta <fecha>)` · `COMPLETO <fecha>` · `ABANDONADO <fecha> (por qué)`. `arquitecto.cjs ready --pendientes` saltea los que empiezan con `COMPLETO` o `ABANDONADO` y lista el resto cuyo `SPEC.md` no tiene un sello válido: `sin sello`, `borrador a medias` (un `SPEC.md` en BORRADOR sin sello: se retoma), `sello inválido: <qué>` o `cambió después del sello`.
 - **Solo con `director: sí`** el módulo lleva además `tiempos.md` (lo escribe `tiempos.cjs`, no la cabeza del director), `planes/`, `bitacora/` (encargos, evidencias, relevos, resumen del día) y `mesa/`. Un módulo solo no crea ninguna de las cuatro.
 - **`> Histórico`**: una línea con esa marca en las primeras 10 líneas de un archivo lo declara registro (un acta, una versión reemplazada): `candado:rutas` no le chequea las rutas y quien lo abre sabe que no se edita. Se pone al reemplazar un archivo aprobado por su versión nueva (la vieja queda al lado con la marca), nunca a uno vivo.
+- **`Próximo paso:`** uno y concreto; el arranque lo muestra en la línea del módulo. **`Tramo:`** el último tramo cerrado y su fecha (`<x> · tramo <N> cerrado <edad> · próximo: <…>` en el arranque y en `/estado`); sin tramo cerrado todavía, el renglón no va. **`Cierre de tramo:`** solo con `director: sí`: cada cuánto el director lanza el obrero de cierre de tramo (`plantilla-cierre.md` del `/director`, que escribe la ficha); lo elige el Arquitecto en el Modo B con la Ejecución; sin el renglón, cada encargo.
 - **`director:`** dice `sí` o `no` (lo mira `sello` contra la Ejecución). **`rama:`** existe solo con director, y es `modulo/<x>`; sin director, el renglón no va. **`parte-de:`** solo si el módulo es un tramo de una iniciativa abierta; si no, el renglón no va.
 - Al terminar: `- Estado: COMPLETO <fecha>` y la ficha pasa a ser **el manual del módulo** (qué hace, cómo se usa, qué no toca); la lista de tareas se borra. **La carpeta se queda en `docs/modulos/`.**

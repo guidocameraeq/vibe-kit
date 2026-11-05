@@ -142,6 +142,24 @@ function esperado(dir) {
   return { total: tareasLineas.length, hechas, pct: Math.round((100 * hechas) / tareasLineas.length), subpasos: pasos.length, min07, sub07: de07.length };
 }
 
+// ---------------------------------------------------------------- 8c c1: el tramo cerrado y el próximo paso
+
+test('8c c1: con `- Tramo: <N> cerrado <fecha>` y `- Próximo paso:` en la ficha de modulo/m1, la línea suma "tramo N cerrado" y "próximo: …"', () => {
+  const dir = mundo();
+  const e = esperado(dir);
+  git(dir, 'checkout', '-q', 'modulo/m1');
+  const ficha = fs.readFileSync(path.join(dir, 'docs', 'modulos', 'm1', 'README.md'), 'utf8')
+    .replace('- rama: modulo/m1\n', '- rama: modulo/m1\n- Próximo paso: el encargo 08\n- Tramo: 1 cerrado 2026-11-01\n- Cierre de tramo: cada encargo\n');
+  commit(dir, { 'docs/modulos/m1/README.md': ficha }, 'cierre de tramo 1', '2026-11-01T13:00:00+00:00');
+  git(dir, 'checkout', '-q', 'main');
+  const r = estado(dir, []);
+  assert.equal(r.codigo, 0, r.err);
+  const linea = r.out.split('\n').find((l) => l.startsWith('- m1 · '));
+  assert.equal(linea, `- m1 · EN OBRA · tramo 1 cerrado · ${e.hechas} de ${e.total} tareas (${e.pct}%) · 1 encargo(s) en obra · ${e.subpasos} sub-paso(s) · podés cerrar: obrero-m1--07 · próximo: el encargo 08`);
+  // sin Tramo: ni Próximo paso: (m3), la línea de antes
+  assert.ok(r.out.includes('- m3 · EN OBRA · avance — · podés cerrar: nadie\n'), r.out);
+});
+
 // ---------------------------------------------------------------- RT1-13: cada número, contra el cálculo aparte
 
 test('estado (corta): cada número coincide con el calculado aparte de la ficha y git', () => {

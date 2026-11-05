@@ -113,7 +113,7 @@ const re = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 // La apertura sin `claude` en el PATH, al final de la salida: primero la vía de una ventana con el primer mensaje (8r T2; 8r4 u1),
 // después las dos líneas de otra ventana de VS Code.
 const primerMensaje = (sesion) =>
-  `en tu ventana de siempre, una sesión nueva de Claude; primer mensaje: ${sesion.startsWith('director-') ? '/director' : `/obrero ${sesion.slice('obrero-'.length)}`} (entra sola al worktree)\n`;
+  `en tu ventana de siempre, una sesión nueva de Claude; primer mensaje: ${sesion.startsWith('director-') ? `/director ${sesion.slice('director-'.length)}` : `/obrero ${sesion.slice('obrero-'.length)}`} (entra sola al worktree)\n`;
 const vscode = (wt, modelo, sesion) =>
   `o en otra ventana: code "${barras(wt)}"\nen esa ventana, abrí la pestaña de Claude y elegí ${modelo}, con el mismo primer mensaje (nombre sugerido para la sesión: ${sesion})\n`;
 const apertura = (wt, modelo, sesion) => primerMensaje(sesion) + vscode(wt, modelo, sesion);
@@ -1223,7 +1223,7 @@ test('rf-6: integrar y cerrar hacen fetch --prune — el encargo borrado de orig
 
 // ---------------------------------------------------------------- SPEC-paquete-8r: T2 (primer mensaje), 1 (cerrar y origin), 5 (integrados)
 
-test('8r T2: crear x y crear x --noche terminan en "primer mensaje: /director"; crear x--01, en "primer mensaje: /obrero x--01"', () => {
+test('8r T2 (y D8r.4-2): crear x y crear y --noche terminan en "primer mensaje: /director <x>"; crear x--01, en "primer mensaje: /obrero x--01"', () => {
   const p = proyecto();
   const rx = cli(p.P, ['crear', 'x']);
   assert.equal(rx.codigo, 0, rx.out);
@@ -1353,7 +1353,7 @@ test('8r4 u1: la apertura empieza por la vía de una ventana; rt-1: el deny del 
   assert.equal(r.codigo, 0, r.out);
   const lineas = r.out.split('\n');
   const i = lineas.findIndex((l) => l.startsWith('worktree crear: modulo/x'));
-  assert.equal(lineas[i + 1], 'en tu ventana de siempre, una sesión nueva de Claude; primer mensaje: /director (entra sola al worktree)', r.out);
+  assert.equal(lineas[i + 1], 'en tu ventana de siempre, una sesión nueva de Claude; primer mensaje: /director x (entra sola al worktree)', r.out);
   assert.equal(lineas[i + 2], `o en otra ventana: code "${barras(p.wt('modulo--x'))}"`);
   const localP = `${barras(p.P)}/.claude/settings.local.json`;
   assert.ok(r.out.includes(`deny del .env del principal: en ${localP} (no viaja por git: cada PC lo arma con su primer crear o abrir)\n`), r.out);

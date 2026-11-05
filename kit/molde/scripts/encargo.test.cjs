@@ -246,6 +246,22 @@ test('presentar (crit. 1): sin sello → 1 "spec sin Arquitecto: corré Modo B",
   assert.equal(r.out, 'presentar: no — el spec docs/modulos/x/SPEC.md no está en modulo/x: que el director lo commitee\n');
 });
 
+test('8c c1: presentar acepta el encargo copiado de plantilla-cierre.md con <x>, <ID>, <N>, la Partida y el Spec llenos', () => {
+  const plantilla = fs.readFileSync(path.join(__dirname, '..', 'skills', 'director', 'plantilla-cierre.md'), 'utf8');
+  const lleno = plantilla.replace('<sha7> · <AAAA-MM-DDTHH:MM±HH:MM>', 'abc1234 · 2026-10-30T10:00-03:00')
+    .replace('SPEC[-N].md:<línea>[-<línea>]', 'SPEC.md:6-7').replace(/<x>/g, 'x').replace(/<ID>/g, '01').replace(/<N>/g, '1');
+  const p = proyecto({ encargo: lleno });
+  const head = g(p.obr, 'rev-parse', 'HEAD');
+  const r = cli(p.obr, ['presentar', 'x--01', '--sin-base']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.equal(r.out, `modulo/x--01 · @${head.slice(0, 7)} · encargo ${RUTA} · sonnet low · riesgo bajo · apertura director\n`);
+  // sin llenar el Spec, el script lo frena (la exige leerEncargo)
+  const p2 = proyecto({ encargo: lleno.replace('SPEC.md:6-7', 'SPEC[-N].md:<línea>[-<línea>]') });
+  const r2 = cli(p2.obr, ['presentar', 'x--01', '--sin-base']);
+  assert.equal(r2.codigo, 1);
+  assert.match(r2.out, /no sigue la plantilla: - Spec: /);
+});
+
 test('presentar: entorno "— (quitado: …)" vale con el gate quitado en la ficha vigente; sin ficha en el checkout, "—" vale igual', () => {
   const p = proyecto({ spec: spec({ entorno: '— (quitado: sin base)' }), ficha: { quitado: true } });
   assert.equal(cli(p.obr, ['presentar', 'x--01', '--sin-base']).codigo, 0);
