@@ -414,6 +414,14 @@ function prepararCopia(L, principal, alm) {
       const f = filtrarEnv(buf.toString('utf8'), alm.nombres);
       for (const n of f.sacados) lineas.push(`no copié ${n} de ${rel}: vive en el almacén`);
       buf = Buffer.from(f.texto, 'utf8');
+    } else if (alm.nombres.size && !ilegible(buf)) {
+      // h9 (8r4, D8c): lo que lista .worktreeinclude además de los .env (un config.local.ini con SECRET_KEY = …) pasa por el mismo
+      // filtro: un nombre del almacén no llega a ningún worktree, venga en el archivo que venga. Sin nada que sacar, los bytes tal cual.
+      const f = filtrarEnv(buf.toString('utf8'), alm.nombres);
+      if (f.sacados.length) {
+        for (const n of f.sacados) lineas.push(`no copié ${n} de ${rel}: vive en el almacén`);
+        buf = Buffer.from(f.texto, 'utf8');
+      }
     }
     archivos.push({ rel, buf });
   }

@@ -13,7 +13,7 @@
 // Sin --home mira el ~/.claude/ real (solo lo lee): las pruebas SIEMPRE pasan uno falso.
 // Los chequeos del repo (pre-commit, ficha, sensible-prosa) son del repo donde estás parado (el cwd).
 //
-// Vive en eq/scripts/ y se instala en ~/.claude/skills/arquitecto-skills/scripts/: solo hace require de ../pc/lib/, del instalador y de lib/chequeo.cjs (el tope de las skills),
+// Vive en eq/scripts/ y se instala en ~/.claude/skills/arquitecto-skills/scripts/: solo hace require de ../pc/lib/, del instalador y de lib/chequeo.cjs (el tope de las skills), lib/vecinos.cjs y lib/locks.cjs,
 // que viajan con él (NO del molde). Los textos de abajo son las líneas de F del arranque dichas con más detalle: tienen que coincidir.
 const fs = require('fs');
 const os = require('os');
@@ -38,7 +38,8 @@ const CANONICO = 'https://github.com/guidocameraeq/vibe-kit.git'; // KIT_REPO_CA
 const VAR_PLAZO = 'KIT_PLAZO_ARRANQUE_MS';
 const HOOKS_GIT = ['pre-commit', 'pre-merge-commit', 'pre-push'];
 const IDS = ['node', 'gitleaks', 'claude-code', 'lefthook', 'git-bash', 'settings-pc', 'hooks-pc', 'hooks-pc-iguales', 'deny-almacen', 'anti-secretos-viejo', 'plazo-arranque', 'pre-commit', 'ficha', 'sensible-prosa',
-  'version-kit', 'kit-sync', 'githooks', 'archivo-pc', 'credencial', 'gh-push', 'mesa-gh', 'cross-session', 'automode', 'copias-kit', 'frenos-vencidos', 'regla-tamano', 'tope-skills'];
+  'version-kit', 'kit-sync', 'githooks', 'archivo-pc', 'credencial', 'gh-push', 'mesa-gh', 'cross-session', 'automode', 'copias-kit', 'frenos-vencidos', 'regla-tamano', 'tope-skills',
+  'vecinos', 'locks'];
 const VIEJO = 'gh' + 'p_'; // el prefijo que delata al anti-secretos viejo (armado: ninguna forma de clave literal en kit/)
 const ARREGLO_INSTALAR = 'pedile al Equipador "instalar hooks por PC" (o corré scripts/instalar-hooks-pc.cjs) y reiniciá Claude Code';
 
@@ -79,9 +80,13 @@ function valorPath(env) {
   const k = Object.keys(env || {}).find((x) => x.toLowerCase() === 'path');
   return k ? String(env[k]) : '';
 }
-// El archivo ejecutable `nombre` en el PATH de `env` (null si no está). En Windows prueba las extensiones de PATHEXT.
+// El archivo ejecutable `nombre` en el PATH de `env` (null si no está). En Windows prueba SOLO las extensiones de PATHEXT, como
+// cmd y PowerShell (h10 de 8r4, D8c: el `claude` de npm deja en la misma carpeta `claude` —un script de sh, sin extensión—,
+// `claude.cmd` y `claude.ps1`; con '' primero salía el de sh, spawn daba ENOENT y el doctor decía "no dio su versión" aunque
+// `claude --version` a mano daba 2.1.252: la salida de Juan). Un nombre que ya trae su extensión se prueba tal cual.
 function buscarEnPath(nombre, env) {
-  const exts = process.platform === 'win32' ? ['', ...String((env && env.PATHEXT) || '.COM;.EXE;.BAT;.CMD').toLowerCase().split(';').filter(Boolean)] : [''];
+  const deWin = String((env && env.PATHEXT) || '.COM;.EXE;.BAT;.CMD').toLowerCase().split(';').filter(Boolean);
+  const exts = process.platform === 'win32' ? (path.extname(nombre) ? ['', ...deWin] : deWin) : [''];
   for (const d of valorPath(env).split(path.delimiter)) {
     if (!d) continue;
     for (const e of exts) {
@@ -741,6 +746,29 @@ function chReglaTamano(raiz, f) {
   return res('⚠', t === null ? 'el repo no tiene CLAUDE.md con la sección "El tamaño del pedido"' : 'el CLAUDE.md del repo no trae la sección "El tamaño del pedido"', 'el actualizador no toca el CLAUDE.md: pegala del molde (kit/molde/CLAUDE.md)');
 }
 
+// 8c u4 + h6 (8r4, con rt-9): lo que queda fuera del repo, parado en un proyecto. Un ⚠ por vecino, nunca ✗; git worktree remove
+// solo para las mezcladas (lo dice vecinos.cjs). Solo lee: ni borra ni hace prune.
+function chVecinos(raiz, hayGit) {
+  if (!raiz) return res('✓', 'fuera de un repo no hay vecinos que mirar');
+  if (!hayGit) return nv('no hay git en el PATH: no miré los worktrees de afuera', 'instalá Git y volvé a correr doctor');
+  const V = require('./lib/vecinos.cjs');
+  const v = V.vecinos(raiz);
+  if (v.error) return nv(`no pude mirar los worktrees (${v.error})`, 'corré "git worktree list" a mano');
+  const ls = V.lineas(v);
+  if (!ls.length) return res('✓', 'ningún worktree fuera de .claude/worktrees/ ni carpetas gate-* al lado del repo');
+  return ls.map((l, i) => res('⚠', l.trim(), i === 0 ? 'lo decide Guido, uno por uno (el doctor no borra nada)' : null));
+}
+
+// 8c p1 (a): el lock del proyecto atrasado, leído (D8c-9: nunca corre el instalador). Un ⚠ por lock, nunca ✗; nada lo arregla solo.
+function chLocks(raiz, f) {
+  if (!raiz) return res('✓', 'fuera de un repo no hay locks que mirar');
+  const LK = require('./lib/locks.cjs');
+  const setup = f && f.datos && esMapa(f.datos.vars) && typeof f.datos.vars['comando-setup'] === 'string' ? f.datos.vars['comando-setup'] : '';
+  const ls = LK.lineas(LK.mirarLocks(raiz, { setup }));
+  if (!ls.length) return res('✓', 'los locks de npm, pnpm y yarn coinciden con sus package.json (o el repo no trae package.json)');
+  return ls.map((l) => res('⚠', l));
+}
+
 // ---------------------------------------------------------------- el inventario de frenos (A §9; D6-9). Nunca cambia la salida.
 // La lista de fábrica = las 5 preguntas de A (sus ids); lo demás aparece cuando frenó. Sin fechas ni horas en la salida.
 const PREGUNTAS_FABRICA = ['pregunta:borrar-datos-reales', 'pregunta:claves', 'pregunta:plata', 'pregunta:release', 'pregunta:sale-afuera'];
@@ -875,6 +903,8 @@ async function principal(argv, { env = process.env, cwd = process.cwd(), plazoMs
     'frenos-vencidos': () => chFrenosVencidos(f, hoy),
     'regla-tamano': () => chReglaTamano(raiz, f),
     'tope-skills': () => chTopeSkills(raiz, f),
+    vecinos: () => chVecinos(raiz, !!pGitBin),
+    locks: () => chLocks(raiz, f),
   };
   const lineas = [];
   let rojos = 0;
@@ -886,7 +916,7 @@ async function principal(argv, { env = process.env, cwd = process.cwd(), plazoMs
     } catch (e) {
       x = res('✗', `el chequeo falló por dentro (${e && e.message ? e.message : e})`, 'avisale a Guido: es un bug del doctor');
     }
-    for (const y of Array.isArray(x) ? x : [x]) { // tope-skills: un ⚠ por skill
+    for (const y of Array.isArray(x) ? x : [x]) { // tope-skills, vecinos y locks: un ⚠ por cosa
       if (y.est === '✗') rojos++;
       if (y.est === '⚠') avisos++;
       lineas.push(`${y.est} ${id} · ${y.qué}${y.arreglo ? ` · ${y.arreglo}` : ''}`);

@@ -1556,3 +1556,35 @@ test('crit. 6 (8r3 i5; rt-7): resolver hook-arranque nueva sobre una propia — 
   paso(e, le[j + 2]);
   assert.equal(barreras(e, antesE).status, 1, 'el sello después del commit no lo cubre');
 });
+
+// ---------------------------------------------------------------- SPEC-paquete-8c: u4 (crit. 4) y p1 (a) en --mirar
+
+test('8c u4 (crit. 4): con --principal, la línea de lo que queda fuera del repo (una mezclada y un gate de datos); sin --principal, nada; no borra', deKit, () => {
+  const padre = nuevaCarpeta('padre-vecinos');
+  const p = path.join(padre, 'guido');
+  fs.mkdirSync(p);
+  escribir(p, { 'CLAUDE.md': '# g\n', 'a.txt': 'a\n' });
+  commitear(p);
+  git(p, 'worktree', 'add', '-q', '-b', 'vieja', path.join(padre, 'guido-vieja'), 'main');
+  fs.mkdirSync(path.join(padre, 'gate-candados'));
+  const c = repoPelado('clon-vecinos', { 'CLAUDE.md': '# g\n' });
+  assert.doesNotMatch(mirar(c).texto, /fuera del repo/);
+  const antes = fs.readdirSync(padre).sort();
+  const l = mirar(c, { principal: p }).texto.split('\n').filter((x) => /^# (fuera del repo|  .*guido-vieja|  .*gate-candados)/.test(x));
+  assert.equal(l[0], `# fuera del repo: 1 worktree (1 ya mezclado) y 1 carpeta gate-* en ${padre.split(path.sep).join('/')} — el kit arma los worktrees adentro (.claude/worktrees/)`);
+  assert.match(l[1], /guido-vieja · vieja · mezclada \(ya está en main\): se puede borrar con git worktree remove ".*guido-vieja" — lo decide Guido, una por una; borra también lo ignorado/);
+  assert.match(l[2], /gate-candados · datos, no un gate: no tocar$/);
+  assert.deepEqual(fs.readdirSync(padre).sort(), antes);
+});
+
+test('8c p1 (a): --mirar con un lock atrasado (npm, en una subcarpeta de primer nivel) → la línea con el arreglo; al día, nada; mirar no toca nada', deKit, () => {
+  const d = conCodigo('lock-atras', {
+    'chat-syncer/package.json': '{"name":"cs","dependencies":{"openai":"^4.104.0"}}\n',
+    'chat-syncer/package-lock.json': '{"lockfileVersion":3,"packages":{"":{"dependencies":{}}}}\n',
+  });
+  const antes = foto(d);
+  const t = mirar(d).texto;
+  assert.deepEqual(foto(d), antes);
+  assert.ok(t.split('\n').includes('# lock atrasado: chat-syncer/package-lock.json — falta openai: regeneralo en el proyecto (`npm install --prefix chat-syncer`) y commitealo; sin eso, el comando-setup falla y la flota no puede probar tus tests'), t);
+  assert.doesNotMatch(mirar(conCodigo('lock-ok')).texto, /^# (lock atrasado|sin lock|lock):/m);
+});

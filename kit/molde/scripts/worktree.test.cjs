@@ -1592,3 +1592,83 @@ test('8r4 u2: traer-main se niega sin tocar nada — árbol sucio, parado en mai
   assert.equal(g(wx, 'rev-parse', 'HEAD'), head);
   assert.equal(estado(wx), '');
 });
+
+// ---------------------------------------------------------------- SPEC-paquete-8c (la vuelta 2 de 8r4): h6 y h9, reproducidas primero
+
+test('h6 (8c): dos worktrees en ../ (uno en modulo/y, uno suelto) no confunden crear, abrir, donde, sync-env, cerrar ni /estado; nadie los toca', () => {
+  const p = proyecto();
+  // los de afuera: uno con una rama del kit (modulo/y, hecho a mano) y uno suelto (detached), en la carpeta de al lado
+  const fueraY = path.join(p.base, 'alfa-y');
+  const fueraGate = path.join(p.base, 'gate-alfa');
+  g(p.P, 'branch', 'modulo/y', 'main');
+  g(p.P, 'worktree', 'add', '-q', fueraY, 'modulo/y');
+  g(p.P, 'worktree', 'add', '-q', '--detach', fueraGate, 'main');
+  fs.writeFileSync(path.join(fueraY, '.env'), `SECRET_KEY=${VALOR}\n`);
+  const antesY = [estado(fueraY), leer(fueraY, '.env'), g(fueraY, 'rev-parse', 'HEAD')];
+  // los del kit, adentro
+  assert.equal(cli(p.P, ['crear', 'x']).codigo, 0);
+  assert.equal(cli(p.P, ['crear', 'x--01']).codigo, 0);
+  const wx = p.wt('modulo--x');
+  const w1 = p.wt('modulo--x--01');
+  // donde: la ruta de adentro, nunca la de afuera
+  assert.equal(cli(p.P, ['donde', 'x--01']).out, `entrar: ${barras(w1)}\n${ENTRAR}`);
+  // sync-env: solo los de módulo de adentro (el .env de afuera queda con su valor: no es del kit)
+  const s = cli(p.P, ['sync-env']);
+  assert.equal(s.codigo, 0, s.out);
+  assert.match(s.out, /nada que sacar \(2 worktree\(s\) de módulo\)/);
+  // modulo/y abierta afuera: crear dice "eso es abrir" y abrir dice dónde está, sin tocar nada
+  let r = cli(p.P, ['crear', 'y']);
+  assert.equal(r.codigo, 1);
+  r = cli(p.P, ['abrir', 'y']);
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, new RegExp(`modulo/y está abierta en ${re(barras(fueraY))}`));
+  // cerrar x--01 mergeado: anda; cerrar y (abierta afuera) se niega y la nombra
+  commit(w1, { 'e.txt': 'encargo\n' });
+  g(wx, 'merge', '-q', '--ff-only', 'modulo/x--01');
+  r = cli(p.P, ['cerrar', 'x--01']);
+  assert.equal(r.codigo, 0, r.out);
+  r = cli(p.P, ['cerrar', 'y']);
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, new RegExp(`modulo/y está abierta en ${re(barras(fueraY))}, no en \\.claude/worktrees/modulo--y`));
+  // /estado: anda y no los nombra
+  let out = '';
+  assert.equal(require('./estado.cjs').main([], { cwd: p.P, salida: (t) => (out += t), error: (t) => (out += t) }), 0);
+  assert.ok(!out.includes('alfa-y') && !out.includes('gate-alfa'), out);
+  // los de afuera, como estaban
+  assert.deepEqual([estado(fueraY), leer(fueraY, '.env'), g(fueraY, 'rev-parse', 'HEAD')], antesY);
+  assert.ok(fs.existsSync(fueraGate) && g(p.P, 'worktree', 'list').includes('gate-alfa'));
+});
+
+test('h9 (8c): un config.local.ini ignorado, copiado por .worktreeinclude, con un nombre del almacén → el filtro lo saca (como en el .env); secretos.cjs y el deny NO lo cubren (fijado)', () => {
+  const p = proyecto({ gitignore: `${SNIPPET}config.local.ini\n`, archivos: { '.worktreeinclude': '.env\n.env.*\nconfig.local.ini\n' } });
+  const clave = ['AKIA', 'Z'.repeat(16)].join(''); // una clave de mentira, armada en corrida (ninguna literal en kit/)
+  escribir(p.P, 'config.local.ini', `[db]\nhost = localhost\nSECRET_KEY = ${VALOR}\n[aws]\naws_key = ${clave}\n`);
+  const r = cli(p.P, ['crear', 'x']);
+  assert.equal(r.codigo, 0, r.out);
+  sinValores(r, clave);
+  assert.match(r.out, /no copié SECRET_KEY de config\.local\.ini: vive en el almacén/);
+  const wx = p.wt('modulo--x');
+  const copiado = leer(wx, 'config.local.ini');
+  assert.ok(!copiado.includes(VALOR), 'el nombre del almacén no llega al worktree');
+  assert.ok(copiado.includes('host = localhost') && copiado.includes('[aws]'), 'el resto, tal cual');
+  assert.ok(copiado.includes(clave), 'lo que no está en el almacén se copia (igual que en un .env): lo cuida el almacén, no la copia');
+  // sin nombres del almacén: los bytes tal cual
+  const q = proyecto({ gitignore: `${SNIPPET}config.local.ini\n`, archivos: { '.worktreeinclude': 'config.local.ini\n' }, almacen: 'OTRA=1\n' });
+  escribir(q.P, 'config.local.ini', '[db]\r\nhost = x\r\n');
+  assert.equal(cli(q.P, ['crear', 'x']).codigo, 0);
+  assert.equal(leer(q.wt('modulo--x'), 'config.local.ini'), '[db]\r\nhost = x\r\n');
+  // secretos.cjs (el corrector de la PC) sobre esa ruta: leerla no frena (F §5 nombra .env, .env.*, *.pem, *.key; un .ini no)
+  const S = require('../../skills/arquitecto-skills/pc/secretos.cjs');
+  for (const command of ['cat config.local.ini', `cat ${barras(path.join(p.P, 'config.local.ini'))}`]) {
+    const d = S.decidir({ hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command }, permission_mode: 'default', cwd: wx }, { anotar: () => null });
+    assert.equal(d.decision, 'nada', `${command}: hoy no lo frena (NO CUBIERTO, ver el reporte de h9)`);
+  }
+  // escribir la clave en un archivo sí frena (eso lo cubre)
+  const w = S.decidir({ hook_event_name: 'PreToolUse', tool_name: 'Write', tool_input: { file_path: path.join(wx, 'otro.ini'), content: `k = ${clave}\n` }, permission_mode: 'default', cwd: wx }, { anotar: () => null });
+  assert.equal(w.decision, 'deny');
+  // el deny del worktree y del principal: solo los .env del principal, no el config.local.ini
+  for (const d of [wx, p.P]) {
+    const deny = JSON.parse(leer(d, '.claude/settings.local.json')).permissions.deny;
+    assert.ok(!deny.some((x) => x.includes('config.local.ini')), deny.join('\n'));
+  }
+});

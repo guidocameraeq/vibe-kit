@@ -67,6 +67,8 @@ const Z = require('../../pc/lib/zona-propia.cjs');
 const C = require('./catalogo.cjs');
 const M = require('./molde.cjs');
 const A = require('../actualizar.cjs');
+const V = require('./vecinos.cjs');
+const LK = require('./locks.cjs');
 
 const { Negativa } = A;
 const RUTA_FICHA = '.claude/kit.md';
@@ -786,6 +788,10 @@ function mirar(carpeta, opciones) {
     // CF-1: en la carpeta de Guido (con --principal): un clon recién hecho nunca tiene los ignorados
     const wti = lineaWorktreeinclude(opciones.principal !== undefined ? opciones.principal : carpeta);
     if (wti) o(wti);
+    // u4 + h6 (8r4, con rt-9): lo que queda fuera del repo, en la carpeta de Guido (el clon no tiene vecinos); solo lee
+    if (opciones.principal !== undefined) for (const l of V.lineas(V.vecinos(opciones.principal))) o(l);
+    // p1 (a) (8c): el lock atrasado, leído de los archivos (nunca corre el instalador); nada lo arregla solo
+    for (const l of LK.lineas(LK.mirarLocks(carpeta, { setup: vars['comando-setup'] }))) o(l);
     o('piezas (id · estado · qué pasa al aplicar):');
     for (const p of piezas) o(`  ${p.id} · ${p.estado} · ${p.que}`);
     if (nuevoRepo) o('proyecto nuevo (--nuevo): lo base en molde, el candado prendido y director-obrero y estado en sí (nace con módulos)');
