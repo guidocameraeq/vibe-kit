@@ -1440,6 +1440,15 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
          - en una refactorización, el archivo de antes entero;
          - en la mutación, que el script afirme la línea antes de mutar (H-151: encontró una prueba débil que 28 en verde no mostraban).
       Dato a favor del kit: "una regla escrita en dos skills con dos definiciones" (H-151) ya lo resuelve el NÚCLEO.
+      **Cómo terminó (2026-11-05)**: Mobile quedó adoptado con la `rc.6` y D1 A (`a07b698a`). Lo propio está en las zonas, las 5 skills
+      bajo el tope, y en `docs/referencia/metodo/` (33 KB). Los choques se resolvieron como dice el kit. Con Mobile, son **5 repos en la
+      `rc.6`**: analytics, bot, Hermes.exe, Hub y Mobile.
+      Quedan tres cosas:
+      - El hook post-compact de Mobile salió con D3 y quedó como texto en el anexo: el obrero se re-presenta con "me compacté; retomo
+        desde…". NO VERIFICADO que `encargo.cjs mensaje` acepte esa segunda línea.
+      - `migraciones.py` de Mobile tampoco tiene `allow_abbrev=False`. Es lo mismo que en Hermes ("Para Hermes"), código del proyecto.
+      - Pendientes de Mobile: `flutter pub get` una vez, el `NORTE` con 5 `[completar]`, y `COMPACTION_PROTOCOL.md` todavía nombrado en
+        su `CLAUDE.md`.
 
 - **La prueba de Juan** (2026-11-04, pedida por Guido): Juan prueba la beta en su PC y sus proyectos y sube pruebas duras e impresiones
   a la rama huérfana `prueba/juan` de este repo (sin el kit: su `CLAUDE.md`, `PLAN.md`, `pruebas/`, `impresiones.md`, proyectos con
