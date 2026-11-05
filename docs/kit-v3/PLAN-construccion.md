@@ -1463,7 +1463,9 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
       escribiría en la base viva. La ficha tiene `comando-test: npm --prefix chat-syncer test`, y la flota, el sello o un gate lo pueden
       correr. **Para el kit** (es un freno: red team): que todo lo que corre `comando-test` lo haga sin las variables de las bases de clase
       `real` declaradas en `entornos:`, o que avise y frene si `comando-test` toca una clase real. **Para el proyecto** (Guido decide):
-      reescribir el test contra una base de prueba, o sacarlo de `comando-test` mientras tanto.
+      reescribir el test contra una base de prueba, o sacarlo de `comando-test` mientras tanto. **Guido decidió sacarlo** (`596f335`, `barreras` verde). Vuelve con un test contra una base
+      de prueba, de clase `prueba` en `entornos:` (TODO #19 del analytics). Desde ahí la flota no prueba ese repo. **Para el kit**: que
+      salte un aviso cuando una ficha de un repo con código no tiene `comando-test`.
   15. **2026-11-05 · "Regenerá el lock" puede cambiar dependencias de producción** (el bot). Regenerar el lock entero movía
       `libsignal` 2.0.1 → 6.0.0 y `protobufjs` 6 → 7, porque Baileys depende de una rama de GitHub que se mueve. Salió parcheando solo el
       importer que faltaba (6 renglones, `77b0f505`). **Para la rc.7**: el aviso de p1 dice "revisá el diff del lock" y sugiere parchear
