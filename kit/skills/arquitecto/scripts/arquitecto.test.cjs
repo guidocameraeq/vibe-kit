@@ -691,6 +691,48 @@ test('sello entorno: sin real, comando-test tiene que existir y salir 0; rojo o 
   assert.match(correr(['sello', 's.md'], lista).out, /tiene que ser un comando/);
 });
 
+// u8 (8r4, CF-3): vars.plazo-test (minutos) reemplaza los 5 min fijos; ARQUITECTO_PLAZO_TEST_MS, si está, sigue mandando. Las
+// pruebas corren el "minuto" de la ficha en 1 s (ARQUITECTO_PLAZO_TEST_UNIDAD_MS) y un test falso que tarda 6 s (más de 5).
+test('u8 sello entorno: vars.plazo-test chico → colgado con su plazo; grande → verde; la variable manda sobre la ficha', () => {
+  const sinVariable = { ...process.env, ARQUITECTO_PLAZO_CHEQUEO_MS: '2000', ARQUITECTO_PLAZO_TEST_UNIDAD_MS: '1000' };
+  delete sinVariable.ARQUITECTO_PLAZO_TEST_MS;
+  const conPlazo = (min) => ficha({ test: 'node lento.js', extra: `  plazo-test: ${min}` });
+  const lento = (texto) => {
+    const d = repo(texto);
+    escribir(d, 'lento.js', 'setTimeout(() => {}, 6000);\n');
+    return d;
+  };
+  const chico = lento(conPlazo(1));
+  const pc = escribir(chico, 's.md', spec());
+  const rc = correr(['sello', 's.md'], chico, { env: sinVariable });
+  assert.equal(rc.codigo, 1, rc.out);
+  assert.match(rc.out, /entorno: comando-test se colgó \(pasó los 1 s de vars\.plazo-test\) — revisalo, o subí vars\.plazo-test en la ficha/);
+  assert.equal(leer(pc), spec(), 'no escribe nada');
+  const grande = lento(conPlazo(20));
+  escribir(grande, 's.md', spec());
+  const rg = correr(['sello', 's.md'], grande, { env: sinVariable });
+  assert.equal(rg.codigo, 0, rg.out);
+  // Con ARQUITECTO_PLAZO_TEST_MS (2 s), la ficha no manda: se cuelga a los 2 s aunque diga 20.
+  const variable = lento(conPlazo(20));
+  escribir(variable, 's.md', spec());
+  const rv = correr(['sello', 's.md'], variable, { env: { ...sinVariable, ARQUITECTO_PLAZO_TEST_MS: '2000' } });
+  assert.equal(rv.codigo, 1, rv.out);
+  assert.match(rv.out, /comando-test se colgó \(pasó los 2 s\) — revisalo antes de sellar, o poné vars\.plazo-test en la ficha/);
+  // Fuera de 1-60 es ficha rota: no corre nada.
+  const fuera = lento(conPlazo(61));
+  escribir(fuera, 's.md', spec());
+  assert.match(correr(['sello', 's.md'], fuera, { env: sinVariable }).out, /la ficha \(\.claude\/kit\.md\) no se lee, línea 7: "vars\.plazo-test" tiene un valor que no se acepta/);
+});
+
+test('u8 plazoTest: sin variable ni ficha, 5 min; con plazo-test, sus minutos; la variable manda', () => {
+  const datos = (pt) => ({ vars: { proyecto: 'x', ...(pt ? { 'plazo-test': pt } : {}) } });
+  assert.deepEqual(A.plazoTest({}, datos()), { ms: 5 * 60 * 1000, deLaFicha: false });
+  assert.deepEqual(A.plazoTest({}, datos('7')), { ms: 7 * 60 * 1000, deLaFicha: true });
+  assert.deepEqual(A.plazoTest({}, datos('60')), { ms: 60 * 60 * 1000, deLaFicha: true });
+  assert.deepEqual(A.plazoTest({ ARQUITECTO_PLAZO_TEST_MS: '1500' }, datos('7')), { ms: 1500, deLaFicha: false });
+  assert.deepEqual(A.plazoTest({ ARQUITECTO_PLAZO_TEST_MS: 'x' }, datos('7')), { ms: 7 * 60 * 1000, deLaFicha: true });
+});
+
 // rt-8 (D8r.2): el venv vive en cada worktree; en la carpeta de Guido el rojo pregunta por el comando-setup (si la ficha lo trae).
 // rt-2: el guardia de lib/proceso.cjs (la shell inyectada con ARQUITECTO_SHELL): `cmd //c` en cmd.exe no se corre.
 test('sello entorno: rojo con comando-setup → "¿corriste el comando-setup en esta carpeta? (<setup>)"; sin setup, no; el guardia de cmd', () => {

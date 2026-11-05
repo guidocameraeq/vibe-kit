@@ -230,7 +230,12 @@ const CON_DESDE = ['adaptada', 'adaptada (desvío detectado)']; // los que lleva
 const CLASES = ['real', 'prueba', 'dummy'];
 const SENSIBLES = ['datos-reales', 'plata', 'sale-afuera', 'claves', 'release'];
 const CONOCIDOS = ['kit', 'nivel', 'vars', 'piezas', 'frenos', 'autorizado', 'sensible', 'secretos', 'publicas',
-  'herramientas', 'entornos', 'datos-de-prueba', 'push-publica', 'aprueba', 'mesa', 'multi-llm', 'carpeta-docs'];
+  'herramientas', 'entornos', 'datos-de-prueba', 'push-publica', 'aprueba', 'mesa', 'multi-llm', 'carpeta-docs', 'andamiaje'];
+// `andamiaje:` (SPEC-paquete-8r4 u7, D8r4-8): quién toca CLAUDE.md, skills y agentes. Sin la clave, `agentes` (como siempre); con
+// `con-ok-de-guido`, NUCLEO.md §9.4 lo hace clase 3. Es texto que se lee, no un hook.
+const ANDAMIAJES = ['agentes', 'con-ok-de-guido'];
+// vars.plazo-test (u8): los minutos que el sello le da a comando-test, un entero de 1 a 60 sin ceros a la izquierda.
+const RE_PLAZO_TEST = /^(?:[1-9]|[1-5]\d|60)$/;
 
 // La carpeta de papeles del método (SPEC-paquete-8r3, i1): `carpeta-docs:`, `docs` sin ella. Una ruta relativa con `/`: segmentos de
 // [a-z0-9._-] (solo minúsculas: `Docs` es `docs` en el disco de Windows y otra ruta para git; rt-2) que empiezan con letra o número y
@@ -246,7 +251,7 @@ const nom = (ruta) => {
   const seg = ruta.split('.');
   if (seg.length > 1) {
     if (tiene(CON_NOMBRE_DEL_USUARIO, seg[0])) seg[1] = CON_NOMBRE_DEL_USUARIO[seg[0]];
-    else if (seg[0] === 'vars' && seg[1] !== 'proyecto' && seg[1] !== 'lenguajes') seg[1] = '<clave>';
+    else if (seg[0] === 'vars' && !['proyecto', 'lenguajes', 'plazo-test'].includes(seg[1])) seg[1] = '<clave>';
   }
   return seg.join('.').replace(/\.(\d+)/g, '[$1]');
 };
@@ -301,6 +306,7 @@ function validar(datos, st, cierre, avisos) {
   for (const [k, v] of Object.entries(datos.vars)) {
     const r = `vars.${k}`;
     if (k === 'lenguajes') lista(r, v);
+    else if (k === 'plazo-test') patron(r, v, RE_PLAZO_TEST, 'tienen que ser los minutos del test, un entero de 1 a 60 (por ejemplo 10)');
     else if (esMapa(v)) E(L(r), `"${nom(r)}" no puede ser un mapa — dejalo como texto o lista`);
   }
 
@@ -434,6 +440,7 @@ function validar(datos, st, cierre, avisos) {
   for (const k of ['push-publica', 'multi-llm']) {
     if (tiene(datos, k)) uno(k, datos[k], ['sí', 'no']);
   }
+  if (tiene(datos, 'andamiaje')) uno('andamiaje', datos.andamiaje, ANDAMIAJES);
   if (tiene(datos, 'aprueba')) patron('aprueba', datos.aprueba, /^[a-z0-9-]+$/, 'tiene que ser un alias en minúsculas (a-z, 0-9, -), nunca un nombre real');
   if (tiene(datos, 'autorizado')) {
     mapa('autorizado', datos.autorizado);

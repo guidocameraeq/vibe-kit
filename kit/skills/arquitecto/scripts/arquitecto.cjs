@@ -12,6 +12,8 @@
 // La versión del kit sale de <skill>/../../VERSION por __dirname, nunca de os.homedir() (r1-15).
 // Salidas: 0 anduvo · 1 negado o con fallas (una línea por qué, con qué hacer) · 2 mal llamado. Error propio: "arquitecto roto: …", 1.
 // Plazos (para las pruebas): ARQUITECTO_PLAZO_TEST_MS (comando-test, 5 min) y ARQUITECTO_PLAZO_CHEQUEO_MS (cada chequeo, 30 s).
+// El de comando-test lo pone la ficha con vars.plazo-test (minutos, 1-60; u8): la variable, si está, manda sobre la ficha, y
+// ARQUITECTO_PLAZO_TEST_UNIDAD_MS (60000 por defecto) es lo que dura cada "minuto" de la ficha (las pruebas lo bajan a segundos).
 // Los comandos de la ficha corren en la shell de lib/proceso.cjs (Git Bash en Windows; las pruebas: ARQUITECTO_SHELL).
 // Node estándar, cero dependencias. Es .cjs a propósito: corre igual en proyectos con "type": "module".
 
@@ -34,6 +36,7 @@ const USO = [
 ].join('\n');
 
 const PLAZO_TEST_MS = 5 * 60 * 1000;
+const MINUTO_MS = 60 * 1000;
 const PLAZO_CHEQUEO_MS = 30 * 1000;
 const GATE = 'gate:entorno-prueba';
 // SPEC-paquete-8r T3 (rt-3): el sello con tarea 0 lo entiende un molde desde esta versión; uno más viejo, no.
@@ -193,6 +196,14 @@ function plazo(env, nombre, porDefecto) {
   const v = Number(env[nombre]);
   return Number.isFinite(v) && v > 0 ? Math.floor(v) : porDefecto;
 }
+// El plazo de comando-test (SPEC-paquete-8r4 u8): ARQUITECTO_PLAZO_TEST_MS si está; si no, vars.plazo-test de la ficha (ya validado
+// por ficha.cjs: un entero de 1 a 60); si no, los 5 min. → { ms, deLaFicha }
+function plazoTest(env, datos) {
+  if (plazo(env, 'ARQUITECTO_PLAZO_TEST_MS', 0) > 0) return { ms: plazo(env, 'ARQUITECTO_PLAZO_TEST_MS', PLAZO_TEST_MS), deLaFicha: false };
+  const pt = datos && datos.vars ? datos.vars['plazo-test'] : undefined;
+  if (typeof pt === 'string' && /^\d+$/.test(pt)) return { ms: Number(pt) * plazo(env, 'ARQUITECTO_PLAZO_TEST_UNIDAD_MS', MINUTO_MS), deLaFicha: true };
+  return { ms: PLAZO_TEST_MS, deLaFicha: false };
+}
 
 // Corre un comando de la ficha en la raíz, sin mostrar su salida, en la shell de los comandos (lib/proceso.cjs, copia del molde:
 // Git Bash en Windows, como el gate; D8r2-3) y adentro del vigía (pasado el plazo mata el árbol). → { estado: 'verde' | 'rojo' |
@@ -293,13 +304,17 @@ function chequearEntornoFicha(raiz, datos, { ahora, env, spec = null }) {
     if (ct === undefined) fallas.push('entorno: sin entorno real hace falta vars.comando-test en la ficha — agregalo');
     else if (typeof ct !== 'string' || ct.trim() === '') fallas.push('entorno: vars.comando-test tiene que ser un comando (un texto) — corregilo en la ficha');
     else {
-      const ms = plazo(env, 'ARQUITECTO_PLAZO_TEST_MS', PLAZO_TEST_MS);
+      const { ms, deLaFicha } = plazoTest(env, datos);
       const r = correr(ct, raiz, ms, env);
       // rt-8 (D8r.2): el venv (o las dependencias) viven en cada worktree; en la carpeta de Guido puede faltar el setup.
       const cs = datos.vars && typeof datos.vars['comando-setup'] === 'string' ? datos.vars['comando-setup'].trim() : '';
       const setup = cs ? ` — ¿corriste el comando-setup en esta carpeta? (${cs})` : '';
       if (r.estado === 'rojo') fallas.push(`entorno: comando-test dio rojo${setup} — arreglalo antes de sellar (o quitá gate:entorno-prueba con su razón)`);
-      if (r.estado === 'colgado') fallas.push(`entorno: comando-test se colgó (pasó los ${plazoTexto(ms)}) — revisalo antes de sellar`);
+      if (r.estado === 'colgado') {
+        fallas.push(deLaFicha
+          ? `entorno: comando-test se colgó (pasó los ${plazoTexto(ms)} de vars.plazo-test) — revisalo, o subí vars.plazo-test en la ficha (hasta 60) si de verdad tarda tanto`
+          : `entorno: comando-test se colgó (pasó los ${plazoTexto(ms)}) — revisalo antes de sellar, o poné vars.plazo-test en la ficha (minutos, hasta 60) si de verdad tarda más`);
+      }
       if (r.estado === 'no-corre') fallas.push(`entorno: comando-test no se corre: ${r.como} — corregilo en la ficha`);
     }
   }
@@ -556,4 +571,4 @@ if (require.main === module) {
   process.exitCode = codigo;
 }
 
-module.exports = { USO, main, leerArgumentos, versionKit, raizDe, campoModulo, gateQuitado, PLAZO_TEST_MS, PLAZO_CHEQUEO_MS };
+module.exports = { USO, main, leerArgumentos, versionKit, raizDe, campoModulo, gateQuitado, PLAZO_TEST_MS, PLAZO_CHEQUEO_MS, plazoTest };
