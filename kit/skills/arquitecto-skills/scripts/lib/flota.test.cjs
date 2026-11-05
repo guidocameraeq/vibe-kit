@@ -1010,3 +1010,54 @@ test('u2: --con-obra en la CLI (leerArgs) y en el USO', () => {
   assert.equal(FL.leerArgs(['alfa', '--canon', 'c', '--con-obra', '--con-obra']), null, 'una sola vez');
   assert.match(A.USO, /\[--con-obra\]/);
 });
+
+// ---------------------------------------------------------------- SPEC-paquete-8c: h12 (hooks-lib que espera) y p1 (b) (el lock atrasado)
+
+const ESPERA_LIB = 'hooks-lib · adaptada · te espera: sin porqué (ni `por:` en la ficha ni un commit tuyo que la haya cambiado)';
+const ESPERA_X = 'hook-x · adaptada · te espera: sin porqué (ni `por:` en la ficha ni un commit tuyo que la haya cambiado)';
+test('h12: hooks-lib que espera → la nota dice el camino (desde la base de su informe, o la versión de antes), no solo "te espera: hooks-lib"', async () => {
+  const canon = armarCanon();
+  const P = nuevaCarpeta('proyectos');
+  armarRepo(P, 'alfa');
+  armarRepo(P, 'beta');
+  // alfa: aplicar dejó el informe de hooks-lib (base 2.8.0) en el clon; beta: sin informe (la base es la versión de antes)
+  const aplicar = (c, o) => {
+    const a = A.aplicar(c, o);
+    if (/alfa\.git$/.test(git(c, 'remote', 'get-url', 'origin'))) {
+      fs.mkdirSync(path.join(c, '.claude', 'fusiones'), { recursive: true });
+      fs.writeFileSync(path.join(c, '.claude', 'fusiones', 'hooks-lib.md'), '# Te espera: la pieza `hooks-lib`\n\nbase: 2.8.0\n\n## Qué hacer\n');
+    }
+    return { ...a, lineas: [...a.lineas, ESPERA_X, ESPERA_LIB] };
+  };
+  const r = await correr({ repos: ['alfa', 'beta'], canon, tag: 'v3.0.0-rc.1', proyectos: P, aplicar, chequear: chequearVerde });
+  const texto = r.lineas.join('\n');
+  const camino = (base) => `hooks-lib te espera desde ${base}: los hooks nuevos necesitan su lib nueva. Resolvela primero (\`resolver . hooks-lib …\`) y volvé a poner al día`;
+  for (const [repo, base] of [['alfa', '2.8.0'], ['beta', '2.9.0']]) {
+    const f = fila(r, repo);
+    assert.equal(f.resultado, 'mezclado', texto);
+    assert.ok(f.porque.includes('te espera: hook-x · '), f.porque);
+    assert.ok(f.porque.includes(camino(base)), f.porque);
+    assert.ok(!/te espera: [^·]*hooks-lib/.test(f.porque), f.porque);
+  }
+});
+
+const LINEAS_LOCK = [
+  '1. llaves · ✅ · nada', '2. arranque · ✅ · nada', '3. settings · ✅ · nada', '4. skills · ✅ · nada', '5. ficha · ✅ · nada',
+  '6. barreras · ✅ · nada', '7. casos · ✅ · ningún hook cambió en base..HEAD',
+  '8. pruebas · ✅ · ⚠ comando-setup ya fallaba antes de la actualización (lock atrasado: npm EUSAGE en chat-syncer/package-lock.json): es del proyecto, no del kit — regenerá el lock y commitealo; tus tests no se corrieron (NO VERIFICADO)',
+  '9. gitleaks · ✅ · nada',
+];
+test('p1 (b): la línea 8 en ✅ ⚠ por el lock atrasado → el repo sale mezclado, con la nota y la línea en "te espera:"', async () => {
+  const canon = armarCanon();
+  const P = nuevaCarpeta('proyectos');
+  const x = armarRepo(P, 'alfa');
+  const r = await correr({ repos: ['alfa'], canon, tag: 'v3.0.0-rc.1', proyectos: P, chequear: async () => ({ codigo: 0, lineas: LINEAS_LOCK }) });
+  const texto = r.lineas.join('\n');
+  assert.equal(r.codigo, 0, texto);
+  const f = fila(r, 'alfa');
+  assert.equal(f.resultado, 'mezclado', texto);
+  assert.ok(f.porque.includes('pruebas ⚠ comando-setup ya fallaba antes de la actualización (lock atrasado: npm EUSAGE en chat-syncer/package-lock.json)'), f.porque);
+  assert.match(texto, /^te espera:$/m);
+  assert.ok(texto.includes('\n  - alfa: tus tests no se probaron, el lock está atrasado — regenerá chat-syncer/package-lock.json y commitealo'), texto);
+  assert.equal(git(x.bare, 'rev-list', '--count', `${x.base}..main`), '1', 'no traba: el commit del kit llega a main');
+});

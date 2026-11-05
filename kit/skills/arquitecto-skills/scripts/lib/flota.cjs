@@ -506,8 +506,18 @@ async function actualizarMain(nombre, url, ctx, est) {
     break;
   }
   if (fus.fusionadas.length) notas.push(`fusionadas: ${fus.fusionadas.join(', ')}`);
-  if (fus.esperan.length) notas.push(`te espera: ${fus.esperan.join(', ')}`);
-  notas.push(...require('./chequeo.cjs').avisosDe(ch.lineas)); // D8r.4 (S): un ⚠ de chequear (la zona propia que pasa el tope) va a la fila; no la vuelve ROTA
+  const Q = require('./chequeo.cjs');
+  // h12 (SPEC-paquete-8c): hooks-lib que espera no va como un id más: la nota dice el camino (resolverla primero)
+  const otras = fus.esperan.filter((id) => id !== 'hooks-lib');
+  if (otras.length) notas.push(`te espera: ${otras.join(', ')}`);
+  if (otras.length < fus.esperan.length) {
+    const e = Q.hooksLibEspera(clon);
+    notas.push(Q.avisoHooksLib((e && e.base) || fila.antes));
+  }
+  notas.push(...Q.avisosDe(ch.lineas)); // D8r.4 (S): un ⚠ de chequear (la zona propia que pasa el tope) va a la fila; no la vuelve ROTA
+  // p1 (b), rt-5: el lock atrasado del proyecto (línea 8 en ✅ ⚠) también va a "te espera:", para que no se pierda en la nota
+  const lock = Q.lockAtrasadoDe(ch.lineas);
+  if (lock) fila.espera.push(`${nombre}: tus tests no se probaron, el lock está atrasado — regenerá ${lock} y commitealo`);
   // las que esperan viajan en el commit (.claude/fusiones/): las ve la sesión del proyecto cuando el commit está en su rama
   const avisarFusiones = () => {
     if (fus.esperan.length) fila.espera.push(`en ${nombre}, la próxima sesión te pregunta por ${fus.esperan.join(', ')}`);

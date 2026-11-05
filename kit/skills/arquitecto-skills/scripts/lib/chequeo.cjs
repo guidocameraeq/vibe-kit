@@ -32,7 +32,7 @@ const { leerJsonSinDuplicados, zonas } = require('../../pc/lib/zona-propia.cjs')
 const ficha = require('../../pc/lib/ficha.cjs');
 const { shellDeComandos, comandoQueNoCorre } = require('../../pc/lib/proceso.cjs');
 const { seInstancia } = require('./molde.cjs');
-const { RUTA_FUSIONES } = require('./fusion.cjs');
+const { RUTA_FUSIONES, rutaInforme, baseDeInforme } = require('./fusion.cjs');
 
 const IDS = ['llaves', 'arranque', 'settings', 'skills', 'ficha', 'barreras', 'casos', 'pruebas', 'gitleaks'];
 const PLAZO_DEFECTO = 30 * 60 * 1000;
@@ -452,6 +452,33 @@ function avisosDe(lineas) {
   return out;
 }
 
+// ---------------------------------------------------------------- h12: hooks-lib que espera (SPEC-paquete-8c, D8c-3)
+
+// Las hook-* se actualizan aunque hooks-lib espere (no hay acople: va a otra versión). Si un caso del molde nuevo se pierde, la
+// línea 7 sigue ❌ (es un ROTA de verdad), pero dice el camino. Lo usa también la nota de la flota.
+const PIEZA_LIB = 'hooks-lib';
+// → { base } (la versión desde la que espera, o null si el informe no la dice) si hooks-lib espera en <carpeta>; si no, null.
+// Espera = su informe en .claude/fusiones/hooks-lib.md, o la pieza fuera de su versión (`desde:` en la ficha: "quedarse").
+function hooksLibEspera(carpeta) {
+  let texto = null;
+  try {
+    texto = fs.readFileSync(path.join(carpeta, ...rutaInforme(PIEZA_LIB).split('/')), 'utf8');
+  } catch (e) {
+    texto = null;
+  }
+  if (texto !== null) return { base: baseDeInforme(texto) };
+  try {
+    const piezas = ficha.leerArchivo(path.join(carpeta, ...RUTA_FICHA.split('/'))).datos.piezas;
+    const v = piezas && typeof piezas === 'object' ? piezas[PIEZA_LIB] : undefined;
+    if (v && typeof v === 'object' && typeof v.desde === 'string' && v.desde.trim()) return { base: v.desde.trim() };
+  } catch (e) {
+    // sin ficha que se lea, no se sabe: el detalle de siempre
+  }
+  return null;
+}
+const avisoHooksLib = (base) =>
+  `${PIEZA_LIB} te espera${base ? ` desde ${base}` : ''}: los hooks nuevos necesitan su lib nueva. Resolvela primero (\`resolver . ${PIEZA_LIB} …\`) y volvé a poner al día`;
+
 // ---------------------------------------------------------------- 5. ficha
 
 function leerFicha(ctx) {
@@ -640,7 +667,12 @@ function casos(ctx) {
     }
   }
   const problemas = [...rojos, ...sinPruebas.map((d) => `el hook ${d} cambió y el molde nuevo no trae pruebas para él`)];
-  if (problemas.length) return mal(problemas.slice(0, 3).join('; ') + (problemas.length > 3 ? ` y ${problemas.length - 3} más` : ''));
+  if (problemas.length) {
+    const detalle = problemas.slice(0, 3).join('; ') + (problemas.length > 3 ? ` y ${problemas.length - 3} más` : '');
+    // h12: un caso perdido con hooks-lib esperando → primero el camino (resolverla), después lo de siempre
+    const espera = rojos.length ? hooksLibEspera(ctx.carpeta) : null;
+    return mal(espera ? `${avisoHooksLib(espera.base)} · ${detalle}` : detalle);
+  }
   return bien(`${duenos.size} hook${duenos.size === 1 ? '' : 's'} cambiado${duenos.size === 1 ? '' : 's'}, ${corridas} archivo${corridas === 1 ? '' : 's'} de pruebas del molde nuevo en verde`);
 }
 
@@ -650,6 +682,68 @@ function casos(ctx) {
 // y saltos de línea, no.
 const RE_TUBERIA = /[|&;<>`\r\n]|\$\(/;
 const conTuberia = (c) => RE_TUBERIA.test(c.split('&&').join(' '));
+
+// p1 (b) (SPEC-paquete-8c, D8c-8): el comando-setup que ya fallaba antes por un lock desincronizado del proyecto, y que el kit no
+// tocó, avisa (✅ ⚠) y no traba. Las firmas, de las salidas reales del chequeo frío de la rc.5 (npm del analytics, pnpm del bot) y
+// la de yarn del manual. Se buscan en la salida ENTERA (corto() recorta el detalle: la de npm quedaba en "wh…").
+const FIRMAS_LOCK = [
+  {
+    lock: 'package-lock.json',
+    re: /npm ci`? can only install packages when your package\.json and package-lock\.json (?:or npm-shrinkwrap\.json )?are in sync/i,
+    firma: (t) => (/\bEUSAGE\b/.test(t) ? 'npm EUSAGE' : 'npm ci'),
+  },
+  { lock: 'pnpm-lock.yaml', re: /\bERR_PNPM_OUTDATED_LOCKFILE\b/, firma: () => 'ERR_PNPM_OUTDATED_LOCKFILE' },
+  { lock: 'yarn.lock', re: /\bYN0028\b|lockfile would have been modified/i, firma: () => 'yarn YN0028' },
+];
+// → { firma, lock } (lock: el nombre del archivo, sin carpeta) o null
+function firmaLock(salida) {
+  const t = String(salida || '').replace(/\s+/g, ' ');
+  for (const f of FIRMAS_LOCK) if (f.re.test(t)) return { firma: f.firma(t), lock: f.lock };
+  return null;
+}
+// La carpeta donde corre el instalador según el comando-setup: `cd x &&` al principio y/o `--prefix x` · `--prefix=x` · `-C x` ·
+// `--dir x` · `--cwd x`. → 'x' (posix, sin barra al final) o ''.
+function carpetaDelSetup(setup) {
+  const limpia = (s) => (s ? s.replace(/^["']|["']$/g, '').replace(/\\/g, '/').replace(/\/+$/, '').replace(/^\.(\/|$)/, '') : '');
+  const cd = /^\s*cd\s+("[^"]+"|'[^']+'|\S+)\s*&&/.exec(setup);
+  const op = /(?:^|\s)(?:(?:--prefix|--dir|--cwd)(?:=|\s+)|-C\s+)("[^"]+"|'[^']+'|[^\s"']+)/.exec(setup);
+  return [limpia(cd && cd[1]), limpia(op && op[1])].filter(Boolean).join('/');
+}
+// Lo que mueve al instalador (rt-4): si el commit del kit toca uno de estos (en cualquier carpeta), la falla puede ser suya.
+const MUEVEN_INSTALADOR = new Set([
+  'package.json', 'package-lock.json', 'npm-shrinkwrap.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lock', 'bun.lockb',
+  '.npmrc', '.yarnrc', '.yarnrc.yml', 'pnpm-workspace.yaml', '.nvmrc', '.node-version', '.tool-versions', '.gitattributes',
+]);
+// → null si base..HEAD no toca nada que mueva al instalador y vars.comando-setup es el mismo en la ficha de base; si no, el porqué.
+function tocaInstalador(ctx, setup) {
+  const d = git(['diff', '--name-only', '--no-renames', '-z', ctx.base, 'HEAD'], ctx.carpeta);
+  if (!d.ok) return `no pude ver el diff de base..HEAD (${corto(d.error || `salida ${d.status}`, 60)})`;
+  const tocados = d.salida.toString('utf8').split('\0').filter(Boolean).filter((f) => MUEVEN_INSTALADOR.has(f.split('/').pop().toLowerCase()));
+  if (tocados.length) return `la actualización toca ${tocados.slice(0, 3).join(', ')}${tocados.length > 3 ? ` y ${tocados.length - 3} más` : ''}`;
+  const fb = git(['show', `${ctx.base}:${RUTA_FICHA}`], ctx.carpeta);
+  if (!fb.ok) return 'no leo la ficha de base';
+  let antes;
+  try {
+    const v = ficha.leer(fb.salida.toString('utf8')).datos.vars;
+    antes = v && typeof v === 'object' && typeof v['comando-setup'] === 'string' ? v['comando-setup'].trim() : '';
+  } catch (e) {
+    return 'la ficha de base no se lee';
+  }
+  if (antes !== setup) return 'vars.comando-setup cambió en la actualización';
+  return null;
+}
+
+// El clon de <base>: --shared (lee los objetos del original, no lo toca), parado en <base>. Uno por chequeo. → { dir } o { error }.
+function clonBase(ctx) {
+  if (!ctx.clonBase) {
+    const dir = path.join(ctx.tmp, 'base');
+    const c = git(['clone', '-q', '--shared', '--no-checkout', ctx.carpeta, dir], ctx.tmp);
+    const k = c.ok ? git(['-c', 'advice.detachedHead=false', 'checkout', '-q', '--detach', ctx.base], dir) : c;
+    ctx.clonBase = k.ok ? { dir } : { error: corto(k.error || `salida ${k.status}`, 80) };
+  }
+  return ctx.clonBase;
+}
+
 function pruebas(ctx) {
   const f = leerFicha(ctx);
   if (f.error) nv(`sin ficha que se lea no hay comando-test (${f.error})`);
@@ -670,36 +764,64 @@ function pruebas(ctx) {
   if (setup && conTuberia(setup)) nv(`comando-setup con tuberías o redirecciones no se corre: ${corto(setup, 80)}`);
   const niegaSetup = setup ? comandoQueNoCorre(setup, shell) : null;
   if (niegaSetup) nv(`comando-setup no se corre: ${niegaSetup}: ${corto(setup, 80)}`);
-  // → null si anduvo (o no hay), o el motivo por el que no anduvo
+  // → null si anduvo (o no hay), o { motivo, s }: por qué no anduvo y la corrida (con su salida entera)
   const prepararEn = (cwd) => {
     if (!setup) return null;
     const s = correr(setup, [], { cwd, plazo: ctx.plazoMs, shell, tmp: ctx.tmp });
-    if (s.colgado) return `comando-setup colgado: no terminó en ${minutos(ctx.plazoMs)}`;
-    if (s.error) return `comando-setup no arrancó (${s.error})`;
-    if (s.status !== 0) return `comando-setup (${corto(setup, 60)}) salió con ${s.status}: ${corto(s.salida, 80) || 'sin salida'}`;
-    return null;
+    let motivo = null;
+    if (s.colgado) motivo = `comando-setup colgado: no terminó en ${minutos(ctx.plazoMs)}`;
+    else if (s.error) motivo = `comando-setup no arrancó (${s.error})`;
+    else if (s.status !== 0) motivo = `comando-setup (${corto(setup, 60)}) salió con ${s.status}: ${corto(s.salida, 80) || 'sin salida'}`;
+    return motivo ? { motivo, s } : null;
   };
+  // Solo una salida con código ≠ 0 cuenta como "terminó y falló" (rt-3): colgado, no arrancó o matado por una señal, no.
+  const salioMal = (s) => !s.colgado && !s.error && typeof s.status === 'number' && s.status !== 0;
   const fallaSetup = prepararEn(ctx.carpeta);
-  if (fallaSetup) nv(fallaSetup);
+  if (fallaSetup) {
+    // p1 (b): ¿el lock del proyecto ya estaba atrasado antes? Las tres condiciones juntas o ❌ como hoy (D8c-8).
+    if (!salioMal(fallaSetup.s)) nv(fallaSetup.motivo);
+    const head = firmaLock(fallaSetup.s.salida);
+    if (!head) nv(fallaSetup.motivo);
+    const dirLock = carpetaDelSetup(setup);
+    const firma = `${head.firma} en ${dirLock ? `${dirLock}/` : ''}${head.lock}`;
+    const toca = tocaInstalador(ctx, setup);
+    if (toca) nv(`${fallaSetup.motivo} (lock atrasado: ${firma}, pero ${toca}: puede ser de la actualización)`);
+    const cb = clonBase(ctx);
+    if (cb.error) nv(`${fallaSetup.motivo} (lock atrasado: ${firma}; en base no se sabe: no pude armar el clon, ${cb.error})`);
+    const enBase = prepararEn(cb.dir);
+    if (!enBase) nv(`${fallaSetup.motivo} (lock atrasado: ${firma}; en base el comando-setup anduvo: lo rompió la actualización)`);
+    if (!salioMal(enBase.s)) nv(`${fallaSetup.motivo} (lock atrasado: ${firma}; en base no se sabe: ${enBase.motivo})`);
+    const base = firmaLock(enBase.s.salida);
+    if (!base || base.firma !== head.firma) nv(`${fallaSetup.motivo} (lock atrasado: ${firma}; en base falló de otra forma: ${corto(enBase.s.salida, 60) || 'sin salida'})`);
+    return bien(`⚠ comando-setup ya fallaba antes de la actualización (lock atrasado: ${firma}): es del proyecto, no del kit — regenerá el lock y commitealo; tus tests no se corrieron (NO VERIFICADO)`);
+  }
   const r = correr(cmd, [], { cwd: ctx.carpeta, plazo: ctx.plazoMs, shell, tmp: ctx.tmp });
   if (r.colgado) nv(`comando-test colgado: no terminó en ${minutos(ctx.plazoMs)}`);
   if (r.error) nv(`comando-test no arrancó (${r.error})`);
   if (r.status === 0) return bien(`${cmd} en verde`);
-  // Rojo: ¿ya lo estaba en <base>? Un clon --shared (lee los objetos del original, no lo toca), parado en <base>.
-  const dir = path.join(ctx.tmp, 'base');
+  // Rojo: ¿ya lo estaba en <base>?
   let antes = '';
-  const c = git(['clone', '-q', '--shared', '--no-checkout', ctx.carpeta, dir], ctx.tmp);
-  const k = c.ok ? git(['-c', 'advice.detachedHead=false', 'checkout', '-q', '--detach', ctx.base], dir) : c;
-  if (!k.ok) antes = ' (no pude ver si ya estaba rojo antes)';
+  const cb = clonBase(ctx);
+  if (cb.error) antes = ' (no pude ver si ya estaba rojo antes)';
   else {
+    const dir = cb.dir;
     const fallaBase = prepararEn(dir);
     const rb = fallaBase ? null : correr(cmd, [], { cwd: dir, plazo: ctx.plazoMs, shell, tmp: ctx.tmp });
-    if (fallaBase) antes = ` (en base ${fallaBase}: no se sabe si ya estaba rojo antes)`;
+    if (fallaBase) antes = ` (en base ${fallaBase.motivo}: no se sabe si ya estaba rojo antes)`;
     else if (rb.colgado) antes = ' (en base se colgó: no se sabe si ya estaba rojo antes)';
     else if (!rb.error && rb.status !== 0) antes = ' — ya estaba rojo antes';
     else if (rb.status === 0) antes = ' — en base estaba verde: lo rompió la actualización';
   }
   return mal(`${cmd} en rojo (salida ${r.status})${antes}`);
+}
+
+// La línea 8 en ✅ ⚠ por un lock atrasado (p1 b) → el lock (con su carpeta), o null. La flota lo suma a "te espera:" (rt-5).
+function lockAtrasadoDe(lineas) {
+  for (const l of lineas || []) {
+    const m = /^8\. pruebas · ✅ · ⚠ comando-setup ya fallaba antes de la actualización \(lock atrasado: .+? en (.+?)\): es del proyecto/.exec(String(l));
+    if (m) return m[1];
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------- 9. gitleaks
@@ -848,4 +970,4 @@ function chequear(carpeta, opciones = {}) {
   return { lineas, ok: res.every((r) => r.ok), noVerificado: noVerif.length > 0, noVerificados: noVerif };
 }
 
-module.exports = { chequear, IDS, TOPE_SKILL, TOPES_SKILL, topeSkill, pesoSkill, avisosDe, CONSEJO_TOPE, PLAZO_DEFECTO, agregadas, rutasDeHook, cabeceraSkill, pruebasDe, casoRojo, rojosPorArchivo, correr };
+module.exports = { chequear, IDS, TOPE_SKILL, TOPES_SKILL, topeSkill, pesoSkill, avisosDe, hooksLibEspera, avisoHooksLib, firmaLock, carpetaDelSetup, lockAtrasadoDe, CONSEJO_TOPE, PLAZO_DEFECTO, agregadas, rutasDeHook, cabeceraSkill, pruebasDe, casoRojo, rojosPorArchivo, correr };
