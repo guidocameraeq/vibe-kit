@@ -299,7 +299,7 @@ Los crit. de c1, h11, h12 y de cada ítem de la vuelta 2 (los del delta de la `r
 - **D8c-7 · D8r.1-4 y D8r.2-3/4/6 no entran**: por las dudas, adivinar, o grande sin dolor de uso. `[filtro pragmático]`
 - **D8c-8 · p1: el setup que ya fallaba antes por un lock desincronizado (con su firma), y que el kit no tocó, avisa y no traba** (la recomendada de la madre; las condiciones, por su red team): trabar deja al
   proyecto sin los arreglos del kit por algo que el kit no rompe ni arregla. Las tres condiciones (la firma del lock en las dos corridas, el commit
-  del kit no toca `package.json` ni locks) son las que separan "del proyecto" de "lo rompió la actualización". `[workflow · coherencia]`
+  del kit no toca lo que mueve al instalador, solo una salida distinta de 0) son las que separan "del proyecto" de "lo rompió la actualización". `[workflow · coherencia]`
 - **D8c-9 · p1 (a) detecta el lock atrasado leyendo los archivos, no corriendo `npm ci`**: correr el instalador en `--mirar` o en el
   `doctor` tarda minutos y escribe `node_modules`; leer es instantáneo y no toca nada. Mira npm, pnpm y yarn (los tres de la flota hoy son
   npm o pnpm). `[filtro pragmático · mejor código]`
