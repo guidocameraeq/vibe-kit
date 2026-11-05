@@ -213,7 +213,7 @@ test('modo-b.md y formato-spec.md (8r T1, T2, T3): el director pide la ficha; su
   const abrir = fs0.split('\n').find((l) => l.startsWith('- **La línea para abrir**'));
   const conDirector = abrir.slice(abrir.indexOf('con director'), abrir.indexOf('SPEC-0,'));
   assert.doesNotMatch(conDirector, /inicio — ejecutá/);
-  assert.match(conDirector, /`\/director`/);
+  assert.match(conDirector, /`\/director <x>`/, 'D8r.4-2: con el módulo, como lo imprime worktree.cjs');
   assert.match(fs0, /`- \*\*Tarea 0\*\*: montar la base de prueba`/);
   assert.match(fs0, /\*\*el encargo `00`\*\*/);
   assert.match(fs0, /`entorno — \(tarea 0: montar el entorno de prueba\)`/);

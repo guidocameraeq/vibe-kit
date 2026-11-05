@@ -192,6 +192,23 @@ test('leerEncargo: CRLF, BOM, comentarios HTML, SPEC-2 con una línea, opus/high
   assert.deepEqual(E.leerEncargo(encargo({ '- `npm': null }), N).secciones.gate, [], 'GATE vacía vale: comando-test corre siempre');
 });
 
+test('8c c1: leerEncargo lee entera la plantilla de cierre de tramo ya llena; sin el Spec llenado, no', () => {
+  const plantilla = fs.readFileSync(path.join(__dirname, '..', '..', 'skills', 'director', 'plantilla-cierre.md'), 'utf8');
+  const lleno = plantilla.replace('<sha7> · <AAAA-MM-DDTHH:MM±HH:MM>', 'abc1234 · 2026-11-05T10:00-03:00')
+    .replace('SPEC[-N].md:<línea>[-<línea>]', 'SPEC-2.md:30').replace(/<x>/g, 'caja').replace(/<ID>/g, '07').replace(/<N>/g, '3');
+  const e = E.leerEncargo(lleno, E.nombreEncargo('caja--07'));
+  assert.deepEqual(e.errores, []);
+  assert.deepEqual(e.titulo, { id: '07', x: 'caja', titulo: 'cierre del tramo 3' });
+  assert.deepEqual(e.campos.modelo, { modelo: 'sonnet', esfuerzo: 'low', porque: 'documentación' });
+  assert.deepEqual(e.campos.riesgo, { riesgo: 'bajo', porque: 'no toca código' });
+  assert.equal(e.campos.apertura, 'director');
+  assert.deepEqual(e.campos.spec, { ruta: 'docs/modulos/caja/SPEC-2.md', desde: 30, hasta: 30 });
+  assert.deepEqual(E.validarAutorizado(e.secciones.autorizado), []);
+  assert.deepEqual(e.secciones.autorizado, ['Bash(node .claude/scripts/tiempos.cjs tiempos caja)', 'Bash(node .claude/scripts/tiempos.cjs contador caja)', 'Bash(node .claude/scripts/resumen.cjs caja)']);
+  const sinSpec = E.leerEncargo(lleno.replace('SPEC-2.md:30', 'SPEC[-N].md:<línea>[-<línea>]'), E.nombreEncargo('caja--07'));
+  assert.ok(sinSpec.errores.some((x) => x.startsWith('- Spec:')), sinSpec.errores.join(' | '));
+});
+
 test('leerEncargo: cada campo y cada sección que falta se nombra', () => {
   for (const c of E.CAMPOS) {
     const e = E.leerEncargo(encargo({ [`- ${c}:`]: null }), N);

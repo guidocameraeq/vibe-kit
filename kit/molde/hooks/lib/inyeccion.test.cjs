@@ -146,7 +146,7 @@ test('cortarRenglones: renglones enteros, la marca cuenta, sin cortar si entra',
 
 test('datosFichaModulo: Estado, rama y Próximo paso (con y sin guion); activo = EN OBRA o PAUSADO', () => {
   const d = iny.datosFichaModulo('# x\n- Estado: EN OBRA\n- rama: `modulo/x`\nPróximo paso: probar\n');
-  assert.deepEqual(d, { estado: 'EN OBRA', iEstado: 1, rama: 'modulo/x', proximo: 'probar', activo: true });
+  assert.deepEqual(d, { estado: 'EN OBRA', iEstado: 1, rama: 'modulo/x', proximo: 'probar', tramo: null, iTramo: -1, activo: true });
   assert.equal(iny.datosFichaModulo('Estado: PAUSADO desde ayer').activo, true);
   assert.equal(iny.datosFichaModulo('Estado: COMPLETO').activo, false);
   assert.equal(iny.datosFichaModulo('Estado: EN OBRAS').activo, false);
@@ -435,6 +435,47 @@ test('módulos activos: EN OBRA y PAUSADO sí, COMPLETO no; por git show de su r
   assert.ok(r.texto.includes('b · PAUSADO (hace 5 días) · próximo: PROX-b'));
   assert.ok(!r.texto.includes('c · COMPLETO'));
   assert.ok(r.texto.includes('d · EN OBRA (hace 5 días) · próximo: DE-LA-RAMA'));
+});
+
+test('8c c1: con `- Tramo: <N> cerrado <fecha>` la línea es "<x> · tramo N cerrado <edad> · próximo: …"; sin rama local, de origin/<rama>; sin Tramo:, la de antes', () => {
+  const d = repo();
+  const remoto = path.join(carpeta('remoto'), 'r.git');
+  g(d, 'init', '-q', '--bare', '-b', 'main', remoto);
+  commit(d, { 'docs/SESSION_HANDOFF.md': handoff('H'), 'docs/TODO.md': TODO_CHICO, 'docs/modulos/x/README.md': fichaModulo('x', 'EN OBRA', { rama: 'modulo/x' }) }, 'base', T0);
+  g(d, 'remote', 'add', 'origin', remoto);
+  g(d, 'push', '-q', 'origin', 'main');
+  let r = armar(d);
+  assert.ok(r.texto.includes('x · EN OBRA (hace 5 días) · próximo: PROX-x'), 'sin Tramo: ni rama, la línea de antes');
+  // La ficha en modulo/x con el tramo cerrado (el obrero de cierre, mergeado por el director), pusheada.
+  g(d, 'switch', '-q', '-c', 'modulo/x');
+  const conTramo = fichaModulo('x', 'EN OBRA', { rama: 'modulo/x', proximo: 'el encargo 04' }).replace('Estado: EN OBRA\n', '- Estado: EN OBRA\n- Tramo: 2 cerrado 2026-10-03\n- Cierre de tramo: cada 2 encargos\n');
+  commit(d, { 'docs/modulos/x/README.md': conTramo }, 'cierre de tramo 2', T1);
+  g(d, 'push', '-q', 'origin', 'modulo/x');
+  g(d, 'switch', '-q', 'main');
+  r = armar(d);
+  assert.ok(r.texto.includes('x · tramo 2 cerrado (hace 3 días) · próximo: el encargo 04'), r.texto);
+  // La otra PC: sin la rama local, la ficha sale de origin/modulo/x.
+  g(d, 'branch', '-q', '-D', 'modulo/x');
+  r = armar(d);
+  assert.ok(r.texto.includes('x · tramo 2 cerrado (hace 3 días) · próximo: el encargo 04'), r.texto);
+  // `Cierre de tramo:` no es `Tramo:`.
+  assert.equal(iny.datosFichaModulo('- Estado: EN OBRA\n- Cierre de tramo: cada encargo\n').tramo, null);
+  assert.equal(iny.datosFichaModulo('- Estado: EN OBRA\n- Tramo: 3 cerrado 2026-11-04\n').tramo, 3);
+});
+
+test('8c c1: con Tramo: y muchos módulos, el bloque sigue en 300 y los que no entran → "… (N más …)"', () => {
+  const d = repo();
+  const archivos = { 'docs/SESSION_HANDOFF.md': handoff('H'), 'docs/TODO.md': TODO_CHICO };
+  for (let i = 0; i < 9; i++) {
+    archivos[`docs/modulos/m${i}/README.md`] = fichaModulo(`m${i}`, 'EN OBRA', { proximo: 'un paso bastante largo para llenar' }).replace('Estado: EN OBRA\n', 'Estado: EN OBRA\n- Tramo: 1 cerrado 2026-10-01\n');
+  }
+  commit(d, archivos);
+  const l = lineas(armar(d).texto);
+  const ini = l.indexOf('=== módulos activos ===');
+  const bloque = l.slice(ini + 1, l.indexOf('', ini));
+  assert.ok(bloque.join('\n').length <= 300);
+  assert.ok(bloque[0].startsWith('m0 · tramo 1 cerrado (hace 5 días) · próximo: '), bloque[0]);
+  assert.match(bloque[bloque.length - 1], /^… \(\d+ más en docs\/modulos\/\)$/);
 });
 
 test('módulos activos: más de 300 → cortado en renglón, dicho y CORTADO arriba', () => {

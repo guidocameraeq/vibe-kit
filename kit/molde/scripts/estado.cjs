@@ -19,6 +19,7 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 const git = require('../hooks/lib/git.cjs');
 const E = require('../hooks/lib/encargo.cjs');
+const iny = require('../hooks/lib/inyeccion.cjs');
 const docsRuta = require('../hooks/lib/docs-ruta.cjs');
 const T = require('./tiempos.cjs');
 
@@ -223,11 +224,16 @@ function podesCerrar(f, enc) {
   return sesionesVivas(f).filter((s) => mergeadas.has(s.rama)).map((s) => s.nombre);
 }
 
+// La línea del módulo. Con `- Tramo: <N> cerrado <fecha>` y `Próximo paso:` en la ficha (los escribe el obrero de cierre de tramo,
+// SPEC-paquete-8c c1), suma `tramo <N> cerrado` y `próximo: …`, leídos como los lee el arranque (datosFichaModulo).
 function lineaModulo(raiz, m) {
   const f = m.ficha;
   const t = tareas(f);
   const p = porcentaje(t);
-  const partes = [m.x, f.campos.estado || 'sin Estado', p === null ? 'avance —' : `${t.hechas} de ${t.total} tareas (${p}%)`];
+  const df = iny.datosFichaModulo(m.texto);
+  const partes = [m.x, f.campos.estado || 'sin Estado'];
+  if (df.tramo !== null) partes.push(`tramo ${df.tramo} cerrado`);
+  partes.push(p === null ? 'avance —' : `${t.hechas} de ${t.total} tareas (${p}%)`);
   let cerrar = [];
   if (m.conDirector) {
     const enc = encargosDe(raiz, m.x);
@@ -235,6 +241,7 @@ function lineaModulo(raiz, m) {
     cerrar = podesCerrar(f, enc);
   }
   partes.push(`podés cerrar: ${cerrar.length ? cerrar.join(', ') : 'nadie'}`);
+  if (df.proximo) partes.push(`próximo: ${df.proximo}`);
   return partes.join(' · ');
 }
 

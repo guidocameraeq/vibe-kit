@@ -168,13 +168,15 @@ function pegarEdad(linea, edad, cupo) {
 const RE_ESTADO_MOD = /^\s*(?:-\s+)?Estado:\s*(.*)$/;
 const RE_RAMA_MOD = /^\s*(?:-\s+)?rama:\s*(.*)$/;
 const RE_PROXIMO_MOD = /^\s*(?:-\s+)?Próximo paso:\s*(.*)$/;
+const RE_TRAMO_MOD = /^\s*(?:-\s+)?Tramo:\s*(\d+)\s+cerrado\b/; // SPEC-paquete-8c c1: `- Tramo: <N> cerrado <AAAA-MM-DD>`
 const RE_ACTIVO = /^(EN OBRA|PAUSADO)\b/i;
 const sinMarcas = (s) => s.replace(/^[`*_"]+|[`*_"]+$/g, '').trim();
 
-// datosFichaModulo(texto) → { estado, iEstado, rama, proximo, activo }. iEstado: índice del renglón `Estado:` (o -1).
+// datosFichaModulo(texto) → { estado, iEstado, rama, proximo, tramo, iTramo, activo }. iEstado / iTramo: índice del renglón
+// `Estado:` / `Tramo:` (o -1); tramo: el N del último tramo cerrado (lo escribe el obrero de cierre de tramo) o null.
 function datosFichaModulo(texto) {
   const l = limpiar(texto == null ? '' : texto).split('\n');
-  const d = { estado: null, iEstado: -1, rama: null, proximo: null, activo: false };
+  const d = { estado: null, iEstado: -1, rama: null, proximo: null, tramo: null, iTramo: -1, activo: false };
   l.forEach((x, i) => {
     let m;
     if (d.estado === null && (m = RE_ESTADO_MOD.exec(x))) {
@@ -184,6 +186,9 @@ function datosFichaModulo(texto) {
       d.rama = sinMarcas(m[1]) || null;
     } else if (d.proximo === null && (m = RE_PROXIMO_MOD.exec(x))) {
       d.proximo = m[1].trim();
+    } else if (d.tramo === null && (m = RE_TRAMO_MOD.exec(x))) {
+      d.tramo = Number(m[1]);
+      d.iTramo = i;
     }
   });
   d.activo = !!d.estado && RE_ACTIVO.test(d.estado);
@@ -250,7 +255,8 @@ function bloqueModulos({ raiz, ahora, gitOk, rutas = RUTAS_DOCS }) {
   } catch (e) {
     return null;
   }
-  // Los activos: por `git show <rama>:` si la ficha tiene `rama:` (y la rama existe), si no del disco.
+  // Los activos: por `git show <rama>:` si la ficha tiene `rama:` (y la rama existe; si no está en esta PC, la de origin: la otra
+  // PC, SPEC-paquete-8c c1), si no del disco.
   const activos = [];
   for (const x of nombres) {
     const ruta = `${carpetaMods}/${x}/README.md`;
@@ -259,10 +265,12 @@ function bloqueModulos({ raiz, ahora, gitOk, rutas = RUTAS_DOCS }) {
     let d = datosFichaModulo(disco);
     let rev = null;
     if (d.rama && gitOk) {
-      const s = mostrar(raiz, d.rama, ruta);
-      if (s !== null) {
-        rev = d.rama;
+      for (const ref of [d.rama, `origin/${d.rama}`]) {
+        const s = mostrar(raiz, ref, ruta);
+        if (s === null) continue;
+        rev = ref;
         d = datosFichaModulo(s);
+        break;
       }
     }
     if (d.activo) activos.push({ x, ruta, d, rev });
@@ -272,13 +280,16 @@ function bloqueModulos({ raiz, ahora, gitOk, rutas = RUTAS_DOCS }) {
   const lineas = [];
   let usado = 0;
   for (const { x, ruta, d, rev } of activos) {
+    // Con `Tramo:`, la línea dice el último tramo cerrado y la edad es la de ese renglón; sin él, el estado (la de antes).
+    const i = d.tramo !== null ? d.iTramo : d.iEstado;
     let edad = '';
     if (gitOk && usado <= B.modulos) {
-      const info = masNuevo(edadesDe(raiz, ruta, rev), d.iEstado, d.iEstado + 1);
-      const viejo = info && info.sha && d.rama ? huboCodigoDespues(raiz, info.sha, d.rama, rutas.carpeta) : false;
+      const info = masNuevo(edadesDe(raiz, ruta, rev), i, i + 1);
+      const viejo = info && info.sha && d.rama ? huboCodigoDespues(raiz, info.sha, rev || d.rama, rutas.carpeta) : false;
       edad = ' ' + textoEdad(info, ahora, viejo);
     }
-    const l = `${acortar(x, 40)} · ${acortar(d.estado, 40)}${edad} · próximo: ${d.proximo ? acortar(d.proximo, 120) : '(sin "Próximo paso:")'}`;
+    const que = d.tramo !== null ? `tramo ${d.tramo} cerrado` : acortar(d.estado, 40);
+    const l = `${acortar(x, 40)} · ${que}${edad} · próximo: ${d.proximo ? acortar(d.proximo, 120) : '(sin "Próximo paso:")'}`;
     lineas.push(l);
     usado += l.length + 1;
   }
