@@ -28,7 +28,9 @@ analytics y el bot.
   - **`hooks-lib` esperando**: la línea 7 sigue ROTA, pero dice que la resuelvas primero (`resolver . hooks-lib …`); la flota lo mismo.
   - **La adopción mira más**: los vecinos (worktrees fuera de `.claude/worktrees/`, carpetas `gate-*`), gitleaks sobre toda la historia
     (solo `archivo:línea · regla`, nunca el valor), qué freno del kit cubre cada `ask`/`deny` que saca D2, y los avisos de la adopción
-    (el `NORTE.md` con `[completar`, el CHANGELOG con `## [Unreleased]`). El `doctor` suma `vecinos` y `locks` (⚠).
+    (el `NORTE.md` con `[completar`, el CHANGELOG con `## [Unreleased]`: el renglón del kit va en `### Método (kit)`). `--aplicar`
+    suma `--agentes renombrar` (tu agente propio pasa a `<nombre>-propio.md`, tal cual) y `--worktreeinclude` (lo escribe). El `doctor`
+    suma `vecinos` y `locks` (⚠).
   - **La ficha**: `andamiaje:` (`agentes` · `con-ok-de-guido`: tocar `CLAUDE.md`, skills o agentes es clase 3) y `vars.plazo-test`
     (minutos, 1-60, lo que el sello espera a `comando-test`).
   - **`worktree.cjs crear`**: un archivo de `.worktreeinclude` que no es `.env` (un `config.local.ini`) pasa por el mismo filtro del

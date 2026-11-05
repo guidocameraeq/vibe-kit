@@ -351,6 +351,24 @@ Presupuesto: ~2 h de reloj y ~6 encargos de trabajo, más el red team y el chequ
 **Orden**: RT → RT2 → P ∥ L ∥ C (no comparten archivos) → V ∥ K → D (después de L y V: comparte `actualizar.cjs` con L y `adoptar.cjs` con V;
 mergea `main` y vuelve a correr sus pruebas) → T → CF → la suite (sola) → la flota contra el clon de Hermes → tag.
 
+## Lo que salió al construir (2026-11-05)
+
+- **h6**: probada, no pasa (`worktree.test`: dos worktrees en `../`, uno en `modulo/y` a mano y uno suelto; `donde`, `crear`, `abrir`,
+  `cerrar` y `/estado` no se confunden).
+- **h9**: **se reproduce**: un `config.local.ini` ignorado y listado en `.worktreeinclude`, con un nombre del almacén, llegaba entero al
+  worktree. Arreglo (`worktree.cjs prepararCopia`): lo que no es `.env` pasa por el mismo filtro del almacén (sin nada que sacar, los
+  bytes tal cual). Solo saca: no afloja ningún freno, por eso sin red team. **Queda sin cubrir** (a Pendientes): `secretos.cjs` no frena
+  `cat config.local.ini` (su lista es `.env`, `.env.*`, `*.pem`, `*.key`) y el deny cubre solo los `.env` del principal.
+- **h10**: el `sh`, probada, no pasa. **La versión de `claude`, causa raíz**: en Windows `buscarEnPath` probaba primero el nombre sin
+  extensión y elegía el script de sh de npm (`spawn` ENOENT). Ahora prueba las extensiones de `PATHEXT`; `doctor.test` con la salida de
+  Juan. La instalación exacta de Juan, NO VERIFICADO (coincide con su salida).
+- **D8r.1-2**: `adoptar.cjs` nunca pushea; el orden del texto (commits, portada, push, `--traer`) es el real: sin cambio.
+- **D8r.1-3**: la forma del delta (`director-obrero: sí` + `resolver … nueva`) **no anda** (`resolver` sin informe solo trae la del kit
+  sobre una `propia`, y pide `--por`). Lo escrito en `flota.md` y en la nota: `piezas.director-obrero: propia` + `resolver . director-obrero
+  nueva --kit <…> --por "<por qué>"`. De punta a punta en un repo sin ningún archivo de director: NO VERIFICADO.
+- **Topes**: `/director` 7.984 B, `/cierre` 7.994 B (de 8.000): ninguno admite otra línea sin recortar.
+- **Mutación**: h11 (a)-(d) y p1 (b) (a)-(d): cada una pone roja la prueba que dice el delta.
+
 ## Ejecución
 
 Un director Opus (D8c.1), este delta, una ronda de red team solo de h11 y h12 y un chequeo frío corto; el cómo, en [`PLAN-construccion.md`](PLAN-construccion.md).
