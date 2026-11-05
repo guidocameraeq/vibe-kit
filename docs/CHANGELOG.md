@@ -2,6 +2,31 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-11-04 — Misión 5, D8r.4: la rc.5, correcciones del uso real · v3.0.0-rc.5
+
+Sin Guido (PC `Guido-PC-eQ`, Opus, ~15,5 h con las esperas), lanzada por la sesión madre de la recta final. Delta
+`docs/kit-v3/SPEC-paquete-8r4.md`; la vuelta 1 se armó en ramas del scratchpad y entró a `main` con un solo merge. La nota de migración
+está en `kit/CHANGELOG.md`.
+
+**Added**
+- Una sola ventana: el obrero nace en main y entra al worktree que le da el director, con `EnterWorktree`. Lo nuevo de `worktree.cjs`
+  es `donde`, `traer-main` y el deny del `.env` en el `settings.local.json` del principal.
+- La flota `--con-obra`: con módulos en curso avisa y recomienda que no. Si igual se mezcla, prueba cada `modulo/*` en el clon sin
+  subir nada.
+- u9: el candado y gitleaks de un merge miran el diff contra los dos padres. Se suman `.gitleaksignore` y `!.claude/frenos.log`.
+
+**Changed**
+- El tope de las skills avisa por la zona propia (⚠) y frena solo por la parte del kit (pedido de Guido).
+
+**Fixed**
+- Lo encontró el chequeo frío contra clones de Hermes, el analytics y el bot: un módulo de antes de la rc.5 traía el `worktree.cjs`
+  viejo. Ahora el director y el obrero corren `donde` y `traer-main` con el script de main (`../../../.claude/scripts/`).
+- Lo encontró la suite (2.994/2.996): `/estado` daba "estado roto" después de las 18 h, por el `require` circular del resumen.
+  También se arregló el renglón de `EnterWorktree` del `CLAUDE.md` del molde, que rompía la prueba RF-fix 4 de `adoptar`.
+
+Flota de prueba 2.4.2 → rc.3 → rc.4 → rc.5 de alfa, beta y gama: mezclado en cada salto y al día al final, sale 0. Lo que queda para la
+rc.6 está en el tracker, "De D8r.4". El chat condensado y la fila del diario, en el privado.
+
 ## 2026-11-04 — Misión 5: la sesión madre de la noche (R1b, las dos tandas, sin tercera revisión antes de la prueba)
 
 La sesión que arrancó como D8.1 (PC `Guido-PC-eQ`, Opus) siguió de orquestadora, con Guido a ratos por Remote Control: como por ahí no
