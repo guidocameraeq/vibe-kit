@@ -111,6 +111,31 @@ const RUTA_FICHA = '.claude/kit.md';
 const RUTA_SETTINGS = '.claude/settings.json';
 // El CHANGELOG de los papeles (8r3 i1b): <carpeta-docs de la ficha>/CHANGELOG.md; sin la clave, docs/CHANGELOG.md.
 const rutaChangelog = (carpeta) => `${carpeta || C.CARPETA_DOCS}/CHANGELOG.md`;
+// El renglón del kit en el CHANGELOG (texto LF) → el texto nuevo. Con un `## [Unreleased]` (Keep a Changelog; 8r4 u6): va adentro
+// de esa sección, como `- <renglón>` en `### Método (kit)` (creada si falta, al final de la sección), nunca en las otras
+// subsecciones (las lee el release). Si no, como siempre: al tope, antes del primer `## `.
+const METODO_KIT = '### Método (kit)';
+function ponerRenglon(t, renglon) {
+  const ls = t.split('\n');
+  const u = ls.findIndex((l) => /^## \[unreleased\]\s*$/i.test(l));
+  if (u < 0) {
+    const i = ls.findIndex((l) => /^## /.test(l));
+    if (i < 0) return t ? `${t.replace(/\n*$/, '')}\n\n${renglon}\n` : `${renglon}\n`;
+    return [...ls.slice(0, i), renglon, '', ...ls.slice(i)].join('\n');
+  }
+  let fin = ls.findIndex((l, k) => k > u && /^## /.test(l));
+  if (fin < 0) fin = ls.length;
+  const h = ls.findIndex((l, k) => k > u && k < fin && l.trim() === METODO_KIT);
+  if (h >= 0) {
+    const j = ls[h + 1] === '' ? h + 2 : h + 1;
+    return [...ls.slice(0, j), `- ${renglon}`, ...ls.slice(j)].join('\n');
+  }
+  let k = fin - 1;
+  while (k > u && ls[k].trim() === '') k--;
+  // sin blanco después (la sección pegada al próximo `## `, o el archivo sin salto final): uno, para que siga bien formado
+  const nuevo = ['', METODO_KIT, '', `- ${renglon}`, ...(k + 1 >= ls.length || ls[k + 1] !== '' ? [''] : [])];
+  return [...ls.slice(0, k + 1), ...nuevo, ...ls.slice(k + 1)].join('\n');
+}
 const KIT_ROL = '.kit-rol';
 const RE_VERSION = F.RE_VERSION; // N.N.N o N.N.N-rc.N: una sola gramática, la de la ficha (D8b-3)
 const SNIPPETS = [['gitignore.snippet', '.gitignore'], ['gitattributes.snippet', '.gitattributes']];
@@ -684,11 +709,7 @@ function armar(plan, carpeta, { textoFicha, datos, nuevo, viejo, opciones = {} }
   if (cambiaVersion || tocadas.length) {
     const renglon = `kit ${plan.vViejo} → ${plan.vNuevo}: piezas ${tocadas.length ? tocadas.join(', ') : '(ninguna)'}`;
     let t = leerP(plan.changelog);
-    t = t === null ? '' : lf(t);
-    const ls = t.split('\n');
-    const i = ls.findIndex((l) => /^## /.test(l));
-    if (i < 0) t = t ? `${t.replace(/\n*$/, '')}\n\n${renglon}\n` : `${renglon}\n`;
-    else t = [...ls.slice(0, i), renglon, '', ...ls.slice(i)].join('\n');
+    t = ponerRenglon(t === null ? '' : lf(t), renglon);
     escribir(plan.changelog, t);
     plan.lineas.push(`${plan.changelog} · un renglón · ${renglon}`);
   }
@@ -1055,10 +1076,7 @@ function nuevaSinInforme(raiz, { id, def, datos, textoFicha, por, kit: kitPedido
   const changelog = rutaChangelog(carpetaDocs);
   const renglon = `kit ${vFicha}: ${id} propia → molde (resolver nueva, sin informe): ${p}`;
   let t = leerD(changelog);
-  t = t === null ? '' : lf(t);
-  const ls = t.split('\n');
-  const i = ls.findIndex((l) => /^## /.test(l));
-  t = i < 0 ? (t ? `${t.replace(/\n*$/, '')}\n\n${renglon}\n` : `${renglon}\n`) : [...ls.slice(0, i), renglon, '', ...ls.slice(i)].join('\n');
+  t = ponerRenglon(t === null ? '' : lf(t), renglon);
   const escritos = [...ops.keys()];
   ops.set(RUTA_FICHA, fichaNueva);
   ops.set(changelog, t);
@@ -1342,7 +1360,7 @@ async function main(argv) {
 }
 
 // Antes de correr: lib/adoptar.cjs (que se carga desde main) lee estos exports.
-module.exports = { aplicar, planear, chequear, resolver, main, reescribirFicha, ejecutar, versionDelKit, notaDelKit, piezaDeRutaProyecto, Negativa, USO };
+module.exports = { aplicar, planear, chequear, resolver, main, reescribirFicha, ejecutar, versionDelKit, notaDelKit, piezaDeRutaProyecto, ponerRenglon, Negativa, USO };
 
 if (require.main === module) {
   main(process.argv.slice(2))

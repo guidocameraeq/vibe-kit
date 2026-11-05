@@ -631,6 +631,12 @@ test('cierre: el aviso de push-publica no pregunta, y aprobar es del dueño', ()
   assert.doesNotMatch(t, new RegExp('jamás lo ' + 'corras'));
 });
 
+test('8r4 u6 y las lecciones de Hermes (15, 37, 101): /cierre con `## [Unreleased]` va a `### Método (kit)`; ningún pendiente huérfano', () => {
+  const t = TEXTOS.cierre;
+  assert.match(t, /con `## \[Unreleased\]`, renglones en su `### Método \(kit\)` \(o donde diga la zona propia\), sin `## AAAA-MM-DD`/);
+  assert.match(t, /cada pendiente dice adónde va, TODO, un módulo, o \*"descartado: por qué"\*/);
+});
+
 test('8r t1: /cierre y el CLAUDE.md del molde dicen que el cambio de cómo trabaja el proyecto se anota con cambios.cjs nuevo', () => {
   const claude = fs.readFileSync(path.join(DIR_MOLDE, 'CLAUDE.md'), 'utf8').replace(/\r\n/g, '\n');
   for (const [donde, t] of [['cierre', TEXTOS.cierre], ['molde/CLAUDE.md', claude]]) {

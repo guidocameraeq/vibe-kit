@@ -471,7 +471,7 @@ test('crit. 1 (8r, T1; rt-4): un /director propio distinto → propia con el ⚠
   assert.match(conDir.texto, /No trae smoke, release ni docs-fyd\./);
   const conAgente = mirar(conCodigo('ag', { '.claude/agents/revisor.md': '---\nname: revisor\n---\nel revisor de hermes\n' }));
   assert.equal(piezas(conAgente.texto)['director-obrero'], 'propia');
-  assert.equal(lineaPieza(conAgente.texto, 'director-obrero'), '#   director-obrero · propia · ⚠ .claude/agents/revisor.md ya está y es distinto: /director del kit no queda hasta resolverlo con Guido — solo agentes propios (revisor): la sesión le propone a Guido renombrar los suyos (p. ej. <nombre>-propio.md) y la pieza pasa a sí');
+  assert.equal(lineaPieza(conAgente.texto, 'director-obrero'), '#   director-obrero · propia · ⚠ .claude/agents/revisor.md ya está y es distinto: /director del kit no queda hasta resolverlo con Guido — solo agentes propios (revisor): la sesión le propone a Guido renombrar los suyos a <nombre>-propio.md (--aplicar <propuesta> --agentes renombrar) y la pieza pasa a sí');
   // un agente propio con OTRO nombre (que el kit no trae) no choca
   assert.equal(piezas(mirar(conCodigo('ag2', { '.claude/agents/mio.md': 'mío\n' })).texto)['director-obrero'], 'sí');
   // sin código: liviano, como antes
@@ -970,7 +970,7 @@ test('t12 (a) (8r2): config local ignorada en la raíz (config*.ini, *.local.*) 
   const r = mirar(d);
   assert.deepEqual(foto(d), antes);
   const l = r.texto.split('\n').filter((x) => x.startsWith('# config local'));
-  assert.deepEqual(l, ['# config local ignorada en la raíz: app.local.json, config.ini — worktree crear no la copia (sin .worktreeinclude copia solo los .env): con el OK de Guido, un .worktreeinclude en la raíz con estas líneas (los .env también: con el archivo dejan de ir solos): .env · .env.* · app.local.json · config.ini']);
+  assert.deepEqual(l, ['# config local ignorada en la raíz: app.local.json, config.ini — worktree crear no la copia (sin .worktreeinclude copia solo los .env): con el OK de Guido, --aplicar <propuesta> --worktreeinclude escribe en la raíz un .worktreeinclude con estas líneas (los .env también: con el archivo dejan de ir solos): .env · .env.* · app.local.json · config.ini']);
   // con .worktreeinclude: lo dice y no propone
   escribir(d, { '.worktreeinclude': '.env\n' });
   assert.match(mirar(d).texto, /^# config local ignorada en la raíz: app\.local\.json, config\.ini — ya hay \.worktreeinclude/m);
@@ -1587,4 +1587,163 @@ test('8c p1 (a): --mirar con un lock atrasado (npm, en una subcarpeta de primer 
   assert.deepEqual(foto(d), antes);
   assert.ok(t.split('\n').includes('# lock atrasado: chat-syncer/package-lock.json — falta openai: regeneralo en el proyecto (`npm install --prefix chat-syncer`) y commitealo; sin eso, el comando-setup falla y la flota no puede probar tus tests'), t);
   assert.doesNotMatch(mirar(conCodigo('lock-ok')).texto, /^# (lock atrasado|sin lock|lock):/m);
+});
+
+// ---------------------------------------------------------------- SPEC-paquete-8r4 (vuelta 2, rc.6): h5, u13 a, u6
+
+const HAY_GITLEAKS = !spawnSync('gitleaks', ['version'], { windowsHide: true }).error;
+// Un entorno sin gitleaks: el PATH (con cualquier caja) apunta a una carpeta vacía.
+function sinGitleaks() {
+  const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => k.toUpperCase() !== 'PATH'));
+  env.PATH = nuevaCarpeta('path-vacio');
+  return env;
+}
+// Una clave de mentira con la forma de un token de GitHub, armada al correr (así este archivo no la trae escrita).
+function claveDeMentira() {
+  const abc = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  return `gh${'p_'}${[...crypto.randomBytes(36)].map((b) => abc[b % abc.length]).join('')}`;
+}
+
+test('8r4 h5 (crit.): --mirar corre gitleaks sobre toda la historia — una clave de mentira en un commit viejo sale como archivo:línea · regla, nunca el valor; mirar no toca nada; sin gitleaks, "no está"', { ...deKit, timeout: 180000 }, () => {
+  const clave = claveDeMentira();
+  const d = conCodigo('con-clave', { 'config.py': `# config\nTOKEN = "${clave}"\n` });
+  escribir(d, { 'config.py': '# config\nTOKEN = os.environ["TOKEN"]\n' });
+  git(d, 'commit', '-q', '-am', 'saco la clave (queda en la historia)');
+  const antes = foto(d);
+  // sin gitleaks en el PATH: la línea de "no está", y nada más de gitleaks
+  const sin = mirar(d, { entornoGitleaks: sinGitleaks() }).texto;
+  assert.ok(sin.split('\n').includes('# gitleaks: no está, no miré la historia (sin él, un secreto viejo aparece recién en un merge)'), sin);
+  if (!HAY_GITLEAKS) return; // NO VERIFICADO en esta PC: sin gitleaks, solo la línea de arriba
+  const t = mirar(d).texto;
+  assert.deepEqual(foto(d), antes, 'ni el árbol ni el .git cambian (el reporte va al temporal)');
+  const ls = t.split('\n');
+  const i = ls.findIndex((l) => l.startsWith('# gitleaks: '));
+  assert.equal(ls[i], '# gitleaks: 1 en la historia (sin el valor; saltan en un merge o en el pre-commit si se tocan):', t);
+  assert.equal(ls[i + 1], '#   config.py:2 · github-pat');
+  assert.match(ls[i + 2], /^# {3}propuesta: si es real, rotala .*; si no, su huella en \.gitleaksignore con su porqué — es una barrera: pide aprobado de Guido$/);
+  assert.ok(!t.includes(clave) && !t.includes(clave.slice(4, 16)), 'nunca el valor, ni un pedazo');
+  // la propuesta se lee igual (los hallazgos van en el bloque de lo que vio el adoptador)
+  assert.equal(F.leer(t).datos.kit, VERSION);
+  // un repo limpio: "nada"
+  assert.match(mirar(conCodigo('sin-clave')).texto, /^# gitleaks: miré la historia entera — nada$/m);
+});
+
+test('8r4 u13 a y u6 (11 c): el bloque D2 dice qué freno del kit cubre cada ask que saca (o ninguno); los ask que no frenan al director, "preguntan en cada vuelta"', deKit, () => {
+  const settings = { permissions: { ask: ['Bash(git merge:*)', 'Bash(git push *--force*)', 'PowerShell(git merge *)', 'Bash(ssh prod:*)'] } };
+  const d = conCodigo('hermes-ask', { '.claude/settings.json': `${JSON.stringify(settings, null, 2)}\n` });
+  const t = mirar(d).texto;
+  const ls = t.split('\n');
+  const i2 = ls.indexOf('# D2 · los permisos:');
+  assert.ok(i2 > 0, t);
+  assert.match(ls[i2 + 1], /^# {3}\(recomendada\) /);
+  assert.match(ls[i2 + 2], /^# {3}\(otra\) /);
+  assert.deepEqual(ls.slice(i2 + 3, i2 + 6), [
+    '#   la recomendada saca ask Bash(git merge:*) · lo cubre: ninguno — sin el ask, ese comando no pregunta nada (también un merge a mano en la rama por defecto): elegí con eso',
+    '#   la recomendada saca ask Bash(git push *--force*) · lo cubre: git-seguro: push-force',
+    '#   la recomendada saca ask PowerShell(git merge *) · lo cubre: ninguno — sin el ask, ese comando no pregunta nada (también un merge a mano en la rama por defecto): elegí con eso',
+  ]);
+  assert.ok(ls.includes('# ask que preguntan en cada vuelta (también con "no volver a preguntar"): Bash(ssh prod:*) — para que pregunte una vez: sacá el ask; si es para mirar (ssh de solo lectura), una allow con el comando exacto'), t);
+  // sin ask propios: ni la línea ni el D2
+  assert.doesNotMatch(mirar(conCodigo('sin-ask')).texto, /preguntan en cada vuelta|^# D2 · /m);
+});
+
+const KEEP = '# Changelog\n\nTodo cambio notable de este proyecto.\n\n## [Unreleased]\n\n### Para usuarios\n- el botón nuevo\n\n## [1.2.0] - 2026-10-01\n\n### Para usuarios\n- lo viejo\n';
+const paraUsuarios = (t) => t.slice(t.indexOf('### Para usuarios'), t.indexOf('\n\n', t.indexOf('### Para usuarios')));
+
+test('8r4 u6 (crit.): un CHANGELOG Keep a Changelog — el renglón de la adopción va a ### Método (kit) adentro de [Unreleased], las otras subsecciones byte a byte; el NORTE con [completar lo avisa', { ...deKit, timeout: 240000 }, async () => {
+  const d = conCodigo('keep', { 'docs/CHANGELOG.md': KEEP });
+  const prop = propuestaDe(d);
+  rol(d);
+  const antes = git(d, 'rev-parse', 'HEAD').trim();
+  const r = await aplicar(d, prop);
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  const ch = leer(d, 'docs/CHANGELOG.md');
+  const u = ch.indexOf('## [Unreleased]');
+  const v = ch.indexOf('## [1.2.0]');
+  const seccion = ch.slice(u, v);
+  assert.equal(paraUsuarios(seccion), '### Para usuarios\n- el botón nuevo', 'esa subsección queda byte a byte');
+  assert.match(seccion, new RegExp(`### Método \\(kit\\)\\n\\n- kit ${VERSION.replace(/[.]/g, '\\.')}: adopción — piezas [^\\n]+\\n\\n$`));
+  assert.equal(ch.slice(0, u), KEEP.slice(0, KEEP.indexOf('## [Unreleased]')), 'nada arriba de [Unreleased]');
+  assert.equal(ch.slice(v), KEEP.slice(KEEP.indexOf('## [1.2.0]')), 'las versiones de antes, byte a byte');
+  assert.ok(seccion.indexOf('### Para usuarios') < seccion.indexOf('### Método (kit)'), 'al final de la sección');
+  // el NORTE nace del molde con sus [completar: lo dice antes del --traer
+  const n = (leer(d, 'docs/NORTE.md').match(/\[completar/g) || []).length;
+  assert.ok(n > 0);
+  assert.ok(r.lineas.includes(`docs/NORTE.md tiene ${n} [completar]: llenalo con Guido (lo usa el Arquitecto en B1)`), r.lineas.join('\n'));
+  assert.equal(commitsDeLaLinea(d, r.lineas), 2);
+  const b = barreras(d, antes);
+  assert.equal(b.status, 0, b.stdout + b.stderr);
+  // sin [Unreleased]: como siempre, al tope antes del primer ##
+  const c = conCodigo('sin-keep');
+  const pc = propuestaDe(c);
+  rol(c);
+  assert.equal((await aplicar(c, pc)).codigo, 0);
+  assert.match(leer(c, 'docs/CHANGELOG.md'), new RegExp(`\\n\\nkit ${VERSION.replace(/[.]/g, '\\.')}: adopción — piezas [^\\n]+\\n\\n## `));
+});
+
+test('8r4 u6 (crit.): --aplicar --agentes renombrar mueve el agente propio a <nombre>-propio.md con su contenido, el del kit queda y la pieza pasa a sí; sin la opción, como hoy', { ...deKit, timeout: 300000 }, async () => {
+  const PROPIO = '---\nname: revisor\n---\nel revisor de hermes\n';
+  const d = conCodigo('ag-ren', { '.claude/agents/revisor.md': PROPIO });
+  const prop = propuestaDe(d);
+  assert.match(lineaPieza(fs.readFileSync(prop, 'utf8'), 'director-obrero'), /--aplicar <propuesta> --agentes renombrar/);
+  rol(d);
+  const antes = git(d, 'rev-parse', 'HEAD').trim();
+  const r = await sinClaude(() => aplicarCon(d, prop, '--agentes', 'renombrar'));
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  assert.equal(leer(d, '.claude/agents/revisor-propio.md'), PROPIO, 'el tuyo, con su contenido tal cual');
+  assert.equal(leer(d, '.claude/agents/revisor.md'), delMolde(d, 'agents/revisor.md'), 'el del kit queda');
+  assert.equal(F.leer(leer(d, '.claude/kit.md')).datos.piezas['director-obrero'], 'sí');
+  const t = r.lineas.join('\n');
+  assert.match(t, /^director-obrero · sí · renombré los tuyos \(--agentes renombrar\): \.claude\/agents\/revisor\.md → \.claude\/agents\/revisor-propio\.md, con su contenido tal cual, y quedan los del kit — sus reglas pueden ir a la zona propia del \/tramo o al brief/m);
+  assert.match(leer(d, 'docs/CHANGELOG.md'), /: adopción — piezas .* — agentes propios renombrados: \.claude\/agents\/revisor\.md → \.claude\/agents\/revisor-propio\.md$/m);
+  assert.equal(commitsDeLaLinea(d, r.lineas), 2);
+  assert.equal(git(d, 'status', '--porcelain'), '');
+  assert.ok(git(d, 'show', '--name-only', '--format=', 'HEAD~1').split('\n').includes('.claude/agents/revisor-propio.md'), 'en el commit de las piezas');
+  const b = barreras(d, antes);
+  assert.equal(b.status, 0, b.stdout + b.stderr);
+  // sin la opción: propia, el tuyo intacto, nada -propio
+  const h = conCodigo('ag-hoy', { '.claude/agents/revisor.md': PROPIO });
+  const ph = propuestaDe(h);
+  rol(h);
+  const hoy = await sinClaude(() => aplicar(h, ph));
+  assert.equal(hoy.codigo, 0, hoy.lineas.join('\n'));
+  assert.equal(leer(h, '.claude/agents/revisor.md'), PROPIO);
+  assert.equal(leer(h, '.claude/agents/revisor-propio.md'), null);
+  assert.equal(F.leer(leer(h, '.claude/kit.md')).datos.piezas['director-obrero'], 'propia');
+  // con un -propio ya ocupado: se niega sin escribir
+  const o = conCodigo('ag-ocupado', { '.claude/agents/revisor.md': PROPIO, '.claude/agents/revisor-propio.md': 'otro\n' });
+  const po = propuestaDe(o);
+  rol(o);
+  const fo = foto(o);
+  const neg = await sinClaude(() => aplicarCon(o, po, '--agentes', 'renombrar'));
+  assert.equal(neg.codigo, 1);
+  assert.match(neg.lineas.join('\n'), /^adoptar: --agentes renombrar: ya hay \.claude\/agents\/revisor-propio\.md/m);
+  assert.deepEqual(foto(o), fo);
+  // la CLI: solo con --aplicar y con su único valor
+  assert.equal(await AD.main([d, '--kit', RAIZ_KIT, '--mirar', '--agentes', 'renombrar']), null);
+  assert.equal(await AD.main([d, '--kit', RAIZ_KIT, '--aplicar', prop, '--agentes', 'mezclar']), null);
+});
+
+test('8r4 u6 (crit.): --aplicar --worktreeinclude escribe las líneas de --mirar en el commit de las piezas; si ya hay uno, se niega sin escribir', { ...deKit, timeout: 240000 }, async () => {
+  const d = conCodigo('wti', { '.gitignore': 'config.ini\n' });
+  escribir(d, { 'config.ini': '[db]\n' });
+  const prop = propuestaDe(d);
+  rol(d);
+  const r = await aplicarCon(d, prop, '--worktreeinclude');
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  assert.equal(leer(d, '.worktreeinclude'), '.env\n.env.*\nconfig.ini\n');
+  assert.ok(r.lineas.includes('.worktreeinclude · nace en la raíz con .env · .env.* · config.ini (en el commit de las piezas): worktree crear copia eso a cada worktree'), r.lineas.join('\n'));
+  assert.equal(commitsDeLaLinea(d, r.lineas), 2);
+  assert.ok(git(d, 'show', '--name-only', '--format=', 'HEAD~1').split('\n').includes('.worktreeinclude'));
+  // ya hay uno: no lo pisa
+  const y = conCodigo('wti-ya', { '.gitignore': 'config.ini\n', '.worktreeinclude': '.env\n' });
+  escribir(y, { 'config.ini': '[db]\n' });
+  const py = propuestaDe(y);
+  rol(y);
+  const fy = foto(y);
+  const neg = await aplicarCon(y, py, '--worktreeinclude');
+  assert.equal(neg.codigo, 1);
+  assert.match(neg.lineas[0], /^adoptar: ya hay un \.worktreeinclude en .*: --worktreeinclude no lo pisa/);
+  assert.deepEqual(foto(y), fy);
+  assert.equal(await AD.main([d, '--kit', RAIZ_KIT, '--mirar', '--worktreeinclude']), null, 'solo con --aplicar');
 });

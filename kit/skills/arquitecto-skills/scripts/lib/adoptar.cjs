@@ -7,6 +7,8 @@
 //                               [--principal <carpeta principal>] [--claude-md]
 //                               [--director kit] [--permisos recomendada] [--arranque kit]   (D1-D3: SPEC-paquete-8r2, t3 y t9;
 //                               --arranque kit también reemplaza un session-start.cjs propio: 8r3 i2)
+//                               [--agentes renombrar] [--worktreeinclude]   (8r4 u6: los agentes propios con el nombre de uno
+//                               del kit pasan a <nombre>-propio.md; el .worktreeinclude que propuso --mirar)
 //   node actualizar.cjs adoptar <clon> --traer <carpeta principal>     (el último paso: después de los commits y el push)
 //
 // Un script determinista (D6-1): MIRA y APLICA. La pantalla (NORTE, MAPA, el plano de docs/, las reglas propias como cambios) la
@@ -654,24 +656,63 @@ function manifiestosSinSetup(carpeta, setup, carpetaDocs = CARPETA_DOCS) {
 // .worktreeinclude (sin él copia solo los .env y .env.*). Solo los nombres: nunca se leen. Los .env* ni se miran (van solos, por
 // el filtro de credenciales de worktree.cjs). → la línea, o null.
 const RE_CONFIG_LOCAL = /^(config[^/]*\.ini|[^.][^/]*\.local\.[^/]+)$/i;
-function lineaWorktreeinclude(carpeta) {
+function configLocal(carpeta) {
   let nombres;
   try {
     nombres = fs.readdirSync(carpeta, { withFileTypes: true }).filter((e) => e.isFile() && !/^\.env/i.test(e.name) && RE_CONFIG_LOCAL.test(e.name)).map((e) => e.name).sort();
   } catch {
-    return null;
+    return [];
   }
-  if (!nombres.length) return null;
+  if (!nombres.length) return [];
   const r = spawnSync('git', ['check-ignore', '--stdin'], { cwd: carpeta, input: `${nombres.join('\n')}\n`, encoding: 'utf8', windowsHide: true, env: { ...process.env, GIT_OPTIONAL_LOCKS: '0' } });
-  if (r.error || (r.status !== 0 && r.status !== 1)) return null;
+  if (r.error || (r.status !== 0 && r.status !== 1)) return [];
   const ign = new Set(String(r.stdout || '').split(/\r?\n/).filter(Boolean));
-  const cand = nombres.filter((x) => ign.has(x));
+  return nombres.filter((x) => ign.has(x));
+}
+// Las líneas del .worktreeinclude que propone --mirar y escribe --aplicar --worktreeinclude (8r4 u6): los .env también (con el
+// archivo dejan de ir solos).
+const lineasWti = (cand) => ['.env', '.env.*', ...cand];
+function lineaWorktreeinclude(carpeta) {
+  const cand = configLocal(carpeta);
   if (!cand.length) return null;
   if (hay(carpeta, '.worktreeinclude')) return `config local ignorada en la raíz: ${listaCorta(cand)} — ya hay .worktreeinclude: worktree crear copia lo que lista (mirá que las nombre)`;
-  return `config local ignorada en la raíz: ${listaCorta(cand)} — worktree crear no la copia (sin .worktreeinclude copia solo los .env): con el OK de Guido, un .worktreeinclude en la raíz con estas líneas (los .env también: con el archivo dejan de ir solos): .env · .env.* · ${cand.join(' · ')}`;
+  return `config local ignorada en la raíz: ${listaCorta(cand)} — worktree crear no la copia (sin .worktreeinclude copia solo los .env): con el OK de Guido, --aplicar <propuesta> --worktreeinclude escribe en la raíz un .worktreeinclude con estas líneas (los .env también: con el archivo dejan de ir solos): ${lineasWti(cand).join(' · ')}`;
 }
 
-// mirar(carpeta, {kit, nivel, fecha, nuevo, comandoTest, principal, plataforma, hayPy}) → { texto: la propuesta, datos } — no
+// h5 (8r4): los secretos (o falsos positivos) viejos de la historia, que sin mirarlos aparecen recién en un merge (Hermes: un auth_uid en
+// docs/legacy). Si gitleaks está en el PATH, `gitleaks detect --redact` sobre toda la historia, con el reporte JSON a un temporal
+// FUERA del repo (`dirTmp`) y un plazo. La línea se arma SOLO con File, StartLine y RuleID del reporte: nunca el valor (ni el
+// Secret ni el Match, aunque vengan tapados). No escribe nada en el repo. → las líneas.
+const PLAZO_GITLEAKS = 120000;
+const MAX_HALLAZGOS = 10;
+function lineasGitleaks(carpeta, dirTmp, { env = process.env, plazo = PLAZO_GITLEAKS } = {}) {
+  const reporte = path.join(dirTmp, 'gitleaks.json');
+  const r = spawnSync('gitleaks', ['detect', '--source', carpeta, '--redact', '--no-banner', '--no-color', '--log-level', 'error',
+    '--report-format', 'json', '--report-path', reporte, '--exit-code', '0'], {
+    cwd: dirTmp, encoding: 'utf8', windowsHide: true, timeout: plazo, env: { ...env, GIT_OPTIONAL_LOCKS: '0' },
+  });
+  if (r.error && r.error.code === 'ENOENT') return ['gitleaks: no está, no miré la historia (sin él, un secreto viejo aparece recién en un merge)'];
+  if (r.error && r.error.code === 'ETIMEDOUT') return [`gitleaks: no terminó en ${Math.round(plazo / 1000)} s, no miré la historia entera — correlo a mano: gitleaks detect --redact --no-banner`];
+  if (r.error || r.status !== 0) return [`gitleaks: falló (${r.error ? r.error.code || 'error' : `salida ${r.status}`}), no miré la historia — correlo a mano: gitleaks detect --redact --no-banner`];
+  let hallazgos;
+  try {
+    hallazgos = JSON.parse(fs.readFileSync(reporte, 'utf8'));
+  } catch {
+    return ['gitleaks: no pude leer su reporte, no miré la historia — correlo a mano: gitleaks detect --redact --no-banner'];
+  }
+  if (!Array.isArray(hallazgos)) return ['gitleaks: su reporte no es una lista, no miré la historia — correlo a mano: gitleaks detect --redact --no-banner'];
+  // solo estos tres campos; una ruta con salto de línea no se muestra cruda
+  const limpio = (s) => String(s).replace(/[\r\n\t]/g, ' ');
+  const vistas = [...new Set(hallazgos.filter((h) => h && typeof h === 'object').map((h) => `${limpio(h.File || '?')}:${Number.isInteger(h.StartLine) ? h.StartLine : '?'} · ${limpio(h.RuleID || '?')}`))];
+  if (!vistas.length) return ['gitleaks: miré la historia entera — nada'];
+  const out = [`gitleaks: ${vistas.length} en la historia (sin el valor; saltan en un merge o en el pre-commit si se tocan):`];
+  for (const v of vistas.slice(0, MAX_HALLAZGOS)) out.push(`  ${v}`);
+  if (vistas.length > MAX_HALLAZGOS) out.push(`  y ${vistas.length - MAX_HALLAZGOS} más (gitleaks detect --redact --no-banner los lista)`);
+  out.push('  propuesta: si es real, rotala (cambiala donde se usa: sacarla de la historia no alcanza); si no, su huella en .gitleaksignore con su porqué — es una barrera: pide aprobado de Guido');
+  return out;
+}
+
+// mirar(carpeta, {kit, nivel, fecha, nuevo, comandoTest, principal, plataforma, hayPy, entornoGitleaks}) → { texto: la propuesta, datos } — no
 // escribe nada en <carpeta> ni en su .git (ni en --principal: de ahí solo sale el nombre).
 function mirar(carpeta, opciones) {
   revisarRaiz(carpeta);
@@ -747,7 +788,7 @@ function mirar(carpeta, opciones) {
         else {
           const skill = id === 'estado' ? '/estado' : '/director';
           const agentes = distintos.every((r) => r.startsWith('.claude/agents/'))
-            ? ` — solo agentes propios (${distintos.map((r) => r.slice('.claude/agents/'.length).replace(/\.md$/i, '')).join(', ')}): la sesión le propone a Guido renombrar los suyos (p. ej. <nombre>-propio.md) y la pieza pasa a sí`
+            ? ` — solo agentes propios (${distintos.map((r) => r.slice('.claude/agents/'.length).replace(/\.md$/i, '')).join(', ')}): la sesión le propone a Guido renombrar los suyos a <nombre>-propio.md (--aplicar <propuesta> --agentes renombrar) y la pieza pasa a sí`
             : '';
           pone('propia', `⚠ ${listaCorta(distintos)} ya está y es distinto: ${skill} del kit no queda hasta resolverlo con Guido${agentes}`);
         }
@@ -792,6 +833,8 @@ function mirar(carpeta, opciones) {
     if (opciones.principal !== undefined) for (const l of V.lineas(V.vecinos(opciones.principal))) o(l);
     // p1 (a) (8c): el lock atrasado, leído de los archivos (nunca corre el instalador); nada lo arregla solo
     for (const l of LK.lineas(LK.mirarLocks(carpeta, { setup: vars['comando-setup'] }))) o(l);
+    // h5 (8r4): gitleaks sobre toda la historia, con el reporte en el temporal (fuera del repo); nunca el valor
+    for (const l of lineasGitleaks(carpeta, tmp, { env: opciones.entornoGitleaks || process.env })) o(l);
     o('piezas (id · estado · qué pasa al aplicar):');
     for (const p of piezas) o(`  ${p.id} · ${p.estado} · ${p.que}`);
     if (nuevoRepo) o('proyecto nuevo (--nuevo): lo base en molde, el candado prendido y director-obrero y estado en sí (nace con módulos)');
@@ -843,7 +886,9 @@ function mirar(carpeta, opciones) {
     }
     o('docs-fyd: se ofrece — la documentación de auditoría FyD (si va, piezas.docs-fyd: sí)');
     if (base) {
-      for (const l of bloquesDecision(carpeta, { d1, carpetaDocs, arranquePropio, camino, settings: { viejo: aV.has('settings.json') ? aV.get('settings.json') : null, nuevo: aN.get('settings.json'), proyecto: leerP(carpeta, RUTA_SETTINGS) } })) o(l);
+      // u13 a: los frenos del --kit, en una carpeta vacía del temporal (fuera del repo); sensible, el de la propuesta (de fábrica)
+      const vacia = fs.mkdtempSync(path.join(tmp, 'frenos-'));
+      for (const l of bloquesDecision(carpeta, { d1, carpetaDocs, arranquePropio, camino, kit: opciones.kit, tmp: vacia, sensible: F.leer(fabTexto).datos.sensible, settings: { viejo: aV.has('settings.json') ? aV.get('settings.json') : null, nuevo: aN.get('settings.json'), proyecto: leerP(carpeta, RUTA_SETTINGS) } })) o(l);
     }
     o(`al aplicar: dos commits (las piezas, después la ficha sola: la exención b mira la fábrica en el árbol del padre; con --permisos o --arranque, un tercero: los permisos)`);
 
@@ -928,11 +973,17 @@ function aplicarPropuesta(carpeta, opciones) {
       throw new Negativa(`docs/ no es del método (${que}, sin ${HANDOFF}) y la propuesta no trae carpeta-docs: — escribí carpeta-docs: <la carpeta de los papeles> en la propuesta (carpeta-docs: docs si van igual ahí) y corré --aplicar de nuevo; no escribí nada`);
     }
   }
+  // u6 (8r4): --worktreeinclude nunca pisa uno que ya está (en el clon o en la carpeta de Guido: el --traer no podría avanzar)
+  if (opciones.worktreeinclude) {
+    const donde = [carpeta, ...(opciones.principal !== undefined ? [opciones.principal] : [])].find((c) => hay(c, '.worktreeinclude'));
+    if (donde) throw new Negativa(`ya hay un .worktreeinclude en ${donde}: --worktreeinclude no lo pisa (sumale a mano las líneas que dijo --mirar) — no escribí nada`);
+  }
   const propuestas = esMapa(datos.piezas) ? datos.piezas : {};
   const estadoPropuesto = (id) => (Object.prototype.hasOwnProperty.call(propuestas, id) ? estadoDe(propuestas[id]) : undefined);
   // D1 (--director kit, rt-4): las del director que se reemplazan, con el estado que toman (una propia → sí o molde); D3 (--arranque
   // kit, 8r3 i2): hook-arranque, igual (un session-start.cjs propio con el nombre del del kit → el del molde)
-  const d1 = []; // { id, estado, distintos, d: 'D1' | 'D3' }
+  const d1 = []; // { id, estado, distintos, d: 'D1' | 'D3' | 'AG', agentes: los que --agentes renombrar mueve a <nombre>-propio.md }
+  const notasAgentes = [];
   const elegidoD1 = new Map();
   const estado = (id) => (elegidoD1.has(id) ? elegidoD1.get(id) : estadoPropuesto(id));
   const trae = (id) => TRAE.includes(estado(id));
@@ -945,7 +996,9 @@ function aplicarPropuesta(carpeta, opciones) {
   try {
     const viejo = moldeV2(opciones.kit, carpeta, path.join(tmp, 'viejo'), carpetaDocs);
     let fichaPlan = fichaTexto;
-    const aReemplazar = [...(opciones.director === 'kit' ? D1_PIEZAS : []), ...(opciones.arranque === 'kit' ? [D3_PIEZA] : [])];
+    // u6 (8r4): --agentes renombrar suma las del módulo (director-obrero, estado) cuyo único distinto son agentes propios
+    const conAgentes = opciones.agentes === 'renombrar';
+    const aReemplazar = [...new Set([...(opciones.director === 'kit' ? D1_PIEZAS : []), ...(opciones.arranque === 'kit' ? [D3_PIEZA] : []), ...(conAgentes ? MODULOS : [])])];
     if (aReemplazar.length) {
       // lo distinto con la misma vara de --mirar; solo las cuatro del director (y el arranque con D3), y solo las que vienen (o las propia de --mirar)
       const nuevo = M.materializarNuevo(opciones.kit, { vars: esMapa(datos.vars) ? datos.vars : {}, fecha, carpetaDocs }, path.join(tmp, 'nuevo'));
@@ -958,8 +1011,15 @@ function aplicarPropuesta(carpeta, opciones) {
         if (e !== 'propia' && !TRAE.includes(e)) continue;
         const { distintos } = distintosDe(carpeta, mapaDe(repN0, aN, id), mapaDe(repV0, aV, id));
         if (!distintos.length) continue;
+        const agentes = conAgentes && MODULOS.includes(id) ? distintos.filter((r) => r.startsWith('.claude/agents/')) : [];
+        const porD1 = (opciones.director === 'kit' && D1_PIEZAS.includes(id)) || (opciones.arranque === 'kit' && id === D3_PIEZA);
+        if (!porD1 && agentes.length < distintos.length) {
+          // --agentes renombrar sin --director kit: solo si lo único distinto son agentes (lo demás es D1, con Guido)
+          notasAgentes.push(`${id} · --agentes renombrar: no lo toqué — además de agentes tiene ${listaCorta(distintos.filter((r) => !agentes.includes(r)))} distinto (eso es D1: --director kit)`);
+          continue;
+        }
         const toma = e === 'propia' ? (MODULOS.includes(id) ? 'sí' : 'molde') : e;
-        d1.push({ id, estado: toma, distintos, d: id === D3_PIEZA ? 'D3' : 'D1' });
+        d1.push({ id, estado: toma, distintos, d: porD1 ? (id === D3_PIEZA ? 'D3' : 'D1') : 'AG', agentes });
         elegidoD1.set(id, toma);
       }
       // al planificador le llegan en propia: así no pasan por el guardia ni por la fusión (nada de claude); se escriben abajo
@@ -1000,6 +1060,15 @@ function aplicarPropuesta(carpeta, opciones) {
     if (d1.length) {
       const aN = M.archivosDe(plan.moldeNuevo);
       for (const x of d1) {
+        // u6 (8r4) --agentes renombrar: el tuyo, con su contenido tal cual, a <nombre>-propio.md (en el commit de las piezas git lo
+        // ve como un renombre); el del kit queda en su lugar, abajo
+        x.renombrados = [];
+        for (const rel of x.agentes || []) {
+          const nuevoRel = rel.replace(/(\.md)?$/i, '-propio.md');
+          if (leerP(carpeta, nuevoRel) !== null || ops.has(nuevoRel)) throw new Negativa(`--agentes renombrar: ya hay ${nuevoRel} — renombrá ${rel} a mano con otro nombre y corré de nuevo; no escribí nada`);
+          ops.set(nuevoRel, leerP(carpeta, rel));
+          x.renombrados.push(`${rel} → ${nuevoRel}`);
+        }
         const archivos = repN.has(x.id) ? repN.get(x.id).archivos : [];
         for (const a of archivos) {
           const t = aN.get(a.molde);
@@ -1035,14 +1104,29 @@ function aplicarPropuesta(carpeta, opciones) {
       }
     }
 
+    // u6 (8r4) --worktreeinclude: las líneas que propuso --mirar (la config local de la carpeta de Guido con --principal: CF-1), en
+    // el commit de las piezas; si ya hay uno, la negativa de arriba (no se pisa)
+    let lineaWti = null;
+    if (opciones.worktreeinclude) {
+      const cand = configLocal(opciones.principal !== undefined ? opciones.principal : carpeta);
+      if (!cand.length) lineaWti = '.worktreeinclude · no hay config local ignorada en la raíz: no lo escribí';
+      else if (!algo) lineaWti = '.worktreeinclude · va en el commit de las piezas y no viene ninguna: no lo escribí';
+      else {
+        ops.set('.worktreeinclude', `${lineasWti(cand).join('\n')}\n`);
+        lineaWti = `.worktreeinclude · nace en la raíz con ${lineasWti(cand).join(' · ')} (en el commit de las piezas): worktree crear copia eso a cada worktree`;
+      }
+    }
+
     // el renglón del CHANGELOG: "kit v → v" de aplicar dice adopción
     const lc = plan.lineas.find((l) => l.startsWith(`${RUTA_CHANGELOG} · un renglón · `));
     let renglon = null;
     if (lc && ops.has(RUTA_CHANGELOG)) {
       const viejoR = lc.slice(`${RUTA_CHANGELOG} · un renglón · `.length);
       const conD = (d) => d1.some((x) => x.d === d);
-      renglon = `kit ${version}: adopción — piezas ${traidas.join(', ')}${conD('D1') ? ' — D1: A, los del kit reemplazan los propios' : ''}${conD('D3') ? ' — D3: kit, el arranque del kit reemplaza el tuyo' : ''}`;
-      ops.set(RUTA_CHANGELOG, ops.get(RUTA_CHANGELOG).split('\n').map((l) => (l === viejoR ? renglon : l)).join('\n'));
+      const ren = d1.flatMap((x) => x.renombrados || []);
+      renglon = `kit ${version}: adopción — piezas ${traidas.join(', ')}${conD('D1') ? ' — D1: A, los del kit reemplazan los propios' : ''}${conD('D3') ? ' — D3: kit, el arranque del kit reemplaza el tuyo' : ''}${ren.length ? ` — agentes propios renombrados: ${ren.join(', ')}` : ''}`;
+      // con un `## [Unreleased]` va como `- <renglón>` en `### Método (kit)` (8r4 u6: ponerRenglon de actualizar)
+      ops.set(RUTA_CHANGELOG, ops.get(RUTA_CHANGELOG).split('\n').map((l) => (l === viejoR ? renglon : l === `- ${viejoR}` ? `- ${renglon}` : l)).join('\n'));
     }
     // D2 (--permisos recomendada) y D3 (--arranque kit), rt-9: en el disco el settings elegido; en el commit de las piezas, la
     // mezcla de siempre (su blob va al índice: git update-index), así ese commit pasa barreras como hoy. El cambio, en un tercero.
@@ -1077,7 +1161,9 @@ function aplicarPropuesta(carpeta, opciones) {
       const e = estadoDe(final.piezas[id]);
       const x = d1.find((y) => y.id === id);
       const historia = x ? x.distintos.map((r) => `git show ${antes || '<el HEAD de antes>'}:${r}`).join(', ') : '';
-      if (x && x.d === 'D3') lineas.push(`${id} · ${e} · reemplacé el tuyo (D3: kit) — lo tuyo queda en la historia: ${historia}`);
+      if (x && x.d === 'AG') lineas.push(`${id} · ${e} · renombré los tuyos (--agentes renombrar): ${x.renombrados.join(', ')}, con su contenido tal cual, y quedan los del kit — sus reglas pueden ir a la zona propia del /tramo o al brief; si su name: es el del kit, cambialo a <nombre>-propio (dos agentes con el mismo nombre chocan)`);
+      else if (x && x.d === 'D3') lineas.push(`${id} · ${e} · reemplacé el tuyo (D3: kit) — lo tuyo queda en la historia: ${historia}`);
+      else if (x && x.renombrados && x.renombrados.length) lineas.push(`${id} · ${e} · reemplacé los tuyos (D1: A); los agentes tuyos, renombrados: ${x.renombrados.join(', ')} — lo demás queda en la historia: ${historia}`);
       else if (x) lineas.push(`${id} · ${e} · reemplacé los tuyos (D1: A) — lo tuyo queda en la historia: ${historia}`);
       else if (trae(id)) lineas.push(dePlan.has(id) ? `${id} · ${e} · ${dePlan.get(id).split(' · ').slice(2).join(' · ')}` : `${id} · ${e} · sin cambios`);
       else if (id === 'candado' && candadoCorre) lineas.push(`${id} · ${e} · apagado hasta migrar (estructura.cjs vino: barreras corre)`);
@@ -1089,7 +1175,9 @@ function aplicarPropuesta(carpeta, opciones) {
         if (algo) lineas.push(l);
       } else lineas.push(trae('settings') ? `${l} (del molde v2)` : `${id} · no se toca`);
     }
+    lineas.push(...notasAgentes);
     lineas.push(`CLAUDE.md · ${lineaClaude}`);
+    if (lineaWti) lineas.push(lineaWti);
     if (renglon) lineas.push(`${RUTA_CHANGELOG} · un renglón · ${renglon}`);
     const fab = F.leer(fs.readFileSync(path.join(plan.moldeNuevo, 'hooks', 'lib', 'fabrica', `ficha.${final.nivel}.md`), 'utf8')).datos;
     const distintas = distintasDeFabrica(final, fab);
@@ -1140,6 +1228,11 @@ function aplicarPropuesta(carpeta, opciones) {
     else lineas.push(`después: ${rango} → verde${blobPlano ? ' en las piezas y la ficha' : ''}`);
     // rt-9: el tercero toca reglas del settings sin un aprobado sellado (lo dice barreras, regla por regla)
     if (blobPlano) lineas.push(`después: el commit de los permisos (${MSG_PERMISOS}) da ROJO en barreras (toca reglas del settings sin un aprobado sellado): ${camino}; ya pusheado no se rehace (sería un push forzado): si no lo querés, se revierte con un commit nuevo (git revert) y queda la mezcla de siempre`);
+    // u6 (8r4): el NORTE con [completar: lo llena la sesión con Guido (la flota no lo mira)
+    const rutaNorte = rutaPapel(carpetaDocs, 'NORTE.md');
+    const tNorte = leerP(carpeta, rutaNorte);
+    const nNorte = tNorte === null ? 0 : (tNorte.match(/\[completar/g) || []).length;
+    if (nNorte) lineas.push(`${rutaNorte} tiene ${nNorte} [completar]: llenalo con Guido (lo usa el Arquitecto en B1)`);
     lineas.push(traer);
     return { codigo: 0, lineas };
   } finally {
@@ -1154,8 +1247,8 @@ function aplicarPropuesta(carpeta, opciones) {
 // reemplazan con las del kit. D2 (--permisos recomendada) y D3 (--arranque kit): el settings, en un tercer commit propio (rt-9: el
 // de las piezas sigue pasando barreras). D4 (sensible:) no tiene opción: se cambia en la propuesta.
 
-const DECISIONES = { '--director': 'director', '--permisos': 'permisos', '--arranque': 'arranque' };
-const VALOR_DECISION = { '--director': 'kit', '--permisos': 'recomendada', '--arranque': 'kit' };
+const DECISIONES = { '--director': 'director', '--permisos': 'permisos', '--arranque': 'arranque', '--agentes': 'agentes' };
+const VALOR_DECISION = { '--director': 'kit', '--permisos': 'recomendada', '--arranque': 'kit', '--agentes': 'renombrar' };
 const D1_PIEZAS = ['director-obrero', 'estado', 'inicio', 'cierre'];
 const PASOS_DIRECTOR = ['git merge', 'git push', 'git worktree', 'git branch -d']; // los que corre el director (un ask lo frena)
 const D3_PIEZA = 'hook-arranque'; // D3 (8r3 i2): --arranque kit reemplaza el session-start.cjs propio por el del molde
@@ -1210,7 +1303,44 @@ function decisionesSettings({ viejo, nuevo, proyecto, quitados = [] }) {
   const ask = esMapa(P.permissions) && Array.isArray(P.permissions.ask) ? P.permissions.ask : [];
   const delMolde = new Set([...Z.reglas(N), ...Z.reglas(V)].map((x) => x.id));
   const arranque = Z.reglas(P).filter((x) => x.tipo === 'hook' && x.evento === 'SessionStart' && !delMolde.has(x.id));
-  return { sevan, frenan: ask.filter(frenaAlDirector), arranque, P, V };
+  // u6 (8r4, 11 c): los ask propios que no frenan al director: preguntan en cada vuelta (también con "no volver a preguntar")
+  const preguntan = ask.filter((t) => typeof t === 'string' && !frenaAlDirector(t) && !delMolde.has(Z.normalizarId(`ask:${t}`)));
+  return { sevan, frenan: ask.filter(frenaAlDirector), preguntan, arranque, P, V };
+}
+
+// u13 a (8r4): qué freno del kit cubre una regla ask/deny que D2 recomendada saca. Del patrón sale un comando de ejemplo
+// (`Bash(git push *--force*)` → `git push --force`) y se le pregunta a los frenos del --kit: git-seguro (su decidir, en una carpeta
+// vacía fuera del repo y sin anotar nada en ningún frenos.log) y sensible (las entradas de la propuesta). → 'git-seguro: <caso>',
+// 'sensible: <clave>' o 'ninguno' (también si no se pudo mirar: mejor de menos que prometer un freno que no está).
+function ejemploDe(regla) {
+  const m = /^(Bash|PowerShell)\((.*)\)$/.exec(String(regla).trim());
+  if (!m) return null;
+  const comando = m[2].replace(/(:\*|\s*\*)$/, '').replace(/\*/g, ' ').replace(/\s+/g, ' ').trim();
+  return comando ? { herramienta: m[1], comando } : null;
+}
+function quienCubre(regla, { kit, tmp, sensible }) {
+  const ej = ejemploDe(regla);
+  if (!ej || !kit || !tmp) return 'ninguno';
+  const hooks = path.join(kit, 'kit', 'molde', 'hooks');
+  try {
+    const G = require(path.join(hooks, 'git-seguro.cjs'));
+    const r = G.decidir({ tool_name: ej.herramienta, tool_input: { command: ej.comando }, cwd: tmp, permission_mode: 'default' }, { anotar: () => {} });
+    if (r && (r.decision === 'ask' || r.decision === 'deny') && Array.isArray(r.casos) && r.casos.length) return `git-seguro: ${r.casos.join(', ')}`;
+  } catch { /* sin el freno o roto: no cubre */ }
+  try {
+    const S = require(path.join(hooks, 'sensible.cjs'));
+    const CM = require(path.join(hooks, 'lib', 'comando.cjs'));
+    const ps = ej.herramienta === 'PowerShell';
+    const cmds = CM.partir(ej.comando, { ps }).comandos;
+    for (const clave of S.CLAVES) {
+      const lista = esMapa(sensible) && Array.isArray(sensible[clave]) ? sensible[clave] : [];
+      for (const e of lista) {
+        const pe = typeof e === 'string' ? CM.partir(e).comandos : [];
+        if (pe.length === 1 && cmds.some((c) => S.matchea(c.argv, pe[0].argv, ps, CM))) return `sensible: ${clave}`;
+      }
+    }
+  } catch { /* sin el freno o roto: no cubre */ }
+  return 'ninguno';
 }
 
 // El settings con D2 y/o D3 elegidas: la misma mezcla, con el v2 sin las allow que se iban (así quedan donde están) y el proyecto
@@ -1246,7 +1376,7 @@ function settingsElegido(entrada, { permisos, arranque }) {
 }
 
 // Los bloques de --mirar: lo que se ve (a)-(d) y D1-D4, cada uno con la recomendada del informe primero y cómo se elige.
-function bloquesDecision(carpeta, { d1, settings, carpetaDocs = CARPETA_DOCS, arranquePropio = null, camino = caminoDelRojo(carpeta) }) {
+function bloquesDecision(carpeta, { d1, settings, carpetaDocs = CARPETA_DOCS, arranquePropio = null, camino = caminoDelRojo(carpeta), kit = null, tmp = null, sensible = null }) {
   const out = [];
   if (d1.length) {
     const rutas = d1.flatMap((x) => x.distintos.map((r) => `${r} (${x.id})`));
@@ -1268,6 +1398,15 @@ function bloquesDecision(carpeta, { d1, settings, carpetaDocs = CARPETA_DOCS, ar
       out.push('D2 · los permisos:');
       out.push('  (recomendada) dejar las allow que se iban y sacar los ask que frenan al director (el del kit ya frena el merge solo): --aplicar <propuesta> --permisos recomendada — va en un tercer commit, aparte');
       out.push('  (otra) sin la opción: la mezcla como siempre — esas allow se van (fuera de auto, cada una pide permiso) y los ask quedan (frenan al director de noche)');
+      // u13 a (8r4): de cada regla que la recomendada saca, qué freno del kit la cubre; con ninguno, ese comando deja de preguntar
+      for (const t of d.frenan) {
+        const quien = quienCubre(t, { kit, tmp, sensible });
+        out.push(`  la recomendada saca ask ${t} · lo cubre: ${quien}${quien === 'ninguno' ? ' — sin el ask, ese comando no pregunta nada (también un merge a mano en la rama por defecto): elegí con eso' : ''}`);
+      }
+    }
+    // u6 (8r4, 11 c): los ask propios que no frenan al director; no se sacan solos (es decisión de Guido)
+    if (d.preguntan.length) {
+      out.push(`ask que preguntan en cada vuelta (también con "no volver a preguntar"): ${d.preguntan.join(', ')} — para que pregunte una vez: sacá el ask; si es para mirar (ssh de solo lectura), una allow con el comando exacto`);
     }
     for (const x of d.arranque) out.push(`arranque: un SessionStart propio (no es del molde): ${textoHook(x)}`);
   }
@@ -1456,7 +1595,7 @@ function traer(clon, principal) {
 // ---------------------------------------------------------------- línea de comandos
 
 function leerArgs(argv) {
-  const o = { mirar: false, nuevo: false, claudeMd: false };
+  const o = { mirar: false, nuevo: false, claudeMd: false, worktreeinclude: false };
   const conValor = { '--kit': 'kit', '--nivel': 'nivel', '--propuesta': 'propuesta', '--aplicar': 'aplicar', '--fecha': 'fecha', '--principal': 'principal', '--comando-test': 'comandoTest', '--traer': 'traer' };
   Object.assign(conValor, DECISIONES); // D1-D3 (8r2): --director kit, --permisos recomendada, --arranque kit
   for (let i = 0; i < argv.length; i++) {
@@ -1466,6 +1605,9 @@ function leerArgs(argv) {
     else if (a === '--claude-md') {
       if (o.claudeMd) return null;
       o.claudeMd = true;
+    } else if (a === '--worktreeinclude') {
+      if (o.worktreeinclude) return null;
+      o.worktreeinclude = true;
     }
     else if (Object.prototype.hasOwnProperty.call(conValor, a)) {
       if (i + 1 >= argv.length || !argv[i + 1] || o[conValor[a]] !== undefined) return null;
@@ -1474,11 +1616,11 @@ function leerArgs(argv) {
     else return null;
   }
   // --traer (t2): solo <clon> --traer <carpeta>, sin --kit ni nada más
-  if (o.traer !== undefined) return o.carpeta && Object.keys(o).every((k) => ['carpeta', 'traer', 'mirar', 'nuevo', 'claudeMd'].includes(k)) && !o.mirar && !o.nuevo && !o.claudeMd ? o : null;
+  if (o.traer !== undefined) return o.carpeta && Object.keys(o).every((k) => ['carpeta', 'traer', 'mirar', 'nuevo', 'claudeMd', 'worktreeinclude'].includes(k)) && !o.mirar && !o.nuevo && !o.claudeMd && !o.worktreeinclude ? o : null;
   if (!o.carpeta || !o.kit || o.mirar === (o.aplicar !== undefined)) return null;
   if (!o.mirar && (o.nivel !== undefined || o.propuesta !== undefined || o.nuevo || o.comandoTest !== undefined)) return null;
   if (o.comandoTest !== undefined && !escribible(o.comandoTest)) return null; // va entre comillas en la ficha: sin comillas dobles, barras invertidas ni saltos
-  if (o.mirar && o.claudeMd) return null; // --principal sí va con --mirar (t8: de ahí sale vars.proyecto, solo lectura)
+  if (o.mirar && (o.claudeMd || o.worktreeinclude)) return null; // --principal sí va con --mirar (t8: de ahí sale vars.proyecto, solo lectura)
   // D1-D3 (8r2): solo con --aplicar, y cada una con su único valor
   for (const [flag, k] of Object.entries(DECISIONES)) if (o[k] !== undefined && (o.mirar || o[k] !== VALOR_DECISION[flag])) return null;
   if (o.nivel !== undefined && !NIVELES.includes(o.nivel)) return null;
@@ -1513,7 +1655,7 @@ async function main(argv) {
       return { codigo: 0, lineas };
     }
     return aplicarPropuesta(carpeta, { kit, propuesta: path.resolve(o.aplicar), fecha: o.fecha, principal: o.principal === undefined ? undefined : path.resolve(o.principal), claudeMd: o.claudeMd,
-      director: o.director, permisos: o.permisos, arranque: o.arranque });
+      director: o.director, permisos: o.permisos, arranque: o.arranque, agentes: o.agentes, worktreeinclude: o.worktreeinclude });
   } catch (e) {
     if (e instanceof Negativa) return { codigo: 1, lineas: [`adoptar: ${e.message}`] };
     throw e;
