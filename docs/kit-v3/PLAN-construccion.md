@@ -1222,7 +1222,7 @@ entre piezas, lo técnico lo decide la sesión, la revisión integral como paso 
 | 2d ✅ | **D8r.2 · La tanda de taller de R1b = la `rc.3`** (`vibe-kit M5 · D8r.2`; la lanzó la sesión madre) | no | ✅ 2026-11-04 | `SPEC-paquete-8r2.md`: t1-t12 y la mecánica de D1-D4; la beta `v3.0.0-rc.3` taggeada. Sigue **la mañana con Guido**, que abre con D1-D4 |
 | 3 | **Diseño: los experimentos de método** (`vibe-kit M5 · Diseño: probar una idea nueva (experimentos)`) | **sí** | cuando Guido pueda, 2026-11-04 o 05 | el Arquitecto (Modo B sobre vibe-kit) charla con Guido y deja el spec sellado de la pieza nueva |
 | 2e ✅ | **D8r.3 · La `rc.4` exprés: el bot de Arti y los `.pyc`** (`vibe-kit M5 · D8r.3`; la lanzó la sesión madre de la recta final) | no | ✅ 2026-11-04 | `SPEC-paquete-8r3.md`: `carpeta-docs:` en la ficha, el arranque con el mismo nombre, `barreras` borra el caché de Python, la línea `después:` que dice la verdad y `resolver … nueva` sin informe; la beta `v3.0.0-rc.4` taggeada. La flota a los repos de Guido y la adopción del bot, las propone la sesión madre |
-| 2f | **D8r.4 · La `rc.5`: las correcciones del uso real** (`vibe-kit M5 · D8r.4`; la lanzó la sesión madre de la recta final) | no | en curso, 2026-11-04 | `SPEC-paquete-8r4.md` (READY, con red team): una sola ventana (`worktree.cjs donde`, `/obrero` y `/director` entran con EnterWorktree), la flota con obra (`--con-obra`, `worktree.cjs traer-main`), el merge de `main` en una rama vieja (u9), y lo de Pendientes que dolió en Hermes y el analytics; la beta `v3.0.0-rc.5`. Desde el tag `v3.0.0-rc.4` |
+| 2f ✅ | **D8r.4 · La `rc.5`: las correcciones del uso real** (`vibe-kit M5 · D8r.4`; la lanzó la sesión madre de la recta final) | no | ✅ 2026-11-04 | `SPEC-paquete-8r4.md` (READY, con red team): una sola ventana (`worktree.cjs donde`, `/obrero` y `/director` entran con EnterWorktree), la flota con obra (`--con-obra`, `worktree.cjs traer-main`), el merge de `main` en una rama vieja (u9), y lo de Pendientes que dolió en Hermes y el analytics; la beta `v3.0.0-rc.5`. Desde el tag `v3.0.0-rc.4` |
 | 4 | **D8c.1 · La rc.6** (`vibe-kit M5 · D8c.1 · La rc.6: cierre de tramo y la vuelta 2`; era la rc.5 hasta el 2026-11-04) | no | después de la 2f (el tag `rc.5`); la 3 ya no la traba | **Una sola `rc`, en nivel medio-alto** (Guido, 2026-11-04; `CICLO-DE-MEJORA.md` §3.6): el obrero de cierre de tramo (renglón 11) con h11 (a `main` sube solo el director), la vuelta 2 de `SPEC-paquete-8r4.md` (u4-u8, u13, h5-h12) y lo de Pendientes "De D8r.1" y "De D8r.2". **Los experimentos salen de la v3.0** (próxima versión, TODO Misión 7) |
 | 5 | **D9.x · Acompañar la prueba real** | a ratos | mientras dure el primer módulo de Hermes | cada arreglo del uso como `rc.N` |
 | 6 | **M6b · El ciclo, segunda parte** | sí, corta | cuando cierre el primer módulo de Hermes | §3.5 y §8 del ciclo con lo vivido; la fecha de la próxima vuelta |
@@ -1425,6 +1425,13 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
 - **La prueba de Juan** (2026-11-04, pedida por Guido): Juan prueba la beta en su PC y sus proyectos y sube pruebas duras e impresiones
   a la rama huérfana `prueba/juan` de este repo (sin el kit: su `CLAUDE.md`, `PLAN.md`, `pruebas/`, `impresiones.md`, proyectos con
   alias). La sesión madre la lee con `git fetch origin prueba/juan`; lo que sirva entra acá, en esta sección.
+
+- **De D8r.4, para la `rc.6`** (D8c.1; el chequeo frío de la `rc.5`, en `SPEC-paquete-8r4.md`):
+  1. **La adopción propone un `comando-setup` que nunca prueba** (`npm ci`, `pnpm install --frozen-lockfile`): el analytics y el bot
+     tienen el lock atrasado desde antes del kit y la flota les da ROTA en la línea 8 en cada versión. Arreglo: que `adoptar --mirar` lo
+     pruebe, o que la línea 8 distinga "ya fallaba antes del kit" (⚠). Mientras, Guido arregla el lock de cada repo.
+  2. **`abrir <x>` dice `primer mensaje: /director` sin el módulo**: con dos módulos (Hermes), la skill adivina el `<x>` de `donde`.
+  3. NO VERIFICADO: `traer-main` con los githooks puestos; gitleaks cazando una clave nueva en un merge.
 
 - **De D8r.2, para la `rc.5`** (D8c.1), con su porqué (no entraron en la única vuelta de corrección):
   1. ~~✅ D8r.3: `resolver . <pieza> nueva --kit <clon> --por …` anda sin informe sobre una `propia`~~ **Un repo ya adoptado con `director-obrero` en `propia` no tenía un paso que la traiga**: la flota saltea una ficha al día y
