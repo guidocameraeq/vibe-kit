@@ -760,3 +760,149 @@ test('casoRojo: el primer caso rojo del TAP, no el archivo', () => {
   assert.equal(Q.casoRojo(tap), 'el caso b');
   assert.equal(Q.casoRojo('ok 1 - todo bien\n'), null);
 });
+
+// ---------------------------------------------------------------- h12: hooks-lib que espera (SPEC-paquete-8c)
+
+const INFORME_LIB = '# Te espera: la pieza `hooks-lib` (kit 2.4.3 → 3.0.0)\n\nbase: 2.4.3\n\n## Qué hacer\n';
+test('h12, 7 casos: hooks-lib esperando (su informe) y un caso perdido → ❌ con la línea de resolver; sin esperar → el detalle de hoy', () => {
+  const pierde = (d) => escribir(path.join(d, '.claude', 'hooks', 'lib', 'suma.cjs'), `${SUMA_VIEJA}// adaptada\n`);
+  const p = armar({
+    cambio: (d) => {
+      pierde(d);
+      escribir(path.join(d, '.claude', 'fusiones', 'hooks-lib.md'), INFORME_LIB);
+    },
+  });
+  const r = correr(p);
+  nueveBienFormadas(r);
+  rojo(r, 'casos', /^7\. casos · ❌ · hooks-lib te espera desde 2\.4\.3: los hooks nuevos necesitan su lib nueva\. Resolvela primero \(`resolver \. hooks-lib …`\) y volvé a poner al día · el hook lib\/suma\.cjs pierde un caso: el caso b del molde nuevo$/);
+  // sin hooks-lib esperando: el detalle de hoy, sin la línea de resolver
+  const q = armar({ cambio: pierde });
+  rojo(correr(q), 'casos', /^7\. casos · ❌ · el hook lib\/suma\.cjs pierde un caso: el caso b del molde nuevo$/);
+});
+
+test('h12, 7 casos: hooks-lib fuera de su versión (`desde:` en la ficha) también cuenta; esperando y ningún hook cambiado → como hoy', () => {
+  const p = armar({
+    cambio: (d) => {
+      escribir(path.join(d, '.claude', 'hooks', 'lib', 'suma.cjs'), `${SUMA_VIEJA}// adaptada\n`);
+      escribir(path.join(d, '.claude', 'kit.md'), fichaCon({ kit: '3.0.0' }).replace(/^frenos:$/m, 'piezas:\n  hooks-lib: {estado: adaptada, hash: 0123456789ab, desde: 2.4.1}\nfrenos:'));
+    },
+  });
+  rojo(correr(p), 'casos', /^7\. casos · ❌ · hooks-lib te espera desde 2\.4\.1: .* · el hook lib\/suma\.cjs pierde un caso/);
+  // con el informe pero sin ningún hook cambiado (la suma nueva ya en base): "ningún hook cambió", ✅
+  const q = armar({
+    antes: (d) => escribir(path.join(d, '.claude', 'hooks', 'lib', 'suma.cjs'), SUMA_NUEVA),
+    cambio: (d) => escribir(path.join(d, '.claude', 'fusiones', 'hooks-lib.md'), INFORME_LIB),
+  });
+  const rq = correr(q);
+  verde(rq, 'casos');
+  assert.match(linea(rq, 'casos'), /^7\. casos · ✅ · ningún hook cambió en base\.\.HEAD$/);
+  assert.equal(Q.hooksLibEspera(q.d).base, '2.4.3');
+  assert.equal(Q.hooksLibEspera(armar().d), null);
+});
+
+// ---------------------------------------------------------------- p1 (b): el lock del proyecto atrasado (SPEC-paquete-8c)
+
+// Las salidas reales del chequeo frío de la rc.5 (D8r.4: el analytics con npm, el bot con pnpm), y la de yarn del manual.
+const SALIDA_NPM = [
+  'npm error code EUSAGE',
+  'npm error',
+  'npm error `npm ci` can only install packages when your package.json and package-lock.json or npm-shrinkwrap.json are in sync. Please update your lock file with `npm install` before continuing.',
+  'npm error',
+  'npm error Missing: openai@4.104.0 from lock file',
+  'npm error',
+  'npm error Clean install a project',
+  '',
+].join('\n');
+const SALIDA_PNPM = 'Scope: all 36 workspace projects\n ERR_PNPM_OUTDATED_LOCKFILE  Cannot install with "frozen-lockfile" because pnpm-lock.yaml is not up to date with extensions\\twilio-whatsapp\\package.json\n\nNote that in CI environments this setting is true by default.\n';
+const SALIDA_YARN = '➤ YN0000: ┌ Resolution step\n➤ YN0028: │ The lockfile would have been modified by this install, which is explicitly forbidden.\n➤ YN0000: └ Completed\n';
+const SALIDA_RED = 'npm error code ECONNREFUSED\nnpm error network request to https://registry.npmjs.org/openai failed\n';
+// Un setup que escribe <salida> y sale con <codigo>; con `cuelga`, después de escribirla se queda colgado; con `marca`, deja ese
+// archivo (ruta absoluta, fuera del repo) para saber que corrió.
+const setupQue = (salida, { codigo = 1, cuelga = false, marca = null } = {}) =>
+  `${marca ? `require('fs').writeFileSync(${JSON.stringify(marca)}, 'x');\n` : ''}process.stderr.write(${JSON.stringify(salida)});\n${cuelga ? 'setInterval(() => {}, 1000);\n' : `process.exit(${codigo});\n`}`;
+const PRUEBA_MARCA = "require('fs').writeFileSync('test-corrio.txt', 'x');\n";
+const S_PREFIX = 'node setup.cjs --prefix chat-syncer';
+// El proyecto: el mismo comando-setup en la ficha de base y de HEAD (salvo `setupBase`), su setup.cjs en base y en HEAD.
+function armarLock({ base, head, setup = S_PREFIX, setupBase = setup, cambio } = {}) {
+  return armar({
+    antes: (d) => {
+      escribir(path.join(d, 'setup.cjs'), base);
+      escribir(path.join(d, 'prueba.cjs'), PRUEBA_MARCA);
+      escribir(path.join(d, '.claude', 'kit.md'), fichaCon({ setup: setupBase }));
+    },
+    cambio: (d) => {
+      if (head !== base) escribir(path.join(d, 'setup.cjs'), head);
+      escribir(path.join(d, '.claude', 'kit.md'), fichaCon({ kit: '3.0.0', setup }));
+      if (cambio) cambio(d);
+    },
+  });
+}
+
+test('p1 (b) firmaLock: npm (EUSAGE con la frase), pnpm y yarn de las salidas reales; en la salida entera, no en el detalle recortado', () => {
+  assert.deepEqual(Q.firmaLock(SALIDA_NPM), { firma: 'npm EUSAGE', lock: 'package-lock.json' });
+  assert.deepEqual(Q.firmaLock(SALIDA_PNPM), { firma: 'ERR_PNPM_OUTDATED_LOCKFILE', lock: 'pnpm-lock.yaml' });
+  assert.deepEqual(Q.firmaLock(SALIDA_YARN), { firma: 'yarn YN0028', lock: 'yarn.lock' });
+  assert.deepEqual(Q.firmaLock('error The lockfile would have been modified by this install\n'), { firma: 'yarn YN0028', lock: 'yarn.lock' });
+  assert.equal(Q.firmaLock('npm error code EUSAGE\nnpm error Usage: npm ci\n'), null, 'EUSAGE solo, sin la frase de in sync, no');
+  assert.equal(Q.firmaLock(SALIDA_RED), null);
+  assert.equal(Q.firmaLock('bash: copy: command not found\n'), null);
+  // el detalle de 80 caracteres no trae la frase: por eso se busca en la salida entera
+  const recortado = `${SALIDA_NPM.replace(/\s+/g, ' ').trim().slice(0, 79)}…`;
+  assert.equal(Q.firmaLock(recortado), null, recortado);
+  assert.equal(Q.carpetaDelSetup('npm --prefix chat-syncer ci'), 'chat-syncer');
+  assert.equal(Q.carpetaDelSetup('npm ci --prefix=chat-syncer/'), 'chat-syncer');
+  assert.equal(Q.carpetaDelSetup('cd web && pnpm install --frozen-lockfile'), 'web');
+  assert.equal(Q.carpetaDelSetup('pnpm -C apps/bot install'), 'apps/bot');
+  assert.equal(Q.carpetaDelSetup('pnpm install --frozen-lockfile'), '');
+});
+
+test('p1 (b): la firma de npm en HEAD y en base, sin tocar nada del instalador → ✅ ⚠ (el test no corre); la flota lee el lock', () => {
+  const p = armarLock({ base: setupQue(SALIDA_NPM), head: setupQue(SALIDA_NPM) });
+  const r = correr(p);
+  nueveBienFormadas(r);
+  assert.equal(linea(r, 'pruebas'), '8. pruebas · ✅ · ⚠ comando-setup ya fallaba antes de la actualización (lock atrasado: npm EUSAGE en chat-syncer/package-lock.json): es del proyecto, no del kit — regenerá el lock y commitealo; tus tests no se corrieron (NO VERIFICADO)', r.lineas.join('\n'));
+  assert.equal(r.noVerificado, false);
+  assert.ok(!fs.existsSync(path.join(p.d, 'test-corrio.txt')), 'sin dependencias, el test no se corre');
+  assert.equal(Q.avisosDe(r.lineas).filter((a) => a.startsWith('pruebas ')).length, 1, 'la flota lo ve como aviso');
+  assert.equal(Q.lockAtrasadoDe(r.lineas), 'chat-syncer/package-lock.json');
+  // pnpm (el bot), sin carpeta: el lock de la raíz
+  const q = armarLock({ base: setupQue(SALIDA_PNPM), head: setupQue(SALIDA_PNPM), setup: 'node setup.cjs' });
+  const rq = correr(q);
+  assert.match(linea(rq, 'pruebas'), /^8\. pruebas · ✅ · ⚠ comando-setup ya fallaba antes de la actualización \(lock atrasado: ERR_PNPM_OUTDATED_LOCKFILE en pnpm-lock\.yaml\): es del proyecto/);
+  assert.equal(Q.lockAtrasadoDe(rq.lineas), 'pnpm-lock.yaml');
+});
+
+test('p1 (b): firma en HEAD y en base anda → ❌; firma en HEAD y en base otra falla (red) → ❌', () => {
+  const p = armarLock({ base: setupQue('', { codigo: 0 }), head: setupQue(SALIDA_NPM) });
+  const r = correr(p);
+  nueveBienFormadas(r);
+  rojo(r, 'pruebas', /NO VERIFICADO: comando-setup \(node setup\.cjs --prefix chat-syncer\) salió con 1: .*\(lock atrasado: npm EUSAGE en chat-syncer\/package-lock\.json; en base el comando-setup anduvo: lo rompió la actualización\)$/);
+  const q = armarLock({ base: setupQue(SALIDA_RED), head: setupQue(SALIDA_NPM) });
+  rojo(correr(q), 'pruebas', /NO VERIFICADO: comando-setup .* salió con 1: .*en base falló de otra forma: npm error code ECONNREFUSED/);
+});
+
+test('p1 (b): HEAD colgado → ❌ sin correr la base; base colgada → ❌ "en base no se sabe"', () => {
+  const marca = path.join(nuevaCarpeta('marca'), 'base-corrio.txt');
+  const p = armarLock({ base: setupQue(SALIDA_NPM, { marca }), head: setupQue(SALIDA_NPM, { cuelga: true }) });
+  const r = correr(p, { plazoMs: 4000 });
+  nueveBienFormadas(r);
+  rojo(r, 'pruebas', /^8\. pruebas · ❌ · NO VERIFICADO: comando-setup colgado: no terminó en 4 s$/);
+  assert.ok(!fs.existsSync(marca), 'con HEAD colgado la base no se corre');
+  const q = armarLock({ base: setupQue(SALIDA_NPM, { cuelga: true }), head: setupQue(SALIDA_NPM) });
+  rojo(correr(q, { plazoMs: 4000 }), 'pruebas', /\(lock atrasado: npm EUSAGE en chat-syncer\/package-lock\.json; en base no se sabe: comando-setup colgado: no terminó en 4 s\)$/);
+});
+
+test('p1 (b): falla sin firma en las dos (un `copy` en Bash) → ❌ como hoy', () => {
+  const p = armarLock({ base: setupQue(''), head: setupQue(''), setup: 'copy setup.cjs otro.cjs' });
+  const r = correr(p);
+  nueveBienFormadas(r);
+  rojo(r, 'pruebas', /^8\. pruebas · ❌ · NO VERIFICADO: comando-setup \(copy setup\.cjs otro\.cjs\) salió con \d+: /);
+  assert.ok(!/lock atrasado/.test(linea(r, 'pruebas')), linea(r, 'pruebas'));
+});
+
+test('p1 (b): firma en las dos con un .npmrc en el diff → ❌; comando-setup distinto en la ficha de base → ❌', () => {
+  const p = armarLock({ base: setupQue(SALIDA_NPM), head: setupQue(SALIDA_NPM), cambio: (d) => escribir(path.join(d, 'chat-syncer', '.npmrc'), 'legacy-peer-deps=true\n') });
+  rojo(correr(p), 'pruebas', /\(lock atrasado: npm EUSAGE en chat-syncer\/package-lock\.json, pero la actualización toca chat-syncer\/\.npmrc: puede ser de la actualización\)$/);
+  const q = armarLock({ base: setupQue(SALIDA_NPM), head: setupQue(SALIDA_NPM), setupBase: 'node setup.cjs' });
+  rojo(correr(q), 'pruebas', /pero vars\.comando-setup cambió en la actualización: puede ser de la actualización\)$/);
+});
