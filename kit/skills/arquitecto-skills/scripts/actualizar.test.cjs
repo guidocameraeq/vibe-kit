@@ -191,6 +191,24 @@ test('aplicar: reemplaza lo intacto, trae lo nuevo, borra la baja intacta; la se
   assert.equal(git(d, 'status', '--porcelain'), '');
 });
 
+test('8r4 u6 (crit.): un CHANGELOG Keep a Changelog — el renglón va a ### Método (kit) adentro de [Unreleased] (creada si falta, al final; después, al tope de la suya); ### Para usuarios byte a byte', () => {
+  const KEEP = '# Changelog\n\n## [Unreleased]\n\n### Para usuarios\n- el botón nuevo\n\n## [1.2.0] - 2026-10-01\n\n### Para usuarios\n- lo viejo\n';
+  const d = armarProyecto({ antes: (p) => escribirArbol(p, { 'docs/CHANGELOG.md': KEEP }) });
+  const r = aplicar(d);
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  const ch = leer(d, 'docs/CHANGELOG.md');
+  const renglon = r.lineas.find((l) => l.startsWith('docs/CHANGELOG.md · un renglón · ')).slice('docs/CHANGELOG.md · un renglón · '.length);
+  assert.match(renglon, /^kit 2\.9\.0 → 3\.0\.0: piezas /);
+  assert.equal(ch, KEEP.replace('- el botón nuevo\n\n', `- el botón nuevo\n\n### Método (kit)\n\n- ${renglon}\n\n`));
+  // la otra subsección y las versiones de antes, intactas; arriba de [Unreleased], nada
+  assert.ok(ch.startsWith('# Changelog\n\n## [Unreleased]\n\n### Para usuarios\n- el botón nuevo\n\n'));
+  assert.ok(ch.endsWith('## [1.2.0] - 2026-10-01\n\n### Para usuarios\n- lo viejo\n'));
+  // ponerRenglon: con la subsección ya hecha, el nuevo va primero en ella; una sección pegada al próximo ## queda bien formada
+  assert.equal(A.ponerRenglon(ch, 'R2'), ch.replace('### Método (kit)\n\n', '### Método (kit)\n\n- R2\n'));
+  assert.equal(A.ponerRenglon('## [Unreleased]\n## [1.0]\n- x\n', 'R'), '## [Unreleased]\n\n### Método (kit)\n\n- R\n\n## [1.0]\n- x\n');
+  assert.equal(A.ponerRenglon('# C\n\n## 2026-01-01 — algo\n', 'R'), '# C\n\nR\n\n## 2026-01-01 — algo\n', 'sin [Unreleased], como siempre');
+});
+
 test('aplicar --plan: dice lo mismo y no escribe nada', () => {
   const d = armarProyecto();
   const antes = foto(d);
