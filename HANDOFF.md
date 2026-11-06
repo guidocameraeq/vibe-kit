@@ -2,50 +2,37 @@
 
 > Dónde quedamos. El cierre lo sobreescribe entero.
 
-**Última sesión:** 2026-11-04 (pc-juan). Pasos 0, 1 y 2 del plan hechos.
+**Última sesión:** 2026-11-06 (pc-juan). Kit en la `3.0.0-rc.6`. Pasos 0, 1, 2 y 5 (rc.6) hechos; el 3 a medias.
 
 ## Dónde quedamos
 
-- **Paso 0** (lo básico) y **paso 1** (kit `3.0.0-rc.3`, doctor 0 ✗ · 5 ⚠): hechos. Juan reinició Claude Code y dijo que no le molestó nada
-  (en `impresiones.md`).
-- **Paso 2** (la suite): hecho. `pruebas/2026-11-04-suite.md`. Corrida entera 35 min: 2867 tests, 2858 pasan, 8 rojas, 1 salteado.
-  Repetidas por separado (7 archivos, 21 min) pasaron las 287. Clon temporal borrado.
-- **No se volvió a correr el doctor** después del reinicio (queda como mini-chequeo pendiente).
+- **Paso 5, la PC en la rc.6:** hecho (`pruebas/2026-11-06-rc-6.md`). Doctor: 29 chequeos, 1 ✗ (`claude-code`: el `claude` de la
+  terminal es 2.1.252 y pide ≥ 2.1.295), 4 ⚠. Se aplicó con `--pisar-editados`: 3 archivos "editados a mano" eran idénticos a la rc.3.
+- **Suite en la rc.6:** hecha (`pruebas/2026-11-06-suite-rc6.md`). 3071 tests, 3061 pasan, 9 rojas. Repetidas desde PowerShell solo
+  queda `no hay sh`; las otras 8 pasan.
+- **Paso 3, `proyecto-x3`:** `--mirar` y `--aplicar` hechos **solo en un clon temporal** (2 commits, 77 archivos, barreras verde).
+  `pruebas/2026-11-06-proyecto-x3-mirar.md` y `-aplicar.md`. **No se subió nada** al repo de la empresa y no se tocó la carpeta de Juan.
+  El clon temporal se borró en el cierre: si se decide subir, se rehace la adopción (rápido, mismas elecciones).
+- `proyecto-x2` no existe en `<proyectos>` (la carpeta entera); corregido en la prueba de la rc.6.
 
 ## Qué sigue
 
-> **Nota de Guido (2026-11-05):** salió la **`3.0.0-rc.6`**, y la PC de Juan sigue en la `rc.3`. Lo que trae de nuevo:
-> - la rc.4: `carpeta-docs:` y el caché de Python;
-> - la rc.5: una sola ventana y la flota con obra;
-> - la rc.6:
->   - el obrero de cierre de tramo;
->   - "a `main` sube solo el director";
->   - los avisos de la adopción (lock atrasado, gitleaks de la historia);
->   - h10, que trata la versión de `claude` y el `sh` de PowerShell, o sea, los dos hallazgos de Juan.
->
-> Antes del paso 3, la PC va a la rc.6, así lo que Juan prueba y sube es lo último. Esta rama no lleva el kit, así que no hay nada que
-> mezclar: el kit le llega siempre por `actualizate`.
-
-1. **Paso 5, la PC a la rc.6.** Decile **"actualizate"** al Equipador; tiene que ir de `3.0.0-rc.3` a `3.0.0-rc.6`. Reiniciá Claude Code y
-   corré el `doctor`. Guardá la prueba en `pruebas/2026-11-05-rc-6.md`, con:
-   - de qué versión a cuál;
-   - la tabla del `doctor`;
-   - **si siguen los 3 ⚠ del paso 1**: el `claude` de la terminal, `automode` y `copias-kit`.
-2. **La suite otra vez, en la rc.6** (el mismo paso 2, ~35 min, sola y en segundo plano). Guardá la prueba en `pruebas/2026-11-05-suite-rc6.md`.
-   Lo que se busca:
-   - si la roja `no hay sh` desapareció;
-   - si las otras 7 se repiten.
-3. **Paso 3** ya con la rc.6: Juan elige un proyecto **no crítico**. El alias va en `proyectos.md` y el nombre real solo en
-   `.local/alias.md`. Después, `/arquitecto` → "adoptá <carpeta>"; primero corre `adoptar --mirar`, que no escribe nada.
-4. **Regla desde hoy:** cada prueba nueva arranca con la línea `kit: <versión>`, la de `~/.claude/VERSION`, así Guido sabe con qué rc se vio.
+1. Juan **reinicia Claude Code** y se repite el `doctor` (mini-chequeo; nunca se corrió después del reinicio con la rc.6).
+2. Juan decide si hace `claude update` en la terminal (arregla el ✗).
+3. Para `proyecto-x3`: Juan commitea o guarda sus cambios locales (4 archivos + 1 carpeta nueva). Después decide el push a `main` del
+   repo de la empresa (conviene avisar antes a quien lo lleva) y se hace el `--traer`. Si no quiere, el paso 3 queda en "mirar" y
+   está bien. `docs/NORTE.md` tiene 5 `[completar]`.
+4. Paso 4 (usarlo de verdad) solo si el paso 3 sube. Cada prueba arranca con `kit: <versión>`.
 
 ## Para la sesión de Guido
 
-- Del paso 1: el doctor no lee el `claude` de la terminal (2.1.252 a mano vs ≥ 2.1.295 pedido); `automode` ⚠ por dos checkouts del
-  mismo origin; `copias-kit` ⚠ por 2 proyectos con su propia copia de `arquitecto` (no se tocaron).
-- Del paso 2: la roja `no hay sh` (kit-githook) depende de la terminal: PowerShell no tiene `sh` en el PATH, Git Bash sí (verificado).
-  Las otras 7 no se pueden atribuir con certeza a la carga de la PC (Docker corriendo) o a la terminal. La suite es lenta en Windows.
+- **Falso "editado a mano" de rc.3 a rc.6:** 3 archivos idénticos a los del tag rc.3 (hash comprobado) figuraron como "no es ninguna
+  versión del kit"; sin `--pisar-editados`, `VERSION` no subía. Causa no investigada.
+- **`claude-code` ahora ✗** y el doctor lee bien la terminal (h10 anda para eso), pero deja exit 1.
+- **`no hay sh` sigue** (kit-githook) desde PowerShell en la rc.6; h10 no lo cambió acá. Las otras 8 rojas son de carga/tiempos (no probado
+  sin Docker). La suite tarda 38 min.
+- `automode` ⚠ persiste (esta rama comparte origin con el canónico). `copias-kit` ⚠ en `proyecto-x1`.
 
 ## Trabado
 
-Nada.
+Nada. Esperan decisiones de Juan (push del paso 3).

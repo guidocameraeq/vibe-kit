@@ -23,7 +23,7 @@
   (`pruebas/AAAA-MM-DD-suite.md`): el tag, los totales (pasan / fallan / saltean), cada roja con su salida recortada y el tiempo.
   Después borrá el clon.
 
-- [ ] **3. El primer proyecto.** Juan elige uno **que no sea crítico**. Alias en `proyectos.md` (y el nombre real solo en
+- [ ] **3. El primer proyecto.** (2026-11-06, `proyecto-x3`: mirar + aplicar en el clon hechos, barreras verde; falta el push y el `--traer`, que Juan dejó para después: `pruebas/2026-11-06-proyecto-x3-mirar.md` y `-aplicar.md`) Juan elige uno **que no sea crítico**. Alias en `proyectos.md` (y el nombre real solo en
   `.local/alias.md`). Pedile al Arquitecto (`/arquitecto`): **"adoptá <la carpeta del proyecto>"** (su receta: `flota.md`, "adoptar").
   Trabaja sobre un clon y primero muestra la pantalla de `adoptar --mirar`, que **no escribe nada**. Los textos del kit dicen "Guido":
   acá, Guido es Juan. Prueba (`pruebas/AAAA-MM-DD-<alias>-mirar.md`, con el
