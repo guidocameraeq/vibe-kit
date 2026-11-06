@@ -34,7 +34,7 @@
 - [ ] **4. Usarlo de verdad.** Juan trabaja en el proyecto adoptado como siempre, con lo que trae el kit (un módulo nuevo con
   `/arquitecto`, `/director`, `/obrero`, `/tramo`). Lo que cuente va a `impresiones.md`; lo que se rompa, con su salida, a `pruebas/`.
 
-- [ ] **5. Cada `rc` nueva.** Cuando Guido avise (o al abrir, si el `ultimo-tag` del kit es más nuevo que `~/.claude/VERSION`): Juan le
+- [ ] **5. Cada `rc` nueva.** (rc.6 hecha el 2026-11-06: `pruebas/2026-11-06-rc-6.md`; la casilla sigue abierta porque se repite) Cuando Guido avise (o al abrir, si el `ultimo-tag` del kit es más nuevo que `~/.claude/VERSION`): Juan le
   dice **"actualizate"** al Equipador, y para sus proyectos adoptados, **"poné al día <proyecto>"**. Prueba
   (`pruebas/AAAA-MM-DD-rc-N.md`): de qué versión a cuál, el `doctor`, y lo que cambió en cada proyecto.
 
