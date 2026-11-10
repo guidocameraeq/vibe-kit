@@ -1324,6 +1324,13 @@ Lo que se evaluó, para no volver a evaluarlo de cero (insumo de la misión 6):
   - 🔴 que `comando-test` no corra contra una base de clase `real` (el analytics escribiría en producción) → "De la prueba real", 14
   - adoptar un repo con director propio: la comparación a/b/c/d y los anexos, y las 8 reglas genéricas de Mobile. 🔴 La 3 (Grep sobre
     credenciales) es un freno → "De la prueba real", 13
+- **De la primera noche del kit v3 en Deptos (2026-11-10, director + obreros, sin dueño)** — lo que Guido sintió primero, en criollo:
+  - pidió "un director en loop que deje el TODO de código en cero" y el kit solo sabe de listas fijas → "De la prueba real", 17
+  - el director no puede cerrar su worktree ni correr `/cierre`: la noche siempre termina esperando a Guido → "De la prueba real", 18
+  - los mensajes del obrero llegaron a otra sesión de la misma carpeta → "De la prueba real", 19
+  - `paquete.cjs --pruebas` con una ruta da un rojo falso (y otros chequeos que rechazan lo que la plantilla no dice) → "De la prueba real", 22
+  - el resto (obrero `-p` sin mensajes ni allow, obrero parado que deja el worktree inservible, GATE armado con la base de hoy, vistas que
+    mienten, frenos 🔴, datos de prueba compartidos, NO VERIFICADO) → "De la prueba real", 20, 21, 23-27
 - **Antes de R2 / después**:
   - un repo de prueba parecido a Hermes → "De D8r.2", 6 (= "De D8c.1", 8)
   - los NO VERIFICADO de la `rc.6` (EnterWorktree real, el obrero de cierre real, `traer-main` con githooks…) → "De D8c.1", 7 (y "De D8r.4", 3; "De D8r.2", 5; "De D8r.1", 5; "De D8b.1", 3)
@@ -1473,6 +1480,109 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
   16. **2026-11-05 · gitleaks de la historia "no terminó en 120 s"** en el `--mirar` del bot: la historia completa quedó sin mirar.
       Ya estaba como NO VERIFICADO en la rc.6 ("De D8c.1", 7); ahora está visto. **Para la rc.7**: más plazo, o correrlo en segundo
       plano y avisar el resultado.
+  17. **2026-11-10 · Un director en bucle que "deje el TODO de código en cero" no existe en el kit: el spec es de lista fija, no de cola**
+      (Deptos, la primera noche entera del kit v3 con director y obreros, 23:14 → 07:30). Guido pidió un director en bucle que dejara
+      el TODO de código en cero. Pasó otra cosa: el Arquitecto escribió un spec de **lista** (15 encargos); el kit dice "el spec no crece
+      durante la obra", así que todo lo descubierto en el camino fue al TODO (unas 30 entradas nuevas, muchas de código) y el director, al
+      terminar la lista, paró. Medido: 19 encargos hechos, 105 sub-pasos, 796 min sumados, 0 intervenciones de Guido, y el TODO de código
+      sin vaciar. **Para el kit**: un spec "de cola": el alcance se define por una **regla** ("todo lo del TODO que cumpla X"), no por una
+      lista; lo que se descubre chico y dentro de la regla se rellena como encargo nuevo (con un tope por noche y la vara del ADR-030
+      para lo que NO entra), y tiene una **condición de fin** medible (cola vacía, tope de horas, o N encargos seguidos sin hallazgo
+      nuevo). El Arquitecto tiene que poder preguntar "¿lista o cola?" al armar un módulo de noche. **Para el proyecto**: qué entra en la
+      cola lo decide el Arquitecto con Guido; que el director no pueda agregar encargos es del kit.
+  18. **2026-11-10 · El final de la noche no tiene quién lo haga: el director no puede cerrar su propio worktree ni correr `/cierre`**
+      (Deptos). (a) El director vive dentro de su worktree (`modulo--<x>`) y `worktree.cjs cerrar` se corre **desde la carpeta
+      principal**: no puede cerrarse a sí mismo. (b) El `/director` le prohíbe `/cierre` (a propósito: no commitea lo suyo a `main`). A la
+      mañana, Guido tuvo que decirle que lanzara un subagente para el cierre. Resultado: la secuencia integrar → release → cierre → limpiar
+      worktrees **siempre termina esperando a Guido**, aunque todo lo anterior haya salido solo. **Para el kit**: en modo noche (spec con
+      "Apertura: director"), un paso final con dueño explícito: el director lanza un obrero de "cierre de noche" que corre integrar,
+      `/cierre` y `cerrar <x>` **desde la carpeta principal**; o un `worktree.cjs cerrar` que acepte que lo corra el director desde
+      adentro y avise. El `/director` debe decir cuál es la vía en lugar de prohibir y callar.
+  19. **2026-11-10 · Los mensajes del obrero le llegaron a OTRA sesión de la misma carpeta, no al director** (Deptos). La
+      PRESENTACION, el AVANCE y el CIERRE que el obrero mandó por mensajería entre sesiones le aparecieron a la sesión del Arquitecto
+      (abierta en la misma carpeta de proyecto), no a la del director. El director avanzó igual por git y por el despertador, pero
+      nadie vio llegar el mensaje a destino. Y es intermitente: entre los obreros de fondo, unos mandaron mensajes (04, 05) y otros no
+      (92, 06…); depende de la sesión, no del encargo. **Para el kit**: el mensaje lleva el nombre de la sesión destino y el receptor
+      ignora lo que no es suyo; o se decide que la mensajería **no es canal confiable** y el obrero siempre deja su estado en git (ya lo
+      hace) y el director lo lee de ahí. Hasta decidir, el `/director` no debe prometer que los mensajes "le llegan".
+  20. **2026-11-10 · Un obrero de fondo (`-p`) no recibe nada, y no honra el `permissions.allow` del proyecto** (Deptos). (a) Un
+      `CORRECCION` que vive solo en `modulo/<x>` no le llega: el obrero relanzado leyó el encargo de **su propia rama** (anterior a la
+      corrección), vio su trabajo hecho y repitió el CIERRE; hubo que volver el encargo a su texto original y abrir un encargo nuevo
+      con lo medido. Tampoco le llega lo que otro CIERRE descubre para un encargo en curso. (b) Cada obrero `-p` imprime "Ignoring 48
+      permissions.allow entries … this workspace has not been trusted": anda con los `--allowedTools` de la línea de `autorizado`, pero el
+      allow del proyecto no rige hasta que alguien acepte el diálogo de confianza en esa carpeta (en un worktree nuevo, nadie lo acepta).
+      (c) Un comando que el obrero necesitó y no estaba en `AUTORIZADO` (apuntar la red visual al segundo banco) el modo `auto` lo aceptó
+      igual: fue azar del clasificador, no diseño. **Para el kit**: `encargo.cjs mensaje CORRECCION` desde el director debe
+      **commitear a la rama del obrero** (no solo a la del módulo), o `autorizado` avisa "esto no le llega a un obrero de fondo" al
+      relanzar; `worktree crear` deja la carpeta como confiable (o lo avisa); y el comando del banco de pruebas entra en `AUTORIZADO` de
+      los encargos con red visual (o `worktree crear` copia la config del banco correcto).
+  21. **2026-11-10 · Un obrero que para a mitad de un sub-paso deja su worktree inservible, y el candado de `integrar` no distingue
+      "cancelado" de "abierto"** (Deptos, encargo 16: las dos únicas PARADAS de la noche). El obrero paró a las 02:40 con 105
+      conversiones sin commitear. El relanzado se encontró con que `worktree.cjs donde` ve cambios sin commitear y **no deja entrar a otra
+      sesión** (teme dos sesiones sobre lo mismo). El director no pudo sacar el parche (el aislamiento de su sesión le niega leer git en otro
+      worktree). Se canceló el encargo y se rehizo con otro número desde `modulo/<x>`. Pero `cerrar --cancelado` **borraría** el trabajo, y de
+      noche no se borra: el worktree quedó sin cerrar, y a las 07:40 `integrar` frenó con "hay un encargo abierto" sobre ese mismo
+      encargo, que la ficha ya decía cancelado. Otra espera para Guido, por culpa del kit. **Para el kit**: (1) el obrero, antes de parar
+      (PARADA o contexto), **commitea un WIP** a su rama; (2) `donde` acepta al **mismo encargo** y avisa lo que encontró, en vez de negarse;
+      (3) el candado de `integrar` lee el renglón "cancelado" de la ficha; (4) `cerrar --cancelado` guarda el trabajo sin commitear
+      (rama de rescate o stash) antes de borrar, así puede correr de noche.
+  22. **2026-11-10 · Los chequeos del encargo rechazan lo que la plantilla no dice, y uno da un rojo falso** (Deptos). (a)
+      `paquete.cjs --pruebas` espera un **comando**; con una ruta da un rojo **falso** (lo descubrió el obrero del encargo 05). (b)
+      `encargo.cjs partida` exige un ID de **dos dígitos** y el spec nombraba los encargos `E01…`. (c) `autorizado` rechaza `- Spec:` con
+      más de un rango (la plantilla no lo dice), y como los worktrees ya estaban creados sobre el commit viejo, `autorizado` tiene que ir
+      **antes** de `crear`. (d) `autorizado` rechaza `- Skill: tramo` ("tiene que decir obrero") aunque el spec pida `/tramo` para tres
+      encargos. (e) Un `## Toca` con la ruta seguida de `:línea` o de texto entre paréntesis, o con una **descripción** en lugar de la ruta,
+      hace que el chequeo de alcance marque "fuera de ## Toca": 4, 7 y 5 archivos en tres encargos, todos legítimos. (f) "Prueba en rojo
+      primero" no aplica literal a un refactor de algo que ya existía: la prueba nació verde y el rojo lo dieron los mutantes. **Para el
+      kit**: `--pruebas` dice "esto parece una ruta, quería un comando"; la plantilla de encargo aclara cuántos rangos admite `- Spec:`, que
+      `## Toca` lleva la ruta pelada (una por renglón, aunque sea archivo nuevo) y que en un refactor el rojo lo dan los mutantes;
+      `autorizado` acepta `- Skill: tramo` si el spec lo pide (o el spec deja de pedirlo).
+  23. **2026-11-10 · El GATE de un encargo se arma con la base de HOY, no con la que va a tener cuando mergee** (Deptos, 3 veces en una
+      noche). (a) Un encargo salió rojo por un chequeo roto **en la base** (un script que auditaba el skill equivocado, traído por la
+      adopción del kit v3): el director había elegido el GATE sin correrlo antes en la base. (b) Otro salió rojo por un error de lint que
+      ya había arreglado un encargo anterior: su base era previa a ese merge. (c) Un chequeo que **no estaba en ningún GATE** se rompió al
+      mergear un encargo y nadie lo vio hasta que lo midió el siguiente (la red cruzada funcionó, pero por buena suerte). Además
+      `verificar` corre el `comando-test` de la ficha de **main**, no la de `modulo/<x>`: lo que el módulo suma al GATE (el lint, esta
+      noche) no se corre en `verificar` hasta integrar. Y cambiar un GATE después del CIERRE quedó escrito a mano, sin camino del kit.
+      **Para el kit**: el director (o `encargo.cjs`) corre el GATE **en la base** antes de aceptar un encargo y avisa si ya sale rojo
+      ("no es de este encargo"); `verificar` lee la ficha de `modulo/<x>`; y una regla en el `/director`: cuando mergea un encargo, los
+      que ya partieron corren su GATE con ese merge adentro (o salen del GATE con la razón escrita).
+  24. **2026-11-10 · Las vistas del kit mienten con varios obreros vivos** (Deptos). (a) `estado.cjs` mostró tres encargos como
+      "mergeado · 2 min · 1 desvío" **con los tres obreros recién lanzados** y sin ningún merge. (b) `tiempos.cjs contador` le carga como
+      "desvío" al encargo el propio commit de encargos del director (la base de su rama), y **solo ve ramas vivas**: en un cierre de tramo
+      da siempre 0 desvíos para los encargos recién cerrados. (c) `/estado <x>` lee la ficha de `modulo/<x>`, no la de la rama del obrero:
+      la línea propia sale, pero el avance es el del director. (d) `autorizado` no sabe **cuántos obreros hay vivos**: llegó a haber 4 a la
+      vez con tope 3 (el director lo notó solo). (e) `afirmaciones.cjs` marca "nunca"/"probada" aunque lo fije una prueba, y da un falso
+      positivo con "tamaños a medida"; y "Hecho esta noche" queda sin renglón para un encargo cerrado fuera de un cierre de tramo.
+      **Para el kit**: cada una es una línea en el script; la (d) es un tope duro que `autorizado` cuenta con `worktree listar`. Lo común:
+      **una vista que no tiene el dato debe decir "no sé"**, no mostrar un número.
+  25. 🔴 **2026-11-10 · Un freno no dejó tocar un archivo dentro de un encargo autorizado, y otro no dejó borrar una rama temporal**
+      (Deptos). El hook de escritura le negó el `Edit` de `.claude/hooks/init-context.mjs` a un obrero cuyo encargo (paso 6b) lo pedía por
+      nombre; era inocuo, pero quedó sin hacer y fue a "Te espera". En otro encargo, el freno no dejó correr `git branch -D` sobre una rama
+      local creada por el propio obrero (un mutante de prueba, nunca pusheada), que también quedó para la mañana. Dos más del mismo
+      tipo, sin pérdida: un Bash compuesto frenado por `secretos.cjs` por **timeout** sin ejecutar nada (se repitió partido en pasos), y
+      el aislamiento del worktree rechazando `sed` + heredoc + `git commit` encadenados. **Para el kit** (es un freno: con red team): que un
+      encargo con `## Toca` que **nombra** un archivo bajo `.claude/` lo pueda autorizar por esa línea (el sello es la prueba de que
+      lo vio el dueño); que el obrero pueda borrar **sus propias** ramas (las que creó y no existen en el remoto); y que `secretos.cjs`,
+      cuando se pasa de tiempo, diga "me pasé de tiempo" y no "frenado".
+  26. **2026-11-10 · Varios obreros en paralelo chocan por los datos de prueba, no por los archivos** (Deptos). Los carriles de archivos
+      estaban bien repartidos y aun así: dos pruebas que guardan sobre el **mismo inmueble de prueba** chocaron en paralelo; una prueba que
+      aprueba un ajuste pisó un valor del banco de pruebas (se devolvió a mano con un `UPDATE`); y dos encargos que tocan la misma cadena
+      (formulario → helper) mergearon sin que ninguno corriera la paridad del otro: la salvó el encargo siguiente, que la corría antes de
+      tocar nada. Además `worktree crear` tarda ~2 min por encargo (`npm ci` entero) y un bucle de 3 pasó el timeout de 5 min. **Para el
+      kit**: en `autorizado`/el spec, "carril" incluye **qué datos de prueba escribe** cada encargo (no solo qué archivos); la plantilla
+      del encargo pregunta "¿tu prueba escribe algo compartido?"; una regla del `/director`: dos encargos paralelos sobre la misma cadena
+      → el siguiente corre la paridad de los dos juntos; y `worktree crear` puede reusar `node_modules` del principal.
+  27. **2026-11-10 · Lo que quedó NO VERIFICADO de la noche** (Deptos). (a) El despertador como tarea de fondo del propio director:
+      "si de verdad lo despierta" sigue sin comprobarse (la noche anduvo por git y por los encargos). (b) El relevo del director se escribió a
+      36 % de contexto "como seguro, no como mudanza": el director **nunca se mudó**, así que no se probó que un director nuevo retome bien
+      desde el relevo + git. (c) Los arreglos que hizo un obrero **después** del revisor frío no tuvieron revisión en frío, y la ficha no
+      tiene dónde decirlo. (d) El camino "sí cierra" de un script que cierra alertas solo está probado con datos de mentira (el ensayo real
+      dio 0). **Para el kit**: son insumos de la próxima prueba en noche; ningún cambio todavía.
+  - **Dato (la primera noche, medida)**: 23:14 → 07:30 (8 h 15 min de reloj); 19 encargos, 105 sub-pasos, 796 min sumados (~13 h de
+    trabajo, varios en paralelo); **0 intervenciones de Guido**; 2 PARADAS, las dos por el encargo cancelado (ítem 21). El kit v3
+    aguantó una noche entera sin dueño; lo que no hizo es **terminar solo** (ítems 17 y 18). Lo crudo está en el repo de investigación
+    (`mision-6/noche-deptos-2026-11-10/`).
   - **Dato**: 5 repos en la `rc.6` (analytics, bot, Hermes.exe, Hub, Mobile). Devoluciones, visor-buzon y Millennium-Clipboard quedan
     sin ficha a propósito. En Hermes, el `traer-main` de `modulo/lector` choca en 5 archivos: es un encargo de su director.
 
