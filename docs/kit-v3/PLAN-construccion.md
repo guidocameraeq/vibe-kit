@@ -1331,6 +1331,9 @@ Lo que se evaluó, para no volver a evaluarlo de cero (insumo de la misión 6):
   - `paquete.cjs --pruebas` con una ruta da un rojo falso (y otros chequeos que rechazan lo que la plantilla no dice) → "De la prueba real", 22
   - el resto (obrero `-p` sin mensajes ni allow, obrero parado que deja el worktree inservible, GATE armado con la base de hoy, vistas que
     mienten, frenos 🔴, datos de prueba compartidos, NO VERIFICADO) → "De la prueba real", 20, 21, 23-27
+  - lo que sumó la sesión madre al leer los transcripts: el despertador **no** despierta al director (28), el GATE verde en los
+    worktrees y rojo en la carpeta principal, donde sella el Arquitecto (29), y el arreglo del push de `integrar` que quedó solo en
+    Deptos (30) → "De la prueba real", 28-30
 - **Antes de R2 / después**:
   - un repo de prueba parecido a Hermes → "De D8r.2", 6 (= "De D8c.1", 8)
   - los NO VERIFICADO de la `rc.6` (EnterWorktree real, el obrero de cierre real, `traer-main` con githooks…) → "De D8c.1", 7 (y "De D8r.4", 3; "De D8r.2", 5; "De D8r.1", 5; "De D8b.1", 3)
@@ -1500,7 +1503,8 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
       adentro y avise. El `/director` debe decir cuál es la vía en lugar de prohibir y callar.
   19. **2026-11-10 · Los mensajes del obrero le llegaron a OTRA sesión de la misma carpeta, no al director** (Deptos). La
       PRESENTACION, el AVANCE y el CIERRE que el obrero mandó por mensajería entre sesiones le aparecieron a la sesión del Arquitecto
-      (abierta en la misma carpeta de proyecto), no a la del director. El director avanzó igual por git y por el despertador, pero
+      (abierta en la misma carpeta de proyecto), no a la del director. El director avanzó igual por git y por los avisos de fin de los
+      obreros de fondo (no por el despertador: ítem 28), pero
       nadie vio llegar el mensaje a destino. Y es intermitente: entre los obreros de fondo, unos mandaron mensajes (04, 05) y otros no
       (92, 06…); depende de la sesión, no del encargo. **Para el kit**: el mensaje lleva el nombre de la sesión destino y el receptor
       ignora lo que no es suyo; o se decide que la mensajería **no es canal confiable** y el obrero siempre deja su estado en git (ya lo
@@ -1573,12 +1577,41 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
       kit**: en `autorizado`/el spec, "carril" incluye **qué datos de prueba escribe** cada encargo (no solo qué archivos); la plantilla
       del encargo pregunta "¿tu prueba escribe algo compartido?"; una regla del `/director`: dos encargos paralelos sobre la misma cadena
       → el siguiente corre la paridad de los dos juntos; y `worktree crear` puede reusar `node_modules` del principal.
-  27. **2026-11-10 · Lo que quedó NO VERIFICADO de la noche** (Deptos). (a) El despertador como tarea de fondo del propio director:
-      "si de verdad lo despierta" sigue sin comprobarse (la noche anduvo por git y por los encargos). (b) El relevo del director se escribió a
+  27. **2026-11-10 · Lo que quedó NO VERIFICADO de la noche** (Deptos). (a) ~~El despertador: "si de verdad lo despierta"~~ → medido
+      en los transcripts: **no lo despierta** (ítem 28). (b) El relevo del director se escribió a
       36 % de contexto "como seguro, no como mudanza": el director **nunca se mudó**, así que no se probó que un director nuevo retome bien
       desde el relevo + git. (c) Los arreglos que hizo un obrero **después** del revisor frío no tuvieron revisión en frío, y la ficha no
       tiene dónde decirlo. (d) El camino "sí cierra" de un script que cierra alertas solo está probado con datos de mentira (el ensayo real
       dio 0). **Para el kit**: son insumos de la próxima prueba en noche; ningún cambio todavía.
+  28. **2026-11-10 · El despertador NO despierta al director: lo que lo despierta son los avisos de fin de los procesos de fondo**
+      (Deptos; medido por la sesión madre en el transcript del director, `d3f48853…jsonl`). El director lanzó `noche.cjs despertador
+      --modulo pulido --cada 300` a las 23:28 como **Bash de fondo**, no como Monitor (el paso 8 de `kit/molde/skills/director/SKILL.md`
+      dice "en un Monitor o tarea de fondo": deja elegir, y una tarea de fondo solo avisa cuando **termina**): sus 75 renglones "DESPERTAR · commit…" quedaron
+      solo en el `.output` de la tarea y **nunca generaron una notificación**; lo paró `TaskStop` a las 07:36. Lo que re-invocó al director
+      toda la noche fue el aviso de fin de cada proceso de fondo: los obreros (`claude.exe -p --model sonnet --permission-mode auto
+      --allowedTools …` con `run_in_background`, el pedido por stdin) y los `encargo.cjs verificar` de fondo; más los mensajes de los dos
+      obreros Opus (04, 05). Sin ScheduleWakeup ni Monitor. Un solo hueco largo: 184 min esperando al obrero 12. Al vaciarse la lista
+      (07:36) no hubo nada que lo despertara: 1,5 h quieto hasta que Guido volvió. **Para el kit**: `manuales/ROLES.md` §7 y
+      `noche.cjs:33` dejan de decir NO VERIFICADO y dicen el mecanismo real (el director se despierta cuando termina un proceso que él
+      lanzó de fondo; sin procesos vivos, duerme); el despertador o se lanza como Monitor (y se prueba) o se saca. Si la noche quiere
+      seguir después de la lista (ítem 17), necesita algo vivo que la despierte. El paso 8 del `/director` deja de ofrecer "tarea de
+      fondo".
+  29. 🔴 **2026-11-10 · El GATE da verde en los worktrees y rojo en la carpeta principal, que es donde sella el Arquitecto** (Deptos;
+      medido por la sesión madre después del release). `py -3 scripts/arnes.py --solos` (parte del `comando-test` desde la noche) da
+      54/55 en `main` de la carpeta principal: `test_migrar_desarmado.py` falla 2 de sus chequeos. Corre el dry-run de
+      `migrar_excel.py`, que busca `Claude deptos/Departamentos/Trackeo2.xlsx` (ignorado por git: está **solo** en la carpeta
+      principal). Ahí el dry-run va a leer la base, y `--solos` la apunta a un puerto muerto → rojo; en un worktree no hay Excel y pasa.
+      Fuera de `--solos`, ese test lee la base real (solo lectura). **Consecuencia**: el próximo sello del Arquitecto (corre
+      `comando-test` en la carpeta principal) da rojo, y la noche no lo vio porque todo se verificó en worktrees. **Para el kit**: el
+      GATE tiene que dar verde **donde se va a correr** (sello, `verificar`, `integrar`); un archivo ignorado por git que existe solo en
+      la carpeta principal es una diferencia entre los dos lugares que nadie mira (`.worktreeinclude` es la mitad del remedio: copia,
+      no avisa); `integrar` o `/cierre` podrían correr el `comando-test` una vez en la carpeta principal. **Para Deptos**: sacar
+      `test_migrar_desarmado.py` de `SOLOS` en `scripts/arnes.py`, o pasarle `--excel` a una ruta que no existe.
+  30. **2026-11-10 · El push de `integrar` a la rama por defecto se corta a los 2 min, y el arreglo quedó solo en Deptos** (Deptos). Con
+      un módulo entero (168 commits), el pre-push (gitleaks + barreras por commit) no entra en los 120 s de `worktree.cjs:1120`
+      (`enElTemporal`): falló a las 09:29 y a las 09:41. El director lo arregló a mano en Deptos (`151ad78`, 600 s) y recién ahí integró
+      (`ba47071`). **Para el kit**: subir el plazo en `kit/molde/scripts/worktree.cjs` (o hacerlo proporcional a los commits), con su
+      prueba; hasta entonces, la próxima flota ve el `worktree.cjs` de Deptos como editado a mano y lo frena.
   - **Dato (la primera noche, medida)**: 23:14 → 07:30 (8 h 15 min de reloj); 19 encargos, 105 sub-pasos, 796 min sumados (~13 h de
     trabajo, varios en paralelo); **0 intervenciones de Guido**; 2 PARADAS, las dos por el encargo cancelado (ítem 21). El kit v3
     aguantó una noche entera sin dueño; lo que no hizo es **terminar solo** (ítems 17 y 18). Lo crudo está en el repo de investigación
