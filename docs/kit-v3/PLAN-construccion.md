@@ -1337,6 +1337,8 @@ Lo que se evaluó, para no volver a evaluarlo de cero (insumo de la misión 6):
     real", 28-31
   - `/estado` está escrito para el director: Guido quiere un reporte fijo y suyo (te necesito · el plan con tramos y % · lo que se hizo
     con su tiempo · lo que falta en orden con su estimación) → "De la prueba real", 32
+  - las sesiones le piden a Guido que corra comandos (aprobar, cerrar worktrees, el cierre, la limpieza): "la gracia del kit era que
+    fluya". Regla nueva: Guido no tipea comandos; firma con un clic, lo demás lo corre el kit → "De la prueba real", 33
 - **Antes de R2 / después**:
   - un repo de prueba parecido a Hermes → "De D8r.2", 6 (= "De D8c.1", 8)
   - los NO VERIFICADO de la `rc.6` (EnterWorktree real, el obrero de cierre real, `traer-main` con githooks…) → "De D8c.1", 7 (y "De D8r.4", 3; "De D8r.2", 5; "De D8r.1", 5; "De D8b.1", 3)
@@ -1651,6 +1653,29 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
       sé", nunca 0 %; el avance de un módulo de cola se cuenta sobre su cola viva. La vista para el director (la de hoy) puede seguir
       existiendo aparte, para él (`/estado --director` o dentro del `/director`). Va con el diseño de la cola (17): un plan "de cola" tiene
       que poder decir cuánto falta.
+  33. 🔴 **2026-11-10 · El kit v3 le pasa a Guido comandos para correr a mano, y eso rompe "que fluya"** (todas las sesiones; pedido de
+      Guido). Guido: *"un montón de sesiones me están empezando a pedir constantemente que corra yo cosas, cuando habíamos dicho que la
+      gracia del kit era que fluya; antes no me pasaba, no tenía que andar corriendo todos estos cd, estos node"*; *"hay bastantes
+      rispideces"*. Con la v2 no pasaba: es un costo que trajeron las barreras y los roles de la v3. **Los casos de un solo día**
+      (2026-11-09/10): (a) `cambios aprobar` es firma del dueño y "un agente no aprueba": Guido lo corrió dos veces a mano en Deptos, y
+      la primera falló porque la sesión le dio la línea en bash (`&&`) y su terminal es PowerShell 5.1; (b) el clasificador de `auto`
+      frenó a la sesión el `preparar-pc` que ponía Deptos en `autoMode` ("Self-Modification"): Guido corrió tres líneas; (c) el director
+      tiene prohibido `/cierre` y no puede cerrar su propio worktree (`cerrar` va desde la carpeta principal): a la mañana Guido le tuvo que
+      decir "lanzá un subagente a que corra cierre" (ítem 18); (d) los worktrees no se pueden borrar entre ellos, el director no puede leer
+      git de otro worktree, y un cancelado con trabajo sin commitear queda para la mañana (ítem 21); (e) el reporte final de la noche le
+      dejó **siete** tareas de limpieza a mano (worktrees viejos, `git branch -D`, `git worktree prune`, el `sparse-checkout` de la otra PC,
+      el diálogo de confianza de cada carpeta, la memoria de fuera del repo, un hook que el freno no dejó editar); (f) la sesión madre le
+      pasó a Guido una tarea de otro repo (aprobar un cambio de Deptos desde vibe-kit), cuando eso es de la sesión de ese repo. Un
+      `grep` en `kit/` encuentra al menos 14 renglones en 11 archivos que le dan al dueño una línea para correr (`git-seguro.cjs` 4,
+      `worktree.cjs` 3, `cambios.cjs` 2, `estado.cjs` 2, `actualizar.cjs` 2, `flota.md` 2, y uno en `director/SKILL.md`, `noche.cjs`,
+      `kit-githook.cjs`, `fusion.cjs` y el `SKILL.md` del Equipador); el inventario completo lo hace la `rc` que lo arregle. **Para el kit, una regla nueva y
+      fuerte: Guido no tipea comandos.** Lo que necesita su firma es **un clic** en la sesión que lo pide (una pregunta con botones, o la
+      ventana de permiso de esa misma acción), nunca una línea para pegar; lo que tiene que correr en la carpeta principal lo corre una
+      sesión o subagente que el kit lanza ahí (el "cierre de noche" del 18); lo que el clasificador frena se resuelve de antemano (en
+      `preparar-pc`, el `autoMode` y las allow) o se rediseña; la limpieza (worktrees, ramas temporales, prune) la hace el kit solo, con un
+      seguro (rama de rescate) en vez de dejarla para la mañana; y si alguna línea queda, sale **en la sintaxis de su terminal**
+      (PowerShell en Windows), una por renglón. Cada barrera que hoy pide un comando se mide con la vara del ADR-030: si su costo en
+      fluidez es más grande que lo que protege, se cambia. Va con el 17, el 18 y el 21.
   - **Dato (la primera noche, medida)**: 23:14 → 07:30 (8 h 15 min de reloj); 19 encargos, 105 sub-pasos, 796 min sumados (~13 h de
     trabajo, varios en paralelo); **0 intervenciones de Guido**; 2 PARADAS, las dos por el encargo cancelado (ítem 21). El kit v3
     aguantó una noche entera sin dueño; lo que no hizo es **terminar solo** (ítems 17 y 18). Lo crudo está en el repo de investigación
