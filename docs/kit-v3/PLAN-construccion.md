@@ -1343,6 +1343,9 @@ Lo que se evaluó, para no volver a evaluarlo de cero (insumo de la misión 6):
   - tres detalles de preparar la PC y adoptar Deptos (carpetas vacías, el `py` de Windows, `--traer` con `main` tomado) → "De la prueba real", 35
   - el 17 (la cola) baja de prioridad: fue el planteo con el Arquitecto, y la segunda noche con cola anda (Guido, 2026-11-10); el 18
     sube: en un repo personal, el cierre de noche llega hasta publicar
+  - **la segunda noche (cola)**: la cola anduvo, pero el cierre de noche falló: el subagente hereda el aislamiento del worktree y no puede
+    tocar la carpeta principal; a la mañana `ExitWorktree` lo destrabó → "De la prueba real", 36. Y el punto donde compacta no es fijo
+    (384 mil una noche, 801 mil la otra) → 31
 - **Antes de R2 / después**:
   - un repo de prueba parecido a Hermes → "De D8r.2", 6 (= "De D8c.1", 8)
   - los NO VERIFICADO de la `rc.6` (EnterWorktree real, el obrero de cierre real, `traer-main` con githooks…) → "De D8c.1", 7 (y "De D8r.4", 3; "De D8r.2", 5; "De D8r.1", 5; "De D8b.1", 3)
@@ -1518,6 +1521,7 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
       repos personales pueden integrar, publicar, así que ahí sí me vendría bien"*. Entonces el cierre de noche, cuando la ficha lo
       autoriza (un repo personal: `merge-a-main: con-gate-verde` y sin `release` en `sensible`), llega hasta **publicar** (integrar →
       release → smoke → `/cierre` → limpiar), no solo hasta integrar; en un repo de trabajo para antes de publicar y te espera.
+      **La segunda noche lo probó y falló** (ver el 36): el subagente del cierre hereda el aislamiento del worktree del director.
   19. **2026-11-10 · Los mensajes del obrero le llegaron a OTRA sesión de la misma carpeta, no al director** (Deptos). La
       PRESENTACION, el AVANCE y el CIERRE que el obrero mandó por mensajería entre sesiones le aparecieron a la sesión del Arquitecto
       (abierta en la misma carpeta de proyecto), no a la del director. El director avanzó igual por git y por los avisos de fin de los
@@ -1643,6 +1647,10 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
       ~65 % del techo, ya a ~80 %); (c) el director mide **en cada merge**, no solo al cerrar el tramo (esa noche esperó 184 min a un
       obrero sin volver a medir); (d) el chequeo de "me voy" usa el mismo techo; (e) lo mismo vale para los obreros (`AVANCE` con la
       cifra del script).
+      **Corregido el 2026-11-11 con la segunda noche (módulo `cola`)**: ese director compactó a los **800.551** tokens (`compact_boundary`
+      automático a las 01:03, `preTokens: 800551`), no a los ~384 mil de la primera. Con el mismo modelo (`claude-opus-5-5`) y la misma
+      PC, el punto **no es fijo**: 384 mil una noche, 801 mil la otra. Qué lo fija sigue NO VERIFICADO. El remedio de arriba vale igual,
+      con un cambio: el techo es el **más bajo** que se haya medido en la PC (hoy 384 mil), no el último, hasta saber qué lo mueve.
   32. 🔴 **2026-11-10 · `/estado` está escrito para el director, no para Guido, y cambia cada vez que lo corre** (Deptos, módulo `cola`;
       pedido de Guido). Guido: *"escrito para el director y no para mí… cada vez que lo mando aparecen otras tareas diferentes que antes no
       estaban; no lo sé leer"*; *"es un reporte que yo uso constantemente"*. Medido corriendo `estado.cjs` y `estado.cjs cola` el
@@ -1705,6 +1713,30 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
       lo tenía tomado el worktree del director viejo: hubo que soltarlo (`switch --detach`) y poner la carpeta en `main` a mano. **Para el
       kit**: `preparar-pc` borra también las carpetas que quedan vacías; el `doctor` reconoce los alias de `WindowsApps`; y `--traer`
       dice qué worktree tiene tomada la rama y ofrece soltarlo (con el 33: sin que lo tipee Guido).
+  36. 🔴 **2026-11-11 · El cierre de noche no puede correr desde el director: su subagente hereda el aislamiento del worktree** (Deptos,
+      la segunda noche, módulo `cola`; medido por la sesión madre en el transcript del director, `2c6ed11c…jsonl`). El spec del módulo
+      (`SPEC.md:155-173`) ya rodeaba el 18: al vaciarse la cola, el director integra y lanza un subagente que hace el cierre de punta a
+      punta en la carpeta principal (8 pasos: pull, migraciones 0057 y 0058, `/release`, smoke, cerrar alertas, limpieza, `/cierre`,
+      `cerrar cola`). `worktree.cjs integrar cola` anduvo (01:45, `10f6890`, gate 54/54). El subagente (Sonnet, lanzado con la
+      herramienta Agent a las 01:55) **no hizo ninguno de los 8 pasos**: Claude Code le negó todo git sobre la carpeta principal, con
+      `cd` ("changes directory to the shared checkout … before running git. Refusing to run it — a worktree-isolated session's git
+      operations must target its own worktree") y con `git -C` ("redirects git to the shared checkout via -C. Refusing…"). Un subagente
+      **hereda el aislamiento** de la sesión que lo lanza. El director no lo rodeó y le dejó a Guido tres pasos a mano (cerrar la pestaña,
+      abrir una sesión nueva en la carpeta principal y pegarle un prompt que quedó en el **scratchpad temporal** de la sesión, y
+      `cambios.cjs aprobar` en PowerShell): justo el 33. Producción quedó en la 0056. **La salida existe y no se usó de noche**: a la
+      mañana (09:57), con el pedido de Guido, la misma sesión llamó a `ExitWorktree` (`action: keep`: el worktree y su rama quedan) y
+      volvió a la carpeta principal; desde ahí `git status` y el pull anduvieron. **Para el kit**: (a) el cierre de noche no se delega a un
+      subagente: lo hace el director **saliendo de su worktree** con `ExitWorktree` (keep) cuando la cola está vacía y el módulo integrado,
+      o una sesión que el kit lanza en la carpeta principal (no un subagente); (b) el `/director` lo dice en su paso de "terminar el
+      módulo" y en el modo noche; (c) un prompt para el dueño nunca queda en el scratchpad temporal: va commiteado en la bitácora; (d) hay
+      que probar que `ExitWorktree` corra sin ventana, de noche, en la extensión de VS Code (hoy NO VERIFICADO: a la mañana Guido estaba).
+  - **Dato (la segunda noche, módulo `cola`, 2026-11-10/11)**: el spec planteado como **cola** con su regla anduvo (24 encargos, 58
+    sub-pasos, 513 min sumados; la cola quedó vacía a la 01:45) y confirmó lo de la primera: el despertador no se corrió ("las tareas
+    de fondo de los obreros ya me despiertan solas", 22:38: ítem 28); una CORRECCION volvió a no llegarle a un obrero de fondo y quedó como
+    regla "CORRECCION = cancelar y recrear" (18:50: ítem 20); un obrero le mandó su PRESENTACION a la sesión de `main` de Guido (19:40:
+    ítem 19); `cambios.cjs aprobar` lo niega un hook desde una carpeta de agente y fue a Guido (20:15: ítem 33); dos redes visuales en
+    paralelo dieron rojos por tiempo (19:40: ítem 26); el "me voy" marcó 72 % de contexto y el spec decidió no mudarse (22:38), y
+    compactó a los 801 mil (ítem 31). Lo nuevo es el 36. Lo crudo: `docs/modulos/cola/bitacora/notas-del-metodo.md` de Deptos.
   - **Dato (la primera noche, medida)**: 23:14 → 07:30 (8 h 15 min de reloj); 19 encargos, 105 sub-pasos, 796 min sumados (~13 h de
     trabajo, varios en paralelo); **0 intervenciones de Guido**; 2 PARADAS, las dos por el encargo cancelado (ítem 21). El kit v3
     aguantó una noche entera sin dueño; lo que no hizo es **terminar solo** (ítems 17 y 18). Lo crudo está en el repo de investigación
