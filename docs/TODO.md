@@ -8,7 +8,7 @@
 > **La hoja de ruta, reordenada el 2026-10-26 (ADR-025)**: 4 cerrar el diseño sin mensajería → 4½ ordenar la casa → 5 construir **v3.0** →
 > 6 el ciclo como proceso → 7 la mensajería agéntica (**v3.1**). Después, el reloj: una vuelta cada 3-4 meses (abajo, "El ciclo").
 
-- [ ] **Misión 5 — construir el pack por piezas → kit v3.0** (en curso: paquetes 1 a 8, 8b, 8r y 8r2 ✅, **beta `v3.0.0-rc.3` taggeada** el 2026-11-04 (la tanda de taller de R1b; `flota todo` sin `--tag` manda el último tag, rc incluido, a todo proyecto con ficha: hoy solo Hermes); siguen, en orden (tracker, "Después de la rc.1: las sesiones que siguen"): **la mañana con Guido** (abre con D1-D4 de `REVISION-INTEGRAL-rc2.md`; preparar la PC y adoptar Hermes) → **el diseño de los experimentos de método con Guido** → **D8c.1 la `rc.4`** (el obrero de cierre de tramo, los experimentos, lo de "De D8r.1" y "De D8r.2" en Pendientes) → la prueba real en Hermes con los `rc.N` → R2 y la `v3.0`; el modelo de cada rol, en la sección "Ejecución" del spec). **El plano es `docs/kit-v3/SPEC-0-kit-v3.md` (READY, 2026-10-27)**:
+- [ ] **Misión 5 — construir el pack por piezas → kit v3.0** (en curso: **beta `v3.0.0-rc.6`** y la primera noche de director en Deptos; siguen, en orden (tracker, "Cambios al plan" del 2026-11-10): **la `rc.7` de taller** (lo medido de esa noche que no depende del loop) → la segunda noche de Deptos (módulo `cola`) → M6b → R2 contra un clon de Deptos y la `v3.0`. La cola y el cierre de noche, a la v3.1. Ya no se espera al primer módulo de Hermes; el modelo de cada rol, en la sección "Ejecución" del spec). **El plano es `docs/kit-v3/SPEC-0-kit-v3.md` (READY, 2026-10-27)**:
   9 paquetes en el orden de su tabla "Orden de construcción" (1 ficha y parser · 2 documentos, hook, candado, `cambios` · 3 seguridad · 4 Arquitecto
   y `worktree` · 5 canon director/obrero, `/estado`, mesa · 6 Equipador, actualizador, adoptador · 7 ciclo y portada · 8 observatorio y docs del
   método · 8½ credenciales de Deptos · 9 piloto · 10 tag). Cada paquete con spec delta en `docs/kit-v3/SPEC-paquete-N.md`, red team si toca
@@ -18,7 +18,7 @@
 - [ ] **Misión 6 — el ciclo de mejora del método** (adelantada por Guido el 2026-11-03 y partida en dos). **6a ✅ 2026-11-03**:
   `docs/CICLO-DE-MEJORA.md` (la receta: el reloj, los cinco pasos con lo de adentro y lo de afuera, cómo se decide con ADR-030 y ADR-034,
   la revisión integral como paso fijo, cómo trabajamos de verdad en la vuelta 1, lo que costó, las lecciones y las plantillas; el plan y la
-  medición en `docs/mision-6/PLAN-6a.md`). **Falta la 6b**, corta, cuando cierre el primer módulo de Hermes: §3.5 (probar en un proyecto
+  medición en `docs/mision-6/PLAN-6a.md`). **Falta la 6b**, corta, cuando termine la segunda noche de Deptos (cambiado el 2026-11-10: antes esperaba al primer módulo de Hermes): §3.5 (probar en un proyecto
   real y medir) y §8 (la fecha de corte de la próxima vuelta) con lo vivido. Es una receta, no una skill (regla de 3+).
 - [ ] **Misión 7 — la mensajería agéntica → kit v3.1** (lo que era G.1; brief en `DISENO-G` §18 + sus insumos del acta de contraste: hueco 3/P71,
   P68, P77 y las "otras" 5, 8 y 24). Con investigación en internet y piloto. Guido, 2026-10-26: "no está bien claro todavía; siguiente versión;

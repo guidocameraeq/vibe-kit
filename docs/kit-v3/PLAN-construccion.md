@@ -1224,9 +1224,9 @@ entre piezas, lo técnico lo decide la sesión, la revisión integral como paso 
 | 2e ✅ | **D8r.3 · La `rc.4` exprés: el bot de Arti y los `.pyc`** (`vibe-kit M5 · D8r.3`; la lanzó la sesión madre de la recta final) | no | ✅ 2026-11-04 | `SPEC-paquete-8r3.md`: `carpeta-docs:` en la ficha, el arranque con el mismo nombre, `barreras` borra el caché de Python, la línea `después:` que dice la verdad y `resolver … nueva` sin informe; la beta `v3.0.0-rc.4` taggeada. La flota a los repos de Guido y la adopción del bot, las propone la sesión madre |
 | 2f ✅ | **D8r.4 · La `rc.5`: las correcciones del uso real** (`vibe-kit M5 · D8r.4`; la lanzó la sesión madre de la recta final) | no | ✅ 2026-11-04 | `SPEC-paquete-8r4.md` (READY, con red team): una sola ventana (`worktree.cjs donde`, `/obrero` y `/director` entran con EnterWorktree), la flota con obra (`--con-obra`, `worktree.cjs traer-main`), el merge de `main` en una rama vieja (u9), y lo de Pendientes que dolió en Hermes y el analytics; la beta `v3.0.0-rc.5`. Desde el tag `v3.0.0-rc.4` |
 | 2g ✅ | **D8c.1 · La `rc.6`: el obrero de cierre de tramo y la vuelta 2 del uso real** (`vibe-kit M5 · D8c.1`; la lanzó la madre; una sola `rc` en nivel medio-alto, `CICLO-DE-MEJORA.md` §3.6) | no | ✅ 2026-11-05 | `SPEC-paquete-8c.md` (READY, dos red teams: h11/h12 y p1). Trae: el obrero de cierre de tramo (`plantilla-cierre.md`, la ficha con `Próximo paso:`/`Tramo:`, el arranque y `/estado`); h11, a `main` sube solo el director (el pre-push con la lista por rol, también para borrados, y `git-seguro` que avisa antes); h12, el aviso de `hooks-lib`; p1, el lock atrasado (`--mirar` y el doctor lo leen, la línea 8 avisa sin trabar); u4-u8, u13a, h5, h9 y h10 (vecinos, avisos de la adopción, el CHANGELOG con `[Unreleased]`, gitleaks de la historia, `andamiaje:` y `plazo-test`, el filtro del almacén en `.worktreeinclude`, `claude.cmd` en Windows); r1/r2 (`/director <x>` y el Modo A con director). Chequeo frío: 1 ALTO y 3 MEDIOS, arreglados. Suite 3068/3070 (1 roja de carga, sola verde; 1 salteada). Flota contra un clon de Hermes rc.5 → rc.6 `--con-obra`: mezclado y al día. Tag `v3.0.0-rc.6` sobre `3d206d6`. Los experimentos salieron de la v3.0 ("Cambios al plan") |
-| 5 | **D9.x · Acompañar la prueba real** | a ratos | mientras dure el primer módulo de Hermes | cada arreglo del uso como `rc.N` |
-| 6 | **M6b · El ciclo, segunda parte** | sí, corta | cuando cierre el primer módulo de Hermes | §3.5 y §8 del ciclo con lo vivido; la fecha de la próxima vuelta |
-| 7 | **R2 · Revisión integral final + D10.1 · `v3.0`** | no / OK de Guido para publicar | después de la 6 | la tercera revisión integral (ADR-034; R1 y R1b fueron las dos primeras), **con lo que haya mostrado el uso de Hermes y contra un clon suyo**, la medición contra `mediciones/2026-11-03.md`, el tag `v3.0` idéntico al último rc |
+| 5 | **D9.x · Acompañar la prueba real** | a ratos | las dos noches de Deptos (2026-11-09 y la del módulo `cola`) y el uso de Hermes (cambiado el 2026-11-10: "Cambios al plan") | cada arreglo del uso como `rc.N`; la próxima, la `rc.7` de taller |
+| 6 | **M6b · El ciclo, segunda parte** | sí, corta | cuando termine la segunda noche de Deptos (antes: el primer módulo de Hermes) | §3.5 y §8 del ciclo con lo vivido; la fecha de la próxima vuelta |
+| 7 | **R2 · Revisión integral final + D10.1 · `v3.0`** | no / OK de Guido para publicar | después de la 6 | la tercera revisión integral (ADR-034; R1 y R1b fueron las dos primeras), **con lo que hayan mostrado Deptos y Hermes, contra un clon de Deptos** (antes: de Hermes), la medición contra `mediciones/2026-11-03.md`, el tag `v3.0` idéntico al último rc |
 
 ### Abrir R1 sin Guido (el prompt)
 
@@ -1333,7 +1333,8 @@ Lo que se evaluó, para no volver a evaluarlo de cero (insumo de la misión 6):
     mienten, frenos 🔴, datos de prueba compartidos, NO VERIFICADO) → "De la prueba real", 20, 21, 23-27
   - lo que sumó la sesión madre al leer los transcripts: el despertador **no** despierta al director (28), el GATE verde en los
     worktrees y rojo en la carpeta principal, donde sella el Arquitecto (29), y el arreglo del push de `integrar` que quedó solo en
-    Deptos (30) → "De la prueba real", 28-30
+    Deptos (30), y el contexto medido contra la ventana de la API cuando la plataforma compacta mucho antes (31) → "De la prueba
+    real", 28-31
 - **Antes de R2 / después**:
   - un repo de prueba parecido a Hermes → "De D8r.2", 6 (= "De D8c.1", 8)
   - los NO VERIFICADO de la `rc.6` (EnterWorktree real, el obrero de cierre real, `traer-main` con githooks…) → "De D8c.1", 7 (y "De D8r.4", 3; "De D8r.2", 5; "De D8r.1", 5; "De D8b.1", 3)
@@ -1612,6 +1613,20 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
       (`enElTemporal`): falló a las 09:29 y a las 09:41. El director lo arregló a mano en Deptos (`151ad78`, 600 s) y recién ahí integró
       (`ba47071`). **Para el kit**: subir el plazo en `kit/molde/scripts/worktree.cjs` (o hacerlo proporcional a los commits), con su
       prueba; hasta entonces, la próxima flota ve el `worktree.cjs` de Deptos como editado a mano y lo frena.
+  31. 🔴 **2026-11-10 · El director mide su contexto contra la ventana de la API (1 M), pero la plataforma lo compactó a los 384 mil**
+      (Deptos; medido por la sesión madre en el transcript del director). `contexto.cjs` dio `363k de 1000k (36%)` a las 03:25 (el
+      relevo se escribió "como seguro, no como mudanza") y a las 07:18 llegó un `compact_boundary` **automático** con `preTokens: 383765`
+      → 20.810. Es decir: el 36-38 % que veía el director era, en la práctica, el **techo**. No hubo daño (se recuperó con el relevo),
+      pero es justo lo que el kit llama falla. Lo que dice el kit hoy: el `/director` se muda a "~40 %" (`director:20`), el diseño
+      decía ~65 % blando y ~80 % duro (`DISENO-D` §11.1, con "dónde compacta: 97 % de un millón", medido en la app de escritorio el
+      26-10, no en la extensión de VS Code), y `contexto.cjs:31` ya avisa "dónde compacta la plataforma: NO VERIFICADO". **Si se hubieran
+      usado los umbrales del diseño, el director habría compactado mucho antes de mudarse.** Qué fija el punto (la extensión, el modelo,
+      una opción de compactar) queda NO VERIFICADO. **Para el kit**: (a) `contexto.cjs` mide contra **el punto donde compacta** y no
+      contra la ventana de la API: lo aprende de los `compact_boundary` (`preTokens`) de los transcripts de la PC, y sin dato lo dice
+      ("techo: no sé") y usa uno conservador; (b) los umbrales del `/director` se expresan sobre ese techo (mudarse al cerrar el tramo a
+      ~65 % del techo, ya a ~80 %); (c) el director mide **en cada merge**, no solo al cerrar el tramo (esa noche esperó 184 min a un
+      obrero sin volver a medir); (d) el chequeo de "me voy" usa el mismo techo; (e) lo mismo vale para los obreros (`AVANCE` con la
+      cifra del script).
   - **Dato (la primera noche, medida)**: 23:14 → 07:30 (8 h 15 min de reloj); 19 encargos, 105 sub-pasos, 796 min sumados (~13 h de
     trabajo, varios en paralelo); **0 intervenciones de Guido**; 2 PARADAS, las dos por el encargo cancelado (ítem 21). El kit v3
     aguantó una noche entera sin dueño; lo que no hizo es **terminar solo** (ítems 17 y 18). Lo crudo está en el repo de investigación
@@ -1956,6 +1971,7 @@ Del spec, sección "Lo que hacés vos de nuevo". Acá solo cuándo toca, para qu
 | 2026-11-04 | **"Probar una idea nueva" (los experimentos) sale de la v3.0**: va a la próxima versión, con el buzón y un PO como skill (TODO, Misión 7). La sesión 3 de la tabla (su diseño) queda para entonces | "Vamos a sacar esta versión bien armada y en la próxima versión traemos eso de la idea nueva" | Guido |
 | 2026-11-04 | **La `rc.6` es una sola, en nivel medio-alto** (`CICLO-DE-MEJORA.md` §3.6), con el cierre de tramo, h11 y la vuelta 2 juntos | "No quiero splitearlo en dos RC… si la planeamos bien, puede ser quirúrgica"; las `rc` de 4 h eran mucho | Guido |
 | 2026-11-05 | **En la `rc.6`, la suite corre en paralelo con el chequeo frío** (el revisor casi solo lee) y la primera vuelta de la flota se reusa de la `rc.5`. El tag, siempre después de la suite | Guido la quería en ~1,5 h. La suite encontró rojas reales en la `rc.4` (1), la `rc.5` (2) y el chequeo frío de la `rc.6` (1 ALTO): no se taggea antes | La sesión madre |
+| 2026-11-10 | **La v3.0 ya no espera a que cierre el primer módulo de Hermes: la prueba real es Deptos (sus dos noches) más lo que ya mostró Hermes.** El camino: (1) la `rc.7` de taller, sin Guido, con lo medido de la primera noche que no depende del loop ("De la prueba real", 20-24, 28-31; el 25 aparte, porque es un freno y pide red team); (2) la segunda noche de Deptos (módulo `cola`, ya lanzada); (3) M6b, corta, con Guido; (4) R2 contra un clon de **Deptos** y el tag `v3.0` con el OK de Guido. **La cola (17) y el cierre de noche (18) van a la v3.1**, con el buzón y "probar una idea nueva", salvo que la segunda noche muestre que son baratos. Deptos no se actualiza hasta que termine su segunda noche (si no, la prueba deja de medir lo que mide). Las filas 5-7 de "Después de la rc.1" cambian con esto | "El tema con cashflow es que está avanzando muy lento, no creo terminarlo este mes, porque necesito otras cosas, no por el kit en sí". Hermes ya dio la evidencia de las `rc.4`-`rc.6` (adoptar, una ventana, la obra); le falta un módulo cerrado, y Deptos lo dio de punta a punta (sellado, repartido, verificado, integrado y publicado), de noche | Guido |
 
 ## Lecciones (insumo de la misión 6)
 
