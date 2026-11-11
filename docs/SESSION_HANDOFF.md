@@ -3,47 +3,41 @@
 > **Save game** del proyecto madre. `/cierre` lo sobreescribe entero; el hook SessionStart lo inyecta en cada chat
 > nuevo de esta carpeta. **Tope 5.500 bytes**; el hook corta y avisa "CORTADO" si se pasa, y termina con la huella.
 
-**CIERRE PARCIAL** 2026-11-05 ~14:45 de **la sesión madre de la recta final** (`vibe-kit M5 · Recta final: de la prueba en Hermes a la
-v3.0`, sigue viva). Orquesta la prueba real. Lo detallado está en el tracker (`docs/kit-v3/PLAN-construccion.md`).
+**CIERRE PARCIAL** 2026-11-11 de la sesión madre de la PC `Usuario` (preparar la PC, adoptar Deptos, leer sus dos noches, el tracker
+17-37). Sigue viva solo para **lanzar** las cuatro sesiones de la revisión de la `rc.7`; no las orquesta ni lee sus informes.
 
 ## Dónde estamos
 
-- **Beta `v3.0.0-rc.6` taggeada** (`3d206d6`, 2026-11-05). La rc.4 (exprés: `carpeta-docs:`, `.pyc`), la rc.5 (una ventana, `--con-obra`,
-  u9) y la rc.6 (cierre de tramo, h11, la vuelta 2, el lock atrasado), las tres verificadas por la madre en origin. Sus sesiones están
-  archivadas y los chats, en vibe-research.
-- **5 repos en la rc.6**: Hermes.exe, Hermes Mobile (D1 A con anexos), analytics, bot y Hub. La PC también; doctor 0 ✗. La sesión
-  `Preparar PC` (`local_16646404…`) sigue viva. Hermes usa una sola ventana con el director en el worktree (visto en uso real).
-- **Juan** (`prueba/juan` @ `3662205`): tiene que pasar su PC a la rc.6 y correr de nuevo el doctor y la suite antes de adoptar. Cada
-  prueba suya dice su versión.
-- **Ciclo §3.6**: los niveles de control de las `rc` (liviano · medio · medio-alto · completo). La rc.6 salió en medio-alto, y la suite corrió
-  en paralelo con el chequeo frío.
-- **Tracker limpio**: "Lo abierto, de un vistazo" arriba de Pendientes; 27 resueltos en una línea.
-
-## Te espera (Guido)
-
-- 🔴 **El analytics**: su `comando-test` usa la Supabase real (`test.js` viejo + `DATABASE_URL`). Hay que sacarlo de la ficha o
-  reescribir el test contra una base de prueba antes de que lo corra un gate o la flota (tracker, "De la prueba real", 14).
-- Decidir para la próxima: `ssh` adentro de `sensible` (12); si un subagente cortado se retoma (Mobile, regla 4).
-- Mobile: `flutter pub get`, el NORTE, `COMPACTION_PROTOCOL.md` en su `CLAUDE.md`. Bot y Hub: el NORTE. Hermes y Mobile: `allow_abbrev=False`.
+- **Beta `v3.0.0-rc.6`.** Deptos adoptado en la rc.6 (2026-11-09) y con **dos noches de director**: `pulido` (lista fija, 19 encargos,
+  0 intervenciones) y `cola` (24 encargos; el cierre de noche falló por el aislamiento del worktree). Todo lo medido está en el tracker,
+  **"De la prueba real", ítems 17 a 37**, con "Lo abierto, de un vistazo" al día.
+- **Cambio de plan (2026-11-10, Guido)**: la v3.0 ya no espera al primer módulo de Hermes; la prueba real es Deptos más lo que mostró
+  Hermes. Camino: la revisión → la charla → el plano de la `rc.7` → una tercera noche en Deptos → M6b → R2 contra un clon de Deptos →
+  `v3.0`. La cola y el cierre de noche grandes, a la v3.1 (el 17 bajó: fue el planteo con el Arquitecto).
+- **El objetivo de la `rc.7`** (Guido): reducir fricciones y que fluya: *Guido no tipea nada y una noche termina sola*.
 
 ## Próximo paso
 
-Seguir en ESTA sesión si sigue viva; si no, una nueva con el título `vibe-kit M5 · Recta final (2): de la rc.6 a la v3.0`.
-1. Acompañar el uso: lo que se rompe va al tracker ("De la prueba real"); los arreglos se juntan para una `rc.7`, con el nivel de §3.6.
-   El próximo hook decidido por Guido: después de compactar (regla 2 de Mobile).
-2. Al cerrar el primer módulo de Hermes (cashflow): impresiones y números → la 6b (con los chats ya en vibe-research) → R2 contra un
-   clon de Hermes → la `v3.0` (el tag igual al último rc, y publicar solo con el OK de Guido).
-3. Al final: los chats que falten a vibe-research (esta madre `aa0d1ed2` y el Preparar PC `8a1f81ee`), el diario y `/cierre` completo.
+**La revisión de la `rc.7`, en cuatro sesiones**, con sus prompts en `docs/kit-v3/REVISION-rc7-PLAN.md` (manda ese archivo):
+1. Mirada 1, la fricción (Fable 5.2) ∥ 2. las tres pruebas (Opus) → 3. mirada 2, el sistema (Fable 5.2) → 4. la madre nueva (Opus):
+   el tracker, la charla con Guido y el plano. Cada una escribe solo su archivo `docs/kit-v3/REVISION-rc7-*.md`.
+Si sos una de esas sesiones: tu tarea es tu sección de ese archivo, con el OK de Guido ya dado; no hace falta `/inicio`.
+
+## Te espera (Guido)
+
+- La charla de la sesión 4, cuando estén los tres informes.
+- 🔴 El analytics: su `comando-test` usa la Supabase real (tracker, "De la prueba real", 14).
 
 ## Cosas que muerden y no están en ningún otro doc
 
-- 🔐 **En `Guido-PC-eQ` el push va por `gh`**: `GIT_TERMINAL_PROMPT=0 git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push …`.
 - 🔑 **Identidad de git**: `guido.camera.eq@gmail.com`. Nunca `eq.chatgpt`.
-- 🔴 **gitleaks antes de cada push, sobre el rango** (`--log-opts="origin/main..HEAD"`), sin pipe.
-- 🐍 **Python**: `py -3`. En el Bash de esta app los heredocs pierden barras invertidas: escribir con Write/Edit.
-- 🧪 **Nunca dos tandas pesadas a la vez** (suite + suite o suite + flota). El tag va siempre después de la suite: en las tres `rc` encontró rojas reales.
-- 📬 El tracker lo escribe solo la madre: las otras sesiones le mandan sus hallazgos por mensaje. Las notas compartidas de las sesiones
-  están en `AppData\Roaming\Claude\side-session-notes\`, no en el temp.
+- 🔴 **gitleaks antes de cada push, sobre el rango** (`--log-opts="origin/main..HEAD"`), sin tubería: vibe-kit es público.
+- 🐍 **Python**: `py -3`; para leer los `.jsonl` de las charlas, `py -3 -I` con `sys.stdout.reconfigure(encoding="utf-8")`.
+- 💻 **La terminal de Guido es PowerShell 5.1**: si alguna vez queda una línea para él, en PowerShell y sin `&&` (mejor: ninguna, ítem 33).
+- 🧱 **El clasificador del modo `auto` frena escribir el `~/.claude/settings.json`** (preparar-pc, kit-sync sync): eso lo corre Guido.
+- 🚪 **No le marques a Guido tareas de sus otros repos** desde acá (su regla, 2026-11-10): lo que se vea allá va al tracker.
+- 🧪 **Nunca dos tandas pesadas a la vez** (suite + suite o suite + flota). El tag va siempre después de la suite.
+- 📬 El tracker lo escribe solo la madre; las otras sesiones dejan su archivo y la madre lo integra.
 
 ## Bloqueos
 
