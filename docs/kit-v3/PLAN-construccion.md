@@ -1339,6 +1339,10 @@ Lo que se evaluó, para no volver a evaluarlo de cero (insumo de la misión 6):
     con su tiempo · lo que falta en orden con su estimación) → "De la prueba real", 32
   - las sesiones le piden a Guido que corra comandos (aprobar, cerrar worktrees, el cierre, la limpieza): "la gracia del kit era que
     fluya". Regla nueva: Guido no tipea comandos; firma con un clic, lo demás lo corre el kit → "De la prueba real", 33
+  - "rojo" y "verde" le llegan a Guido sin traducir (jerga de pruebas que la v3 puso en todos lados) → "De la prueba real", 34
+  - tres detalles de preparar la PC y adoptar Deptos (carpetas vacías, el `py` de Windows, `--traer` con `main` tomado) → "De la prueba real", 35
+  - el 17 (la cola) baja de prioridad: fue el planteo con el Arquitecto, y la segunda noche con cola anda (Guido, 2026-11-10); el 18
+    sube: en un repo personal, el cierre de noche llega hasta publicar
 - **Antes de R2 / después**:
   - un repo de prueba parecido a Hermes → "De D8r.2", 6 (= "De D8c.1", 8)
   - los NO VERIFICADO de la `rc.6` (EnterWorktree real, el obrero de cierre real, `traer-main` con githooks…) → "De D8c.1", 7 (y "De D8r.4", 3; "De D8r.2", 5; "De D8r.1", 5; "De D8b.1", 3)
@@ -1498,6 +1502,11 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
       para lo que NO entra), y tiene una **condición de fin** medible (cola vacía, tope de horas, o N encargos seguidos sin hallazgo
       nuevo). El Arquitecto tiene que poder preguntar "¿lista o cola?" al armar un módulo de noche. **Para el proyecto**: qué entra en la
       cola lo decide el Arquitecto con Guido; que el director no pueda agregar encargos es del kit.
+      **Actualizado el 2026-11-10 por Guido: baja de prioridad.** *"Al final fue error de diseño mío con el Arquitecto. Yo no tiendo a usar
+      mucho loop, pero hoy lo planifiqué bien con el Arquitecto y está funcionando bien"* (la segunda noche, módulo `cola`, armada con la
+      regla de la cola en su `SPEC.md`). O sea: el kit de hoy alcanza para una cola si el spec la plantea así. Queda, chica, la pregunta
+      "¿lista o cola?" del Arquitecto al armar un módulo de noche; lo demás (un modo cola del kit) solo si la segunda noche muestra
+      que hizo falta rodear algo.
   18. **2026-11-10 · El final de la noche no tiene quién lo haga: el director no puede cerrar su propio worktree ni correr `/cierre`**
       (Deptos). (a) El director vive dentro de su worktree (`modulo--<x>`) y `worktree.cjs cerrar` se corre **desde la carpeta
       principal**: no puede cerrarse a sí mismo. (b) El `/director` le prohíbe `/cierre` (a propósito: no commitea lo suyo a `main`). A la
@@ -1505,7 +1514,10 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
       worktrees **siempre termina esperando a Guido**, aunque todo lo anterior haya salido solo. **Para el kit**: en modo noche (spec con
       "Apertura: director"), un paso final con dueño explícito: el director lanza un obrero de "cierre de noche" que corre integrar,
       `/cierre` y `cerrar <x>` **desde la carpeta principal**; o un `worktree.cjs cerrar` que acepte que lo corra el director desde
-      adentro y avise. El `/director` debe decir cuál es la vía en lugar de prohibir y callar.
+      adentro y avise. El `/director` debe decir cuál es la vía en lugar de prohibir y callar. **Guido, 2026-11-10, lo confirma**: *"en mis
+      repos personales pueden integrar, publicar, así que ahí sí me vendría bien"*. Entonces el cierre de noche, cuando la ficha lo
+      autoriza (un repo personal: `merge-a-main: con-gate-verde` y sin `release` en `sensible`), llega hasta **publicar** (integrar →
+      release → smoke → `/cierre` → limpiar), no solo hasta integrar; en un repo de trabajo para antes de publicar y te espera.
   19. **2026-11-10 · Los mensajes del obrero le llegaron a OTRA sesión de la misma carpeta, no al director** (Deptos). La
       PRESENTACION, el AVANCE y el CIERRE que el obrero mandó por mensajería entre sesiones le aparecieron a la sesión del Arquitecto
       (abierta en la misma carpeta de proyecto), no a la del director. El director avanzó igual por git y por los avisos de fin de los
@@ -1676,6 +1688,23 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
       seguro (rama de rescate) en vez de dejarla para la mañana; y si alguna línea queda, sale **en la sintaxis de su terminal**
       (PowerShell en Windows), una por renglón. Cada barrera que hoy pide un comando se mide con la vara del ADR-030: si su costo en
       fluidez es más grande que lo que protege, se cambia. Va con el 17, el 18 y el 21.
+  34. **2026-11-10 · "Rojo" y "verde" le llegan a Guido sin que nadie le haya dicho qué son** (todas las sesiones; pedido de Guido).
+      Guido: *"en muchos lugares también me empezó a aparecer la palabra rojo, en situaciones en las cuales antes no me decía eso; que un
+      test da rojo, una cosa roja; no sé qué será eso"*. Es jerga de pruebas: **verde** = la prueba pasó, **rojo** = falló, "prueba en rojo
+      primero" = escribir la prueba que falla antes de arreglar. La v3 la puso en todos lados (el gate, `verificar`, el candado, los
+      githooks, la plantilla del encargo): medido el 2026-11-10, "rojo"/"verde" aparecen 269 veces en 36 archivos de `kit/` sin contar
+      pruebas, y 0 en los moldes de la v2 (`legacy/templates-universales-v2/`). Entre sesiones está bien; el problema es cuando llega al
+      dueño sin traducir. **Para el kit**: lo que le habla al dueño (`/estado`, "Te espera", el handoff, el reporte de la noche, las
+      preguntas, los avisos de los githooks) dice "la prueba falló" o "pasó" (o "lo chequeé y está bien"), nunca rojo/verde; la jerga queda
+      para los mensajes entre director, obrero y scripts. Va con el 32 y el 33: el kit habla para el director y se le escapa al dueño.
+  35. **2026-11-09 · Tres detalles de preparar la PC y adoptar Deptos** (sesión madre, PC `Usuario`; anotados un día tarde). (a)
+      `preparar-pc` borra los archivos que el kit ya no trae pero deja sus **carpetas vacías** (`skills/arquitecto/templates/universales/…`),
+      y `kit-sync` da SUCIO por eso hasta que alguien las borra. (b) El `doctor` no encuentra `py` en el PATH (en Windows es un alias de
+      `WindowsApps`, `py.exe`) y avisa `sensible-prosa` de más sobre `datos-reales: [py scripts/…]`, aunque el hook `sensible` sí pregunta
+      (probado). (c) `adoptar --traer` exige la carpeta principal limpia y en la rama del clon; en Deptos estaba en un commit suelto y `main`
+      lo tenía tomado el worktree del director viejo: hubo que soltarlo (`switch --detach`) y poner la carpeta en `main` a mano. **Para el
+      kit**: `preparar-pc` borra también las carpetas que quedan vacías; el `doctor` reconoce los alias de `WindowsApps`; y `--traer`
+      dice qué worktree tiene tomada la rama y ofrece soltarlo (con el 33: sin que lo tipee Guido).
   - **Dato (la primera noche, medida)**: 23:14 → 07:30 (8 h 15 min de reloj); 19 encargos, 105 sub-pasos, 796 min sumados (~13 h de
     trabajo, varios en paralelo); **0 intervenciones de Guido**; 2 PARADAS, las dos por el encargo cancelado (ítem 21). El kit v3
     aguantó una noche entera sin dueño; lo que no hizo es **terminar solo** (ítems 17 y 18). Lo crudo está en el repo de investigación
