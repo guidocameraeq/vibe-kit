@@ -1346,6 +1346,8 @@ Lo que se evaluó, para no volver a evaluarlo de cero (insumo de la misión 6):
   - **la segunda noche (cola)**: la cola anduvo, pero el cierre de noche falló: el subagente hereda el aislamiento del worktree y no puede
     tocar la carpeta principal; a la mañana `ExitWorktree` lo destrabó → "De la prueba real", 36. Y el punto donde compacta no es fijo
     (384 mil una noche, 801 mil la otra) → 31
+  - publicar frena porque el deploy lee la clave del `.env`, y la salida fue que Guido pegue el comando con `!`: teatro de seguridad;
+    publicar sin leer claves (envoltorio o integración con GitHub) y, si frena, un clic → "De la prueba real", 37
 - **Antes de R2 / después**:
   - un repo de prueba parecido a Hermes → "De D8r.2", 6 (= "De D8c.1", 8)
   - los NO VERIFICADO de la `rc.6` (EnterWorktree real, el obrero de cierre real, `traer-main` con githooks…) → "De D8c.1", 7 (y "De D8r.4", 3; "De D8r.2", 5; "De D8r.1", 5; "De D8b.1", 3)
@@ -1730,6 +1732,23 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
       o una sesión que el kit lanza en la carpeta principal (no un subagente); (b) el `/director` lo dice en su paso de "terminar el
       módulo" y en el modo noche; (c) un prompt para el dueño nunca queda en el scratchpad temporal: va commiteado en la bitácora; (d) hay
       que probar que `ExitWorktree` corra sin ventana, de noche, en la extensión de VS Code (hoy NO VERIFICADO: a la mañana Guido estaba).
+  37. 🔴 **2026-11-11 · Publicar frena porque el deploy necesita leer la clave del `.env`, y la salida fue darle a Guido el comando
+      con `!`** (Deptos, la mañana después de la segunda noche; lo pegó Guido). Ya fuera del worktree (`ExitWorktree`, ítem 36), la sesión
+      aplicó las migraciones 0057 y 0058 en producción, con foto antes y después (22 contratos y 986 obligaciones, iguales), pero el deploy
+      a Vercel lo frenó el clasificador del modo `auto`: el comando de `.claude/skills/release/SKILL.md:15` necesita `$VERCEL_TOKEN`, y la
+      sesión lo quiso sacar del `.env` con `set -a && . ./.env`. Vercel no tenía sesión abierta en la PC. La sesión no lo rodeó y ofreció
+      dos salidas: (1) que Guido pegue el comando entero con `!` adelante en la misma ventana, (2) que diga "autorizo el deploy" y lo
+      reintenta. Guido corrió la (1) y salió bien. El 2026-11-10 el mismo release había salido solo (lo corrió una sesión de fondo en la
+      carpeta principal, `3e0e2dd`): el freno no es parejo. **Por qué pasa**: el clasificador de Claude Code trata "leer un archivo de
+      claves y usarlo contra producción" como de riesgo alto (es lo que haría un ataque), y no sabe que es un repo personal; los hooks del
+      kit (`secretos.cjs`) también niegan leer `.env`. **Lo que está mal**: que Guido pegue con `!` el mismo comando no agrega ninguna
+      seguridad (lo pega sin leerlo), solo le pasa el trabajo: es teatro de seguridad, y es el 33. **Para el kit**: (a) publicar nunca
+      lee claves: el deploy va por un envoltorio que inyecta el entorno sin mostrarlo (Deptos ya tiene `scripts/conenv.py -- <cmd>`, y el kit
+      tiene `cargar-secreto` y el almacén de `~/.config/kit-secretos/`), o por la integración del proveedor con GitHub (el mismo
+      `release/SKILL.md:18` lo dice: con Vercel↔GitHub, el push publica solo y no hace falta el token); (b) al adoptar un repo con release,
+      el Equipador deja ese comando exacto autorizado (la `allow` del proyecto y una línea de `autoMode`, que lo declara rutina en ese
+      repo); si eso alcanza para que el clasificador lo deje pasar está NO VERIFICADO y es lo primero que se prueba; (c) si igual frena, la
+      salida es **un clic** ("¿publico?" con botones), nunca un comando con `!`.
   - **Dato (la segunda noche, módulo `cola`, 2026-11-10/11)**: el spec planteado como **cola** con su regla anduvo (24 encargos, 58
     sub-pasos, 513 min sumados; la cola quedó vacía a la 01:45) y confirmó lo de la primera: el despertador no se corrió ("las tareas
     de fondo de los obreros ya me despiertan solas", 22:38: ítem 28); una CORRECCION volvió a no llegarle a un obrero de fondo y quedó como
