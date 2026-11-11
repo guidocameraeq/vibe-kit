@@ -1335,6 +1335,8 @@ Lo que se evaluó, para no volver a evaluarlo de cero (insumo de la misión 6):
     worktrees y rojo en la carpeta principal, donde sella el Arquitecto (29), y el arreglo del push de `integrar` que quedó solo en
     Deptos (30), y el contexto medido contra la ventana de la API cuando la plataforma compacta mucho antes (31) → "De la prueba
     real", 28-31
+  - `/estado` está escrito para el director: Guido quiere un reporte fijo y suyo (te necesito · el plan con tramos y % · lo que se hizo
+    con su tiempo · lo que falta en orden con su estimación) → "De la prueba real", 32
 - **Antes de R2 / después**:
   - un repo de prueba parecido a Hermes → "De D8r.2", 6 (= "De D8c.1", 8)
   - los NO VERIFICADO de la `rc.6` (EnterWorktree real, el obrero de cierre real, `traer-main` con githooks…) → "De D8c.1", 7 (y "De D8r.4", 3; "De D8r.2", 5; "De D8r.1", 5; "De D8b.1", 3)
@@ -1627,6 +1629,28 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
       ~65 % del techo, ya a ~80 %); (c) el director mide **en cada merge**, no solo al cerrar el tramo (esa noche esperó 184 min a un
       obrero sin volver a medir); (d) el chequeo de "me voy" usa el mismo techo; (e) lo mismo vale para los obreros (`AVANCE` con la
       cifra del script).
+  32. 🔴 **2026-11-10 · `/estado` está escrito para el director, no para Guido, y cambia cada vez que lo corre** (Deptos, módulo `cola`;
+      pedido de Guido). Guido: *"escrito para el director y no para mí… cada vez que lo mando aparecen otras tareas diferentes que antes no
+      estaban; no lo sé leer"*; *"es un reporte que yo uso constantemente"*. Medido corriendo `estado.cjs` y `estado.cjs cola` el
+      2026-11-10 a las 22:22: (a) "TE ESPERA" trae 4 renglones y **uno solo** es de Guido (aprobar un cambio); los otros son una PARADA ya
+      resuelta y dos encargos cancelados, o sea historia del director; (b) jerga interna: SHAs (`@a3228de`), `CORRECCION`, ids de tarea
+      (`C13`), "rama anterior a `4b8ef0a`", `comando-test`; (c) "avance: 0 de 3 tareas (0%)" con el módulo trabajando hace horas: un módulo
+      de cola no cuenta como uno de lista; (d) no dice qué se hizo, cuánto tardó ni cuánto falta, lo que Guido ya le había pedido al
+      director en la primera noche ("un mini resumen de lo que fue corrigiendo, cuánto tiempo le llevó, cuánto estima que va a seguir");
+      (e) solo ve los encargos con rama viva; (f) el contexto da un número falso (ítem 31). **Lo que Guido quiere** (sus palabras,
+      ordenadas): un formato fijo, siempre las mismas secciones en el mismo orden, en criollo:
+      1. **Te necesito**: solo lo que espera de él (decisiones, aprobados, bloqueos que piden su atención) o "nada".
+      2. **El plan**: en qué módulo y tramo estamos; tramos cerrados y tramos que faltan; % del plan grande, % del tramo actual; lo que
+         falta, en horas y en %.
+      3. **Lo que se hizo**: cada cosa en una línea, con cuánto tardó.
+      4. **Lo que falta, en orden**: cada tarea con cuánto se estima que tarda.
+      **Para el kit**: rehacer `estado.cjs` (y `/estado`) como reporte **del dueño**: las cuatro secciones, siempre; sin SHAs, ids ni
+      nombres de comandos (si hace falta una línea para copiar, va al final y aparte); lo resuelto o cancelado sale de "Te necesito" y va
+      a la historia del módulo; los encargos cerrados cuentan aunque su rama ya no exista (de la ficha y `tiempos.md`, no de las ramas);
+      los % y las estimaciones salen de un script (los tiempos medidos de los encargos ya hechos), y un número que no se sabe dice "no
+      sé", nunca 0 %; el avance de un módulo de cola se cuenta sobre su cola viva. La vista para el director (la de hoy) puede seguir
+      existiendo aparte, para él (`/estado --director` o dentro del `/director`). Va con el diseño de la cola (17): un plan "de cola" tiene
+      que poder decir cuánto falta.
   - **Dato (la primera noche, medida)**: 23:14 → 07:30 (8 h 15 min de reloj); 19 encargos, 105 sub-pasos, 796 min sumados (~13 h de
     trabajo, varios en paralelo); **0 intervenciones de Guido**; 2 PARADAS, las dos por el encargo cancelado (ítem 21). El kit v3
     aguantó una noche entera sin dueño; lo que no hizo es **terminar solo** (ítems 17 y 18). Lo crudo está en el repo de investigación
