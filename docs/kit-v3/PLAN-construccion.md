@@ -1306,7 +1306,22 @@ Lo que se evaluó, para no volver a evaluarlo de cero (insumo de la misión 6):
 
 ## Pendientes de cada paquete
 
-**Lo abierto, de un vistazo (2026-11-05)** (el detalle, en cada ítem de abajo):
+**Lo abierto, de un vistazo (2026-11-11)** (el detalle, en cada ítem de abajo):
+- **La revisión antes de la `rc.7` (2026-11-11), lo que decide el plano** — tres informes (`REVISION-rc7-mirada1.md`, `-pruebas.md`,
+  `-mirada2.md`); los 17-37 marcados, lo nuevo en "De la prueba real", 38-51. En criollo: el kit es bueno y no se rehace; lo que le cae
+  a Guido sale casi todo de una causa (lo que pide su firma o su carpeta principal vive donde las sesiones del kit no están), y las
+  tres pruebas dicen que tiene salida sin que él tipee:
+  - **la noche termina sola**: el director sale con `ExitWorktree` o lanza una sesión en la principal; las dos andan de fondo → 36, 38
+  - **aprobar es un clic que ya existe**: falta que la sesión lo corra ella, desde donde esté → 33, 41; y 🔴 el agujero de aprobar
+    desde otra carpeta → 40
+  - **publicar pasa con la autorización puesta de antemano** (`autoMode` en el settings de usuario o la `allow` exacta) → 37, 39, 48
+  - **un solo camino, el de fondo**; `/tramo` lo decide Guido → 46
+  - `/estado` del dueño y una sola lista de "te espera" → 32, 47; la regla de habla → 34; la compactación es por inactividad → 31
+  - los frenos se cuelgan (cuatro procesos por comando) y niegan lo inocente; la suite sin turno → 42-45
+  - lo roto chico y la fricción fuera de la noche → 50, 51
+  - **Para la `v3.1`** (mirada 2, "Para la `v3.1`"): el director corto (V1), el aviso al celular (V2), el kit global como plugin
+    (V3: reabre REJ-001, con evidencia nueva), los frenos por evidencia (V4), el costo por encargo (V5), `mesa` quieta (V6), "¿qué
+    sacamos?" en el ciclo (V7, va con M6b), el director sin `EnterWorktree` (V8, 49), medir el cierre de tramo (V9)
 - **Para la `rc.7` (taller)**:
   - todo clon del Equipador con `core.longpaths`; `--mirar` se niega si el checkout quedó a medias → "De la prueba real", 10
   - `adoptar --traer` deja pasar los `??` que no chocan → "De la prueba real", 11
@@ -1345,9 +1360,9 @@ Lo que se evaluó, para no volver a evaluarlo de cero (insumo de la misión 6):
     sube: en un repo personal, el cierre de noche llega hasta publicar
   - **la segunda noche (cola)**: la cola anduvo, pero el cierre de noche falló: el subagente hereda el aislamiento del worktree y no puede
     tocar la carpeta principal; a la mañana `ExitWorktree` lo destrabó → "De la prueba real", 36. Y el punto donde compacta no es fijo
-    (384 mil una noche, 801 mil la otra) → 31
-  - publicar frena porque el deploy lee la clave del `.env`, y la salida fue que Guido pegue el comando con `!`: teatro de seguridad;
-    publicar sin leer claves (envoltorio o integración con GitHub) y, si frena, un clic → "De la prueba real", 37
+    (384 mil una noche, 801 mil la otra) → 31 (corregido por la revisión: compacta por inactividad)
+  - publicar frena y la salida fue que Guido pegue el comando con `!`: teatro de seguridad → "De la prueba real", 37 (corregido por la
+    revisión: no frena leer la clave sino publicar sin destino declarado)
 - **Antes de R2 / después**:
   - un repo de prueba parecido a Hermes → "De D8r.2", 6 (= "De D8c.1", 8)
   - los NO VERIFICADO de la `rc.6` (EnterWorktree real, el obrero de cierre real, `traer-main` con githooks…) → "De D8c.1", 7 (y "De D8r.4", 3; "De D8r.2", 5; "De D8r.1", 5; "De D8b.1", 3)
@@ -1524,6 +1539,9 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
       autoriza (un repo personal: `merge-a-main: con-gate-verde` y sin `release` en `sensible`), llega hasta **publicar** (integrar →
       release → smoke → `/cierre` → limpiar), no solo hasta integrar; en un repo de trabajo para antes de publicar y te espera.
       **La segunda noche lo probó y falló** (ver el 36): el subagente del cierre hereda el aislamiento del worktree del director.
+      **✏️ Revisión rc.7 (mirada 1, "Los ítems 17-37")**: (a) `cerrar` no exige la carpeta principal: se niega solo si la sesión está
+      **adentro** del worktree que cierra (`worktree.cjs:924`); y en Windows falla igual con la pestaña abierta ("Permission denied",
+      `cerrar cola`, 11/11 10:11). (b) confirmado (`director/SKILL.md:22-23`). El remedio: ver 36 y 38.
   19. **2026-11-10 · Los mensajes del obrero le llegaron a OTRA sesión de la misma carpeta, no al director** (Deptos). La
       PRESENTACION, el AVANCE y el CIERRE que el obrero mandó por mensajería entre sesiones le aparecieron a la sesión del Arquitecto
       (abierta en la misma carpeta de proyecto), no a la del director. El director avanzó igual por git y por los avisos de fin de los
@@ -1543,6 +1561,10 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
       **commitear a la rama del obrero** (no solo a la del módulo), o `autorizado` avisa "esto no le llega a un obrero de fondo" al
       relanzar; `worktree crear` deja la carpeta como confiable (o lo avisa); y el comando del banco de pruebas entra en `AUTORIZADO` de
       los encargos con red visual (o `worktree crear` copia la config del banco correcto).
+      **✏️ Revisión rc.7 (mirada 1)**: (a) `encargo.cjs mensaje` **no commitea nada**, solo juzga el mensaje (`encargo.cjs:231-252`); la
+      CORRECCION la commitea el director en `modulo/<x>`. El arreglo no es que `mensaje` commitee en la rama del obrero sino que
+      `presentar` (lo corre todo obrero al arrancar) traiga lo corregido después de su partida. Se repitió la noche 2 (18:50). (b) el
+      aviso nombra **la carpeta principal**, no el worktree: ver 39.
   21. **2026-11-10 · Un obrero que para a mitad de un sub-paso deja su worktree inservible, y el candado de `integrar` no distingue
       "cancelado" de "abierto"** (Deptos, encargo 16: las dos únicas PARADAS de la noche). El obrero paró a las 02:40 con 105
       conversiones sin commitear. El relanzado se encontró con que `worktree.cjs donde` ve cambios sin commitear y **no deja entrar a otra
@@ -1592,6 +1614,11 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
       encargo con `## Toca` que **nombra** un archivo bajo `.claude/` lo pueda autorizar por esa línea (el sello es la prueba de que
       lo vio el dueño); que el obrero pueda borrar **sus propias** ramas (las que creó y no existen en el remoto); y que `secretos.cjs`,
       cuando se pasa de tiempo, diga "me pasé de tiempo" y no "frenado".
+      **✏️ Revisión rc.7 (mirada 1)**: **no fue el hook de escritura** (`escritura-docs` solo engancha `Write` sobre `docs/`): el `Edit` lo
+      negó `secretos.cjs` (regla `frenos-del-proyecto`, `:354`), que también niega **leer** lo que nombra `.claude`. Y aunque pasara,
+      `.claude/hooks/**` es barrera para el candado (`hooks/lib/cambios.cjs:372`): autorizarlo por el `## Toca` abre dos redes, y la
+      mirada 1 no lo propone para la rc.7. `branch -D` de una rama propia: confirmado (`git-seguro.cjs:60-61`). El timeout no fue un caso
+      suelto: ver 42.
   26. **2026-11-10 · Varios obreros en paralelo chocan por los datos de prueba, no por los archivos** (Deptos). Los carriles de archivos
       estaban bien repartidos y aun así: dos pruebas que guardan sobre el **mismo inmueble de prueba** chocaron en paralelo; una prueba que
       aprueba un ajuste pisó un valor del banco de pruebas (se devolvió a mano con un `UPDATE`); y dos encargos que tocan la misma cadena
@@ -1653,6 +1680,12 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
       automático a las 01:03, `preTokens: 800551`), no a los ~384 mil de la primera. Con el mismo modelo (`claude-opus-5-5`) y la misma
       PC, el punto **no es fijo**: 384 mil una noche, 801 mil la otra. Qué lo fija sigue NO VERIFICADO. El remedio de arriba vale igual,
       con un cambio: el techo es el **más bajo** que se haya medido en la PC (hoy 384 mil), no el último, hasta saber qué lo mueve.
+      **✏️ Corregido otra vez por la revisión rc.7 (mirada 1, ítem 31; mirada 2, C4)**: **no hay techo de tokens**. Las dos compactaciones
+      fueron **por inactividad**: traen `precomputed: true` y el aviso *"Compacted using a summary written while you were away · turn off
+      with "idleCompaction": false"*; el resumen se escribió a los **~55 min** de quedar quieto, las dos noches (04:13:54 → 05:08:44 y
+      23:16:34 → 00:11:46), y se aplicó al despertar. Por eso 384 mil una y 801 mil la otra. El remedio de arriba no arregla nada; lo que
+      va: decidir entre apagar `idleCompaction` o que el director deje todo commiteado antes de cada espera larga, y sacar la regla del
+      40 % y el "mudate antes de irte" de `me-voy` (`contexto.cjs` queda como dato).
   32. 🔴 **2026-11-10 · `/estado` está escrito para el director, no para Guido, y cambia cada vez que lo corre** (Deptos, módulo `cola`;
       pedido de Guido). Guido: *"escrito para el director y no para mí… cada vez que lo mando aparecen otras tareas diferentes que antes no
       estaban; no lo sé leer"*; *"es un reporte que yo uso constantemente"*. Medido corriendo `estado.cjs` y `estado.cjs cola` el
@@ -1698,6 +1731,13 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
       seguro (rama de rescate) en vez de dejarla para la mañana; y si alguna línea queda, sale **en la sintaxis de su terminal**
       (PowerShell en Windows), una por renglón. Cada barrera que hoy pide un comando se mide con la vara del ADR-030: si su costo en
       fluidez es más grande que lo que protege, se cambia. Va con el 17, el 18 y el 21.
+      **✏️ Revisión rc.7 (mirada 1; pruebas, 3)**: la causa de (a) es otra. Ningún mensaje del kit trae la línea con `&&`: la improvisa la
+      sesión. **El kit ya firma con un clic** (la ventana de permiso de `aprobar`: la regla `ask` del molde y `niega-aprobar.cjs`), pero
+      solo desde la carpeta principal, en la rama por defecto y con el cambio commiteado ahí (`cambios.cjs:409-422`), y sus textos dicen
+      "lo aprieta el dueño: un agente no aprueba" (`worktree.cjs:1455`, `actualizar.cjs:1130`; contradice a `GUIA-DE-USO.md:102`: R6).
+      Probado de fondo: la sesión de la principal corre `aprobar` y la ventana es la firma; de noche se niega sola (3a-3c); una pregunta
+      con botones **no** sirve de firma (no existe en `-p` y el script no puede saber que hubo respuesta). (b)-(f) confirmados. El conteo:
+      66 renglones con un comando en el molde y 30 en las skills globales; de esos 30, de verdad del dueño, 6.
   34. **2026-11-10 · "Rojo" y "verde" le llegan a Guido sin que nadie le haya dicho qué son** (todas las sesiones; pedido de Guido).
       Guido: *"en muchos lugares también me empezó a aparecer la palabra rojo, en situaciones en las cuales antes no me decía eso; que un
       test da rojo, una cosa roja; no sé qué será eso"*. Es jerga de pruebas: **verde** = la prueba pasó, **rojo** = falló, "prueba en rojo
@@ -1707,6 +1747,11 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
       dueño sin traducir. **Para el kit**: lo que le habla al dueño (`/estado`, "Te espera", el handoff, el reporte de la noche, las
       preguntas, los avisos de los githooks) dice "la prueba falló" o "pasó" (o "lo chequeé y está bien"), nunca rojo/verde; la jerga queda
       para los mensajes entre director, obrero y scripts. Va con el 32 y el 33: el kit habla para el director y se le escapa al dueño.
+      **✏️ Revisión rc.7 (mirada 1)**: de las 290 apariciones (45 archivos), **solo 22 renglones de salida en 8 archivos** traen la palabra;
+      a Guido le llega por la **prosa de las sesiones** (16 de 32 mensajes largos del director la noche 1; 15 de 45 la noche 2) y por los
+      reportes. Arreglo: una regla de cómo se le habla al dueño + esos 22 renglones, no las 290. Y la regla va en el núcleo o en las
+      skills, no solo en el `CLAUDE.md` del molde: el actualizador nunca toca el `CLAUDE.md` de un repo adoptado (`catalogo.cjs:63`;
+      mirada 2, "Un aviso para el plano").
   35. **2026-11-09 · Tres detalles de preparar la PC y adoptar Deptos** (sesión madre, PC `Usuario`; anotados un día tarde). (a)
       `preparar-pc` borra los archivos que el kit ya no trae pero deja sus **carpetas vacías** (`skills/arquitecto/templates/universales/…`),
       y `kit-sync` da SUCIO por eso hasta que alguien las borra. (b) El `doctor` no encuentra `py` en el PATH (en Windows es un alias de
@@ -1732,6 +1777,12 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
       o una sesión que el kit lanza en la carpeta principal (no un subagente); (b) el `/director` lo dice en su paso de "terminar el
       módulo" y en el modo noche; (c) un prompt para el dueño nunca queda en el scratchpad temporal: va commiteado en la bitácora; (d) hay
       que probar que `ExitWorktree` corra sin ventana, de noche, en la extensión de VS Code (hoy NO VERIFICADO: a la mañana Guido estaba).
+      **✅ Revisión rc.7 (pruebas, 1; mirada 1)**: (d) **verificado de fondo** con el `claude.exe` 2.1.322 de la extensión, `-p auto`:
+      `ExitWorktree keep` no pide nada, y después pull, merge, commit, push y subagentes andan en la principal (cero denegaciones). El
+      aislamiento lo prende **solo** `EnterWorktree`: una sesión que **nace** adentro del worktree no lo tiene. Una sesión hija lanzada
+      por Bash en la principal también anda (1e). La vía ya se usó: la noche 1, a las 12:36, el director lanzó `claude.exe -p` en la
+      principal y esa sesión hizo el `/cierre` y el release; la noche 2 lo llamó "rodear el freno" (R3). El `/director` dice "nunca
+      `ExitWorktree`" (`director/SKILL.md:12`, fijado por `skills.test.cjs:244-254`: R4). Lo que falta: la pestaña de la extensión, ver 38.
   37. 🔴 **2026-11-11 · Publicar frena porque el deploy necesita leer la clave del `.env`, y la salida fue darle a Guido el comando
       con `!`** (Deptos, la mañana después de la segunda noche; lo pegó Guido). Ya fuera del worktree (`ExitWorktree`, ítem 36), la sesión
       aplicó las migraciones 0057 y 0058 en producción, con foto antes y después (22 contratos y 986 obligaciones, iguales), pero el deploy
@@ -1749,6 +1800,125 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
       el Equipador deja ese comando exacto autorizado (la `allow` del proyecto y una línea de `autoMode`, que lo declara rutina en ese
       repo); si eso alcanza para que el clasificador lo deje pasar está NO VERIFICADO y es lo primero que se prueba; (c) si igual frena, la
       salida es **un clic** ("¿publico?" con botones), nunca un comando con `!`.
+      **✏️ Revisión rc.7 (mirada 1; pruebas, 2)**: `secretos.cjs` **no** niega cargar el `.env` sin imprimirlo (`:348`); el único freno fue
+      el clasificador, y **no por leer la clave** (eso está entre sus excepciones, "Standard Credentials") sino por **publicar a producción
+      sin que nadie haya nombrado el destino** ("Production Deploy", en `claude auto-mode config`). Probado con un Vercel de mentira: sin
+      autorización publicó 4 de 8; con la autorización de antemano (la `allow` exacta en `--allowedTools`, o una línea de
+      `autoMode.allow`/`environment` por `--settings`) **16 de 16**; el envoltorio solo frenó **más** (1 de 4): sirve para que la clave no
+      se vea, no para el clasificador. `autoMode` **no se lee del settings del proyecto** (doc oficial): va en el de usuario, que es
+      justo lo que el clasificador le frena escribir a una sesión (33b). Y lo que siguió fue peor de lo anotado: la línea con `!` era de
+      bash y falló en PowerShell; la segunda **leía la clave del `.env` en la terminal de Guido**.
+  - **La revisión de la rc.7 sobre los 17-37 (2026-11-11)**: 14 confirmados (17, 19, 21-24, 26-30, 32, 35, 36) y 7 corregidos (18, 20,
+    25, 31, 33, 34, 37: cada uno con su renglón ✏️ arriba); ninguno "no se sostiene". Lo que suma a los confirmados, en una línea: el 17
+    queda en la pregunta "¿lista o cola?" del Arquitecto (y `/estado` y `me-voy` cuentan mal una cola: 47); del 19, la salida es la
+    segunda (al director lo mueven los avisos de fin de proceso: 38 y 43 por noche); el 21 pide un rescate **por script** (un `node`
+    no tiene el aislamiento del director); el 22 suma R7 (`Skill: tramo` ofrecido y rechazado: 46); el 26 suma 31 denegaciones de "a qué
+    banco apunto" (43); el 30 pide **medir** antes de subir el plazo (gitleaks tardó menos de 1 s). Fuente: `REVISION-rc7-mirada1.md`,
+    "Los ítems 17-37".
+  38. 🔴 **2026-11-11 · Después de `ExitWorktree`, los frenos del kit siguen viendo un director** (revisión rc.7: mirada 1, R1; pruebas,
+      1 y 3e). En Deptos, la mañana del 11, la sesión salió (`ExitWorktree keep`, 09:57) y cada comando siguiente volvió a quedar en
+      el worktree (*"Shell cwd was reset to …\modulo--cola"*, `isWorktree: true`); a las 10:01 `cambios aprobar`, con `cd` a la
+      principal adelante, lo negó `niega-aprobar` por *".kit-rol: director"*: el hook juzga la carpeta de la sesión, no el `cd`. En `-p`
+      no pasó (`pwd` dio la principal); la causa probable es que esa sesión había sido **reubicada** a la carpeta del worktree. NO
+      VERIFICADO en la pestaña de la extensión. **Para el kit**: después de salir, todo comando con su `cd "<principal>"` explícito; o el
+      cierre de noche por una sesión hija en la principal (mirada 2, B5); y probarlo en la extensión antes de confiar.
+  39. 🔴 **2026-11-11 · Las `allow` del proyecto no valen en ninguna sesión de fondo: la carpeta principal no tiene la confianza
+      aceptada** (mirada 1, R2; pruebas, 1 punto 5). *"Ignoring 48 permissions.allow entries … this workspace has not been trusted"* lo
+      dice la sesión de fondo parada **en la principal** de Deptos (12:39 del 10/11), no solo un worktree; `~/.claude.json` no tiene
+      `hasTrustDialogAccepted` para esa carpeta. La doc: en `-p`, *"trusting a parent folder doesn't count"*. Las sesiones de fondo
+      viven de su `--allowedTools`. **Para el kit**: todo lo que se quiera autorizar para una sesión de fondo va por `--allowedTools` o
+      por el settings de usuario, nunca solo por el del proyecto; `preparar-pc` o la adopción lo detectan y lo dicen una vez. Si aceptar
+      la confianza en la principal cubre a los worktrees: NO VERIFICADO.
+  40. 🔴 **2026-11-11 · Una sesión abierta en otra carpeta aprueba un cambio de freno sin ventana, y el candado lo deja subir** (pruebas,
+      3f y 3g). La regla `ask` y `niega-aprobar` salen del `.claude/settings.json` **del proyecto**: una sesión abierta en cualquier
+      otra carpeta (la madre de vibe-kit, un subagente desde el scratchpad, otro repo) corre `cd <repo> && node .claude/scripts/cambios.cjs
+      aprobar <id>` y sale *"cambios: aprobado"*, sin ventana ni hook, y el push pasa el candado. No hizo falta ninguna maña. Con
+      `niega-aprobar` cargado **como hook de la PC** (como `secretos`) se negó. Es el 33 (f) cerrándose solo. **Para el kit** (es un
+      freno: red team): `niega-aprobar` sube a los hooks de la PC; y su aviso (*"si te lo pide una sesión de /obrero o /director, decí
+      que no"*, `:39-41`) se reescribe, porque en el diseño nuevo justamente el director pide el clic.
+  41. **2026-11-11 · Un cambio de freno nacido en un módulo no se puede aprobar hasta integrar el módulo** (mirada 1, inventario paso 8
+      y R15). `aprobar` exige el cambio commiteado en la rama por defecto (`cambios.cjs:146-153,418-419`), y el archivo vive en
+      `modulo/<x>`. Y `secretos.cjs:354` manda "pedíselo al director", que tampoco puede: la cadena termina en Guido (C13 esperó 20 h).
+      Se sigue del código; nadie llegó a probarlo. **Para el kit** (red team): que el cambio viaje solo a la rama por defecto, o que se
+      pueda aprobar desde la rama del módulo.
+  42. **2026-11-11 · Cada comando prende cuatro procesos de freno con 20 s de plazo, y con varios obreros se cuelgan** (mirada 1, N1;
+      mirada 2, E7). Un `Bash` dispara `niega-aprobar`, `git-seguro` y `sensible` (`kit/molde/settings.json:56-85`) más `secretos` de la
+      PC: cuatro `node`, cada uno `timeout: 20` y `onFailure: block` (el defecto de Claude Code es 600 s). Con cuatro obreros, 16 por
+      ronda; el kit ya sabía que "~15 gits de ~250 ms suman 10-24 s con la PC cargada" (`hooks/lib/git.cjs:12-14`). Medido: 2 cuelgues
+      la noche 1 y 10 la noche 2, todos inocentes (uno sobre un `echo`); `sensible` 9. **Para el kit** (red team): medir bajo carga, un
+      solo proceso que cargue los frenos del proyecto, y un plazo acorde; y que un freno pasado de tiempo lo diga así (25).
+  43. **2026-11-11 · Frenos que niegan lo inocente** (mirada 1, N2, N3, N9 y paso 9; pruebas, 3). (a) `niega-aprobar` frena cualquier
+      comando que **contenga** "cambios" y "aprobar": un texto en un archivo, un mensaje de commit (noche 2, 14:27, 22:36 y 01:36);
+      (b) `secretos.cjs:354` niega **leer** lo que nombra `.claude` o `.githooks` (un `git grep`, un `sed`); (c) 31 denegaciones a obreros
+      que solo querían saber a qué banco de pruebas apuntaba su carpeta; (d) 15 `ls` o búsquedas sobre un `.env` negados de fondo aunque
+      el freno dice que `ls` se puede (causa NO VERIFICADO); (e) `git restore --source` negado por rutas con paréntesis (el obrero perdió
+      la prueba previa); (f) `sensible` pregunta también en una sesión de fondo, donde nadie contesta (`sensible.cjs:71`). **Para el
+      kit** (red team): (a) mirar el comando (`cambios.cjs` con `aprobar` de argumento), no el texto; (b) dejar leer; (c) que el encargo
+      o `crear` digan el banco; (d) averiguar primero; (f) tratar el fondo como la noche.
+  44. **2026-11-11 · `frenos.log` está versionado y cada freno lo ensucia** (mirada 1, N4). Trabó un merge (22:35, noche 2) y `/cierre`
+      lo commitea (`cierre/SKILL.md:18,33`). **Para el kit**: que no viva en el árbol (`gitignore.snippet:13`, `gitattributes.snippet:1`).
+  45. **2026-11-11 · La suite corre al menos dos veces por encargo, sin turno, con cinco plazos distintos** (mirada 2, E8 y E13).
+      `presentar` corre el `comando-test` entero para la base (`encargo.cjs:134-138`, 10 min) y `verificar` otra vez (`:510-514`, 30 min);
+      `integrar`, una más (`worktree.cjs:1021`, 30); el `sello`, 5 min o el `plazo-test` de la ficha, que es lo único que la ficha
+      gobierna. Con tres o cuatro obreros: tres "fallas que no se repiten", un `presentar` cortado a los 10 min y cuatro pruebas caídas
+      por tiempo (notas de `cola` 15:00, 16:55, 18:40, 19:40, 20:00). Es la lección "dos tandas pesadas a la vez se frenan las dos", sin
+      fila. **Para el kit**: una sola corrida pesada por PC a la vez; `presentar` no repite la base si ese commit ya pasó; los plazos leen
+      el `plazo-test` (mirada 2, B2; era el "script `turno`", P70 de la tanda de contraste).
+  46. **2026-11-11 · El kit tiene dos diseños adentro y las noches usan uno solo** (mirada 2, E10, E2, E14 y C1; mirada 1, paso 5). El de
+      pestañas (la apertura del obrero es **del dueño por defecto**, `director/SKILL.md:16`, `ROLES.md:56`, `encargo.cjs:404`; los ocho
+      mensajes de `NUCLEO.md:14-28`; `/tramo` y seis agentes; el despertador) y el de fondo (el director lanza, espera el fin del proceso y
+      verifica por git). Los 60 encargos de las dos noches dicen `Skill: obrero`: **cero usos de `/tramo`**, y `autorizado` lo rechaza
+      (R7). Además: `Suscripción:` es obligatorio y nadie lo lee, `## NO SE TOCA` no se chequea, `Riesgo:` solo se imprime (E14); una
+      regla con comillas dobles en `## AUTORIZADO` deja sin línea de fondo y "la apertura es de Guido" (`encargo.cjs:360`; 14:35 noche 2);
+      el director dijo "no puedo" sin probar y le pidió a Guido un `npm` que 28 min después corrió él (17:39 y 18:07). `/director` está a
+      17 bytes del tope de 8.000. **Para el kit**: declarar el de fondo como el camino (mirada 2, B1, C3); `/tramo` **lo decide Guido**
+      (C1: ya frenó una vez "unificar obrero y tramo", `CICLO-DE-MEJORA.md:216-217`; vuelve con evidencia nueva).
+  47. **2026-11-11 · "Te espera" sale de cuatro lugares, y "encargo cerrado" se calcula de tres formas** (mirada 2, E11 y E12; mirada 1,
+      R14). Lo que espera a Guido vive en el handoff, en cada ficha, en los cambios de freno propuestos y en el TODO; `/estado` lee solo
+      fichas y TODO (`estado.cjs:248-262`): el cambio de C13 esperando su clic no salía ahí. "Cerrado" es: rama contenida en el módulo
+      con sub-pasos (`estado.cjs:210-212`), o evidencia en la rama del director sin PARADA (`noche.cjs:138-139`), o rama fuera de las no
+      mezcladas (`worktree.cjs:1175-1180`); y si `cerrar` borra la rama, `/estado` deja de verlo. Es la raíz de las vistas que mienten
+      (24, 32: 3 de 5 cifras mal la noche 2, corregidas de memoria por el director). **Para el kit**: el `/estado` del dueño (32) lee las
+      cuatro fuentes, y una sola función dice si un encargo cerró.
+  48. **2026-11-11 · Publicar tiene dos porteros, y publicar sin persona no es lo común** (pruebas, 2 punto 4; mirada 2, tabla de lo
+      nativo, "Lo que le falta" 1 y B6). Si una ficha pone `release:` en `sensible:`, de noche `sensible` **niega** (`sensible.cjs:36-37`),
+      y el clasificador frena "Production Deploy" por su lado: el plano tiene que decir cuál manda. Y la guía oficial deja la publicación
+      a una persona; ningún producto de agentes publica solo por defecto. **Para el kit**: si la noche publica, con red: la ficha lo
+      dice, prueba de humo después, y un aviso. Deptos tiene `release: no`.
+  49. **2026-11-11 · El aislamiento de `EnterWorktree` frena el trabajo del director dentro de su propio worktree** (pruebas, 1 "Lo que
+      vino de Deptos"; mirada 1, paso 9; mirada 2, V8). *"names git in a form too complex to verify that it stays inside the worktree"*,
+      *"runs sed with a value computed at runtime"*: 12 frenos la noche 1 y 7 la noche 2, casi todos por comandos compuestos. Un obrero,
+      que **nace** adentro de su carpeta, no los tiene. **Para pensar**: que el director nazca adentro sin `EnterWorktree` (se pierde la
+      red de no tocar la principal por error; los frenos del kit siguen). Pide una prueba en la extensión: la mirada 2 lo pone en la v3.1.
+  50. **2026-11-11 · Lo roto chico que encontró la revisión** (mirada 1, "Lo roto"). R6 quién aprueba (la guía dice "la sesión lo corre
+      y el clic es la firma"; `worktree.cjs:1455` y `actualizar.cjs:1130`, "un agente no aprueba") · R8 "nunca editar `settings.json` a
+      mano" y el `doctor` manda "corregilo a mano" · R9 `autorizado:` de la ficha no lo lee `sensible` · R10 sin escáner el githook dice
+      "en rojo" y cierra "en verde" con salida 0 (`kit-githook.cjs:787,895`) · R11 "sellada y armada" con el spec en BORRADOR
+      (`modo-b.md:55` contra `:63`) · R12 "andan igual en todas las terminales" con `&&` (`adoptar.cjs:1206-1220`) y `node ~/…` que en
+      PowerShell 5.1 llega literal (`EQ/SKILL.md:80`) · R16 `--traer` sale 0 sin haber traído nada · R17 = 22(a) · R18 el `comando-setup`
+      de `crear` sin plazo y el del `sello` (60 min) no entra en los 10 min de la skill · R19 la línea de PowerShell de `cargar-secreto`
+      sin `-ExecutionPolicy Bypass` (`secretos.cjs:340`; NO VERIFICADO si hace falta) · R20 el `doctor` dice 26 chequeos y son 29, y un
+      arreglo apunta a una ruta que no existe (`doctor.cjs:410`) · **R21 "Guido" está escrito en el kit que se instala**
+      (`--ok-de-guido`, "apertura de Guido", "Lo hace Guido a mano" ×4): para cualquier otro dueño, el kit le habla a otra persona.
+  51. **2026-11-11 · La fricción nueva fuera de la noche** (mirada 1, inventario pasos 1, 2, 4, 6, 7 y 10; 29 puntos nuevos de 73).
+      **Preparar y adoptar**: dos rutas de instalación (`INSTALAR.md` zip, README clonar); el plan trae ~110 renglones y pregunta aunque
+      diga "sin cambios"; la tabla final y el `doctor` crudos con nombres internos; "corré doctor" en 27 archivos sin decir que es
+      pedírselo al Equipador; la adopción, ~8 decisiones seguidas "D1…D4". **`/inicio`**: 🔴/🟠 y "rojo y naranja" con otro sentido.
+      **Modo B**: fuera de la carpeta o en otra rama, "abrí una sesión ahí"; el `sello` falla con "¿corriste el comando-setup?"; con
+      director el spec puede quedar en BORRADOR y nadie avisa la otra charla; "verificá lo de NO SE TOCA… a mano"; sumar un diseño a mitad
+      de obra, "la tenés que abrir vos". **La noche**: el pedido para la mañana en una carpeta temporal; `me-voy` dice "pegá en el
+      .gitignore" y "VPN… miralos vos"; el reporte cita decisiones por un código de 8 letras. **`/estado`**: en la vista de un módulo
+      "TE ESPERA" no va primero; "resumen del día: falta — corré…". **La flota**: no dice de correrla de fondo (hasta 30 min por
+      chequeo); `--canon <url>` obligatorio sin valor por defecto; "mezclá vos", "borrá la rama desde la web"; la carpeta de Guido queda
+      atrasada y nada lo dice. El detalle, con su `archivo:línea`: `REVISION-rc7-mirada1.md`, "El inventario de fricción".
+  - **Dato (la revisión de la rc.7, 2026-11-11)**: el veredicto de la mirada 2 es que el kit **es un buen sistema para hoy y no hay que
+    rehacerlo** (hace lo que recomienda Anthropic: plano antes, estado en git, una sesión por tarea con permisos justos, revisor aparte).
+    **Lo que no se toca** (A1-A10): el plano sellado y construir en otra sesión; "manda git"; un obrero `claude -p` por encargo con
+    `--allowedTools` justo; el gate por script; el revisor frío; el red team del encargo que toca plata; `secretos` y el candado con
+    gitleaks; el actualizador con zona propia; el presupuesto y la vara; el observatorio. Los frenos **sí** pararon cuatro cosas que
+    valía parar en las dos noches (una variable con token que se iba a imprimir, una conexión con clave que se iba a escribir, un
+    token, un "matar por nombre" con otros obreros vivos): la mirada 1 había dicho "ninguno paró algo dañino"; el daño evitado, NO
+    VERIFICADO. Tamaño: 40.004 líneas de kit sin pruebas; lo que lee el modelo para trabajar son **341**.
   - **Dato (la segunda noche, módulo `cola`, 2026-11-10/11)**: el spec planteado como **cola** con su regla anduvo (24 encargos, 58
     sub-pasos, 513 min sumados; la cola quedó vacía a la 01:45) y confirmó lo de la primera: el despertador no se corrió ("las tareas
     de fondo de los obreros ya me despiertan solas", 22:38: ítem 28); una CORRECCION volvió a no llegarle a un obrero de fondo y quedó como
