@@ -693,14 +693,21 @@ function decidir(entrada, opciones = {}) {
   return { decision, salida: salida(decision, motivo), id, clave: m.clave, detalle, renglon, origen: v.origen };
 }
 
+// A5.3 y A5.4 (SPEC-paquete-8d): solo, como plan B del portero, con el mismo plazo propio (el del settings menos 10 s) y el aviso
+// honesto si no le alcanzó: niega, pero dice que no es un no (id freno:sin-tiempo).
+const PLAZO_PROPIO_MS = 50000;
+const SIN_TIEMPO = 'el freno no llegó a mirar a tiempo (la PC está cargada): repetí el mismo comando; no es un no';
 function principal() {
   let r;
+  const git = require('./lib/git.cjs');
+  git.fijarPlazo(Date.now() + PLAZO_PROPIO_MS);
   try {
     const t = fs.readFileSync(0, 'utf8');
     r = decidir(JSON.parse(t));
   } catch (e) {
-    r = { decision: 'deny', salida: salida('deny', ROTO) };
+    r = { decision: 'deny', salida: salida('deny', git.salteadasPorPlazo() > 0 ? SIN_TIEMPO : ROTO) };
   }
+  if (r.decision !== 'deny' && git.salteadasPorPlazo() > 0) r = { decision: 'deny', salida: salida('deny', SIN_TIEMPO) };
   if (r.decision !== 'nada') process.stdout.write(`${JSON.stringify(r.salida)}\n`);
 }
 

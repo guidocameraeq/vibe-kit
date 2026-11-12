@@ -43,6 +43,9 @@ const SIN_VENTANA_DURO = ['bypassPermissions', 'dontAsk'];
 const PREFIJO = 'secretos:';
 const ROTO = 'freno roto: corré doctor';
 const WIN = process.platform === 'win32';
+const TIMEOUT_INSTALADOR = 60; // el que le pone instalar-hooks-pc a PreToolUse (SPEC-paquete-8d A5.3)
+const PLAZO_PROPIO_MS = (TIMEOUT_INSTALADOR - 10) * 1000;
+const SIN_TIEMPO = 'el freno no llegó a mirar a tiempo (la PC está cargada): repetí el mismo comando; no es un no';
 
 // ---------------------------------------------------------------- <home> por __dirname (r1-15)
 
@@ -1402,15 +1405,18 @@ function principal() {
     entrada = null;
   }
   esPrompt = !!entrada && entrada.hook_event_name === 'UserPromptSubmit';
+  // SPEC-paquete-8d A5.3 y A5.4: plazo propio (el del instalador menos 10 s) y, si no le alcanzó, niega con el aviso honesto
+  git.fijarPlazo(Date.now() + PLAZO_PROPIO_MS);
   let r;
   try {
     if (entrada === null) throw new Error('entrada ilegible');
     r = decidir(entrada);
   } catch (e) {
     if (esPrompt) return; // falla abierto (D-5)
-    process.stdout.write(`${JSON.stringify(salidaTool('deny', ROTO))}\n`);
+    process.stdout.write(`${JSON.stringify(salidaTool('deny', git.salteadasPorPlazo() > 0 ? SIN_TIEMPO : ROTO))}\n`);
     return;
   }
+  if (!esPrompt && r.decision !== 'deny' && git.salteadasPorPlazo() > 0) r = { decision: 'deny', salida: salidaTool('deny', SIN_TIEMPO) };
   if (r.decision !== 'nada') process.stdout.write(`${JSON.stringify(r.salida)}\n`);
 }
 

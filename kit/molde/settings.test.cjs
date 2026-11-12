@@ -14,11 +14,11 @@ const { CARPETA } = require('./hooks/lib/cambios-ruta.cjs');
 const zona = require('./hooks/lib/zona-propia.cjs');
 
 const todos = () => Object.entries(S.hooks).flatMap(([evento, grupos]) => grupos.flatMap((g) => g.hooks.map((h) => ({ evento, matcher: g.matcher, h }))));
-const RE_ARG = /^\$\{CLAUDE_PROJECT_DIR\}\/\.claude\/hooks\/([a-z-]+\.cjs)$/;
+const RE_ARG = /^\$\{CLAUDE_PROJECT_DIR\}\/\.claude\/hooks\/((?:lib\/)?[a-z-]+\.cjs)$/;
 
 test('todo hook en forma exec (D-7): command "node", la ruta en args con ${CLAUDE_PROJECT_DIR}, y el archivo existe en el molde', () => {
   const lista = todos();
-  assert.equal(lista.length, 5);
+  assert.equal(lista.length, 3); // 8d A5: el arranque, escritura-docs y el portero
   for (const { h } of lista) {
     assert.equal(h.type, 'command');
     assert.equal(h.command, 'node', JSON.stringify(h));
@@ -26,12 +26,12 @@ test('todo hook en forma exec (D-7): command "node", la ruta en args con ${CLAUD
     const m = RE_ARG.exec(h.args[0]);
     assert.ok(m, h.args[0]);
     assert.ok(fs.existsSync(path.join(__dirname, 'hooks', m[1])), m[1]);
-    assert.equal(h.timeout, 20);
+    assert.equal(h.timeout, /portero/.test(h.args[0]) ? 60 : 20); // 8d A5.3: el portero, max(60, 3 × p99 de A0)
     assert.ok(!/\$CLAUDE_PROJECT_DIR|"/.test(h.command), 'nada de la forma de texto');
   }
 });
 
-test('P4.7: niega-aprobar, git-seguro y sensible en PreToolUse sobre Bash|PowerShell con timeout 20 y onFailure "block", uno por grupo', () => {
+test('8d A5: un solo hook en PreToolUse sobre Bash|PowerShell, el portero, con timeout 60 y onFailure "block"', () => {
   const pre = S.hooks.PreToolUse;
   // Un solo grupo Bash|PowerShell con los tres (corren en paralelo): la mezcla de zona-propia junta en el primer grupo los hooks
   // nuevos de un mismo matcher, así que con grupos separados el molde mezclado consigo mismo no daba el mismo texto.
@@ -39,8 +39,10 @@ test('P4.7: niega-aprobar, git-seguro y sensible en PreToolUse sobre Bash|PowerS
   assert.equal(grupos.length, 1);
   assert.deepEqual(
     grupos[0].hooks,
-    ['niega-aprobar.cjs', 'git-seguro.cjs', 'sensible.cjs'].map((nombre) => ({ type: 'command', command: 'node', args: [`\${CLAUDE_PROJECT_DIR}/.claude/hooks/${nombre}`], timeout: 20, onFailure: 'block' }))
+    [{ type: 'command', command: 'node', args: ['${CLAUDE_PROJECT_DIR}/.claude/hooks/lib/portero.cjs'], timeout: 60, onFailure: 'block' }]
   );
+  // el número del settings es el del portero (los dos tienen que decir lo mismo)
+  assert.equal(grupos[0].hooks[0].timeout, require('./hooks/lib/portero.cjs').TIMEOUT_SETTINGS);
   // el arranque no niega: si falla, no traba (la sesión arranca sin inyección)
   assert.deepEqual(S.hooks.SessionStart, [{ matcher: '', hooks: [{ type: 'command', command: 'node', args: ['${CLAUDE_PROJECT_DIR}/.claude/hooks/session-start.cjs'], timeout: 20 }] }]);
 });
@@ -102,5 +104,15 @@ test('cada hook del molde tiene un id propio en zona-propia (si no, la mezcla pi
   const viejo = JSON.stringify({ hooks: { PreToolUse: [] } });
   const m = zona.mezclarSettings({ viejo, nuevo: TEXTO, proyecto: viejo });
   const args = m.settings.hooks.PreToolUse.flatMap((g) => g.hooks.flatMap((h) => h.args || []));
-  for (const n of ['niega-aprobar', 'git-seguro', 'sensible']) assert.ok(args.some((a) => a.includes(n)), n);
+  assert.ok(args.some((a) => a.includes('lib/portero.cjs')), 'el portero');
+});
+
+// 8d A5: un proyecto que tenía los tres de la rc.6 sin tocar, al mezclar con el molde nuevo, queda con el portero solo.
+test('8d A5: la mezcla de un settings con los tres hooks viejos (sin tocar) deja solo el portero en Bash|PowerShell', () => {
+  const viejo = JSON.parse(TEXTO);
+  viejo.hooks.PreToolUse.find((g) => g.matcher === 'Bash|PowerShell').hooks = ['niega-aprobar', 'git-seguro', 'sensible'].map((x) => ({ type: 'command', command: 'node', args: [`\${CLAUDE_PROJECT_DIR}/.claude/hooks/${x}.cjs`], timeout: 20, onFailure: 'block' }));
+  const v = JSON.stringify(viejo, null, 2);
+  const m = zona.mezclarSettings({ viejo: v, nuevo: TEXTO, proyecto: v });
+  const bp = m.settings.hooks.PreToolUse.filter((g) => g.matcher === 'Bash|PowerShell').flatMap((g) => g.hooks);
+  assert.deepEqual(bp.map((h) => h.args[0]), ['${CLAUDE_PROJECT_DIR}/.claude/hooks/lib/portero.cjs']);
 });

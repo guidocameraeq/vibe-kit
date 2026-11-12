@@ -919,3 +919,16 @@ test('rt A 10: si secretos y la firma preguntan las dos, la ventana dice las dos
   assert.equal(r.decision, 'ask');
   assert.match(r.salida.hookSpecificOutput.permissionDecisionReason, /^Es tu firma para cambiar un freno.* Además: /);
 });
+
+test('A5.4 en la PC: si el plazo propio no le alcanzó (una consulta a git que no corrió), niega con el aviso honesto', () => {
+  const inst = instalar((t) => t.replace('const PLAZO_PROPIO_MS = (TIMEOUT_INSTALADOR - 10) * 1000;', 'const PLAZO_PROPIO_MS = 1;'));
+  const r = repo();
+  conFicha(r, FICHA_BASE);
+  const p = correr(inst, W(path.join(inst.home, '.claude', 'settings.json'), 'x', 'default', r));
+  const h = JSON.parse(p.stdout).hookSpecificOutput;
+  assert.equal(h.permissionDecision, 'deny');
+  assert.match(h.permissionDecisionReason, /^el freno no llegó a mirar a tiempo \(la PC está cargada\): repetí el mismo comando; no es un no$/);
+  // con su plazo de verdad, lo mismo pregunta
+  const sano = instalar();
+  assert.equal(JSON.parse(correr(sano, W(path.join(sano.home, '.claude', 'settings.json'), 'x', 'default', r)).stdout).hookSpecificOutput.permissionDecision, 'ask');
+});

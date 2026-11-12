@@ -102,7 +102,7 @@ function sinKit(v) {
 }
 
 // ================================================================ criterio 11
-test('registra por regla e INSTALADO: exec con la ruta absoluta, timeout 20, block en PreToolUse y SIN block en UserPromptSubmit; el deny del almacén', () => {
+test('registra por regla e INSTALADO: exec con la ruta absoluta, timeout 60 en PreToolUse (8d A5.3) y 20 en el prompt, block en PreToolUse y SIN block en UserPromptSubmit; el deny del almacén', () => {
   const h = home();
   ponerSettings(h, textoAjeno());
   const r = correr(h);
@@ -111,7 +111,7 @@ test('registra por regla e INSTALADO: exec con la ruta absoluta, timeout 20, blo
   const v = JSON.parse(fs.readFileSync(settingsDe(h), 'utf8'));
   const pre = gruposKit(v.hooks.PreToolUse);
   assert.equal(pre.length, 1);
-  assert.deepEqual(pre[0], { matcher: 'Bash|PowerShell|Write|Edit|MultiEdit|NotebookEdit', hooks: [{ type: 'command', command: 'node', args: [secretosDe(h)], timeout: 20, onFailure: 'block' }] });
+  assert.deepEqual(pre[0], { matcher: 'Bash|PowerShell|Write|Edit|MultiEdit|NotebookEdit', hooks: [{ type: 'command', command: 'node', args: [secretosDe(h)], timeout: 60, onFailure: 'block' }] });
   assert.ok(path.isAbsolute(pre[0].hooks[0].args[0]));
   const ups = gruposKit(v.hooks.UserPromptSubmit);
   assert.equal(ups.length, 1);
@@ -465,7 +465,7 @@ test('actualizar: un registro del kit con otra forma se reemplaza (uno solo, en 
   assert.equal(gruposKit(d.hooks.PreToolUse).length, 1);
   assert.deepEqual(d.hooks.PreToolUse[0], { matcher: 'Bash', hooks: [{ type: 'command', command: 'echo primero' }] });
   assert.equal(d.hooks.PreToolUse[1].hooks[0].onFailure, 'block', 'en el lugar del viejo');
-  assert.equal(d.hooks.PreToolUse[1].hooks[0].timeout, 20);
+  assert.equal(d.hooks.PreToolUse[1].hooks[0].timeout, 60);
   assert.deepEqual(d.hooks.PreToolUse[2], { matcher: 'Write', hooks: [{ type: 'command', command: 'echo vecino' }] });
   assert.ok(!('onFailure' in d.hooks.UserPromptSubmit[0].hooks[0]));
   assert.deepEqual(d.permissions.deny, [I.denyAlmacen(h), 'Read(./.env)']);
@@ -525,7 +525,7 @@ test('uso: una opción desconocida, --home sin carpeta o --quitar con --sacar-vi
 });
 
 // ================================================================ 4.7 caso 1 (sin node) — pendiente (c) de D3.2
-test('4.7 caso 1 (sin node) de secretos: registrado en forma exec, timeout 20, onFailure "block"; sin node el proceso ni arranca', () => {
+test('4.7 caso 1 (sin node) de secretos: registrado en forma exec, timeout 60 (8d A5.3), onFailure "block"; sin node el proceso ni arranca', () => {
   const h = home();
   assert.equal(correr(h).codigo, 0);
   const v = JSON.parse(fs.readFileSync(settingsDe(h), 'utf8'));
@@ -534,7 +534,7 @@ test('4.7 caso 1 (sin node) de secretos: registrado en forma exec, timeout 20, o
   assert.equal(hk.command, 'node', 'exec: command es el ejecutable, no un texto para una shell');
   assert.equal(hk.args.length, 1);
   assert.match(hk.args[0], /\/\.claude\/hooks\/kit\/secretos\.cjs$/);
-  assert.equal(hk.timeout, 20);
+  assert.equal(hk.timeout, 60);
   assert.equal(hk.onFailure, 'block');
   for (const t of ['Bash', 'PowerShell', 'Write', 'Edit', 'MultiEdit', 'NotebookEdit']) assert.ok(g.matcher.split('|').includes(t), t);
   // sin node, el proceso ni arranca: eso es lo que onFailure "block" convierte en freno (G0)

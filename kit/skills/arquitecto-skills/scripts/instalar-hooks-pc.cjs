@@ -79,7 +79,7 @@ function denyAlmacen(home) {
   return `Read(/${h}/.config/kit-secretos/**)`;
 }
 
-const hookPre = (r) => ({ type: 'command', command: 'node', args: [r.secretos], timeout: 20, onFailure: 'block' });
+const hookPre = (r) => ({ type: 'command', command: 'node', args: [r.secretos], timeout: 60, onFailure: 'block' }); // 8d A5.3: secretos.cjs se da 10 s menos
 const hookPrompt = (r) => ({ type: 'command', command: 'node', args: [r.secretos], timeout: 20 }); // sin onFailure (D-5)
 const grupoPre = (r) => ({ matcher: MATCHER, hooks: [hookPre(r)] });
 const grupoPrompt = (r) => ({ hooks: [hookPrompt(r)] });
