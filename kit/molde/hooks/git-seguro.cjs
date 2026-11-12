@@ -19,6 +19,8 @@
 //   - Un renglón en .claude/frenos.log por caso negado (detalle = el caso; un ask: "preguntó: <caso>"). NUNCA el comando.
 //   - Texto que comando.cjs marca incompleto: se juzga lo que salió.
 //   - Las filas "en sesión de agente" usan lib/agente.cjs. Las demás, todo rol y todo modo (también bypassPermissions).
+//   - Preguntar en vez de negar, solo al dueño con ventana (conClic: rol humano y un modo con ventana): merge-ours y borrar una
+//     rama sin mezclar (rc.7, A4.2 y A7 c). historia-defecto-sin-remoto mira solo el modo.
 // ALIAS (rf3-4, rf2-2): `-c alias.*`/`--config-env=alias.*` frenan; guardar uno de shell o con --no-verify/commit -n frena en
 // todo rol (las dos formas: `alias.<x>` y `alias.<x>.command`); un `git <x>` con x que no es subcomando de git (con su caja: `git
 // STATUS` es un alias) se busca en la config (un `git config --get-regexp`) y se juzga lo que corre.
@@ -53,6 +55,8 @@ const MENSAJES = {
   'push-punto': '`git push .` mueve refs locales por la puerta de atrás. Usá `git merge` o `git switch` comunes.',
   'push-otra-rama':
     'a esa ref no sube un obrero (ni una sesión de agente): a la rama por defecto sube solo el director (worktree.cjs integrar) o vos desde la carpeta principal; vos pusheás `modulo/<x>--<ID>` (`git push -u origin HEAD` desde tu worktree). Tampoco `--all`, `--branches` ni `--tags`; el pre-push lo frena igual.',
+  'merge-ours':
+    '`-s ours` (`--strategy=ours`): esto marca como mezclada una rama sin traer su contenido; después se puede borrar con trabajo adentro. Para quedarte con lo tuyo en los choques, `-X ours` trae el resto; para descartar una rama, que la borre el dueño.',
   'update-ref': '`git update-ref` escribe refs a mano (falsifica la historia que leen los frenos). Usá commit, merge o branch.',
   replace: '`git replace` cambia lo que git muestra de un commit sin que se note. No se usa en el kit.',
   'symbolic-ref':
@@ -61,10 +65,10 @@ const MENSAJES = {
     'mover o pisar una rama a la fuerza (`branch -f`/`-M`/`-C`, `checkout -B`, `switch -C`) o borrar una sin mergear (`branch -D`) pierde commits. `git branch -d` borra la que ya está mergeada; para una rama nueva, `git switch -c <nombre>`.',
   'fetch-a-remotes':
     'un fetch que escribe en `refs/remotes/*` falsifica lo que dice origin (y la ficha que leen los frenos sale de ahí). Usá `git fetch` sin refspec.',
-  'remote-set-head': '`git remote set-head` cambia cuál es la rama por defecto para los frenos. Lo hace Guido a mano.',
-  'remote-set-url': '`git remote set-url` cambia a dónde van los push y de dónde sale la ficha. Lo hace Guido a mano.',
-  'remote-remove': '`git remote remove` borra el remoto (y con él la ficha vigente). Lo hace Guido a mano.',
-  'config-default-branch': '`init.defaultBranch` decide cuál es la rama por defecto para los frenos. Lo cambia Guido a mano.',
+  'remote-set-head': '`git remote set-head` cambia cuál es la rama por defecto para los frenos. Pedíselo al dueño: es un clic en su sesión.',
+  'remote-set-url': '`git remote set-url` cambia a dónde van los push y de dónde sale la ficha. Pedíselo al dueño: es un clic en su sesión.',
+  'remote-remove': '`git remote remove` borra el remoto (y con él la ficha vigente). Pedíselo al dueño: es un clic en su sesión.',
+  'config-default-branch': '`init.defaultBranch` decide cuál es la rama por defecto para los frenos. Pedíselo al dueño: es un clic en su sesión.',
   'hooks-path':
     '`core.hooksPath` apaga o desvía el pre-commit, y `core.attributesFile` (o `--attr-source`) cambia qué archivos ve como texto (por `config`, `-c` o `--config-env`). Lo único que pasa es reponer el primero: `git config core.hooksPath .githooks`; los atributos van en el `.gitattributes` del repo, a la vista.',
   'hooks-path-ausente':
@@ -72,9 +76,9 @@ const MENSAJES = {
   'variables-peligrosas':
     'esa variable cambia qué repo, qué config (también `HOME`/`XDG_CONFIG_HOME`: otra config global) o qué programa usa git (esquiva los frenos y el pre-commit). Corré git sin ella. `GIT_EDITOR`, `GIT_PAGER`, `GIT_SEQUENCE_EDITOR`, `GIT_AUTHOR_*`, `GIT_COMMITTER_*` y `GIT_TERMINAL_PROMPT` pasan.',
   'config-include':
-    '`include.*`/`includeIf.*` mete config de otro archivo (puede apagar los hooks). No se escribe desde una sesión; si hace falta, Guido a mano.',
+    '`include.*`/`includeIf.*` mete config de otro archivo (puede apagar los hooks). No se escribe desde una sesión; si hace falta, pedíselo al dueño: es un clic en su sesión.',
   'config-agente':
-    'en una sesión de agente no se escribe la config de git. En vez de `pull.rebase`, `git pull --rebase` (o `--no-rebase`); en vez de `push.autoSetupRemote`, `git push -u origin HEAD`; `safe.directory` lo pone Guido; la identidad en un clon de prueba, por comando: `git -c user.name=… -c user.email=… commit`. `core.longpaths` y `rerere.*` pasan.',
+    'en una sesión de agente no se escribe la config de git. En vez de `pull.rebase`, `git pull --rebase` (o `--no-rebase`); en vez de `push.autoSetupRemote`, `git push -u origin HEAD`; `safe.directory` lo pone el dueño; la identidad en un clon de prueba, por comando: `git -c user.name=… -c user.email=… commit`. `core.longpaths` y `rerere.*` pasan.',
   plomeria:
     'plomería de git (objetos, índice o remotos a mano) desde una sesión de agente. Usá los comandos comunes: add, commit, merge; el remoto lo arma el director.',
   'no-verify':
@@ -86,7 +90,7 @@ const MENSAJES = {
   'red-de-rescate':
     'vencer ya los objetos sueltos o el reflog (`gc --prune=now`, `prune`, `reflog expire --expire=now`, `reflog delete`, `gc.*Expire` cortos) borra la red que rescata un commit o un stash perdido. `git gc` a secas pasa (respeta las dos semanas y los 90 días).',
   'rama-huerfana':
-    'una rama sin padre (`checkout --orphan`, `switch --orphan`, `worktree add --orphan`) se sube sin que el candado juzgue su raíz. Desde una sesión de agente se trabaja sobre la rama que te dieron; para una nueva, `git switch -c <nombre>`. Si hace falta una huérfana, la crea Guido o el director.',
+    'una rama sin padre (`checkout --orphan`, `switch --orphan`, `worktree add --orphan`) se sube sin que el candado juzgue su raíz. Desde una sesión de agente se trabaja sobre la rama que te dieron; para una nueva, `git switch -c <nombre>`. Si hace falta una huérfana, la crea el dueño o el director.',
   'worktree-remove-force':
     '`git worktree remove -f` borra un worktree con trabajo sin commitear. Commiteá o mirá su `git status`; después `git worktree remove` sin `-f`.',
   'matar-por-nombre':
@@ -468,9 +472,20 @@ function esAmplio(p, base) {
   }
   if (/^:\(/.test(p)) return true; // pathspec mágico (:(glob)…, :(top)): no es un archivo nombrado
   if (/[/\\]$/.test(p)) return true;
-  if (/[*?[]/.test(p)) return true;
+  if (/[*?]/.test(p)) return true;
+  // rc.7 A7 (d), 43e: `app/[id]/page.tsx` (las rutas de Next.js) es un archivo nombrado si existe con ese nombre exacto; si no,
+  // los corchetes son un patrón
+  if (p.includes('[') && !esArchivo(base, p)) return true;
   if (base && esCarpeta(path.resolve(base, p))) return true;
   return false;
+}
+function esArchivo(base, p) {
+  if (!base) return false;
+  try {
+    return fs.statSync(path.resolve(base, p)).isFile();
+  } catch (e) {
+    return false;
+  }
 }
 // `-f` entre las letras de un grupo de opciones cortas; `-b`/`-B`/`-c`/`-C` llevan el nombre pegado (`-bfix`).
 function forzadoCorto(a) {
@@ -708,7 +723,11 @@ function casosGit(g, dir, ctx, hallar) {
       return;
     }
     case 'merge':
+      mergeOurs(rest, ctx, hallar);
       hooksPathAusente(dir, ctx, hallar);
+      return;
+    case 'pull':
+      mergeOurs(rest, ctx, hallar);
       return;
     case 'push':
       push(g, dir, ctx, hallar, raiz);
@@ -798,6 +817,66 @@ const esOrphan = (a) => /^--or(p(h(a(n)?)?)?)?(=|$)/.test(a);
 
 function enAgente(ctx, f) {
   if (ctx.sesion().agente) f();
+}
+
+// ¿Este freno puede preguntar en vez de negar? Solo al dueño: rol humano (no una sesión de agente, tampoco el director ni el
+// actualizador) y un modo con ventana, como historia-defecto-sin-remoto. Sin ventana, nadie contesta: niega (rc.7, A4.2 y A7 c).
+function conClic(ctx) {
+  const s = ctx.sesion();
+  return !s.agente && s.rol === 'humano' && CON_VENTANA.includes(ctx.modo);
+}
+
+// merge-ours (rc.7, A4.2): `git merge`/`git pull` con la estrategia `ours` (`-s ours`, `-sours`, `-qs ours`, `--strategy=ours`,
+// `--strategy ours`). `-X ours`/`--strategy-option` es otra cosa (trae el contenido). `-s=ours` y `--strat…` git no los acepta.
+function mergeOurs(rest, ctx, hallar) {
+  const estrategias = [];
+  for (let i = 0; i < rest.length; i++) {
+    const a = rest[i];
+    if (a === '--') break;
+    if (a === '--strategy') estrategias.push(rest[++i]);
+    else if (a.startsWith('--strategy=')) estrategias.push(a.slice('--strategy='.length));
+    else if (['--message', '--file', '--strategy-option', '--gpg-sign', '--into-name', '--cleanup', '--log', '--upload-pack', '--depth', '--deepen', '--shallow-since', '--shallow-exclude', '--negotiation-tip', '--jobs', '--server-option'].includes(a)) i++;
+    else if (esOpcion(a) && !a.startsWith('--')) {
+      // grupo corto: `s` lleva la estrategia (pegada o en la que sigue); m, F, X, S, j, o llevan su valor pegado o en la que sigue
+      const l = a.slice(1);
+      for (let k = 0; k < l.length; k++) {
+        const ch = l[k];
+        if (ch === 's') {
+          estrategias.push(k < l.length - 1 ? l.slice(k + 1) : rest[++i]);
+          break;
+        }
+        if ('mFXoj'.includes(ch)) {
+          if (k === l.length - 1) i++;
+          break;
+        }
+        if (ch === 'S') break; // -S[<keyid>]: el valor solo va pegado
+      }
+    }
+  }
+  if (!estrategias.includes('ours')) return;
+  hallar('merge-ours', conClic(ctx) ? 'ask' : 'deny');
+}
+
+// A7 (b), rc.7: las ramas de usar y tirar de un obrero (`tmp/<x>--<ID>-<algo>`, con el <x>--<ID> de SU rama) las borra él. Las
+// `tmp/` de otro encargo siguen la regla de siempre (las ramas se comparten entre worktrees, rt-13).
+function tmpPropia(ctx, nombre) {
+  const p = ctx.contexto().pestana(ctx.sesion().rama);
+  if (p.tipo !== 'obrero') return false;
+  const prefijo = `tmp/${p.modulo}--${p.id}-`;
+  const corto = sinRefsHeads(nombre);
+  return corto.startsWith(prefijo) && corto.length > prefijo.length;
+}
+
+// A7 (c), rc.7 (55: una rama que entró aplastada no se podía borrar nunca): borrar una rama sin mezclar le pregunta al dueño
+// (conClic) cuántos commits se pierden; el texto, o null si no pregunta (la rama por defecto, sin ventana, o no se pudo contar: niega).
+function avisoSinMezclar(ctx, raiz, tip, nombre) {
+  if (!conClic(ctx)) return null;
+  const rv = ctx.refVigente(raiz);
+  if (!rv || sinRefsHeads(nombre) === rv.nombre) return null;
+  const n = ctx.contar(raiz, [tip, '--not', rv.ref]);
+  if (!n) return null;
+  const cuantos = n === 1 ? '1 commit que no está' : `${n} commits que no están`;
+  return `la rama ${nombre} tiene ${cuantos} en ${rv.nombre}: si la borrás se pierden`;
 }
 
 function hooksPathAusente(dir, ctx, hallar) {
@@ -892,6 +971,7 @@ function push(g, dir, ctx, hallar, raiz) {
       continue;
     }
     if (/^kit\//.test(corto)) continue; // kit/*: "borrala y subila de nuevo" (F §6), como el force
+    if (tmpPropia(ctx, corto)) continue; // A7 (b): la rama de usar y tirar del propio obrero
     const tip = nombre.startsWith('refs/') && !nombre.startsWith('refs/heads/')
       ? nombre
       : [`refs/remotes/${remoto || 'origin'}/${corto}`, `refs/heads/${corto}`].find((t) => ctx.resuelve(r, t));
@@ -899,7 +979,11 @@ function push(g, dir, ctx, hallar, raiz) {
       hallar('push-borrar', 'deny', 'no se encontró la rama para ver si está mergeada');
       continue;
     }
-    if (mergeada(ctx, r, tip, null) !== true) hallar('push-borrar', 'deny');
+    const m = mergeada(ctx, r, tip, null);
+    if (m === true) continue;
+    const aviso = m === false ? avisoSinMezclar(ctx, r, tip, corto) : null;
+    if (aviso) hallar('push-borrar', 'ask', aviso);
+    else hallar('push-borrar', 'deny');
   }
 }
 
@@ -940,9 +1024,14 @@ function branch(rest, dir, ctx, hallar, raiz) {
   for (const nombre of pos) {
     const tip = remotas ? `refs/remotes/${nombre}` : `refs/heads/${nombre}`;
     if (!ctx.resuelve(r, tip)) continue; // no existe: git va a fallar solo
+    if (!remotas && tmpPropia(ctx, nombre)) continue; // A7 (b): la rama de usar y tirar del propio obrero
     const up = remotas ? null : `${nombre}@{upstream}`; // con el nombre corto: refs/heads/x@{upstream} no resuelve
     const upOk = up && ctx.resuelve(r, up) ? up : null;
-    if (mergeada(ctx, r, tip, upOk) !== true) hallar('branch-f', 'deny', `branch -D de ${nombre}, que no está mergeada`);
+    const m = mergeada(ctx, r, tip, upOk);
+    if (m === true) continue;
+    const aviso = m === false && !remotas ? avisoSinMezclar(ctx, r, tip, nombre) : null;
+    if (aviso) hallar('branch-f', 'ask', aviso);
+    else hallar('branch-f', 'deny', `branch -D de ${nombre}, que no está mergeada`);
   }
 }
 
@@ -1235,15 +1324,21 @@ function quitadosVigentes(datos, ahora = new Date()) {
   return new Set(q.filter((x) => x && typeof x.id === 'string' && (x.hasta === 'siempre' || (/^\d{4}-\d{2}-\d{2}$/.test(x.hasta) && x.hasta >= hoy))).map((x) => x.id));
 }
 
+// A5.3 y A5.4 (SPEC-paquete-8d): solo, como plan B del portero, con el mismo plazo propio (el del settings menos 10 s; antes 15 s)
+// y el aviso honesto si no le alcanzó: niega, pero dice que no es un no.
+const PLAZO_PROPIO_MS = 50000;
+const SIN_TIEMPO = 'el freno no llegó a mirar a tiempo (la PC está cargada): repetí el mismo comando; no es un no';
 function principal() {
   let r;
+  const git = require('./lib/git.cjs');
   try {
-    require('./lib/git.cjs').fijarPlazo(Date.now() + 15000);
+    git.fijarPlazo(Date.now() + PLAZO_PROPIO_MS);
     const t = fs.readFileSync(0, 'utf8');
     r = decidir(JSON.parse(t));
   } catch (err) {
-    r = { decision: 'deny', salida: salida('deny', ROTO) };
+    r = { decision: 'deny', salida: salida('deny', git.salteadasPorPlazo() > 0 ? SIN_TIEMPO : ROTO) };
   }
+  if (r.decision !== 'deny' && git.salteadasPorPlazo() > 0) r = { decision: 'deny', salida: salida('deny', SIN_TIEMPO) };
   if (r.decision !== 'nada') process.stdout.write(`${JSON.stringify(r.salida)}\n`);
 }
 

@@ -561,7 +561,7 @@ test('la tabla de P4.4: cada caso frena (Bash y PowerShell), todo rol y todo mod
   }
   // cada fila de la tabla que es de sintaxis tiene al menos un caso acá (las de contexto van aparte, abajo)
   for (const caso of Object.keys(gs.MENSAJES)) {
-    if (['historia-defecto', 'historia-defecto-sin-remoto', 'push-borrar', 'hooks-path-ausente', 'config-agente', 'plomeria', 'rama-huerfana', 'salir-del-worktree', 'push-otra-rama'].includes(caso)) continue;
+    if (['historia-defecto', 'historia-defecto-sin-remoto', 'push-borrar', 'hooks-path-ausente', 'config-agente', 'plomeria', 'rama-huerfana', 'salir-del-worktree', 'push-otra-rama', 'merge-ours'].includes(caso)) continue;
     assert.ok(vistos.has(caso), `falta un caso que frene para ${caso}`);
   }
 });
@@ -994,9 +994,10 @@ test('push --delete / :rama de una mergeada pasa; de una no mergeada, o de la ra
   pasa(d, 'git push origin --delete mergeada');
   pasa(d, 'git push origin :mergeada');
   pasa(d, 'git push -d origin mergeada', { ps: true });
-  const m = niega(d, 'git push origin --delete suelta', 'push-borrar').salida.hookSpecificOutput.permissionDecisionReason;
+  // sin ventana (con ventana y rol humano pregunta: rc.7, A7 c)
+  const m = niega(d, 'git push origin --delete suelta', 'push-borrar', { modo: 'dontAsk' }).salida.hookSpecificOutput.permissionDecisionReason;
   assert.match(m, /si ya está mergeada pasa; si no, `worktree cerrar`/i);
-  niega(d, 'git push origin :suelta', 'push-borrar');
+  niega(d, 'git push origin :suelta', 'push-borrar', { modo: 'dontAsk' });
   niega(d, 'git push origin --delete main', 'push-borrar');
   niega(d, 'git push origin :main', 'push-borrar', { modo: 'bypassPermissions' });
   niega(d, 'git push origin --delete no-existe', 'push-borrar');
@@ -1026,10 +1027,146 @@ test('branch -D: de una mergeada (en origin/main o en su upstream) pasa; de una 
   pasa(d, 'git branch -D en-main');
   pasa(d, 'git branch -D en-su-upstream');
   pasa(d, 'git branch -d -f en-main');
-  niega(d, 'git branch -D sin-mergear', 'branch-f');
-  niega(d, 'git branch --delete --force sin-mergear', 'branch-f');
-  niega(d, 'git branch -D sin-mergear', 'branch-f', { ps: true });
+  // sin ventana (con ventana y rol humano pregunta: rc.7, A7 c)
+  niega(d, 'git branch -D sin-mergear', 'branch-f', { modo: 'dontAsk' });
+  niega(d, 'git branch --delete --force sin-mergear', 'branch-f', { modo: 'bypassPermissions' });
+  niega(d, 'git branch -D sin-mergear', 'branch-f', { ps: true, modo: 'dontAsk' });
   pasa(d, 'git branch -d sin-mergear'); // git mismo se niega
+});
+
+// ---------------------------------------------------------------- rc.7 (SPEC-paquete-8d, tanda A): A4.2, A7 (b, c, d) y A8
+
+const motivo = (r) => r.salida.hookSpecificOutput.permissionDecisionReason;
+// Una rama sin mezclar, con `commits` commits propios, subida a origin SIN upstream (con upstream, branch -D ya pasa: lo de
+// adentro está en origin/<rama>). Vuelve a main.
+function ramaSuelta(d, nombre, commits = 1) {
+  g(d, 'switch', '-q', '-c', nombre);
+  for (let i = 0; i < commits; i++) commitear(d);
+  g(d, 'push', '-q', 'origin', nombre);
+  g(d, 'switch', '-q', 'main');
+}
+
+test('rc.7 A4.2 merge-ours: merge/pull con -s ours, -sours o --strategy=ours → deny en sesión de agente, ask con humano y ventana, deny sin ventana; -X ours nada', () => {
+  const { d } = conRemoto();
+  const w = worktree(d, 'modulo/m--01', 'obrero');
+  const wd = worktree(d, 'modulo/m', 'director');
+  const formas = [
+    'git merge -s ours otra',
+    'git merge -sours otra',
+    'git merge --strategy=ours otra',
+    'git merge --strategy ours otra',
+    'git merge -qs ours otra',
+    'git merge --no-edit -nsours otra',
+    'git merge -s recursive -s ours otra',
+    'git pull -s ours origin main',
+    'git pull --strategy=ours',
+    'git pull --no-rebase --strategy ours origin otra',
+  ];
+  for (const c of formas) {
+    niega(w, c, 'merge-ours');
+    const r = decide(d, c);
+    assert.equal(r.decision, 'ask', c);
+    assert.deepEqual(r.casos, ['merge-ours'], c);
+    assert.equal(r.renglonesDatos[0].detalle, 'preguntó: merge-ours');
+    for (const modo of ['acceptEdits', 'plan', 'auto']) assert.equal(decide(d, c, { modo }).decision, 'ask', `${c} ${modo}`);
+    for (const modo of ['dontAsk', 'bypassPermissions', undefined]) niega(d, c, 'merge-ours', { modo });
+  }
+  niega(w, 'git merge -s ours otra', 'merge-ours', { ps: true });
+  niega(wd, 'git merge -s ours otra', 'merge-ours'); // el director no es el dueño: la pregunta es solo para el rol humano
+  assert.match(motivo(decide(d, 'git merge -s ours otra')), /hook:git-seguro\/merge-ours\).*esto marca como mezclada una rama sin traer su contenido; después se puede borrar con trabajo adentro/);
+  // no: -X ours es otra cosa (resuelve los choques a favor de lo propio, pero trae el contenido); otras estrategias; `ours` como
+  // mensaje; -s=ours y --strat, que git no acepta
+  for (const c of ['git merge -X ours otra', 'git merge -Xours otra', 'git merge --strategy-option=ours otra', 'git merge --strategy-option ours otra', 'git pull -X ours', 'git merge -s recursive otra', 'git merge --strategy=ort otra', 'git merge -m "-s ours" otra', 'git merge -m ours otra', 'git merge -s=ours otra', 'git merge --strat=ours otra', 'git checkout --ours a.txt', 'git merge otra', 'git pull']) {
+    pasa(w, c);
+    pasa(d, c);
+  }
+});
+
+test('rc.7 A7 (b): un obrero borra SUS ramas tmp/<x>--<ID>-<algo> (branch -D y push --delete); las de otro encargo, como siempre', () => {
+  const { d } = conRemoto();
+  for (const t of ['tmp/pagos--07-prueba', 'tmp/pagos--08-prueba', 'tmp/otro--07-prueba', 'tmp/pagos--07', 'tmp/pagos--070-prueba']) ramaSuelta(d, t);
+  const w = worktree(d, 'modulo/pagos--07', 'obrero');
+  // sí: las suyas, en todas las formas que el freno ya reconoce
+  for (const c of [
+    'git branch -D tmp/pagos--07-prueba',
+    'git branch --delete --force tmp/pagos--07-prueba',
+    'git branch -d -f tmp/pagos--07-prueba',
+    'git push origin --delete tmp/pagos--07-prueba',
+    'git push origin :tmp/pagos--07-prueba',
+    'git push -d origin refs/heads/tmp/pagos--07-prueba',
+  ]) {
+    pasa(w, c);
+    pasa(w, c, { modo: 'bypassPermissions' });
+  }
+  pasa(w, 'git branch -D tmp/pagos--07-prueba', { ps: true });
+  // no: las de otro encargo (otro ID, otro módulo), sin el `-<algo>`, o un ID que solo empieza igual
+  for (const t of ['tmp/pagos--08-prueba', 'tmp/otro--07-prueba', 'tmp/pagos--07', 'tmp/pagos--070-prueba']) {
+    niega(w, `git branch -D ${t}`, 'branch-f');
+    niega(w, `git push origin --delete ${t}`, 'push-borrar');
+  }
+  // un humano sin ventana: la regla de siempre (no es su encargo)
+  niega(d, 'git branch -D tmp/pagos--07-prueba', 'branch-f', { modo: 'dontAsk' });
+  niega(d, 'git push origin --delete tmp/pagos--07-prueba', 'push-borrar', { modo: 'dontAsk' });
+});
+
+test('rc.7 A7 (c): humano con ventana: branch -D o push --delete de una rama sin mezclar pregunta cuántos commits se pierden; la rama por defecto, sin ventana, director y obrero, deny', () => {
+  const { d } = conRemoto();
+  ramaSuelta(d, 'suelta', 2);
+  ramaSuelta(d, 'una', 1);
+  const wd = worktree(d, 'modulo/z', 'director');
+  const w = worktree(d, 'modulo/z--01', 'obrero');
+  for (const [c, caso] of [
+    ['git branch -D suelta', 'branch-f'],
+    ['git branch --delete --force suelta', 'branch-f'],
+    ['git push origin --delete suelta', 'push-borrar'],
+    ['git push origin :suelta', 'push-borrar'],
+    ['git push -d origin suelta', 'push-borrar'],
+  ]) {
+    const primero = c === 'git branch -D suelta'; // los cuatro modos y los tres sin ventana, en el primero; en los demás, uno de cada
+    for (const modo of primero ? ['default', 'acceptEdits', 'plan', 'auto'] : ['default']) {
+      const r = decide(d, c, { modo });
+      assert.equal(r.decision, 'ask', `${c} ${modo}`);
+      assert.deepEqual(r.casos, [caso]);
+      assert.match(motivo(r), /la rama suelta tiene 2 commits que no están en main: si la borrás se pierden/);
+      assert.equal(r.renglonesDatos[0].detalle, `preguntó: ${caso}`);
+    }
+    for (const modo of primero ? ['dontAsk', 'bypassPermissions', undefined] : ['dontAsk']) niega(d, c, caso, { modo });
+    niega(wd, c, caso);
+    niega(w, c, caso);
+  }
+  assert.equal(decide(d, 'git branch -D suelta', { ps: true }).decision, 'ask');
+  assert.match(motivo(decide(d, 'git push origin --delete una')), /la rama una tiene 1 commit que no está en main: si la borrás se pierden/);
+  // un ask y un deny juntos: gana el deny
+  assert.deepEqual(niega(d, 'git branch -D suelta && git stash', 'stash').casos, ['stash']);
+  // la rama por defecto: deny siempre (en origin, y la local con un commit sin subir)
+  niega(d, 'git push origin --delete main', 'push-borrar');
+  niega(d, 'git push origin :main', 'push-borrar');
+  commitear(d);
+  niega(d, 'git branch -D main', 'branch-f');
+  // lo mezclado sigue pasando
+  pasa(d, 'git branch -d suelta');
+});
+
+test('rc.7 A7 (d): restaurar-arbol: una ruta con [ ] que existe como archivo con ese nombre no es amplia; * y ? siguen siéndolo', () => {
+  const d = repo({ 'app/[id]/page.tsx': 'x\n', 'app/[slug]/[id].tsx': 'x\n', 'app/a.tsx': 'x\n' });
+  for (const c of ['git restore app/[id]/page.tsx', 'git checkout -- app/[id]/page.tsx', 'git restore -- "app/[slug]/[id].tsx"', 'git checkout HEAD app/[id]/page.tsx', 'cd app && git restore [id]/page.tsx', 'git -C app restore [id]/page.tsx', 'git rm -f app/[id]/page.tsx']) {
+    pasa(d, c);
+  }
+  pasa(d, 'git restore app/[id]/page.tsx', { ps: true });
+  for (const c of ['git restore app/[id]', 'git restore app/[id]/', 'git restore app/[otro]/page.tsx', 'git restore app/*.tsx', 'git restore app/[id]/*.tsx', 'git restore app/[id]/pag?.tsx', 'git checkout -- app/[ab].tsx', 'git restore app/[id]/page.tsx app/[x]/y.tsx', 'git -C app restore app/[id]/page.tsx']) {
+    niega(d, c, 'restaurar-arbol');
+  }
+  niega(d, 'git rm -f app/[ab].tsx', 'rm-forzado');
+});
+
+test('rc.7 A8: los mensajes no dicen "guido" ni rojo/roja/verde; lo que hacía Guido a mano se le pide al dueño', () => {
+  for (const [caso, m] of Object.entries(gs.MENSAJES)) assert.doesNotMatch(m, /\bguido\b|\broj[oa]s?\b|\bverdes?\b/i, caso);
+  assert.doesNotMatch(gs.ROTO, /\bguido\b|\broj[oa]s?\b|\bverdes?\b/i);
+  for (const caso of ['remote-set-head', 'remote-set-url', 'remote-remove', 'config-default-branch', 'config-include']) {
+    assert.match(gs.MENSAJES[caso], /pedíselo al dueño: es un clic en su sesión/i, caso);
+  }
+  assert.match(gs.MENSAJES['rama-huerfana'], /la crea el dueño o el director/);
+  assert.match(niega(H, 'git remote set-url origin x', 'remote-set-url').salida.hookSpecificOutput.permissionDecisionReason, /pedíselo al dueño/i);
 });
 
 // ---------------------------------------------------------------- hooks-path-ausente (r1-8)
@@ -1064,7 +1201,7 @@ test('config-agente: en sesión de agente toda escritura de config frena (con la
   const m = niega(w, 'git config pull.rebase true', 'config-agente').salida.hookSpecificOutput.permissionDecisionReason;
   assert.match(m, /git pull --rebase/);
   assert.match(m, /git push -u origin HEAD/);
-  assert.match(m, /safe\.directory` lo pone Guido/);
+  assert.match(m, /safe\.directory` lo pone el dueño/);
   // la identidad en un clon de prueba (medición: 10 llamadas con `git config user.*` en sesión de agente): por comando, pasa
   niega(w, 'git config user.email t@ejemplo.invalid', 'config-agente');
   assert.match(m, /git -c user\.name=… -c user\.email=… commit/);
