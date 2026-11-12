@@ -14,6 +14,11 @@
 //     comando (`git push --tags` pregunta en `git push origin --tags`; `--follow-tags` no es `--tags`: si duele, va como otra entrada).
 //     Una bandera larga de la entrada vale también abreviada y con valor (SPEC-paquete-8d A4.1): `--produccion` matchea `--prod`,
 //     `--p`, `--produccion=si` y `--prod=si`; las de un guion y las que traen `=` en la ficha, tal cual (`-p` no es `--produccion`).
+//     Y al revés (segunda vuelta del red team, rt-8): `--prod` en la ficha matchea `--production` (la de la ficha, con 3+ letras);
+//     `--x=v` y `--x v` son lo mismo de los dos lados; en PowerShell (la herramienta, pwsh/powershell o un .ps1) las de un guion
+//     también se abrevian (`-Prod` por `-Production`), sin mayúsculas. rt-7: en npm/pnpm/yarn, `run`/`run-script`/`rum`/`urn` son
+//     lo mismo, yarn y pnpm sin `run` también, y `--prefix`, `-w`, `--workspace`, `-C`, `--dir`, `--filter`, `--cwd` con su valor no
+//     corren las palabras (`npm -w web run deploy` es `npm run deploy`). Lo que corre el script en package.json no se mira.
 //     Por lo mismo, una entrada que es solo programa + banderas no fija subcomando (rf2-9): `vercel --prod` pregunta también en
 //     `vercel logs --prod` y `vercel env pull --prod` (y en `vercel deploy --prod`, que es lo que se quería). Se deja así: atarla a
 //     "sin subcomando" callaría `vercel deploy --prod`; si pregunta de más, la entrada va con su subcomando (`vercel deploy --prod`).
@@ -40,7 +45,8 @@
 //     A7 e, P3), o `permission_mode` `bypassPermissions`/`dontAsk`/ausente/desconocido (r1-17) → `deny` con PARADA.
 //   - LA GUARDIA DE PUBLICAR (SPEC-paquete-8d A1.3, rt-1): los comandos de `autorizado.publicar` de la ficha vigente (`comando`,
 //     `humo`, `volver`; `al-subir` no es un comando), tipeados como herramienta y matcheados como una entrada de `sensible:`, se
-//     NIEGAN en toda sesión sin persona: sin ventana (lo de arriba) o con un `.kit-rol` distinto de `humano`, también en la carpeta
+//     NIEGAN en toda sesión sin persona: sin ventana (lo de arriba), con un `.kit-rol` distinto de `humano` o en una rama de obrero
+//     (`modulo/<x>--<ID>`, aunque no tenga `.kit-rol`: rt-9), también en la carpeta
 //     principal. Id `pregunta:publicar-sin-persona`, detalle `publicar (<por qué>)`; va antes que las 5 (un deny le gana a un ask) y
 //     ningún quitado la apaga (se apaga con `autorizado.publicar: no`). `noche.cjs publicar` los corre como proceso hijo, no como
 //     herramienta: esto no lo toca. Con persona (humano, con ventana, sin KIT_FONDO), nada nuevo.
@@ -157,26 +163,94 @@ const esOpcion = (w) => w.length > 1 && w.startsWith('-');
 // prefijo con al menos una letra después de `--` (`--prod`, `--p`), sola o con `=valor` (`--produccion=si`, `--prod=si`): los
 // programas aceptan la abreviada y así se esquivaba. Falla para el lado seguro (`--pro` pregunta aunque exista `--profile`). Las de
 // un guion y las que traen `=` en la ficha, tal cual.
-function mismaBandera(w, f, eq) {
+// rt-8 (a) de la segunda vuelta: también al revés, la del comando más larga que la de la ficha (`--production` por `--prod`), si la
+// de la ficha tiene 3 letras o más después de los guiones. rt-8 (c): en PowerShell (`unGuion`) lo mismo vale para las de un guion
+// (`-Prod` por `-Production`): sus parámetros se abrevian.
+function mismaBandera(w, f, eq, unGuion = false) {
   if (eq(w, f)) return true;
-  if (!f.startsWith('--') || f.includes('=') || !w.startsWith('--')) return false;
+  if (f.includes('=')) return false;
+  const largo = (x) => x.startsWith('--');
+  let guiones;
+  if (largo(f) && largo(w)) guiones = 2;
+  else if (unGuion && f.startsWith('-') && w.startsWith('-')) guiones = 1; // uno contra dos guiones nunca es prefijo
+  else return false;
   const i = w.indexOf('=');
   const p = i === -1 ? w : w.slice(0, i);
-  return p.length > 2 && p.length <= f.length && eq(f.slice(0, p.length), p);
+  if (p.length <= guiones) return false;
+  if (p.length <= f.length) return eq(f.slice(0, p.length), p);
+  return f.length - guiones >= 3 && eq(p.slice(0, f.length), f);
 }
-function empiezaCon(cmd, ent, ps) {
+function empiezaCon(cmd, ent, ps, unGuion = false) {
   if (!cmd.length || !ent.length || !mismoPrograma(cmd[0], ent[0])) return false;
   const eq = ps ? (a, b) => a.toLowerCase() === b.toLowerCase() : (a, b) => a === b;
+  const eqBandera = ps || unGuion ? (a, b) => a.toLowerCase() === b.toLowerCase() : eq;
   const pc = cmd.slice(1).filter((w) => !esOpcion(w));
   const pe = ent.slice(1).filter((w) => !esOpcion(w));
   if (pc.length < pe.length) return false;
   for (let i = 0; i < pe.length; i++) if (!eq(pc[i], pe[i])) return false;
-  return ent.slice(1).filter(esOpcion).every((f) => cmd.slice(1).some((w) => mismaBandera(w, f, eq)));
+  return ent.slice(1).filter(esOpcion).every((f) => cmd.slice(1).some((w) => mismaBandera(w, f, eqBandera, unGuion)));
+}
+
+// rt-8 (b): `--x=v` y `--x v` son lo mismo. Como no se sabe qué bandera lleva valor, cada argv vale tal cual Y con las `--x=v`
+// partidas en dos palabras (así `--app=prod` es `--app prod`, de los dos lados). Tal cual también, para que el valor de otra opción
+// escrito con `=` no corra las palabras (`npm publish --tag=beta --access public`).
+function conValoresPartidos(argv) {
+  const partido = [];
+  for (const w of argv) {
+    const i = w.indexOf('=');
+    if (w.startsWith('--') && i > 2 && i < w.length - 1) partido.push(w.slice(0, i), w.slice(i + 1));
+    else partido.push(w);
+  }
+  return partido.length === argv.length ? [argv] : [argv, partido];
+}
+
+// rt-7: npm, pnpm y yarn corren un script de muchas formas. `run`, `run-script`, `rum` y `urn` son lo mismo; yarn y pnpm sin `run`
+// (`yarn deploy`) también; y una opción con valor antes del script (`--prefix web`, `-w web`) no corre las palabras. Cada argv de un
+// lanzador vale tal cual, normalizado sin sacar nada y normalizado sin esas opciones y su valor (`pnpm -w` no lleva valor: por eso
+// las dos). NO mira qué corre el script en package.json.
+const LANZADORES = new Set(['npm', 'pnpm', 'yarn']);
+const SIN_RUN = new Set(['pnpm', 'yarn']);
+const ALIAS_RUN = new Set(['run', 'run-script', 'rum', 'urn']);
+const CON_VALOR = new Set(['--prefix', '-w', '--workspace', '-C', '--dir', '--filter', '--cwd']);
+function normalLanzador(argv, prog, sacarConValor) {
+  const out = [argv[0]];
+  let i = 1;
+  for (; i < argv.length; i++) {
+    const w = argv[i];
+    if (!esOpcion(w)) break;
+    if (sacarConValor && CON_VALOR.has(w)) {
+      i++; // la opción y su valor
+      continue;
+    }
+    out.push(w);
+  }
+  if (i < argv.length) {
+    if (ALIAS_RUN.has(argv[i])) out.push('run', ...argv.slice(i + 1));
+    else if (SIN_RUN.has(prog)) out.push('run', ...argv.slice(i));
+    else out.push(...argv.slice(i));
+  }
+  return out;
+}
+function variantesLanzador(argv, comando) {
+  const prog = argv.length ? comando.programa(argv[0]) : '';
+  if (!LANZADORES.has(prog)) return [argv];
+  return [argv, normalLanzador(argv, prog, false), normalLanzador(argv, prog, true)];
+}
+
+// rt-8 (c): ¿es PowerShell? La herramienta, un programa pwsh/powershell o un archivo .ps1.
+const PROGRAMAS_PS = new Set(['pwsh', 'powershell']);
+const esPs = (argv, comando) => argv.length > 0 && (PROGRAMAS_PS.has(comando.programa(argv[0])) || argv.some((w) => /\.ps1$/i.test(w)));
+
+function variantes(argv, comando) {
+  const v = [];
+  for (const f of formas(argv, comando)) for (const p of conValoresPartidos(f)) v.push(...variantesLanzador(p, comando));
+  return v;
 }
 function matchea(argvComando, argvEntrada, ps, comando) {
-  const fc = formas(argvComando, comando);
-  const fe = formas(argvEntrada, comando);
-  return fc.some((c) => fe.some((e) => empiezaCon(c, e, ps)));
+  const unGuion = ps || esPs(argvComando, comando) || esPs(argvEntrada, comando);
+  const fc = variantes(argvComando, comando);
+  const fe = variantes(argvEntrada, comando);
+  return fc.some((c) => fe.some((e) => empiezaCon(c, e, ps, unGuion)));
 }
 const esBandera = (w) => {
   const l = String(w).toLowerCase();
@@ -511,11 +585,6 @@ const motivoPublicar = (p, razon, v) =>
   `publicar sin persona va solo por \`noche.cjs publicar\`: esto es autorizado.publicar.${p.clave} de la ficha y en esta sesión no ` +
   `hay una persona mirando (${razon}). No lo corras como herramienta: si hacía falta, dejá PARADA en tu bitácora y seguí con otra cosa.${notaRota(v)}`;
 
-// KIT_FONDO (A7 e, P3): lo ponen las líneas de fondo del kit y el hook lo hereda de la sesión. Vacío o "0" es que no.
-function deFondo(entorno) {
-  const f = entorno && typeof entorno.KIT_FONDO === 'string' ? entorno.KIT_FONDO.trim() : '';
-  return f !== '' && f !== '0';
-}
 
 // A1.3: ¿algún comando simple es uno de los de autorizado.publicar, tipeado como herramienta? → {clave, entrada} o null.
 function publicarQueMatchea(comandos, publicar, ps, comando) {
@@ -578,7 +647,8 @@ function decidir(entrada, opciones = {}) {
   // De noche: .kit-rol nocturno, o la marca .kit-noche (la propia, o la del director si esto es un obrero). La rama ya está.
   const noche = raiz ? contexto.deNoche(raiz, { rama }) : { noche: false, por: null };
   // De fondo (KIT_FONDO): de `opciones.entorno` (las pruebas) o del entorno del proceso, que el hook hereda de la sesión.
-  const fondo = deFondo(esMapa(opciones.entorno) ? opciones.entorno : process.env);
+  // La lectura es la de lib/contexto.cjs (una sola para todos los frenos, rt A 11): vacío o "0" es que no.
+  const fondo = contexto.deFondo(esMapa(opciones.entorno) ? opciones.entorno : process.env);
   let sinVentana = null;
   if (noche.noche) sinVentana = noche.por === 'kit-noche' ? 'kit-noche' : 'nocturno';
   else if (fondo) sinVentana = 'fondo';
@@ -599,10 +669,16 @@ function decidir(entrada, opciones = {}) {
   // A1.3: la guardia de publicar va primero (un deny le gana a un ask). Sin persona = sin ventana (noche, fondo, modo) o una
   // carpeta que no es la del dueño (rol distinto de humano), también en la carpeta principal. Con persona: sigue lo de siempre.
   if (pub) {
-    const sinPersona = sinVentana || (rol !== 'humano' ? `rol ${rol}` : null);
+    // rt-9: también una rama de obrero (`modulo/<x>--<ID>`) aunque no tenga .kit-rol (sin el archivo, el rol es humano).
+    const ramaObrero = contexto.pestana(rama).tipo === 'obrero';
+    const sinPersona = sinVentana || (rol !== 'humano' ? `rol ${rol}` : ramaObrero ? 'rama de obrero' : null);
     if (sinPersona) {
       const detalle = `publicar (${sinPersona})`;
-      const razon = sinVentana ? textoSinVentana(sinVentana) : `una carpeta con .kit-rol ${rol}, no la del dueño`;
+      const razon = sinVentana
+        ? textoSinVentana(sinVentana)
+        : rol !== 'humano'
+          ? `una carpeta con .kit-rol ${rol}, no la del dueño`
+          : `una rama de obrero (${rama}), no la carpeta del dueño`;
       const renglon = anotarRenglon(ID_PUBLICAR, detalle);
       return { decision: 'deny', salida: salida('deny', motivoPublicar(pub, razon, v)), id: ID_PUBLICAR, clave: 'publicar', detalle, renglon, origen: v.origen };
     }

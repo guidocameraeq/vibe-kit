@@ -889,7 +889,8 @@ test('A4.1: la bandera larga de la ficha matchea su prefijo (--prod, --p) y la f
   const m = (cmd, ent, ps = false) => se.matchea(comando.partir(cmd, { ps }).comandos[0].argv, se.clasificar(ent, comando).argv, ps, comando);
   const E = 'vercel deploy --produccion';
   for (const c of ['vercel deploy --produccion', 'vercel deploy --prod', 'vercel deploy --p', 'vercel deploy --produccion=si', 'vercel deploy --prod=si', 'vercel deploy x --pro']) assert.equal(m(c, E), true, c);
-  for (const c of ['vercel deploy -p', 'vercel deploy --otra', 'vercel deploy --', 'vercel deploy --=x', 'vercel deploy --producciones', 'vercel deploy --PROD', 'vercel deploy']) assert.equal(m(c, E), false, c);
+  for (const c of ['vercel deploy -p', 'vercel deploy --otra', 'vercel deploy --', 'vercel deploy --=x', 'vercel deploy --PROD', 'vercel deploy']) assert.equal(m(c, E), false, c);
+  assert.equal(m('vercel deploy --producciones', E), true); // rt-8 (a): la del comando, más larga, empieza con la de la ficha
   assert.equal(m('vercel deploy --PROD', E, true), true); // PowerShell: sin mayúsculas
   // las de un guion, tal cual
   assert.equal(m('git push -f', 'git push -f'), true);
@@ -944,4 +945,98 @@ test('A8: lo que le llega a la persona no dice guido, rojo/roja ni verde', () =>
   tomar(d, 'node scripts/publicar.cjs', {}, FONDO);
   assert.equal(motivos.length, 11);
   for (const t of motivos) assert.doesNotMatch(t, /\bguido\b|\broj[oa]s?\b|\bverdes?\b/i, t);
+});
+
+// ---------------------------------------------------------------- segunda vuelta del red team de la tanda A (hallazgos 7, 8 y 9)
+
+const mm = (cmd, ent, ps = false) => se.matchea(comando.partir(cmd, { ps }).comandos[0].argv, se.clasificar(ent, comando).argv, ps, comando);
+
+test('rt 7: npm/pnpm/yarn — run, run-script, rum y urn son lo mismo; yarn y pnpm sin run también; las opciones con valor no corren las palabras', () => {
+  const si = [
+    ['yarn deploy', 'yarn run deploy'],
+    ['yarn run deploy', 'yarn deploy'],
+    ['pnpm deploy', 'pnpm run deploy'],
+    ['pnpm --filter web deploy', 'pnpm run deploy'],
+    ['pnpm --filter=web deploy', 'pnpm run deploy'],
+    ['pnpm -C web run deploy', 'pnpm run deploy'],
+    ['pnpm --dir web deploy', 'pnpm --dir app run deploy'], // otra carpeta: igual (falla para el lado seguro)
+    ['pnpm -w deploy', 'pnpm run deploy'], // en pnpm -w no lleva valor: también
+    ['npm run-script deploy', 'npm run deploy'],
+    ['npm rum deploy', 'npm run deploy'],
+    ['npm urn deploy', 'npm run deploy'],
+    ['npm run deploy', 'npm run-script deploy'],
+    ['npm --prefix web run deploy', 'npm run deploy'],
+    ['npm -w web run deploy', 'npm run deploy'],
+    ['npm --workspace web run deploy', 'npm run deploy'],
+    ['npm --workspace=web run deploy', 'npm run deploy'],
+    ['npm --silent --prefix web run-script deploy -- --x', 'npm run deploy'],
+  ];
+  for (const [c, e] of si) assert.equal(mm(c, e), true, `${c} ~ ${e}`);
+  const no = [
+    ['npm deploy', 'npm run deploy'], // npm sin run es otra cosa
+    ['yarn run deploy-preview', 'yarn run deploy'],
+    ['yarn otro', 'yarn run deploy'],
+    ['npm --prefix deploy run x', 'npm run deploy'],
+    ['npx deploy', 'npm run deploy'],
+    ['npm run', 'npm run deploy'],
+    ['node deploy', 'npm run deploy'],
+  ];
+  for (const [c, e] of no) assert.equal(mm(c, e), false, `${c} !~ ${e}`);
+  // por decidir: la guardia de publicar y una entrada de sensible
+  const d = conRemoto({ '.claude/kit.md': ficha({ sensible: { release: '[yarn run release]' }, publicar: '{comando: "yarn run deploy", humo: "npm run humo"}' }) });
+  assert.equal(se.listasVigentes(d).estado, 'ok', 'la ficha de prueba valida');
+  const obr = worktree(d, 'modulo/n--01', 'obrero');
+  for (const c of ['yarn deploy', 'yarn --cwd x run deploy', 'npm run-script humo', 'npm --prefix web run humo', 'npm -w web run humo']) {
+    decide(obr, entrada(obr, c), 'deny', 'pregunta:publicar-sin-persona');
+  }
+  decide(obr, entrada(obr, 'yarn release'), 'ask', 'pregunta:release');
+  decide(obr, entrada(obr, 'yarn deploy-preview'), 'nada');
+});
+
+test('rt 8: banderas — la del comando más larga que la de la ficha (3+ letras), --x=v igual a --x v de los dos lados, y en PowerShell las de un guion', () => {
+  // (a) la ficha corta, el comando largo
+  assert.equal(mm('vercel deploy --production', 'vercel deploy --prod'), true);
+  assert.equal(mm('vercel deploy --production=si', 'vercel deploy --prod'), true);
+  assert.equal(mm('x y --pre', 'x y --pr'), false); // la de la ficha, con menos de 3 letras: tal cual
+  assert.equal(mm('x y --prx', 'x y --pr'), false);
+  assert.equal(mm('git push --follow-tags', 'git push --tags'), false); // no empieza con ella
+  // (b) --x=v y --x v, de los dos lados
+  assert.equal(mm('fly deploy --app=prod', 'fly deploy --app prod'), true);
+  assert.equal(mm('fly deploy --app prod', 'fly deploy --app=prod'), true);
+  assert.equal(mm('fly deploy --app=prod --x', 'fly deploy --app=prod'), true);
+  assert.equal(mm('fly deploy --app=dev', 'fly deploy --app prod'), false);
+  assert.equal(mm('fly deploy --app dev', 'fly deploy --app=prod'), false);
+  assert.equal(mm('fly deploy', 'fly deploy --app=prod'), false);
+  assert.equal(mm('npm publish --tag=beta --access public', 'npm publish --access public'), true); // lo de antes sigue
+  // (c) PowerShell: el prefijo también en las de un guion (tool_name, un programa pwsh/powershell o un .ps1)
+  assert.equal(mm('publicar -Prod', 'publicar -Production', true), true);
+  assert.equal(mm('publicar -p', 'publicar -Production', true), true);
+  assert.equal(mm('publicar -Productionx', 'publicar -Production', true), true);
+  assert.equal(mm('publicar -X', 'publicar -Production', true), false);
+  assert.equal(mm('publicar -Prod', 'publicar --Production', true), false); // un guion contra dos, no
+  assert.equal(mm('./publicar.ps1 -Prod', './publicar.ps1 -Production'), true); // un .ps1 desde Bash
+  assert.equal(mm('pwsh -NoProfile publicar -Prod', 'pwsh -NoProfile publicar -Production'), true); // un programa pwsh
+  assert.equal(mm('publicar -Prod', 'publicar -Production'), false); // en Bash, tal cual
+  assert.equal(mm('git push -fx', 'git push -f'), false);
+  // por decidir
+  const d = conRemoto({ '.claude/kit.md': ficha({ sensible: { release: '[vercel deploy --prod, fly deploy --app prod]' } }) });
+  for (const c of ['vercel deploy --production', 'fly deploy --app=prod']) decide(d, entrada(d, c), 'ask', 'pregunta:release');
+  decide(d, entrada(d, 'fly deploy --app=dev'), 'nada');
+  decide(d, entrada(d, 'vercel deploy --pr'), 'ask', 'pregunta:release'); // A4.1 sigue: la abreviada
+});
+
+test('rt 9: la guardia de publicar niega también en una rama de obrero (modulo/x--ID) sin .kit-rol', () => {
+  const d = conRemoto({ '.claude/kit.md': ficha({ publicar: PUBLICA }) });
+  const sinRol = worktree(d, 'modulo/z--01'); // sin .kit-rol, el rol es humano
+  for (const modo of ['default', 'auto']) {
+    const r = decide(sinRol, entrada(sinRol, 'node scripts/publicar.cjs', { permission_mode: modo }), 'deny', 'pregunta:publicar-sin-persona');
+    assert.equal(r.rol, 'humano');
+    assert.equal(r.detalleLog, 'publicar (rama de obrero)');
+    assert.match(r.motivo, RE_SIN_PERSONA);
+  }
+  // una rama de director o una cualquiera, sin .kit-rol: con ventana, nada (como en la principal)
+  for (const rama of ['modulo/z', `tarea${n}`]) {
+    const w = worktree(d, rama);
+    decide(w, entrada(w, 'node scripts/publicar.cjs'), 'nada');
+  }
 });
