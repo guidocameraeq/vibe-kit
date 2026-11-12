@@ -1320,6 +1320,8 @@ Lo que se evaluó, para no volver a evaluarlo de cero (insumo de la misión 6):
   - `/estado` del dueño y una sola lista de "te espera" → 32, 47; la regla de habla → 34; la compactación es por inactividad → 31
   - los frenos se cuelgan (cuatro procesos por comando) y niegan lo inocente; la suite sin turno → 42-45
   - lo roto chico y la fricción fuera de la noche → 50, 51
+  - **el director y el obrero no saben cómo se llama el otro** (Guido, 2026-11-12): nombres fijos y el destino en el mensaje, va con
+    la parte 5 de la `rc.7`; probar en VS Code si una sesión se renombra sola → 59
   - **los siete repos con el kit** (`REVISION-rc7-repos.md`, 2026-11-12): la adopción que rompe sin avisar y la ficha que no
     describe al proyecto (lo nuevo para el plano), nadie cierra el proyecto después de integrar, los falsos positivos con nombre, 🔴 dos
     agujeros, las pruebas compartidas, el reparto → 52-57; el candado en repos con historia y el `/tramo` del kit sin probar → 58 (v3.1). **Guido, 2026-11-12: la adopción entra a la `rc.7` como octava parte** ("Cambios al plan")
@@ -1946,6 +1948,20 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
       Hermes-desktop con `candado: no` desde la adopción (cientos de citas a `docs/`); HermesMobile lo prendió con un día de mudanza a
       mano y un clic por archivo; Millennium y el Hub con el "apagado hasta migrar" de fábrica. Y el `/tramo` que Guido usó en Hermes es
       el casero (junio al 11-03): el del kit tiene cero usos en los siete repos. **Para la v3.1**.
+  59. **2026-11-12 · El kit dice qué se mandan director y obrero, pero no a quién** (Guido, 2026-11-12: "los obreros a veces no
+      tienen bien en claro quién es su director… el Arquitecto no me dice hacer un rename al director… hay una tuerquita que falta
+      ajustar"). Le gusta que el Arquitecto arme director y obreros en un worktree, y tener varios a la vez en el mismo proyecto; lo
+      que falla es el contacto. Lo que hay: `NUCLEO.md` §3 define los ocho tipos de mensaje y "el nombre de la sesión no autentica",
+      pero **ninguna pieza nombra las sesiones**: el Arquitecto no le pone nombre al director, el director no le da al obrero el suyo,
+      el encargo no dice quién es su director, y las skills no nombran `SendMessage` ni `/rename`. Es la raíz del 19 (los mensajes le
+      llegaron a la sesión del Arquitecto o a la de `main` de Guido) y de la lección de Deptos "el obrero no sabe a qué sesión mandar
+      mensajes" (`para-el-kit.md`). El método viejo de HermesMobile ya lo tenía resuelto (su regla (b) 1: nombres fijos con
+      `/rename`, primera línea "si no sos X, ignorá", reintento) y no subió al kit. **Para la `rc.7`, con la parte 5** (un solo camino
+      de fondo): el obrero de fondo reporta por git y el director se entera por el fin del proceso, así que su mensaje sobra; lo que
+      queda es **el nombre**: el Arquitecto y el director se nombran con un esquema fijo (`director <módulo>`, `obrero <x>--<ID>`) y
+      se lo proponen o se lo ponen, el encargo lleva `Director: <nombre>`, y todo mensaje que quede dice su destino y el que no es
+      suyo se ignora. **NO VERIFICADO, para probar en la extensión de VS Code** (Guido trabaja ahí): si una sesión puede renombrarse
+      sola, y si un mensaje entre sesiones llega por nombre.
   - **Dato (la revisión de la rc.7, 2026-11-11)**: el veredicto de la mirada 2 es que el kit **es un buen sistema para hoy y no hay que
     rehacerlo** (hace lo que recomienda Anthropic: plano antes, estado en git, una sesión por tarea con permisos justos, revisor aparte).
     **Lo que no se toca** (A1-A10): el plano sellado y construir en otra sesión; "manda git"; un obrero `claude -p` por encargo con
