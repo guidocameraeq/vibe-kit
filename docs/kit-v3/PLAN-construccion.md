@@ -1320,6 +1320,9 @@ Lo que se evaluó, para no volver a evaluarlo de cero (insumo de la misión 6):
   - `/estado` del dueño y una sola lista de "te espera" → 32, 47; la regla de habla → 34; la compactación es por inactividad → 31
   - los frenos se cuelgan (cuatro procesos por comando) y niegan lo inocente; la suite sin turno → 42-45
   - lo roto chico y la fricción fuera de la noche → 50, 51
+  - **los siete repos con el kit** (`REVISION-rc7-repos.md`, 2026-11-12): la adopción que rompe sin avisar y la ficha que no
+    describe al proyecto (lo nuevo para el plano), nadie cierra el proyecto después de integrar, los falsos positivos con nombre, 🔴 dos
+    agujeros, las pruebas compartidas, el reparto → 52-57; el candado en repos con historia y el `/tramo` del kit sin probar → 58 (v3.1)
   - **Para la `v3.1`** (mirada 2, "Para la `v3.1`"): el director corto (V1), el aviso al celular (V2), el kit global como plugin
     (V3: reabre REJ-001, con evidencia nueva), los frenos por evidencia (V4), el costo por encargo (V5), `mesa` quieta (V6), "¿qué
     sacamos?" en el ciclo (V7, va con M6b), el director sin `EnterWorktree` (V8, 49), medir el cierre de tramo (V9)
@@ -1914,6 +1917,35 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
       "TE ESPERA" no va primero; "resumen del día: falta — corré…". **La flota**: no dice de correrla de fondo (hasta 30 min por
       chequeo); `--canon <url>` obligatorio sin valor por defecto; "mezclá vos", "borrá la rama desde la web"; la carpeta de Guido queda
       atrasada y nada lo dice. El detalle, con su `archivo:línea`: `REVISION-rc7-mirada1.md`, "El inventario de fricción".
+  52. **2026-11-12 · La adopción deja cosas rotas o muertas sin avisar** (`REVISION-rc7-repos.md`, A; 5 de 7 repos). El Hub quedó sin
+      arranque y con `comando-test` de otro gestor; en Arti-bot un `prepare` de `pnpm install` cambia `core.hooksPath` y `git-seguro`
+      niega todo git, y sus `/inicio` y `/cierre` propios se pisaron sin pasar a la zona propia; en Hermes-desktop quedaron 8 procesos
+      de hook por comando (3 PowerShell) y ~100 reglas apagadas; en Deptos se gastó un ciclo de `cambios` en un hook propio que ya no
+      estaba registrado. **Para el kit**: que la adopción liste lo que reemplaza y verifique que el repo queda andando.
+  53. **2026-11-12 · La ficha dice algo que el proyecto no es** (`REVISION-rc7-repos.md`, B; 5 de 7). Millennium publica por tag y dice
+      `release: no` (el director inventó el procedimiento y quedó una regla a mano en el settings de usuario); Arti-bot gasta plata y
+      sale afuera y dice "no" de fábrica, con un `release` viejo; `/smoke`, `/release` y `/gate` propios que la ficha no ve; `molde+propio`
+      con el archivo idéntico al molde (4 repos) y el hash distinto con CRLF. **Para el kit**: detectar y preguntar, no poner "no".
+  54. **2026-11-12 · Después de integrar, nadie cierra el proyecto** (`REVISION-rc7-repos.md`, C). Millennium nunca corrió el `/cierre`
+      tras adoptar: el handoff que se inyecta es de julio y los pendientes del módulo no llegaron al TODO; en Deptos y Hermes quedó
+      viejo. `integrar` no toca los papeles de `main`. **Para el kit**: va con la noche que termina sola (36) y con `/estado` (47).
+  55. **2026-11-12 · Los falsos positivos, con nombre y apellido, y dos agujeros** (`REVISION-rc7-repos.md`, D y E). El `.env` de una base
+      `clase: prueba` (10 de 11 `archivo-deny` en Deptos); claves y JWT ficticios (dos de los cuatro que "valieron" en la mirada 2);
+      leer `.claude/`; borrar ramas propias, autorizadas o aplastadas (4 repos); `restaurar-arbol`. 🔴 **Agujeros**: una bandera
+      abreviada (`--prod` por `--produccion`, argparse) pasa `sensible` (HermesMobile), y `git merge -s ours` vence a `push-borrar`
+      (Hermes-desktop). **Para el kit** (son frenos: red team): va con 42-43 y con el 40.
+  56. **2026-11-12 · Las pruebas y los recursos compartidos** (`REVISION-rc7-repos.md`, F). `presentar` pasó sus 600 s con tres obreros
+      (el Hub, Deptos); una base local para todos los worktrees (HermesMobile); el gate es el CI de GitHub y `presentar`/`verificar`
+      corren el `comando-test` de la principal (Millennium, sin Rust local); los worktrees adentro del repo duplican lo que recorre el
+      árbol. **Para el kit**: va con 45.
+  57. **2026-11-12 · El reparto y las barreras que el módulo necesita** (`REVISION-rc7-repos.md`, G). Un hook que el módulo necesitaba
+      se descubrió a mitad de obra (Deptos, 74 min y dos encargos cancelados); un encargo le dio a un obrero un paso del dueño (el Hub);
+      `tiempos.cjs` da 0 desvíos y pierde los encargos de ramas borradas; `encargo.cjs cerrar` falla en Windows. **Para el kit**: el
+      Arquitecto marca "necesita un cambio de barrera o un paso del dueño" y se tramita antes de lanzar obreros.
+  58. **2026-11-12 · El candado no se prende en repos con historia, y el `/tramo` del kit nunca se probó** (`REVISION-rc7-repos.md`, H).
+      Hermes-desktop con `candado: no` desde la adopción (cientos de citas a `docs/`); HermesMobile lo prendió con un día de mudanza a
+      mano y un clic por archivo; Millennium y el Hub con el "apagado hasta migrar" de fábrica. Y el `/tramo` que Guido usó en Hermes es
+      el casero (junio al 11-03): el del kit tiene cero usos en los siete repos. **Para la v3.1**.
   - **Dato (la revisión de la rc.7, 2026-11-11)**: el veredicto de la mirada 2 es que el kit **es un buen sistema para hoy y no hay que
     rehacerlo** (hace lo que recomienda Anthropic: plano antes, estado en git, una sesión por tarea con permisos justos, revisor aparte).
     **Lo que no se toca** (A1-A10): el plano sellado y construir en otra sesión; "manda git"; un obrero `claude -p` por encargo con
