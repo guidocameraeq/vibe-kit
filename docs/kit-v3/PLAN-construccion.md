@@ -1322,6 +1322,7 @@ Lo que se evaluó, para no volver a evaluarlo de cero (insumo de la misión 6):
   - lo roto chico y la fricción fuera de la noche → 50, 51
   - **el director y el obrero no saben cómo se llama el otro** (Guido, 2026-11-12): nombres fijos y el destino en el mensaje, va con
     la parte 5 de la `rc.7`; probar en VS Code si una sesión se renombra sola → 59
+  - **preparar la PC que traiga los repos de la cuenta** (Guido, 2026-11-12) → 60
   - **los siete repos con el kit** (`REVISION-rc7-repos.md`, 2026-11-12): la adopción que rompe sin avisar y la ficha que no
     describe al proyecto (lo nuevo para el plano), nadie cierra el proyecto después de integrar, los falsos positivos con nombre, 🔴 dos
     agujeros, las pruebas compartidas, el reparto → 52-57; el candado en repos con historia y el `/tramo` del kit sin probar → 58 (v3.1). **Guido, 2026-11-12: la adopción entra a la `rc.7` como octava parte** ("Cambios al plan")
@@ -1962,6 +1963,13 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
       se lo proponen o se lo ponen, el encargo lleva `Director: <nombre>`, y todo mensaje que quede dice su destino y el que no es
       suyo se ignora. **NO VERIFICADO, para probar en la extensión de VS Code** (Guido trabaja ahí): si una sesión puede renombrarse
       sola, y si un mensaje entre sesiones llega por nombre.
+  60. **2026-11-12 · Preparar la PC no trae los repos de la cuenta** (Guido, 2026-11-12: "que me clonen los repos que yo quiera de mi
+      cuenta y me los prepare sin tener que tener el repo descargado en esa PC… podría estar como una opción en preparar mi PC").
+      Hoy la flota y la adopción parten de la carpeta de proyectos de la PC (`anexos/flota.md:15-17`, `:31`: el clon sale "del origin
+      de la carpeta de Guido"): un repo que no está bajado en esa PC no existe para el kit. Lo vive con dos PCs de uso distinto y con
+      los repos del trabajo en otra organización (Hermes no está en `Usuario`). **Para el kit**: una opción de "preparame esta PC" que
+      liste los repos de la cuenta y de sus organizaciones, clone los elegidos en la carpeta de proyectos con `core.longpaths` (ítem 10)
+      y deje cada uno andando (los ganchos del kit y el `comando-setup`); la confianza de la carpeta la sigue aceptando el dueño (39).
   - **Dato (la revisión de la rc.7, 2026-11-11)**: el veredicto de la mirada 2 es que el kit **es un buen sistema para hoy y no hay que
     rehacerlo** (hace lo que recomienda Anthropic: plano antes, estado en git, una sesión por tarea con permisos justos, revisor aparte).
     **Lo que no se toca** (A1-A10): el plano sellado y construir en otra sesión; "manda git"; un obrero `claude -p` por encargo con
