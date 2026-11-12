@@ -4,7 +4,8 @@ La `rc.7` junta las **ocho partes** que Guido cerró el 2026-11-12 después de l
 60 de "De la prueba real" del tracker). No rediseña el kit: mueve el último tramo de la noche a donde hay alguien que lo haga, deja la
 firma del dueño en un clic, y saca lo que frena sin proteger.
 
-- Estado: **BORRADOR** (2026-11-12). Pasa a `READY` con el OK de Guido a la pregunta de abajo. Red team: una ronda sobre el spec entero
+- Estado: **READY** (2026-11-12). Guido contestó la única pregunta de diseño (por el director del tramo): *"el clik lo quiero hacer
+  siempre en director, las aprobaciones son con el, no con los obreros"* (A2.3, D8d-6, P7). Red team: una ronda sobre el spec entero
   (3 ALTOS, 8 MEDIOS, 3 BAJOS) y una segunda solo de lo ALTO (4 ALTOS, 3 MEDIOS): los 21, integrados (ver "El red team del spec").
 - Fecha: 2026-11-12 · Misión: 5, tramo final, **sesión 1** (`TRAMO-FINAL-PLAN.md`). La vara: ADR-029, ADR-030 y ADR-034.
 - **Nivel de la `rc`: COMPLETO** (`docs/CICLO-DE-MEJORA.md` §3.6): toca frenos, suma una pieza que publica y rediseña la adopción. Cada
@@ -13,23 +14,24 @@ firma del dueño en un clic, y saca lo que frena sin proteger.
 
 ## Resumen para el director
 
-1. **Terminó**: el plano de la `rc.7` está escrito, con sus dos rondas de red team integradas, y queda en BORRADOR hasta que Guido
-   conteste **una** pregunta.
+1. **Terminó**: el plano de la `rc.7` está escrito, con sus dos rondas de red team integradas, y está **READY**: Guido contestó la
+   única pregunta de diseño.
 2. **Cubre** las ocho partes en 21 cambios, repartidos en tres tandas que no tocan los mismos archivos: **A** los frenos, la ficha y la
    firma · **B** la noche, `/estado` y el camino de fondo · **C** adoptar, la PC, lo chico, y al final la suite, la flota y el tag.
 3. **Ojo con el reloj**: la A entra en ~4 h; la **B y la C van a pedir una continuación cada una** (~6 h de trabajo cada una). Cada
    tanda trae su orden: primero lo que mide el criterio de éxito, después la "segunda línea". Son **cinco sesiones, no tres**.
 4. **Pruebas corridas en esta sesión: ninguna** (no se tocó código). Lo afirmado sobre el código lo miraron cinco lectores y lo que
    decide el diseño lo verifiqué yo en el archivo; lo que no, dice `[L]`.
-5. **Lo que espera a Guido** (una decisión, la recomendada primero): **¿dónde hace el clic para aprobar un cambio de freno?** En una
-   sesión de la carpeta principal, la de `/estado` (recomendada: es lo probado, y el director te avisa "te necesito"), o en la
-   pestaña del director (menos cambio de ventana, pero no está probado que ande y afloja un freno). Mueve: flujo y consistencia.
+5. **Lo que decidió Guido** (2026-11-12): **el clic para aprobar un cambio de freno lo hace en la pestaña del director**, nunca con
+   un obrero. Como eso no está probado con una persona y afloja un freno, va con su prueba (P7), su plan B (el clic en una sesión de
+   la carpeta principal, que sigue andando) y el agujero cerrado: un obrero no puede firmar por el director (A2.3). **No le queda
+   nada pendiente a Guido en este spec**; lo suyo vuelve en la tabla "Dónde lo necesita a Guido" del plan del tramo.
 6. **Decisiones técnicas mías** (tabla "Decisiones de la sesión del spec"): 22. Las que más pesan: la noche publica por **un script
    del kit que chequea las dos autorizaciones** (la ficha y la PC) antes de correr nada, y la sesión de cierre corre con una **lista
    cerrada**: lo que no está en la lista no corre; si cambia cómo se publica, la noche **deja de publicar hasta que Guido vuelva a
    autorizar esa PC**; los tres frenos del proyecto pasan a **un solo proceso**; el registro de frenos del día a día **sale del
    árbol** de git; los nombres con "guido" quedan como alias viejos.
-7. **Seis cosas se prueban antes de prometerlas**, cada una con su plan B escrito (sección "Probar antes de prometer"). Una le toca a
+7. **Siete cosas se prueban antes de prometerlas**, cada una con su plan B escrito (sección "Probar antes de prometer"). Una le toca a
    Guido de costado: autorizar una PC a publicar es **un clic si la prueba P2 sale bien, y una línea de PowerShell si no**.
 8. **La noche de prueba de R2** está armada sobre un clon de Deptos sin claves ni Docker, con un "publicar" de mentira contra un
    remoto de prueba, y dice cómo se mide cada uno de los cuatro criterios.
@@ -50,8 +52,8 @@ la firma de un cambio de freno tal cual se valida hoy (`validarSello`, `commitDe
 
 | Quién | Antes (`rc.6`) | Ahora (`rc.7`) |
 |---|---|---|
-| **El dueño** | Pega comandos (aprobar, cerrar carpetas, el cierre, la limpieza), abre cada obrero, lee un `/estado` del director, recibe "rojo" y códigos | **No tipea nada.** Firma con un clic en la ventana de permiso; lee un `/estado` suyo de cuatro secciones fijas y un parte de la mañana sin comandos; autoriza publicar una vez por PC |
-| **El director** | Integra y le deja al dueño cerrar, publicar y limpiar; se muda al 40 %; ofrece un despertador que no despierta; no sabe cómo se llama nadie | Integra y **lanza la sesión de cierre**; lanza él a los obreros (de fondo, por defecto); antes de cada espera larga deja todo commiteado y el relevo; propone los cambios de freno directo en la rama por defecto; tiene nombre fijo |
+| **El dueño** | Pega comandos (aprobar, cerrar carpetas, el cierre, la limpieza), abre cada obrero, lee un `/estado` del director, recibe "rojo" y códigos | **No tipea nada.** Firma con un clic en la ventana de permiso, **en la pestaña del director**; lee un `/estado` suyo de cuatro secciones fijas y un parte de la mañana sin comandos; autoriza publicar una vez por PC |
+| **El director** | Integra y le deja al dueño cerrar, publicar y limpiar; se muda al 40 %; ofrece un despertador que no despierta; no sabe cómo se llama nadie | Integra y **lanza la sesión de cierre**; lanza él a los obreros (de fondo, por defecto); antes de cada espera larga deja todo commiteado y el relevo; propone los cambios de freno directo en la rama por defecto y **le pide la firma al dueño en su pestaña**; tiene nombre fijo |
 | **El obrero** | Manda mensajes que a veces le llegan a otro; no ve una corrección; para sin guardar | De fondo no manda mensajes: su resultado es el fin del proceso y lo que dejó en git; `presentar` le trae la corrección; guarda antes de parar; sabe quién es su director |
 | **La sesión de cierre** (nueva) | No existe: la carpeta principal queda esperando al dueño | Una sesión de fondo **en la carpeta principal**, con una lista cerrada de lo que puede correr, que trae lo integrado, publica si el proyecto y la PC lo autorizan, corre la prueba de humo, hace el `/cierre` del proyecto, limpia y deja el parte. No toca código ni aprueba nada |
 | **El Equipador** | Adopta poniendo "no" de fábrica y sin mirar si el repo queda andando; prepara la PC solo con lo que ya está bajado | Dice qué piezas propias reemplaza, verifica que el repo queda andando, pregunta si publica o gasta plata; trae los repos de la cuenta que el dueño elija; arma la autorización de publicar |
@@ -63,7 +65,7 @@ la firma de un cambio de freno tal cual se valida hoy (`validarSello`, `commitDe
 |---|---|---|
 | Permisos (`allow`/`ask`/`deny`) | la forma del comando | Para una sesión de fondo, **solo** por la lista de su línea de lanzamiento (`autorizado` para el obrero, `noche.cjs cierre` para el cierre). Las `allow` del proyecto no valen de fondo (tracker 39): no se cuenta con ellas |
 | Clasificador del modo `auto` | la intención (publicar, tocar la propia configuración) | El obrero sigue en `auto`. **La sesión de cierre no pasa por él**: corre en `dontAsk`, donde lo que no está en su lista se niega y lo que está corre (B3). Para una sesión de día del dueño, la entrada de `autoMode.environment` que escribe "preparame esta PC" (tracker 37) |
-| Frenos del kit (hooks) | el comando partido, la carpeta de la sesión, el rol, la noche | `cambios aprobar`, con el clic del dueño, en una sesión de la carpeta principal |
+| Frenos del kit (hooks) | el comando partido, la carpeta de la sesión, el rol, la noche | `cambios aprobar`, con el clic del dueño, en la pestaña del director (o en una sesión de la carpeta principal); nunca en la de un obrero |
 | Aislamiento de la carpeta | `git` hacia afuera | No se abre: el director no sale; lo de la carpeta principal lo hace la sesión de cierre o un script de `node` |
 | Candado (githooks) | lo que se commitea y se sube | Un cambio aprobado |
 
@@ -202,32 +204,54 @@ mismo con los tres dentro de un solo proceso. El número queda en "Lo que salió
    `PC/lib`); `PC/secretos.cjs` la carga y combina (niega > pregunta > nada) **dentro de su mismo proceso**: la PC sigue con un solo
    hook. `instalar-hooks-pc` no suma registros: ya copia `pc/**`. En el proyecto sigue adentro del portero (A5): una PC sin preparar
    conserva la red de hoy.
-3. **Quién puede y desde dónde** (rt-4): solo rol `humano`, con ventana, **y solo si la carpeta de la sesión es la carpeta principal
-   de ese repo**, en la rama por defecto, y el comando no se va a otro lado (`cd`, `pushd`, `Set-Location`, `git -C`, una ruta a
-   `cambios.cjs` fuera de esa carpeta). Todo lo demás se **niega**: el director, el obrero, y una sesión abierta en otra carpeta
-   (*"abrí una sesión en la carpeta principal de ese proyecto"*). No cuesta nada: la línea la escribe la sesión, no el dueño. Cierra
-   el 40 y el 33 (f). Los textos:
-   - la ventana (rt-2: nada que escriba el agente): *"Es tu firma para cambiar un freno de este proyecto. Cambio <id> · toca: <los
-     ids de la cabecera> · control: <los 8 del hash>. Aceptá solo si es lo que viste en "Te necesito"."*;
-   - a un agente: *"la firma la da el dueño con un clic, en una sesión abierta en la carpeta principal. Dejalo propuesto (`cambios.cjs
-     nuevo … --en-defecto`) y seguí con lo que no dependa de eso."*
+3. **Quién puede y desde dónde** (rt-4; **Guido, 2026-11-12: *"el clik lo quiero hacer siempre en director, las aprobaciones son
+   con el, no con los obreros"***). El freno **pregunta** (la ventana) solo en dos lugares, de día y con ventana:
+   - **la pestaña del director**: la carpeta de la sesión es el worktree de un módulo (`.kit-rol: director`, rama `modulo/<x>`).
+     Es el camino normal. El director corre `node ../../../.claude/scripts/cambios.cjs aprobar <id>` (el de la carpeta principal,
+     como ya hace con `worktree.cjs donde`), y **el script hace todo en la carpeta principal**: la trae al día (`pull --ff-only`),
+     firma ahí, commitea y sube. El sello queda igual que hoy (carpeta `.`, rol `humano`: el de la principal, que es donde vive la
+     firma), así que `validarSello` no cambia. Las condiciones de la principal son las de hoy (en la rama por defecto, el cambio
+     commiteado ahí); si no se cumplen, dice cuál y no firma;
+   - **una sesión abierta en la carpeta principal** de ese repo, en la rama por defecto (rol `humano`): para los proyectos sin
+     director, y como plan B (P7). `/estado` lo ofrece ahí (B2).
+
+   **Todo lo demás se niega**, y es lo que cierra el agujero que esto abre (que un obrero firme por el director):
+   - un obrero, un `/tramo`, un nocturno o un rol desconocido: por su `.kit-rol` **y por su rama** (una rama `modulo/<x>--<ID>`
+     niega aunque el `.kit-rol` diga otra cosa);
+   - un comando que se va a otro lado (`cd`, `pushd`, `Set-Location`, `git -C`), o una ruta a `cambios.cjs` que no es la de la
+     carpeta de la sesión ni la de su principal: un obrero no llega a la carpeta del director para firmar desde ahí, porque el
+     freno juzga la carpeta **de la sesión**;
+   - de noche (la marca `.kit-noche`), de fondo (`KIT_FONDO`) o en un modo sin ventana: el director solo, sin el dueño, no firma;
+   - una sesión abierta en otra carpeta (*"abrí una sesión en ese proyecto"*): cierra el 40 y el 33 (f).
+   El script repite lo mismo por su lado (defensa doble, como hoy): corre con rol `humano` en la principal, o con rol `director`
+   en un worktree de módulo sin `.kit-noche`; con cualquier otro, no. Los textos:
+   - la ventana (rt-2: nada que escriba el agente): *"Es tu firma para cambiar un freno de este proyecto. Te la pide: <director-<x>
+     | la sesión de la carpeta principal>. Cambio <id> · toca: <los ids de la cabecera> · control: <los 8 del hash>. Aceptá solo si
+     es lo que viste en "Te necesito"."*;
+   - a un obrero: *"la firma la da el dueño con un clic, en la pestaña del director. Pará y dejalo anotado: el director lo propone
+     (`cambios.cjs nuevo … --en-defecto`) y se lo pide."*
 4. **Las otras dos firmas del dueño** entran por la misma puerta, en el freno de la PC (r2-3: si no, el director, que corre en
    `auto`, se autoriza solo en cuanto `publicar` le dice "falta tu autorización"): `preparar-pc.cjs` con `--publica` o
-   `--no-publica` (C2.4) y `noche.cjs publicar --seguir` (B3.2.3). Con ventana y rol `humano`, **preguntan**; en una carpeta de
-   agente, en un modo sin ventana o de fondo, **niegan**. Lo mismo un comando que nombre `KIT_HOME_PC` (el home de prueba de R2).
+   `--no-publica` (C2.4) y `noche.cjs publicar --seguir` (B3.2.3). `--seguir` sigue la regla de `aprobar` (el director, de día y con
+   ventana, o la carpeta principal). Autorizar la PC es del Equipador, no de un módulo: **pregunta** solo con ventana y rol `humano`.
+   En una carpeta de obrero, en un modo sin ventana o de fondo, las dos **niegan**. Lo mismo un comando que nombre `KIT_HOME_PC` (el home de prueba de R2).
 5. **crit. A2**: `niega-aprobar.test` (sí: `node .claude/scripts/cambios.cjs aprobar x`, con ruta absoluta, con comillas, por
    `bash -c` y `pwsh -c`, dentro de `$(…)` y de comillas invertidas, `echo $(node … aprobar x)`; no: `git commit -m "… cambios.cjs
    aprobar …"`, `grep aprobar cambios.cjs`, un heredoc); `pc/secretos.test` (una sesión parada en otra carpeta, modo `auto`, con `cd
    <repo> && node .claude/scripts/cambios.cjs aprobar x` → `deny`; en la principal y la rama por defecto → `ask`; en la principal con
-   `dontAsk` → `deny`; en un worktree → `deny`; `preparar-pc.cjs --publica` y `noche.cjs publicar --seguir`: desde un worktree de
+   `dontAsk` → `deny`; **en el worktree de un director, de día → `ask`; ahí mismo con `.kit-noche` → `deny`; con `KIT_FONDO` → `deny`;
+   en el worktree de un obrero → `deny`; en uno con `.kit-rol: director` pero rama `modulo/x--01` → `deny`; un obrero con `cd` al
+   worktree del director → `deny`**; `preparar-pc.cjs --publica` y `noche.cjs publicar --seguir`: desde un worktree de
    director en `auto` → `deny`, con `KIT_FONDO` → `deny`, en la principal con ventana → `ask`; `preparar-pc.cjs` sin esas banderas →
-   nada); la copia idéntica. **Mutación** sobre `esDeAprobar`, sobre "desde dónde", sobre las otras dos firmas y sobre la combinación
-   en `secretos`.
+   nada); la copia idéntica; `scripts/cambios.test` (`aprobar` corrido desde un worktree de director con un remoto de prueba: el sello queda en
+   la principal con carpeta `.` y rol `humano`, subido, y `validarSello` lo acepta; desde uno de obrero → no; con `.kit-noche` → no;
+   con la principal en otra rama → no, y dice por qué). **Mutación** sobre `esDeAprobar`, sobre "desde dónde" (cada una de las cuatro
+   negativas), sobre las otras dos firmas y sobre la combinación en `secretos`.
 
 **A3 · El cambio que nace en un módulo.** `cambios.cjs nuevo … --en-defecto`, para el director (rol `director` o `humano`; un obrero
 para y se lo pide): arma el cambio propuesto en una carpeta temporal parada en `origin/<defecto>`, commitea **solo ese archivo**
 (`cambios: propuesto <id>`), sube y borra la temporal, como hace `integrar`; si origin avanzó, reintenta una vez. Imprime *"propuesto
-en <defecto>: le queda al dueño en "Te necesito""*. El resto no cambia: la sesión de la carpeta principal hace `pull`, corre `aprobar`
+en <defecto>: le queda al dueño en "Te necesito""*. Después, el director le pide la firma al dueño en su pestaña (A2.3): corre `aprobar`
 (el clic), sube; el director trae `main` (`traer-main`). El aviso de `secretos` (`:354`) deja de decir *"pedíselo al director"* y dice
 el camino. **crit. A3**: `scripts/cambios.test` (desde un worktree de director con un remoto de prueba: el archivo aparece en
 `origin/<defecto>` en un commit de un solo archivo y el worktree del director queda como estaba; desde uno de obrero → negado; con
@@ -622,6 +646,7 @@ Cada una es un paso de la tanda que la usa, con su resultado escrito en "Lo que 
 | **P4** | Si la sesión de cierre, en `dontAsk` y con su lista, llega al final: `pull`, `noche.cjs publicar`, los papeles del `/cierre`, `limpiar`, el parte y el `push` | B | En un repo de prueba con un publicar de mentira y **un `allow` de más en su settings local**, ocho corridas; se cuenta qué se negó y que ese `allow` no corrió | Lo que falte se **suma a la lista** con su argumento fijo (nunca un comodín). **No hay plan B en `auto`** (r2-6: devuelve la decisión al clasificador): si `dontAsk` no alcanza, el cierre se queda sin `/cierre` de papeles (publica, limpia y deja el parte) y los papeles van a "Te necesito" |
 | **P5** | Si un solo proceso de freno baja de verdad el tiempo bajo carga | A | A0, antes y después | Se queda el plazo nuevo y el aviso honesto; el settings vuelve a los tres hooks (siguen andando solos) |
 | **P6** | Si una sesión de fondo en la carpeta principal puede correr el `/cierre` del proyecto con el director todavía vivo en su worktree | B | En un repo de prueba, con una `-p` parada en un worktree y otra en la principal | La sesión de cierre sigue los pasos del `/cierre` leyendo su `SKILL.md`, sin invocarlo como skill |
+| **P7** | Si **el clic en la pestaña del director** anda: con el director adentro de su worktree (entró con `EnterWorktree`) y en `auto`, ¿aparece la ventana de `aprobar`, y con el clic el script firma en la carpeta principal sin que el aislamiento lo frene? | A | Lo automático, en la tanda: el freno y el script, con sus casos (crit. A2), y una `-p` de director en `../vibe-kit-pruebas/rc7/alfa` que corre `aprobar` y tiene que salir **negada por falta de ventana**, no por el aislamiento. El clic de verdad pide una persona: queda armado en ese repo, y se le pide a Guido **un clic** cuando el director del tramo lo vea oportuno | **El clic se hace en una sesión abierta en la carpeta principal** (`/estado` lo ofrece): ese camino no depende del aislamiento y queda siempre. Si el problema es solo el aislamiento, antes se prueba que el director lance el `aprobar` como hace con `integrar` (un script que trabaja en la principal); si igual no hay ventana, plan B y se anota para la `v3.1`, con el director sin `EnterWorktree` (V8) |
 
 **Queda NO VERIFICADO y la `rc.7` no depende de eso**: la pestaña de la extensión (todo se prueba con su binario en `-p`, que es como
 corre lo de fondo); el clic de aprobar con una persona de verdad (armado en `../vibe-kit-pruebas/rc7/alfa` desde la revisión); y cómo
@@ -675,7 +700,8 @@ persona, dos módulos que terminan a la vez, un proyecto que publica al subir, y
 ## NO SE TOCA
 
 - Lo de A1-A10 y lo que dice "Sigue igual" arriba. `/tramo` y los seis agentes. `idleCompaction`. La regla "nunca `ExitWorktree`".
-- **Cómo se valida una firma** (`validarSello`, `commitDelSello`, las condiciones de `aprobar`): A2, A3 y A6 no cambian ni una.
+- **Cómo se valida una firma** (`validarSello`, `commitDelSello`): A2, A3 y A6 no cambian ni una. De las condiciones de `aprobar`
+  cambia una sola: **quién lo puede correr** (A2.3); lo que exige de la carpeta principal y lo que escribe el sello, igual.
 - Lo que frenan `secretos` y `git-seguro` fuera de A4 y A7. El `deny` de leer `.env`. `escritura-docs`.
 - El `CLAUDE.md` de un repo ya adoptado (`trato: nunca`). El tope de 8.000 B de las skills (`/director` no crece: lo que no entra va a
   `cierre-noche.md`). El catálogo de piezas.
@@ -709,7 +735,7 @@ Los **crit.** de cada cambio (A1 a C4) y:
 | D8d-3 | **Si publicar está en `sensible.release`, la ficha no valida con `autorizado.publicar`** | Contesta "cuál manda" (48) sin una marca nueva: no pueden decir cosas distintas | consistencia |
 | D8d-4 | **Vale de día y de noche** | La autorización es del proyecto, no de la hora; lo que el dueño dijo es "en mis repos personales pueden integrar, publicar" | flujo |
 | D8d-5 | **La autorización de la PC es un sí por repo, con huella**, anotado en `kit-pc.md` por "preparame esta PC" (rt-2, rt-3) | Que la ficha lo diga no alcanza (la puede traer un repo ajeno), y sin huella el sí cubría cualquier cosa que después se le agregara al script de publicar | mejor código |
-| D8d-6 | **El director no firma**; firma una sesión de la carpeta principal (**es la pregunta para Guido**) | Es lo probado (pruebas, 3a-3c); el aislamiento del director vuelve incierto lo otro, y dejarlo pedir la ventana afloja un freno | flujo · consistencia |
+| D8d-6 | **El clic es en la pestaña del director** — **decisión de Guido**, 2026-11-12: *"el clik lo quiero hacer siempre en director, las aprobaciones son con el, no con los obreros"*. Lo técnico, mío: el script firma en la carpeta principal, el sello no cambia, la sesión de la principal queda como segundo camino, y cuatro negativas cierran que un obrero firme por él | Es donde el dueño ya está charlando; la recomendada era la otra (lo probado), así que va con P7 y su plan B | flujo |
 | D8d-7 | **Un cambio nacido en un módulo viaja solo a la rama por defecto**; no se aprueba "desde el módulo" | No abre un camino nuevo de confianza: la firma sigue viviendo solo en la rama por defecto | mejor código |
 | D8d-8 | **Un proceso de freno en el proyecto y uno en la PC**, con el portero en `hooks/lib/`, que carga solo lo que está en `molde` | Baja de cuatro procesos a dos sin tocar el catálogo; lo adaptado sigue corriendo como hoy; los tres hooks siguen andando solos como plan B | flujo · mejor código |
 | D8d-9 | **Un freno sin tiempo niega, pero dice la verdad** | Fallar abierto con la PC cargada es justo cuando más obreros hay | mejor código |
@@ -729,8 +755,9 @@ Los **crit.** de cada cambio (A1 a C4) y:
 
 ## Lo que esto no cierra
 
-- **La pestaña del director no puede firmar**: el dueño hace el clic en una sesión de la carpeta principal. Va con el director sin
-  `EnterWorktree` (V8, `v3.1`).
+- **El clic en la pestaña del director no está probado con una persona** (P7): si no anda, el clic es en una sesión de la carpeta
+  principal. Y el director puede pedirte la firma de un cambio que él mismo propuso: la red es que la ventana dice quién la pide
+  y qué toca, que de noche no hay firma, y que un obrero no puede.
 - **Publicar sin persona no es una frontera**: quien puede escribir en el `~/.claude/` de la PC puede fabricarse la autorización; y
   la huella mira los archivos que los comandos **nombran**, no lo que esos archivos cargan por dentro, ni una variable del
   entorno, ni (en un proyecto que publica al subir) el pipeline del proveedor. Es contra accidentes
@@ -782,6 +809,10 @@ Los **crit.** de cada cambio (A1 a C4) y:
 | r2-5 | MEDIO | El `/cierre` pide cosas que la lista no traía | La lista sale de leer el `/cierre` paso por paso; `cierre-noche.md` dice qué pasos no corren de noche (B3.1, B3.4) |
 | r2-6 | MEDIO | El plan B de P4 (volver a `auto`) reabría rt-1 | Se saca; el chequeo mira desde lo último publicado, no desde el merge del módulo (B3.2.4, P4) |
 | r2-7 | MEDIO | `kit-pc.md` perdía los sí en una corrida común, no había cómo sacar uno, y un `origin` escrito distinto no se reconocía | Se conservan; `--no-publica`; el `origin` normalizado (C2.2) |
+
+**Después de las dos rondas**: la respuesta de Guido cambió A2.3 (el director puede pedir la firma). Ese cambio **no pasó por el red
+team del spec**: lo ataca el red team de A2 que la tanda A ya tiene que correr, con esto adentro, antes de cerrarlo. Lo que tiene que
+buscar: un camino por el que un obrero, una sesión de fondo o el director de noche lleguen a una firma.
 
 ## Lo que salió al construir
 
