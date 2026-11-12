@@ -232,8 +232,75 @@ const SENSIBLES = ['datos-reales', 'plata', 'sale-afuera', 'claves', 'release'];
 const CONOCIDOS = ['kit', 'nivel', 'vars', 'piezas', 'frenos', 'autorizado', 'sensible', 'secretos', 'publicas',
   'herramientas', 'entornos', 'datos-de-prueba', 'push-publica', 'aprueba', 'mesa', 'multi-llm', 'carpeta-docs', 'andamiaje'];
 // `andamiaje:` (SPEC-paquete-8r4 u7, D8r4-8): quién toca CLAUDE.md, skills y agentes. Sin la clave, `agentes` (como siempre); con
-// `con-ok-de-guido`, NUCLEO.md §9.4 lo hace clase 3. Es texto que se lee, no un hook.
-const ANDAMIAJES = ['agentes', 'con-ok-de-guido'];
+// `con-ok` (o su alias viejo `con-ok-de-guido`, que valida para siempre en la v3: SPEC-paquete-8d A1.4, D8d-11), NUCLEO.md §9.4 lo
+// hace clase 3. Es texto que se lee, no un hook.
+const ANDAMIAJES = ['agentes', 'con-ok', 'con-ok-de-guido'];
+// herramientas.<x>: si necesita una persona. `necesita-guido` es el alias viejo (A1.4): uno de los dos, no los dos.
+const NECESITA = ['necesita-persona', 'necesita-guido'];
+
+// autorizado.publicar (SPEC-paquete-8d A1.1, r2-4): `no`, o {comando, humo, volver?}. Cada uno es UN comando de una de dos formas
+// (así se sabe qué archivo mirar para saber si cambió cómo se publica): un intérprete con un archivo del repo, o un lanzador de
+// paquetes con `run <script>`. `comando: al-subir` es el proyecto que publica solo al subir (rt-8): lleva humo y no lleva volver.
+const PUBLICAR_CLAVES = ['comando', 'humo', 'volver'];
+const AL_SUBIR = 'al-subir';
+const INTERPRETES_PUBLICAR = ['node', 'py', 'python', 'bash', 'sh', 'pwsh'];
+const LANZADORES_PUBLICAR = ['npm', 'pnpm', 'yarn'];
+// Las opciones que corren código suelto en vez de un archivo (node -e, python -c, pwsh -Command…): con ellas no hay archivo que mirar.
+const CODIGO_SUELTO = new Set(['-e', '--eval', '-p', '--print', '-c', '-r', '--require', '--import', '--loader', '-m', '-command', '-encodedcommand', '-ec']);
+const RE_VARIOS_COMANDOS = /[&|;<>`]|\$\(/;
+const RE_ARCHIVO_DEL_REPO = /^(?:\.\/)?[A-Za-z0-9_][A-Za-z0-9._/-]*\.[A-Za-z0-9]+$/;
+const RE_SCRIPT_NPM = /^[A-Za-z0-9][A-Za-z0-9:._-]*$/;
+const palabras = (v) => v.trim().split(/\s+/).filter(Boolean);
+const esArchivoDelRepo = (w) => RE_ARCHIVO_DEL_REPO.test(w) && !w.split('/').includes('..');
+// ¿Tiene una de las dos formas? (el texto ya pasó por RE_VARIOS_COMANDOS)
+function formaDePublicar(v) {
+  const w = palabras(v);
+  if (w.length === 0) return false;
+  const prog = w[0];
+  if (INTERPRETES_PUBLICAR.includes(prog)) {
+    for (const x of w.slice(1)) {
+      if (CODIGO_SUELTO.has(x.toLowerCase())) return false;
+      if (x.startsWith('-')) continue;
+      return esArchivoDelRepo(x); // el primer argumento que no es opción tiene que ser el archivo
+    }
+    return false;
+  }
+  if (LANZADORES_PUBLICAR.includes(prog)) {
+    const i = w.indexOf('run');
+    if (i < 1 || i + 1 >= w.length || !RE_SCRIPT_NPM.test(w[i + 1])) return false;
+    // entre el lanzador y `run`, solo opciones con su valor (`--dir app`, `--prefix=app`): ningún otro subcomando (exec, dlx, x)
+    for (let k = 1; k < i; k++) {
+      if (w[k].startsWith('-')) continue;
+      if (k > 1 && w[k - 1].startsWith('-') && !w[k - 1].includes('=')) continue;
+      return false;
+    }
+    return true;
+  }
+  return false;
+}
+// Para comparar con sensible.release: las palabras sin el intérprete del principio y sin `./` (como mira sensible.cjs).
+const INTERPRETES_SENSIBLE = new Set(['node', 'bash', 'sh', 'zsh', 'python', 'python3', 'py', 'pwsh', 'powershell', 'deno', 'bun']);
+function palabrasSinInterprete(v) {
+  const w = palabras(v).map((x, i) => (i === 0 ? x.toLowerCase() : x)).map((x) => x.replace(/^\.\//, ''));
+  return w.length > 1 && INTERPRETES_SENSIBLE.has(w[0]) ? w.slice(1) : w;
+}
+const empiezaConPalabras = (cmd, ent) => ent.length > 0 && ent.length <= cmd.length && ent.every((x, i) => x === cmd[i]);
+// ¿Algún comando de publicar empieza como una entrada de sensible.release? (tracker 48, D8d-3)
+function chocaConRelease(publicar, release) {
+  if (!esLista(release)) return false;
+  for (const c of PUBLICAR_CLAVES) {
+    const v = publicar[c];
+    if (!esTexto(v) || v === AL_SUBIR) continue;
+    for (const e of release) {
+      if (!esTexto(e) || e.startsWith('tabla:')) continue;
+      const pe = palabras(e);
+      const pc = palabras(v);
+      if (pe.length === 0) continue;
+      if (empiezaConPalabras(pc, pe) || empiezaConPalabras(palabrasSinInterprete(v), palabrasSinInterprete(e))) return true;
+    }
+  }
+  return false;
+}
 // vars.plazo-test (u8): los minutos que el sello le da a comando-test, un entero de 1 a 60 sin ceros a la izquierda.
 const RE_PLAZO_TEST = /^(?:[1-9]|[1-5]\d|60)$/;
 
@@ -250,7 +317,8 @@ const CON_NOMBRE_DEL_USUARIO = { piezas: '<nombre>', herramientas: '<nombre>', e
 const nom = (ruta) => {
   const seg = ruta.split('.');
   if (seg.length > 1) {
-    if (tiene(CON_NOMBRE_DEL_USUARIO, seg[0])) seg[1] = CON_NOMBRE_DEL_USUARIO[seg[0]];
+    if (seg[0] === 'autorizado' && seg[1] === 'publicar') { /* publicar no lo elige el usuario: se nombra */ }
+    else if (tiene(CON_NOMBRE_DEL_USUARIO, seg[0])) seg[1] = CON_NOMBRE_DEL_USUARIO[seg[0]];
     else if (seg[0] === 'vars' && !['proyecto', 'lenguajes', 'plazo-test'].includes(seg[1])) seg[1] = '<clave>';
   }
   return seg.join('.').replace(/\.(\d+)/g, '[$1]');
@@ -393,12 +461,14 @@ function validar(datos, st, cierre, avisos) {
     for (const [k, v] of Object.entries(datos.herramientas)) {
       const r = `herramientas.${k}`;
       mapa(r, v);
-      soloClaves(r, v, ['chequeo', 'necesita-guido'], false);
+      soloClaves(r, v, ['chequeo', ...NECESITA], false);
       requerido(r, v, 'chequeo');
       texto(`${r}.chequeo`, v.chequeo);
       noVacio(`${r}.chequeo`, v.chequeo);
-      requerido(r, v, 'necesita-guido');
-      uno(`${r}.necesita-guido`, v['necesita-guido'], ['sí', 'no']);
+      const cuales = NECESITA.filter((k) => tiene(v, k));
+      if (cuales.length > 1) E(L(r), `"${nom(r)}" lleva "necesita-persona" o "necesita-guido", no los dos — dejá uno`);
+      if (cuales.length === 0) falta(r, 'necesita-persona');
+      uno(`${r}.${cuales[0]}`, v[cuales[0]], ['sí', 'no']);
     }
   }
   const declaradas = tiene(datos, 'herramientas') ? datos.herramientas : {};
@@ -444,7 +514,36 @@ function validar(datos, st, cierre, avisos) {
   if (tiene(datos, 'aprueba')) patron('aprueba', datos.aprueba, /^[a-z0-9-]+$/, 'tiene que ser un alias en minúsculas (a-z, 0-9, -), nunca un nombre real');
   if (tiene(datos, 'autorizado')) {
     mapa('autorizado', datos.autorizado);
-    for (const [k, v] of Object.entries(datos.autorizado)) texto(`autorizado.${k}`, v);
+    for (const [k, v] of Object.entries(datos.autorizado)) {
+      if (k !== 'publicar') texto(`autorizado.${k}`, v);
+    }
+    if (tiene(datos.autorizado, 'publicar')) {
+      const r = 'autorizado.publicar';
+      const p = datos.autorizado.publicar;
+      if (!(p === 'no' || esMapa(p))) E(L(r), `"${r}" tiene que ser "no" o {comando: …, humo: …} (volver es opcional) — corregilo`);
+      if (esMapa(p)) {
+        soloClaves(r, p, PUBLICAR_CLAVES, true);
+        requerido(r, p, 'comando');
+        requerido(r, p, 'humo');
+        for (const c of PUBLICAR_CLAVES) {
+          if (!tiene(p, c)) continue;
+          const rc = `${r}.${c}`;
+          texto(rc, p[c]);
+          noVacio(rc, p[c]);
+          if (c === 'comando' && p[c] === AL_SUBIR) continue;
+          if (RE_VARIOS_COMANDOS.test(p[c])) E(L(rc), `"${rc}" tiene que ser un solo comando, sin & | ; > < ni $( ) — si publicar pide varios pasos, envolvelos en un script del proyecto`);
+          if (!formaDePublicar(p[c])) {
+            E(L(rc), `"${rc}" no es un comando que se acepte — tiene que ser ${INTERPRETES_PUBLICAR.join('|')} con un archivo del repo (node scripts/publicar.cjs), o ${LANZADORES_PUBLICAR.join('|')} … run <script>` + (c === 'comando' ? `, o ${AL_SUBIR}` : ''));
+          }
+        }
+        if (p.comando === AL_SUBIR && tiene(p, 'volver')) {
+          E(L(`${r}.volver`), `"${r}.volver" no va con "comando: ${AL_SUBIR}" — sacalo: lo que se publica al subir se vuelve atrás desde el proveedor`);
+        }
+        if (tiene(datos, 'sensible') && esMapa(datos.sensible) && chocaConRelease(p, datos.sensible.release)) {
+          E(L(r), 'publicar es una pregunta en este proyecto (`sensible.release`) y a la vez automático (`autorizado.publicar`): elegí una');
+        }
+      }
+    }
   }
   if (tiene(datos, 'datos-de-prueba')) texto('datos-de-prueba', datos['datos-de-prueba']);
   if (tiene(datos, 'carpeta-docs')) {

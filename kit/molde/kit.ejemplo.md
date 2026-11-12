@@ -6,7 +6,7 @@
 kit: 2.4.3
 nivel: estandar                      # liviano (sin código) · estandar (con código)
 # carpeta-docs: arti-docs            # (opcional) la carpeta de papeles del método si no es docs/; en minúsculas; cambiarla es barrera
-# andamiaje: con-ok-de-guido         # (opcional) agentes (sin ella) · con-ok-de-guido: tocar CLAUDE.md, skills o agentes es clase 3
+# andamiaje: con-ok                  # (opcional) agentes (sin ella) · con-ok: tocar CLAUDE.md, skills o agentes es clase 3
 vars:                                # con qué se instanció el molde: sin esto no se puede regenerar
   proyecto: ejemplo
   comando-test: node --test
@@ -35,9 +35,10 @@ frenos:
     - {id: hook:git-seguro/push-force, por: "proyecto personal, el push es libre", hasta: siempre}
     - {id: pregunta:borrar-datos-reales, por: "base dummy #3 de la misión 3", hasta: 2026-11-15}
     - {id: deny:Bash(git stash:*), por: "el flujo de release lo necesita", hasta: siempre}
-autorizado:                          # lo que no es pregunta
+autorizado:                          # lo que el proyecto deja hacer sin el dueño (no apaga ninguna pregunta de sensible)
   merge-a-main: con-gate-verde
   escribir-produccion: por-comando-con-foto
+  # publicar: {comando: "node scripts/publicar.cjs", humo: "node scripts/humo.cjs", volver: "node scripts/volver.cjs"}  # o: no · comando: al-subir
 sensible:                            # las 5 preguntas de fábrica: no, o los comandos que duelen acá (pregunta el que empieza así)
   datos-reales: ["tabla:clientes", db borrar]   # "tabla:<x>" no es un comando: es para la guardia de db migrar
   plata: no
@@ -46,11 +47,11 @@ sensible:                            # las 5 preguntas de fábrica: no, o los co
   release: [npm run release]
 secretos: [DB_URL, HUB_TOKEN]        # nombres, nunca valores
 publicas: [SUPABASE_ANON_KEY]        # parecen secreto y no lo son
-herramientas:                        # lo que se puede usar: un chequeo de una línea y si necesita a Guido; cada entorno nombra las suyas
-  db: {chequeo: "db ping", necesita-guido: no}
+herramientas:                        # lo que se puede usar: un chequeo de una línea y si necesita a una persona; cada entorno nombra las suyas
+  db: {chequeo: "db ping", necesita-persona: no}
   sqlite:
     chequeo: sqlite3 --version
-    necesita-guido: no
+    necesita-persona: no
 entornos:
   base-real:
     clase: real                      # real · prueba · dummy

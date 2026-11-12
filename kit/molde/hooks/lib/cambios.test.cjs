@@ -86,6 +86,7 @@ const FICHA = (o = {}) =>
     `  plata: ${o.plata || 'no'}`,
     'autorizado:',
     `  merge-a-main: ${o.merge || 'con-gate-verde'}`,
+    ...(o.publicar ? [`  publicar: ${o.publicar}`] : []),
     '---',
     '',
   ].join('\n');
@@ -283,6 +284,20 @@ test('toca de la ficha: frenos por id (agregar, cambiar el hasta, opcional), sen
   assert.deepEqual(C.toca(d, sha), { categorias: ['frenos'], ids: ['candado:mesa'] });
   sha = commit(d, { '.claude/kit.md': FICHA({ quitados: ['{id: deny:Bash(git stash:*), por: "x", hasta: 2027-01-01}'], opcionales: '[candado:mesa]', plata: '[cobros]', merge: 'libre' }) });
   assert.deepEqual(C.toca(d, sha), { categorias: ['autorizado', 'sensible'], ids: ['autorizado:merge-a-main', 'sensible:plata'] });
+});
+
+test('A1 (8d): poner, cambiar o sacar autorizado.publicar da el id autorizado:publicar (sigue siendo barrera)', () => {
+  const d = repo({ '.claude/kit.md': FICHA() });
+  const P1 = '{comando: "node scripts/publicar.cjs", humo: "node scripts/humo.cjs"}';
+  const P2 = '{comando: "node scripts/publicar.cjs", humo: "node scripts/humo.cjs", volver: "node scripts/volver.cjs"}';
+  let sha = commit(d, { '.claude/kit.md': FICHA({ publicar: P1 }) });
+  assert.deepEqual(C.toca(d, sha), { categorias: ['autorizado'], ids: ['autorizado:publicar'] });
+  sha = commit(d, { '.claude/kit.md': FICHA({ publicar: P2 }) });
+  assert.deepEqual(C.toca(d, sha), { categorias: ['autorizado'], ids: ['autorizado:publicar'] });
+  sha = commit(d, { '.claude/kit.md': FICHA({ publicar: 'no' }) });
+  assert.deepEqual(C.toca(d, sha), { categorias: ['autorizado'], ids: ['autorizado:publicar'] });
+  sha = commit(d, { '.claude/kit.md': FICHA() });
+  assert.deepEqual(C.toca(d, sha), { categorias: ['autorizado'], ids: ['autorizado:publicar'] });
 });
 
 test('toca de la ficha: nivel y las dos piezas cuentan SOLO cuando aflojan; el hash de una pieza no cuenta', () => {

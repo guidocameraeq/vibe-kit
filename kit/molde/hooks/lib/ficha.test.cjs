@@ -63,8 +63,8 @@ const ESPERADO = {
   secretos: ['DB_URL', 'HUB_TOKEN'],
   publicas: ['SUPABASE_ANON_KEY'],
   herramientas: {
-    db: { chequeo: 'db ping', 'necesita-guido': 'no' },
-    sqlite: { chequeo: 'sqlite3 --version', 'necesita-guido': 'no' },
+    db: { chequeo: 'db ping', 'necesita-persona': 'no' },
+    sqlite: { chequeo: 'sqlite3 --version', 'necesita-persona': 'no' },
   },
   entornos: {
     'base-real': { clase: 'real', herramientas: ['db'], acceso: 'db (solo lectura)' },
@@ -282,7 +282,7 @@ const CASOS = [
   ['herramienta que no es un mapa', ficha('herramientas:\n  db: x\n'), 7, /"herramientas.<nombre>" tiene que ser un mapa/],
   ['herramienta sin chequeo (en línea)', ficha('herramientas:\n  db: {necesita-guido: no}\n'), 7, /falta "chequeo" en "herramientas.<nombre>"/],
   ['herramienta sin chequeo (en bloque)', ficha('herramientas:\n  db:\n    necesita-guido: no\n'), 7, /falta "chequeo" en "herramientas.<nombre>"/],
-  ['herramienta sin necesita-guido', ficha('herramientas:\n  db: {chequeo: x}\n'), 7, /falta "necesita-guido" en "herramientas.<nombre>"/],
+  ['herramienta sin necesita-persona ni necesita-guido', ficha('herramientas:\n  db: {chequeo: x}\n'), 7, /falta "necesita-persona" en "herramientas.<nombre>"/],
   ['chequeo vacío', ficha('herramientas:\n  db: {chequeo: " ", necesita-guido: no}\n'), 7, /"herramientas.<nombre>.chequeo" está vacío/],
   ['chequeo como lista', ficha('herramientas:\n  db:\n    chequeo: [a]\n    necesita-guido: no\n'), 8, /"herramientas.<nombre>.chequeo" tiene que ser un texto/],
   ['necesita-guido: tal vez', ficha('herramientas:\n  db: {chequeo: x, necesita-guido: tal vez}\n'), 7, /"herramientas.<nombre>.necesita-guido" tiene un valor que no se acepta — tiene que ser uno de: sí, no/],
@@ -315,7 +315,7 @@ const CASOS = [
   ['carpeta-docs como lista', ficha('carpeta-docs: [a]\n'), 6, /"carpeta-docs" tiene que ser un texto/],
   // --- andamiaje (8r4 u7): agentes o con-ok-de-guido, como push-publica
   ...['si', 'guido', 'Agentes', 'con ok de guido', '"agentes "']
-    .map((v) => [`andamiaje: ${v}`, ficha(`andamiaje: ${v}\n`), 6, /"andamiaje" tiene un valor que no se acepta — tiene que ser uno de: agentes, con-ok-de-guido/]),
+    .map((v) => [`andamiaje: ${v}`, ficha(`andamiaje: ${v}\n`), 6, /"andamiaje" tiene un valor que no se acepta — tiene que ser uno de: agentes, con-ok, con-ok-de-guido/]),
   ['andamiaje como lista', ficha('andamiaje: [agentes]\n'), 6, /"andamiaje" tiene que ser un texto/],
   // --- vars.plazo-test (8r4 u8): minutos, entero de 1 a 60
   ...['0', '61', '100', '-1', '1.5', '05', 'diez', '10 min', '""']
@@ -1011,4 +1011,111 @@ test('leerCabecera: el mismo error de gramática que leer, con la misma línea y
   assert.ok(a instanceof ErrorFicha && b instanceof ErrorFicha);
   assert.equal(b.linea, a.linea);
   assert.equal(b.message, a.message);
+});
+
+// ---------------------------------------------------------------- A1 (SPEC-paquete-8d): autorizado.publicar y los nombres sin persona
+
+const PUB = (v) => ficha(`autorizado:\n  publicar: ${v}\n`); // autorizado.publicar cae en la línea 7
+const errorDe = (texto) => {
+  try {
+    leer(texto);
+  } catch (e) {
+    if (e instanceof ErrorFicha) return e;
+    throw e;
+  }
+  return null;
+};
+
+test('A1 autorizado.publicar: no, y el mapa completo, sin volver, y al-subir con humo valen sin avisos', () => {
+  const buenos = [
+    ['no', 'no'],
+    ['{comando: "node scripts/publicar.cjs", humo: "node scripts/humo.cjs", volver: "node scripts/volver.cjs"}',
+      { comando: 'node scripts/publicar.cjs', humo: 'node scripts/humo.cjs', volver: 'node scripts/volver.cjs' }],
+    ['{comando: "node scripts/publicar.cjs --prod", humo: "py -3 scripts/humo.py"}', { comando: 'node scripts/publicar.cjs --prod', humo: 'py -3 scripts/humo.py' }],
+    ['{comando: "npm run publicar", humo: "pnpm --dir app run humo"}', { comando: 'npm run publicar', humo: 'pnpm --dir app run humo' }],
+    ['{comando: "bash scripts/deploy.sh", humo: "yarn run smoke", volver: "pwsh scripts/volver.ps1"}', { comando: 'bash scripts/deploy.sh', humo: 'yarn run smoke', volver: 'pwsh scripts/volver.ps1' }],
+    ['{comando: al-subir, humo: "node scripts/humo.cjs"}', { comando: 'al-subir', humo: 'node scripts/humo.cjs' }],
+  ];
+  for (const [v, esperado] of buenos) {
+    const r = leer(PUB(v));
+    assert.deepStrictEqual(r.datos.autorizado.publicar, esperado, v);
+    assert.deepStrictEqual(r.avisos, [], v);
+  }
+});
+
+test('A1 autorizado.publicar: lo que no vale, con su línea y sin repetir el valor', () => {
+  const malos = [
+    ['si', /"autorizado\.publicar" tiene que ser "no" o \{comando: …, humo: …\}/],
+    ['[a, b]', /"autorizado\.publicar" tiene que ser "no" o \{comando: …, humo: …\}/],
+    ['{humo: "node scripts/humo.cjs"}', /falta "comando" en "autorizado\.publicar"/],
+    ['{comando: "node scripts/p.cjs"}', /falta "humo" en "autorizado\.publicar"/],
+    ['{comando: "node scripts/p.cjs", humo: "node scripts/h.cjs", otro: x}', /clave desconocida en "autorizado\.publicar"/],
+    ['{comando: "vercel deploy --prod", humo: "node scripts/h.cjs"}', /"autorizado\.publicar\.comando" no es un comando que se acepte/],
+    ['{comando: "node scripts/p.cjs; rm -rf x", humo: "node scripts/h.cjs"}', /"autorizado\.publicar\.comando" tiene que ser un solo comando/],
+    ['{comando: "node scripts/p.cjs", humo: "node scripts/h.cjs | tee x"}', /"autorizado\.publicar\.humo" tiene que ser un solo comando/],
+    ['{comando: "node scripts/p.cjs > salida", humo: "node scripts/h.cjs"}', /"autorizado\.publicar\.comando" tiene que ser un solo comando/],
+    ['{comando: "node scripts/p.cjs < entrada", humo: "node scripts/h.cjs"}', /"autorizado\.publicar\.comando" tiene que ser un solo comando/],
+    ['{comando: "node scripts/p.cjs", humo: "node scripts/h.cjs", volver: "node $(x).cjs"}', /"autorizado\.publicar\.volver" tiene que ser un solo comando/],
+    ['{comando: "node -e console.log(1)", humo: "node scripts/h.cjs"}', /"autorizado\.publicar\.comando" no es un comando que se acepte/],
+    ['{comando: "node /tmp/p.cjs", humo: "node scripts/h.cjs"}', /"autorizado\.publicar\.comando" no es un comando que se acepte/],
+    ['{comando: "node ../afuera/p.cjs", humo: "node scripts/h.cjs"}', /"autorizado\.publicar\.comando" no es un comando que se acepte/],
+    ['{comando: "node C:/x/p.cjs", humo: "node scripts/h.cjs"}', /"autorizado\.publicar\.comando" no es un comando que se acepte/],
+    ['{comando: "npm publish", humo: "node scripts/h.cjs"}', /"autorizado\.publicar\.comando" no es un comando que se acepte/],
+    ['{comando: "npm run", humo: "node scripts/h.cjs"}', /"autorizado\.publicar\.comando" no es un comando que se acepte/],
+    ['{comando: "", humo: "node scripts/h.cjs"}', /"autorizado\.publicar\.comando" está vacío/],
+    ['{comando: al-subir, humo: "node scripts/h.cjs", volver: "node scripts/v.cjs"}', /"autorizado\.publicar\.volver" no va con "comando: al-subir"/],
+    ['{comando: al-subir, humo: al-subir}', /"autorizado\.publicar\.humo" no es un comando que se acepte/],
+  ];
+  for (const [v, re] of malos) {
+    const e = errorDe(PUB(v));
+    assert.ok(e, `tenía que fallar: ${v}`);
+    assert.equal(e.linea, 7, `${v}: ${e.mensaje}`);
+    assert.match(e.mensaje, re, v);
+    assert.ok(!/scripts\/p\.cjs|vercel|rm -rf/.test(e.mensaje), `el mensaje repite el valor: ${e.mensaje}`);
+  }
+});
+
+test('A1 autorizado.publicar choca con sensible.release: la ficha no valida (las dos no pueden decir cosas distintas)', () => {
+  const choques = [
+    ['sensible:\n  release: [npm run publicar]\n', '{comando: "npm run publicar", humo: "node scripts/h.cjs"}'],
+    ['sensible:\n  release: [node scripts/publicar.cjs]\n', '{comando: "node scripts/publicar.cjs --prod", humo: "node scripts/h.cjs"}'],
+    ['sensible:\n  release: [scripts/publicar.cjs]\n', '{comando: "node scripts/publicar.cjs", humo: "node scripts/h.cjs"}'],
+    ['sensible:\n  release: [node scripts/humo.cjs]\n', '{comando: "node scripts/p.cjs", humo: "node scripts/humo.cjs"}'],
+  ];
+  for (const [sens, pub] of choques) {
+    const e = errorDe(ficha(`${sens}autorizado:\n  publicar: ${pub}\n`));
+    assert.ok(e, `tenía que chocar: ${sens} / ${pub}`);
+    assert.match(e.mensaje, /publicar es una pregunta en este proyecto \(`sensible\.release`\) y a la vez automático \(`autorizado\.publicar`\): elegí una/);
+  }
+  // otra entrada de release, o release: no, no chocan
+  for (const sens of ['sensible:\n  release: [npm run release]\n', 'sensible:\n  release: no\n', 'sensible:\n  release: [node scripts/publicar-docs.cjs]\n']) {
+    assert.deepStrictEqual(leer(ficha(`${sens}autorizado:\n  publicar: {comando: "node scripts/publicar.cjs", humo: "node scripts/h.cjs"}\n`)).avisos, [], sens);
+  }
+});
+
+test('A1 los nombres sin persona: andamiaje con-ok vale igual que con-ok-de-guido', () => {
+  for (const v of ['con-ok', 'con-ok-de-guido']) assert.equal(leer(ficha(`andamiaje: ${v}\n`)).datos.andamiaje, v);
+});
+
+test('A1 herramientas.<x>.necesita-persona vale igual que necesita-guido; uno de los dos, no los dos, y alguno', () => {
+  const nuevo = leer(ficha('herramientas:\n  db: {chequeo: x, necesita-persona: sí}\n'));
+  assert.equal(nuevo.datos.herramientas.db['necesita-persona'], 'sí');
+  assert.deepStrictEqual(nuevo.avisos, []);
+  assert.deepStrictEqual(leer(ficha(HERR)).avisos, []); // el viejo sigue validando (para siempre en la v3)
+  const doble = errorDe(ficha('herramientas:\n  db: {chequeo: x, necesita-persona: no, necesita-guido: no}\n'));
+  assert.ok(doble);
+  assert.match(doble.mensaje, /"herramientas\.<nombre>" lleva "necesita-persona" o "necesita-guido", no los dos/);
+  const ninguno = errorDe(ficha('herramientas:\n  db: {chequeo: x}\n'));
+  assert.ok(ninguno);
+  assert.match(ninguno.mensaje, /falta "necesita-persona" en "herramientas\.<nombre>"/);
+  const malo = errorDe(ficha('herramientas:\n  db: {chequeo: x, necesita-persona: quizas}\n'));
+  assert.match(malo.mensaje, /"herramientas\.<nombre>\.necesita-persona" tiene un valor que no se acepta — tiene que ser uno de: sí, no/);
+});
+
+test('A1 el ejemplo usa los nombres nuevos y su comentario de autorizado no promete lo que sensible no lee', () => {
+  const t = fs.readFileSync(EJEMPLO, 'utf8');
+  assert.ok(!/necesita-guido|con-ok-de-guido/.test(t), 'el ejemplo todavía usa un nombre con guido');
+  assert.ok(/necesita-persona/.test(t) && /con-ok\b/.test(t));
+  assert.ok(!/autorizado:.*lo que no es pregunta/.test(t), 'el comentario de autorizado sigue prometiendo que no es pregunta');
+  assert.ok(/publicar: \{comando:/.test(t), 'el ejemplo no muestra autorizado.publicar');
 });
