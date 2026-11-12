@@ -12,6 +12,8 @@
 //     que empiezan con `-`) no fijan la posición (rf3-9): las palabras de la entrada que NO son banderas, en orden, tienen que ser el
 //     principio de las del comando que no son banderas, y cada bandera de la entrada tiene que estar tal cual en algún lugar del
 //     comando (`git push --tags` pregunta en `git push origin --tags`; `--follow-tags` no es `--tags`: si duele, va como otra entrada).
+//     Una bandera larga de la entrada vale también abreviada y con valor (SPEC-paquete-8d A4.1): `--produccion` matchea `--prod`,
+//     `--p`, `--produccion=si` y `--prod=si`; las de un guion y las que traen `=` en la ficha, tal cual (`-p` no es `--produccion`).
 //     Por lo mismo, una entrada que es solo programa + banderas no fija subcomando (rf2-9): `vercel --prod` pregunta también en
 //     `vercel logs --prod` y `vercel env pull --prod` (y en `vercel deploy --prod`, que es lo que se quería). Se deja así: atarla a
 //     "sin subcomando" callaría `vercel deploy --prod`; si pregunta de más, la entrada va con su subcomando (`vercel deploy --prod`).
@@ -34,7 +36,14 @@
 //   - Ids: `datos-reales` → `pregunta:borrar-datos-reales`; las otras, `pregunta:<clave>`. Un id quitado en `frenos.quitados` con
 //     `hasta:` vigente (siempre, o una fecha que no pasó, el día incluido) apaga esa clave y nada más.
 //   - De noche (`contexto.deNoche`: `.kit-rol` `nocturno`, o la marca `.kit-noche` del checkout o, en un obrero, la del worktree
-//     de su director; el motivo dice cuál), o `permission_mode` `bypassPermissions`/`dontAsk`/ausente/desconocido (r1-17) → `deny` con PARADA.
+//     de su director; el motivo dice cuál), de fondo (`KIT_FONDO=1` en el entorno, que el hook hereda de la sesión: SPEC-paquete-8d
+//     A7 e, P3), o `permission_mode` `bypassPermissions`/`dontAsk`/ausente/desconocido (r1-17) → `deny` con PARADA.
+//   - LA GUARDIA DE PUBLICAR (SPEC-paquete-8d A1.3, rt-1): los comandos de `autorizado.publicar` de la ficha vigente (`comando`,
+//     `humo`, `volver`; `al-subir` no es un comando), tipeados como herramienta y matcheados como una entrada de `sensible:`, se
+//     NIEGAN en toda sesión sin persona: sin ventana (lo de arriba) o con un `.kit-rol` distinto de `humano`, también en la carpeta
+//     principal. Id `pregunta:publicar-sin-persona`, detalle `publicar (<por qué>)`; va antes que las 5 (un deny le gana a un ask) y
+//     ningún quitado la apaga (se apaga con `autorizado.publicar: no`). `noche.cjs publicar` los corre como proceso hijo, no como
+//     herramienta: esto no lo toca. Con persona (humano, con ventana, sin KIT_FONDO), nada nuevo.
 //   - `default`, `acceptEdits`, `plan`, `auto`, cualquier otro rol → `ask`, con cuál de las 5 es y qué entrada de la ficha la marca.
 //   - Los dos dejan renglón en .claude/frenos.log: id · herramienta · detalle = la clave (`preguntó <clave>` en el ask; `<clave>
 //     (<por qué no hay ventana>)` en el deny). NUNCA el comando.
@@ -49,6 +58,7 @@
 //     recursivo), las variables GIT_* del entorno, el `refs/remotes/origin/HEAD`
 //     simbólico y el sha (archivo suelto o `packed-refs`) de
 //     `refs/remotes/origin/<n>` y `refs/heads/<n>` para cada rama candidata (las de `contexto.candidatas`, guardadas en el caché).
+//     Guarda las listas, los quitados y los comandos de `autorizado.publicar` (versión 2 del caché: uno de la 1 se rehace).
 //     Todo lo que puede cambiar cuál es la ref vigente o a qué commit apunta cambia la huella. Solo si cambió se lanza git. Sin
 //     huella por fs (fuera de un repo, reftable, un `.git` que no se entiende) se cae a `contexto` en cada llamada: lento pero
 //     correcto. Escritura atómica (temporal + renombre); un caché roto se ignora y se rehace; un git que falla no se cachea.
@@ -80,7 +90,11 @@ const PREGUNTAS = {
 };
 const BANDERA = '--borra-datos-reales';
 const ARCHIVO_CACHE = 'kit-sensible.json';
-const VERSION_CACHE = 1;
+const VERSION_CACHE = 2; // 2: el caché guarda también autorizado.publicar (SPEC-paquete-8d A1.3)
+// A1.3: los comandos de autorizado.publicar, sin una persona mirando, se niegan con este id. `al-subir` no es un comando.
+const ID_PUBLICAR = 'pregunta:publicar-sin-persona';
+const PUBLICAR_CLAVES = ['comando', 'humo', 'volver'];
+const AL_SUBIR = 'al-subir';
 const ATRAS = 20;
 const RUTA_FICHA = '.claude/kit.md';
 
@@ -139,6 +153,17 @@ function formas(argv, comando) {
 // comando que no son banderas; y cada bandera de la entrada está, tal cual, en algún lugar del comando (`git push --tags` pregunta
 // en `git push origin --tags`; `--follow-tags` no es `--tags`). Si el comando empieza literalmente con la entrada, también matchea.
 const esOpcion = (w) => w.length > 1 && w.startsWith('-');
+// A4.1 (SPEC-paquete-8d): una bandera larga de la ficha (`--produccion`, sin `=`) es también la palabra del comando que es su
+// prefijo con al menos una letra después de `--` (`--prod`, `--p`), sola o con `=valor` (`--produccion=si`, `--prod=si`): los
+// programas aceptan la abreviada y así se esquivaba. Falla para el lado seguro (`--pro` pregunta aunque exista `--profile`). Las de
+// un guion y las que traen `=` en la ficha, tal cual.
+function mismaBandera(w, f, eq) {
+  if (eq(w, f)) return true;
+  if (!f.startsWith('--') || f.includes('=') || !w.startsWith('--')) return false;
+  const i = w.indexOf('=');
+  const p = i === -1 ? w : w.slice(0, i);
+  return p.length > 2 && p.length <= f.length && eq(f.slice(0, p.length), p);
+}
 function empiezaCon(cmd, ent, ps) {
   if (!cmd.length || !ent.length || !mismoPrograma(cmd[0], ent[0])) return false;
   const eq = ps ? (a, b) => a.toLowerCase() === b.toLowerCase() : (a, b) => a === b;
@@ -146,7 +171,7 @@ function empiezaCon(cmd, ent, ps) {
   const pe = ent.slice(1).filter((w) => !esOpcion(w));
   if (pc.length < pe.length) return false;
   for (let i = 0; i < pe.length; i++) if (!eq(pc[i], pe[i])) return false;
-  return ent.slice(1).filter(esOpcion).every((f) => cmd.slice(1).some((w) => eq(w, f)));
+  return ent.slice(1).filter(esOpcion).every((f) => cmd.slice(1).some((w) => mismaBandera(w, f, eq)));
 }
 function matchea(argvComando, argvEntrada, ps, comando) {
   const fc = formas(argvComando, comando);
@@ -349,14 +374,19 @@ const ramaPorFs = (g) => {
 
 // ---------------------------------------------------------------- la lista vigente (con caché)
 
-// De los datos de una ficha: { listas: {clave: [texto]}, quitados: [{id, hasta}] }.
+// De los datos de una ficha: { listas: {clave: [texto]}, quitados: [{id, hasta}], publicar: [{clave, entrada}] }. `publicar` sale
+// también de una ficha rota (la última que se lee): suma una negativa, no apaga nada.
 function extraer(datos, conQuitados) {
   const listas = {};
   const s = datos && esMapa(datos.sensible) ? datos.sensible : {};
   for (const k of CLAVES) listas[k] = Array.isArray(s[k]) ? s[k].filter((x) => typeof x === 'string') : [];
   const q = conQuitados && datos && esMapa(datos.frenos) && Array.isArray(datos.frenos.quitados) ? datos.frenos.quitados : [];
   const quitados = q.filter((x) => esMapa(x) && typeof x.id === 'string' && typeof x.hasta === 'string').map((x) => ({ id: x.id, hasta: x.hasta }));
-  return { listas, quitados };
+  const a = datos && esMapa(datos.autorizado) ? datos.autorizado.publicar : null;
+  const publicar = esMapa(a)
+    ? PUBLICAR_CLAVES.filter((k) => typeof a[k] === 'string' && a[k].trim() !== '' && a[k].trim() !== AL_SUBIR).map((k) => ({ clave: k, entrada: a[k] }))
+    : [];
+  return { listas, quitados, publicar };
 }
 
 // La última ficha que se lee yendo para atrás desde <ref> (hasta ATRAS commits que la tocaron): los datos o null.
@@ -397,6 +427,7 @@ function cacheValido(c) {
   if (!['ok', 'rota', 'sin-ficha'].includes(c.estado)) return false;
   if (c.estado === 'rota' ? typeof c.donde !== 'string' : c.donde !== null) return false;
   if (!esMapa(c.listas) || !CLAVES.every((k) => Array.isArray(c.listas[k]) && c.listas[k].every((x) => typeof x === 'string'))) return false;
+  if (!Array.isArray(c.publicar) || !c.publicar.every((x) => esMapa(x) && PUBLICAR_CLAVES.includes(x.clave) && typeof x.entrada === 'string')) return false;
   return Array.isArray(c.quitados) && c.quitados.every((x) => esMapa(x) && typeof x.id === 'string' && typeof x.hasta === 'string');
 }
 function leerCache(archivo) {
@@ -429,7 +460,7 @@ function listasVigentes(cwd) {
   const c = leerCache(archivo);
   if (c) {
     const h = huella(g, c.candidatas);
-    if (h !== null && h === c.clave) return { estado: c.estado, donde: c.donde, listas: c.listas, quitados: c.quitados, origen: 'cache', git: g };
+    if (h !== null && h === c.clave) return { estado: c.estado, donde: c.donde, listas: c.listas, quitados: c.quitados, publicar: c.publicar, origen: 'cache', git: g };
   }
   const contexto = require('./lib/contexto.cjs');
   const candidatas = contexto.candidatas(g.raiz);
@@ -438,7 +469,7 @@ function listasVigentes(cwd) {
   const despues = huella(g, candidatas);
   // git dice que no hay rama por defecto y en el disco hay una (un git que no anda, safe.directory): freno roto, no "sin ficha"
   if (r.sinRama && algunaEnDisco(g, candidatas)) throw new Error('git no ve la rama por defecto que está en el disco');
-  const v = { estado: r.estado, donde: r.donde, listas: r.listas, quitados: r.quitados };
+  const v = { estado: r.estado, donde: r.donde, listas: r.listas, quitados: r.quitados, publicar: r.publicar };
   if (antes === null) return { ...v, origen: 'contexto', git: g };
   if (antes === despues) escribirCache(archivo, { v: VERSION_CACHE, clave: antes, candidatas, ...v });
   return { ...v, origen: 'git', git: g };
@@ -466,11 +497,35 @@ const SIN_VENTANA_TEXTO = {
   'kit-noche': 'de noche: .kit-noche',
   'sin modo': 'no se sabe el modo de permisos, así que no hay ventana segura',
   'modo desconocido': 'un modo de permisos que el kit no conoce, así que no hay ventana segura',
+  fondo: 'de fondo: KIT_FONDO=1, nadie mira esta sesión',
 };
+// De noche y de fondo no hay a quién decirle "pasá a default": nadie está mirando.
+const SIN_SI_SOS_VOS = [SIN_VENTANA_TEXTO.nocturno, SIN_VENTANA_TEXTO['kit-noche'], SIN_VENTANA_TEXTO.fondo];
 const SI_SOS_VOS = ' Si sos vos, pasá a default (Shift+Tab) y pedilo de nuevo.';
 const motivoParada = (m, v, sinVentana) =>
   `esto es «${PREGUNTAS[m.clave]}» y sin una persona no se hace: dejá PARADA en tu bitácora y pará (${porQue(m)}; ${sinVentana}).` +
-  `${sinVentana === SIN_VENTANA_TEXTO.nocturno || sinVentana === SIN_VENTANA_TEXTO['kit-noche'] ? '' : SI_SOS_VOS}${notaRota(v)}`;
+  `${SIN_SI_SOS_VOS.includes(sinVentana) ? '' : SI_SOS_VOS}${notaRota(v)}`;
+const textoSinVentana = (s) => SIN_VENTANA_TEXTO[s] || `modo ${s}, sin ventana para preguntarte`;
+// A1.3: el texto de la guardia de publicar. Nunca el comando (lo nombra por su clave de la ficha).
+const motivoPublicar = (p, razon, v) =>
+  `publicar sin persona va solo por \`noche.cjs publicar\`: esto es autorizado.publicar.${p.clave} de la ficha y en esta sesión no ` +
+  `hay una persona mirando (${razon}). No lo corras como herramienta: si hacía falta, dejá PARADA en tu bitácora y seguí con otra cosa.${notaRota(v)}`;
+
+// KIT_FONDO (A7 e, P3): lo ponen las líneas de fondo del kit y el hook lo hereda de la sesión. Vacío o "0" es que no.
+function deFondo(entorno) {
+  const f = entorno && typeof entorno.KIT_FONDO === 'string' ? entorno.KIT_FONDO.trim() : '';
+  return f !== '' && f !== '0';
+}
+
+// A1.3: ¿algún comando simple es uno de los de autorizado.publicar, tipeado como herramienta? → {clave, entrada} o null.
+function publicarQueMatchea(comandos, publicar, ps, comando) {
+  for (const p of publicar || []) {
+    const e = clasificar(p.entrada, comando);
+    if (e.tipo !== 'comando') continue;
+    if (comandos.some((c) => matchea(c.argv, e.argv, ps, comando))) return p;
+  }
+  return null;
+}
 
 // Lo que matchea, en el orden de las 5: [{clave, entrada, bandera}].
 function coincidencias(comandos, listas, ps, comando) {
@@ -506,7 +561,8 @@ function decidir(entrada, opciones = {}) {
   const { comandos } = comando.partir(texto, { ps });
   const ahora = opciones.ahora instanceof Date ? opciones.ahora : new Date();
   const m = coincidencias(comandos, v.listas, ps, comando).find((x) => !quitadoVigente(v.quitados, idDe(x.clave), ahora));
-  if (!m) return { decision: 'nada', origen: v.origen };
+  const pub = publicarQueMatchea(comandos, v.publicar, ps, comando);
+  if (!m && !pub) return { decision: 'nada', origen: v.origen };
 
   // raíz, rol y rama: por fs si se pudo; si no, con contexto
   let raiz = v.git ? v.git.raiz : null;
@@ -521,25 +577,43 @@ function decidir(entrada, opciones = {}) {
   const modo = typeof e.permission_mode === 'string' ? e.permission_mode.trim() : '';
   // De noche: .kit-rol nocturno, o la marca .kit-noche (la propia, o la del director si esto es un obrero). La rama ya está.
   const noche = raiz ? contexto.deNoche(raiz, { rama }) : { noche: false, por: null };
+  // De fondo (KIT_FONDO): de `opciones.entorno` (las pruebas) o del entorno del proceso, que el hook hereda de la sesión.
+  const fondo = deFondo(esMapa(opciones.entorno) ? opciones.entorno : process.env);
   let sinVentana = null;
   if (noche.noche) sinVentana = noche.por === 'kit-noche' ? 'kit-noche' : 'nocturno';
+  else if (fondo) sinVentana = 'fondo';
   else if (!modo) sinVentana = 'sin modo';
   else if (SIN_VENTANA.includes(modo)) sinVentana = modo;
   else if (!CON_VENTANA.includes(modo)) sinVentana = 'modo desconocido';
 
+  const anotarRenglon = (id, detalle) => {
+    if (!raiz) return null;
+    try {
+      const anotar = opciones.anotar || require('./lib/frenos-log.cjs').anotar;
+      return anotar(raiz, { id, herramienta, detalle, rol, rama });
+    } catch (err) {
+      return null; // el renglón es rastro: el freno vale igual
+    }
+  };
+
+  // A1.3: la guardia de publicar va primero (un deny le gana a un ask). Sin persona = sin ventana (noche, fondo, modo) o una
+  // carpeta que no es la del dueño (rol distinto de humano), también en la carpeta principal. Con persona: sigue lo de siempre.
+  if (pub) {
+    const sinPersona = sinVentana || (rol !== 'humano' ? `rol ${rol}` : null);
+    if (sinPersona) {
+      const detalle = `publicar (${sinPersona})`;
+      const razon = sinVentana ? textoSinVentana(sinVentana) : `una carpeta con .kit-rol ${rol}, no la del dueño`;
+      const renglon = anotarRenglon(ID_PUBLICAR, detalle);
+      return { decision: 'deny', salida: salida('deny', motivoPublicar(pub, razon, v)), id: ID_PUBLICAR, clave: 'publicar', detalle, renglon, origen: v.origen };
+    }
+  }
+  if (!m) return { decision: 'nada', origen: v.origen };
+
   const id = idDe(m.clave);
   const decision = sinVentana ? 'deny' : 'ask';
   const detalle = sinVentana ? `${m.clave} (${sinVentana})` : `preguntó ${m.clave}`;
-  let renglon = null;
-  if (raiz) {
-    try {
-      const anotar = opciones.anotar || require('./lib/frenos-log.cjs').anotar;
-      renglon = anotar(raiz, { id, herramienta, detalle, rol, rama });
-    } catch (err) {
-      /* el renglón es rastro: el freno vale igual */
-    }
-  }
-  const motivo = sinVentana ? motivoParada(m, v, SIN_VENTANA_TEXTO[sinVentana] || `modo ${sinVentana}, sin ventana para preguntarte`) : motivoAsk(m, v);
+  const renglon = anotarRenglon(id, detalle);
+  const motivo = sinVentana ? motivoParada(m, v, textoSinVentana(sinVentana)) : motivoAsk(m, v);
   return { decision, salida: salida(decision, motivo), id, clave: m.clave, detalle, renglon, origen: v.origen };
 }
 
@@ -572,6 +646,7 @@ if (require.main === module) {
     PREGUNTAS,
     BANDERA,
     ARCHIVO_CACHE,
+    ID_PUBLICAR,
     idDe,
     clasificar,
     mismoPrograma,

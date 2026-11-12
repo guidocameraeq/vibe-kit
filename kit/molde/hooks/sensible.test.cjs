@@ -81,12 +81,13 @@ function worktree(d, rama, rol = null) {
 }
 
 // Una ficha válida con `sensible:` y `frenos.quitados` a gusto.
-function ficha({ sensible = null, quitados = [] } = {}) {
+function ficha({ sensible = null, quitados = [], publicar = null } = {}) {
   let t = '---\nkit: 2.4.3\nnivel: estandar\nvars:\n  proyecto: px\n';
   if (quitados.length) {
     t += 'frenos:\n  quitados:\n';
     for (const [id, hasta] of quitados) t += `    - {id: ${id}, por: "prueba", hasta: ${hasta}}\n`;
   }
+  if (publicar) t += `autorizado:\n  publicar: ${publicar}\n`;
   if (sensible) {
     t += 'sensible:\n';
     for (const [k, v] of Object.entries(sensible)) t += `  ${k}: ${v}\n`;
@@ -158,8 +159,8 @@ function instanciar(sin = null) {
   return path.join(destino, 'sensible.cjs');
 }
 const HOOK = instanciar();
-function correr(e, hook = HOOK) {
-  const r = spawnSync(process.execPath, [hook], { input: typeof e === 'string' ? e : JSON.stringify(e), cwd: TMP, env: process.env, encoding: 'utf8', timeout: 60000 });
+function correr(e, hook = HOOK, env = process.env) {
+  const r = spawnSync(process.execPath, [hook], { input: typeof e === 'string' ? e : JSON.stringify(e), cwd: TMP, env, encoding: 'utf8', timeout: 60000 });
   const out = r.stdout || '';
   return { codigo: r.status, out, json: out.trim() ? JSON.parse(out) : null, stderr: r.stderr };
 }
@@ -252,7 +253,7 @@ test('matchea (rf3-9): las banderas no fijan la posición; las palabras que no s
   // no
   assert.equal(m('git push --follow-tags', 'git push --tags'), false); // otra bandera (decisión: si duele, otra entrada)
   assert.equal(m('git push origin main', 'git push --tags'), false); // falta la bandera
-  assert.equal(m('git push --tags=no', 'git push --tags'), false); // palabra entera
+  assert.equal(m('git push --tags=no', 'git push --tags'), true); // A4.1: la forma --bandera=valor también es la bandera
   assert.equal(m('git push --TAGS', 'git push --tags'), false); // Bash: tal cual
   assert.equal(m('git --tags push', 'git push --tags'), true); // la bandera en cualquier lugar (git la rechaza, igual pregunta)
   assert.equal(m('git fetch --tags', 'git push --tags'), false);
@@ -801,4 +802,146 @@ test('no corre ningún .propio.sh: un hermano que imprime un allow no cambia nad
   const r = correr(entrada(P, 'npm run release', { permission_mode: 'bypassPermissions' }), hook);
   assert.equal(r.json.hookSpecificOutput.permissionDecision, 'deny');
   assert.equal(r.out.trim().split('\n').length, 1);
+});
+
+// ---------------------------------------------------------------- SPEC-paquete-8d: A1.3, A4.1, A7 (e) y A8
+
+const PUBLICA = '{comando: "node scripts/publicar.cjs", humo: "node scripts/humo.cjs", volver: "npm run volver"}';
+const FONDO = { entorno: { KIT_FONDO: '1' } };
+const RE_SIN_PERSONA = /publicar sin persona va solo por `noche\.cjs publicar`/;
+
+test('A1.3: los comandos de autorizado.publicar se niegan sin ventana (obrero, director, dontAsk, sin modo, KIT_FONDO), también en la principal', () => {
+  const d = conRemoto({ '.claude/kit.md': ficha({ sensible: { release: '[npm run release]' }, publicar: PUBLICA }) });
+  const obr = worktree(d, 'modulo/p--01', 'obrero');
+  const dir = worktree(d, 'modulo/p', 'director');
+  const publicar = ['node scripts/publicar.cjs', 'node scripts/humo.cjs', 'npm run volver'];
+  assert.equal(se.listasVigentes(d).estado, 'ok', 'la ficha de prueba valida');
+  // un worktree de obrero o de director: en cualquier modo, deny
+  for (const [w, rol] of [[obr, 'obrero'], [dir, 'director']]) {
+    for (const modo of ['default', 'auto']) {
+      for (const c of publicar) {
+        const r = decide(w, entrada(w, c, { permission_mode: modo }), 'deny', 'pregunta:publicar-sin-persona');
+        assert.equal(r.detalleLog, `publicar (rol ${rol})`);
+        assert.match(r.motivo, RE_SIN_PERSONA);
+        assert.ok(!r.motivo.includes(c), 'el motivo no repite el comando');
+      }
+    }
+  }
+  // la principal en dontAsk, bypassPermissions o sin modo: deny
+  for (const [modo, det] of [['dontAsk', 'dontAsk'], ['bypassPermissions', 'bypassPermissions'], [undefined, 'sin modo']]) {
+    for (const c of publicar) {
+      const e = entrada(d, c, { permission_mode: modo });
+      if (modo === undefined) delete e.permission_mode;
+      assert.equal(decide(d, e, 'deny', 'pregunta:publicar-sin-persona').detalleLog, `publicar (${det})`);
+    }
+  }
+  // la principal con KIT_FONDO=1: deny aunque el modo tenga ventana
+  for (const c of publicar) {
+    const r = decide(d, entrada(d, c), 'deny', 'pregunta:publicar-sin-persona', FONDO);
+    assert.equal(r.detalleLog, 'publicar (fondo)');
+    assert.match(r.motivo, RE_SIN_PERSONA);
+  }
+  // la principal, humano, con ventana y sin KIT_FONDO: nada nuevo
+  for (const modo of ['default', 'acceptEdits', 'auto']) for (const c of publicar) decide(d, entrada(d, c, { permission_mode: modo }), 'nada');
+  decide(d, entrada(d, 'node scripts/publicar.cjs'), 'nada', null, { entorno: { KIT_FONDO: '0' } });
+  // "tipeados como": la misma forma de matchear que sensible
+  for (const c of ['./scripts/publicar.cjs --prod', 'bash -c "node scripts/publicar.cjs"', 'git pull && node scripts/humo.cjs', 'npm --silent run volver']) {
+    decide(obr, entrada(obr, c), 'deny', 'pregunta:publicar-sin-persona');
+  }
+  decide(obr, entrada(obr, 'NODE scripts\\publicar.cjs', { tool_name: 'PowerShell' }), 'deny', 'pregunta:publicar-sin-persona');
+  for (const c of ['node scripts/publicar-otro.cjs', 'npm run volver-a-mirar', 'echo node scripts/publicar.cjs', 'git push origin main']) decide(obr, entrada(obr, c), 'nada');
+  // sensible sigue igual al lado
+  decide(obr, entrada(obr, 'npm run release'), 'ask', 'pregunta:release');
+  // del caché (la segunda vez, ningún git) sale igual
+  const x = contarGits(() => se.decidir(entrada(obr, 'node scripts/publicar.cjs')));
+  assert.equal(x.r.origen, 'cache');
+  assert.equal(x.gits, 0);
+  assert.equal(x.r.decision, 'deny');
+  // corrido como la plataforma, con KIT_FONDO en el entorno del proceso
+  const p = correr(entrada(d, 'node scripts/publicar.cjs'), HOOK, { ...process.env, KIT_FONDO: '1' });
+  assert.equal(p.json.hookSpecificOutput.permissionDecision, 'deny');
+  assert.match(p.json.hookSpecificOutput.permissionDecisionReason, RE_SIN_PERSONA);
+  assert.equal(correr(entrada(d, 'node scripts/publicar.cjs'), HOOK, { ...process.env, KIT_FONDO: '' }).out, '');
+});
+
+test('A1.3: comando: al-subir no niega git push (no es un comando); su humo sí; publicar: no y sin la clave, nada', () => {
+  const d = conRemoto({ '.claude/kit.md': ficha({ publicar: '{comando: al-subir, humo: "node scripts/humo.cjs"}' }) });
+  const obr = worktree(d, 'modulo/q--01', 'obrero');
+  assert.equal(se.listasVigentes(d).estado, 'ok', 'la ficha de prueba valida');
+  assert.deepEqual(se.listasVigentes(d).publicar, [{ clave: 'humo', entrada: 'node scripts/humo.cjs' }]);
+  for (const c of ['git push origin main', 'git push', 'al-subir']) decide(obr, entrada(obr, c, { permission_mode: 'dontAsk' }), 'nada');
+  decide(obr, entrada(obr, 'node scripts/humo.cjs'), 'deny', 'pregunta:publicar-sin-persona');
+  for (const pub of ['no', null]) {
+    const e = conRemoto({ '.claude/kit.md': ficha({ publicar: pub }) });
+    const w = worktree(e, `modulo/r${n}--01`, 'obrero');
+    decide(w, entrada(w, 'node scripts/publicar.cjs', { permission_mode: 'dontAsk' }), 'nada');
+  }
+});
+
+test('A1.3: autorizado.publicar sale de la ficha VIGENTE (un obrero que lo cambia en su rama no cambia nada)', () => {
+  const d = conRemoto({ '.claude/kit.md': ficha({ publicar: PUBLICA }) });
+  const obr = worktree(d, 'modulo/v--01', 'obrero');
+  commitear(obr, { '.claude/kit.md': ficha({ publicar: 'no' }) }, 'el obrero afloja');
+  decide(obr, entrada(obr, 'node scripts/publicar.cjs'), 'deny', 'pregunta:publicar-sin-persona');
+});
+
+test('A4.1: la bandera larga de la ficha matchea su prefijo (--prod, --p) y la forma =valor; las de un guion, tal cual', () => {
+  const m = (cmd, ent, ps = false) => se.matchea(comando.partir(cmd, { ps }).comandos[0].argv, se.clasificar(ent, comando).argv, ps, comando);
+  const E = 'vercel deploy --produccion';
+  for (const c of ['vercel deploy --produccion', 'vercel deploy --prod', 'vercel deploy --p', 'vercel deploy --produccion=si', 'vercel deploy --prod=si', 'vercel deploy x --pro']) assert.equal(m(c, E), true, c);
+  for (const c of ['vercel deploy -p', 'vercel deploy --otra', 'vercel deploy --', 'vercel deploy --=x', 'vercel deploy --producciones', 'vercel deploy --PROD', 'vercel deploy']) assert.equal(m(c, E), false, c);
+  assert.equal(m('vercel deploy --PROD', E, true), true); // PowerShell: sin mayúsculas
+  // las de un guion, tal cual
+  assert.equal(m('git push -f', 'git push -f'), true);
+  assert.equal(m('git push -fx', 'git push -f'), false);
+  assert.equal(m('git push -f=1', 'git push -f'), false);
+  assert.equal(m('herr x -abc', 'herr x -abc'), true);
+  assert.equal(m('herr x -ab', 'herr x -abc'), false); // un guion: ni el prefijo
+  assert.equal(m('herr x -abc=1', 'herr x -abc'), false); // ni el =valor
+  // una bandera de la ficha con =valor va tal cual (si no, --modo=no matchearía --modo=si)
+  assert.equal(m('vercel deploy --modo=si', 'vercel deploy --modo=si'), true);
+  assert.equal(m('vercel deploy --modo=no', 'vercel deploy --modo=si'), false);
+  assert.equal(m('vercel deploy --mo', 'vercel deploy --modo=si'), false);
+  // por decidir
+  const d = conRemoto({ '.claude/kit.md': ficha({ sensible: { release: `[${E}]` } }) });
+  for (const c of ['vercel deploy --prod', 'vercel deploy --produccion=si', 'vercel deploy --p']) decide(d, entrada(d, c), 'ask', 'pregunta:release');
+  for (const c of ['vercel deploy -p', 'vercel deploy --otra']) decide(d, entrada(d, c), 'nada');
+});
+
+test('A7 (e): con KIT_FONDO=1 sensible es como la noche: deny con PARADA, sin el "Si sos vos"; sin la variable (o en 0), ask', () => {
+  const d = conRemoto({ '.claude/kit.md': BASICA });
+  const w = worktree(d, 'modulo/f--01', 'obrero');
+  for (const x of [d, w]) {
+    for (const modo of ['default', 'auto']) {
+      const r = decide(x, entrada(x, 'npm run release', { permission_mode: modo }), 'deny', 'pregunta:release', FONDO);
+      assert.equal(r.detalleLog, 'release (fondo)');
+      assert.match(r.motivo, /^esto es «publicar un release» y sin una persona no se hace: dejá PARADA en tu bitácora y pará \(.*de fondo/);
+      assert.doesNotMatch(r.motivo, /Si sos vos/);
+    }
+    decide(x, entrada(x, 'npm run release'), 'ask', 'pregunta:release');
+    decide(x, entrada(x, 'npm run release'), 'ask', 'pregunta:release', { entorno: { KIT_FONDO: '0' } });
+    decide(x, entrada(x, 'npm run release'), 'ask', 'pregunta:release', { entorno: {} });
+  }
+  // corrido como la plataforma: la variable del proceso
+  const r = correr(entrada(d, 'npm run release'), HOOK, { ...process.env, KIT_FONDO: '1' });
+  assert.equal(r.json.hookSpecificOutput.permissionDecision, 'deny');
+  assert.doesNotMatch(r.json.hookSpecificOutput.permissionDecisionReason, /Si sos vos/);
+});
+
+test('A8: lo que le llega a la persona no dice guido, rojo/roja ni verde', () => {
+  const d = conRemoto({ '.claude/kit.md': ficha({ sensible: { release: '[npm run release]' }, publicar: PUBLICA }) });
+  const w = worktree(d, 'modulo/h--01', 'nocturno');
+  const motivos = [se.ROTO];
+  const tomar = (x, c, extra, op) => {
+    const r = se.decidir(entrada(x, c, extra), op);
+    if (r.salida) motivos.push(r.salida.hookSpecificOutput.permissionDecisionReason);
+  };
+  for (const modo of ['default', 'dontAsk', 'superModo', '']) tomar(d, 'npm run release', { permission_mode: modo });
+  tomar(d, 'npm run release', {}, FONDO);
+  tomar(w, 'npm run release', {});
+  tomar(d, 'db migrar --borra-datos-reales', {});
+  for (const x of [d, w]) tomar(x, 'node scripts/publicar.cjs', { permission_mode: 'dontAsk' });
+  tomar(d, 'node scripts/publicar.cjs', {}, FONDO);
+  assert.equal(motivos.length, 11);
+  for (const t of motivos) assert.doesNotMatch(t, /\bguido\b|\broj[oa]s?\b|\bverdes?\b/i, t);
 });
