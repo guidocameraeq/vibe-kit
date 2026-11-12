@@ -79,3 +79,10 @@
 - **REJ-016 · Un racimo (o skill) "agente de ecosistema" dentro de vibe-kit** — el mapa de proyectos, la salud de la flota y el
   reporte semanal son de la empresa de Guido y se diseñan en el Hub (ADR-024, 2026-10-26). En el kit queda solo el contrato genérico
   del registro (nota en E). Re-abrir solo si aparece una parte genérica que valga para cualquier empresa.
+
+- **REJ-017 · Sacar `/tramo` o juntarlo con el obrero** (la propuesta C1 de la mirada 2 de la revisión de la `rc.7`, 2026-11-11: las
+  dos noches de Deptos no lo usaron nunca) — Guido, 2026-11-12: lo usó mucho en Hermes, en proyectos grandes, "donde hay un tramo
+  entero que tiene que coordinar a veces una sesión"; en los chicos no hace falta, y por eso no aparece en Deptos. Es la segunda vez
+  que se frena (la primera, "unificar obrero y tramo", en la misión 6a: `CICLO-DE-MEJORA.md`). Lo que sí entra a la `rc.7`: que
+  `autorizado` acepte `Skill: tramo` y que la plantilla del encargo diga cuándo /tramo y cuándo un obrero. Re-abrir solo si un
+  proyecto grande (Hermes u otro) lo deja de usar durante una vuelta entera del ciclo.

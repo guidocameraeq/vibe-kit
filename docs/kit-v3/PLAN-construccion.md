@@ -1306,16 +1306,17 @@ Lo que se evaluó, para no volver a evaluarlo de cero (insumo de la misión 6):
 
 ## Pendientes de cada paquete
 
-**Lo abierto, de un vistazo (2026-11-11)** (el detalle, en cada ítem de abajo):
+**Lo abierto, de un vistazo (2026-11-12)** (el detalle, en cada ítem de abajo):
 - **La revisión antes de la `rc.7` (2026-11-11), lo que decide el plano** — tres informes (`REVISION-rc7-mirada1.md`, `-pruebas.md`,
   `-mirada2.md`); los 17-37 marcados, lo nuevo en "De la prueba real", 38-51. En criollo: el kit es bueno y no se rehace; lo que le cae
   a Guido sale casi todo de una causa (lo que pide su firma o su carpeta principal vive donde las sesiones del kit no están), y las
-  tres pruebas dicen que tiene salida sin que él tipee:
+  tres pruebas dicen que tiene salida sin que él tipee. **Charla del 2026-11-12 ("Cambios al plan"): todo esto entra a la `rc.7`, la
+  noche publica sola con red, `/tramo` se queda; el spec todavía no se escribe**:
   - **la noche termina sola**: el director sale con `ExitWorktree` o lanza una sesión en la principal; las dos andan de fondo → 36, 38
   - **aprobar es un clic que ya existe**: falta que la sesión lo corra ella, desde donde esté → 33, 41; y 🔴 el agujero de aprobar
     desde otra carpeta → 40
   - **publicar pasa con la autorización puesta de antemano** (`autoMode` en el settings de usuario o la `allow` exacta) → 37, 39, 48
-  - **un solo camino, el de fondo**; `/tramo` lo decide Guido → 46
+  - **un solo camino, el de fondo**; `/tramo` se queda (Guido, REJ-017) → 46
   - `/estado` del dueño y una sola lista de "te espera" → 32, 47; la regla de habla → 34; la compactación es por inactividad → 31
   - los frenos se cuelgan (cuatro procesos por comando) y niegan lo inocente; la suite sin turno → 42-45
   - lo roto chico y la fricción fuera de la noche → 50, 51
@@ -1873,6 +1874,8 @@ Lo que una sesión dejó a medias, con qué falta. Se borra cuando se hace (qued
       el director dijo "no puedo" sin probar y le pidió a Guido un `npm` que 28 min después corrió él (17:39 y 18:07). `/director` está a
       17 bytes del tope de 8.000. **Para el kit**: declarar el de fondo como el camino (mirada 2, B1, C3); `/tramo` **lo decide Guido**
       (C1: ya frenó una vez "unificar obrero y tramo", `CICLO-DE-MEJORA.md:216-217`; vuelve con evidencia nueva).
+      ✅ **Guido decidió (2026-11-12): `/tramo` se queda** (lo usa en proyectos grandes, como Hermes; C1 descartado, REJ-017). A la
+      `rc.7`: el de fondo como el camino, `autorizado` acepta `Skill: tramo` y la plantilla del encargo dice cuándo cada uno.
   47. **2026-11-11 · "Te espera" sale de cuatro lugares, y "encargo cerrado" se calcula de tres formas** (mirada 2, E11 y E12; mirada 1,
       R14). Lo que espera a Guido vive en el handoff, en cada ficha, en los cambios de freno propuestos y en el TODO; `/estado` lee solo
       fichas y TODO (`estado.cjs:248-262`): el cambio de C13 esperando su clic no salía ahí. "Cerrado" es: rama contenida en el módulo
@@ -2271,6 +2274,7 @@ Del spec, sección "Lo que hacés vos de nuevo". Acá solo cuándo toca, para qu
 | 2026-11-04 | **La `rc.6` es una sola, en nivel medio-alto** (`CICLO-DE-MEJORA.md` §3.6), con el cierre de tramo, h11 y la vuelta 2 juntos | "No quiero splitearlo en dos RC… si la planeamos bien, puede ser quirúrgica"; las `rc` de 4 h eran mucho | Guido |
 | 2026-11-05 | **En la `rc.6`, la suite corre en paralelo con el chequeo frío** (el revisor casi solo lee) y la primera vuelta de la flota se reusa de la `rc.5`. El tag, siempre después de la suite | Guido la quería en ~1,5 h. La suite encontró rojas reales en la `rc.4` (1), la `rc.5` (2) y el chequeo frío de la `rc.6` (1 ALTO): no se taggea antes | La sesión madre |
 | 2026-11-10 | **La v3.0 ya no espera a que cierre el primer módulo de Hermes: la prueba real es Deptos (sus dos noches) más lo que ya mostró Hermes.** El camino: (1) la `rc.7` de taller, sin Guido, con lo medido de la primera noche que no depende del loop ("De la prueba real", 20-24, 28-31; el 25 aparte, porque es un freno y pide red team); (2) la segunda noche de Deptos (módulo `cola`, ya lanzada); (3) M6b, corta, con Guido; (4) R2 contra un clon de **Deptos** y el tag `v3.0` con el OK de Guido. **La cola (17) y el cierre de noche (18) van a la v3.1**, con el buzón y "probar una idea nueva", salvo que la segunda noche muestre que son baratos. Deptos no se actualiza hasta que termine su segunda noche (si no, la prueba deja de medir lo que mide). Las filas 5-7 de "Después de la rc.1" cambian con esto | "El tema con cashflow es que está avanzando muy lento, no creo terminarlo este mes, porque necesito otras cosas, no por el kit en sí". Hermes ya dio la evidencia de las `rc.4`-`rc.6` (adoptar, una ventana, la obra); le falta un módulo cerrado, y Deptos lo dio de punta a punta (sellado, repartido, verificado, integrado y publicado), de noche | Guido |
+| 2026-11-12 | **La charla de la revisión de la `rc.7` (sesión 4, con Guido): tres decisiones.** (1) **La noche publica sola, con red**: la ficha de cada repo dice si la noche publica (Deptos sí, los del trabajo no), después de publicar corre una prueba de humo y el parte de la mañana dice qué salió; Guido autoriza el deploy con un clic por PC. (2) **`/tramo` se queda** (REJ-017; "De la prueba real", 46). (3) **Todo lo propuesto entra a la `rc.7`**, armada en varias sesiones: la noche que termina sola; aprobar con un clic y cerrar el agujero de aprobar desde otra carpeta; `/estado` para el dueño con una sola lista de "te espera"; el parte de la mañana sin comandos, la regla de cómo hablarle y "el dueño" en vez de "Guido" en el kit; un solo camino de fondo (sin despertador ni la regla del 40 %); frenos que no se cuelgan ni frenan lo inocente y la suite en fila; los arreglos chicos del director y del Equipador. A la v3.1: el director corto, el aviso al celular, el plugin, la poda de frenos por evidencia, el costo por encargo y el director sin aislamiento (con el buzón, las ideas nuevas y el PO). **El spec de la `rc.7` todavía no se escribe** (Guido) | Guido: "Sí, con red"; "en proyectos grandes sí usé tramo… yo no lo sacaría"; "todo a la RC7, pero aún no escribamos el spec final". Insumo: los tres informes `REVISION-rc7-*.md`. La opción B (solo lo de la noche) obligaba a otra versión antes de la v3.0, y los frenos que se cuelgan podían embarrar la medición de la tercera noche |
 
 ## Lecciones (insumo de la misión 6)
 
