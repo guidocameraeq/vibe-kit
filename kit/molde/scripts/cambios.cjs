@@ -23,7 +23,7 @@ const path = require('path');
 
 const USO = [
   'Uso: node .claude/scripts/cambios.cjs <comando> …   (desde el repo)',
-  '  nuevo --slug <s> --clase 2|3-barrera --toca <a,b> [--id <x>]… (--origen "<t>" | --cita "<alias> <id>")',
+  '  nuevo --slug <s> --clase 2|3-barrera --toca <a,b> [--id <x>]… (--origen "<t>" | --cita "<alias> <id>") [--en-defecto]',
   '        [--cicatriz seguridad|produccion|plata|no] [--chico sí|no] [--chico-por "<t>"] [--urgente sí|no] [--cuerpo <archivo>]',
   '        (sin --cuerpo, el cuerpo llega por la entrada estándar: ## Caso de origen · ## Regla · ## Dónde vive · ## Medición)',
   '  listar [--te-espera | --aprobados-nuevos]',
@@ -53,7 +53,7 @@ const BANDERAS = {
   aprobar: [],
   'subio-al-kit': [],
 };
-const SUELTAS = { listar: ['--te-espera', '--aprobados-nuevos'] };
+const SUELTAS = { listar: ['--te-espera', '--aprobados-nuevos'], nuevo: ['--en-defecto'] };
 const POSICIONALES = { nuevo: 0, listar: 0, verificar: 0, 'anotar-sha': 2, rechazar: 2, aprobar: 1, 'subio-al-kit': 2 };
 
 function leerArgumentos(argv) {
@@ -80,7 +80,8 @@ function leerArgumentos(argv) {
     }
   }
   if (pos.length !== POSICIONALES[comando]) malLlamado(`${comando} lleva ${POSICIONALES[comando]} argumento(s) además de las banderas.`);
-  if (sueltas.length > 1) malLlamado('listar lleva una sola de --te-espera o --aprobados-nuevos.');
+  if (comando === 'listar' && sueltas.length > 1) malLlamado('listar lleva una sola de --te-espera o --aprobados-nuevos.');
+  if (new Set(sueltas).size !== sueltas.length) malLlamado(`${sueltas[0]} va una sola vez.`);
   return { comando, banderas, sueltas, pos };
 }
 
@@ -154,7 +155,7 @@ function cambio(L, raiz, id) {
 
 // ---------------------------------------------------------------- nuevo
 
-function nuevo(L, raiz, b, entradaEstandar) {
+function nuevo(L, raiz, b, entradaEstandar, opciones = {}) {
   const C = L.cambios;
   const slug = b['--slug'];
   if (!slug || !L.ruta.RE_SLUG.test(slug)) malLlamado('--slug: minúsculas, números y guiones (sin guion al principio ni al final).');
@@ -196,6 +197,7 @@ function nuevo(L, raiz, b, entradaEstandar) {
   if (fallas.length) return { codigo: 1, lineas: fallas.map((f) => `cambios nuevo: no — ${f.que} · ${f.hacer}`) };
 
   const id = `${hoy(new Date())}-${slug}`;
+  if (b.enDefecto) return nuevoEnDefecto(L, raiz, id, texto, leido, opciones);
   const rel = L.ruta.rutaRelativa(id);
   const abs = L.ruta.rutaAbsoluta(raiz, id);
   if (fs.existsSync(abs)) return { codigo: 1, lineas: [`cambios nuevo: no — ya existe ${rel}: elegí otro --slug`] };
@@ -217,6 +219,81 @@ function nuevo(L, raiz, b, entradaEstandar) {
   const sha = L.git.texto(['rev-parse', '--short', 'HEAD'], { cwd: raiz }) || '?';
   const lineas = [`cambios: propuesto ${id} · commit ${sha}`];
   if (clase === '3-barrera') lineas.push(`te espera: ${lineaTeEspera(L, { id, texto, datos: leido.datos, cuerpo: leido.cuerpo })}`);
+  return { codigo: 0, lineas };
+}
+
+// ---------------------------------------------------------------- nuevo --en-defecto (SPEC-paquete-8d A3, D8d-7)
+
+// Un cambio de freno nacido en un módulo viaja SOLO a la rama por defecto: una carpeta temporal desprendida en origin/<defecto>
+// (como la de integrar), un commit de un solo archivo, push sin --force (si origin avanzó, una vez más desde lo nuevo) y la
+// temporal se borra siempre. El worktree del que se pide queda como estaba. Lo corre el director (o una persona); un obrero, no.
+const CARPETA_TMP = '.claude/worktrees';
+function nuevoEnDefecto(L, raiz, id, texto, leido, opciones = {}) {
+  const X = L.contexto;
+  const no = (m) => ({ codigo: 1, lineas: [`cambios nuevo: no — ${m}`] });
+  const rol = X.rol(raiz);
+  const rama = X.rama(raiz);
+  if (X.pestana(rama).tipo === 'obrero' || (rol !== 'director' && rol !== 'humano')) {
+    return no(`esta carpeta es de un agente (.kit-rol: ${rol}): un cambio de freno lo propone el director (cambios.cjs nuevo … --en-defecto) y el dueño lo firma con un clic en su pestaña. Pará y dejalo anotado`);
+  }
+  // rt A, 6: de noche o de fondo no se sube a la rama por defecto (en un proyecto que publica al subir, sería publicar sin
+  // persona): queda en el relevo del director para la mañana.
+  if (X.deFondo(opciones.entorno || process.env) || X.deNoche(raiz, { rama }).noche) {
+    return no('de noche o de fondo no se propone en la rama por defecto: dejalo en el relevo y proponelo de día');
+  }
+  const g0 = X.datosGit(raiz);
+  const principal = g0.gitDir === g0.gitComun ? raiz : path.dirname(g0.gitComun);
+  const rv = X.refVigente(principal);
+  if (!rv || rv.origen === 'local') return no('sin origin no hay a dónde proponerlo: corré cambios nuevo sin --en-defecto en la carpeta principal');
+  const defecto = rv.nombre;
+  const rel = L.ruta.rutaRelativa(id);
+  const tmp = path.join(principal, ...CARPETA_TMP.split('/'), `cambio-${id}`);
+  if (fs.existsSync(tmp)) return no(`la carpeta temporal ${CARPETA_TMP}/cambio-${id} ya existe (¿otro a medias?): borrala con git worktree remove --force y probá de nuevo`);
+  const G = (args, cwd = principal) => L.git.correr(args, { cwd, tiempo: 120000 });
+  const intentos = opciones.intentos || 2;
+  let sha = null;
+  let motivo = null;
+  const add = G(['fetch', '-q', 'origin', defecto]);
+  if (!add.ok) return no(`no pude traer origin/${defecto} (${primeraLinea(add.stderr || add.error)})`);
+  const wt = G(['worktree', 'add', '-q', '--detach', tmp, `refs/remotes/origin/${defecto}`]);
+  if (!wt.ok) return no(`no pude armar la carpeta temporal (${primeraLinea(wt.stderr || wt.error)})`);
+  try {
+    // la temporal es de un agente que propone: así la ven los frenos y el candado (como el temporal de integrar)
+    fs.writeFileSync(path.join(tmp, X.ARCHIVO_ROL), 'director\n');
+    for (let i = 1; i <= intentos; i++) {
+      if (i > 1) {
+        G(['fetch', '-q', 'origin', defecto]);
+        G(['reset', '-q', '--hard', `refs/remotes/origin/${defecto}`], tmp);
+      }
+      const abs = L.ruta.rutaAbsoluta(tmp, id);
+      if (fs.existsSync(abs)) {
+        motivo = `ya existe ${rel} en ${defecto}: elegí otro --slug`;
+        break;
+      }
+      fs.mkdirSync(path.dirname(abs), { recursive: true });
+      escribirAtomico(abs, texto);
+      let r = G(['add', '--', rel], tmp);
+      if (r.ok) r = G(['commit', '-q', '-m', `cambios: propuesto ${id}`, '--', rel], tmp);
+      if (!r.ok) {
+        motivo = `git no pudo commitear (${primeraLinea(r.stderr || r.error)})`;
+        break;
+      }
+      if (typeof opciones.antesDeSubir === 'function') opciones.antesDeSubir(i); // solo las pruebas: origin avanza en el medio
+      const p = G(['push', '-q', 'origin', `HEAD:refs/heads/${defecto}`], tmp);
+      if (p.ok) {
+        sha = L.git.texto(['rev-parse', '--short', 'HEAD'], { cwd: tmp }) || '?';
+        motivo = null;
+        break;
+      }
+      motivo = `no pude subirlo a origin/${defecto} (${primeraLinea(p.stderr || p.error)})`;
+    }
+  } finally {
+    G(['worktree', 'remove', '--force', tmp]);
+  }
+  if (!sha) return no(`${motivo}; no quedó nada en ${defecto}`);
+  G(['fetch', '-q', 'origin', defecto]);
+  const lineas = [`cambios: propuesto ${id} · commit ${sha} · en ${defecto}`, `propuesto en ${defecto}: le queda al dueño en "Te necesito"`];
+  lineas.push(`te espera: ${lineaTeEspera(L, { id, texto, datos: leido.datos, cuerpo: leido.cuerpo })}`);
   return { codigo: 0, lineas };
 }
 
@@ -502,6 +579,83 @@ function aprobar(L, raiz, id, ahora = new Date()) {
   return { codigo: 0, lineas: [`cambios: aprobado ${id} · hash ${sello.hash.slice(0, 8)} · commit ${sha}`] };
 }
 
+// aprobarDesde (SPEC-paquete-8d A2.3, D8d-6; Guido, 2026-11-12: el clic es en la pestaña del director). Desde la carpeta principal,
+// como siempre. Desde la pestaña del director (un worktree con .kit-rol director, rama modulo/<x>, sin .kit-noche ni KIT_FONDO), el
+// script hace todo en la carpeta principal: la trae al día (pull --ff-only), firma ahí con las condiciones de siempre (rol humano,
+// la rama por defecto, el cambio commiteado: `aprobar` no cambia ni una) y sube. El sello queda igual que hoy (carpeta ., rol
+// humano). Desde cualquier otro lado, no (defensa doble con el freno: la ventana la pone niega-aprobar).
+// El pase de un solo uso (rt A, 1): la ventana de aprobar en la pestaña del director lo deja en el git-dir común; sin él (un
+// script que el freno no vio), desde el director no se firma. Lo mismo que niega-aprobar.cjs: ARCHIVO_PASE y PASE_MS.
+const ARCHIVO_PASE = 'kit-firma-pedida.json';
+const PASE_MS = 15 * 60 * 1000;
+function tomarPase(comun, id, ahoraMs = Date.now()) {
+  const archivo = path.join(comun, ARCHIVO_PASE);
+  let p = null;
+  try {
+    p = JSON.parse(fs.readFileSync(archivo, 'utf8'));
+  } catch (e) {
+    return { falta: 'no hay un pedido de firma de la ventana (¿se corrió por fuera del freno?)' };
+  }
+  try {
+    fs.unlinkSync(archivo); // de un solo uso, sirva o no
+  } catch (e) {
+    /* ya no estaba */
+  }
+  if (!p || p.id !== id) return { falta: 'el pedido de firma de la ventana es de otro cambio' };
+  if (!Number.isFinite(p.ms) || ahoraMs - p.ms > PASE_MS || ahoraMs < p.ms - 60000) return { falta: 'el pedido de firma de la ventana venció (más de 15 min): pedila de nuevo' };
+  return { control: String(p.control || '') };
+}
+
+function aprobarDesde(L, raiz, id, opciones = {}) {
+  const X = L.contexto;
+  const g = X.datosGit(raiz);
+  const no = (m) => ({ codigo: 1, lineas: [`cambios aprobar: no — ${m}`] });
+  const entorno = opciones.entorno || process.env;
+  // rt A, 1c: de noche o de fondo no se firma, tampoco desde la carpeta principal
+  if (X.deFondo(entorno)) return no('es una sesión de fondo: nadie ve la ventana; queda en "Te necesito"');
+  if (!g || g.gitDir === g.gitComun) {
+    const n = g ? X.deNoche(raiz) : { noche: false };
+    if (n.noche) return no(`es de noche (${n.por === 'kit-rol' ? '.kit-rol: nocturno' : '.kit-noche'}): sin el dueño no se firma; queda en "Te necesito"`);
+    return aprobar(L, raiz, id, opciones.ahora);
+  }
+  const rol = X.rol(raiz);
+  const rama = X.rama(raiz);
+  const pest = X.pestana(rama);
+  if (rol !== 'director' || pest.tipo !== 'director') {
+    if (rol === 'humano') return no('esto no es el checkout principal (es un worktree): aprobar se corre desde la carpeta principal del proyecto o desde la pestaña del director');
+    return no(`esta carpeta es de un agente (.kit-rol: ${rol}): la firma la da el dueño con un clic, en la pestaña del director`);
+  }
+  if (X.deNoche(raiz, { rama }).noche) return no('es de noche (.kit-noche): el director solo, sin el dueño, no firma; queda en "Te necesito"');
+  const pase = tomarPase(g.gitComun, id, opciones.ahoraMs);
+  if (pase.falta) return no(`${pase.falta}: la firma se pide con el clic en la ventana`);
+  const principal = path.dirname(g.gitComun);
+  const G = (args) => L.git.correr(args, { cwd: principal, tiempo: 120000 });
+  const rv = X.refVigente(principal);
+  const conOrigin = !!rv && rv.origen !== 'local';
+  const ramaPrincipal = X.rama(principal);
+  if (rv && ramaPrincipal !== rv.nombre) {
+    return no(`la carpeta principal está en ${ramaPrincipal || 'un HEAD suelto'}, no en ${rv.nombre}: la firma vive en ${rv.nombre}; pedile al dueño que la vuelva a ${rv.nombre}`);
+  }
+  if (conOrigin) {
+    // rt A, 5: la firma sube SOLO su commit; si la principal tiene commits sin subir, no se firma desde acá
+    G(['fetch', '-q', 'origin', rv.nombre]);
+    const sinSubir = Number(L.git.texto(['rev-list', '--count', `${rv.ref}..HEAD`], { cwd: principal }) || '0');
+    if (sinSubir > 0) return no(`la carpeta principal tiene ${sinSubir} commit(s) sin subir: así la firma los subiría también; que el dueño los suba o firme desde su carpeta principal`);
+    const p = G(['pull', '-q', '--ff-only']);
+    if (!p.ok) return no(`no pude traer la carpeta principal al día (${primeraLinea(p.stderr || p.error)}): ¿tiene cambios sin guardar o está en otra rama?`);
+  }
+  // rt A, 3: lo que se firma es lo que la ventana mostró
+  const c = cambio(L, principal, id);
+  if (c.problema) return no(c.problema);
+  if (L.cambios.hashSello(c.c.texto).slice(0, 8) !== pase.control) return no('el cambio no es el que mostró la ventana (cambió el control): pedí la firma de nuevo');
+  const r = aprobar(L, principal, id, opciones.ahora);
+  if (r.codigo !== 0) return r;
+  if (!conOrigin) return { codigo: 0, lineas: [...r.lineas, 'firmado en la carpeta principal (sin origin: no hay a dónde subirlo)'] };
+  const s = G(['push', '-q', 'origin', `HEAD:refs/heads/${rv.nombre}`]);
+  if (!s.ok) return { codigo: 1, lineas: [...r.lineas, `cambios aprobar: firmado en la carpeta principal, pero no pude subirlo (${primeraLinea(s.stderr || s.error)}): subilo desde ahí`] };
+  return { codigo: 0, lineas: [...r.lineas, `firmado en la carpeta principal y subido a ${rv.nombre}: traé ${rv.nombre} al módulo (traer-main)`] };
+}
+
 // ---------------------------------------------------------------- principal
 
 function main(argv, opciones = {}) {
@@ -519,7 +673,7 @@ function main(argv, opciones = {}) {
       const [p1, p2] = a.pos;
       switch (a.comando) {
         case 'nuevo':
-          r = nuevo(L, raiz, a.banderas, entradaEstandar);
+          r = nuevo(L, raiz, { ...a.banderas, enDefecto: a.sueltas.includes('--en-defecto') }, entradaEstandar, { antesDeSubir: opciones.antesDeSubir, entorno: opciones.entorno });
           break;
         case 'listar':
           r = listar(L, raiz, a.sueltas[0] || null);
@@ -534,7 +688,7 @@ function main(argv, opciones = {}) {
           r = rechazar(L, raiz, p1, p2);
           break;
         case 'aprobar':
-          r = aprobar(L, raiz, p1, opciones.ahora);
+          r = aprobarDesde(L, raiz, p1, opciones);
           break;
         case 'subio-al-kit':
           r = subioAlKit(L, raiz, p1, p2);
@@ -569,4 +723,4 @@ if (require.main === module) {
   process.exitCode = codigo;
 }
 
-module.exports = { USO, ROTO, leerArgumentos, libs, main, aprobar, marcas };
+module.exports = { USO, ROTO, leerArgumentos, libs, main, aprobar, aprobarDesde, nuevoEnDefecto, marcas };

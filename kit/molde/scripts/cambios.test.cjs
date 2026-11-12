@@ -664,3 +664,161 @@ test('fuera de un repo git: 1 con una línea', () => {
   assert.equal(r.codigo, 1);
   assert.equal(r.out, 'cambios: no estás dentro de un repo git\n');
 });
+
+// ---------------------------------------------------------------- SPEC-paquete-8d A2.3 (aprobar desde la pestaña del director) y A3
+
+// Un repo con origin (un remoto bare de prueba), la pestaña del director (modulo/x) y la de un obrero (modulo/x--01).
+function conRemoto() {
+  const bare = path.join(TMP, `b${n++}.git`);
+  g(TMP, 'init', '-q', '--bare', '-b', 'main', bare);
+  const d = repo();
+  g(d, 'remote', 'add', 'origin', bare);
+  g(d, 'push', '-q', '-u', 'origin', 'main');
+  const dir = path.join(d, '.claude', 'worktrees', 'modulo--x');
+  g(d, 'worktree', 'add', '-q', '-b', 'modulo/x', dir);
+  fs.writeFileSync(path.join(dir, '.kit-rol'), 'director\n');
+  const obr = path.join(d, '.claude', 'worktrees', 'modulo--x--01');
+  g(d, 'worktree', 'add', '-q', '-b', 'modulo/x--01', obr);
+  fs.writeFileSync(path.join(obr, '.kit-rol'), 'obrero\n');
+  return { bare, d, dir, obr };
+}
+// El pase que deja la ventana de aprobar en la pestaña del director (rt A, 1): mismo id, el control del texto en origin, ahora.
+function pase(m, id, o = {}) {
+  const texto = g(m.d, 'show', `origin/main:${rel(id)}`) + '\n';
+  const control = o.control || C.hashSello(texto).slice(0, 8);
+  fs.writeFileSync(path.join(m.d, '.git', 'kit-firma-pedida.json'), JSON.stringify({ id: o.id || id, control, ms: o.ms || Date.now() }));
+}
+const conEntorno = (d, args, entorno) => {
+  let out = '';
+  const codigo = script.main(args, { cwd: d, salida: (s) => (out += s), error: (s) => (out += s), entradaEstandar: () => CUERPO, entorno });
+  return { codigo, out };
+};
+
+test('A2.3 aprobar desde la pestaña del director: firma en la carpeta principal, sube, y el sello es el de siempre (carpeta ., rol humano)', () => {
+  const m = conRemoto();
+  const id = proponer(m.d, 'desde-director');
+  g(m.d, 'push', '-q', 'origin', 'main');
+  const antesDir = { head: g(m.dir, 'rev-parse', 'HEAD'), status: g(m.dir, 'status', '--porcelain') };
+  pase(m, id);
+  const r = cli(m.dir, ['aprobar', id]);
+  assert.equal(r.codigo, 0, r.out + r.err);
+  assert.match(r.out, /firmado en la carpeta principal y subido a main/);
+  // el commit de la firma está en la principal y en origin
+  assert.equal(g(m.d, 'log', '-1', '--format=%s'), `cambios: aprobado ${id}`);
+  assert.equal(g(m.bare, 'rev-parse', 'main'), g(m.d, 'rev-parse', 'HEAD'));
+  // el sello: carpeta . y rol humano; validarSello lo acepta (verificar en limpio)
+  const leido = C.leer(leer(m.d, rel(id)));
+  assert.equal(leido.datos.estado, 'aprobado');
+  assert.equal(leido.datos.aprobo.carpeta, '.');
+  assert.equal(leido.datos.aprobo.rol, 'humano');
+  assert.deepEqual(C.verificar(m.d), []);
+  // el worktree del director quedó como estaba
+  assert.deepEqual({ head: g(m.dir, 'rev-parse', 'HEAD'), status: g(m.dir, 'status', '--porcelain') }, antesDir);
+  assert.ok(!fs.existsSync(path.join(m.d, '.git', 'kit-firma-pedida.json')), 'el pase es de un solo uso');
+});
+
+test('A2.3 (rt A, 1, 3 y 5) aprobar desde el director sin pase, con el pase de otro id, vencido o con otro control, o con commits sin subir → no', () => {
+  const m = conRemoto();
+  const id = proponer(m.d, 'con-pase');
+  g(m.d, 'push', '-q', 'origin', 'main');
+  niega(m.dir, id, /no hay un pedido de firma de la ventana/, { fotoEn: m.d });
+  pase(m, id, { id: '2026-01-01-otro' });
+  niega(m.dir, id, /es de otro cambio/, { fotoEn: m.d });
+  pase(m, id, { ms: Date.now() - 16 * 60 * 1000 });
+  niega(m.dir, id, /venció/, { fotoEn: m.d });
+  pase(m, id, { control: 'deadbeef' });
+  niega(m.dir, id, /no es el que mostró la ventana/, { fotoEn: m.d });
+  commit(m.d, { 'c.txt': 'sin subir\n' }, 'del dueño, sin subir');
+  pase(m, id);
+  niega(m.dir, id, /tiene 1 commit\(s\) sin subir/, { fotoEn: m.d });
+});
+
+test('A2.3 (rt A, 1c) de fondo o con .kit-noche, tampoco firma desde la carpeta principal', () => {
+  const d = repo();
+  const id = proponer(d, 'principal-noche');
+  const antes = foto(d, id);
+  const f = conEntorno(d, ['aprobar', id], { KIT_FONDO: '1' });
+  assert.equal(f.codigo, 1);
+  assert.match(f.out, /sesión de fondo/);
+  fs.writeFileSync(path.join(d, '.kit-noche'), '');
+  niega(d, id, /es de noche/);
+  fs.unlinkSync(path.join(d, '.kit-noche'));
+  assert.deepEqual(foto(d, id), antes);
+});
+
+test('A2.3 aprobar: desde un obrero, con .kit-noche, de fondo, o con la principal en otra rama → no, sin escribir nada, y dice por qué', () => {
+  const m = conRemoto();
+  const id = proponer(m.d, 'negado');
+  g(m.d, 'push', '-q', 'origin', 'main');
+  niega(m.obr, id, /\.kit-rol: obrero.*en la pestaña del director/, { fotoEn: m.d });
+  fs.writeFileSync(path.join(m.dir, '.kit-noche'), '');
+  niega(m.dir, id, /es de noche/, { fotoEn: m.d });
+  fs.unlinkSync(path.join(m.dir, '.kit-noche'));
+  const antes = foto(m.d, id);
+  const f = conEntorno(m.dir, ['aprobar', id], { KIT_FONDO: '1' });
+  assert.equal(f.codigo, 1);
+  assert.match(f.out, /sesión de fondo/);
+  assert.deepEqual(foto(m.d, id), antes);
+  g(m.d, 'checkout', '-q', '-b', 'otra');
+  pase(m, id);
+  niega(m.dir, id, /la carpeta principal está en otra, no en main/, { fotoEn: m.d });
+  g(m.d, 'checkout', '-q', 'main');
+  // un director en una rama que no es la suya (una misión) → no
+  const mision = path.join(m.d, '.claude', 'worktrees', 'mision');
+  g(m.d, 'worktree', 'add', '-q', '-b', 'worktree-mision', mision);
+  fs.writeFileSync(path.join(mision, '.kit-rol'), 'director\n');
+  niega(mision, id, /\.kit-rol: director/, { fotoEn: m.d });
+});
+
+test('A3 nuevo --en-defecto desde la pestaña del director: un commit de un solo archivo en origin/main; el worktree queda como estaba', () => {
+  const m = conRemoto();
+  const antesDir = { head: g(m.dir, 'rev-parse', 'HEAD'), status: g(m.dir, 'status', '--porcelain') };
+  const antesPrincipal = g(m.d, 'rev-parse', 'HEAD');
+  const r = cli(m.dir, ARGS('nace-en-modulo', ['--en-defecto']));
+  assert.equal(r.codigo, 0, r.out + r.err);
+  assert.match(r.out, /propuesto en main: le queda al dueño en "Te necesito"/);
+  const id = /propuesto (\S+)/.exec(r.out)[1];
+  assert.equal(g(m.bare, 'log', '-1', '--format=%s', 'main'), `cambios: propuesto ${id}`);
+  assert.equal(g(m.bare, 'show', '--name-only', '--format=', 'main'), rel(id));
+  assert.equal(g(m.bare, 'rev-parse', 'main^'), antesPrincipal);
+  assert.deepEqual({ head: g(m.dir, 'rev-parse', 'HEAD'), status: g(m.dir, 'status', '--porcelain') }, antesDir);
+  assert.ok(!fs.existsSync(path.join(m.d, '.claude', 'worktrees', `cambio-${id}`)), 'la temporal se borró');
+  assert.equal(g(m.d, 'worktree', 'list', '--porcelain').split('\n').filter((l) => l.startsWith('worktree ')).length, 3);
+  // después la principal lo trae y el dueño lo firma desde la pestaña del director
+  pase(m, id); // la ventana lee origin/main: no hace falta traer la principal a mano (rt A, 3)
+  assert.equal(cli(m.dir, ['aprobar', id]).codigo, 0);
+});
+
+test('A3 nuevo --en-defecto: desde un obrero → no (sin tocar origin); con origin adelantado en el medio → reintenta y entra', () => {
+  const m = conRemoto();
+  const antes = g(m.bare, 'rev-parse', 'main');
+  const r = cli(m.obr, ARGS('del-obrero', ['--en-defecto']));
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, /\.kit-rol: obrero.*lo propone el director/);
+  assert.equal(g(m.bare, 'rev-parse', 'main'), antes);
+  // origin avanza justo antes del primer push: el segundo intento sale desde lo nuevo
+  const otro = path.join(TMP, `clon${n++}`);
+  g(TMP, 'clone', '-q', m.bare, otro);
+  let out = '';
+  const codigo = script.main(ARGS('con-carrera', ['--en-defecto']), {
+    cwd: m.dir,
+    salida: (s) => (out += s),
+    error: (s) => (out += s),
+    entradaEstandar: () => CUERPO,
+    antesDeSubir: (i) => {
+      if (i !== 1) return;
+      commit(otro, { 'b.txt': 'b\n' }, 'otro avanza');
+      g(otro, 'push', '-q', 'origin', 'main');
+    },
+  });
+  assert.equal(codigo, 0, out);
+  assert.equal(g(m.bare, 'log', '-2', '--format=%s', 'main').split('\n')[1], 'otro avanza');
+  // rt A, 6: de noche o de fondo no se propone en la rama por defecto
+  const tope = g(m.bare, 'rev-parse', 'main');
+  assert.equal(conEntorno(m.dir, ARGS('de-fondo', ['--en-defecto']), { KIT_FONDO: '1' }).codigo, 1);
+  fs.writeFileSync(path.join(m.dir, '.kit-noche'), '');
+  const n2 = cli(m.dir, ARGS('de-noche', ['--en-defecto']));
+  assert.equal(n2.codigo, 1);
+  assert.match(n2.out, /de noche o de fondo no se propone/);
+  assert.equal(g(m.bare, 'rev-parse', 'main'), tope);
+});

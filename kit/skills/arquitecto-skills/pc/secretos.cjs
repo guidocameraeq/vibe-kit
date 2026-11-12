@@ -351,7 +351,7 @@ const QUE = {
   'imprime-variable': (d) => `${d} es secreta: su valor no sale a la pantalla. Como argumento de otro programa, sin -v ni set -x, pasa ("usar sin ver") — `,
   'credencial-guardada': () => 'eso imprime una credencial guardada (gh y git la usan solos, sin mostrarla) — ',
 };
-const MSG_FRENO_PROYECTO = 'no toques los frenos del proyecto (hooks, settings, .githooks, .kit-rol, .kit-noche, el git-dir) desde una sesión de agente: son la red del método. Si hace falta, pedíselo al director.';
+const MSG_FRENO_PROYECTO = 'no toques los frenos del proyecto (hooks, settings, .githooks, .kit-rol, .kit-noche, el git-dir) desde una sesión de agente: son la red del método. Si hace falta cambiar un freno, el director lo propone en la rama por defecto (`node .claude/scripts/cambios.cjs nuevo … --en-defecto`) y el dueño lo firma con un clic en su pestaña.';
 const MSG_LOCK = 'un .lock viejo del git-dir: pedíselo al director (no lo borres desde una sesión de agente). `index.lock` sí se puede.';
 const MSG_PC_KIT = 'no toques el corrector de la PC (<home>/.claude/hooks/kit): lo pone y lo cura el instalador (`instalar-hooks-pc`). Leerlo pasa.';
 const MSG_PC_SETTINGS = 'no toques el settings de la PC (<home>/.claude/settings.json) desde una sesión de agente o sin ventana: el camino es el instalador.';
@@ -367,9 +367,33 @@ function salidaPrompt(motivo) {
 
 // ---------------------------------------------------------------- la decisión
 
+// decidir = lo de secretos + el freno de las firmas del dueño (niega-aprobar.cjs, copia idéntica de la del molde: SPEC-paquete-8d
+// A2.2), en ESTE mismo proceso: la PC sigue con un solo hook. Combina niega > pregunta > nada; ante igual, gana secretos.
+// El renglón de una firma negada: con el kit en el proyecto (su niega-aprobar.cjs lo anota), ninguno acá (no se duplica); en un
+// proyecto con ficha, el suyo; sin ficha, el de la PC.
 function decidir(entrada, opciones = {}) {
   if (!entrada || typeof entrada !== 'object' || Array.isArray(entrada)) throw new Error('la entrada no es un objeto');
   if (entrada.hook_event_name === 'UserPromptSubmit') return decidirPrompt(entrada, opciones);
+  const s = decidirSecretos(entrada, opciones);
+  if (s.decision === 'deny') return s;
+  const anotarFirma = (raiz, datos) => {
+    if (raiz && fs.existsSync(path.join(raiz, '.claude', 'hooks', 'niega-aprobar.cjs'))) return null;
+    const conFicha = !!raiz && fs.existsSync(path.join(raiz, contexto.RUTA_FICHA));
+    return anotar(opciones, conFicha ? raiz : null, datos);
+  };
+  const a = require('./niega-aprobar.cjs').decidir(entrada, { anotar: anotarFirma, entorno: opciones.entorno });
+  if (a.decision === 'deny') return { ...a, id: 'cambios:aprobar-negado' };
+  if (s.decision === 'ask' && a.decision === 'ask') {
+    // rt A, 10: un solo clic acepta las dos: la ventana dice las dos, la firma primero
+    const motivo = `${a.salida.hookSpecificOutput.permissionDecisionReason} Además: ${s.motivo}`;
+    return { ...s, motivo, salida: salidaTool('ask', motivo) };
+  }
+  if (s.decision === 'ask') return s;
+  if (a.decision === 'ask') return { ...a, id: 'cambios:aprobar' };
+  return s;
+}
+
+function decidirSecretos(entrada, opciones = {}) {
 
   const tool = entrada.tool_name;
   if (!HERRAMIENTAS_TOOL.includes(tool)) return { decision: 'nada' };
@@ -1294,11 +1318,15 @@ const LECTORES = new Set([
   'test-path', 'wc', 'grep', 'rg', 'findstr', 'select-string', 'sls', 'diff', 'cmp', 'file',
   'sha1sum', 'sha256sum', 'sha512sum', 'md5sum', 'certutil', 'get-filehash',
 ]);
+// sed y awk solo leen sin -i/--in-place (SPEC-paquete-8d A7 a, 43b: `sed -n '1,40p' .claude/hooks/x.cjs` se negaba ×7 en dos repos).
+// Un `w archivo` dentro del programa de sed sigue sin verse (es un patrón: lo de siempre).
+const EN_EL_LUGAR = (x) => /^-i/.test(x) || /^--in-place(?:=|$)/.test(x) || x === 'inplace';
 function esLectorDeRuta(prog, argv, tok) {
   if (LECTORES.has(prog)) return true;
+  if ((prog === 'sed' || prog === 'awk' || prog === 'gawk') && !argv.slice(1).some(EN_EL_LUGAR)) return true;
   if (prog === 'git') {
     const { sub } = subGit(argv);
-    return ['diff', 'log', 'show', 'status', 'hash-object'].includes(sub);
+    return ['diff', 'log', 'show', 'status', 'hash-object', 'grep', 'ls-files', 'blame', 'cat-file'].includes(sub);
   }
   if (prog === 'node') return argv[1] === tok; // node <la ruta>: la ruta es el programa
   return false;

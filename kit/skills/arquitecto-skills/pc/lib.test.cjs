@@ -48,7 +48,16 @@ test('pc/lib se alcanza sola: cada require relativo de una copia cae en otra cop
 test('secretos.cjs nunca hace require fuera de ./lib/, y cada uno existe', () => {
   for (const r of requiresDe(path.join(__dirname, 'secretos.cjs'))) {
     if (!r.startsWith('.')) continue;
-    assert.ok(r.startsWith('./lib/'), `require("${r}") sale de ./lib/ — está prohibido (D-12)`);
+    // la única excepción: ./niega-aprobar.cjs, la copia idéntica del freno de las firmas (SPEC-paquete-8d A2.2), que a su vez solo carga ./lib/
+    assert.ok(r.startsWith('./lib/') || r === './niega-aprobar.cjs', `require("${r}") sale de ./lib/ — está prohibido (D-12)`);
     assert.ok(fs.existsSync(path.join(__dirname, r)), `require("${r}") no existe`);
+  }
+});
+
+test('niega-aprobar.cjs de la PC (SPEC-paquete-8d A2.2) solo carga ./lib/ y cada uno existe acá', () => {
+  for (const r of requiresDe(path.join(__dirname, 'niega-aprobar.cjs'))) {
+    if (!r.startsWith('.')) continue;
+    assert.ok(r.startsWith('./lib/'), `niega-aprobar.cjs hace require("${r}") fuera de ./lib/`);
+    assert.ok(fs.existsSync(path.join(__dirname, r)), `require("${r}") no existe en pc/`);
   }
 });

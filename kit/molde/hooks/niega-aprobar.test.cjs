@@ -137,10 +137,9 @@ const P = repo({ '.claude/kit.md': FICHA });
 test('default, acceptEdits, plan y auto → ask (la ventana), sin renglón', () => {
   for (const modo of ['default', 'acceptEdits', 'plan', 'auto']) {
     const r = decide(P, entrada(P, APROBAR, { permission_mode: modo }), 'ask');
-    assert.equal(r.motivo, na.MOTIVO_ASK);
+    // A2.3: la ventana dice quién pide la firma (rt-2 de D8r.4 sigue cubierto: un agente en la principal ve "la sesión de la carpeta principal")
+    assert.match(r.motivo, /^Es tu firma para cambiar un freno de este proyecto\. Te la pide: la sesión de la carpeta principal\./);
   }
-  // rt-2 de D8r.4: un obrero o director que todavía no entró a su worktree es "humano" para los frenos; el texto lo dice.
-  assert.match(na.MOTIVO_ASK, /si te lo pide una sesión de \/obrero o \/director, decí que no/);
 });
 
 test('bypassPermissions y dontAsk → deny, con renglón cuyo detalle es el modo', () => {
@@ -182,16 +181,17 @@ test('las formas que esquivan la regla ask del settings (comillas, espacios, --,
     "node .claude/scripts/cambios.cjs 'aprobar' x",
     'node  .claude/scripts/cambios.cjs  aprobar x',
     'node .claude/scripts/cambios.cjs -- aprobar x',
-    'node C:\\repo\\.claude\\scripts\\cambios.cjs aprobar x',
     'NODE .claude/scripts/CAMBIOS.cjs APROBAR x',
     "node .claude/scripts/cambios.cjs apro''bar x",
     'node .claude/scripts/camb"i"os.cjs apro\\bar x',
-    'cd .claude/scripts && node cambios.cjs aprobar x',
   ]) {
     decide(P, entrada(P, c), 'ask');
     niega(P, entrada(P, c, { permission_mode: 'bypassPermissions' }), 'bypassPermissions');
   }
   assert.equal(na.esDeAprobar('camb*.cjs aprobar'), false); // lo que no se ve: el riesgo escrito de F3 (r4-1 b)
+  // A2.3: irse a otro lado o una ruta que no es de la sesión niegan aunque haya ventana
+  niega(P, entrada(P, 'cd .claude/scripts && node cambios.cjs aprobar x'), 'se va a otro lado');
+  niega(P, entrada(P, 'node C:\\repo\\.claude\\scripts\\cambios.cjs aprobar x'), 'otra ruta');
 });
 
 // ---------------------------------------------------------------- rol y ficha
@@ -201,6 +201,7 @@ test('.kit-rol de agente (cada uno, y uno que no se entiende) → deny aunque el
   for (const rol of ['director', 'obrero', 'nocturno', 'actualizador', 'jefe']) {
     fs.writeFileSync(path.join(d, '.kit-rol'), `${rol}\n`);
     const esperado = rol === 'jefe' ? 'desconocido' : rol;
+    if (rol === 'nocturno') { niega(d, entrada(d, APROBAR), 'de noche'); continue; } // A2.3: de noche se mira antes que el rol
     const r = niega(d, entrada(d, APROBAR), `rol ${esperado}`);
     assert.match(r.motivo, new RegExp(`\\.kit-rol: ${esperado}`));
   }
@@ -211,7 +212,7 @@ test('desde un worktree con .kit-rol de obrero → deny, y el renglón queda en 
   const w = path.join(d, '.claude', 'worktrees', 'w1');
   g(d, 'worktree', 'add', '-q', '-b', 'modulo/x--1', w);
   fs.writeFileSync(path.join(w, '.kit-rol'), 'obrero\n');
-  const r = niega(w, entrada(w, APROBAR), 'rol obrero');
+  const r = niega(w, entrada(w, APROBAR), 'rama de obrero'); // A2.3: la rama de obrero niega antes de mirar el .kit-rol
   assert.equal(r.rama, 'modulo/x--1');
   assert.equal(log(d), '');
 });
@@ -225,17 +226,17 @@ test('ficha rota (4.7, caso 2) → deny "ficha rota" con dónde y "corré doctor
 test('fuera de un repo git → deny (rol desconocido), sin renglón donde escribirlo', () => {
   const d = carpeta('suelto');
   const r = decide(d, entrada(d, APROBAR), 'deny');
-  assert.match(r.motivo, /desconocido/);
+  assert.match(r.motivo, /la pide el director en su pestaña, o el dueño en una sesión abierta en la carpeta principal/);
 });
 
 // ---------------------------------------------------------------- 4.7: los cuatro casos
 
-test('4.7 caso 1 (sin node): lo cubre onFailure "block" — el settings.json del molde lo registra así, con timeout 20', () => {
+test('4.7 caso 1 (sin node): lo cubre onFailure "block" — el settings.json del molde registra el portero (8d A5), que lo corre adentro', () => {
   const s = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'settings.json'), 'utf8'));
-  const grupos = s.hooks.PreToolUse.filter((x) => x.hooks.some((h) => /niega-aprobar\.cjs/.test(`${h.command} ${(h.args || []).join(' ')}`)));
+  const grupos = s.hooks.PreToolUse.filter((x) => x.matcher === 'Bash|PowerShell');
   assert.equal(grupos.length, 1);
-  assert.equal(grupos[0].matcher, 'Bash|PowerShell');
-  assert.deepEqual(grupos[0].hooks.filter((h) => /niega-aprobar\.cjs/.test((h.args || []).join(' '))), [{ type: 'command', command: 'node', args: ['${CLAUDE_PROJECT_DIR}/.claude/hooks/niega-aprobar.cjs'], timeout: 20, onFailure: 'block' }]);
+  assert.deepEqual(grupos[0].hooks, [{ type: 'command', command: 'node', args: ['${CLAUDE_PROJECT_DIR}/.claude/hooks/lib/portero.cjs'], timeout: 60, onFailure: 'block' }]);
+  assert.ok(require('./lib/portero.cjs').HOOKS.some((h) => h.archivo === 'niega-aprobar.cjs'));
 });
 
 test('4.7 caso 3 (error interno): entrada que no es JSON, vacía o que no es un objeto, y una librería que falta → deny "freno roto: corré doctor", salida 0', () => {
@@ -292,4 +293,213 @@ test('settings.json: la ask de aprobar en Bash y PowerShell, el allow del resto,
   // las rutas de los comandos existen en el molde (hooks/ y scripts/)
   assert.ok(fs.existsSync(path.join(__dirname, 'niega-aprobar.cjs')));
   assert.ok(fs.existsSync(path.join(__dirname, '..', 'scripts', 'cambios.cjs')));
+});
+
+// ---------------------------------------------------------------- A2 (SPEC-paquete-8d): qué es "de aprobar", desde dónde, las tres firmas
+
+const CUERPO_CAMBIO = '## Caso de origen\nel stash pisó trabajo (2026-10)\n\n## Regla\nquitar el freno del stash\n\n## Dónde vive\n.claude/hooks/x.cjs\n\n## Medición\n| antes | después |\n';
+const ID_CAMBIO = '2026-10-28-quitar-stash';
+// Un repo con su cambio propuesto commiteado, la pestaña de un director (modulo/x) y la de un obrero (modulo/x--01).
+function conModulo() {
+  const C = require('./lib/cambios.cjs');
+  const texto = C.armar({ clase: '3-barrera', toca: ['frenos'], ids: ['hook:git-seguro/stash'], origen: 'una prueba', cicatriz: 'no', chico: 'sí', urgente: 'no', cuerpo: CUERPO_CAMBIO });
+  const d = repo({ '.claude/kit.md': FICHA, [`.claude/cambios/${ID_CAMBIO}.md`]: texto });
+  const dir = path.join(d, '.claude', 'worktrees', 'modulo--x');
+  g(d, 'worktree', 'add', '-q', '-b', 'modulo/x', dir);
+  fs.writeFileSync(path.join(dir, '.kit-rol'), 'director\n');
+  const obr = path.join(d, '.claude', 'worktrees', 'modulo--x--01');
+  g(d, 'worktree', 'add', '-q', '-b', 'modulo/x--01', obr);
+  fs.writeFileSync(path.join(obr, '.kit-rol'), 'obrero\n');
+  return { d, dir, obr, hash8: C.hashSello(texto).slice(0, 8) };
+}
+const DESDE_DIR = `node ../../../.claude/scripts/cambios.cjs aprobar ${ID_CAMBIO}`;
+// recordar:false: en estas pruebas varias "sesiones" comparten el session_id de entrada(); las marcas tienen su prueba (rt A 2)
+const decideNA = (e, o = {}) => na.decidir(e, { anotar: () => 'renglón', entorno: {}, recordar: false, ...o });
+
+test('A2.1 sigue siendo de aprobar: la ruta absoluta, comillas, bash -c, pwsh -c, $( ), comillas invertidas, echo $(…), | bash', () => {
+  for (const c of [
+    'node .claude/scripts/cambios.cjs aprobar x',
+    'node /repo/.claude/scripts/cambios.cjs aprobar x',
+    'node ".claude/scripts/cambios.cjs" "aprobar" x',
+    'bash -c "node .claude/scripts/cambios.cjs aprobar x"',
+    'pwsh -c "node .claude/scripts/cambios.cjs aprobar x"',
+    'x=$(node .claude/scripts/cambios.cjs aprobar x)',
+    'x=`node .claude/scripts/cambios.cjs aprobar x`',
+    'echo $(node .claude/scripts/cambios.cjs aprobar x)',
+    'echo "node .claude/scripts/cambios.cjs aprobar x" | bash',
+    'bash <<EOF\nnode .claude/scripts/cambios.cjs aprobar x\nEOF',
+    'grep x "$(node .claude/scripts/cambios.cjs aprobar x)"',
+    'git commit -m "$(node .claude/scripts/cambios.cjs aprobar x)"',
+  ]) assert.equal(na.esDeAprobar(c), true, c);
+  assert.equal(na.esDeAprobar('node .claude/scripts/cambios.cjs aprobar x', { ps: true }), true);
+});
+
+test('A2.1 no es de aprobar: el mensaje de un commit, un heredoc, grep, rg, echo y printf', () => {
+  for (const c of [
+    'git commit -m "cambios: aprobar el freno con cambios.cjs aprobar"',
+    'git commit -am "cambios aprobar" && git push',
+    'git -C . commit -F .claude/cambios-aprobar.txt',
+    'git commit --message="cambios aprobar"',
+    'grep -n aprobar .claude/scripts/cambios.cjs',
+    'rg "cambios.cjs aprobar" kit/',
+    'echo "para aprobar: node .claude/scripts/cambios.cjs aprobar x"',
+    'printf "%s\\n" "cambios aprobar"',
+    "cat > notas.md <<'EOF'\nnode .claude/scripts/cambios.cjs aprobar x\nEOF",
+    'cat > notas.md <<EOF\ncambios aprobar\nEOF',
+  ]) assert.equal(na.esDeAprobar(c), false, c);
+});
+
+test('A2.3 desde la pestaña del director, de día y con ventana (también auto) → ask, con la ventana que dice quién pide y qué toca', () => {
+  const m = conModulo();
+  for (const modo of ['default', 'auto']) {
+    const r = decideNA(entrada(m.dir, DESDE_DIR, { permission_mode: modo }));
+    assert.equal(r.decision, 'ask', modo);
+    const t = r.salida.hookSpecificOutput.permissionDecisionReason;
+    assert.match(t, /^Es tu firma para cambiar un freno de este proyecto\. Te la pide: director-x\. /);
+    assert.ok(t.includes(`Cambio ${ID_CAMBIO} · toca: hook:git-seguro/stash · control: ${m.hash8}`), t);
+    assert.match(t, /Aceptá solo si es lo que viste en "Te necesito"\.$/);
+  }
+  // rt A: en la pestaña del director vale solo el script de la carpeta principal, no la copia de la rama del módulo
+  assert.equal(decideNA(entrada(m.dir, `node .claude/scripts/cambios.cjs aprobar ${ID_CAMBIO}`)).detalle, 'otra ruta');
+  // y la ventana deja el pase de un solo uso para el script (rt A, 1), con el control de lo que mostró
+  const pase = JSON.parse(fs.readFileSync(path.join(m.d, '.git', na.ARCHIVO_PASE), 'utf8'));
+  assert.equal(pase.id, ID_CAMBIO);
+  assert.equal(pase.control, m.hash8);
+});
+
+test('A2.3 en la carpeta principal, rol humano y rama por defecto → ask, y lo pide la sesión de la carpeta principal', () => {
+  const m = conModulo();
+  const r = decideNA(entrada(m.d, `node .claude/scripts/cambios.cjs aprobar ${ID_CAMBIO}`));
+  assert.equal(r.decision, 'ask');
+  assert.match(r.salida.hookSpecificOutput.permissionDecisionReason, /Te la pide: la sesión de la carpeta principal\./);
+  // un id que no se lee: la ventana lo dice
+  assert.match(decideNA(entrada(m.d, 'node .claude/scripts/cambios.cjs aprobar 2026-01-01-no-existe')).salida.hookSpecificOutput.permissionDecisionReason, /no lo pude leer: no aceptes/);
+});
+
+test('A2.3 las negativas: obrero (por rol y por rama), noche, fondo, sin ventana, se va a otro lado, otra ruta, otra carpeta, otra rama', () => {
+  const m = conModulo();
+  const negada = (e, detalle, o) => {
+    const r = decideNA(e, o);
+    assert.equal(r.decision, 'deny', `${detalle}: ${JSON.stringify(r)}`);
+    assert.equal(r.detalle, detalle);
+    return r.salida.hookSpecificOutput.permissionDecisionReason;
+  };
+  // obrero: por su .kit-rol y su rama
+  assert.match(negada(entrada(m.obr, `node ../../../.claude/scripts/cambios.cjs aprobar ${ID_CAMBIO}`), 'rama de obrero'), /la firma la da el dueño con un clic, en la pestaña del director/);
+  // un .kit-rol de director con rama de obrero niega igual
+  const falso = path.join(m.d, '.claude', 'worktrees', 'falso');
+  g(m.d, 'worktree', 'add', '-q', '-b', 'modulo/x--02', falso);
+  fs.writeFileSync(path.join(falso, '.kit-rol'), 'director\n');
+  negada(entrada(falso, DESDE_DIR), 'rama de obrero');
+  // un obrero que se va con cd a la carpeta del director
+  negada(entrada(m.obr, `cd ../modulo--x && ${DESDE_DIR}`), 'rama de obrero');
+  // el director: con .kit-noche, de fondo, sin ventana
+  fs.writeFileSync(path.join(m.dir, '.kit-noche'), '');
+  negada(entrada(m.dir, DESDE_DIR), 'de noche');
+  fs.unlinkSync(path.join(m.dir, '.kit-noche'));
+  assert.match(negada(entrada(m.dir, DESDE_DIR), 'de fondo', { entorno: { KIT_FONDO: '1' } }), /sesión de fondo/);
+  negada(entrada(m.dir, DESDE_DIR, { permission_mode: 'dontAsk' }), 'dontAsk');
+  // se va a otro lado / otra ruta
+  negada(entrada(m.dir, `cd .. && ${DESDE_DIR}`), 'se va a otro lado');
+  negada(entrada(m.d, `git -C ${m.dir} status && node .claude/scripts/cambios.cjs aprobar x`), 'se va a otro lado');
+  negada(entrada(m.d, 'Set-Location .. ; node .claude/scripts/cambios.cjs aprobar x', { tool_name: 'PowerShell' }), 'se va a otro lado');
+  const otro = repo({ '.claude/kit.md': FICHA });
+  negada(entrada(otro, `node ${m.d}/.claude/scripts/cambios.cjs aprobar x`), 'otra ruta');
+  negada(entrada(m.dir, `node ${m.obr}/.claude/scripts/cambios.cjs aprobar x`), 'otra ruta');
+  negada(entrada(m.d, 'node $RAIZ/.claude/scripts/cambios.cjs aprobar x'), 'otra ruta');
+  // fuera de un repo; un worktree que no es de director; la principal en otra rama
+  negada(entrada(carpeta('suelto'), 'node .claude/scripts/cambios.cjs aprobar x'), 'fuera de un repo');
+  const mision = path.join(m.d, '.claude', 'worktrees', 'mision');
+  g(m.d, 'worktree', 'add', '-q', '-b', 'worktree-mision', mision);
+  negada(entrada(mision, 'node ../../../.claude/scripts/cambios.cjs aprobar x'), 'worktree');
+  g(m.d, 'checkout', '-q', '-b', 'otra');
+  assert.match(negada(entrada(m.d, 'node .claude/scripts/cambios.cjs aprobar x'), 'fuera de la rama por defecto'), /desde la rama por defecto \(main\)/);
+  g(m.d, 'checkout', '-q', 'main');
+});
+
+test('A2.4 las otras dos firmas: noche.cjs publicar --seguir como aprobar; preparar-pc --publica solo con rol humano', () => {
+  const m = conModulo();
+  const SEGUIR = 'node ../../../.claude/scripts/noche.cjs publicar --seguir';
+  const PC = 'node ~/.claude/skills/arquitecto-skills/scripts/preparar-pc.cjs --publica C:/repos/x';
+  assert.equal(na.queFirma(SEGUIR), 'seguir');
+  assert.equal(na.queFirma(PC), 'pc');
+  assert.equal(na.queFirma('node x/preparar-pc.cjs --no-publica r'), 'pc');
+  assert.equal(na.queFirma('node x/preparar-pc.cjs --home h'), null);
+  assert.equal(na.queFirma('node .claude/scripts/noche.cjs publicar'), null);
+  assert.equal(na.queFirma('KIT_HOME_PC=/tmp/h node x.cjs'), 'home-pc');
+  // --seguir: el director de día → ask; con KIT_FONDO → deny; un obrero → deny; la principal → ask
+  assert.match(decideNA(entrada(m.dir, SEGUIR, { permission_mode: 'auto' })).salida.hookSpecificOutput.permissionDecisionReason, /^Es tu firma para destrabar la publicación/);
+  assert.equal(decideNA(entrada(m.dir, SEGUIR), { entorno: { KIT_FONDO: '1' } }).decision, 'deny');
+  assert.equal(decideNA(entrada(m.obr, SEGUIR)).decision, 'deny');
+  assert.equal(decideNA(entrada(m.d, 'node .claude/scripts/noche.cjs publicar --seguir')).decision, 'ask');
+  // preparar-pc --publica: desde el director en auto → deny; con KIT_FONDO → deny; en la principal con ventana → ask; sin ventana → deny
+  assert.equal(decideNA(entrada(m.dir, PC, { permission_mode: 'auto' })).decision, 'deny');
+  assert.equal(decideNA(entrada(m.d, PC), { entorno: { KIT_FONDO: '1' } }).decision, 'deny');
+  assert.equal(decideNA(entrada(m.d, PC)).decision, 'ask');
+  assert.equal(decideNA(entrada(carpeta('home'), PC)).decision, 'ask');
+  assert.equal(decideNA(entrada(m.d, PC, { permission_mode: 'bypassPermissions' })).decision, 'deny');
+  assert.equal(decideNA(entrada(m.d, 'node x/preparar-pc.cjs --home h')).decision, 'nada');
+  // KIT_HOME_PC: desde un agente o de fondo → deny
+  assert.equal(decideNA(entrada(m.dir, 'KIT_HOME_PC=/tmp/h node x.cjs')).decision, 'deny');
+  assert.equal(decideNA(entrada(m.d, 'KIT_HOME_PC=/tmp/h node x.cjs'), { entorno: { KIT_FONDO: '1' } }).decision, 'deny');
+});
+
+test('A2 pc/niega-aprobar.cjs es una copia idéntica de la del molde', () => {
+  const pc = path.join(__dirname, '..', '..', 'skills', 'arquitecto-skills', 'pc', 'niega-aprobar.cjs');
+  assert.ok(fs.existsSync(pc), 'falta pc/niega-aprobar.cjs');
+  assert.ok(fs.readFileSync(pc).equals(fs.readFileSync(path.join(__dirname, 'niega-aprobar.cjs'))), 'pc/niega-aprobar.cjs se desvió del molde');
+});
+
+// ---------------------------------------------------------------- el red team de la tanda A (rt A)
+
+test('rt A 1: escribir un archivo y correr un intérprete en la misma línea, /dev/stdin, una variable, rg --pre → de aprobar', () => {
+  for (const c of [
+    "cat > f.sh <<'EOF'\nnode .claude/scripts/cambios.cjs aprobar x\nEOF\nbash f.sh",
+    'echo "node .claude/scripts/cambios.cjs aprobar x" > f.sh; sh f.sh',
+    'printf "node .claude/scripts/cambios.cjs aprobar x" | tee f.sh && bash f.sh',
+    "bash /dev/stdin <<'EOF'\nnode .claude/scripts/cambios.cjs aprobar x\nEOF",
+    'A=aprobar; node .claude/scripts/cambios.cjs $A x',
+    'rg --pre ./x.sh aprobar cambios',
+  ]) assert.equal(na.esDeAprobar(c), true, c);
+  // escribir sin correr nada sigue exento
+  assert.equal(na.esDeAprobar("cat > notas.md <<'EOF'\nnode .claude/scripts/cambios.cjs aprobar x\nEOF"), false);
+});
+
+test('rt A 2: una sesión que trabajó en una carpeta de obrero no firma aunque después se vaya a la principal', () => {
+  const m = conModulo();
+  const SID = 'sesion-del-obrero-1';
+  // una llamada cualquiera en su worktree la anota
+  assert.equal(na.decidir({ ...entrada(m.obr, 'git status'), session_id: SID }, { anotar: () => null, entorno: {} }).decision, 'nada');
+  assert.equal(fs.readFileSync(path.join(m.d, '.git', na.CARPETA_SESIONES, SID), 'utf8').trim(), 'obrero');
+  // después, parada en la principal (un cd en otra llamada): la firma se niega
+  const r = na.decidir({ ...entrada(m.d, `node .claude/scripts/cambios.cjs aprobar ${ID_CAMBIO}`), session_id: SID }, { anotar: () => null, entorno: {} });
+  assert.equal(r.decision, 'deny');
+  assert.equal(r.detalle, 'sesión de obrero');
+  // la del director no queda anotada, y otra sesión en la principal pregunta
+  na.decidir({ ...entrada(m.dir, 'git status'), session_id: 'sesion-del-director' }, { anotar: () => null, entorno: {} });
+  assert.ok(!fs.existsSync(path.join(m.d, '.git', na.CARPETA_SESIONES, 'sesion-del-director')));
+  assert.equal(na.decidir({ ...entrada(m.d, `node .claude/scripts/cambios.cjs aprobar ${ID_CAMBIO}`), session_id: 'sesion-del-duenio' }, { anotar: () => null, entorno: {} }).decision, 'ask');
+});
+
+test('rt A 3: la ventana muestra lo commiteado, no lo que hay en el disco', () => {
+  const m = conModulo();
+  const archivo = path.join(m.d, '.claude', 'cambios', `${ID_CAMBIO}.md`);
+  fs.appendFileSync(archivo, '\nalgo escrito a mano, sin commitear\n');
+  const t = decideNA(entrada(m.dir, DESDE_DIR)).salida.hookSpecificOutput.permissionDecisionReason;
+  assert.ok(t.includes(`control: ${m.hash8}`), t);
+});
+
+test('rt A 4: una firma por clic', () => {
+  const m = conModulo();
+  const r = decideNA(entrada(m.dir, `${DESDE_DIR} && node ../../../.claude/scripts/cambios.cjs aprobar 2026-10-29-otro`));
+  assert.equal(r.decision, 'deny');
+  assert.equal(r.detalle, 'más de una firma');
+});
+
+test('rt A 11 y 12: KIT_FONDO con cualquier valor que no sea 0; un grep de KIT_HOME_PC no es una firma', () => {
+  const m = conModulo();
+  assert.equal(decideNA(entrada(m.dir, DESDE_DIR), { entorno: { KIT_FONDO: 'true' } }).decision, 'deny');
+  assert.equal(decideNA(entrada(m.dir, DESDE_DIR), { entorno: { KIT_FONDO: '0' } }).decision, 'ask');
+  assert.equal(na.queFirma('grep -rn KIT_HOME_PC kit/'), null);
+  assert.equal(na.queFirma('KIT_HOME_PC=/x node a.cjs'), 'home-pc');
 });

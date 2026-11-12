@@ -84,6 +84,7 @@ function instalar(parche) {
   let txt = fs.readFileSync(path.join(AQUI, 'secretos.cjs'), 'utf8');
   if (parche) txt = parche(txt);
   fs.writeFileSync(path.join(kitDir, 'secretos.cjs'), txt);
+  fs.copyFileSync(path.join(AQUI, 'niega-aprobar.cjs'), path.join(kitDir, 'niega-aprobar.cjs')); // 8d A2.2: viaja con secretos
   for (const f of fs.readdirSync(path.join(AQUI, 'lib')).filter((x) => x.endsWith('.cjs'))) fs.copyFileSync(path.join(AQUI, 'lib', f), path.join(kitDir, 'lib', f));
   const otro = path.join(base, 'otro');
   fs.mkdirSync(otro, { recursive: true });
@@ -643,7 +644,9 @@ test('frenos-de-la-pc: <home>/.claude/hooks/kit siempre; el settings de la PC: a
 // ================================================================ cambios-sin-ventana
 test('cambios-sin-ventana: en bypass y dontAsk frena lo que nombra .claude/cambios/, salvo el script sin otra mención', () => {
   for (const modo of ['bypassPermissions', 'dontAsk']) {
-    siNo(['cat .claude/cambios/x.md', 'rm -rf .claude/cambios', 'node .claude/scripts/cambios.cjs ver .claude/cambios/x.md', 'echo x > .claude\\cambios\\a.md'], ['node .claude/scripts/cambios.cjs aprobar', 'node .claude/scripts/cambios.cjs', 'cat .claude/cambios.md'], (c) => bash(c, modo), 'cambios-sin-ventana');
+    siNo(['cat .claude/cambios/x.md', 'rm -rf .claude/cambios', 'node .claude/scripts/cambios.cjs ver .claude/cambios/x.md', 'echo x > .claude\\cambios\\a.md'], ['node .claude/scripts/cambios.cjs', 'cat .claude/cambios.md'], (c) => bash(c, modo), 'cambios-sin-ventana');
+    // 8d A2.2: aprobar sin ventana ya no pasa: lo niega el freno de las firmas, en el mismo proceso
+    assert.equal(d(bash('node .claude/scripts/cambios.cjs aprobar', modo)).id, 'cambios:aprobar-negado');
   }
   for (const modo of ['default', 'acceptEdits', 'plan', 'auto']) assert.equal(d(bash('cat .claude/cambios/x.md', modo)).decision, 'nada', modo);
 });
@@ -825,4 +828,94 @@ test('r1-4: grep de los patrones del corrector sobre kit/ entero → 0', () => {
   })(KIT);
   assert.ok(archivos > 50, `recorrió pocos archivos (${archivos})`);
   assert.deepEqual(malos, [], `hay claves con forma real en kit/:\n${malos.join('\n')}`);
+});
+
+// ---------------------------------------------------------------- SPEC-paquete-8d A2 (las firmas en toda la PC) y A7 (a)
+
+const AP = 'node .claude/scripts/cambios.cjs aprobar 2026-11-12-x';
+const dA = (e, entorno = {}) => S.decidir(e, { anotar: () => null, entorno });
+// Un repo con ficha y la pestaña de un director (modulo/x, .kit-rol director) y la de un obrero (modulo/x--01).
+function conModulo() {
+  const p = repo();
+  conFicha(p, FICHA_BASE);
+  const dir = path.join(p, '.claude', 'worktrees', 'modulo--x');
+  g(['worktree', 'add', '-q', '-b', 'modulo/x', dir], p);
+  fs.writeFileSync(path.join(dir, '.kit-rol'), 'director\n');
+  const obr = path.join(p, '.claude', 'worktrees', 'modulo--x--01');
+  g(['worktree', 'add', '-q', '-b', 'modulo/x--01', obr], p);
+  fs.writeFileSync(path.join(obr, '.kit-rol'), 'obrero\n');
+  return { p, dir, obr };
+}
+
+test('A2.2 aprobar en toda la PC: otra carpeta con cd → deny; la principal en la rama por defecto → ask; en dontAsk → deny', () => {
+  const m = conModulo();
+  const otra = repo();
+  assert.equal(dA(bash(`cd ${m.p} && ${AP}`, 'auto', otra)).decision, 'deny');
+  assert.equal(dA(bash(AP, 'default', m.p)).decision, 'ask');
+  assert.equal(dA(bash(AP, 'dontAsk', m.p)).decision, 'deny');
+  // un repo sin kit ni ficha: la misma regla (la PC no sabe de qué proyecto es)
+  assert.equal(dA(bash(`node ${m.p}/.claude/scripts/cambios.cjs aprobar x`, 'auto', otra)).decision, 'deny');
+});
+
+test('A2.3 en la PC: el director de día → ask; con .kit-noche o KIT_FONDO → deny; un obrero, uno con rama de obrero, o un obrero con cd → deny', () => {
+  const m = conModulo();
+  const DESDE = 'node ../../../.claude/scripts/cambios.cjs aprobar 2026-11-12-x';
+  assert.equal(dA(bash(DESDE, 'auto', m.dir)).decision, 'ask');
+  assert.equal(dA(bash(DESDE, 'auto', m.dir), { KIT_FONDO: '1' }).decision, 'deny');
+  fs.writeFileSync(path.join(m.dir, '.kit-noche'), '');
+  assert.equal(dA(bash(DESDE, 'auto', m.dir)).decision, 'deny');
+  fs.unlinkSync(path.join(m.dir, '.kit-noche'));
+  assert.equal(dA(bash(DESDE, 'auto', m.obr)).decision, 'deny');
+  assert.equal(dA(bash(`cd ../modulo--x && ${DESDE}`, 'auto', m.obr)).decision, 'deny');
+  const falso = path.join(m.p, '.claude', 'worktrees', 'falso');
+  g(['worktree', 'add', '-q', '-b', 'modulo/x--02', falso], m.p);
+  fs.writeFileSync(path.join(falso, '.kit-rol'), 'director\n');
+  assert.equal(dA(bash(DESDE, 'auto', falso)).decision, 'deny');
+});
+
+test('A2.4 en la PC: preparar-pc --publica y noche.cjs publicar --seguir', () => {
+  const m = conModulo();
+  const PC = 'node ~/.claude/skills/arquitecto-skills/scripts/preparar-pc.cjs --publica C:/r';
+  const SEGUIR = 'node ../../../.claude/scripts/noche.cjs publicar --seguir';
+  assert.equal(dA(bash(PC, 'auto', m.dir)).decision, 'deny');
+  assert.equal(dA(bash(PC, 'default', m.p), { KIT_FONDO: '1' }).decision, 'deny');
+  assert.equal(dA(bash(PC, 'default', m.p)).decision, 'ask');
+  assert.equal(dA(bash('node ~/.claude/skills/arquitecto-skills/scripts/preparar-pc.cjs --home h', 'default', m.p)).decision, 'nada');
+  assert.equal(dA(bash(SEGUIR, 'auto', m.dir), { KIT_FONDO: '1' }).decision, 'deny');
+  assert.equal(dA(bash(SEGUIR, 'auto', m.obr)).decision, 'deny');
+  assert.equal(dA(bash('node .claude/scripts/noche.cjs publicar --seguir', 'default', m.p)).decision, 'ask');
+});
+
+test('A2.2 lo de secretos manda ante igual, y un deny de secretos gana a un ask de aprobar', () => {
+  const m = conModulo();
+  const r = dA(bash(`${AP} && cat .env`, 'default', m.p));
+  assert.equal(r.decision, 'deny');
+  assert.equal(r.id, 'secretos:archivo-deny');
+});
+
+test('A2.2 el aviso a un agente que toca un freno dice el camino (no "pedíselo al director")', () => {
+  const p = repo('obrero');
+  const r = dA(bash('echo x > .claude/settings.json', 'auto', p));
+  assert.equal(r.decision, 'deny');
+  assert.match(r.motivo, /el director lo propone en la rama por defecto \(`node \.claude\/scripts\/cambios\.cjs nuevo … --en-defecto`\) y el dueño lo firma con un clic en su pestaña/);
+  assert.ok(!/pedíselo al director/.test(r.motivo));
+});
+
+test('A7 (a) leer .claude/ y .githooks/ desde un agente pasa; escribir o destruir ahí, no', () => {
+  const p = repo('obrero');
+  fs.mkdirSync(path.join(p, '.claude', 'hooks'), { recursive: true });
+  fs.writeFileSync(path.join(p, '.claude', 'hooks', 'x.cjs'), '1');
+  for (const c of ["sed -n '1,40p' .claude/hooks/x.cjs", 'awk 1 .claude/hooks/x.cjs', 'sed -n 1p .githooks/pre-commit', 'git grep foo -- .claude/', 'node .claude/hooks/x.cjs < entrada.json']) {
+    assert.equal(dA(bash(c, 'auto', p)).decision, 'nada', c);
+  }
+  for (const c of ['sed -i s/a/b/ .claude/hooks/x.cjs', 'sed --in-place s/a/b/ .claude/hooks/x.cjs', 'awk -i inplace 1 .claude/hooks/x.cjs', 'echo x > .claude/hooks/x.cjs', 'echo x >> .claude/hooks/x.cjs', 'tee .claude/hooks/x.cjs < a', 'rm .claude/hooks/x.cjs', 'mv .claude/hooks/x.cjs y', 'cp a .claude/hooks/x.cjs', 'git checkout -- .claude/hooks/x.cjs', 'git restore .claude/hooks/x.cjs']) {
+    assert.equal(dA(bash(c, 'auto', p)).id, 'secretos:frenos-del-proyecto', c);
+  }
+});
+
+test('rt A 10: si secretos y la firma preguntan las dos, la ventana dice las dos (la firma primero)', () => {
+  const m = conModulo();
+  const r = dA(bash(`${AP} && echo x > ${S.HOME}/.claude/settings.json`, 'default', m.p));
+  assert.equal(r.decision, 'ask');
+  assert.match(r.salida.hookSpecificOutput.permissionDecisionReason, /^Es tu firma para cambiar un freno.* Además: /);
 });

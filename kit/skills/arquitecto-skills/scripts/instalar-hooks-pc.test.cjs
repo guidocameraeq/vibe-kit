@@ -136,6 +136,8 @@ test('registra por regla e INSTALADO: exec con la ruta absoluta, timeout 20, blo
   })(kitDe(h));
   assert.ok(!todos.some((x) => x.endsWith('.test.cjs')), 'sin pruebas');
   assert.ok(pcArchivos().includes('secretos.cjs') && pcArchivos().includes('lib/zona-propia.cjs'));
+  // 8d A2.2: el freno de las firmas viaja con secretos (lo carga en su proceso) y no suma un registro en el settings
+  assert.ok(pcArchivos().includes('niega-aprobar.cjs') && fs.existsSync(path.join(kitDe(h), 'niega-aprobar.cjs')), 'falta niega-aprobar.cjs en la PC');
 });
 
 test('lo ajeno queda igual: otros hooks (también en los mismos eventos), permisos y claves de otro tipo, en su orden', () => {

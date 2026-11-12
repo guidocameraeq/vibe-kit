@@ -190,6 +190,15 @@ function deNoche(raizCheckout, opciones = {}) {
   return NO_ES_NOCHE;
 }
 
+// ---------------------------------------------------------------- de fondo (SPEC-paquete-8d A7 e, P3: el hook hereda la variable)
+
+// deFondo(entorno) → ¿una sesión de fondo del kit? KIT_FONDO vacío o '0' es que no; cualquier otro valor, que sí (falla para el lado
+// seguro). La ponen las líneas de fondo del kit (autorizado, noche.cjs cierre). Una sola lectura para todos los frenos (rt A, 11).
+function deFondo(entorno = process.env) {
+  const v = entorno && entorno.KIT_FONDO != null ? String(entorno.KIT_FONDO).trim() : '';
+  return v !== '' && v !== '0';
+}
+
 // ---------------------------------------------------------------- rama por defecto y ficha vigente (regla de 4.7)
 
 // modulo/* y worktree-* nunca son rama por defecto, ni aunque init.defaultBranch lo diga (un agente lo cambia con git config; r2-5).
@@ -314,6 +323,7 @@ module.exports = {
   ramaPorFs,
   worktrees,
   deNoche,
+  deFondo,
   prohibidaComoDefecto,
   candidatas,
   refVigente,
