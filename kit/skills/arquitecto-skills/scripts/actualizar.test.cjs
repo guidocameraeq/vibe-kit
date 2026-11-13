@@ -1442,3 +1442,9 @@ test('8d C1.6 (crit. C1): una pieza molde con la zona vacía sigue molde al pone
   assert.equal(Z.hashPieza(t.replace(/\n/g, '\r\n')), Z.hashPieza(t));
   assert.equal(F.hash(t.replace(/\n/g, '\r\n')), F.hash(t));
 });
+
+test('8d C4 (R6): quién aprueba, dicho como en A2 — lo corre la sesión cuando el dueño lo pide y su clic es la firma; nunca "lo apretás vos"', () => {
+  const t = fs.readFileSync(path.join(__dirname, 'actualizar.cjs'), 'utf8');
+  assert.match(t, /lo corre la sesión cuando el dueño lo pide, y su clic en la ventana es la firma: en la carpeta principal o en la pestaña del director, nunca un obrero/);
+  assert.doesNotMatch(t, /lo apretás vos|un agente no aprueba/);
+});

@@ -80,7 +80,7 @@ El corrector de secretos de esta PC (hooks en `~/.claude/hooks/kit/`). Los scrip
 1. `node ~/.claude/skills/arquitecto-skills/scripts/instalar-hooks-pc.cjs --plan` — no escribe nada; mostrale a Guido lo que haría.
 2. **UNA pregunta**: "¿Lo aplico?" (es lo único que se pregunta). Si el `--plan` dice que el settings no se entiende (JSON roto,
    claves repetidas), no preguntes: contale el motivo, se arregla a mano.
-3. Sí → el mismo comando **sin** `--plan`. Después `node …/scripts/doctor.cjs` (el completo: 26 chequeos, solo lee; sin red dice "NO VERIFICADO") y pegale las líneas **y el
+3. Sí → el mismo comando **sin** `--plan`. Después `node …/scripts/doctor.cjs` (el completo: 29 chequeos, solo lee; sin red dice "NO VERIFICADO") y pegale las líneas **y el
    inventario de frenos** (las líneas `inventario ·`): cada `✗` trae cómo se arregla; los `⚠` no traban. Cerrá con **"reiniciá Claude Code"** (los hooks nuevos cargan al reiniciar).
 4. **Sacar el anti-secretos viejo**: cuando Guido confirme que el del kit anda, cruzá los patrones del viejo con los del kit (`hooks/kit/secretos`) y decile cuáles faltan → `… instalar-hooks-pc.cjs --sacar-viejo`
    (saca solo su registro; el archivo queda). **Deshacer todo**: `… --quitar` (deja el `settings.json` como estaba).
@@ -91,7 +91,7 @@ Nunca edites `~/.claude/settings.json` a mano ni toques secretos: el instalador 
 ## Modo FLOTA — "poné al día la flota" / "adoptá X"
 
 Los deriva el Arquitecto; los pasos y la pantalla están en su `anexos/flota.md`. Corrés `node "$HOME/.claude/skills/arquitecto-skills/scripts/actualizar.cjs"`:
-- `flota <X>… | todo --canon <url> [--proyectos <carpeta>]`: la tabla y "te espera:". Si `auto` no deja pushear, la corre Guido. Una mezcla que choca te espera (`flota.md`).
+- `flota <X>… | todo [--canon <url>] [--proyectos <carpeta>]` (de fondo): la tabla y "te espera:". Si `auto` no deja pushear, la corre Guido. Una mezcla que choca te espera (`flota.md`).
 - `salteado` por obra: AskUserQuestion (esperar, Recomendado · `--con-obra`).
 - Antes de adoptar, `ultimo-tag <clon>` contra `~/.claude/VERSION`: si el tag es más nuevo, la PC está atrás → primero "actualizate" (`--mirar` lo avisa con `⚠ el --kit tiene el tag …`).
 - `adoptar <clon> --kit <clon del kit> --mirar --principal <la carpeta de Guido> --propuesta <archivo>` → la pantalla con Guido (D1-D4: `flota.md`) → con el OK, `--aplicar <archivo> --principal <su carpeta>` y lo elegido, en un clon con `.kit-rol` = `actualizador`, los commits que imprime, `barreras --rango <antes>..HEAD` (lo rojo lo aprueba Guido), push, y `adoptar <clon> --traer <su carpeta>` (trae y **después** prende ahí los githooks).

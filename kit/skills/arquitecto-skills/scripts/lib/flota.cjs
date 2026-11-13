@@ -1,7 +1,8 @@
 'use strict';
 // flota.cjs — `actualizar.cjs flota`: la flota de punta a punta (SPEC-paquete-6 P7.1, D6.2; E §6; D6-1, D6-6, D6-11, D6-15, D6-16).
 //
-//   node actualizar.cjs flota <repo>… | todo --canon <url o dir> [--tag vX.Y.Z[-rc.N]] [--proyectos <carpeta>] [--plazo <min>]
+//   node actualizar.cjs flota <repo>… | todo [--canon <url o dir>] [--tag vX.Y.Z[-rc.N]] [--proyectos <carpeta>] [--plazo <min>]
+//   (8d C4, 51: --canon, sin él, el repo canónico, el mismo que mira el doctor; tarda: la sesión la corre en segundo plano)
 //                                             [--fecha <AAAA-MM-DD>] [--molde-viejo <dir>] [--claude <exe> | no] [--con-obra]
 // --con-obra (u2, SPEC-paquete-8r4): las modulo/* vivas no saltean; ver probarModulos.
 //
@@ -399,7 +400,7 @@ async function actualizarMain(nombre, url, ctx, est) {
   // solo las no mezcladas en origin/<def> (SPEC-paquete-8r, 1; D8r-7): una ya mezclada que nadie borró no es obra en curso
   const mezclada = (r) => git(clon, ['merge-base', '--is-ancestor', `refs/remotes/origin/${r}`, `refs/remotes/origin/${def}`]).ok;
   const modulos = ramas.filter((r) => r.startsWith('modulo/') && !mezclada(r));
-  if (modulos.length && !ctx.conObra) return fin('salteado', `obra en curso: ${modulos.join(', ')} viva${modulos.length > 1 ? 's' : ''} en el remoto, sin mezclar en ${def} — no me meto en el medio (si la mezclaste con squash en GitHub, borrá la rama desde la web); ${SI_SABES}`);
+  if (modulos.length && !ctx.conObra) return fin('salteado', `obra en curso: ${modulos.join(', ')} viva${modulos.length > 1 ? 's' : ''} en el remoto, sin mezclar en ${def} — no me meto en el medio (si la mezclaste con squash en GitHub, la sesión te ofrece borrarla del remoto, con tu OK); ${SI_SABES}`);
   // u2 (--con-obra): main sigue por el camino de siempre; las modulo/* se prueban después (actualizarRepo), sin subir nada
   Object.assign(est, { clon, def, modulos });
   const rf = path.join(clon, ...RUTA_FICHA.split('/'));
@@ -422,7 +423,7 @@ async function actualizarMain(nombre, url, ctx, est) {
   let rehecha = false;
   if (ramas.includes(rama)) {
     const s = git(clon, ['log', '-1', '--format=%s', `refs/remotes/origin/${rama}`]);
-    if (!s.ok || !RE_ROTA.test(s.out.trim())) return fin('salteado', `${rama} ya está en el remoto: mezclala, o si no la querés, borrala y la próxima corrida la rehace`);
+    if (!s.ok || !RE_ROTA.test(s.out.trim())) return fin('salteado', `${rama} ya está en el remoto: la sesión te ofrece mezclarla o, si no la querés, borrarla (la próxima corrida la rehace)`);
     // D6-16: la ROTA se borra y se rehace — un delete y un push nuevo, nunca --force
     const d = git(clon, ['push', '-q', 'origin', '--delete', rama], { plazo: PLAZO_RED });
     if (!d.ok) return fin('sin tocar', `${rama} está ROTA y no pude borrarla del remoto: ${d.colgado ? 'no respondió' : primera(d.err)}`);
@@ -626,6 +627,8 @@ async function flota(o) {
 
 // ---------------------------------------------------------------- la línea de comandos (la despacha actualizar.cjs)
 
+// El repo canónico del kit: el mismo que mira el doctor (version-kit). KIT_REPO_CANONICO lo cambia (solo las pruebas, sin red).
+const CANONICO = 'https://github.com/guidocameraeq/vibe-kit.git';
 function leerArgs(argv) {
   const o = { repos: [] };
   const conValor = { '--canon': 'canon', '--tag': 'tag', '--proyectos': 'proyectos', '--plazo': 'plazo', '--fecha': 'fecha', '--molde-viejo': 'moldeViejo', '--claude': 'claude' };
@@ -640,7 +643,8 @@ function leerArgs(argv) {
     } else if (!a.startsWith('--') && a) o.repos.push(a);
     else return null;
   }
-  if (!o.repos.length || !o.canon) return null;
+  if (!o.repos.length) return null;
+  if (!o.canon) o.canon = process.env.KIT_REPO_CANONICO || CANONICO;
   if (o.repos.includes('todo') && (o.repos.length > 1 || !o.proyectos)) return null;
   if (o.tag !== undefined && !RE_TAG.test(o.tag)) return null;
   if (o.plazo !== undefined && !(Number(o.plazo) > 0)) return null;

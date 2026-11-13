@@ -1136,7 +1136,7 @@ function nuevaSinInforme(raiz, { id, def, datos, textoFicha, por, kit: kitPedido
   const nuevo = [`${NUEVA_COMANDO} nuevo --slug ${slug} --clase 3-barrera --toca ${toca.categorias.join(',')}`, ...toca.ids.map((x2) => `--id ${entreComillas(x2)}`), `--origen ${entreComillas(origen)}`, `--cuerpo ${entreComillas(cuerpo.replace(/\\/g, '/'))}`].join(' ');
   lineas.push(`${id} toca frenos (${toca.categorias.join(', ')}): el sello va ANTES del commit de la pieza (barreras pide un aprobado anterior al primer commit que la toca; uno de después no la cubre) — en este orden, en tu checkout principal y en la rama por defecto, con lo escrito sin commitear:`);
   lineas.push(`  1. ${nuevo}`);
-  lineas.push(`  2. ${NUEVA_COMANDO} aprobar ${hoy()}-${slug}   (el id que dijo el paso 1; lo apretás vos: un agente no aprueba)`);
+  lineas.push(`  2. ${NUEVA_COMANDO} aprobar ${hoy()}-${slug}   (el id que dijo el paso 1; lo corre la sesión cuando el dueño lo pide, y su clic en la ventana es la firma: en la carpeta principal o en la pestaña del director, nunca un obrero)`);
   lineas.push(`  3. ${commit}`);
   lineas.push(`si no lo aprobás: git checkout -- ${escritos.join(' ')} ${RUTA_FICHA} ${changelog}`);
   return { codigo: 0, lineas };

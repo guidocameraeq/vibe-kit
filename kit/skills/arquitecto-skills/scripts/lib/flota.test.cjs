@@ -269,7 +269,7 @@ test('crit. 5 (8r, 1): una modulo/x ya mezclada en main en el remoto no saltea; 
   assert.equal(vacio.base, git(vacio.bare, 'rev-parse', 'main^'));
   const f = fila(r, 'obra');
   assert.equal(f.resultado, 'salteado', texto);
-  assert.equal(f.porque, 'obra en curso: modulo/z viva en el remoto, sin mezclar en main — no me meto en el medio (si la mezclaste con squash en GitHub, borrá la rama desde la web); si sabés que podés: --con-obra (no lo recomiendo con un director trabajando: su rama queda atrás de main hasta que la traiga)');
+  assert.equal(f.porque, 'obra en curso: modulo/z viva en el remoto, sin mezclar en main — no me meto en el medio (si la mezclaste con squash en GitHub, la sesión te ofrece borrarla del remoto, con tu OK); si sabés que podés: --con-obra (no lo recomiendo con un director trabajando: su rama queda atrás de main hasta que la traiga)');
   assert.ok(!f.porque.includes('modulo/x'), 'la mezclada no cuenta');
 });
 
@@ -364,7 +364,7 @@ test('crit. 16: kit/v3.0.0-rc.1 ya en el remoto → salteado; marcada ROTA → s
   const texto = r.lineas.join('\n');
   assert.equal(r.codigo, 0, texto);
   assert.equal(fila(r, 'espera').resultado, 'salteado', texto);
-  assert.match(fila(r, 'espera').porque, /kit\/v3\.0\.0-rc\.1 ya está en el remoto: mezclala, o si no la querés, borrala y la próxima corrida la rehace$/);
+  assert.match(fila(r, 'espera').porque, /kit\/v3\.0\.0-rc\.1 ya está en el remoto: la sesión te ofrece mezclarla o, si no la querés, borrarla \(la próxima corrida la rehace\)$/);
   assert.equal(git(espera.bare, 'rev-parse', 'kit/v3.0.0-rc.1'), tipEspera);
   assert.equal(git(espera.bare, 'rev-parse', 'main'), espera.base);
   assert.equal(fila(r, 'rota').resultado, 'mezclado', texto);
@@ -709,8 +709,8 @@ test('fusionDe, primeraRoja, porqueRechazo, resolverOrigen', () => {
   assert.equal(FL.resolverOrigen('C:/r/alfa.git', d), path.resolve('C:/r/alfa.git'));
 });
 
-test('la CLI: sin repos, sin --canon, todo sin --proyectos, un --tag mal formado o una bandera rara → 2 con el USO', () => {
-  for (const args of [['flota'], ['flota', 'alfa'], ['flota', '--canon', 'c'], ['flota', 'todo', '--canon', 'c'], ['flota', 'todo', 'alfa', '--canon', 'c', '--proyectos', 'p'], ['flota', 'alfa', '--canon', 'c', '--tag', '3.0.0'], ['flota', 'alfa', '--canon', 'c', '--raro'], ['flota', 'alfa', '--canon', 'c', '--plazo', 'cero'], ['flota', 'alfa', '--canon']]) {
+test('la CLI: sin repos, todo sin --proyectos, un --tag mal formado o una bandera rara → 2 con el USO', () => {
+  for (const args of [['flota'], ['flota', '--canon', 'c'], ['flota', 'todo', '--canon', 'c'], ['flota', 'todo', 'alfa', '--canon', 'c', '--proyectos', 'p'], ['flota', 'alfa', '--canon', 'c', '--tag', '3.0.0'], ['flota', 'alfa', '--canon', 'c', '--raro'], ['flota', 'alfa', '--canon', 'c', '--plazo', 'cero'], ['flota', 'alfa', '--canon']]) {
     const r = spawnSync(process.execPath, [path.join(SCRIPTS, 'actualizar.cjs'), ...args], { cwd: T, encoding: 'utf8' });
     assert.equal(r.status, 2, args.join(' '));
     assert.match(r.stderr, /^uso: node actualizar\.cjs aplicar/);
@@ -1060,4 +1060,37 @@ test('p1 (b): la línea 8 en ✅ ⚠ por el lock atrasado → el repo sale mezcl
   assert.match(texto, /^te espera:$/m);
   assert.ok(texto.includes('\n  - alfa: tus tests no se probaron, el lock está atrasado — regenerá chat-syncer/package-lock.json y commitealo'), texto);
   assert.equal(git(x.bare, 'rev-list', '--count', `${x.base}..main`), '1', 'no traba: el commit del kit llega a main');
+});
+
+test('8d C4 (51): sin --canon, la flota usa el repo canónico (el del doctor); lo que antes le pasaba al dueño lo ofrece la sesión', () => {
+  const antes = process.env.KIT_REPO_CANONICO;
+  delete process.env.KIT_REPO_CANONICO;
+  try {
+    assert.equal(FL.leerArgs(['alfa']).canon, 'https://github.com/guidocameraeq/vibe-kit.git');
+  } finally {
+    if (antes !== undefined) process.env.KIT_REPO_CANONICO = antes;
+  }
+  assert.equal(FL.leerArgs(['alfa', '--canon', 'c']).canon, 'c');
+  const fuente = fs.readFileSync(path.join(__dirname, 'flota.cjs'), 'utf8');
+  assert.doesNotMatch(fuente, /borrá la rama desde la web|: mezclala, o si no la querés, borrala/);
+  const D = require('../doctor.cjs');
+  assert.ok(fs.readFileSync(path.join(__dirname, '..', 'doctor.cjs'), 'utf8').includes("'https://github.com/guidocameraeq/vibe-kit.git'"), 'el mismo canónico que el doctor');
+  assert.ok(D);
+});
+
+test('8d C1.5 (A5.2): con chequear bien, si --verificar da ❌ en los hooks la flota no mezcla (ROTA); con verificar bien, mezcla', async () => {
+  const canon = armarCanon({ molde: MOLDE_SETTINGS });
+  const P = nuevaCarpeta('proyectos');
+  const x = armarRepo(P, 'beta');
+  const antes = git(x.bare, 'rev-parse', 'refs/heads/main');
+  const roto = () => ({ ok: false, lineas: ['verificar · hooks · ❌ · .claude/hooks/lib/portero.cjs no anda: niega lo inocente (Bash: echo hola): freno roto'] });
+  const r = await correr({ repos: ['beta'], canon, proyectos: P, chequear: chequearVerde, verificar: roto });
+  const f = fila(r, 'beta');
+  assert.equal(f.resultado, 'ROTA', r.lineas.join('\n'));
+  assert.match(f.porque, /portero\.cjs no anda/);
+  assert.equal(git(x.bare, 'rev-parse', 'refs/heads/main'), antes, 'main no se movió');
+  const y = armarRepo(P, 'gama');
+  const ry = await correr({ repos: ['gama'], canon, proyectos: P, chequear: chequearVerde, verificar: () => ({ ok: true, lineas: [] }) });
+  assert.equal(fila(ry, 'gama').resultado, 'mezclado', ry.lineas.join('\n'));
+  assert.ok(y);
 });

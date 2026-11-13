@@ -335,3 +335,8 @@ test('8d C2 (crit. C2): "preparame esta máquina" apunta a preparar-pc.md, que p
   for (const s of ['traer-repos.cjs', 'preparar-pc.cjs']) assert.ok(fs.existsSync(path.join(SCRIPTS, s)), s);
   assert.doesNotMatch(p, /guido|\brojo\b|\bverde\b/i);
 });
+
+test('8d C4 (R20): el SKILL.md dice cuántos chequeos tiene el doctor, los de verdad', () => {
+  const n = require('./doctor.cjs').IDS.length;
+  assert.match(leer(SKILL), new RegExp(`el completo: ${n} chequeos`));
+});
