@@ -1032,6 +1032,110 @@ los textos de `worktree.cjs` con "rojo/verde", el paso 4 del `/cierre`, `encargo
   "B3 el contrato").
 - `hooks/lib/` suma `espera.cjs` y `publicar.cjs`, que viajan con `hooks-lib`; `noche.cjs` y `estado.cjs` los necesitan.
 
+### Tanda B, continuación (sesión 3b del tramo final, 2026-11-13, Opus 5.5)
+
+#### Resumen para el director
+
+1. **La B quedó completa en `main`**: el resto de B4 (`presentar` trae lo corregido, `mensaje` con `PARA`, sin despertador ni
+   mudanza, el núcleo §3 y `/obrero`), B5 (el turno en `presentar`, `verificar` e `integrar`, la base que no se repite, `plazo-test`),
+   B6 (`scripts/habla.test` y `skills/habla.test`, y los textos limpios), **B7 entero** y los cuatro puntos del red team de B3 que
+   quedaban (el ALTO, `escribe-o-corre` en `git-seguro`, con mutación 3/3; 6, 7 y el matiz de `--seguir`; el 9 pasa a la C).
+2. **P4 falló y después pasó**: la primera vuelta mostró dos fallas reales (la sesión armaba comandos compuestos que `dontAsk`
+   niega, y `subir` se negaba después del `parte`, una regresión mía); arregladas, **ocho corridas de la sesión de cierre de verdad
+   llegaron al final**, con 2 negadas de 158 llamadas y el `allow` de más sin correr nunca. **P6 pasó** (el `/cierre` con un director
+   vivo en su worktree). Lo de no republicar por papeles quedó cubierto por prueba, NO VERIFICADO en una corrida.
+3. **El revisor frío** (Opus, una vuelta): 12 hallazgos, 2 ALTOS; arreglados 9 con su prueba (los dos ALTOS); 4, 6, 8 y uno menor
+   pasan a la C con su razón.
+4. **Pruebas**: solo las de lo tocado, 17 archivos; todas pasan (`encargo`, `worktree` y `noche` juntas: 140; `skills` 114, `git-seguro` 42, `tiempos` 15, `paquete` 12, `estado` 16, las tres `habla`). Mutación en el freno nuevo: 3 de 3. La suite entera no: es de la C. `doctor.test` sigue fallando desde la A (C).
+5. **Pasa a la C**: los puntos 4, 6 y 8 del revisor y el 9 del red team; "Guido" en `adoptar`; el comando que `traer-main` le da al
+   dueño; el despertador en `manuales/ROLES.md` y `SCRIPTS.md`. **A Guido no le queda nada.**
+6. Lo que más importa: **la noche ya se cerró sola de verdad**, ocho veces seguidas, en un repo adoptado con el kit nuevo.
+
+#### Decisiones de la continuación (ADR-034)
+
+| # | Decisión | Por qué |
+|---|---|---|
+| D8d-B15 | `presentar` trae lo corregido con un `git merge` de la más nueva entre `modulo/<x>` local y origin, si la rama no la tiene; con cambios sin guardar en lo que git sigue no toca nada (sale 1: "hacé un commit de trabajo"); si choca, `merge --abort` y es la PARADA de `presentar` (sin commit) | B4.3: "corregir es relanzar". La base de `verificar` pasa a ser la corrección, así lo del director no cuenta en el alcance |
+| D8d-B16 | `PARA <destino> ·` es opcional; sin él, el mensaje vale como antes; con él, el destino tiene que ser el nombre que sale de la rama (`director-<x>`, `obrero-<x>--<ID>`) | B4.6 sin romper los mensajes de un kit de antes ni los de `/tramo` |
+| D8d-B17 | `noche.cjs despertador` dice una línea y sale 0, con o sin las banderas de antes; `me-voy` deja el relevo en su lugar | Una línea vieja que lo llame (un Monitor, una tarea) no se rompe |
+| D8d-B18 | `conTurno` es reentrante: si el turno es de este mismo proceso, corre sin esperar y no lo suelta; `KIT_TURNO_DIR` cambia la carpeta (solo para las pruebas) | Sin eso, el gate adentro de un `integrar` con turno se esperaría a sí mismo una hora |
+| D8d-B19 | La base que pasó se anota en `<git común>/kit-bases-pasadas.json` por commit y `comando-test`, solo si pasó, con tope de 200 | "No repetir la base" sin versionar nada; una base que falla se vuelve a correr |
+| D8d-B20 | `verificar --plazo` manda; sin él, el mayor entre los 30 min y el `plazo-test` de la ficha; en `integrar` y en la base de `presentar`, el mayor entre el fijo y el `plazo-test` | E13: una suite larga no queda NO VERIFICADO |
+| D8d-B21 | `donde` con cambios sin commitear deja entrar al obrero a **su** encargo y lo avisa (antes, rt-6, salía 1) | B7 21: un obrero cortado no podía retomar |
+| D8d-B22 | `cerrar --cancelado` guarda lo no commiteado (también lo sin seguir) con `add -A` + `stash create` en `refs/kit/rescate/<x>--<ID>`, sobre la punta | B7 21: el índice del worktree se toca, pero el worktree se borra en el acto |
+| D8d-B23 | El `comando-setup` de `crear`/`abrir` (y del temporal de `integrar`) corre en el vigía con 30 min; si cambió `core.hooksPath`, se vuelve al valor de antes | R18 y 52 (un `prepare` de husky) |
+| D8d-B24 | `contador`: con la rama ya mezclada, los commits que tocan solo los papeles del módulo (salvo la evidencia propia) son del director; un encargo con la rama borrada se cuenta con los sub-pasos de su renglón de `tiempos.md`, sin desvíos | B7 57 y 24 |
+| D8d-B25 | Red team 2: un caso nuevo de `git-seguro`, `escribe-o-corre`: **de fondo** niega `--output`, `--output-directory`, `--upload-pack`, `--receive-pack` y `--exec`; con persona, nada nuevo | La regla vive en el freno y no en la lista: `Bash(git log:*)` no puede excluir opciones |
+| D8d-B26 | Red team 6: de fondo, `publicar` y `subir` piden el candado del cierre tomado por **esa** sesión (el módulo y el `KIT_CIERRE_ID`); con persona, no | El dueño destraba desde `/estado` sin candado |
+| D8d-B27 | Red team 7: en el chequeo 4 de `publicar`, el segundo padre de un merge `integrar: módulo <y>` tiene que estar en `modulo/<y>` (acá o en origin); si esa rama ya no existe, vale el asunto, como antes | Contra accidentes (ADR-029): la rama se limpia después de una noche que no publicó |
+| D8d-B28 | El matiz de `--seguir`: sigue siendo solo en la carpeta principal; lo ofrece `/estado` (paso 3) como el otro clic; el director no lo corre | Destrabar es una firma del dueño; en la principal no hay aislamiento que la frene |
+| D8d-B29 | `parte` suelta el candado y anota quién lo soltó (`<común>/kit-cierre-soltado.json`); el `subir` de fondo vale con el candado propio **o** si lo soltó ese mismo cierre y nadie lo tomó después | P4: con D8d-B26, el `subir` que sigue al `parte` se negaba siempre (lo vio también el revisor, 1) |
+| D8d-B30 | `parte` reconoce lo integrado sin la rama: el segundo padre del merge `integrar: módulo <x>` más nuevo del primer padre; "carpetas limpias" cuenta también la que quedó en el disco sin registro | Revisor 2: `limpiar` corre antes y borra la rama ya mezclada; P4: con una sesión adentro, git la saca del registro y la carpeta queda |
+| D8d-B31 | La lista del cierre pierde `Write(./docs/**)`; `cierre-noche.md` pide cada comando solo y tal cual (sin `cd`, `;`, `&&`, `|`, `echo`), dice que `git fetch` no está, y que se espera a que `publicar` termine | P4: la primera corrida agregó `; echo "EXIT:$?"` y todo se negó; la línea de comandos avisa que `Write` no se mira (lo cubre `Edit`) |
+| D8d-B32 | `publicar` no vuelve a publicar si desde lo último publicado solo entraron papeles (sale 0 y lo dice) | P4: cada cierre commitea papeles y la noche siguiente republicaba el mismo código |
+| D8d-B33 | `publicar` repone `core.hooksPath` si el `comando-setup` lo cambió | Revisor 3 (cicatriz 52 en la carpeta principal) |
+| D8d-B34 | El parte nuevo arma su "Te necesito" sin leer el parte anterior (`teEspera(…, { sinParte })`); `/estado` sí lo lee | Revisor 5: cada parte copiaba al anterior y lo resuelto volvía para siempre |
+| D8d-B35 | `contador`, con la base en la partida, mira el primer padre | Revisor 7: lo que entró con "traje lo corregido" (código de otro encargo) se le cargaba a este |
+| D8d-B37 | Cada archivo de pruebas que corre `presentar`, `verificar`, `integrar` o `publicar` usa su propia carpeta de turno (`KIT_TURNO_DIR` en su `TMP`) | Corridos a la vez, `verificar` esperaba al gate de otro archivo y sus líneas se corrían: la suite de la C corre los archivos en paralelo |
+| D8d-B36 | `/inicio` del dueño también corre `limpiar`, callado; el obrero ante "hacé un commit de trabajo" lo hace una vez y vuelve a presentar; `--pruebas` rechaza solo un `.test.*`, `.spec.*`, `.md` o `.json` suelto; `/cierre` informa el asunto del commit y no su código; `/inicio` ofrece sellar en vez de dar el comando | Revisor 9, 10, 11 y 12 |
+
+#### El red team de B3 que quedaba
+
+- **2 (ALTO)** arreglado: D8d-B25, con prueba y mutación (tres mutantes: sin la condición de fondo, sin las opciones que corren, sin la forma separada `--output x`; los tres detectados).
+- **6** arreglado: D8d-B26, con prueba. **7** arreglado: D8d-B27, con prueba. El matiz de `--seguir`: D8d-B28, con prueba.
+- **9** (`-w`/`--filter` de npm/pnpm en la huella): **pasa a la C**, que toca `formaDePublicar` y `preparar-pc` (C2.2), con el mismo contrato.
+
+#### Probar antes de prometer
+
+El repo de prueba: `../vibe-kit-pruebas/rc7/p4/` (lo arma un script del scratchpad, no se edita a mano): un proyecto nuevo **adoptado
+con el kit del árbol de trabajo** (`actualizar.cjs adoptar --nuevo`, estandar, los githooks prendidos), una publicación de mentira
+en la ficha, el módulo `x` integrado con `worktree.cjs integrar` de verdad, la PC autorizada en un home de mentira (`KIT_HOME_PC`,
+origin local) y **dos `allow` de más** en el settings local de la carpeta principal (`Bash(node scripts/publicar.cjs:*)`, `Bash(rm:*)`).
+La línea, la de `noche.cjs cierre x` desde el worktree del director, tal cual; el `claude` de esta PC (2.1.322), Opus, `dontAsk`.
+
+- **P4 · falló la primera vuelta, pasó la segunda.** Primera vuelta (cinco corridas, después paradas): la corrida 1 se quedó en el
+  primer paso (le agregó `; echo "EXIT:$?"` a cada comando y `dontAsk` los negó todos; no rodeó nada); la 2 llegó al final pero
+  **`subir` se negó**: el `parte` suelta el candado y D8d-B26 lo pedía (regresión mía, la vio también el revisor). Arreglado con
+  D8d-B29 a B31 y vuelto a armar el repo. **Segunda vuelta, ocho corridas, todas llegaron al final** (`CIERRE: listo` o `con
+  pendientes`, entre 87 y 201 s): 158 llamadas, **2 negadas** (las dos, un primer intento por PowerShell de `cierre-empieza`, que la
+  sesión repitió por Bash y anduvo), **los dos `allow` de más no corrieron nunca** (están en el `--settings` de lo negado), el comando
+  de publicar corrió **solo por `noche.cjs publicar`**, `subir` subió los papeles (y "nada que subir" en las repetidas del mismo día).
+  Lo que salió y se arregló después: el parte decía "carpetas limpias: no" todas las noches (contaba el worktree del director, vivo
+  por diseño: D8d-B30), y el comando de publicar corrió 3 veces en 8 corridas (cada cierre commitea papeles: D8d-B32, con prueba;
+  **NO VERIFICADO en una corrida de verdad**, la prueba lo cubre).
+- **P6 · pasó.** En la corrida 1 una `-p` (Haiku) estaba parada en el worktree del director, viva durante todo el cierre: la sesión
+  de cierre corrió el `/cierre` del proyecto leyendo su `SKILL.md` (handoff y CHANGELOG al día, `todo.cjs`, `agents.cjs`, `cambios
+  verificar`, `estructura todo`, el commit por rutas) sin chocar con ella; `limpiar` no pudo cerrar esa carpeta (en uso) y no la forzó.
+- **`--settings` con lo negado, en `-p`** (lo que la primera sesión dejó sin probar): anda; la línea de comandos avisa que ignora el
+  `allow` del `settings.json` del proyecto si la carpeta no es de confianza (no cambia nada: lo que corre lo dicen `--allowedTools`).
+
+#### El revisor frío de la tanda B
+
+Una vuelta (Opus, sin el contexto de la sesión) sobre todo el diff de la B en `kit/`, desde "B1 y B2", con lo sin commitear.
+
+| # | Sev. | Qué encontró | Qué se hizo |
+|---|---|---|---|
+| 1 | ALTO | `subir` de noche se negaba siempre (el `parte` suelta el candado) | Arreglado (D8d-B29), con prueba; lo vio también P4 |
+| 2 | ALTO | `limpiar` borra la rama mezclada y el `parte` decía "Integrado: no" | Arreglado (D8d-B30), con prueba y mutante |
+| 3 | MEDIO-ALTO | `publicar` no reponía `core.hooksPath` tras el `comando-setup` | Arreglado (D8d-B33), con prueba |
+| 4 | MEDIO | Un archivo suelto que deja el setup o la suite traba la publicación para siempre, sin pasar a "Te necesito" | **A la C**: es el mismo trato que `limpiarLoDelSetup`; contra accidentes, en un proyecto con el lock commiteado no pasa (P4 lo commiteó) |
+| 5 | MEDIO | Lo resuelto volvía en cada parte | Arreglado (D8d-B34), con prueba |
+| 6 | MEDIO | El mismo cambio sale dos veces en "Te necesito", una con id y hash (del handoff) | **A la C**: `deHandoff` y `paraElDueno` en la vista del dueño |
+| 7 | MEDIO | `contador` le cargaba a un encargo los commits de otro traídos con la corrección | Arreglado (D8d-B35), con prueba |
+| 8 | MEDIO | Aprobar un cambio de freno de día (un commit en `.claude/cambios/`) deja la noche sin publicar hasta `--seguir` | **Anotado, a la C**: contar como papeles lo que escriben los flujos del kit (`.claude/cambios/`, el actualizador) pide decidir qué es "papel" para publicar; hoy lo destraba `--seguir` (D8d-B10) |
+| 9 | BAJO | El obrero relanzado quedaba en bucle ante "hacé un commit de trabajo" | Arreglado (D8d-B36) |
+| 10 | BAJO | `/inicio` no corría `limpiar` | Arreglado (D8d-B36) |
+| 11 | BAJO | `/cierre` le mostraba un SHA al dueño; `/inicio` le daba "corré `sello`" | Arreglado (D8d-B36). Que `habla.test` busque SHAs y "corré `": **a la C** (C4 tiene la `habla.test` de las skills del Equipador) |
+| 12 | BAJO | `--pruebas` rechazaba un script de una palabra | Arreglado (D8d-B36), con prueba |
+| — | BAJO | `integrar` de noche mira `trabado` y no `enCurso` (proyecto `al-subir`) | **A la C**, con el 4 (son la misma pieza) |
+
+#### Para la C (de la continuación)
+
+- `adoptar` todavía dice "con Guido" en lo que imprime (lo vio P4); `worktree.cjs traer-main` todavía le da al dueño una línea de `cambios.cjs nuevo` para correr él: los dos son de C4 (lo que le llega al dueño).
+- Los manuales (`manuales/ROLES.md`, `manuales/SCRIPTS.md`) todavía nombran el despertador y la mudanza al 40 %: C5.
+- El punto 9 del red team de B3 (arriba).
+- La suite: si otra prueba (fuera de `encargo`, `worktree` y `noche`) llega a correr `presentar`, `verificar`, `integrar` o `publicar`, que ponga su `KIT_TURNO_DIR` (D8d-B37); si no, espera el turno de la PC y su salida trae una línea de más.
+
 ## Ejecución
 
 Tres tandas en fila, cada una una sesión Opus 5.5 (subagentes en Sonnet u Opus, nunca en Fable), con este delta y las reglas comunes de
