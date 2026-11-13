@@ -1136,6 +1136,97 @@ Una vuelta (Opus, sin el contexto de la sesión) sobre todo el diff de la B en `
 - El punto 9 del red team de B3 (arriba).
 - La suite: si otra prueba (fuera de `encargo`, `worktree` y `noche`) llega a correr `presentar`, `verificar`, `integrar` o `publicar`, que ponga su `KIT_TURNO_DIR` (D8d-B37); si no, espera el turno de la PC y su salida trae una línea de más.
 
+### Tanda C (sesión 4 del tramo final, 2026-11-13, Opus 5.5) — primera sesión; sigue una continuación
+
+#### Resumen para el director
+
+1. **Entró a `main`** (seis commits): **C1** entero (adoptar dice qué reemplaza y guarda lo tuyo, pregunta ¿? en vez de poner
+   "no", el `comando-test` con el gestor del repo, `adoptar --verificar` que corren `--traer` y la flota, `molde+propio` solo si
+   se tocó), **C2** entero (`traer-repos.cjs`, el sí de publicar por repo con la huella del contrato, el aviso del `doctor`, las
+   carpetas vacías), **C3** entero (lista o cola, `### Tramo N`, "Antes de lanzar: lo del dueño", `director-<x>`, el `sello` con
+   turno y de fondo) y de **C4** el `doctor` (alias de WindowsApps, la ruta entera, sin "a mano", 29 chequeos), `--traer` (sale 4
+   si no trajo, el worktree que tiene la rama, lo suelto que no choca), quién aprueba (R6) y la flota (`--canon` por defecto).
+2. **De paso**: `doctor.test` vuelve a pasar entero (fallaba en 11 casos desde la A), y dos pruebas de `adoptar` que esperaban
+   textos viejos de la A.
+3. **Queda para la continuación** (sigue desde "Para la continuación de la C", abajo): el resto de C4 (líneas sin `&&`, "preparame"
+   en una línea, el resumen del `doctor`, `habla.test` de las skills, "Guido" en lo que imprime `adoptar` y `traer-main`), cinco
+   puntos que la B pasó a la C, **C5**, **C6** (la suite, la flota, el clon de Deptos, el tag) y el revisor frío de toda la C.
+4. **Pruebas**: solo las de lo tocado, de a una y en segundo plano: `adoptar` 63, `chequeo` 53, `doctor` 45, `preparar-pc` 39,
+   `actualizar` 62, `flota` 37, `arquitecto` 49, `skill` 22, `skills` 113, `traer-repos` 3, `pc/lib` 5: todas pasan.
+5. **Red team de C1** (Opus, una ronda): 1 ALTO (Vercel conectado a GitHub no se veía como "integrar es publicar") y 8 más, los nueve
+   arreglados o anotados con su prueba. **Mutación**: 13 de 13 en `--verificar` y la negativa por ¿?.
+6. **P2** no se puede probar acá (lo dice el spec): queda armado, con la línea de PowerShell como plan B.
+7. **A Guido no le queda nada.** Lo que más importa: adoptar ya no rompe callado — dice qué cambia, pregunta lo que el repo muestra y
+   verifica que quedó andando.
+
+#### Decisiones de la tanda C (ADR-034)
+
+| # | Decisión | Por qué |
+|---|---|---|
+| D8d-C1 | Las preguntas de C1.3 son **renglones de comentario** `# ¿? <clave> — <evidencia>: <qué contestar>` metidos antes de su clave en la ficha propuesta (`publicar`, al final de `autorizado`); la ficha se lee igual y sigue de fábrica; `--aplicar` se niega mientras quede uno (también con el `¿` roto por guardar en ANSI) | Un valor `¿?` no valida en la gramática; el comentario no cambia los datos ni la exención b, y la negativa es mecánica |
+| D8d-C2 | "Integrar es publicar" sale de un workflow en `push` a una rama (no por tag) que publica en sus pasos (`deploy`, `publish`, `semantic-release`, `changesets`, `gh release`, `deploy-pages`) **o** de un archivo de proveedor (`vercel.json`, `netlify.toml`, `fly.toml`, `render.yaml`, `railway.*`), dicho "si está conectado a GitHub" | Red team C1, ALTO: Vercel conectado a GitHub no tiene workflow; mejor preguntar de más (es una pregunta) que integrar-y-publicar callado |
+| D8d-C3 | `adoptar --verificar` corre cada hook PreToolUse registrado **con una entrada inocente** (`echo hola`, `Write-Output hola`, un archivo suelto) y mira que no niegue ni falle; "carga" no es `require` | El portero carga sus frenos recién al usarse: un `require` no ve a `hook-sensible` sin su `hooks-lib` (8d A) |
+| D8d-C4 | Un hook **del molde** que no anda es ❌; uno **propio** que niega o falla es ⚠ (puede ser a propósito) | Red team C1 3: si no, un guardia propio dejaba el repo ROTA en la flota para siempre |
+| D8d-C5 | La flota corre `--verificar` después de `chequear` y no mezcla si dan ❌ **los hooks o el arranque**; el `comando-test` y `core.hooksPath` en el clon no traban (los mira `--traer` en la carpeta del dueño) | En el clon la flota pone `core.hooksPath` en un temporal (daría ❌ siempre) |
+| D8d-C6 | `--traer`: 0 = trajo y anda · 1 = no es el repo, o el merge quedó a medias · **3 = trajo bien pero algo no anda** (no se deshace nada); el programa del `comando-test` que espera el setup de la línea de arriba no cuenta | Red team C1 5: un 1 invitaba a deshacer un ff bueno. R16 (C4) tiene que usar otro número para "no trajo" |
+| D8d-C7 | Lo reemplazado con `--director kit` va a `<papeles>/referencia/adopcion/<pieza>-anterior.md` (cada archivo en un bloque cercado) y una línea `- [ ] destilar lo propio de <pieza>…` bajo `## 🟠 Importante` del TODO; si el anterior ya existe, se niega sin escribir | El spec; `referencia/` es del árbol del método (el candado lo acepta) |
+| D8d-C8 | `molde+propio` nace solo si la zona propia tiene algo que no es el relleno del molde (el título "Lo propio de este proyecto" y su renglón en cursiva); **no se baja** un `molde+propio` que ya está | Bajarlo cambiaba fichas vivas y pruebas que lo esperan; lo que dolía (53) era el que nacía mal en la adopción y en la puesta al día |
+| D8d-C9 | La autorización de la PC: `preparar-pc --publica <origin>` busca en la carpeta de proyectos el repo con ese origin cuya **ficha vigente** publica por comando y anota `{origin, huella}` con `publicar.cjs` (copiado a `pc/lib`, la prueba de copias lo fija); sin encontrarlo, ✗ y no toca nada; `--flota` no acepta `--publica` | El contrato de la B, sin escribirlo dos veces |
+| D8d-C10 | La pregunta de traer repos y la del sí de publicar van a un anexo del Equipador (`preparar-pc.md`); el `SKILL.md` gana una línea | Le quedaban 31 B de tope (D8d: "no se sube el tope") |
+| D8d-C11 | El `sello` toma el turno de la PC (`conTurno`) para su `comando-test`, y las skills (`modo-a.md`, `modo-b.md`) lo mandan correr **en segundo plano** en vez de "timeout 600000" | R18: con `plazo-test` hasta 60 min más la espera del turno, no entra en los 10 min de una llamada. `run_in_background` existe en la extensión de VS Code |
+| D8d-C12 | En la ficha del módulo **no** va `Director: director-<x>`: el nombre se dice al armar | `director:` es `sí`/`no` y `estado.cjs` lee los campos por clave en minúscula: lo pisaba |
+| D8d-C13 | `--traer` que no trajo sale **4** (R16), no 1 ni 3 | El 1 ya era "no es el repo o quedó a medias" (con la línea del `reset --hard`) y el 3 "trajo pero no anda": tres cosas distintas, tres números |
+| D8d-C14 | Un alias de WindowsApps cuenta como encontrado solo si está en una carpeta `WindowsApps` (stat falla, lstat no) | Un lstat solo, en cualquier lado, daba por buenos enlaces rotos |
+| D8d-C15 | La flota sin `--canon` usa el repo canónico del `doctor` (`KIT_REPO_CANONICO` lo cambia en las pruebas) | 51: el dueño no tiene por qué saber la URL |
+
+#### El red team de C1
+
+Una ronda (`redteam-spec`, Opus, sin el contexto de la sesión), sobre el código sin commitear: 1 ALTO, 6 MEDIOS, 2 BAJOS.
+
+| # | Sev. | Qué encontró | Qué se hizo |
+|---|---|---|---|
+| 1 | ALTO | "Integrar es publicar" solo salía de un workflow que dijera `deploy`: Vercel/Netlify conectados a GitHub, `semantic-release`, `"on":` entre comillas, no | Arreglado (D8d-C2), con prueba (`vercel.json` solo) y mutante |
+| 2 | MEDIO | La negativa enseñaba a esquivarla ("contestar no también vale") y un `¿` roto por PowerShell no se veía | Arreglado: el texto le dice a la sesión que se las pregunte al dueño y no las conteste ella; el `¿` roto se sigue viendo, con prueba. El rastro de qué se contestó: no (la ficha commiteada lo dice) |
+| 3 | MEDIO | Un hook propio que niega a propósito dejaba el repo ROTA en la flota | Arreglado (D8d-C4), con prueba |
+| 4 | MEDIO | Un hook que revienta (sale 1) pasaba por "anda"; con `Bash|PowerShell` se probaba solo Bash | Arreglado: toda salida que no es 0 cuenta, y se prueban todas las herramientas del matcher; con prueba y mutante |
+| 5 | MEDIO | `--traer` salía 1 después de un ff bueno | Arreglado (D8d-C6) |
+| 6 | MEDIO-BAJO | El chequeo de `core.hooksPath` no corre en ningún flujo real (en `--traer` va antes del setup del dueño) | Anotado: lo vuelve a poner el hook de arranque; `--traer` termina diciendo "después, `adoptar <carpeta> --verificar`" |
+| 7 | BAJO-MEDIO | Las dependencias de un monorepo, `pyproject` en un renglón, `cargo build --release` como "publica" | Arreglado: los `package.json` de primer nivel, los arreglos de un renglón, `Pipfile`; en un workflow se mira el nombre y los pasos, no todo el texto; con prueba |
+| 8 | BAJO | Un hook registrado en `settings.local.json` salía "no corre nunca"; se comparaba por un pedazo del nombre | Arreglado: también el local, la ruta entera |
+| 9 | BAJO | `--verificar` "solo mira" no era cierto (corre código del repo) y dejaba `kit.hooksPathPrevio` | Arreglado: el texto lo dice; `kit.hooksPathPrevio` vuelve a como estaba |
+
+#### La mutación
+
+Cada regla rota a propósito, las pruebas de C1 corridas, y el archivo restaurado (igual al final, por hash).
+
+- **`--verificar`** (`chequeo.cjs`): el hook que no está, no mirar si niega, la salida 1 que no cuenta, todo hook propio, todo hook del kit, el programa que siempre está, `core.hooksPath` siempre bien, la zona que nunca avisa, todo es relleno, `ok` que ignora las ❌: **10 de 10** detectadas.
+- **La adopción** (`adoptar.cjs`): `--aplicar` que no se niega por los ¿?, sin la ¿? de `release`, `vercel.json` que no es "al subir": **3 de 3**.
+- Sueltas, cada una con su prueba que falla sin el cambio: `molde+propio` solo si se tocó (C1.6), el `sello` con turno (C3), el alias de WindowsApps (C4).
+- Que la flota no mezcle cuando `--verificar` da ❌ (`flota.cjs`) tiene su prueba (`flota.test`, "8d C1.5 (A5.2)"), sin mutación propia.
+
+#### Probar antes de prometer
+
+- **P2 · no se puede probar acá** (lo dice el spec: el clasificador mira el `~/.claude/` de verdad). Queda armado: `--publica` lo pregunta el freno de la PC (la tanda A) y, si no hay ventana o el clasificador frena, `preparar-pc.md` le da al dueño la línea entera para PowerShell.
+
+#### Para la continuación de la C
+
+En este orden:
+- **El resto de C4**: las líneas que el kit imprime para correr sin `&&` (un paso por renglón, R12: `adoptar.cjs` los commits de
+  `--aplicar`, `actualizar.cjs:1119`; ojo, `commitsDeLaLinea` de `adoptar.test` las corre); "preparame esta PC" en una línea y sin
+  pregunta con "sin cambios"; el `doctor` "todo bien · N avisos · N cosas a arreglar" con el detalle a pedido; `skills/habla.test`
+  sobre `EQ/**` y `AR/**` (cero "guido" salvo la URL y los alias; cero rojo/verde en la tabla de la flota, la adopción y el doctor):
+  hoy dicen "Guido" `lineasEntornos`, `D4`, la línea del `.worktreeinclude` y `gitleaks` de `adoptar.cjs`, y `flota.md`/`modo-a.md`;
+  y la línea de `cambios.cjs nuevo` que `worktree.cjs traer-main` le da al dueño. **`EQ/SKILL.md` está a 8 B de su tope**: lo nuevo,
+  a `preparar-pc.md` o a un anexo.
+- **De la B que pasó a la C** (sin hacer): el 4 y el "integrar de noche mira `trabado` y no `enCurso`" del revisor; el 6
+  (`deHandoff`/`paraElDueno`); el 8 (aprobar un cambio de freno de día deja la noche sin publicar hasta `--seguir`); el 9 del red
+  team de B3 (`-w`/`--filter` en la huella: toca **el contrato**, `publicar.cjs` y su copia en `pc/lib`; `noche.test` "B3 el contrato"
+  y `preparar-pc.test` "8d C2.2" tienen que seguir dando la misma huella); los SHAs y "corré `" en `habla.test` (revisor 11).
+- **C5** mientras corre **C6**. En C5, además de lo del spec: el despertador y el 40 % en `manuales/ROLES.md` y `SCRIPTS.md`;
+  `adoptar --verificar`, las salidas 0/1/3/4 de `--traer`, `traer-repos.cjs` y `--publica` en `SCRIPTS.md` y `EQUIPADOR.md`.
+- **El revisor frío de toda la C** (una vuelta, Opus), desde el commit "rc.7 tanda C · C2".
+- La nota de relevo `sesion-4-tanda-C.md` tiene las cosas que muerden.
+
 ## Ejecución
 
 Tres tandas en fila, cada una una sesión Opus 5.5 (subagentes en Sonnet u Opus, nunca en Fable), con este delta y las reglas comunes de
