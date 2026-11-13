@@ -47,7 +47,7 @@ function commit(cwd, archivos, mensaje, iso) {
 function estado(cwd, argv, opciones = {}) {
   let out = '';
   let err = '';
-  const codigo = S.main(argv, { cwd, salida: (s) => (out += s), error: (s) => (err += s), contexto: path.join(TMP, 'no-existe.cjs'), ...opciones });
+  const codigo = S.main(opciones.dueno ? argv : ['--director', ...argv], { cwd, salida: (s) => (out += s), error: (s) => (err += s), contexto: path.join(TMP, 'no-existe.cjs'), ...opciones });
   return { codigo, out, err };
 }
 
@@ -267,7 +267,7 @@ test('esperas: un "espera hasta:" vencido del TODO sale; uno futuro, no', () => 
   const dir = mundo();
   fs.mkdirSync(path.join(dir, 'docs'), { recursive: true });
   fs.writeFileSync(path.join(dir, 'docs', 'TODO.md'), '# TODO\n\n- [ ] Contestar al proveedor\n  espera hasta: 2026-10-01\n- [ ] Revisar licencia\n  espera hasta: 2999-01-01\n- [x] Hecho\n  espera hasta: 2020-01-01\n');
-  const r = estado(dir, [], { ahora: new Date(2026, 10, 2, 10, 0) });
+  const r = estado(dir, [], { ahora: new Date(Date.UTC(2026, 10, 1, 20, 0)) });
   assert.match(r.out, /- TODO: Contestar al proveedor · espera vencida \(hasta 2026-10-01\)/);
   assert.doesNotMatch(r.out, /Revisar licencia|Hecho/);
 });
@@ -306,7 +306,7 @@ test('por la línea de comandos, después de las 18 h (el resumen del día): and
     'global.Date = class extends D { constructor(...a) { if (a.length) super(...a); else super(T); } static now() { return T; } };',
     '',
   ].join('\n'));
-  const r = spawnSync(process.execPath, ['--require', reloj, SCRIPT], { cwd: dir, encoding: 'utf8' });
+  const r = spawnSync(process.execPath, ['--require', reloj, SCRIPT, '--director'], { cwd: dir, encoding: 'utf8' });
   assert.equal(r.status, 0, r.stderr);
   assert.doesNotMatch(r.stderr, /estado roto/);
   assert.match(r.stdout, /resumen\.cjs/, 'a las 20 h pide el resumen del día');
@@ -314,8 +314,92 @@ test('por la línea de comandos, después de las 18 h (el resumen del día): and
 
 test('por la línea de comandos: anda, sale 0 y no pregunta', () => {
   const dir = mundo();
-  const r = spawnSync(process.execPath, [SCRIPT], { cwd: dir, encoding: 'utf8' });
+  const r = spawnSync(process.execPath, [SCRIPT, '--director'], { cwd: dir, encoding: 'utf8' });
   assert.equal(r.status, 0, r.stderr);
   assert.match(r.stdout, /^TE ESPERA/);
+  const d = spawnSync(process.execPath, [SCRIPT], { cwd: dir, encoding: 'utf8' });
+  assert.equal(d.status, 0, d.stderr);
+  assert.match(d.stdout, /^TE NECESITO/);
   assert.equal(spawnSync(process.execPath, [SCRIPT, '--x'], { cwd: dir, encoding: 'utf8' }).status, 2);
+});
+
+// ---------------------------------------------------------------- B2 (SPEC-paquete-8d): /estado del dueño
+
+const dueno = (dir, argv = [], o = {}) => estado(dir, argv, { dueno: true, ...o });
+const SECC = ['TE NECESITO', 'EL PLAN', 'LO QUE SE HIZO', 'LO QUE FALTA'];
+function cuatroEnOrden(out) {
+  const ls = out.split('\n');
+  const k = SECC.map((s) => ls.indexOf(s));
+  assert.ok(k.every((i) => i >= 0), `faltan secciones:\n${out}`);
+  for (let i = 1; i < k.length; i++) assert.ok(k[i] > k[i - 1], `fuera de orden:\n${out}`);
+  // nada que el dueño no tenga que leer: SHAs, comandos, rojo/verde
+  assert.doesNotMatch(out, /@[0-9a-f]{7}/);
+  assert.doesNotMatch(out, /node \.claude/);
+  assert.doesNotMatch(out, /\b(rojo|roja|verde)\b/i);
+}
+
+test('B2: un repo vacío tiene las cuatro secciones, cada una con "nada"', () => {
+  const dir = path.join(TMP, `r${++n}`);
+  fs.mkdirSync(dir);
+  git(dir, 'init', '-q', '-b', 'main');
+  commit(dir, { 'README.md': 'x\n' }, 'inicio', '2026-10-29T08:00:00+00:00');
+  const r = dueno(dir);
+  assert.equal(r.codigo, 0, r.err);
+  cuatroEnOrden(r.out);
+  assert.equal(r.out.split('\n').filter((l) => l === '- nada').length, 4, r.out);
+});
+
+test('B2: un módulo de lista con tramos: el plan con %, lo que falta; con dos encargos cerrados, "no sé todavía"; un cambio propuesto en TE NECESITO', () => {
+  const dir = mundo();
+  const conTramos = FICHA.replace('## Tareas\n- [x] Primera\n- [x] Segunda\n- [x] Tercera\n- [ ] Cuarta\n- [ ] Quinta', '## Tareas\n### Tramo 1\n- [x] Primera\n- [x] Segunda\n### Tramo 2\n- [x] Tercera\n- [ ] Cuarta\n- [ ] Quinta').replace('## Pendientes y "te espera"\n- (nada)', `## Pendientes y "te espera"\n${TE_ESPERA}`);
+  assert.notEqual(conTramos, FICHA);
+  commit(dir, { 'docs/modulos/m1/README.md': conTramos }, 'tramos', '2026-11-02T08:00:00+00:00');
+  // el 07 cerrado en modulo/m1 (su evidencia, sin PARADA); la ficha con tramos también ahí (la ficha se lee de su rama)
+  git(dir, 'checkout', '-q', 'modulo/m1');
+  commit(dir, { 'docs/modulos/m1/README.md': conTramos }, 'tramos', '2026-11-02T08:00:00+00:00');
+  commit(dir, { 'docs/modulos/m1/bitacora/2026-11-01-evidencia-07.md': '# Evidencia 07\nok\n' }, 'cierre 07', '2026-11-01T11:10:00+00:00');
+  git(dir, 'checkout', '-q', 'main');
+  const C = require('../hooks/lib/cambios.cjs');
+  commit(dir, { '.claude/cambios/2026-11-02-quitar-stash.md': C.armar({ clase: '3-barrera', toca: ['deny:Bash(git stash:*)'], cicatriz: 'x', chico: 'no', urgente: 'no', cuerpo: '## Regla\nno guardar con stash\n' }) }, 'propuesto', '2026-11-02T09:00:00+00:00');
+  const r = dueno(dir, [], { ahora: new Date(Date.UTC(2026, 10, 1, 20, 0)) });
+  assert.equal(r.codigo, 0, r.err);
+  cuatroEnOrden(r.out);
+  const sec = (s) => { const ls = r.out.split('\n'); const i = ls.indexOf(s); const j = ls.findIndex((l, k) => k > i && l === ''); return ls.slice(i + 1, j < 0 ? undefined : j); };
+  assert.ok(sec('TE NECESITO').some((l) => /no guardar con stash/.test(l) && /un clic tuyo/.test(l)), r.out);
+  assert.ok(sec('TE NECESITO').some((l) => /Elegir el nombre del botón/.test(l)), r.out);
+  const plan = sec('EL PLAN').join('\n');
+  assert.match(plan, /m1: en el tramo 2 · 1 de 2 tramos cerrados · el plan va 60% · el tramo 33%/);
+  assert.match(plan, /falta: no sé todavía/);
+  assert.ok(sec('LO QUE FALTA').some((l) => /Cuarta · no sé todavía/.test(l)), r.out);
+  assert.ok(sec('LO QUE SE HIZO').some((l) => /m1: Probar · 65 min/.test(l)), r.out);
+  // la vista del módulo, igual de fija
+  const m = dueno(dir, ['m1'], { ahora: new Date(Date.UTC(2026, 10, 1, 20, 0)) });
+  cuatroEnOrden(m.out);
+});
+
+test('B2: un plan cola dice "es una cola" y no inventa un %; con tres encargos cerrados estima con la mediana', () => {
+  const dir = mundo();
+  commit(dir, { 'docs/modulos/m1/README.md': FICHA.replace('- rama: modulo/m1', '- rama: modulo/m1\n- Plan: cola') }, 'cola', '2026-11-02T08:00:00+00:00');
+  git(dir, 'checkout', '-q', 'modulo/m1');
+  commit(dir, { 'docs/modulos/m1/README.md': FICHA.replace('- rama: modulo/m1', '- rama: modulo/m1\n- Plan: cola') }, 'cola', '2026-11-02T08:00:00+00:00');
+  commit(dir, { 'docs/modulos/m1/bitacora/2026-11-01-evidencia-07.md': 'ok\n' }, 'cierre 07', '2026-11-02T08:01:00+00:00');
+  git(dir, 'checkout', '-q', 'main');
+  const r = dueno(dir, ['m1']);
+  cuatroEnOrden(r.out);
+  assert.match(r.out, /m1: es una cola: \d+ hecho\(s\), 2 abierto\(s\)/);
+  assert.doesNotMatch(r.out.split('EL PLAN')[1].split('LO QUE SE HIZO')[0], /%/);
+  // tres cerrados más con 10, 20 y 60 min en tiempos.md (ramas ya borradas), y el 07 (65 min): la mediana de los cuatro es 40
+  const tiempos = `# Tiempos\n\n${require('./tiempos.cjs').MARCA_ABRE}\n| Encargo | Primer commit | Último commit | Duración (min) | Sub-pasos |\n|---|---|---|---|---|\n| 01 | 2026-11-01 08:00 | 2026-11-01 08:10 | 10 | 1 |\n| 02 | 2026-11-01 09:00 | 2026-11-01 09:20 | 20 | 1 |\n| 03 | 2026-11-01 10:00 | 2026-11-01 11:00 | 60 | 1 |\n\n- Total: 3 encargo(s) · 3 sub-paso(s) · 90 min\n${require('./tiempos.cjs').MARCA_CIERRA}\n`;
+  git(dir, 'checkout', '-q', 'modulo/m1');
+  const ev = {};
+  for (const id of ['01', '02', '03']) {
+    ev[`docs/modulos/m1/bitacora/2026-11-01-encargo-${id}.md`] = encargo(id, 'm1', 'abc1234', ['src/']);
+    ev[`docs/modulos/m1/bitacora/2026-11-01-evidencia-${id}.md`] = 'ok\n';
+  }
+  commit(dir, { ...ev, 'docs/modulos/m1/README.md': FICHA }, 'tres cerrados', '2026-11-02T09:00:00+00:00');
+  git(dir, 'checkout', '-q', 'main');
+  fs.writeFileSync(path.join(dir, 'docs', 'modulos', 'm1', 'tiempos.md'), tiempos);
+  const e = dueno(dir, ['m1']);
+  assert.match(e.out, /Cuarta · ~40 min/, e.out);
+  assert.match(e.out, /falta: ~1,5 h/, e.out);
 });

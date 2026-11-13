@@ -232,19 +232,19 @@ test('todo cierre: poda arti-docs/TODO.md con la base en el último arti-docs/SE
 test('estado: los módulos de arti-docs/modulos/ y las esperas de arti-docs/TODO.md; lo de docs/ no aparece', () => {
   const p = proyecto();
   const antes = fotoDocs(p.d);
-  const r = salidaDe((salida, error) => S.main([], { cwd: p.d, salida, error, ahora: AHORA }));
+  const r = salidaDe((salida, error) => S.main(['--director'], { cwd: p.d, salida, error, ahora: AHORA }));
   assert.equal(r.codigo, 0, r.err);
   assert.match(r.out, /\nMÓDULOS\n- x · /);
   assert.doesNotMatch(r.out, /- otro · |señuelo/);
   assert.match(r.out, /- TODO: el pendiente de arti, · espera vencida \(hasta 2026-01-01\)/);
-  const no = salidaDe((salida, error) => S.main(['otro'], { cwd: p.d, salida, error, ahora: AHORA }));
+  const no = salidaDe((salida, error) => S.main(['--director', 'otro'], { cwd: p.d, salida, error, ahora: AHORA }));
   assert.equal(no.codigo, 1);
   assert.equal(no.out, 'estado: no hay ficha de "otro" (arti-docs/modulos/otro/README.md). Módulos con ficha: x\n');
   docsIntacto(p.d, antes);
   // sin módulos en arti-docs/, la línea nombra la carpeta de la ficha
   const vacio = proyecto({ archivos: { 'arti-docs/modulos/x/README.md': '' } });
   fs.rmSync(path.join(vacio.d, 'arti-docs', 'modulos'), { recursive: true });
-  assert.match(salidaDe((salida, error) => S.main([], { cwd: vacio.d, salida, error, ahora: AHORA })).out, /- \(ningún módulo activo: no hay fichas en arti-docs\/modulos\/\)/);
+  assert.match(salidaDe((salida, error) => S.main(['--director'], { cwd: vacio.d, salida, error, ahora: AHORA })).out, /- \(ningún módulo activo: no hay fichas en arti-docs\/modulos\/\)/);
 });
 
 // ---------------------------------------------------------------- mesa
@@ -339,7 +339,7 @@ test('tiempos <x>: escribe arti-docs/modulos/<x>/tiempos.md; un módulo sin carp
   assert.equal(no.out, 'tiempos otro: no hay arti-docs/modulos/otro/ (el módulo nace con el Arquitecto); no escribí nada\n');
   docsIntacto(p.d, antes);
   // y estado lee el total de ahí
-  const e = salidaDe((salida, error) => S.main(['x'], { cwd: p.d, salida, error, ahora: AHORA }));
+  const e = salidaDe((salida, error) => S.main(['--director', 'x'], { cwd: p.d, salida, error, ahora: AHORA }));
   assert.match(e.out, /\ntiempos\.md: 0 encargo\(s\) · 0 sub-paso\(s\) · 0 min\n/);
 });
 

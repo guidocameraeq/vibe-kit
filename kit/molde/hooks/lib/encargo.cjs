@@ -447,6 +447,64 @@ function specVigente(cwd, sha, x) {
   return mejor.ruta;
 }
 
+// ---------------------------------------------------------------- B1 (SPEC-paquete-8d, tracker 47, 24, 21): una sola cuenta
+
+// "PARADA: <por qué>" si el texto (la evidencia) arranca así (NUCLEO §8); null si no.
+function paradaDe(texto) {
+  if (texto === null || texto === undefined) return null;
+  const l = String(texto).replace(/^﻿/, '').split(/\r?\n/).find((s) => s.trim() !== '');
+  return l && /^PARADA:/.test(l.trim()) ? l.trim() : null;
+}
+
+// La evidencia del encargo en un commit: el texto de <docs>/modulos/<x>/bitacora/*-evidencia-<ID>.md, o null.
+function evidenciaEn(cwd, sha, x, id) {
+  const dir = `${docsRuta.deRaiz(cwd)}/modulos/${x}/bitacora`;
+  const r = G(cwd, ['ls-tree', '-z', '--name-only', sha, '--', `${dir}/`]);
+  if (!r.ok) return null;
+  const re = new RegExp(`^.+-evidencia-${id}\\.md$`);
+  const ruta = r.stdout.split('\0').find((p) => path.posix.dirname(p) === dir && re.test(path.posix.basename(p)));
+  if (!ruta) return null;
+  const t = G(cwd, ['show', `${sha}:${ruta}`]);
+  return t.ok ? t.stdout : null;
+}
+
+// La punta más nueva de una rama (local u origin); divergidas, la local (es una lectura: no decide nada). → sha o null.
+function puntaDe(cwd, rama) {
+  try {
+    const r = refMasNueva(cwd, rama);
+    if (r.ok) return r.sha;
+  } catch (e) {
+    /* git roto: abajo */
+  }
+  return shaDe(cwd, `refs/heads/${rama}`) || shaDe(cwd, `refs/remotes/origin/${rama}`);
+}
+
+// estadoEncargo(raiz, x, id[, opciones]) → 'cerrado' · 'cancelado' · 'parado' · 'en obra' · 'sin arrancar'. La única cuenta de
+// "encargo cerrado" (la usan estado, noche, tiempos y el candado de integrar). Cerrado = su evidencia está en la rama del módulo
+// (o, borrada esa, en la rama por defecto) y no empieza con PARADA: sobrevive a que las ramas se borren. Cancelado = el renglón
+// "cancelado <ID>" de la ficha del módulo. Parado = la evidencia de la punta del obrero (o la ya mergeada) es una PARADA.
+function estadoEncargo(raiz, x, id, opciones = {}) {
+  const defecto = opciones.defecto !== undefined ? opciones.defecto : require('./contexto.cjs').ramaPorDefecto(raiz);
+  const fuentes = [puntaDe(raiz, `modulo/${x}`), defecto ? puntaDe(raiz, defecto) : null].filter(Boolean);
+  const rel = `${docsRuta.deRaiz(raiz)}/modulos/${x}/README.md`;
+  const reCancelado = new RegExp(`(?:^|[\\s(\`*-])cancelado ${id}(?![0-9])`, 'm');
+  for (const sha of fuentes) {
+    const f = leerEn(raiz, sha, rel);
+    if (f && reCancelado.test(f.toString('utf8'))) return 'cancelado';
+  }
+  let paradaMergeada = false;
+  for (const sha of fuentes) {
+    const ev = evidenciaEn(raiz, sha, x, id);
+    if (ev === null) continue;
+    if (!paradaDe(ev)) return 'cerrado';
+    paradaMergeada = true;
+  }
+  const obrero = puntaDe(raiz, `modulo/${x}--${id}`);
+  if (obrero && paradaDe(evidenciaEn(raiz, obrero, x, id))) return 'parado';
+  if (paradaMergeada) return 'parado';
+  return obrero ? 'en obra' : 'sin arrancar';
+}
+
 // ---------------------------------------------------------------- el sello (P5.6, el corrector "spec sin sello"; A §6)
 
 const RE_DIA = /^\d{4}-\d{2}-\d{2}$/;
@@ -587,5 +645,5 @@ module.exports = {
   RE_X, RE_ID, VOCABULARIO, CAMPOS, SECCIONES, HERRAMIENTAS, INTERPRETES, SCRIPT_ENCARGO, SIN_SELLO, NO_RECIBE, DEVUELTO, ErrorGit,
   nombreEncargo, sinTilde, tipoDe, leerEncargo, interprete, interpreteAbierto, validarRegla, validarAutorizado, aPermiso, base,
   shaDe, esAncestro, refMasNueva, tipoEn, leerEn, ubicarEncargo, specVigente, gateQuitadoEl, juzgarSpec, selloConTareaCero, fichaConEntornoDePrueba, tareaCeroPendiente, limpiarPalabra, rutaYSha,
-  rutaEnModulo, juzgarMensaje, citaMesa, RE_CITA_MESA,
+  rutaEnModulo, juzgarMensaje, citaMesa, RE_CITA_MESA, paradaDe, evidenciaEn, puntaDe, estadoEncargo,
 };

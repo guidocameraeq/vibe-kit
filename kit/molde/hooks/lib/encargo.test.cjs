@@ -702,3 +702,41 @@ test('8r3 i1: la cita de mesa del aviso puede venir de un repo con otra carpeta 
   assert.deepEqual(E.citaMesa([`arti:${R}@a1b2c3d`]), { alias: 'arti', ruta: R, sha: 'a1b2c3d' });
   for (const w of ['arti:arti-docs/modulos/x/bitacora/a.md@a1b2c3d', 'arti:modulos/i/mesa/d/a.md@a1b2c3d', 'arti:../x/modulos/i/mesa/d/a.md@a1b2c3d']) assert.equal(E.citaMesa([w]), null, w);
 });
+
+// ---------------------------------------------------------------- B1 (SPEC-paquete-8d): una sola cuenta de "encargo cerrado"
+
+test('B1 estadoEncargo: sin arrancar · en obra · parado · cerrado (también con la rama del módulo borrada) · cancelado', () => {
+  const r = repo({ 'docs/modulos/x/bitacora/2026-11-12-encargo-01.md': '# Encargo 01 · x · a\n', 'docs/modulos/x/bitacora/2026-11-12-encargo-02.md': '# Encargo 02 · x · b\n' });
+  const est = (id) => E.estadoEncargo(r.P, 'x', id);
+  assert.equal(est('01'), 'sin arrancar');
+  // el obrero arranca: su rama existe
+  g(r.P, 'branch', 'modulo/x--01', 'modulo/x');
+  assert.equal(est('01'), 'en obra');
+  // PARADA en la punta de su rama
+  g(r.P, 'switch', '-q', 'modulo/x--01');
+  commit(r.P, { 'docs/modulos/x/bitacora/2026-11-12-evidencia-01.md': 'PARADA: falta la clave\n' }, 'parada');
+  g(r.P, 'switch', '-q', 'main');
+  assert.equal(est('01'), 'parado');
+  // la evidencia del CIERRE entra a modulo/x: cerrado
+  g(r.P, 'switch', '-q', 'modulo/x');
+  commit(r.P, { 'docs/modulos/x/bitacora/2026-11-12-evidencia-01.md': '# Evidencia 01\nlisto\n' }, 'cierre 01');
+  g(r.P, 'switch', '-q', 'main');
+  assert.equal(est('01'), 'cerrado');
+  // una PARADA mergeada en el módulo no es cerrado
+  g(r.P, 'switch', '-q', 'modulo/x');
+  commit(r.P, { 'docs/modulos/x/bitacora/2026-11-12-evidencia-02.md': 'PARADA: no\n' }, 'parada 02');
+  g(r.P, 'switch', '-q', 'main');
+  assert.equal(est('02'), 'parado');
+  // el módulo entra a main y se borran sus ramas: el 01 sigue cerrado (sobrevive a que la rama se borre)
+  g(r.P, 'merge', '-q', '--no-ff', '-m', 'integrar x', 'modulo/x');
+  g(r.P, 'branch', '-D', 'modulo/x--01');
+  g(r.P, 'branch', '-D', 'modulo/x');
+  g(r.P, 'push', '-q', 'origin', 'main', ':modulo/x');
+  g(r.P, 'fetch', '-q', '--prune', 'origin');
+  assert.equal(est('01'), 'cerrado');
+  // cancelado: el renglón de la ficha manda, aunque su rama siga viva
+  g(r.P, 'branch', 'modulo/x--02', 'main');
+  commit(r.P, { 'docs/modulos/x/README.md': '# x\n\n- cancelado 02 @abc1234: no hacía falta\n' }, 'cancelo 02');
+  assert.equal(est('02'), 'cancelado');
+  assert.equal(E.estadoEncargo(r.P, 'x', '07'), 'sin arrancar');
+});

@@ -1,7 +1,11 @@
 'use strict';
-// estado.cjs — la vista de /estado (SPEC-0 5.3; C §2.5, §3bis). Uso, desde el checkout principal:
-//   node .claude/scripts/estado.cjs            la vista corta del proyecto (no pregunta nada)
-//   node .claude/scripts/estado.cjs <x>        la del módulo <x>
+// estado.cjs — la vista de /estado (SPEC-0 5.3; C §2.5, §3bis; SPEC-paquete-8d B2). Uso, desde el checkout principal:
+//   node .claude/scripts/estado.cjs                       la del dueño: TE NECESITO · EL PLAN · LO QUE SE HIZO · LO QUE FALTA
+//   node .claude/scripts/estado.cjs <x>                   la del dueño, de un módulo
+//   node .claude/scripts/estado.cjs --director [<x>]      la vista del director (la de abajo; la de antes de la rc.7)
+// La del dueño: siempre las cuatro secciones, en ese orden ("- nada" si no hay); TE NECESITO sale de lib/espera.cjs (la lista
+// única); lo cerrado, de lib/encargo.cjs estadoEncargo (la cuenta única); lo que falta, con la mediana de los encargos cerrados
+// del módulo (con menos de tres: "no sé todavía"; nunca un número inventado). La del director:
 // Arriba, TE ESPERA (con `.kit-noche` en este checkout, antes una línea: "es de noche: el director trabaja solo"; de las fichas docs/modulos/*/README.md, con "desde <fecha>" que da git: el commit en que entró el renglón).
 // Después una línea por módulo activo (Estado: EN OBRA o PAUSADO): avance MEDIDO (tareas tildadas / tareas de la ficha; sin tareas,
 // "avance —": nunca inventado), encargos en obra y sub-pasos (de git, vía tiempos.cjs), "podés cerrar: …" (las pestañas de obrero
@@ -27,10 +31,11 @@ const T = require('./tiempos.cjs');
 const papeles = (raiz, sub) => docsRuta.rel(docsRuta.deRaiz(raiz), sub);
 
 const USO = [
-  'Uso: node .claude/scripts/estado.cjs [<x>]   (desde el checkout principal)',
-  '  (sin nombre)   la vista corta del proyecto: te espera, una línea por módulo activo, uso y líneas propias',
-  '  <x>            la vista del módulo <x>: fase, avance medido, encargos, tiempos, esperas, podés cerrar',
-  '  --ayuda        este texto',
+  'Uso: node .claude/scripts/estado.cjs [--director] [<x>]   (desde el checkout principal)',
+  '  (sin nombre)          la vista del dueño: te necesito, el plan, lo que se hizo y lo que falta',
+  '  <x>                   la vista del dueño, del módulo <x>',
+  '  --director [<x>]      la del director: te espera, una línea por módulo activo (o el módulo <x>), uso y líneas propias',
+  '  --ayuda               este texto',
 ].join('\n');
 
 const LINEAS_PROPIAS = '.claude/estado-lineas.md';
@@ -324,6 +329,161 @@ function vistaModulo(raiz, m, opciones, ahora) {
   return L;
 }
 
+// ---------------------------------------------------------------- la vista del dueño (SPEC-paquete-8d B2, tracker 32, 54, 24)
+// Siempre las mismas cuatro secciones, en este orden; una sección sin nada dice "- nada". Sin SHAs, ids sueltos, comandos ni
+// "rojo/verde": es lo que lee el dueño. El formato de la ficha que lee (rt-14): `- Plan: lista | cola` en la cabecera (sin el
+// renglón, lista) y, en `## Tareas`, un `### Tramo <N>` por tramo (sin esas marcas, un solo tramo).
+
+const SECCIONES_DUENO = ['TE NECESITO', 'EL PLAN', 'LO QUE SE HIZO', 'LO QUE FALTA'];
+const MIN_PARA_ESTIMAR = 3;
+
+// Las tareas de la ficha por tramo: [{ n, tareas: [{ texto, hecha }] }]. Sin `### Tramo`, un solo tramo (n = null).
+function tramosDe(f) {
+  const tramos = [];
+  let actual = null;
+  for (const l of seccion(f, /^Tareas/i)) {
+    const t = /^###\s+Tramo\s+(\d+)/i.exec(l);
+    if (t) {
+      actual = { n: Number(t[1]), tareas: [] };
+      tramos.push(actual);
+      continue;
+    }
+    const m = /^- \[([ xX])\]\s+(.*)$/.exec(l);
+    if (!m) continue;
+    if (!actual) {
+      actual = { n: null, tareas: [] };
+      tramos.push(actual);
+    }
+    actual.tareas.push({ texto: m[2].trim(), hecha: m[1] !== ' ' });
+  }
+  return tramos.filter((t) => t.tareas.length);
+}
+const esCola = (f) => /^cola\b/i.test(f.campos.plan || '');
+
+// Los encargos de un módulo, con su estado (la cuenta única de B1) y sus minutos: [{ id, titulo, estado, minutos, fin }].
+// Los ids salen de los encargos commiteados (en modulo/<x> o, ya integrado, en la rama por defecto); los minutos, de las ramas que
+// quedan y, si la rama ya no está, del renglón que dejó tiempos.md (nunca de la memoria de nadie).
+function encargosDelModulo(raiz, x) {
+  const dir = papeles(raiz, `modulos/${x}/bitacora`);
+  let defecto = null;
+  try {
+    defecto = require('../hooks/lib/contexto.cjs').ramaPorDefecto(raiz);
+  } catch (e) {
+    defecto = null;
+  }
+  const fuentes = [E.puntaDe(raiz, `modulo/${x}`), defecto ? E.puntaDe(raiz, defecto) : null].filter(Boolean);
+  const ids = new Map();
+  for (const sha of fuentes) {
+    const r = G(raiz, ['ls-tree', '-z', '--name-only', sha, '--', `${dir}/`]);
+    if (!r.ok) continue;
+    for (const p of r.stdout.split('\0').filter(Boolean)) {
+      const m = /^.+-encargo-([0-9]{2})\.md$/.exec(path.posix.basename(p));
+      if (!m || path.posix.dirname(p) !== dir || ids.has(m[1])) continue;
+      const t = G(raiz, ['show', `${sha}:${p}`]);
+      const tt = t.ok ? /^# Encargo \S+ · \S+ · (.+)$/m.exec(t.stdout) : null;
+      ids.set(m[1], tt ? tt[1].trim() : '');
+    }
+  }
+  const vivos = new Map();
+  try {
+    for (const d of T.datosModulo(raiz, x)) vivos.set(d.id, d);
+  } catch (e) {
+    /* sin ramas que mirar */
+  }
+  let previas = [];
+  try {
+    previas = T.filasPrevias(fs.readFileSync(path.join(raiz, ...papeles(raiz, `modulos/${x}/tiempos.md`).split('/')), 'utf8'));
+  } catch (e) {
+    previas = [];
+  }
+  const out = [];
+  for (const [id, titulo] of [...ids.entries()].sort()) {
+    const v = vivos.get(id);
+    const p = previas.find((f) => f.id === id);
+    let minutos = null;
+    let fin = null;
+    if (v && v.commits && v.commits.length) {
+      minutos = v.minutos;
+      fin = v.ultimo * 1000;
+    } else if (p && /^\d+$/.test(p.celdas[3] || '')) {
+      minutos = Number(p.celdas[3]);
+      const f = Date.parse(String(p.celdas[2] || '').replace(' ', 'T'));
+      fin = Number.isFinite(f) ? f : null;
+    }
+    let estado = 'en obra';
+    try {
+      estado = E.estadoEncargo(raiz, x, id, { defecto });
+    } catch (e) {
+      /* lo que no se pudo mirar no se da por cerrado */
+    }
+    out.push({ id, titulo, estado, minutos, fin });
+  }
+  return out;
+}
+
+const mediana = (ns) => {
+  const s = [...ns].sort((a, b) => a - b);
+  if (!s.length) return null;
+  const k = Math.floor(s.length / 2);
+  return s.length % 2 ? s[k] : Math.round((s[k - 1] + s[k]) / 2);
+};
+const enHoras = (min) => (min < 60 ? `${min} min` : `${Math.round((min / 60) * 2) / 2} h`.replace('.', ','));
+
+function vistaDueno(raiz, ms, ahora, soloUno) {
+  const L = [...deNoche(raiz)];
+  // 1. TE NECESITO: la lista única (B1), cada ítem en una línea.
+  const espera = require('../hooks/lib/espera.cjs');
+  let te = [];
+  try {
+    te = espera.teEspera(raiz, { ahora });
+  } catch (e) {
+    te = [];
+  }
+  L.push('TE NECESITO');
+  L.push(...(te.length ? te.map((i) => `- ${i.texto} · ${i.tipo === 'clic' ? 'un clic tuyo' : 'una decisión tuya'}${i.desde ? ` · desde ${i.desde}` : ''} (${i.fuente})`) : ['- nada']));
+  // 2-4: por módulo
+  const plan = [];
+  const hecho = [];
+  const falta = [];
+  const desde24 = ahora.getTime() - 24 * 3600 * 1000;
+  for (const m of ms) {
+    const f = m.ficha;
+    const tramos = tramosDe(f);
+    const todas = tramos.flatMap((t) => t.tareas);
+    const enc = m.conDirector ? encargosDelModulo(raiz, m.x) : [];
+    const cerrados = enc.filter((e) => e.estado === 'cerrado');
+    const minutos = cerrados.map((e) => e.minutos).filter((n) => Number.isFinite(n));
+    const med = minutos.length >= MIN_PARA_ESTIMAR ? mediana(minutos) : null;
+    const pendientes = todas.filter((t) => !t.hecha);
+    if (esCola(f)) {
+      const hechos = cerrados.length + todas.filter((t) => t.hecha).length;
+      plan.push(`- ${m.x}: es una cola: ${hechos} hecho(s), ${pendientes.length} abierto(s)`);
+    } else if (!todas.length) {
+      plan.push(`- ${m.x}: sin tareas en la ficha (no hay de dónde medir el avance)`);
+    } else {
+      const actual = tramos.find((t) => t.tareas.some((x) => !x.hecha)) || tramos[tramos.length - 1];
+      const cerradosT = tramos.filter((t) => t.tareas.every((x) => x.hecha)).length;
+      const pctPlan = Math.round((100 * todas.filter((t) => t.hecha).length) / todas.length);
+      const pctTramo = Math.round((100 * actual.tareas.filter((t) => t.hecha).length) / actual.tareas.length);
+      const partes = [`- ${m.x}:`];
+      if (tramos.length > 1) partes.push(`en el tramo ${actual.n} · ${cerradosT} de ${tramos.length} tramos cerrados ·`);
+      partes.push(`el plan va ${pctPlan}%`);
+      if (tramos.length > 1) partes.push(`· el tramo ${pctTramo}%`);
+      partes.push(`· falta: ${!pendientes.length ? 'nada' : med === null ? 'no sé todavía' : `~${enHoras(med * pendientes.length)}`}`);
+      plan.push(partes.join(' '));
+    }
+    for (const e of cerrados) {
+      if (!soloUno && !(e.fin && e.fin >= desde24)) continue;
+      hecho.push(`- ${m.x}: ${e.titulo || 'un encargo'}${Number.isFinite(e.minutos) ? ` · ${e.minutos} min` : ''}`);
+    }
+    for (const t of pendientes) falta.push(`- ${m.x}: ${t.texto} · ${med === null ? 'no sé todavía' : `~${enHoras(med)}`}`);
+  }
+  L.push('', 'EL PLAN', ...(plan.length ? plan : ['- nada']));
+  L.push('', 'LO QUE SE HIZO', ...(hecho.length ? hecho : ['- nada']));
+  L.push('', 'LO QUE FALTA', ...(falta.length ? falta : ['- nada']));
+  return L;
+}
+
 // ---------------------------------------------------------------- principal
 
 function main(argv, opciones = {}) {
@@ -336,6 +496,30 @@ function main(argv, opciones = {}) {
 `);
     return 0;
   }
+  if (argv[0] !== '--director') {
+    if (argv.length > 1 || (argv[0] && (argv[0].startsWith('-') || !E.RE_X.test(argv[0])))) {
+      error(`${argv.length > 1 ? 'Sobran argumentos.' : `"${argv[0]}" no es un nombre de módulo.`}\n${USO}\n`);
+      return 2;
+    }
+    const raiz = T.raizDe(cwd);
+    if (!raiz) {
+      error(`No estoy dentro de un repo git.\n${USO}\n`);
+      return 2;
+    }
+    const todas = fichas(raiz);
+    if (argv[0]) {
+      const m = todas.find((f) => f.x === argv[0]);
+      if (!m) {
+        salida(`No encuentro el módulo "${argv[0]}". Los que hay: ${todas.map((f) => f.x).join(', ') || 'ninguno'}\n`);
+        return 1;
+      }
+      salida(`${vistaDueno(raiz, [m], ahora, true).join('\n')}\n`);
+      return 0;
+    }
+    salida(`${vistaDueno(raiz, todas.filter((m) => activo(m.ficha)), ahora, false).join('\n')}\n`);
+    return 0;
+  }
+  argv = argv.slice(1);
   if (argv.length > 1 || (argv[0] && (argv[0].startsWith('-') || !E.RE_X.test(argv[0])))) {
     error(`${argv.length > 1 ? 'Sobran argumentos.' : `"${argv[0]}" no es un nombre de módulo.`}\n${USO}\n`);
     return 2;
@@ -359,7 +543,7 @@ function main(argv, opciones = {}) {
 }
 
 // Antes de main(): resumen.cjs pide este módulo (después de las 18 h) y con los exports al final lo veía vacío (D8r.4).
-module.exports = { USO, LINEAS_PROPIAS, LINEA_NOCHE, HORA_RESUMEN, papeles, leerFicha, seccion, bullets, tareas, porcentaje, sesionesVivas, activo, fichas, desdeCuando, esperasVencidas, encargosDe, hoyDe, main };
+module.exports = { SECCIONES_DUENO, tramosDe, encargosDelModulo, vistaDueno, USO, LINEAS_PROPIAS, LINEA_NOCHE, HORA_RESUMEN, papeles, leerFicha, seccion, bullets, tareas, porcentaje, sesionesVivas, activo, fichas, desdeCuando, esperasVencidas, encargosDe, hoyDe, main };
 
 if (require.main === module) {
   let codigo = 2;
