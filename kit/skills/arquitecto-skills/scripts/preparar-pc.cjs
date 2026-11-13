@@ -603,7 +603,7 @@ function principal(argv, { env = process.env, cwd = process.cwd(), renombrar = f
   // kit-pc.md de hoy (lo necesitan la carpeta, la capa privada y autoMode)
   const kp = leerKitPc(home);
   if (kp.rota) {
-    log(lin('✗', 'archivo-pc', `${barras(rutaKitPc(home))} no se lee: ${kp.rota}`, 'corregilo a mano (o borralo) y volvé a correr'));
+    log(lin('✗', 'archivo-pc', `${barras(rutaKitPc(home))} no se lee: ${kp.rota}`, 'la sesión lo abre y lo arregla con tu OK (o lo borra); después, de nuevo'));
     log('no toqué nada.');
     return fin(1);
   }
@@ -632,7 +632,7 @@ function principal(argv, { env = process.env, cwd = process.cwd(), renombrar = f
   // 3. los hooks por PC (la lógica de instalar-hooks-pc) y 4. el settings, sobre el mismo valor: una sola escritura
   const s = I.leerSettings(r);
   if (s.problema) {
-    log(lin('✗', 'settings', s.problema, 'corregilo a mano (no lo toco roto) y volvé a correr'));
+    log(lin('✗', 'settings', s.problema, 'la sesión lo abre y lo arregla con tu OK (no lo toco roto); después, de nuevo'));
     log('no toqué nada.');
     return fin(1);
   }
@@ -650,13 +650,13 @@ function principal(argv, { env = process.env, cwd = process.cwd(), renombrar = f
   v.crossSessionInbound = cs.valor;
   // autoMode.environment
   if ('autoMode' in v && !esMapa(v.autoMode)) {
-    log(lin('✗', 'automode', `${barras(r.settings)}: "autoMode" no es un objeto — así no se toca`, 'corregilo a mano y volvé a correr'));
+    log(lin('✗', 'automode', `${barras(r.settings)}: "autoMode" no es un objeto — así no se toca`, 'la sesión lo abre y lo arregla con tu OK; después, de nuevo'));
     log('no toqué nada.');
     return fin(1);
   }
   const envActual = esMapa(v.autoMode) ? v.autoMode.environment : undefined;
   if (envActual !== undefined && !(Array.isArray(envActual) && envActual.every((x) => typeof x === 'string'))) {
-    log(lin('✗', 'automode', `${barras(r.settings)}: "autoMode.environment" no es una lista de textos — así no se toca`, 'corregilo a mano y volvé a correr'));
+    log(lin('✗', 'automode', `${barras(r.settings)}: "autoMode.environment" no es una lista de textos — así no se toca`, 'la sesión lo abre y lo arregla con tu OK; después, de nuevo'));
     log('no toqué nada.');
     return fin(1);
   }

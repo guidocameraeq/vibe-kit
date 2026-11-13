@@ -314,7 +314,7 @@ test('settings-pc: sin settings.json y con JSON roto → ✗ (y los chequeos que
   assert.match(linea(r, 'deny-almacen'), /^✗ deny-almacen/);
   e = escenario();
   fs.writeFileSync(settingsDe(e), '{ "hooks": ');
-  rojo(e, 'settings-pc', '✗', /no se lee: el JSON no abre.*corregilo a mano/);
+  rojo(e, 'settings-pc', '✗', /no se lee: el JSON no abre.*la sesión lo abre y lo arregla con tu OK/);
   e = escenario();
   fs.writeFileSync(settingsDe(e), '{"model":"a","model":"b"}');
   rojo(e, 'settings-pc', '✗', /clave "model" repetida/);
@@ -414,7 +414,7 @@ test('anti-secretos-viejo: un PreToolUse ajeno cuyo archivo trae el prefijo de u
   const v = leerSettings(e);
   v.hooks.PreToolUse.push({ matcher: 'Bash', hooks: [{ type: 'command', command: `node "${archivo.replace(/\\/g, '/')}"` }] });
   escribirSettings(e, v);
-  const r = rojo(e, 'anti-secretos-viejo', '⚠', /anti-secretos\.js.*demora cada Bash.*sacalo cuando confirmes.*--sacar-viejo/);
+  const r = rojo(e, 'anti-secretos-viejo', '⚠', /anti-secretos\.js.*demora cada Bash.*sacalo cuando confirmes.*"\$HOME\/\.claude\/skills\/arquitecto-skills\/scripts\/instalar-hooks-pc\.cjs" --sacar-viejo/);
   assert.equal(r.codigo, 0);
   // un hook ajeno que no trae el prefijo no es el viejo
   fs.writeFileSync(archivo, '// otro\n');
@@ -952,4 +952,13 @@ test('8d C2.3 (crit. C2): automode — un repo cuya ficha vigente publica y la P
   rojo(e, 'automode', '⚠', /tienda publica y esta PC no lo autorizó: la noche no publica ahí/);
   const [c0] = P.quePublican(e.proyectos);
   assert.ok(c0 && c0.proyecto === 'tienda');
+});
+
+test('8d C4 (35b, R8, R20): un alias de WindowsApps (py.exe: stat falla, lstat no) cuenta como encontrado; nada dice "corregilo a mano"', () => {
+  const dir = WIN ? 'C:\\Users\\x\\AppData\\Local\\Microsoft\\WindowsApps' : '/c/Users/x/AppData/Local/Microsoft/WindowsApps';
+  const alias = path.join(dir, WIN ? 'py.exe' : 'py');
+  const fsx = { __win: true, statSync: () => { const e = new Error('EACCES'); e.code = 'EACCES'; throw e; }, lstatSync: (p) => { if (p !== alias) throw new Error('ENOENT'); return {}; } };
+  assert.equal(D.buscarEnPath('py', { PATH: dir, PATHEXT: '.EXE' }, fsx), alias);
+  assert.equal(D.existePrograma(path.join(RAIZ_TMP, 'otro', 'py.exe'), { __win: true, statSync: fsx.statSync, lstatSync: () => ({}) }), false, 'fuera de WindowsApps, un lstat solo no alcanza');
+  for (const f of ['doctor.cjs', 'preparar-pc.cjs']) assert.doesNotMatch(fs.readFileSync(path.join(__dirname, f), 'utf8'), /corregilo a mano/, f);
 });

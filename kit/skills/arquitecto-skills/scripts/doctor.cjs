@@ -85,18 +85,29 @@ function valorPath(env) {
 // cmd y PowerShell (h10 de 8r4, D8c: el `claude` de npm deja en la misma carpeta `claude` —un script de sh, sin extensión—,
 // `claude.cmd` y `claude.ps1`; con '' primero salía el de sh, spawn daba ENOENT y el doctor decía "no dio su versión" aunque
 // `claude --version` a mano daba 2.1.252: la salida de Juan). Un nombre que ya trae su extensión se prueba tal cual.
-function buscarEnPath(nombre, env) {
+// 8d C4 (35b): en Windows, `py`, `python` y otros son alias de WindowsApps (un enlace de ejecución de 0 bytes): stat falla y lstat no.
+// Existe igual (lo corre la shell): se cuenta como encontrado. `fsx` lo inyectan las pruebas.
+function existePrograma(p, fsx = fs) {
+  try {
+    return fsx.statSync(p).isFile();
+  } catch (err) {
+    if (process.platform !== 'win32' && !fsx.__win) return false;
+    try {
+      fsx.lstatSync(p);
+      return /[\\/]WindowsApps[\\/]/i.test(p);
+    } catch (e2) {
+      return false;
+    }
+  }
+}
+function buscarEnPath(nombre, env, fsx = fs) {
   const deWin = String((env && env.PATHEXT) || '.COM;.EXE;.BAT;.CMD').toLowerCase().split(';').filter(Boolean);
   const exts = process.platform === 'win32' ? (path.extname(nombre) ? ['', ...deWin] : deWin) : [''];
   for (const d of valorPath(env).split(path.delimiter)) {
     if (!d) continue;
     for (const e of exts) {
       const p = path.join(d.replace(/^"|"$/g, ''), nombre + e);
-      try {
-        if (fs.statSync(p).isFile()) return p;
-      } catch (err) {
-        /* acá no está */
-      }
+      if (existePrograma(p, fsx)) return p;
     }
   }
   return null;
@@ -278,7 +289,7 @@ function chGitBash(env) {
 
 function chSettings(r, s) {
   if (s.falta) return res('✗', 'no hay ~/.claude/settings.json: ningún hook de la PC está registrado', ARREGLO_INSTALAR);
-  if (s.rota) return res('✗', `~/.claude/settings.json no se lee: ${s.rota}`, 'corregilo a mano (el instalador no lo toca roto) y volvé a correr doctor');
+  if (s.rota) return res('✗', `~/.claude/settings.json no se lee: ${s.rota}`, 'la sesión lo abre y lo arregla con tu OK (el instalador no lo toca roto); después, doctor de nuevo');
   return res('✓', '~/.claude/settings.json se lee bien');
 }
 
@@ -411,7 +422,7 @@ function chViejo(r, s) {
     }
   }
   if (!hallados.length) return res('✓', 'no hay un anti-secretos viejo registrado');
-  return res('⚠', `el anti-secretos viejo sigue registrado (${lista(hallados)}) y demora cada Bash`, 'sacalo cuando confirmes que el del kit anda: node scripts/instalar-hooks-pc.cjs --sacar-viejo (el archivo queda)');
+  return res('⚠', `el anti-secretos viejo sigue registrado (${lista(hallados)}) y demora cada Bash`, 'sacalo cuando confirmes que el del kit anda: la sesión corre node "$HOME/.claude/skills/arquitecto-skills/scripts/instalar-hooks-pc.cjs" --sacar-viejo (el archivo queda)');
 }
 
 function chPlazo(r, env, raiz) {
@@ -671,7 +682,7 @@ function chAutomode(s, kp) {
   if (s.falta || s.rota) return nv('no hay settings legible (ver settings-pc)', 'corré "preparame esta PC" con el Equipador');
   if (kp.falta || kp.rota) return nv('sin kit-pc.md no sé qué entradas del autoMode son del kit (ver archivo-pc)', 'corré "preparame esta PC" con el Equipador');
   const am = esMapa(s.valor.autoMode) ? s.valor.autoMode.environment : undefined;
-  if (am !== undefined && !(Array.isArray(am) && am.every((x) => typeof x === 'string'))) return res('⚠', 'autoMode.environment no es una lista de textos', 'corregilo a mano; "preparame esta PC" no lo toca roto');
+  if (am !== undefined && !(Array.isArray(am) && am.every((x) => typeof x === 'string'))) return res('⚠', 'autoMode.environment no es una lista de textos', 'la sesión lo abre y lo arregla con tu OK; "preparame esta PC" no lo toca roto');
   const gen = P.generarAutoMode(kp.datos.proyectos, kp.datos.publica || []);
   const m = P.mezclarAutoMode(am, kp.datos.autoMode, gen.entradas);
   const n = gen.entradas.length;
@@ -951,4 +962,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { principal, IDS, buscarEnPath, bashDeGit, version, comparar, chNode, ultimoTagAnotado, inventario, leerFrenos };
+module.exports = { principal, IDS, buscarEnPath, existePrograma, bashDeGit, version, comparar, chNode, ultimoTagAnotado, inventario, leerFrenos };
