@@ -195,3 +195,30 @@ test('el mismo juego de casos de los tres hooks, solos y por el portero, da la m
     assert.equal(correr(portero(d), entrada(cwd, c, modo)).decision, esperado, `${c} (${modo}) en ${path.basename(cwd)}: ${directo.join(', ')}`);
   }
 });
+
+test('revisor y red team A (ALTO): dos preguntas en un comando salen las dos en la ventana, la firma primero', () => {
+  const d = proyecto();
+  const r = correr(portero(d), entrada(d, 'node .claude/scripts/cambios.cjs aprobar x && node y.cjs --borra-datos-reales'));
+  assert.equal(r.decision, 'ask');
+  assert.match(r.motivo, /^Es tu firma para cambiar un freno.* Además: .*borrar datos reales/i);
+});
+
+test('red team A (2.ª ronda, 5): un hook que corre aparte y niega con salida 2 y el motivo en stderr, o con el JSON con sangría, se entiende', () => {
+  const con2 = "'use strict';\nrequire('fs').readFileSync(0, 'utf8');\nprocess.stderr.write('el del proyecto dice que no');\nprocess.exit(2);\n";
+  const d = proyecto({ 'hook-sensible': 'propia' }, { 'sensible.cjs': con2 });
+  const r = correr(portero(d), entrada(d, 'echo hola'));
+  assert.equal(r.decision, 'deny');
+  assert.equal(r.motivo, 'el del proyecto dice que no');
+  const sangria = "'use strict';\nrequire('fs').readFileSync(0, 'utf8');\nprocess.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'ask', permissionDecisionReason: 'pregunta el propio' } }, null, 2));\n";
+  const d2 = proyecto({ 'hook-sensible': 'propia' }, { 'sensible.cjs': sangria });
+  assert.equal(correr(portero(d2), entrada(d2, 'echo hola')).motivo, 'pregunta el propio');
+});
+
+test('mutación A5: si uno pregunta (y anota) y el siguiente niega, queda solo el renglón del que negó', () => {
+  const pregunta = "'use strict';\nmodule.exports = { decidir(e, o) { o.anotar('x', { id: 'stub:pregunta', detalle: 'preguntó' }); return { decision: 'ask', salida: { hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'ask', permissionDecisionReason: 'p' } } }; } };\n";
+  const niega = "'use strict';\nmodule.exports = { decidir(e, o) { o.anotar('x', { id: 'stub:niega', detalle: 'negó' }); return { decision: 'deny', salida: { hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: 'n' } } }; } };\n";
+  const d = proyecto({}, { 'git-seguro.cjs': pregunta, 'sensible.cjs': niega });
+  const r = require(portero(d)).decidir(entrada(d, 'echo hola'));
+  assert.equal(r.decision, 'deny');
+  assert.deepEqual(r.renglones.map((x) => x.datos.id), ['stub:niega']);
+});

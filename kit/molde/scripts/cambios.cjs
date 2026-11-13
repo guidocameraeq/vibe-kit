@@ -641,7 +641,7 @@ function aprobarDesde(L, raiz, id, opciones = {}) {
     G(['fetch', '-q', 'origin', rv.nombre]);
     const sinSubir = Number(L.git.texto(['rev-list', '--count', `${rv.ref}..HEAD`], { cwd: principal }) || '0');
     if (sinSubir > 0) return no(`la carpeta principal tiene ${sinSubir} commit(s) sin subir: así la firma los subiría también; que el dueño los suba o firme desde su carpeta principal`);
-    const p = G(['pull', '-q', '--ff-only']);
+    const p = G(['pull', '-q', '--ff-only', 'origin', rv.nombre]);
     if (!p.ok) return no(`no pude traer la carpeta principal al día (${primeraLinea(p.stderr || p.error)}): ¿tiene cambios sin guardar o está en otra rama?`);
   }
   // rt A, 3: lo que se firma es lo que la ventana mostró

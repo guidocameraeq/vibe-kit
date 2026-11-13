@@ -66,14 +66,20 @@ function comoProceso(archivo, crudo, restanteMs) {
   if (restanteMs < 300) return { decision: 'deny', sinTiempo: true };
   const r = spawnSync(process.execPath, [archivo], { input: crudo, encoding: 'utf8', timeout: restanteMs, windowsHide: true });
   if (r.error && r.error.code === 'ETIMEDOUT') return { decision: 'deny', sinTiempo: true };
+  // la convención de Claude Code: salida 2 = no, con el motivo en stderr (red team de la tanda A, 2.ª ronda, 5)
+  if (r.status === 2) return { decision: 'deny', salida: salida('deny', (r.stderr || '').trim().slice(0, 500) || ROTO) };
   if (r.status !== 0) return { decision: 'deny', salida: salida('deny', ROTO) }; // como onFailure "block"
   const t = (r.stdout || '').trim();
   if (!t) return { decision: 'nada' };
   let j;
   try {
-    j = JSON.parse(t.split('\n').pop());
+    j = JSON.parse(t);
   } catch (e) {
-    return { decision: 'deny', salida: salida('deny', ROTO) };
+    try {
+      j = JSON.parse(t.split('\n').pop());
+    } catch (e2) {
+      return { decision: 'deny', salida: salida('deny', ROTO) };
+    }
   }
   const d = j && j.hookSpecificOutput && j.hookSpecificOutput.permissionDecision;
   if (d === 'deny' || d === 'ask') return { decision: d, salida: j };
@@ -92,7 +98,7 @@ function decidir(crudo, opciones = {}) {
   const git = require('./git.cjs');
   git.fijarPlazo(fin, reloj);
   const piezas = opciones.piezas !== undefined ? opciones.piezas : piezasEnDisco(dirHooks);
-  let primerAsk = null;
+  const asks = [];
   let sinTiempo = false;
   for (const h of comoCorre(piezas)) {
     const archivo = path.join(dirHooks, h.archivo);
@@ -115,15 +121,20 @@ function decidir(crudo, opciones = {}) {
     }
     if (r.sinTiempo || git.salteadasPorPlazo() > 0 || reloj() > fin) sinTiempo = true;
     if (r.decision === 'deny' && !r.sinTiempo) return { decision: 'deny', salida: r.salida, renglones: pendientes, quien: h.archivo };
-    if (r.sinTiempo) break;
-    if (r.decision === 'ask' && !primerAsk) primerAsk = { decision: 'ask', salida: r.salida, renglones: pendientes, quien: h.archivo };
+    if (sinTiempo) break; // red team (2.ª ronda, 6): sin plazo, lo que sigue miraría a medias
+    if (r.decision === 'ask') asks.push({ salida: r.salida, renglones: pendientes, quien: h.archivo, pase: r.pase });
   }
   if (sinTiempo) {
     const raiz = require('./agente.cjs').raizDe(require('./contexto.cjs').cwdDe(entrada));
     const herramienta = HERRAMIENTAS.includes(entrada.tool_name) ? entrada.tool_name : 'Bash';
     return { decision: 'deny', salida: salida('deny', SIN_TIEMPO), renglones: raiz ? [{ raiz, datos: { id: ID_SIN_TIEMPO, herramienta, detalle: 'portero', rol: 'desconocido', rama: '(sin rama)' } }] : [], quien: 'plazo' };
   }
-  return primerAsk || { decision: 'nada', renglones: [] };
+  if (!asks.length) return { decision: 'nada', renglones: [] };
+  // Revisor y red team de la tanda A (ALTO): un solo clic acepta todo el comando; la ventana dice todas las preguntas, en orden (la firma
+  // primero) y quedan todos sus renglones.
+  const motivos = asks.map((a) => a.salida.hookSpecificOutput.permissionDecisionReason);
+  const motivo = motivos.length === 1 ? motivos[0] : `${motivos[0]} Además: ${motivos.slice(1).join(' Además: ')}`;
+  return { decision: 'ask', salida: salida('ask', motivo), renglones: asks.flatMap((a) => a.renglones), quien: asks.map((a) => a.quien).join('+'), pase: (asks.find((a) => a.pase) || {}).pase };
 }
 
 function principal() {
@@ -139,6 +150,13 @@ function principal() {
       require('./frenos-log.cjs').anotar(p.raiz, p.datos);
     } catch (e) {
       /* el renglón es rastro: el freno vale igual */
+    }
+  }
+  if (r.decision === 'ask' && r.pase) {
+    try {
+      require(path.join(DIR_HOOKS, 'niega-aprobar.cjs')).dejarPase(r.pase);
+    } catch (e) {
+      /* sin pase, el script no firma: lado seguro */
     }
   }
   if (r.decision !== 'nada') process.stdout.write(`${JSON.stringify(r.salida)}\n`);

@@ -362,9 +362,13 @@ test('A2.3 desde la pestaña del director, de día y con ventana (también auto)
   // rt A: en la pestaña del director vale solo el script de la carpeta principal, no la copia de la rama del módulo
   assert.equal(decideNA(entrada(m.dir, `node .claude/scripts/cambios.cjs aprobar ${ID_CAMBIO}`)).detalle, 'otra ruta');
   // y la ventana deja el pase de un solo uso para el script (rt A, 1), con el control de lo que mostró
-  const pase = JSON.parse(fs.readFileSync(path.join(m.d, '.git', na.ARCHIVO_PASE), 'utf8'));
-  assert.equal(pase.id, ID_CAMBIO);
-  assert.equal(pase.control, m.hash8);
+  const rp = decideNA(entrada(m.dir, DESDE_DIR));
+  assert.equal(rp.pase.id, ID_CAMBIO);
+  assert.equal(rp.pase.control, m.hash8);
+  assert.ok(!fs.existsSync(path.join(m.d, '.git', na.ARCHIVO_PASE)), 'decidir no escribe el pase: lo deja quien decide al final');
+  // el hook solo, como proceso, sí lo deja cuando sale la pregunta
+  correr(entrada(m.dir, DESDE_DIR));
+  assert.equal(JSON.parse(fs.readFileSync(path.join(m.d, '.git', na.ARCHIVO_PASE), 'utf8')).control, m.hash8);
 });
 
 test('A2.3 en la carpeta principal, rol humano y rama por defecto → ask, y lo pide la sesión de la carpeta principal', () => {
@@ -502,4 +506,13 @@ test('rt A 11 y 12: KIT_FONDO con cualquier valor que no sea 0; un grep de KIT_H
   assert.equal(decideNA(entrada(m.dir, DESDE_DIR), { entorno: { KIT_FONDO: '0' } }).decision, 'ask');
   assert.equal(na.queFirma('grep -rn KIT_HOME_PC kit/'), null);
   assert.equal(na.queFirma('KIT_HOME_PC=/x node a.cjs'), 'home-pc');
+});
+
+test('revisor A (3): en un repo sin el kit, dos palabras sueltas no son una firma; nombrar el script o irse a otro lado, sí', () => {
+  const d = repo();
+  g(d, 'checkout', '-q', '-b', 'feature');
+  for (const c of ['cat src/cambios/aprobar.ts', 'curl https://x/api/cambios/aprobar']) assert.equal(decideNA(entrada(d, c)).decision, 'nada', c);
+  assert.equal(decideNA(entrada(d, 'cat src/cambios/aprobar.ts', { permission_mode: 'bypassPermissions' })).decision, 'deny'); // sin ventana, el modo manda primero
+  assert.equal(decideNA(entrada(d, 'node .claude/scripts/cambios.cjs aprobar x')).decision, 'deny');
+  assert.equal(decideNA(entrada(d, 'cd ../otro && cat cambios aprobar')).decision, 'deny');
 });

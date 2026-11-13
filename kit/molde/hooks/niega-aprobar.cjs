@@ -263,7 +263,9 @@ function rolDeSesion(e, comun) {
 // de hace menos de PASE_MS) y lo borra. Un script que el freno no ve no tiene pase: no firma.
 const ARCHIVO_PASE = 'kit-firma-pedida.json';
 const PASE_MS = 15 * 60 * 1000;
-function dejarPase(comun, id, control) {
+function dejarPase(pase) {
+  if (!pase) return;
+  const { comun, id, control } = pase;
   try {
     fs.writeFileSync(path.join(comun, ARCHIVO_PASE), `${JSON.stringify({ id, control, ms: Date.now() })}\n`);
   } catch (err) {
@@ -377,6 +379,18 @@ function decidir(entrada, opciones = {}) {
   // aprobar y --seguir
   if (!raiz) return negar(MOTIVOS.repo, 'fuera de un repo');
   const esPrincipal = g.gitDir === g.gitComun;
+  // revisor de la tanda A (3): en un repo sin el kit, las dos palabras sueltas (`cat src/cambios/aprobar.ts`) no son una firma; si
+  // la línea nombra un cambios.cjs/noche.cjs o se va a otro lado, sí (el freno de la PC cuida a los otros repos).
+  {
+    const principalK = esPrincipal ? raiz : path.dirname(g.gitComun);
+    const conKit = fs.existsSync(path.join(principalK, '.claude', 'kit.md')) || fs.existsSync(path.join(principalK, '.claude', 'scripts', 'cambios.cjs'));
+    if (!conKit) {
+      const rr = partir(comando, ps);
+      const cc = rr && Array.isArray(rr.comandos) ? rr.comandos : [];
+      const nombraScript = cc.some((c) => (c.argv || []).some((x) => RE_CAMBIOS.test(x) || RE_NOCHE.test(x)));
+      if (!nombraScript && !seVaAOtroLado(cc)) return { decision: 'nada' };
+    }
+  }
   if (rol !== 'humano' && !(rol === 'director' && !esPrincipal)) {
     return negar(
       rol === 'director'
@@ -421,8 +435,10 @@ function decidir(entrada, opciones = {}) {
     ref = rv ? rv.ref : 'HEAD';
   }
   const cambio = cambioEnRef(principal, ref, id);
-  if (lugar === 'director' && cambio) dejarPase(g.gitComun, id, cambio.control);
-  return preguntar(ventanaAprobar(cambio, id, pide));
+  // el pase lo escribe quien decide al final (principal, el portero o secretos), solo si sale esta pregunta (revisor, 7)
+  const r2 = preguntar(ventanaAprobar(cambio, id, pide));
+  if (lugar === 'director' && cambio) r2.pase = { comun: g.gitComun, id, control: cambio.control };
+  return r2;
 }
 
 // A5.3 y A5.4 (SPEC-paquete-8d): solo, como plan B del portero, con el mismo plazo propio (el del settings menos 10 s) y el aviso
@@ -440,6 +456,7 @@ function principal() {
     r = { decision: 'deny', salida: salida('deny', git.salteadasPorPlazo() > 0 ? SIN_TIEMPO : ROTO) };
   }
   if (r.decision !== 'deny' && git.salteadasPorPlazo() > 0) r = { decision: 'deny', salida: salida('deny', SIN_TIEMPO) };
+  if (r.decision === 'ask' && r.pase) dejarPase(r.pase);
   if (r.decision !== 'nada') process.stdout.write(`${JSON.stringify(r.salida)}\n`);
 }
 
@@ -452,5 +469,5 @@ if (require.main === module) {
     process.exitCode = 2;
   }
 } else {
-  module.exports = { HERRAMIENTAS, SIN_VENTANA, CON_VENTANA, ID, ROTO, A_UN_OBRERO, MOTIVOS, CARPETA_SESIONES, ARCHIVO_PASE, PASE_MS, esDeAprobar, queFirma, salida, decidir };
+  module.exports = { HERRAMIENTAS, SIN_VENTANA, CON_VENTANA, ID, ROTO, A_UN_OBRERO, MOTIVOS, CARPETA_SESIONES, ARCHIVO_PASE, PASE_MS, esDeAprobar, queFirma, salida, decidir, dejarPase };
 }

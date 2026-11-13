@@ -932,3 +932,21 @@ test('A5.4 en la PC: si el plazo propio no le alcanzó (una consulta a git que n
   const sano = instalar();
   assert.equal(JSON.parse(correr(sano, W(path.join(sano.home, '.claude', 'settings.json'), 'x', 'default', r)).stdout).hookSpecificOutput.permissionDecision, 'ask');
 });
+
+test('red team y revisor A (ALTO): sed con la i en un grupo, --in-pl, w/e en el programa, y awk que redirige, escriben: no son lectura', () => {
+  const p = repo('obrero');
+  fs.mkdirSync(path.join(p, '.claude', 'hooks'), { recursive: true });
+  fs.writeFileSync(path.join(p, '.claude', 'hooks', 'x.cjs'), '1');
+  for (const c of ["sed -Ei 's/a/b/' .claude/hooks/x.cjs", "sed -ni 's/a/b/p' .claude/hooks/x.cjs", "sed -ri.bak 's/a/b/' .claude/hooks/x.cjs", "sed --in-pl 's/a/b/' .claude/hooks/x.cjs", "sed 's/a/b/w .claude/settings.json' .claude/hooks/x.cjs", "sed '1e rm -rf .' .claude/hooks/x.cjs", "awk '{print \"x\" > FILENAME}' .claude/hooks/x.cjs", "gawk --include=inplace 1 .claude/hooks/x.cjs", "awk '{system(\"rm x\")}' .claude/hooks/x.cjs"]) {
+    assert.equal(dA(bash(c, 'auto', p)).id, 'secretos:frenos-del-proyecto', c);
+  }
+  // y sobre el settings de la PC, en cualquier sesión: no pasa callado
+  assert.notEqual(dA(bash(`sed -ri 's/block/continue/' ${S.HOME}/.claude/settings.json`, 'default', repo())).decision, 'nada');
+  // leer sigue pasando
+  for (const c of ["sed -n '1,40p' .claude/hooks/x.cjs", "sed -E 's/a/b/' .claude/hooks/x.cjs", "awk '{print $1}' .claude/hooks/x.cjs"]) assert.equal(dA(bash(c, 'auto', p)).decision, 'nada', c);
+});
+
+test('A8 (R19): la línea de PowerShell para cargar un secreto trae -ExecutionPolicy Bypass', () => {
+  const r = dA(bash('echo $GH_TOKEN', 'default', repo()));
+  assert.match(r.motivo, /powershell -NoProfile -ExecutionPolicy Bypass -File /);
+});

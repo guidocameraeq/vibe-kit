@@ -340,7 +340,7 @@ function varsEn(texto) {
 // ---------------------------------------------------------------- los mensajes
 
 const LINEA_SH = 'bash ~/.claude/hooks/kit/cargar-secreto.sh NOMBRE';
-const LINEA_PS = 'powershell -File $env:USERPROFILE\\.claude\\hooks\\kit\\cargar-secreto.ps1 NOMBRE';
+const LINEA_PS = 'powershell -NoProfile -ExecutionPolicy Bypass -File $env:USERPROFILE\\.claude\\hooks\\kit\\cargar-secreto.ps1 NOMBRE'; // A8, R19
 const MSG_CLAVE =
   'no lo escribas ni lo pegues: pedile al humano `cargar-secreto NOMBRE` y usá el comando o la variable. ' +
   `Git Bash: \`${LINEA_SH}\` · PowerShell: \`${LINEA_PS}\``;
@@ -389,11 +389,27 @@ function decidir(entrada, opciones = {}) {
   if (s.decision === 'ask' && a.decision === 'ask') {
     // rt A, 10: un solo clic acepta las dos: la ventana dice las dos, la firma primero
     const motivo = `${a.salida.hookSpecificOutput.permissionDecisionReason} Además: ${s.motivo}`;
+    dejarPaseSi(a, opciones);
     return { ...s, motivo, salida: salidaTool('ask', motivo) };
   }
   if (s.decision === 'ask') return s;
-  if (a.decision === 'ask') return { ...a, id: 'cambios:aprobar' };
+  if (a.decision === 'ask') {
+    dejarPaseSi(a, opciones);
+    return { ...a, id: 'cambios:aprobar' };
+  }
   return s;
+}
+
+// El pase de la firma lo deja quien decide al final, y solo si sale la pregunta (revisor de la tanda A, 7).
+function dejarPaseSi(a, opciones) {
+  if (!a.pase || opciones.pase === false) return;
+  // con los frenos del kit en el proyecto, el pase lo deja su portero (que sabe si otro freno del proyecto niega)
+  if (fs.existsSync(path.join(path.dirname(a.pase.comun), '.claude', 'hooks', 'niega-aprobar.cjs'))) return;
+  try {
+    require('./niega-aprobar.cjs').dejarPase(a.pase);
+  } catch (e) {
+    /* sin pase, el script no firma: lado seguro */
+  }
 }
 
 function decidirSecretos(entrada, opciones = {}) {
@@ -1323,10 +1339,17 @@ const LECTORES = new Set([
 ]);
 // sed y awk solo leen sin -i/--in-place (SPEC-paquete-8d A7 a, 43b: `sed -n '1,40p' .claude/hooks/x.cjs` se negaba ×7 en dos repos).
 // Un `w archivo` dentro del programa de sed sigue sin verse (es un patrón: lo de siempre).
-const EN_EL_LUGAR = (x) => /^-i/.test(x) || /^--in-place(?:=|$)/.test(x) || x === 'inplace';
+// Red team y revisor de la tanda A (ALTO): la `i` dentro de un grupo (`-Ei`, `-ni`), `--in-pl` abreviado, el comando `w`/`W`/`e`
+// de sed y la redirección o `system` adentro del programa de awk también escriben: con cualquiera de esos, no es lectura.
+const SED_EN_EL_LUGAR = (x) => /^-[A-Za-z]*i/.test(x) || /^--i/.test(x);
+const AWK_EN_EL_LUGAR = (x) => /^-i/.test(x) || /^--i/.test(x) || x === 'inplace';
+const SED_ESCRIBE = /(?:^|[;{}\n0-9$]|\/[gpIiMme0-9]*)\s*[wWe](?:\s|$)/; // con dirección (`1e …`, `$w x`) también
+const AWK_ESCRIBE = /[>|]|\bsystem\s*\(|\bgetline\b/;
 function esLectorDeRuta(prog, argv, tok) {
   if (LECTORES.has(prog)) return true;
-  if ((prog === 'sed' || prog === 'awk' || prog === 'gawk') && !argv.slice(1).some(EN_EL_LUGAR)) return true;
+  const args = argv.slice(1);
+  if (prog === 'sed' && !args.some(SED_EN_EL_LUGAR) && !args.some((x) => x !== tok && SED_ESCRIBE.test(x))) return true;
+  if ((prog === 'awk' || prog === 'gawk') && !args.some(AWK_EN_EL_LUGAR) && !args.some((x) => x !== tok && AWK_ESCRIBE.test(x))) return true;
   if (prog === 'git') {
     const { sub } = subGit(argv);
     return ['diff', 'log', 'show', 'status', 'hash-object', 'grep', 'ls-files', 'blame', 'cat-file'].includes(sub);
