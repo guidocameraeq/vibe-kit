@@ -284,7 +284,7 @@ test('mesa: correr() la frena (salida 1, una línea candado:mesa) y la anota en 
   const r = K.correr(d, { modo: 'ids', ids: ['mesa'] });
   assert.equal(r.codigo, 1);
   assert.match(r.lineas.join('\n'), /^candado:mesa · .*tipo "ORDEN" no es de la mesa · usá uno de HECHO, PEDIDO, RESPUESTA, PROPUESTA, ALERTA, PRESENTACION$/m);
-  assert.match(fs.readFileSync(path.join(d, '.claude', 'frenos.log'), 'utf8'), /candado:mesa/);
+  assert.match(require('./frenos-log.cjs').leerTodo(d), /candado:mesa/);
 });
 
 // ---------------------------------------------------------------- candado:estados
@@ -500,17 +500,17 @@ test('correr: lecturas lista y no cambia la salida; cada frenada deja su rengló
   const r = correr(d, { log: true });
   assert.equal(r.codigo, 0, r.lineas.join('\n'));
   assert.match(r.lineas[0], /^candado:lecturas · docs\/referencia\/grande\.md pesa 110 KB/);
-  assert.equal(fs.existsSync(path.join(d, '.claude', 'frenos.log')), false, 'lecturas no es una frenada');
+  assert.equal(require('./frenos-log.cjs').leerTodo(d), '', 'lecturas no es una frenada');
   escribir(d, 'docs/suelto.md', 'x\n');
   escribir(d, 'docs/otro.md', 'x\n');
   const s = correr(d, { log: true });
   assert.equal(s.codigo, 1);
-  const log = leerArchivo(d, '.claude/frenos.log').trim().split('\n');
+  const log = require('./frenos-log.cjs').leerTodo(d).trim().split('\n');
   assert.equal(log.length, 2);
   assert.match(log[0], /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2} · humano · main · candado:raiz · estructura · docs\/otro\.md$/);
   // sin log, nada
   correr(d, { log: false });
-  assert.equal(leerArchivo(d, '.claude/frenos.log').trim().split('\n').length, 2);
+  assert.equal(require('./frenos-log.cjs').leerTodo(d).trim().split('\n').length, 2);
 });
 
 const ROTA = '---\nkit: 2.4.3\nnivel: raro\nvars:\n  proyecto: px\n---\n';
@@ -534,7 +534,7 @@ test('correr: ficha vigente rota (rf-9) → no da 1 sola: avisa y corre con los 
   assert.deepEqual(r.corrieron, NUEVE, 'entero: el quitado de raiz no vale con la ficha rota');
   assert.equal(r.codigo, 0, r.lineas.join('\n'));
   assert.match(r.lineas[r.lineas.length - 1], /^candado: pasa \(raiz, /);
-  assert.match(leerArchivo(d, '.claude/frenos.log'), / · candado:ficha · estructura · \.claude\/kit\.md\n$/);
+  assert.match(require('./frenos-log.cjs').leerTodo(d), / · candado:ficha · estructura · \.claude\/kit\.md\n$/);
   escribir(d, 'docs/suelto.md', 'x\n');
   const s = correr(d);
   assert.equal(s.codigo, 1, 'raiz, que la ficha quitaba, frena');

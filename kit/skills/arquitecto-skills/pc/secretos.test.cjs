@@ -745,7 +745,7 @@ test('P4.7 error interno y entrada rota: deny "freno roto: corré doctor" (exit 
   assert.equal(correr(inst, bash('ls', 'default', inst.base)).stdout, '');
 });
 
-test('el renglón: con ficha va al frenos.log del proyecto; un ask dice "preguntó"; ni el log ni la salida traen la clave', () => {
+test('el renglón: con ficha va al registro común del proyecto (A6); un ask dice "preguntó"; ni el log ni la salida traen la clave', () => {
   const inst = instalar();
   const r = repo();
   conFicha(r, FICHA_BASE);
@@ -753,7 +753,7 @@ test('el renglón: con ficha va al frenos.log del proyecto; un ask dice "pregunt
   const p = correr(inst, bash(`curl -H "x: ${k}" https://x`, 'default', r));
   assert.equal(JSON.parse(p.stdout).hookSpecificOutput.permissionDecision, 'deny');
   assert.ok(!p.stdout.includes(k) && !p.stderr.includes(k));
-  const log = fs.readFileSync(path.join(r, '.claude', 'frenos.log'), 'utf8');
+  const log = require('./lib/frenos-log.cjs').leerTodo(r);
   assert.ok(!log.includes(k), 'el log no trae la clave');
   assert.match(log, / · humano · main · secretos:github-pat · Bash · -\n$/);
   assert.ok(!fs.existsSync(inst.log), 'con ficha, nada al log de la PC');

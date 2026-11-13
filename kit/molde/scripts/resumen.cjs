@@ -184,14 +184,11 @@ function medimos(raiz, m) {
   ];
 }
 
-// Los frenos de hoy por tipo (el id de cada renglón de frenos.log), sin el renglón de los `aprobar`, que no es un freno.
+// Los frenos de hoy por tipo (el id de cada renglón del registro), sin el renglón de los `aprobar`, que no es un freno. Lee los dos
+// lugares (A6, SPEC-paquete-8d): el versionado (la firma) y el común (<git común>/kit-frenos.log, lo de todos los días).
 function frenosDelDia(raiz, fecha) {
-  let t;
-  try {
-    t = fs.readFileSync(frenosLog.rutaAbsoluta(raiz), 'utf8');
-  } catch (e) {
-    return ['— (sin frenos.log)'];
-  }
+  const t = frenosLog.leerTodo(raiz);
+  if (!t) return ['— (sin registro de frenos)'];
   const cuenta = new Map();
   for (const l of t.replace(/\r\n/g, '\n').split('\n')) {
     if (!l.startsWith(`${fecha}T`)) continue;

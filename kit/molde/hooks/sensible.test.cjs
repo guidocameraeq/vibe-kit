@@ -115,13 +115,8 @@ const entrada = (cwd, command, extra = {}) => ({
   permission_mode: 'default',
   ...extra,
 });
-const log = (d) => {
-  try {
-    return fs.readFileSync(path.join(d, '.claude', 'frenos.log'), 'utf8');
-  } catch (e) {
-    return '';
-  }
-};
+// A6: lo que niega o pregunta va al registro común (<git común>/kit-frenos.log); el versionado queda para la firma.
+const log = (d) => require('./lib/frenos-log.cjs').leerTodo(d);
 const RE_RENGLON = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2} · (\S+) · (\S+) · (pregunta:[a-z-]+) · (Bash|PowerShell) · (.+)\n$/;
 
 // decide en el proceso (rápido): la decisión, el id y el renglón nuevo del log.
@@ -305,7 +300,9 @@ test('criterio 6: ask en default, acceptEdits, plan y auto, con humano y con obr
       }
     }
   }
-  assert.equal(log(P).includes('modulo/x--1'), false, 'el renglón del worktree queda en el worktree');
+  // A6: el renglón del worktree va al registro común (compartido con la principal), no al versionado de nadie
+  assert.equal(log(P).includes('modulo/x--1'), true);
+  assert.ok(!fs.existsSync(path.join(w, '.claude', 'frenos.log')) || !fs.readFileSync(path.join(w, '.claude', 'frenos.log'), 'utf8').includes('preguntó'), 'el versionado del worktree, sin renglones');
 });
 
 test('PARADA: nocturno (en cualquier modo), bypassPermissions, dontAsk, sin modo y modo desconocido → deny', () => {

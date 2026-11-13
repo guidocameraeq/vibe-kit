@@ -138,8 +138,12 @@ test('frenos: los números salen de frenos.log del día, por tipo (el renglón d
   assert.doesNotMatch(secc, /cambios:aprobar/);
   // sin frenos hoy y sin archivo
   assert.match(resumen(dir, [], { ahora: new Date(2026, 10, 5, 19, 0, 0) }).out, /- 0 frenos hoy/);
+  // A6: los renglones del registro común (fuera del árbol) también cuentan
+  fs.appendFileSync(path.join(dir, '.git', 'kit-frenos.log'), `${HOY}T11:00:00-03:00 · obrero · modulo/m1--01 · git-seguro:push · Bash · push\n`);
+  assert.match(resumen(dir, ['--forzar'], {}).out.split('\n## ').find((s) => s.startsWith('Lo que el método atajó')), /- total: 4 freno\(s\)[\s\S]*- git-seguro:push: 1/);
+  fs.rmSync(path.join(dir, '.git', 'kit-frenos.log'));
   fs.rmSync(path.join(dir, '.claude', 'frenos.log'));
-  assert.match(resumen(dir, ['--forzar'], {}).out, /— \(sin frenos\.log\)/);
+  assert.match(resumen(dir, ['--forzar'], {}).out, /— \(sin registro de frenos\)/);
 });
 
 test('mesa: sin mesa.cjs, "— (sin mesa todavía)"; con él, lo que dice acordados', () => {

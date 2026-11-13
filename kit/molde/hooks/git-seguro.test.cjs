@@ -143,13 +143,8 @@ function correr(e, o = {}) {
   const out = r.stdout || '';
   return { codigo: r.status, out, json: out.trim() ? JSON.parse(out) : null, stderr: r.stderr };
 }
-const log = (d) => {
-  try {
-    return fs.readFileSync(path.join(d, '.claude', 'frenos.log'), 'utf8');
-  } catch (e) {
-    return '';
-  }
-};
+// A6: lo que niega va al registro común (<git común>/kit-frenos.log); el versionado queda para la firma.
+const log = (d) => require('./lib/frenos-log.cjs').leerTodo(d);
 
 const FICHA = '---\nkit: 2.4.3\nnivel: estandar\nvars:\n  proyecto: px\n---\n';
 const FICHA_ROTA = '---\nkit: 2.4.3\nnivel: estandar\nvars:\n  proyecto: x\ncolorcito:\n\ta: b\n---\n';
@@ -1362,7 +1357,7 @@ test('ficha rota (4.7, caso 2): frena lo de fábrica, nada quitado, y el motivo 
 
 const RE_RENGLON = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2} · (\S+) · (\S+) · hook:git-seguro\/(\S+) · (Bash|PowerShell) · (.+)$/;
 
-test('el hook real: deny en JSON, salida 0, un renglón por caso en .claude/frenos.log, sin el comando', () => {
+test('el hook real: deny en JSON, salida 0, un renglón por caso en el registro común, sin el comando', () => {
   const { d } = conRemoto({ '.claude/kit.md': FICHA });
   const r = correr(entrada(d, 'git stash push -m "secreto-de-prueba"'));
   assert.equal(r.codigo, 0, r.stderr);

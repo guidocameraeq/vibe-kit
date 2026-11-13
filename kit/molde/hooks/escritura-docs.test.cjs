@@ -96,13 +96,8 @@ function correr(e, o = {}) {
   if (out.trim()) json = JSON.parse(out);
   return { codigo: r.status, out, json, stderr: r.stderr };
 }
-const log = (d) => {
-  try {
-    return fs.readFileSync(path.join(d, '.claude', 'frenos.log'), 'utf8');
-  } catch (e) {
-    return '';
-  }
-};
+// A6: lo que niega un freno va al registro común (<git común>/kit-frenos.log); el versionado queda para la firma.
+const log = (d) => require('./lib/frenos-log.cjs').leerTodo(d);
 const RE_RENGLON = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2} · (\S+) · (\S+) · candado:raiz · Write · (.+)$/;
 
 function pasa(d, filePath, o = {}) {
@@ -210,7 +205,9 @@ test('worktree: cwd en el worktree (o en una subcarpeta), lo escrito ahí y en e
   const r = frena(wt, path.join(wt, 'docs', 'notas.md'), msj('docs/notas.md'));
   assert.match(r.renglon, RE_RENGLON);
   assert.equal(RE_RENGLON.exec(r.renglon)[2], 'worktree-w1');
-  assert.equal(log(d), '', 'el principal no recibe el renglón del worktree');
+  // A6: el renglón va al registro común (compartido por la principal y sus worktrees); ningún versionado se ensucia.
+  assert.equal(log(d), `${r.renglon}\n`);
+  assert.equal(g(wt, 'status', '--porcelain'), '');
   frena(wt, path.join(wt, 'docs', 'specs', 'a.md'), msj('docs/specs/'), { cwd: path.join(wt, 'src') });
   pasa(wt, path.join(wt, 'docs', 'TODO.md'));
   pasa(wt, path.join(wt, 'docs', 'modulos', 'x', 'README.md'));
@@ -306,7 +303,7 @@ test('el renglón: fecha con zona · rol · rama · candado:raiz · Write · rut
 
 test('sin poder escribir el renglón, el freno vale igual', () => {
   const d = repo({ '.claude/kit.md': ficha() });
-  fs.mkdirSync(path.join(d, '.claude', 'frenos.log', 'es-una-carpeta'), { recursive: true });
+  fs.mkdirSync(path.join(d, '.git', 'kit-frenos.log', 'es-una-carpeta'), { recursive: true });
   const r = correr(entrada(d, path.join(d, 'docs', 'notas.md')));
   assert.equal(r.codigo, 0);
   assert.equal(r.json.hookSpecificOutput.permissionDecision, 'deny');

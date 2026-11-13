@@ -122,7 +122,11 @@ function sellarAMano(d, id, o = {}) {
   const freno = o.freno || frenosLog.renglon(datos, ahora);
   const s = { sesion: 'sin-marca', fecha: frenosLog.fechaConZona(ahora), carpeta: o.carpeta || '.', rol: o.rol || 'humano', hash: C.hashSello(texto), freno };
   escribir(d, r, C.ponerCampos(texto, { estado: 'aprobado', aprobo: C.textoSello(s) }));
-  if (!o.sinLog) frenosLog.anotar(d, datos, ahora);
+  // a mano, en el versionado (A6: anotar mandaría un id que no es la firma al registro común; acá se simula al agente que escribe)
+  if (!o.sinLog) {
+    fs.mkdirSync(path.dirname(frenosLog.rutaAbsoluta(d)), { recursive: true });
+    fs.appendFileSync(frenosLog.rutaAbsoluta(d), `${frenosLog.renglon(datos, ahora)}\n`);
+  }
   g(d, 'add', '--', r);
   if (!o.sinLog) g(d, 'add', '--', '.claude/frenos.log');
   for (const [k, v] of Object.entries(o.extra || {})) {

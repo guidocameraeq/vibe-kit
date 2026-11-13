@@ -49,7 +49,8 @@ function proyecto() {
   return { d, base };
 }
 const correr = (cwd, ...args) => spawnSync(process.execPath, [SCRIPT, ...args], { cwd, encoding: 'utf8', env: process.env });
-const log = (d) => path.join(d, '.claude', 'frenos.log');
+// A6: el renglón va al registro común (<git común>/kit-frenos.log), fuera del árbol.
+const log = (d) => require('../hooks/lib/frenos-log.cjs').rutaComun(d);
 
 test('USO y mal llamado: sin base, opción rara o de más → salida 2', () => {
   const { d } = proyecto();

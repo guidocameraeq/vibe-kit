@@ -93,13 +93,8 @@ function correr(e, o = {}) {
   const out = r.stdout || '';
   return { codigo: r.status, out, json: out.trim() ? JSON.parse(out) : null, stderr: r.stderr };
 }
-const log = (d) => {
-  try {
-    return fs.readFileSync(path.join(d, '.claude', 'frenos.log'), 'utf8');
-  } catch (e) {
-    return '';
-  }
-};
+// A6: lo que niega o pregunta va al registro común (<git común>/kit-frenos.log); el versionado queda para la firma.
+const log = (d) => require('./lib/frenos-log.cjs').leerTodo(d);
 const RE_RENGLON = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2} · (\S+) · (\S+) · cambios:aprobar-negado · (Bash|PowerShell) · (.+)\n$/;
 
 function decide(d, e, decision, o = {}) {
@@ -207,14 +202,15 @@ test('.kit-rol de agente (cada uno, y uno que no se entiende) → deny aunque el
   }
 });
 
-test('desde un worktree con .kit-rol de obrero → deny, y el renglón queda en el worktree', () => {
+test('desde un worktree con .kit-rol de obrero → deny, y el renglón va al registro común (A6): ningún versionado se ensucia', () => {
   const d = repo({ '.claude/kit.md': FICHA });
   const w = path.join(d, '.claude', 'worktrees', 'w1');
   g(d, 'worktree', 'add', '-q', '-b', 'modulo/x--1', w);
   fs.writeFileSync(path.join(w, '.kit-rol'), 'obrero\n');
   const r = niega(w, entrada(w, APROBAR), 'rama de obrero'); // A2.3: la rama de obrero niega antes de mirar el .kit-rol
   assert.equal(r.rama, 'modulo/x--1');
-  assert.equal(log(d), '');
+  assert.match(log(d), /· obrero · modulo\/x--1 · cambios:aprobar-negado ·/);
+  assert.ok(!fs.existsSync(path.join(w, '.claude', 'frenos.log')) || fs.readFileSync(path.join(w, '.claude', 'frenos.log'), 'utf8') === '', 'el versionado del worktree, limpio');
 });
 
 test('ficha rota (4.7, caso 2) → deny "ficha rota" con dónde y "corré doctor"', () => {

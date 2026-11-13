@@ -121,3 +121,65 @@ test('sin "ahora" usa la hora de ahora', () => {
   assert.match(f, RE_FECHA);
   assert.ok(Math.abs(new Date(f).getTime() - antes) < 5000);
 });
+
+// A6 (SPEC-paquete-8d, tracker 44): el registro se parte. La firma (el id exacto `cambios:aprobar`) queda en el versionado;
+// todo lo demás va a <carpeta común de git>/kit-frenos.log, sin versionar, compartido por la principal y sus worktrees.
+const { execFileSync } = require('child_process');
+const git = (cwd, ...a) => execFileSync('git', a, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+function repo() {
+  const d = raiz();
+  git(d, 'init', '-q', '-b', 'main');
+  git(d, 'config', 'user.email', 'p@p');
+  git(d, 'config', 'user.name', 'p');
+  git(d, 'config', 'core.autocrlf', 'false');
+  fs.mkdirSync(path.join(d, '.claude'));
+  fs.writeFileSync(path.join(d, '.claude', 'frenos.log'), '');
+  git(d, 'add', '-A');
+  git(d, 'commit', '-q', '-m', 'base');
+  return d;
+}
+const leerComun = (d) => fs.readFileSync(path.join(d, '.git', 'kit-frenos.log'), 'utf8');
+
+test('A6: un freno que niega va al común y no cambia git status', () => {
+  const d = repo();
+  const linea = F.anotar(d, { ...BASE, id: 'git-seguro:push-a-defecto' }, AHORA);
+  assert.equal(git(d, 'status', '--porcelain'), '');
+  assert.equal(leerComun(d), `${linea}\n`);
+  assert.equal(leer(d), '');
+  assert.equal(F.rutaDe(d, 'git-seguro:x'), path.join(d, '.git', 'kit-frenos.log'));
+});
+
+test('A6: la firma (cambios:aprobar, el id exacto) sigue en el versionado; aprobar-negado es un freno más', () => {
+  const d = repo();
+  const firma = F.anotar(d, { ...BASE, id: 'cambios:aprobar' }, AHORA);
+  assert.equal(leer(d), `${firma}\n`);
+  const negado = F.anotar(d, { ...BASE, id: 'cambios:aprobar-negado' }, AHORA);
+  const otro = F.anotar(d, { ...BASE, id: ' cambios:aprobar ' }, AHORA); // con espacios no es el id exacto… pero el campo se recorta
+  assert.equal(leer(d), `${firma}\n${otro}\n`);
+  assert.equal(leerComun(d), `${negado}\n`);
+  assert.equal(F.rutaDe(d, 'cambios:aprobar'), F.rutaAbsoluta(d));
+});
+
+test('A6: desde un worktree, lo de todos los días va al común de la principal; la firma, al versionado del worktree', () => {
+  const d = repo();
+  const wt = path.join(d, '.claude', 'worktrees', 'w');
+  git(d, 'worktree', 'add', '-q', '-b', 'modulo/w', wt);
+  const linea = F.anotar(wt, { ...BASE, id: 'sensible:x' }, AHORA);
+  assert.equal(leerComun(d), `${linea}\n`);
+  assert.equal(git(wt, 'status', '--porcelain'), '');
+  F.anotar(wt, { ...BASE, id: 'cambios:aprobar' }, AHORA);
+  assert.match(fs.readFileSync(path.join(wt, '.claude', 'frenos.log'), 'utf8'), /cambios:aprobar/);
+});
+
+test('A6: leerTodo junta los dos lugares (el versionado primero); sin .git, todo al versionado como antes', () => {
+  const d = repo();
+  const a = F.anotar(d, { ...BASE, id: 'cambios:aprobar' }, AHORA);
+  const b = F.anotar(d, { ...BASE, id: 'candado:raiz' }, AHORA);
+  assert.equal(F.leerTodo(d), `${a}\n${b}\n`);
+  const s = raiz(); // sin repo: no hay común
+  const c = F.anotar(s, BASE, AHORA);
+  assert.equal(leer(s), `${c}\n`);
+  assert.equal(F.leerTodo(s), `${c}\n`);
+  assert.equal(F.rutaComun(s), null);
+  assert.equal(F.leerTodo(raiz()), '');
+});

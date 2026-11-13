@@ -150,7 +150,7 @@ test('--rango con un extremo que no es un commit del repo → 2 con el motivo cl
     assert.match(r.err, re);
     assert.equal(r.out, '');
   }
-  assert.equal(fs.existsSync(path.join(d, '.claude', 'frenos.log')), false);
+  assert.equal(!!require('../hooks/lib/frenos-log.cjs').leerTodo(d), false);
 });
 
 test('--indice: un hook cambiado en el disco sin git add → 0; con git add → 1 con "lo que lleva este commit (el índice)"', () => {
@@ -158,13 +158,13 @@ test('--indice: un hook cambiado en el disco sin git add → 0; con git add → 
   escribir(d, '.claude/hooks/x.cjs', 'otro\n');
   const v = cli(d, ['barreras', '--indice', '--sin-log']);
   assert.equal(v.codigo, 0, v.out);
-  assert.equal(v.out, 'candado: en verde (barreras) · solo el índice\n');
+  assert.equal(v.out, 'candado: pasa (barreras) · solo el índice\n');
   assert.equal(cli(d, ['barreras', '--sin-log']).codigo, 1, 'a secas sigue mirando el disco');
   g(d, 'add', '.claude/hooks/x.cjs');
   const r = cli(d, ['candado:barreras', '--indice']);
   assert.equal(r.codigo, 1);
   assert.match(r.out, /^candado:barreras · lo que lleva este commit \(el índice\) toca hooks \(hooks:\.claude\/hooks\/x\.cjs\) sin un aprobado/);
-  assert.match(fs.readFileSync(path.join(d, '.claude', 'frenos.log'), 'utf8'), / · candado:barreras · estructura · \.claude\/hooks\/x\.cjs\n$/);
+  assert.match(require('../hooks/lib/frenos-log.cjs').leerTodo(d), / · candado:barreras · estructura · \.claude\/hooks\/x\.cjs\n$/);
 });
 
 test('--rango: un commit malo en el medio → 1; sin él o vacío → 0', () => {
@@ -180,7 +180,7 @@ test('--rango: un commit malo en el medio → 1; sin él o vacío → 0', () => 
   assert.match(r.out, new RegExp(`^candado:barreras · el commit ${malo.slice(0, 12)} toca settings \\(allow:Bash\\(\\*\\)\\)`));
   const v = cli(d, ['barreras', '--rango', `${malo}..HEAD`, '--sin-log']);
   assert.equal(v.codigo, 0, v.out);
-  assert.match(v.out, /^candado: en verde \(barreras\) · el rango [0-9a-f]{12}\.\.[0-9a-f]{12}\n$/);
+  assert.match(v.out, /^candado: pasa \(barreras\) · el rango [0-9a-f]{12}\.\.[0-9a-f]{12}\n$/);
   assert.equal(cli(d, ['barreras', '--rango', 'HEAD..HEAD', '--sin-log']).codigo, 0);
   assert.equal(cli(d, ['barreras', '--rango', `HEAD..${base}`, '--sin-log']).codigo, 0);
 });
@@ -191,7 +191,7 @@ test('0 en verde con una línea; 1 con una línea "candado:<id> · qué pasa · 
   const d = repo();
   const v = cli(d, ['--sin-log']);
   assert.equal(v.codigo, 0);
-  assert.match(v.out, /^candado: en verde \(raiz, rutas, topes, mesa, estados, lecturas, estado-viejo, barreras, datos\)\n$/);
+  assert.match(v.out, /^candado: pasa \(raiz, rutas, topes, mesa, estados, lecturas, estado-viejo, barreras, datos\)\n$/);
   escribir(d, 'docs/suelto.md', 'x\n');
   escribir(d, '.claude/settings.json', '{"permissions": {"allow": ["Bash(*)"]}}\n');
   const r = cli(d, []);
@@ -201,7 +201,7 @@ test('0 en verde con una línea; 1 con una línea "candado:<id> · qué pasa · 
   assert.ok(lineas.every((l) => /^candado:[a-z-]+ · .+ · .+$/.test(l)));
   assert.match(lineas[0], /^candado:raiz · `docs\/suelto\.md` no va ahí · /);
   assert.match(lineas[1], /^candado:barreras · lo que está por commitearse toca settings \(allow:Bash\(\*\)\) sin un aprobado sellado/);
-  const log = fs.readFileSync(path.join(d, '.claude', 'frenos.log'), 'utf8').trim().split('\n');
+  const log = require('../hooks/lib/frenos-log.cjs').leerTodo(d).trim().split('\n');
   assert.deepEqual(log.map((l) => l.split(' · ').slice(3)), [['candado:raiz', 'estructura', 'docs/suelto.md'], ['candado:barreras', 'estructura', '.claude/settings.json']]);
   // ids sueltos: solo esos
   const s = cli(d, ['candado:barreras', '--sin-log']);
@@ -326,7 +326,7 @@ test('4.7 · sin remoto ni ficha → 0 sin trabar ("sin ficha: candado apagado")
   const r = correr(d, ESTRUCTURA, []);
   assert.equal(r.codigo, 0, r.out + r.err);
   assert.equal(r.out, 'sin ficha: candado apagado\n');
-  assert.equal(fs.existsSync(path.join(d, '.claude', 'frenos.log')), false);
+  assert.equal(!!require('../hooks/lib/frenos-log.cjs').leerTodo(d), false);
 });
 
 test('el script instanciado corre igual que en el molde: barreras en rojo da 1 y la línea, y se registra (herramienta estructura)', () => {
@@ -341,7 +341,7 @@ test('el script instanciado corre igual que en el molde: barreras en rojo da 1 y
   const r = correr(d, ESTRUCTURA, ['barreras']);
   assert.equal(r.codigo, 1, r.out);
   assert.match(r.out, /^candado:barreras · lo que está por commitearse toca settings/);
-  assert.match(fs.readFileSync(path.join(d, '.claude', 'frenos.log'), 'utf8'), / · candado:barreras · estructura · \.claude\/settings\.json\n$/);
+  assert.match(require('../hooks/lib/frenos-log.cjs').leerTodo(d), / · candado:barreras · estructura · \.claude\/settings\.json\n$/);
   // editar el propio script del candado también es barrera (r4-3)
   fs.unlinkSync(path.join(d, '.claude', 'settings.json'));
   escribir(d, '.claude/scripts/estructura.cjs', '// editado\n');
@@ -370,7 +370,7 @@ test('rf-7: un commit hecho con --no-verify (el pre-commit no corrió) no sube: 
   assert.match(n.out, new RegExp(`el commit ${malo.slice(0, 12)} toca hooks`));
   const v = cli(d, ['barreras', '--rango', `${'0'.repeat(40)}..${base}`, '--sin-log']);
   assert.equal(v.codigo, 0, v.out);
-  assert.match(v.out, /^candado: en verde \(barreras\) · el rango nuevo \.\.[0-9a-f]{12}\n$/);
+  assert.match(v.out, /^candado: pasa \(barreras\) · el rango nuevo \.\.[0-9a-f]{12}\n$/);
   const z = cli(d, ['barreras', '--rango', `HEAD..${'0'.repeat(40)}`]);
   assert.equal(z.codigo, 2);
   assert.match(z.err, /no es un commit de este repo/);
