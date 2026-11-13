@@ -346,7 +346,7 @@ test('inicio y estado: con rol humano, noche.cjs volvi corre SIEMPRE, sin la con
     assert.match(l, /corré \*\*siempre\*\* `node \.claude\/scripts\/noche\.cjs volvi`/, n);
     assert.match(l, /no hay `\.kit-rol`/, n);
     assert.doesNotMatch(l, /existe `\.kit-noche`/, `${n}: sin la condición de la marca`);
-    assert.match(l, /Con otro rol, no lo corras/, n);
+    assert.match(l, /Con otro rol, no los? corras/, n);
   }
 });
 
@@ -581,13 +581,16 @@ test('cierre: rojo se arregla y nunca se commitea encima; sin node o sin salida,
   assert.match(t, /candado:<id> · qué pasa · qué hacer/);
 });
 
-test('cierre: el commit es por rutas e incluye frenos.log', () => {
+test('cierre: el commit es por rutas y ya no lleva frenos.log (A6, B4.8: lo de todos los días va al registro común)', () => {
   const t = TEXTOS.cierre;
   const adds = [...t.matchAll(/git add -- [^\n]*/g)].map((m) => m[0]);
   assert.ok(adds.length >= 1);
-  assert.ok(adds.every((l) => l.includes('.claude/frenos.log')), 'el add lleva frenos.log');
+  assert.ok(adds.every((l) => !l.includes('frenos.log')), 'el add no lleva frenos.log');
+  assert.doesNotMatch(t, /frenos\.log/);
   assert.match(t, /git commit -m "[^"]*" -- <las mismas rutas>/);
-  assert.match(t, /otro commit por rutas con el archivo del cambio y `\.claude\/frenos\.log`/);
+  assert.match(t, /otro commit por rutas con el archivo del cambio\./);
+  for (const n of ['obrero', 'tramo']) assert.doesNotMatch(TEXTOS[n], /frenos\.log/, n);
+  assert.doesNotMatch(NUCLEO, /frenos\.log/);
 });
 
 test('cierre: las reglas de B §11', () => {
@@ -726,7 +729,7 @@ test('obrero: PARADA solo si se negó lo que el sub-paso necesita, sin rodeos; e
   assert.match(t, /PARADA = se negó algo que el sub-paso necesita/);
   assert.match(t, /Un comando compuesto negado se parte y se repite una vez/);
   assert.match(t, /Nunca un rodeo/);
-  assert.match(t, /Un solo commit por rutas con la evidencia y `\.claude\/frenos\.log`/);
+  assert.match(t, /Un solo commit por rutas con la evidencia, `git push/);
   assert.match(t, /git push origin modulo\/<x>--<ID>` por nombre/);
   assert.match(t, /CIERRE @<sha7>/);
   assert.match(t, /No corrés `\/cierre`/);
@@ -766,13 +769,16 @@ test('director: verificar e integrar en segundo plano; merge --no-ff del SHA de 
   const p9 = /^9\. \*\*Termina el módulo\.\*\*[^\n]*$/m.exec(t);
   assert.ok(p9, 'el paso 9 existe');
   assert.match(p9[0], /integrar <x>` en segundo plano/);
-  assert.match(p9[0], /--ok-de-guido/);
+  assert.match(p9[0], /--con-ok/);
 });
 
-test('director: la apertura es del dueño por defecto y el director lanza solo con la línea de fondo de autorizado (D5-2, D5-19)', () => {
+test('director (8d B4.1): los obreros los lanzás vos, de fondo, con la línea de fondo de autorizado; la pestaña del dueño es la excepción (Apertura: dueño)', () => {
   const t = TEXTOS.director;
-  assert.match(t, /Por defecto la hace el dueño/);
-  assert.match(t, /Apertura: director/);
+  assert.match(t, /Los obreros los lanzás vos, de fondo/);
+  assert.match(t, /Apertura: dueño/);
+  assert.doesNotMatch(t, /Por defecto la hace el dueño/);
+  assert.doesNotMatch(t, /despertador|40 ?%|mudate|te mudás/i);
+  assert.ok(Buffer.byteLength(t) <= 8000);
   // 8b (1): la primera línea de fondo (auto); la de respaldo solo si auto no se deja lanzar; nunca otra
   assert.match(t, /primera línea de fondo que imprimió `autorizado`\*\*; si `auto` no se deja lanzar[^\n]*la de \*\*respaldo\*\*; nunca otra/);
   assert.match(t, /su pestaña abre en su modo/);
@@ -797,8 +803,11 @@ test('rf-3 y rf-5: el director pushea modulo/<x> después de cada commit del enc
   }
   assert.match(/^ {3}- \*\*Cancelar:\*\*[^\n]*$/m.exec(t)[0], /git push origin modulo\/<x>`/);
   const p9 = /^9\. [^\n]*$/m.exec(t)[0];
-  assert.match(p9, /dale al dueño la línea `node \.claude\/scripts\/worktree\.cjs cerrar <x>` para el checkout principal, después de cerrar esta sesión/);
-  assert.doesNotMatch(p9, /Sale 0: `node/, 'el director no corre cerrar desde su worktree');
+  // 8d B3.7: después de integrar, la sesión de cierre (noche.cjs cierre) y el parte; al dueño, ningún comando
+  assert.match(p9, /`node \.claude\/scripts\/noche\.cjs cierre <x>` y lanzá la línea `cierre de fondo:`/);
+  assert.match(p9, /mostrá el parte tal cual/);
+  assert.doesNotMatch(p9, /dale al dueño/);
+  assert.doesNotMatch(p9, /worktree\.cjs cerrar <x>`/, 'el director no cierra su carpeta: la cierra limpiar');
 });
 
 test('rf-1 y rf-7: el obrero para sin push ni commit ante un cancelado; la PARADA de presentar no commitea (obrero y núcleo)', () => {
@@ -821,9 +830,8 @@ test('director, paquete 8r: la tarea 0 (encargo 00) primero, la línea de fondo 
   const p6 = /^6\. \*\*Cierre del encargo\.\*\*[^\n]*$/m.exec(t)[0];
   assert.ok(p6.indexOf('git push origin modulo/<x>') < p6.indexOf('worktree.cjs cerrar <x>--<ID>'), 'push de la madre antes de cerrar (cerrar borra de origin lo mezclado en origin/<madre>)');
   const p9 = /^9\. \*\*Termina el módulo\.\*\*[^\n]*$/m.exec(t)[0];
-  assert.match(p9, /`después: \/cierre en tu carpeta principal …`/);
-  assert.ok(p9.indexOf('worktree.cjs integrar') < p9.indexOf('worktree.cjs cerrar <x>'), 'integrar y después cerrar');
-  assert.match(p9, /la de origin, ya mezclada/);
+  assert.match(p9, /`después: noche\.cjs cierre <x> …`/);
+  assert.ok(p9.indexOf('worktree.cjs integrar') < p9.indexOf('noche.cjs cierre <x>`'), 'integrar y después el cierre');
 });
 
 test('director: silencio (no contesta AVANCE), "me voy" en un bloque y Sesiones vivas en la ficha', () => {
@@ -839,12 +847,13 @@ test('director: silencio (no contesta AVANCE), "me voy" en un bloque y Sesiones 
 test('plantilla del encargo: los campos y las cinco secciones, en el orden congelado (P3.4)', () => {
   const campos = ['# Encargo <ID> · <x> · <título>', '- Partida: rama modulo/<x>--<ID> desde modulo/<x>@<sha7> · <AAAA-MM-DDTHH:MM±HH:MM>',
     '- Spec: docs/modulos/<x>/SPEC[-N].md:<línea>[-<línea>]', '- Skill: obrero', '- Modelo: sonnet | opus · Esfuerzo: low | medium | high · Por qué: <razón>',
-    '- Riesgo: bajo | alto · Por qué: <razón>', '- Apertura: Guido | director', '- Suscripción: <cuándo avisar, una línea> | —',
+    '- Riesgo: bajo | alto · Por qué: <razón>', '- Apertura: director', '- Director: director-<x>', // B4.1, B4.6 (Suscripción, opcional: fuera)
     '## Toca', '## Alcance', '## NO SE TOCA', '## AUTORIZADO', '## GATE'];
   const pos = campos.map((c) => PLANTILLA.indexOf(c));
   assert.ok(pos.every((p) => p >= 0), `falta: ${campos.filter((c, i) => pos[i] < 0).join(' | ')}`);
   assert.deepEqual([...pos].sort((a, b) => a - b), pos, 'orden');
-  // `Guido` es un valor del campo Apertura que lee el script: lo único permitido.
+  assert.match(PLANTILLA, /obrero: un encargo acotado que hace una sesión · tramo: un tramo grande/); // B4.5
+  assert.doesNotMatch(PLANTILLA, /Guido/);
   assert.deepEqual(SIN_PERSONA(datosDeProyecto(PLANTILLA)), []);
 });
 
@@ -1017,15 +1026,18 @@ test('los chequeos: marcasFueraDeLugar detecta una marca repetida, rota o dentro
 
 // ---------------------------------------------------------------- /estado
 
-test('estado: corre estado.cjs sin preguntar, muestra tal cual y el resumen del día va una sola vez', () => {
+test('estado (8d B2): corre estado.cjs sin preguntar, nombra las cuatro secciones en orden, limpia callado y ofrece el clic ahí', () => {
   const t = TEXTOS.estado;
   assert.match(t, /node \.claude\/scripts\/estado\.cjs <x>/);
   assert.match(t, /node \.claude\/scripts\/resumen\.cjs/);
   assert.match(t, /Nunca preguntes/);
   assert.match(t, /tal cual/);
-  assert.match(t, /una sola vez/);
-  assert.ok(Buffer.byteLength(t) < 3000, `${Buffer.byteLength(t)} bytes: la skill es corta`);
-  assert.doesNotMatch(t, /node \.claude\/scripts\/(cambios|worktree)\.cjs/, 'solo lee: no toca nada');
+  const pos = ['`TE NECESITO`', '`EL PLAN`', '`LO QUE SE HIZO`', '`LO QUE FALTA`'].map((s) => t.indexOf(s));
+  assert.ok(pos.every((p, i) => p >= 0 && (i === 0 || p > pos[i - 1])), JSON.stringify(pos));
+  assert.match(t, /`node \.claude\/scripts\/worktree\.cjs limpiar`/);
+  assert.match(t, /ofrecé hacerlo ahí: `git pull --ff-only`, `node \.claude\/scripts\/cambios\.cjs aprobar <id>`/);
+  assert.match(t, /nunca le des el comando para que lo corra él/);
+  assert.ok(Buffer.byteLength(t) < 3200, `${Buffer.byteLength(t)} bytes: la skill es corta`);
 });
 
 test('comandosRotos: estado.cjs y resumen.cjs no tienen subcomando; sus flags sí se miran contra el USO', () => {
@@ -1056,7 +1068,8 @@ test('rituales: smoke y release son contratos en kit/molde/rituales/, no skills 
 test('el CLAUDE.md del molde: autonomía con las 5, español, ruta absoluta, y más corto que el de antes (P3.7)', () => {
   const claude = fs.readFileSync(path.join(DIR_MOLDE, 'CLAUDE.md'), 'utf8').replace(/\r\n/g, '\n');
   assert.match(claude, /## Autonomía/);
-  assert.match(claude, /merge con el gate verde/);
+  assert.match(claude, /merge si el gate pasa/);
+  assert.match(claude, /nunca rojo ni verde/); // B6
   assert.match(claude, /publicar un release/);
   assert.match(claude, /Todo en español, narración incluida/);
   assert.match(claude, /ruta absoluta/);

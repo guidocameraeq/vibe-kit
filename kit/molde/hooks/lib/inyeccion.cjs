@@ -52,6 +52,9 @@ let tiempoBlame = TIEMPO_BLAME; // el de esta corrida (armar lo fija; las prueba
 const BOM = String.fromCharCode(0xfeff);
 
 const RECORDATORIO = 'Recordatorio: decí /inicio para el ritual de arranque (cruza esto con git); no toco nada sin tu OK.';
+// SPEC-paquete-8d B6 (D8d-16): la regla de cómo se le habla al dueño, en lo que inyecta el arranque: así le llega a toda sesión de
+// un repo adoptado (el actualizador nunca toca su CLAUDE.md).
+const HABLA = 'Al dueño, en criollo: "pasó" o "falló", nunca rojo ni verde; sin códigos sueltos; nunca un comando para que lo corra él: lo corre la sesión y, si hace falta su firma, es un clic.';
 const SIN_FICHA = 'sin ficha: valen los frenos de fábrica';
 const SIN_GIT = 'sin git: esta carpeta no es un repo (o git no está en esta PC) — sin edades, módulos por rama ni git';
 const GIT_SIN_TIEMPO = 'git no respondió a tiempo: sin ficha, edades, módulos por rama ni git';
@@ -739,7 +742,7 @@ function armar(opciones = {}) {
   if (gitOk) bloques.push(['=== git ==='].concat(bloqueGit({ raiz, pest, rv, rutas })));
 
   // 9 · el recordatorio de /inicio
-  bloques.push([RECORDATORIO]);
+  bloques.push([RECORDATORIO, HABLA]);
 
   // 10 · lo propio, con lo que sobre: lo primero que se recorta
   const unir = (bs) => bs.map((b) => b.join('\n')).join('\n\n');
@@ -782,6 +785,7 @@ module.exports = {
   lineaPapeles,
   TIEMPO_BLAME,
   RECORDATORIO,
+  HABLA,
   SIN_FICHA,
   GIT_SIN_TIEMPO,
   FICHA_SIN_TIEMPO,

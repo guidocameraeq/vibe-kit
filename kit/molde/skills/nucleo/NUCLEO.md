@@ -22,7 +22,7 @@ La primera línea es el tipo, en mayúsculas y **sin tilde** (con tilde se acept
 | `AVANCE` | obrero → director | `AVANCE @<sha7> · contexto <N> · falta <M>` (≤ 5 líneas) | un commit nuevo; no se contesta |
 | `CONSULTA` | obrero → director | `CONSULTA <tema>` + opciones y la recomendada | clase 2 |
 | `PARADA` | obrero → director | `PARADA @<sha7> · <por qué>` | la evidencia commiteada antes |
-| `CIERRE` | obrero → director | `CIERRE @<sha7>` + notas para el método | evidencia y `frenos.log` commiteados, rama pusheada |
+| `CIERRE` | obrero → director | `CIERRE @<sha7>` + notas para el método | evidencia commiteada, rama pusheada |
 | `ENCARGO` | director → obrero | `ENCARGO <ruta>@<sha7>` | la ruta existe en `modulo/<x>` |
 | `RESPUESTA` | director → obrero | `RESPUESTA <tema>` | contesta una CONSULTA; no ensancha nada |
 | `CORRECCION` | director → obrero | `CORRECCION <ruta>@<sha7>` | ídem ENCARGO; cancelar: `CORRECCION docs/modulos/<x>/README.md@<sha7> cancelado` |
@@ -55,7 +55,7 @@ De día, 30 min sin respuesta a un OK: PARADA al director. De noche no se espera
 
 ## 9. Cinco líneas fijas
 1. Antes de pedirle al dueño un paso a mano, una línea con por qué el agente no puede; si puede, lo hace.
-2. Todo texto al dueño o a otra sesión, narración incluida, **en español**.
+2. Todo texto al dueño o a otra sesión, narración incluida, **en español**; y al dueño, en criollo: "pasó" o "falló", nunca rojo ni verde; sin códigos sueltos; nunca un comando para que lo corra él: lo corre la sesión y, si hace falta su firma, es un clic.
 3. Al reanudar tras un corte, el obrero se vuelve a presentar solo al director.
 4. El andamiaje del propio proyecto (`CLAUDE.md`, skills, agentes, CI) lo editan los agentes, con el diff mostrado y su commit (clase 1 o 2); cambiar barreras es solo por pedido del dueño. Si la ficha dice `andamiaje:` y no es `agentes` (el valor por defecto), editar `CLAUDE.md`, skills o agentes es clase 3.
 5. CI sin máquina dos veces: correr local, declararlo y seguir.

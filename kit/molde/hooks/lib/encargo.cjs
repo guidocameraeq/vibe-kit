@@ -65,7 +65,9 @@ function tipoDe(palabra, filtro) {
 
 // ---------------------------------------------------------------- la plantilla del encargo (P3.4, D §15.2; congelada)
 
-const CAMPOS = ['Partida', 'Spec', 'Skill', 'Modelo', 'Riesgo', 'Apertura', 'Suscripción'];
+const CAMPOS = ['Partida', 'Spec', 'Skill', 'Modelo', 'Riesgo', 'Apertura', 'Suscripción', 'Director'];
+// SPEC-paquete-8d B4: Suscripción pasa a opcional (un obrero de fondo no manda mensajes) y Director es opcional (la plantilla lo trae).
+const OPCIONALES = ['Suscripción', 'Director'];
 const SECCIONES = ['Toca', 'Alcance', 'NO SE TOCA', 'AUTORIZADO', 'GATE'];
 const MODELOS = ['sonnet', 'opus'];
 const ESFUERZOS = ['low', 'medium', 'high'];
@@ -130,7 +132,8 @@ const LECTORES = {
     return { ok: true, datos: { ruta: m[1], desde: Number(m[3]), hasta: m[4] ? Number(m[4]) : Number(m[3]) } };
   },
   Skill(v) {
-    return v === 'obrero' ? { ok: true, datos: v } : { ok: false, por: 'tiene que decir obrero' };
+    // B4.5 (R7, REJ-017): obrero, un encargo acotado que hace una sesión; tramo, uno grande que conviene repartir entre subagentes.
+    return ['obrero', 'tramo'].includes(v) ? { ok: true, datos: v } : { ok: false, por: 'tiene que decir obrero o tramo' };
   },
   Modelo(v) {
     const p = v.split(' · ');
@@ -147,10 +150,18 @@ const LECTORES = {
     return { ok: true, datos: { riesgo: c.valor, porque: c.porque } };
   },
   Apertura(v) {
-    return ['Guido', 'director'].includes(v) ? { ok: true, datos: v } : { ok: false, por: 'tiene que ser Guido o director' };
+    // B4.1: director (lo lanza él, de fondo: el camino normal) o dueño (quiere esa pestaña); `Guido` es el alias viejo de dueño.
+    if (v === 'Guido') return { ok: true, datos: 'dueño' };
+    return ['director', 'dueño'].includes(v) ? { ok: true, datos: v } : { ok: false, por: 'tiene que ser director o dueño' };
   },
   'Suscripción'(v) {
     return v.trim() ? { ok: true, datos: v.trim() } : { ok: false, por: 'va una línea o —' };
+  },
+  // B4.6 (59): el nombre del director sale de la rama del módulo (director-<x>), no de la plataforma.
+  Director(v, n) {
+    const d = v.trim();
+    if (n && d !== `director-${n.x}`) return { ok: false, por: `es director-${n.x} (el nombre sale de la rama del módulo)` };
+    return /^director-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(d) ? { ok: true, datos: d } : { ok: false, por: 'es director-<x>' };
   },
 };
 
@@ -212,7 +223,7 @@ function leerEncargo(texto, nombre, carpeta) {
     }
     if (actual !== '(otra)') cuerpos[actual].push({ l, n: i + 1 });
   });
-  const faltan = CAMPOS.filter((c) => !Object.prototype.hasOwnProperty.call(crudos, c)).map((c) => `- ${c}:`);
+  const faltan = CAMPOS.filter((c) => !OPCIONALES.includes(c) && !Object.prototype.hasOwnProperty.call(crudos, c)).map((c) => `- ${c}:`);
   faltan.push(...SECCIONES.filter((s) => !cuerpos[s]).map((s) => `## ${s}`));
   if (faltan.length) errores.push(`faltan ${faltan.join(', ')}`);
   const campos = {};

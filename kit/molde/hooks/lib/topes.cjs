@@ -215,7 +215,7 @@ function revisarTopes(raiz, opciones = {}) {
   // 4 · lo que inyectaría el hook
   const r = iny.armar({ cwd: raiz, entrada: { cwd: raiz }, home: opciones.home, ahora: opciones.ahora });
   if (r.texto.length > PRESUPUESTO) {
-    falla('inyeccion', null, `el hook inyectaría ${r.texto.length} caracteres y el tope es ${PRESUPUESTO} — achicá el handoff, el TODO en rojo y naranja o las fichas activas`);
+    falla('inyeccion', null, `el hook inyectaría ${r.texto.length} caracteres y el tope es ${PRESUPUESTO} — achicá el handoff, lo urgente e importante del TODO o las fichas activas`);
   } else {
     const cortes = r.cortes.filter((c) => !(handoffGrande && c.que === 'el handoff'));
     if (cortes.length) {

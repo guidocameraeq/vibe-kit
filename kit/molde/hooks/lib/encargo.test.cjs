@@ -162,7 +162,7 @@ test('leerEncargo: la plantilla llena se lee entera (campos, Toca, AUTORIZADO, G
   assert.deepEqual(e.campos.spec, { ruta: 'docs/modulos/x/SPEC.md', desde: 12, hasta: 30 });
   assert.deepEqual(e.campos.modelo, { modelo: 'sonnet', esfuerzo: 'medium', porque: 'es mecánico' });
   assert.deepEqual(e.campos.riesgo, { riesgo: 'bajo', porque: 'no toca datos' });
-  assert.equal(e.campos.apertura, 'Guido');
+  assert.equal(e.campos.apertura, 'dueño'); // B4.1: Guido es el alias viejo de dueño
   assert.equal(e.campos.suscripcion, '—');
   assert.deepEqual(e.secciones.toca, { rutas: ['src/x/**'], recursos: ['suite'] });
   assert.deepEqual(e.secciones.autorizado, ['Bash(npm run build)', 'Edit(src/x/**)']);
@@ -210,7 +210,7 @@ test('8c c1: leerEncargo lee entera la plantilla de cierre de tramo ya llena; si
 });
 
 test('leerEncargo: cada campo y cada sección que falta se nombra', () => {
-  for (const c of E.CAMPOS) {
+  for (const c of E.CAMPOS.filter((x) => !["Suscripción", "Director"].includes(x))) { // B4: esas dos son opcionales
     const e = E.leerEncargo(encargo({ [`- ${c}:`]: null }), N);
     assert.equal(e.errores.length, 1, c);
     assert.match(e.errores[0], new RegExp(`faltan - ${c}:`), c);
@@ -739,4 +739,21 @@ test('B1 estadoEncargo: sin arrancar · en obra · parado · cerrado (también c
   commit(r.P, { 'docs/modulos/x/README.md': '# x\n\n- cancelado 02 @abc1234: no hacía falta\n' }, 'cancelo 02');
   assert.equal(est('02'), 'cancelado');
   assert.equal(E.estadoEncargo(r.P, 'x', '07'), 'sin arrancar');
+});
+
+// ---------------------------------------------------------------- B4 (SPEC-paquete-8d): un solo camino, Skill: tramo, los nombres
+
+test('B4 la plantilla: Skill obrero o tramo; Apertura dueño, Guido (alias viejo) o director; sin Suscripción vale; - Director: opcional', () => {
+  const N = E.nombreEncargo('x--01');
+  for (const s of ['obrero', 'tramo']) assert.deepEqual(E.leerEncargo(encargo({ '- Skill:': `- Skill: ${s}` }), N).errores, [], s);
+  assert.ok(E.leerEncargo(encargo({ '- Skill:': '- Skill: otro' }), N).errores.some((x) => /- Skill: tiene que decir obrero o tramo/.test(x)));
+  for (const a of ['dueño', 'Guido', 'director']) assert.deepEqual(E.leerEncargo(encargo({ '- Apertura:': `- Apertura: ${a}` }), N).errores, [], a);
+  const mal = E.leerEncargo(encargo({ '- Apertura:': '- Apertura: alguien' }), N).errores.join(' ');
+  assert.match(mal, /tiene que ser director o dueño/);
+  assert.doesNotMatch(mal, /Guido/);
+  assert.deepEqual(E.leerEncargo(encargo({ '- Suscripción:': null }), N).errores, []);
+  const d = E.leerEncargo(encargo({ '- Suscripción:': ['- Suscripción: —', '- Director: director-x'] }), N);
+  assert.deepEqual(d.errores, []);
+  assert.equal(d.campos.director, 'director-x');
+  assert.ok(E.leerEncargo(encargo({ '- Suscripción:': ['- Suscripción: —', '- Director: director-otro'] }), N).errores.some((x) => /- Director: /.test(x)), 'el director es el del módulo');
 });

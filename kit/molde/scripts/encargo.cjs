@@ -352,14 +352,14 @@ function citar(regla) {
 // ruta (`-p "/obrero x--01"` llegaba como `C:/Program Files/Git/obrero x--01`; D2.2). Por eso el pedido va por stdin con `printf`, un
 // builtin (no se convierte), y ningún argumento suelto empieza con `/`. Nunca MSYS_NO_PATHCONV: la sesión lo heredaría. `claude` es
 // el del PATH o el de la extensión de VS Code (hooks/lib/proceso.cjs comandoClaude; D-b); sin ninguno, la apertura es de Guido.
-function lineaDeFondo(L, wt, n, modelo, reglas, opciones) {
+// SPEC-paquete-8d B4: la línea manda la skill del encargo (/obrero o /tramo), lleva KIT_FONDO=1 (los frenos saben que es de fondo, P3)
+// y --name obrero-<x>--<ID> (P1: el nombre sale de la rama; en -p, --name le pone el título a la charla).
+function lineaDeFondo(L, wt, n, modelo, reglas, opciones, skill = 'obrero') {
   const claude = L.proceso.comandoClaude(opciones);
-  if (!claude) return ['apertura de fondo: sin `claude` (ni en el PATH ni el de la extensión de VS Code): la apertura es de Guido'];
+  if (!claude) return ['apertura de fondo: sin `claude` (ni en el PATH ni el de la extensión de VS Code): la apertura es del dueño'];
   const citadas = reglas.map(citar);
-  const k = citadas.indexOf(null);
-  if (k >= 0) return [`apertura de fondo: la regla ${reglas[k]} no se puede citar igual en PowerShell y en Bash: la apertura es de Guido`];
   const resto = (modo) =>
-    `cd "${barras(wt)}" && printf '%s\\n' '/obrero ${n.x}--${n.id}' | ${claude} -p --model ${modelo} --permission-mode ${modo} --allowedTools ${citadas.join(' ')}`;
+    `cd "${barras(wt)}" && printf '%s\\n' '/${skill} ${n.x}--${n.id}' | KIT_FONDO=1 ${claude} -p --model ${modelo} --name obrero-${n.x}--${n.id} --permission-mode ${modo} --allowedTools ${citadas.join(' ')}`;
   return [`apertura de fondo: ${resto('auto')}`, `apertura de fondo (respaldo, si auto no está): ${resto('acceptEdits')}`];
 }
 
@@ -383,6 +383,9 @@ function autorizado(L, g, n, opciones) {
   if (s.error) return no(`${s.error}: arreglalo y corré autorizado de nuevo (no escribí nada)`);
   const ct = comandoTest(datosFicha(L, g.raiz));
   const allow = loAutorizado(L, ct, reglas);
+  // B4.7: una regla que no se puede citar igual en PowerShell y en Bash no deja la línea de fondo: sale 1 y dice cuál reescribir.
+  const noCita = allow.find((x) => citar(x) === null);
+  if (noCita) return no(`la regla ${noCita} no se puede citar igual en PowerShell y en Bash (lleva una comilla simple): reescribila en ## AUTORIZADO de ${u.ruta} (o el comando-test de la ficha) y corré autorizado de nuevo; no escribí nada`);
   const antes = s.datos.permissions && Array.isArray(s.datos.permissions.allow) ? s.datos.permissions.allow : [];
   // r1-5: permissions.allow se reescribe ENTERO, sin estado; el deny de worktree y las demás claves quedan como estaban; ninguna
   // clave propia del kit (r1-3).
@@ -400,9 +403,9 @@ function autorizado(L, g, n, opciones) {
   );
   if (!Array.isArray(s.datos.permissions.deny) || !s.datos.permissions.deny.length) lineas.push(`ojo: ${SETTINGS} no tiene el deny de worktree: corré worktree abrir (verificar lo marca ❌)`);
   const modelo = e.campos.modelo.modelo;
-  // D5-19: la de Guido no fuerza el modo: la pestaña abre en el suyo.
-  lineas.push(`apertura de Guido: code "${barras(wt)}" → en esa ventana, la pestaña de Claude con ${modelo[0].toUpperCase()}${modelo.slice(1)}, en tu modo (nombre sugerido: obrero-${n.x}--${n.id}) → primer mensaje: /obrero ${n.x}--${n.id}`);
-  lineas.push(...lineaDeFondo(L, wt, n, modelo, allow, opciones));
+  // D5-19: la del dueño no fuerza el modo: la pestaña abre en el suyo.
+  lineas.push(`apertura del dueño: code "${barras(wt)}" → en esa ventana, la pestaña de Claude con ${modelo[0].toUpperCase()}${modelo.slice(1)}, en tu modo (nombre sugerido: obrero-${n.x}--${n.id}) → primer mensaje: /obrero ${n.x}--${n.id}`);
+  lineas.push(...lineaDeFondo(L, wt, n, modelo, allow, opciones, e.campos.skill || 'obrero'));
   return { codigo: 0, lineas };
 }
 

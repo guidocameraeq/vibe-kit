@@ -748,7 +748,7 @@ test('sello entorno: rojo con comando-setup → "¿corriste el comando-setup en 
   const p = escribir(conCmd, 's.md', spec());
   const rc = correr(['sello', 's.md'], conCmd, { env: { ...PLAZOS, ARQUITECTO_SHELL: 'C:/Windows/System32/cmd.exe' } });
   assert.equal(rc.codigo, 1, rc.out);
-  assert.match(rc.out, /entorno: comando-test no se corre: `cmd \/\/c` es de Git Bash: en cmd\.exe no corre nada y saldría verde — corregilo en la ficha/);
+  assert.match(rc.out, /entorno: comando-test no se corre: `cmd \/\/c` es de Git Bash: en cmd\.exe no corre nada y daría que pasó — corregilo en la ficha/);
   assert.equal(leer(p), spec(), 'no escribe nada');
 });
 

@@ -238,7 +238,7 @@ test('alarma: 3 o menos → salida 0; más de 3 → la línea obligatoria y sali
   const cuatro = transcript('cuatro.jsonl', ['a', 'b', 'c', 'd'].map((t) => usuario(t)));
   const mal = correr(TMP, 'alarma', '--transcript', cuatro);
   assert.equal(mal.codigo, 1);
-  assert.equal(mal.out.trim(), 'ALARMA · 4 intervenciones de Guido en esta pestaña: anotalo en las notas del CIERRE');
+  assert.equal(mal.out.trim(), 'ALARMA · 4 intervenciones del dueño en esta pestaña: anotalo en las notas del CIERRE');
 });
 
 test('alarma: sin --transcript toma el .jsonl más nuevo de la carpeta de transcripts; sin ninguno, NO VERIFICADO (0)', () => {

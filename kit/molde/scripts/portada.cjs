@@ -262,7 +262,7 @@ function chequear(raiz, salida) {
     return 2;
   }
   if (!fallas.length) {
-    salida('portada: en verde');
+    salida('portada: pasa');
     return 0;
   }
   for (const f of fallas) salida(`candado:${f.id} · ${f.que} · ${f.hacer}`);

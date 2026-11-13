@@ -27,7 +27,7 @@ const docsRuta = require('../hooks/lib/docs-ruta.cjs');
 const USO = [
   'Uso: node .claude/scripts/tiempos.cjs <comando> …   (desde el repo)',
   '  tiempos <x> [--ver]                 por encargo: primer y último commit, duración y sub-pasos; escribe docs/modulos/<x>/tiempos.md',
-  '  alarma [--transcript <ruta>]        intervenciones de Guido en esta pestaña (más de 3: línea para las notas del CIERRE, salida 1)',
+  '  alarma [--transcript <ruta>]        intervenciones del dueño en esta pestaña (más de 3: línea para las notas del CIERRE, salida 1)',
   '  contador <x>                        sub-pasos y desvíos por encargo (nunca frena)',
   '  (docs/ es la carpeta de papeles: la carpeta-docs: de la ficha si la hay)',
 ].join('\n');
@@ -377,8 +377,8 @@ function cmdAlarma(cwd, transcript, home) {
     return { codigo: 0, lineas: [`alarma: NO VERIFICADO · no pude leer ${ruta}`] };
   }
   const n = contarIntervenciones(texto);
-  if (n > UMBRAL_ALARMA) return { codigo: 1, lineas: [`ALARMA · ${n} intervenciones de Guido en esta pestaña: anotalo en las notas del CIERRE`] };
-  return { codigo: 0, lineas: [`alarma: ${n} intervención(es) de Guido en esta pestaña (tope ${UMBRAL_ALARMA})`] };
+  if (n > UMBRAL_ALARMA) return { codigo: 1, lineas: [`ALARMA · ${n} intervenciones del dueño en esta pestaña: anotalo en las notas del CIERRE`] };
+  return { codigo: 0, lineas: [`alarma: ${n} intervención(es) del dueño en esta pestaña (tope ${UMBRAL_ALARMA})`] };
 }
 
 // ---------------------------------------------------------------- principal

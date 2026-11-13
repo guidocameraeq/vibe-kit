@@ -234,7 +234,7 @@ test('chequear: rojo sin README, verde con el que armó el script; rojo con un R
   correr(d, ['armar']);
   const ok = correr(d, ['chequear']);
   assert.equal(ok.codigo, 0, ok.out);
-  assert.equal(ok.out, 'portada: en verde\n');
+  assert.equal(ok.out, 'portada: pasa\n');
   fs.writeFileSync(path.join(d, 'README.md'), '# solo\n');
   const sinEnlace = correr(d, ['chequear']);
   assert.equal(sinEnlace.codigo, 1);

@@ -4,9 +4,9 @@
 
 ## Autonomía
 
-Resolvés solo todo, producción incluida y el merge con el gate verde. Preguntás las 5 de `sensible:` en `.claude/kit.md` (borrar datos reales · plata · claves · mandar algo afuera a nombre del dueño · publicar un release) y lo que el `/inicio` manda preguntar: lo que dejó otra sesión es propuesta y espera el OK (paso 9). Lo rutinario lo decidís con la recomendada y lo avisás en una línea. Un obrero de fondo corre en `auto` con la lista de su encargo, y los porteros frenan igual.
+Resolvés solo todo, producción incluida y el merge si el gate pasa. Preguntás las 5 de `sensible:` en `.claude/kit.md` (borrar datos reales · plata · claves · mandar algo afuera a nombre del dueño · publicar un release) y lo que el `/inicio` manda preguntar: lo que dejó otra sesión es propuesta y espera el OK (paso 9). Lo rutinario lo decidís con la recomendada y lo avisás en una línea. Un obrero de fondo corre en `auto` con la lista de su encargo, y los porteros frenan igual.
 
-Un `/director` o `/obrero` entra a su worktree con `EnterWorktree` (lo dice su skill).
+Un `/director` o `/obrero` entra a su worktree con `EnterWorktree`.
 
 Si la sesión cambió cómo trabaja el proyecto (un freno, una regla, un paso de un ritual), lo anota: `node .claude/scripts/cambios.cjs nuevo …`.
 
@@ -14,7 +14,7 @@ Si la sesión cambió cómo trabaja el proyecto (un freno, una regla, un paso de
 
 Ante un pedido nuevo, **la primera línea de tu respuesta es el tamaño**, sin preguntar. Dos preguntas: ¿hace falta algo más que el pedido y el `git diff` para retomarlo? ¿lleva más de una sesión? Ninguna sí: *"chico, lo hago acá"*. Alguna sí: *"esto es más que chico: llamo al Arquitecto"*, e invocás `/arquitecto`. Tocar plata, permisos o datos reales no lo agranda: eso lo cuidan los frenos, no un spec.
 
-Lo que sale de una charla con el dueño (una guía, un procedimiento, algo que está en su cabeza) es más que chico aunque termine en un documento: retomarlo pide esa charla. Más que chico **siempre invoca `/arquitecto`**, también de noche o sin el dueño: si trabaja alguien solo y cómo, lo decide el Arquitecto.
+Lo que sale de una charla con el dueño (una guía, lo que sabe) es más que chico aunque termine en un documento: retomarlo pide esa charla. Más que chico **siempre invoca `/arquitecto`**, también de noche o sin el dueño: si trabaja alguien solo y cómo, lo decide el Arquitecto.
 
 ## Mapa de documentación
 
@@ -28,7 +28,7 @@ La única copia: `docs/README.md` y el resto apuntan acá. En la raíz de `docs/
 
 ## Cómo hablás
 
-Todo en español, narración incluida. Decisiones: contexto, la RECOMENDADA primero, "qué cambia para vos" y el botón "explicámelo en criollo". Todo archivo que entregues se nombra con su ruta absoluta y fuera del scratchpad. Los entornos de prueba del proyecto, en `entornos:` de la ficha.
+Todo en español, narración incluida. Al dueño, en criollo: "pasó" o "falló", nunca rojo ni verde; sin códigos ni comandos: los corre la sesión y su firma es un clic. Decisiones: la RECOMENDADA primero y "qué cambia para vos". Todo archivo que entregues, con su ruta absoluta y fuera del scratchpad. Los entornos de prueba del proyecto, en `entornos:` de la ficha.
 
 ## Evidencia con datos reales
 
