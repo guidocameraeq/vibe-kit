@@ -1,78 +1,20 @@
-# El Arquitecto — instalación automática en esta PC
+# Instalar el kit en esta PC
 
-> **El camino de hoy es otro**: con el kit v3, una PC se prepara diciéndole **"preparame esta PC"** al Equipador
-> (`manuales/EQUIPADOR.md` §1): deja el kit, los frenos de la PC, los ajustes de Claude Code y `~/.claude/kit-pc.md` con una sola
-> pregunta. Este prompt es el de la instalación a mano del kit v2: copia las skills y nada más (sin frenos ni `kit-pc.md`). Queda
-> como plan B.
+> **Hay un solo camino**, el de la sección **"Instalar"** del [`README.md`](../README.md) del repo:
+>
+> 1. Clonar el repo del kit **completo, con sus tags** (con un zip o un clon `--depth 1`, sin tag o sin historia, `preparar-pc` se
+>    niega).
+> 2. Abrir Claude Code en esa carpeta y decirle **"preparame esta PC"**.
+>
+> El Equipador se para en la última versión, te hace una sola pregunta y deja el kit en `~/.claude/`, los frenos de la PC, los ajustes
+> de Claude Code y `~/.claude/kit-pc.md`; si querés, trae los repos de tu cuenta. Termina con "reiniciá Claude Code". El paso a paso:
+> [`manuales/EQUIPADOR.md`](../manuales/EQUIPADOR.md) §1. ¿Ya lo tenés? **"actualizate"** (§2).
 
-> **Cómo se usa**: descomprimí el zip en cualquier carpeta → abrí Claude Code **en esa carpeta**
-> (VSCode: Archivo → Abrir carpeta → chat de Claude; o en terminal, parado ahí: `claude`) →
-> pegá el prompt de abajo tal cual. Claude instala todo, te pregunta lo único que necesita
-> saber, y te confirma con evidencia. ~2 minutos.
+## Dos cosas que "preparame esta PC" no hace
 
----
+- **La identidad de git.** Si `git config user.name` sale vacío, los commits de `/cierre` fallan en esta PC: configurala una vez
+  (`git config --global user.name "<tu nombre>"` y `git config --global user.email "<tu mail>"`).
+- **Instalar programas.** Chequea node, git, `gh`, gitleaks y Claude Code y te dice qué falta y de dónde sacarlo, pero no los instala.
 
-## El prompt (copiá TODO el bloque de abajo)
-
-```
-Instalá el paquete "El Arquitecto" que está en esta carpeta:
-
-1. Verificá que acá estén skills/arquitecto/SKILL.md, skills/arquitecto-skills/SKILL.md
-   y agents/redteam-spec.md. Si falta alguno, frená y avisame.
-2. Copiá skills/arquitecto/ COMPLETA (con anexos/ y templates/) Y
-   skills/arquitecto-skills/ (con su menu-skills.md) a las skills globales
-   de esta máquina: ~/.claude/skills/ (creá las carpetas que no existan).
-   Y skills/docs-fyd/ y skills/relevamiento/ SI están presentes en esta carpeta
-   (son kit-owned; si el zip es viejo y no las trae, salteálas sin frenar — NO
-   son requisito duro del paso 1). De relevamiento copiá la carpeta ENTERA:
-   anexos/ y plantillas/, incluido plantillas/_fuente/.
-   Si ya hay versiones instaladas, mostrame las fechas y preguntame antes de pisar.
-3. Copiá agents/redteam-spec.md a ~/.claude/agents/.
-4. Preguntame con opciones dónde guardo mis proyectos en ESTA máquina
-   (ej: D:\SAAS, Desktop\Proyectos, otra) y en la línea
-   "Carpeta de proyectos de esta máquina" del SKILL.md del arquitecto
-   recién instalado reemplazá {{CARPETA_DE_PROYECTOS}} por esa ruta.
-5. Verificá con evidencia real: (a) listá los archivos instalados,
-   (b) mostrame la línea de carpeta de proyectos ya editada, (c) chequeá que
-   node --version, bash --version y git --version anden — los proyectos que el
-   Arquitecto monta usan hooks en node/bash y el Equipador clona repos;
-   si falta alguno, decime qué instalar y de dónde. (d) chequeá que git tenga
-   identidad (git config user.name) — si está vacía, preguntame nombre y email
-   y configurala global: sin eso, los commits de /cierre fallan en esta máquina.
-6. Al final, ofreceme equipar la máquina: corré el modo INSTALAR de
-   /arquitecto-skills (el menú curado de skills universales, con multiSelect).
-7. Cerrá con el resumen de lo instalado y recordame: reiniciar Claude Code
-   y probar /arquitecto en un chat nuevo.
-
-No toques nada más de esta máquina. No borres esta carpeta del zip (queda de backup).
-```
-
----
-
-## Plan B — instalación a mano (por si preferís no usar el prompt)
-
-1. `skills/arquitecto/` y `skills/arquitecto-skills/` (y `skills/docs-fyd/` y `skills/relevamiento/` si están) → copiar adentro de `C:\Users\<usuario>\.claude\skills\`
-2. `agents/redteam-spec.md` → copiar adentro de `C:\Users\<usuario>\.claude\agents\`
-3. Abrir `skills\arquitecto\SKILL.md` y en la línea **"Carpeta de proyectos de esta máquina"** reemplazar `{{CARPETA_DE_PROYECTOS}}` por la carpeta donde viven tus proyectos
-4. Reiniciar Claude Code → `/arquitecto` para proyectos, `/arquitecto-skills` para equipar la máquina
-
-## Qué es este paquete
-
-Cuatro piezas que trabajan juntas. Autocontenido.
-
-**El Arquitecto** (`/arquitecto`) — pensar ANTES de hacer, con tres puertas: **proyecto nuevo**
-(entrevista con opciones, piensa lo que no ves venir: roles, listas configurables, multi-tenant ⚠️,
-i18n ⚠️; plano SPEC-0 con gate de aprobación real + monta el proyecto completo: CLAUDE.md, docs,
-skills /inicio y /cierre, hooks y primer commit), **feature sobre una app que ya anda** (explora tu
-código real → spec delta con su "NO SE TOCA"), y **consultorio** (cómo pedirle algo a Claude).
-
-**El Equipador** (`/arquitecto-skills`) — instala las skills del menú curado, y sabe
-auto-actualizarse desde el repo canónico.
-
-**`/relevamiento`** — el tramo de ANTES del Arquitecto, para cuando el pedido **vino de otra
-persona**: convierte una charla dictada en los 4 documentos del método de arranque, emite un PDF al
-cerrar cada etapa, y decide con evidencia si eso termina en software o no. En proyectos personales no
-aparece nunca.
-
-**`/docs-fyd`** — la documentación técnica de auditoría por repositorio: los 10 artefactos que pide
-FyD Sistemas, generados desde el código.
+*Hasta la `rc.6` este archivo era un prompt para instalar desde un zip copiando las skills a mano (sin los frenos de la PC ni
+`kit-pc.md`). Quedó afuera: el camino es uno solo (SPEC-paquete-8d, C5). Lo viejo está en la historia de git de este archivo.*

@@ -27,14 +27,14 @@ es un ejemplo de la forma, no una ficha para copiar.
 | `vars` | Con qué se armó el molde: `proyecto`, `comando-test`, `comando-setup`, `lenguajes`. Sin esto no se puede regenerar. `comando-test` y `comando-setup` corren en Git Bash en Windows (la consola del director): `&&` vale; `\|`, `;` y redirecciones no; `cmd /c` ahí no corre nada (es `cmd //c`) y sale `no-corrio`. |
 | `piezas` | Cada pieza del molde con su estado (`molde`, `molde+propio`, `adaptada`, `propia`, `sí`, `no`) y su `hash` (12 hexa de lo que escribió el molde). Una `adaptada` o `propia` lleva `por:` (el porqué): con él, si la mezcla sale limpia, el actualizador la fusiona sola; si choca, te pregunta (§11). `desde:` lo escribe `resolver` cuando te quedás con la tuya: la versión desde la que se te vuelve a ofrecer. |
 | `frenos` | `opcionales` y `quitados`: cada freno quitado con su `id`, la razón (`por`) y hasta cuándo (`hasta`: una fecha o `siempre`). |
-| `autorizado` | Lo que **no** es pregunta en este proyecto (por ejemplo `merge-a-main: con-gate-verde`). |
+| `autorizado` | Lo que **no** es pregunta en este proyecto (por ejemplo `merge-a-main: con-gate-verde`), y `publicar`: si la noche publica sola (§4). |
 | `sensible` | Las 5 preguntas de fábrica (§4): `no`, o los comandos que duelen acá. |
 | `secretos` · `publicas` | Los **nombres** de las variables secretas y de las que parecen secreto y no lo son. Nunca valores. |
-| `herramientas` · `entornos` | Qué herramientas se pueden usar (un chequeo de una línea y si necesita a Guido) y cada entorno (`real`, `prueba` o `dummy`) con las suyas. |
+| `herramientas` · `entornos` | Qué herramientas se pueden usar (un chequeo de una línea y `necesita-persona`; el alias viejo `necesita-guido` sigue valiendo) y cada entorno (`real`, `prueba` o `dummy`) con las suyas. |
 | `datos-de-prueba` · `push-publica` · `aprueba` | Dónde están los datos de prueba, si el push es público, y un alias (nunca un nombre real) de quien aprueba. |
 | `mesa` | Los otros proyectos con los que habla este director (§8 de `manuales/ROLES.md`). |
 | `multi-llm` | `sí` genera un `AGENTS.md` desde el `CLAUDE.md` (`agents.cjs`). |
-| `andamiaje` | Quién toca `CLAUDE.md`, skills y agentes: `agentes` (sin la clave) o `con-ok-de-guido` (es clase 3: te preguntan). |
+| `andamiaje` | Quién toca `CLAUDE.md`, skills y agentes: `agentes` (sin la clave) o `con-ok` (es clase 3: te preguntan; el alias viejo `con-ok-de-guido` sigue valiendo). |
 | `vars.plazo-test` | Los minutos (1-60) que el sello espera a `comando-test`; sin él, 5. Para un proyecto con tests largos (Hermes). |
 
 Debajo de la cabecera, en prosa: "Cómo se adaptó el kit a este proyecto". **La ficha vigente es la de la rama por defecto**, no la
@@ -71,7 +71,9 @@ Un archivo suelto en la raíz de `docs/` que no es de los seis, o una carpeta qu
 
 ## 3. Los hooks de Claude (`.claude/hooks/`)
 
-Se registran en el `settings.json` del molde (cada uno con `timeout: 20`). Los que **niegan** llevan `onFailure: "block"`: si el
+Se registran en el `settings.json` del molde. Desde la `rc.7`, sobre Bash/PowerShell hay **un solo** registro, el portero
+(`hooks/lib/portero.cjs`, plazo 60 s), que corre los tres de abajo (`niega-aprobar`, `git-seguro`, `sensible`) en un proceso;
+`niega-aprobar` corre además en toda la PC (lo instalan los frenos de la PC). Los que **niegan** llevan `onFailure: "block"`: si el
 hook se rompe, frena y dice "freno roto: corré doctor". Los hooks son avisos y frenos de primer nivel, **no una frontera** (un
 script armado a propósito los esquiva); la red de verdad es el candado y los githooks.
 
@@ -109,6 +111,58 @@ en la ficha bajo `sensible:`: borrar datos reales · tocar plata · manejar clav
 publicar un release. Cada una es `no` o una lista de comandos; el hook `sensible` pregunta si algún comando **empieza** con
 las palabras de la lista (palabra entera: `npm run release-notes` no es `npm run release`). El id de cada una es
 `pregunta:<clave>` (la de datos reales: `pregunta:borrar-datos-reales`).
+
+| Clave en `sensible:` | Qué pregunta | Id |
+|---|---|---|
+| `datos-reales` | borrar datos reales (`"tabla:<x>"` no es un comando: es para la guardia de `db migrar`) | `pregunta:borrar-datos-reales` |
+| `plata` | tocar plata | `pregunta:plata` |
+| `claves` | manejar claves | `pregunta:claves` |
+| `sale-afuera` | mandar algo afuera a nombre del dueño | `pregunta:sale-afuera` |
+| `release` | publicar un release | `pregunta:release` |
+
+De fondo, de noche o sin ventana, lo que de día sería pregunta se **niega** (PARADA).
+
+### Publicar sola: `autorizado.publicar`
+
+Si la noche publica sola lo dice la ficha, en `autorizado.publicar`, y **nace en `no`**: la ficha de fábrica no lo trae, y sin él la
+sesión de cierre no publica (`noche.cjs publicar` dice "este proyecto no publica solo"). Al adoptar un repo que publica, la propuesta
+lo marca con un renglón `# ¿?` y `--aplicar` no sigue hasta que contestás. Ponerlo o cambiarlo toca un freno (`autorizado:publicar`):
+va con su cambio aprobado (§7). Su forma, como en `kit/molde/kit.ejemplo.md`:
+
+`publicar: {comando: "node scripts/publicar.cjs", humo: "node scripts/humo.cjs", volver: "node scripts/volver.cjs"}`
+
+`comando` y `humo` (la prueba de humo, después de publicar) van siempre; `volver` (cómo se vuelve atrás) es opcional. Cada uno es
+**un solo comando**, sin `&`, `|`, `;`, `>`, `<` ni `$( )`: si publicar pide varios pasos, se envuelven en un script del proyecto. La
+ficha acepta **dos formas** de comando (`formaDePublicar` en `hooks/lib/ficha.cjs`):
+
+1. **Un intérprete con un archivo del repo**: `node`, `py`, `python`, `bash`, `sh` o `pwsh`, y como primer argumento que no es una
+   opción, un archivo del repo (`node scripts/publicar.cjs`). Código suelto (`-e`, `-c`, `--eval`…) no vale.
+2. **`npm`, `pnpm` o `yarn` … `run <script>`**: entre el lanzador y `run`, solo opciones con su valor; después del script, solo `--`
+   y sus argumentos (una opción ahí la lee el lanzador). **No** acepta `-w`/`--workspace`, `--filter` ni `-r`: para un paquete de un
+   monorepo, `--prefix`, `--dir` o `--cwd <carpeta>` antes de `run` (`npm --prefix app run deploy`).
+
+O **`comando: al-subir`**: en este proyecto integrar ya publica (un proveedor conectado a la rama por defecto); la noche solo corre el
+humo, no lleva `volver` (se vuelve atrás desde el proveedor) y no pide el sí de la PC. Lo que publica sola no puede ser a la vez una
+pregunta: si un comando de `publicar` empieza como una entrada de `sensible.release`, la ficha no se lee ("elegí una").
+
+**El sí de cada PC**: que la ficha lo diga no alcanza. Publicar por comando pide además tu sí **en esta PC**, que se guarda en
+`~/.claude/kit-pc.md` (`publica:`) con el origin del repo y **una huella**: el hash de los tres comandos y del contenido de los
+archivos que nombran, como están en la rama por defecto de origin (con `npm … run`, el `package.json` entero de esa carpeta;
+`hooks/lib/publicar.cjs`). Si cambia cómo se publica (otro comando, o el script de publicar cambió), la huella ya no coincide y la
+noche deja de publicar hasta un sí nuevo; lo mismo si el repo cambió de origin. El sí lo pregunta "preparame esta PC", repo por repo
+(`manuales/EQUIPADOR.md` §1), y tu clic en la ventana es la firma.
+
+### Las cinco puertas: dónde se abre cada autorización
+
+Una sesión puede hacer algo solo si las cinco puertas la dejan. Ninguna se abre sola:
+
+| Puerta | Qué mira | Dónde se abre |
+|---|---|---|
+| Los permisos (`allow`/`ask`/`deny`) | la forma del comando | Una sesión de fondo cuenta **solo** con la lista de su línea de lanzamiento: la de `encargo.cjs autorizado` para el obrero, la de `noche.cjs cierre` para el cierre (que además niega las otras `allow` de los settings, y no arranca si hay una ancha) |
+| El clasificador del modo `auto` | la intención (publicar, tocar su propia configuración) | El obrero de fondo corre en `auto`. La sesión de cierre no pasa por él: corre en `dontAsk`, donde lo que no está en su lista se niega. Para tu sesión de día, la entrada de `autoMode.environment` que escribe "preparame esta PC" |
+| Los frenos del kit (los hooks) | el comando partido, la carpeta, el rol, la noche | `cambios aprobar` (y seguir una publicación trabada) con tu clic, en la pestaña del director o en tu carpeta principal; nunca en un obrero ni de fondo |
+| El aislamiento de la carpeta | `git` hacia afuera del worktree | No se abre: el director no sale de su worktree. Lo de la rama por defecto lo hace un script de `node` (`integrar`, `cambios nuevo --en-defecto`, la firma de `cambios aprobar`) y lo de la carpeta principal, la sesión de cierre |
+| El candado (los githooks) | lo que se commitea y se sube | Un cambio aprobado (§7) |
 
 `db migrar` tiene su guardia (`hooks/lib/db-guardia.cjs`): contra un entorno de clase `real` pide un veredicto aprobado del revisor,
 y si el SQL borra datos reales, de día pregunta y de noche se niega.
@@ -155,10 +209,15 @@ Los estados, en orden de vida: **propuesto → aprobado → aplicado → subió-
 - `cambios.cjs nuevo` crea uno; `listar` los muestra; `verificar` revisa que el registro esté sano; `anotar-sha` guarda con qué
   commit se aplicó; `rechazar` lo descarta con motivo; `subio-al-kit` marca que ya está en una versión del kit.
 - **`cambios aprobar <id>` es del dueño** (vos). Es el único camino a `aprobado`, y el OK para tocar un freno. `cambios aprobar` lo corre la sesión cuando el dueño lo pide, y su clic en la ventana es la firma; nunca por su cuenta.
-  Además se niega solo si lo corre un agente, un modo sin ventana (bypass, de noche), un worktree, una rama que no es la por defecto,
-  un archivo sin commitear o con la ficha rota. Ni el director ni un obrero lo corren.
+  Se firma en dos lugares: **tu carpeta principal**, en la rama por defecto, o **la pestaña del director** (la ventana deja un pase de
+  un solo uso, de 15 minutos, y el script firma en la carpeta principal y sube solo ese commit). Se niega solo desde un obrero, una
+  sesión de fondo, de noche, sin ventana (bypass), con un archivo sin commitear o con la ficha rota. El director nunca firma por su
+  cuenta: la firma es tu clic.
 - **Quién anota**: si la sesión cambió cómo trabaja el proyecto (un freno, una regla, un paso de un ritual), lo anota:
-  `node .claude/scripts/cambios.cjs nuevo …` (lo dicen el `CLAUDE.md` del molde y el `/cierre`).
+  `node .claude/scripts/cambios.cjs nuevo …` (lo dicen el `CLAUDE.md` del molde y el `/cierre`). Si nace en un módulo, el director lo
+  propone **directo en la rama por defecto** con `cambios.cjs nuevo … --en-defecto` (una carpeta temporal, un commit de un solo
+  archivo, push; su worktree queda como estaba): así te aparece en "Te necesito" sin esperar a que el módulo se integre. De noche o
+  de fondo no se puede: queda en su relevo para el día.
 - Los archivos de `.claude/cambios/` no se editan a mano (hay un `deny`): cada cambio de estado lo hace el script y deja su commit.
 - La flota agrega: `cambios-flota.cjs` cuenta lo que se repite entre proyectos (`manuales/EQUIPADOR.md`).
 
@@ -201,9 +260,10 @@ Lo que hacen los scripts del módulo que vale saber desde acá (el detalle, en `
   por git: cada PC lo arma con su primer `crear` o `abrir`). Entre encargos, el director trae `main` con `worktree.cjs traer-main <x>`; adentro del worktree, `donde` y `traer-main` van con el script de `main` (`node ../../../.claude/scripts/worktree.cjs …`): un módulo de antes de la rc.5 trae el viejo, sin esos comandos.
 - **La tarea 0**: con el sello `entorno — (tarea 0: montar el entorno de prueba)`, `encargo.cjs autorizado` niega todo encargo que no
   sea el `00` hasta que la ficha de `modulo/<x>` tenga un entorno `dummy` o `prueba`.
-- **Después de integrar**: `integrar` termina en `después: /cierre en tu carpeta principal …`, y `worktree.cjs integrados` (lo corre el
-  `/inicio` después del `pull`) avisa si hubo un módulo integrado después del último handoff. `cerrar` borra la rama de origin si ya está
-  mezclada en `origin/<madre>`.
+- **Después de integrar**: `integrar` termina en `después: noche.cjs cierre <x> …` y el director lanza la sesión de cierre, que pone
+  los papeles al día, publica si toca, limpia y deja el parte (`ROLES.md` §7). Si igual quedaron atrás, `worktree.cjs integrados` (lo
+  corre el `/inicio` después del `pull`) avisa si hubo un módulo integrado después del último handoff. `cerrar` borra la rama de
+  origin si ya está mezclada en `origin/<madre>`; `limpiar` cierra de una todas las carpetas ya mezcladas.
 
 ## 11. Cuando el kit cambia algo que adaptaste
 

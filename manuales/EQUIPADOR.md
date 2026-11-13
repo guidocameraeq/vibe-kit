@@ -12,14 +12,17 @@ imprime `actualizar.cjs ultimo-tag`, rc incluido), y andan desde la beta `v3.0.0
 
 ## 1. "Preparame esta PC" (o "preparame esta máquina")
 
-Deja la PC entera lista con **una sola pregunta**. Lo hace un script, `preparar-pc.cjs`; la sesión no lo repite a mano.
+Deja la PC entera lista con **una sola pregunta** (o ninguna, si no hay nada que cambiar; más la de traer repos y la de publicar, solo
+si hacen falta). Lo hace un script, `preparar-pc.cjs`; la sesión no lo repite a mano.
 
 1. Clona el repo del kit **completo y con tags** a una carpeta temporal y se para en el último tag anotado (nunca en la punta de `main`).
-2. Corre el `preparar-pc.cjs` **de ese clon** con `--plan`: no escribe nada, arma el plan.
-3. **La pregunta**: te muestra el plan, lo que encontró editado a mano (con su diff) y la carpeta de proyectos que detectó: *"¿Lo aplico,
-   con los proyectos en `<carpeta>`?"*.
-4. Con tu sí lo aplica y te pega **una tabla** (`✓ / ✗ / ⚠ · qué · cómo se arregla`) y la salida del `doctor`. Termina con
-   **"reiniciá Claude Code"**.
+2. Corre el `preparar-pc.cjs` **de ese clon** con `--plan`: no escribe nada, arma el plan. Arranca con **una línea**, `resumen · …`
+   (qué cambiaría, cuántos avisos, cuántas cosas a arreglar).
+3. **La pregunta**: si el resumen dice `sin cambios`, te lo dice y sigue, **sin preguntarte nada**. Si no, te muestra esa línea, lo que
+   encontró editado a mano (con su diff) y la carpeta de proyectos que detectó: *"¿Lo aplico, con los proyectos en `<carpeta>`?"*.
+4. Con tu sí lo aplica. Después, **los repos de tu cuenta** y **publicar sola** (abajo).
+5. Te cuenta su `resumen ·` y la línea del `doctor` (`doctor · todo bien · N avisos · N cosas a arreglar · 29 chequeos`; la tabla
+   entera, `✓ / ✗ / ⚠ · qué · cómo se arregla`, si la pedís). Termina con **"reiniciá Claude Code"**.
 
 Qué deja puesto, en orden:
 - **Chequea los programas** (node, git, `gh` y su cuenta, gitleaks, Claude Code). **No instala programas**: lo que falta sale en la
@@ -31,7 +34,25 @@ Qué deja puesto, en orden:
   conservando las reglas de fábrica, `"$defaults"`) y `crossSessionInbound`. Todo en una sola escritura.
 - **La capa privada**, si `kit-pc.md` dice dónde está: corre su propio instalador. **La credencial del Hub nunca pasa por el kit**
   (ADR-033): la maneja la capa privada; el `doctor` solo mira que la variable exista, sin leer su valor.
-- **`~/.claude/kit-pc.md`**: la ficha de la PC (entorno, `gh`, carpeta de proyectos, capa privada, modo).
+- **`~/.claude/kit-pc.md`**: la ficha de la PC (entorno, `gh`, carpeta de proyectos, capa privada, modo y, si dijiste que sí, qué
+  proyectos publican solos desde acá).
+
+### Los repos de tu cuenta
+
+Con `traer-repos.cjs listar` ve los repos de tu cuenta de `gh` (y de sus organizaciones) que todavía no están en tu carpeta de
+proyectos y te pregunta **una vez**, *"¿traigo repos de tu cuenta?"*, con la lista para marcar. **Nunca trae nada que no elegiste.**
+Los elegidos se clonan a tu carpeta (`traer-repos.cjs clonar`): una carpeta que ya existe no se pisa, y a un repo con el kit le prende
+los ganchos. **El `comando-setup` de un repo recién traído no corre solo** (es código de ese repo): te lo muestra y te pregunta, repo
+por repo. A uno sin el kit te ofrece *"adoptá <repo>"* (§5). El paso a paso, en `kit/skills/arquitecto-skills/preparar-pc.md`.
+
+### Publicar sola desde esta PC
+
+Que la ficha de un proyecto diga que la noche publica (`autorizado.publicar`, `manuales/MOLDE.md` §4) no alcanza: hace falta **tu sí
+en esta PC**, por proyecto. Por cada uno que lo pida, la tabla trae un renglón `⚠ publicar` con cómo publica, cómo lo prueba y cómo
+vuelve atrás, y la sesión te pregunta: *"¿autorizás que <proyecto> publique solo desde esta PC?"*. Con tu sí corre `preparar-pc.cjs
+--publica <origin>` y aparece la ventana de permiso: **tu clic es la firma** (una sesión no se la da sola). El sí vale para **cómo publica
+hoy** (su huella): si cambia el comando o el script de publicar, la noche deja de publicar y "preparame esta PC" te lo vuelve a
+preguntar. Para sacar uno: `--no-publica <origin>`, igual. Una corrida sin ninguno de los dos no toca lo que ya autorizaste.
 
 Si sale 1, la sesión te cuenta su línea. NO VERIFICADO todavía: la línea para instalar Claude Code y los ids de `winget` que sugiere.
 
@@ -62,8 +83,9 @@ Nunca se edita `~/.claude/settings.json` a mano: el instalador es el único que 
 
 `doctor.cjs` revisa la PC y el repo donde estás parado. **Solo lee**: no cambia nada.
 
-- Una línea por chequeo (29), siempre en el mismo orden: `✓ / ✗ / ⚠ · qué · cómo se arregla`. Debajo, el **inventario de frenos** del
-  repo (las líneas `inventario ·`).
+- Lo que te dice la sesión es **el resumen**: `doctor · todo bien · N avisos · N cosas a arreglar · 29 chequeos` (o `hay cosas que
+  arreglar`), cada `✗` con su arreglo y el **inventario de frenos** del repo (las líneas `inventario ·`). El detalle, si lo pedís: una
+  línea por chequeo (29), siempre en el mismo orden, `✓ / ✗ / ⚠ · qué · cómo se arregla`.
 - Mira, entre otras cosas: la versión de Claude Code, `gh`, gitleaks, los hooks de la PC, copias del kit, frenos vencidos, el
   pre-commit y la ficha del repo, y las variables de la capa privada (por nombre). Parado en un proyecto, además: los **vecinos**
   (worktrees fuera de `.claude/worktrees/`, carpetas `gate-*`) y el **lock atrasado** (un `package.json` que su lock no tiene al día:
@@ -81,14 +103,16 @@ trabajo nunca se toca** (todo pasa en clones temporales del repo remoto).
 
 ### "Poné al día la flota" (o "poné al día X")
 
-`actualizar.cjs flota <X>… | todo --canon <repo del kit> [--proyectos <carpeta>]`. Por cada repo, uno detrás del otro:
+`actualizar.cjs flota <X>… | todo [--canon <repo del kit>] [--proyectos <carpeta>]` (sin `--canon`, el repo canónico del kit; tarda,
+así que la sesión la corre en segundo plano). Por cada repo, uno detrás del otro:
 
 1. Clona el kit en su último tag y **un clon temporal** del repo.
 2. **Saltea con su porqué** el que tiene obra en curso (ramas `modulo/*` del remoto **sin mezclar** en su rama por defecto; las ya
    mezcladas no cuentan), el que ya está al día y el que ya tiene su rama `kit/<versión>` esperando. Si mezclaste el módulo con squash
-   en GitHub, la flota no lo ve mezclado: borrá la rama desde la web y la próxima vuelta entra.
+   en GitHub, la flota no lo ve mezclado: la sesión te ofrece borrar esa rama del remoto, con tu OK, y la próxima vuelta entra.
 3. En la rama `kit/<versión>` aplica el kit pieza por pieza según la ficha del proyecto (`.claude/kit.md`), commitea y corre el
-   **chequeo** (nueve líneas). El commit y el push los juzgan los frenos del molde nuevo.
+   **chequeo** (nueve líneas) y después `adoptar --verificar` en el clon: si un hook registrado o el arranque no anda, no mezcla. El
+   commit y el push los juzgan los frenos del molde nuevo.
 4. **Verde** → la rama por defecto avanza con un commit del kit. **Rojo** → nada llega a la rama por defecto: queda la rama `kit/…`
    con un commit `kit: ROTA — <qué falló>` (la próxima vuelta la rehace). **Push rechazado** (rama protegida) → la rama queda
    "te espera".
@@ -137,7 +161,9 @@ Un repo que todavía no tiene el kit v3 **se adopta, no se actualiza**. Va en do
    sesión lo resuelve con vos (D1, abajo). Corré `--mirar` con `--principal <tu carpeta>`: de ahí sale el nombre del proyecto (el que
    usa `cargar-secreto`). Del `CLAUDE.md` te dice si le falta "El tamaño del pedido" y si habla de un director u obrero propio. También
    te muestra lo que queda fuera del repo (los vecinos), un lock atrasado, y lo que gitleaks encuentra en la historia (solo
-   `archivo:línea · regla`, nunca el valor).
+   `archivo:línea · regla`, nunca el valor). Dice **qué piezas tuyas reemplazaría** el kit y qué hacer con lo tuyo. Y lo que el repo
+   muestra y no se puede adivinar (publica, gasta plata, manda cosas afuera) lo marca en la ficha propuesta con un renglón `# ¿?`:
+   la sesión te lo pregunta **a vos**, de a una, y `--aplicar` no anda mientras quede uno.
 2. **La pantalla, con vos delante**: la sesión arma el `NORTE.md`, el mapa, el plano de `docs/` y las reglas propias del proyecto
    como cambios. Y te pregunta, de a una con la recomendada primero: los comandos de setup y de test (en Python, con el `.venv` de
    cada worktree), cada base y su clase (`entornos:`: sin declararla, la de prueba cuenta como real), y lo que el comentario marque como
@@ -149,7 +175,9 @@ Un repo que todavía no tiene el kit v3 **se adopta, no se actualiza**. Va en do
 3. **Aplicar**, todo dentro de ese mismo OK. El clon sale del origin de tu carpeta (sin remoto, de tu carpeta misma) a un temporal;
    tu carpeta no se toca hasta el último paso.
    - `--aplicar <archivo> --principal <tu carpeta>` (y las opciones que elegiste): escribe las piezas en el clon y valida tu carpeta.
-     Con `--claude-md`, le suma al final de tu `CLAUDE.md` la sección "El tamaño del pedido" del molde (si ya la trae, nada).
+     Con `--claude-md`, le suma al final de tu `CLAUDE.md` la sección "El tamaño del pedido" del molde (si ya la trae, nada). Con
+     `--director kit`, lo tuyo que se reemplaza no se pierde: queda en `<papeles>/referencia/adopcion/<pieza>-anterior.md`, con una
+     línea en el TODO para destilarlo a su zona propia o descartarlo.
    - Si tu `CLAUDE.md` tiene su director u obrero propio, la sesión te propone cambiarlo a mano por un puntero a `/director` y
      `/obrero`.
    - Si el proyecto tiene su registro de cambios propio (el `CAMBIOS.md` de Hermes), la migración: `migrar-cambios.cjs --plan` para
@@ -160,6 +188,15 @@ Un repo que todavía no tiene el kit v3 **se adopta, no se actualiza**. Va en do
      carpeta (solo si está limpia y en la rama) y **después prende ahí los githooks** (`core.hooksPath` = `.githooks`, nunca en el
      clon; la línea `githooks ·` dice cómo quedó). La **portada** (el README que se ve en GitHub, armado
      desde `NORTE.md`); si el repo ya tiene un README propio, queda como está y te avisa *"portada: README propio, queda apagada"*.
+4. **¿Quedó andando?** Al final, `--traer` corre `adoptar <tu carpeta> --verificar`: prueba cada hook registrado con algo inocente,
+   el arranque, el `comando-test` y `core.hooksPath` (corre código de tu repo, como abrir una sesión ahí; no corre el setup). Lo que
+   te importa de `--traer` es cómo salió:
+   - **0**: lo trajo y anda.
+   - **1**: el clon o tu carpeta no son lo que tienen que ser, o el merge la dejó a medias (la línea dice cómo volverla atrás).
+   - **3**: lo trajo bien pero algo no anda (las ❌): **no se deshace nada**; se arregla y se vuelve a correr `--verificar`.
+   - **4**: no lo trajo (faltaba el push, tu carpeta tenía cambios sin guardar, estaba en otra rama —y te dice qué worktree la tiene
+     tomada— o tiene commits que origin no tiene). La línea dice qué hacer; tu carpeta quedó como estaba.
+   `adoptar <carpeta> --verificar` se puede correr solo, cuando quieras (sale 0 si anda, 1 si no).
 
 ### "¿Qué se repite en la flota?" — `cambios-flota`
 
@@ -197,4 +234,4 @@ decide el proyecto al adoptar. NO VERIFICADO: el formato de Mobile (`D-n`), que 
 - Qué trae un proyecto con el kit v3 (la ficha, el registro de cambios, la portada): `manuales/MOLDE.md`
 - Cada script, sus opciones y sus salidas: `manuales/SCRIPTS.md`
 - El por qué: ADR-032 (el actualizador es un script) y ADR-033 (la credencial del Hub) en `docs/DECISIONS.md`; el diseño en
-  `docs/kit-v3/SPEC-paquete-3.md`, `-6.md` y `-7.md`
+  `docs/kit-v3/SPEC-paquete-3.md`, `-6.md`, `-7.md` y, para traer repos, publicar sola y adoptar sin romper, `-8d.md`

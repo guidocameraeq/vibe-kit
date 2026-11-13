@@ -2,8 +2,8 @@
 
 > La guía práctica del sistema completo, organizada por situación: **"quiero X → hacé Y"**.
 > No repite procedimientos (viven en el kit y las skills — si algo difiere, ganan ellos);
-> te dice qué decir, dónde, y qué esperar; el detalle está en `manuales/`. Actualizada 2026-11-03 (kit v3: las cinco entradas del
-> Arquitecto, el Equipador, director y obrero, `/estado`, la noche).
+> te dice qué decir, dónde, y qué esperar; el detalle está en `manuales/`. Actualizada 2026-11-13 (kit v3 `rc.7`: la noche que
+> termina sola y su parte, tu `/estado` de cuatro secciones, el clic en la pestaña del director, traer repos y publicar sola).
 
 ## El mapa mental en 30 segundos
 
@@ -94,13 +94,18 @@ Al cerrar cada tramo (el grupo de encargos entre dos cierres), un obrero de cier
 Decile **"me voy"** al director: sin preguntarte nada te muestra el checklist de la noche y qué queda andando. Cuando volvés, tu
 `/inicio` o `/estado` le avisa que ya es de día. → [`manuales/ROLES.md`](manuales/ROLES.md) §7
 
+### 🌙 "¿Qué pasó anoche?"
+Cuando el director termina un módulo, la noche termina sola: una sesión de cierre pone los papeles al día, publica si el proyecto y
+esta PC lo autorizan, limpia y te deja **el parte de la noche** (qué quedó, qué te necesita, qué se hizo, qué no pudo). Lo ves en la
+pestaña del director, y lo que te necesita aparece en tu `/estado`. → [`manuales/ROLES.md`](manuales/ROLES.md) §7
+
 ### 📊 "¿Cómo vamos?"
-**`/estado`** en el proyecto (o `/estado <módulo>`): lo que te espera arriba, el avance medido de cada módulo, qué pestañas cerrar.
-*"¿Cómo terminamos?"* suma el resumen del día. → [`manuales/ROLES.md`](manuales/ROLES.md) §6
+**`/estado`** en el proyecto (o `/estado <módulo>`): siempre cuatro secciones, en el mismo orden: **te necesito · el plan · lo que se
+hizo · lo que falta**. *"¿Cómo terminamos?"* suma el resumen del día. → [`manuales/ROLES.md`](manuales/ROLES.md) §6
 
 ### 🔏 "La sesión me pide aprobar un cambio de freno"
-Leé la regla en "Te espera" del handoff y, si estás de acuerdo, pedíselo a la sesión en la pestaña principal: `cambios aprobar` lo corre la sesión cuando el dueño lo pide, y su clic en la ventana es la firma; nunca por su cuenta.
-Desde otra pestaña, de noche o en bypass se niega solo. → [`manuales/ROLES.md`](manuales/ROLES.md) §9
+Te aparece en "te necesito" de tu `/estado`, con su regla. Si estás de acuerdo, pedíselo a la sesión **en la pestaña del director** (o en tu carpeta principal) y apretá en la ventana: `cambios aprobar` lo corre la sesión cuando el dueño lo pide, y su clic en la ventana es la firma; nunca por su cuenta.
+Desde un obrero, de noche o de fondo se niega solo. → [`manuales/ROLES.md`](manuales/ROLES.md) §9
 
 ### 📋 "Necesito documentar un repo para la auditoría FyD"
 Chat nuevo **en la carpeta de esa app** → **`/docs-fyd`**. Deriva del código los 10 documentos que
@@ -125,9 +130,11 @@ repo: *"leé tips/tanda-<fecha> y procesemos las conclusiones"* — ahí decidí
 → Detalle completo: `observatorio/extractor/COMO-USAR-EL-EXTRACTOR.md`
 
 ### 💻 "Preparame esta PC" (PC nueva, o actualizar la del SAAS)
-Decile al Equipador (o al Arquitecto) **"preparame esta PC"**: te hace **una sola pregunta**, deja el kit, los frenos y los ajustes
-de Claude Code, y cierra con "reiniciá Claude Code". Anda desde la beta del kit v3 (baja el último tag anotado).
-→ [`manuales/EQUIPADOR.md`](manuales/EQUIPADOR.md) §1
+Decile al Equipador (o al Arquitecto) **"preparame esta PC"**: te hace **una sola pregunta** (ninguna, si no hay nada que cambiar),
+deja el kit, los frenos y los ajustes de Claude Code, y cierra con "reiniciá Claude Code". Anda desde la beta del kit v3 (baja el último tag anotado).
+También te ofrece **traer los repos de tu cuenta** que todavía no están en esta PC (solo los que elijas) y, si un proyecto publica
+solo, te pide **tu sí para que publique desde esta PC** (tu clic es la firma).
+→ [`manuales/EQUIPADOR.md`](manuales/EQUIPADOR.md) §1 · cómo declara un proyecto que publica solo: [`manuales/MOLDE.md`](manuales/MOLDE.md) §4
 
 ### 🔄 "Actualizate" (traer lo último del kit a esta PC)
 **`actualizate`**: el mismo camino que "preparame esta PC", y reiniciás Claude Code. → [`manuales/EQUIPADOR.md`](manuales/EQUIPADOR.md) §2
@@ -194,10 +201,10 @@ de la anterior en `tips/tanda-2026-10-chats.md` §0; lo ya hallado en `D:\vibe-h
 | `cierre parcial` | Emergencia pre-compactación: guarda el estado y seguís |
 | `dale con los defaults` | El Arquitecto salta a confirmar solo las 2 decisiones irreversibles |
 | `/arquitecto` con el plan ya charlado | Modo B corto: sin entrevista, la charla se vuelve un spec sellado que ejecuta otra sesión |
-| `/estado` · `¿cómo terminamos?` | Cómo vamos: lo que te espera arriba, el avance de cada módulo · más el resumen del día |
-| `me voy` | (al director) El checklist de la noche y qué queda andando; tu `/inicio` al volver dice que ya es de día |
-| `cambios aprobar <id>` | Aprobar un cambio de freno, en la pestaña principal: `cambios aprobar` lo corre la sesión cuando el dueño lo pide, y su clic en la ventana es la firma; nunca por su cuenta |
-| `preparame esta PC` | El Equipador deja la PC entera lista: kit, frenos y ajustes, con una sola pregunta |
+| `/estado` · `¿cómo terminamos?` | Cómo vamos: te necesito · el plan · lo que se hizo · lo que falta · más el resumen del día |
+| `me voy` | (al director) El checklist de la noche y qué queda andando; a la mañana, el parte; tu `/inicio` al volver dice que ya es de día |
+| `cambios aprobar <id>` | Aprobar un cambio de freno, en la pestaña del director (o tu carpeta principal): `cambios aprobar` lo corre la sesión cuando el dueño lo pide, y su clic en la ventana es la firma; nunca por su cuenta |
+| `preparame esta PC` | El Equipador deja la PC entera lista: kit, frenos y ajustes, con una sola pregunta; trae los repos que elijas y te pide el sí de publicar |
 | `instalame skills` | El Equipador instala lo que falte del menú curado |
 | `/docs-fyd` | Documenta el repo para la auditoría FyD (te pregunta por opciones lo que el código no sabe) |
 | `docs-fyd auditar` | Chequeo antes de entregar a FyD: qué quedó viejo, dudas abiertas, secretos — no escribe |
@@ -216,7 +223,7 @@ de la anterior en `tips/tanda-2026-10-chats.md` §0; lo ya hallado en `D:\vibe-h
 - **Cada script del kit**, qué hace y cómo se llama: [`manuales/SCRIPTS.md`](manuales/SCRIPTS.md)
 - **Si se filtró una credencial**: [`manuales/se-filtro-una-credencial.md`](manuales/se-filtro-una-credencial.md)
 - **`/relevamiento` en una hoja** (para tener a mano cuando te piden algo): `manuales/HOJA-DE-MANO-relevamiento.md`
-- **Instalar en otra PC**: *"preparame esta PC"* ([`manuales/EQUIPADOR.md`](manuales/EQUIPADOR.md) §1); `kit/INSTALAR.md` es el plan B a mano (copia las skills, sin los frenos de la PC)
+- **Instalar en otra PC**: un solo camino, el del [`README.md`](README.md) (sección "Instalar": clonar el repo y decir *"preparame esta PC"*); el detalle en [`manuales/EQUIPADOR.md`](manuales/EQUIPADOR.md) §1
 - **Por qué el kit es como es**: `docs/DECISIONS.md` · lo que se descartó: `docs/REJECTED.md`
 - **Para qué existe todo esto** (y qué NO hace): `docs/MISION-Y-VISION.md`
 - **Qué está pendiente**: `docs/TODO.md` (única fuente) · qué trajo cada versión: `docs/CHANGELOG.md`
