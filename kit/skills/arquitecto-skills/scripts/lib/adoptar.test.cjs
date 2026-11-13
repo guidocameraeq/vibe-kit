@@ -835,33 +835,41 @@ test('crit. 2 (8r2 t2; rt-7, rt-8): --traer — sin push "no llegó"; sucia u ot
   const P = p.replace(/\\/g, '/');
   // sin push: no llegó, y nada más
   let t = await AD.main([c, '--traer', p]);
-  assert.equal(t.codigo, 0, t.lineas.join('\n'));
+  assert.equal(t.codigo, 4, t.lineas.join('\n')); // 8d C4 (R16): no trajo → 4, no 0
   assert.deepEqual(t.lineas, [`traer · ${p} · el HEAD del clon (${sha.slice(0, 7)}) no llegó a origin/main: pusheá primero (git -C "${c.replace(/\\/g, '/')}" push origin main) y corré de nuevo — no toqué tu carpeta`]);
   assert.equal(cabeza(p), antes);
   assert.equal(hooksPath(p), null);
   git(c, 'push', '-q', 'origin', 'main');
-  // sucia: no toca
-  escribir(p, { 'suelto.txt': 'sin commitear\n' });
+  // 8d C4 (11): un archivo sin seguir que choca con lo que viene traba; uno que no choca, no (lo prueba el ff de abajo)
+  escribir(p, { '.claude/kit.md': 'mío\n' });
   t = await AD.main([c, '--traer', p]);
-  assert.deepEqual(t.lineas, [`traer · ${p} · no toqué nada: tu carpeta tiene cambios sin commitear (suelto.txt) — commitealos o guardalos (git -C "${P}" status) y corré de nuevo`]);
-  assert.equal(t.codigo, 0);
+  assert.deepEqual(t.lineas, [`traer · ${p} · no toqué nada: en tu carpeta hay archivos sin seguir que chocan con lo que viene (.claude/kit.md) — movelos o borralos y corré de nuevo`]);
+  assert.equal(t.codigo, 4);
   assert.equal(cabeza(p), antes);
   assert.equal(hooksPath(p), null);
-  assert.equal(leer(p, 'suelto.txt'), 'sin commitear\n');
-  escribir(p, { 'suelto.txt': null });
-  // en otra rama: no toca
+  escribir(p, { '.claude/kit.md': null });
+  fs.rmdirSync(path.join(p, '.claude'));
+  // en otra rama: no toca; 8d C4 (35c): si main la tiene tomada un worktree, lo nombra
   git(p, 'switch', '-q', '-c', 'otra');
   t = await AD.main([c, '--traer', p]);
   assert.deepEqual(t.lineas, [`traer · ${p} · no toqué nada: tu carpeta está en otra y lo adoptado está en main — git -C "${P}" switch main y corré de nuevo`]);
+  assert.equal(t.codigo, 4);
   assert.equal(cabeza(p), antes);
   assert.equal(hooksPath(p), null);
+  const wt = path.join(path.dirname(p), 'wt-con-main');
+  git(p, 'worktree', 'add', '-q', wt, 'main');
+  t = await AD.main([c, '--traer', p]);
+  assert.match(t.lineas[0], /— main la tiene tomada el worktree .*wt-con-main: soltala ahí antes \(git -C ".*wt-con-main" switch --detach; la sesión lo corre con tu OK\)$/);
+  git(p, 'worktree', 'remove', '--force', wt);
   git(p, 'switch', '-q', 'main');
+  escribir(p, { 'suelto.txt': 'sin seguir, no choca\n' });
   // limpia y en main: el ff, después los githooks, y el setup de una vez (no hay .venv)
   t = await AD.main([c, '--traer', p]);
   // 8d C1.5: trajo bien, pero este repo de prueba es solo una ficha (sin settings ni hooks): --verificar lo dice y sale 3
   assert.equal(t.codigo, 3, t.lineas.join('\n'));
   assert.ok(t.lineas.includes('verificar · hooks · ❌ · no está .claude/settings.json'), t.lineas.join('\n'));
   assert.equal(cabeza(p), sha);
+  assert.equal(leer(p, 'suelto.txt'), 'sin seguir, no choca\n', 'lo sin seguir que no choca, intacto');
   assert.equal(hooksPath(p, '--local'), '.githooks');
   assert.equal(hooksPath(c), null, 'el clon, nunca (r1-5)');
   assert.deepEqual(t.lineas.slice(0, 2), [

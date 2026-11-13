@@ -1788,7 +1788,25 @@ function setupDeLaFicha(carpeta) {
     return null;
   }
 }
-const sinCommitear = (carpeta) => gitEn(carpeta, ['status', '--porcelain']).out.split(/\r?\n/).filter(Boolean).map((l) => l.slice(3)).filter((p) => p !== '.kit-rol');
+const estadoPorcelana = (carpeta) => gitEn(carpeta, ['status', '--porcelain']).out.split(/\r?\n/).filter(Boolean).filter((l) => l.slice(3) !== '.kit-rol');
+const NO_TRAJE = 4;
+const sinCommitear = (carpeta) => estadoPorcelana(carpeta).map((l) => l.slice(3));
+// 8d C4 (11): lo seguido que cambió (lo sin seguir no traba, salvo que choque con lo que viene) → { cambiados, sueltos }
+function sinGuardar(carpeta) {
+  const ls = estadoPorcelana(carpeta);
+  return { cambiados: ls.filter((l) => !l.startsWith('??')).map((l) => l.slice(3)), sueltos: ls.filter((l) => l.startsWith('??')).map((l) => l.slice(3).replace(/\/$/, '')) };
+}
+// 8d C4 (35c): el worktree que tiene tomada la rama, o null
+function worktreeConRama(carpeta, rama) {
+  const r = gitEn(carpeta, ['worktree', 'list', '--porcelain']);
+  if (!r.ok) return null;
+  let wt = null;
+  for (const l of r.out.split(/\r?\n/)) {
+    if (l.startsWith('worktree ')) wt = l.slice('worktree '.length);
+    else if (l === `branch refs/heads/${rama}` && wt && comparable(wt) !== comparable(carpeta)) return wt;
+  }
+  return null;
+}
 
 // traer(clon, principal) → { codigo, lineas }. D8r2-1: después del push, el ff de la carpeta de Guido y DESPUÉS los githooks
 // (con .githooks/ ya en el disco). rt-7: primero se mira que el HEAD del clon llegó (a origin; sin origin en la carpeta, se trae
@@ -1796,6 +1814,7 @@ const sinCommitear = (carpeta) => gitEn(carpeta, ['status', '--porcelain']).out.
 // con qué correr, sin tocar nada (salida 0). Salida 1: el clon o la carpeta no son lo que tienen que ser, o el merge falló y la
 // dejó a medias (la línea da el reset --hard). rt-8: si la ficha tiene comando-setup y la carpeta no lo corrió, la línea de una vez.
 // 8d C1.5: al final, --verificar en la carpeta; salida 3 = traje bien pero algo no anda (las ❌): no se deshace nada.
+// 8d C4 (R16): salida 4 = no traje (la línea dice por qué y qué hacer); antes salía 0 y parecía que había andado.
 function traer(clon, principal) {
   const linea = (que) => `traer · ${principal} · ${que}`;
   const top = esCarpeta(clon) ? gitEn(clon, ['rev-parse', '--show-toplevel']) : { ok: false };
@@ -1814,24 +1833,32 @@ function traer(clon, principal) {
   if (!f.ok) return { codigo: 1, lineas: [linea(`no pude: git fetch ${conOrigin ? 'origin' : 'del clon'} (${f.err.trim().split(/\r?\n/)[0] || 'sin detalle'}) — no toqué tu carpeta`)] };
   const destino = conOrigin ? `refs/remotes/origin/${rama}` : 'FETCH_HEAD';
   if (!gitEn(principal, ['merge-base', '--is-ancestor', sha, destino]).ok) {
-    return { codigo: 0, lineas: [linea(`el HEAD del clon (${corto}) no llegó a origin/${rama}: pusheá primero (git -C "${barras(clon)}" push origin ${rama}) y corré de nuevo — no toqué tu carpeta`)] };
+    return { codigo: NO_TRAJE, lineas: [linea(`el HEAD del clon (${corto}) no llegó a origin/${rama}: pusheá primero (git -C "${barras(clon)}" push origin ${rama}) y corré de nuevo — no toqué tu carpeta`)] };
   }
   // la carpeta: limpia y en la rama del clon
-  const sucio = sinCommitear(principal);
-  if (sucio.length) return { codigo: 0, lineas: [linea(`no toqué nada: tu carpeta tiene cambios sin commitear (${listaCorta(sucio)}) — commitealos o guardalos (git -C "${P}" status) y corré de nuevo`)] };
+  const sg = sinGuardar(principal);
+  if (sg.cambiados.length) return { codigo: NO_TRAJE, lineas: [linea(`no toqué nada: tu carpeta tiene cambios sin commitear (${listaCorta(sg.cambiados)}) — commitealos o guardalos (git -C "${P}" status) y corré de nuevo`)] };
+  // 8d C4 (11): lo sin seguir solo traba si choca con lo que viene
+  if (sg.sueltos.length) {
+    const vienen = gitEn(principal, ['diff', '--name-only', 'HEAD', destino]).out.split(/\r?\n/).filter(Boolean);
+    const chocan = vienen.filter((v) => sg.sueltos.some((s) => v === s || v.startsWith(`${s}/`)));
+    if (chocan.length) return { codigo: NO_TRAJE, lineas: [linea(`no toqué nada: en tu carpeta hay archivos sin seguir que chocan con lo que viene (${listaCorta(chocan)}) — movelos o borralos y corré de nuevo`)] };
+  }
   const ramaP = gitEn(principal, ['symbolic-ref', '-q', '--short', 'HEAD']);
   if (!ramaP.ok || ramaP.out.trim() !== rama) {
-    return { codigo: 0, lineas: [linea(`no toqué nada: tu carpeta está en ${ramaP.ok ? ramaP.out.trim() : 'un HEAD suelto'} y lo adoptado está en ${rama} — git -C "${P}" switch ${rama} y corré de nuevo`)] };
+    const wt = worktreeConRama(principal, rama);
+    const tomada = wt ? ` — ${rama} la tiene tomada el worktree ${barras(wt)}: soltala ahí antes (git -C "${barras(wt)}" switch --detach; la sesión lo corre con tu OK)` : '';
+    return { codigo: NO_TRAJE, lineas: [linea(`no toqué nada: tu carpeta está en ${ramaP.ok ? ramaP.out.trim() : 'un HEAD suelto'} y lo adoptado está en ${rama} — git -C "${P}" switch ${rama} y corré de nuevo${tomada}`)] };
   }
   // recién ahí, el ff
   const antes = gitEn(principal, ['rev-parse', 'HEAD']).out.trim();
   const m = gitEn(principal, ['merge', '--ff-only', '-q', destino]);
   if (!m.ok) {
     const motivo = m.err.trim().split(/\r?\n/)[0] || 'sin detalle';
-    if (sinCommitear(principal).length || gitEn(principal, ['rev-parse', 'HEAD']).out.trim() !== antes) {
+    if (sinGuardar(principal).cambiados.length || gitEn(principal, ['rev-parse', 'HEAD']).out.trim() !== antes) {
       return { codigo: 1, lineas: [linea(`el merge --ff-only falló (${motivo}) y dejó tu carpeta a medias: volvela a como estaba con git -C "${P}" reset --hard ${antes} — no prendí los githooks`)] };
     }
-    return { codigo: 0, lineas: [linea(`no toqué nada: no se avanza sin mezclar (${motivo}) — tu carpeta tiene commits que ${conOrigin ? `origin/${rama}` : 'el clon'} no tiene: mezclalos a mano y corré de nuevo`)] };
+    return { codigo: NO_TRAJE, lineas: [linea(`no toqué nada: no se avanza sin mezclar (${motivo}) — tu carpeta tiene commits que ${conOrigin ? `origin/${rama}` : 'el clon'} no tiene: mezclalos a mano y corré de nuevo`)] };
   }
   const despues = gitEn(principal, ['rev-parse', 'HEAD']).out.trim();
   const lineas = [linea(antes === despues ? `ya tenía ${corto}: nada que traer` : `traje ${antes.slice(0, 7)}..${despues.slice(0, 7)} (${conOrigin ? `origin/${rama}` : 'del clon'})`)];
