@@ -323,7 +323,7 @@ test('settings-pc: sin settings.json y con JSON roto → ✗ (y los chequeos que
 test('hooks-pc: sin block, otro timeout, no exec, otra ruta, matcher cambiado, sin registrar, UserPromptSubmit ausente → ✗', () => {
   const casos = [
     ['sin onFailure block', (v) => delete v.hooks.PreToolUse.find((g) => g.matcher).hooks[0].onFailure, /PreToolUse: sin onFailure "block"/],
-    ['timeout 10', (v) => (v.hooks.PreToolUse.find((g) => g.matcher).hooks[0].timeout = 10), /PreToolUse: timeout 10 y no 20/],
+    ['timeout 10', (v) => (v.hooks.PreToolUse.find((g) => g.matcher).hooks[0].timeout = 10), /PreToolUse: timeout 10 y no 60/],
     ['timeout ausente en UserPromptSubmit', (v) => delete v.hooks.UserPromptSubmit[0].hooks[0].timeout, /UserPromptSubmit: timeout ausente/],
     [
       'forma de texto (no exec)',
@@ -927,4 +927,29 @@ test('p1 (a) (8c): locks — un package-lock.json al que le falta una dependenci
   assert.equal(linea(r, 'locks'), '⚠ locks · lock atrasado: package-lock.json — falta openai: regeneralo en el proyecto (`npm install`) y commitealo; sin eso, el comando-setup falla y la flota no puede probar tus tests');
   fs.writeFileSync(path.join(e.repo, 'package-lock.json'), '{"lockfileVersion":3,"packages":{"":{"dependencies":{"express":"^4.18.0","openai":"^4.104.0"}}}}\n');
   assert.match(linea(correr(e), 'locks'), /^✓ locks · /);
+});
+
+test('8d C2.3 (crit. C2): automode — un repo cuya ficha vigente publica y la PC no lo autorizó → ⚠', () => {
+  const e = escenario();
+  const bare = path.join(e.proyectos, '..', `tienda-${Date.now()}.git`);
+  const d = path.join(e.proyectos, 'tienda');
+  const c = (cwd, ...a) => assert.equal(git(cwd, '-c', 'user.name=t', '-c', 'user.email=t@t', '-c', 'core.autocrlf=false', ...a).status, 0, a.join(' '));
+  c(e.proyectos, 'init', '-q', '--bare', '-b', 'main', bare);
+  fs.mkdirSync(path.join(d, '.claude'), { recursive: true });
+  fs.writeFileSync(path.join(d, 'pub.cjs'), 'x\n');
+  fs.writeFileSync(path.join(d, '.claude', 'kit.md'), '---\nkit: 3.0.0\nnivel: estandar\nvars:\n  proyecto: tienda\nautorizado:\n  publicar: {comando: "node pub.cjs", humo: "node pub.cjs"}\n---\n');
+  c(d, 'init', '-q', '-b', 'main');
+  c(d, 'add', '-A');
+  c(d, 'commit', '-qm', 'i');
+  c(d, 'remote', 'add', 'origin', bare);
+  c(d, 'push', '-q', 'origin', 'main');
+  c(d, 'fetch', '-q', 'origin');
+  const gen = P.generarAutoMode(e.proyectos).entradas;
+  kitPc(e, { autoMode: gen });
+  const s = leerSettings(e);
+  s.autoMode = { environment: [P.DEFAULTS, ...gen] };
+  escribirSettings(e, s);
+  rojo(e, 'automode', '⚠', /tienda publica y esta PC no lo autorizó: la noche no publica ahí/);
+  const [c0] = P.quePublican(e.proyectos);
+  assert.ok(c0 && c0.proyecto === 'tienda');
 });

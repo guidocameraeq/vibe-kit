@@ -22,6 +22,7 @@ const crypto = require('crypto');
 const { spawn, spawnSync } = require('child_process');
 const { leerJsonSinDuplicados } = require('../pc/lib/zona-propia.cjs');
 const ficha = require('../pc/lib/ficha.cjs');
+const FL = require('../pc/lib/frenos-log.cjs');
 const I = require('./instalar-hooks-pc.cjs');
 const P = require('./preparar-pc.cjs'); // una sola fuente: el generador del bloque autoMode y el lector de kit-pc.md
 
@@ -281,6 +282,8 @@ function chSettings(r, s) {
   return res('✓', '~/.claude/settings.json se lee bien');
 }
 
+const PLAZO_PRE = I.hookPre({ secretos: '' }).timeout;
+const PLAZO_PROMPT = I.hookPrompt({ secretos: '' }).timeout;
 function chHooks(r, s) {
   if (s.falta || s.rota) return res('✗', 'sin settings legible no se puede ver qué hooks hay (ver settings-pc)', ARREGLO_INSTALAR);
   const esperado = barras(r.secretos).toLowerCase();
@@ -292,7 +295,8 @@ function chHooks(r, s) {
     const { grupo, hook } = hs[0];
     if (hook.command !== 'node' || !Array.isArray(hook.args) || hook.args.length !== 1) problemas.push(`${evento}: no está en forma exec (command "node" + args con la ruta)`);
     else if (barras(hook.args[0]).toLowerCase() !== esperado) problemas.push(`${evento}: apunta a otra ruta que la de esta PC`);
-    if (hook.timeout !== 20) problemas.push(`${evento}: timeout ${hook.timeout === undefined ? 'ausente' : hook.timeout} y no 20`);
+    const plazo = evento === 'PreToolUse' ? PLAZO_PRE : PLAZO_PROMPT; // 8d A5.3: el de instalar-hooks-pc (una sola fuente)
+    if (hook.timeout !== plazo) problemas.push(`${evento}: timeout ${hook.timeout === undefined ? 'ausente' : hook.timeout} y no ${plazo}`);
     if (obligaOnFailure) {
       if (hook.onFailure !== 'block') problemas.push(`${evento}: sin onFailure "block" (si el hook se rompe, no frena)`);
       if (grupo.matcher !== I.MATCHER) problemas.push(`${evento}: el matcher no es el del kit`);
@@ -301,7 +305,7 @@ function chHooks(r, s) {
   revisar('PreToolUse', true);
   revisar('UserPromptSubmit', false);
   if (problemas.length) return res('✗', `el corrector de la PC está mal registrado · ${lista(problemas, 6)}`, ARREGLO_INSTALAR);
-  return res('✓', 'PreToolUse (block, timeout 20, exec) y UserPromptSubmit (timeout 20) registrados');
+  return res('✓', `PreToolUse (block, timeout ${PLAZO_PRE}, exec) y UserPromptSubmit (timeout ${PLAZO_PROMPT}) registrados`);
 }
 
 // INSTALADO → { kit, archivos: [[rel, sha]] } o null.
@@ -668,12 +672,20 @@ function chAutomode(s, kp) {
   if (kp.falta || kp.rota) return nv('sin kit-pc.md no sé qué entradas del autoMode son del kit (ver archivo-pc)', 'corré "preparame esta PC" con el Equipador');
   const am = esMapa(s.valor.autoMode) ? s.valor.autoMode.environment : undefined;
   if (am !== undefined && !(Array.isArray(am) && am.every((x) => typeof x === 'string'))) return res('⚠', 'autoMode.environment no es una lista de textos', 'corregilo a mano; "preparame esta PC" no lo toca roto');
-  const gen = P.generarAutoMode(kp.datos.proyectos);
+  const gen = P.generarAutoMode(kp.datos.proyectos, kp.datos.publica || []);
   const m = P.mezclarAutoMode(am, kp.datos.autoMode, gen.entradas);
   const n = gen.entradas.length;
   if (!mismaLista(m.lista, am)) return res('⚠', `el bloque autoMode no es el que generan las fichas de hoy (${n} entrada${n === 1 ? '' : 's'} generada${n === 1 ? '' : 's'})`, 'una ficha cambió: corré "preparame esta PC" con el Equipador');
   if (am !== undefined && m.sinDefaults) return res('⚠', 'autoMode.environment no trae "$defaults": reemplaza los defaults de Claude Code (Trusted repo, Source control)', 'corré "preparame esta PC" o ponelo primero a mano');
   if (gen.avisos.length) return res('⚠', `el bloque autoMode coincide, pero ${gen.avisos[0]}`, 'revisá esa ficha o la carpeta de proyectos de kit-pc.md');
+  // 8d C2.3: un repo cuya ficha vigente publica y esta PC no lo autorizó, o cambió cómo publica (la huella): la noche no publica
+  const pub = P.quePublican(kp.datos.proyectos);
+  const sinSi = pub.filter((c) => !(kp.datos.publica || []).some((x) => x.origin === c.origin));
+  const cambio = pub.filter((c) => (kp.datos.publica || []).some((x) => x.origin === c.origin && x.huella !== c.huella));
+  if (sinSi.length || cambio.length) {
+    const que = [...sinSi.map((c) => `${c.proyecto} publica y esta PC no lo autorizó`), ...cambio.map((c) => `${c.proyecto} cambió cómo publica`)];
+    return res('⚠', `el bloque autoMode coincide, pero ${lista(que)}: la noche no publica ahí`, 'corré "preparame esta PC": te pregunta repo por repo');
+  }
   return res('✓', `el bloque autoMode es el que generan las fichas (${n} entrada${n === 1 ? '' : 's'} del kit)`);
 }
 
@@ -777,8 +789,9 @@ const REPETIDO_MS = 10 * 60 * 1000;
 const claseDe = (id) => (id.startsWith('pregunta:') || id.startsWith('hook:sensible/') ? 'pregunta' : 'corrector');
 // frenos.log: "<fecha> · <rol> · <rama> · <id> · <herramienta> · <detalle>" (frenos-log.cjs del molde) → [{ t, rama, id, detalle }]
 function leerFrenos(raiz) {
-  const t = leerTexto(path.join(raiz, '.claude', 'frenos.log'));
-  if (t === null) return [];
+  // 8d A6: los dos lugares, el versionado (la firma) y el común (<git común>/kit-frenos.log: lo de todos los días)
+  const t = FL.leerTodo(raiz);
+  if (!t) return [];
   const out = [];
   for (const l of t.replace(/^﻿/, '').split(/\r?\n/)) {
     const c = l.split(' · ');

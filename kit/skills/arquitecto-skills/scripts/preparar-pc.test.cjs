@@ -525,7 +525,7 @@ test('kit-pc.md: se lee lo que se escribe (con barras de Windows y comillas sane
   fs.mkdirSync(path.join(home, '.claude'));
   const t = P.textoKitPc({ entorno: 'wsl', gh: 'g', proyectos: 'C:\\Users\\x\\(1) Claude', privada: null, autoMode: ['p: e (dummy): "q" \\ #1', 'otra, con coma'] });
   fs.writeFileSync(P.rutaKitPc(home), t);
-  assert.deepEqual(P.leerKitPc(home).datos, { entorno: 'wsl', gh: 'g', proyectos: 'C:/Users/x/(1) Claude', privada: null, autoMode: ["p: e (dummy): 'q' / #1", 'otra, con coma'] });
+  assert.deepEqual(P.leerKitPc(home).datos, { entorno: 'wsl', gh: 'g', proyectos: 'C:/Users/x/(1) Claude', privada: null, autoMode: ["p: e (dummy): 'q' / #1", 'otra, con coma'], publica: [] });
   fs.writeFileSync(P.rutaKitPc(home), '---\nauto-mode: x\n---\n');
   assert.ok(P.leerKitPc(home).rota);
   const e = escenario();
@@ -697,4 +697,110 @@ test.after(() => {
   } catch (e) {
     /* Windows a veces retiene un archivo: queda en el temporal */
   }
+});
+
+// ---------------------------------------------------------------- SPEC-paquete-8d C2.2-C2.5: publicar, autorizado por PC
+
+const PUB = require('../pc/lib/publicar.cjs');
+const F8 = require('../pc/lib/ficha.cjs');
+// El ejemplo compartido con noche.test ("B3 el contrato"): el mismo publicar y los mismos archivos.
+const PUB_EJ = { comando: 'npm --prefix app run deploy', humo: 'node scripts/humo.cjs --rapido', volver: 'node scripts/humo.cjs' };
+const ARCH_EJ = { 'app/package.json': '{"scripts":{"deploy":"x"}}\r\n', 'scripts/humo.cjs': 'h\n' };
+const HUELLA_EJ = F8.hash(['comando=npm --prefix app run deploy', 'humo=node scripts/humo.cjs --rapido', 'volver=node scripts/humo.cjs', `app/package.json=${F8.hash('{"scripts":{"deploy":"x"}}\n')}`, `scripts/humo.cjs=${F8.hash('h\n')}`].join('\n'));
+const fichaPub = (nombre, pub) => `---\nkit: 3.0.0\nnivel: estandar\nvars:\n  proyecto: ${nombre}\n${pub ? `autorizado:\n  publicar: {comando: "${pub.comando}", humo: "${pub.humo}"${pub.volver ? `, volver: "${pub.volver}"` : ''}}\n` : ''}---\n`;
+// Un repo con su origin (un bare de esta PC) y la ficha vigente en origin/main.
+function repoPub(proy, nombre, { pub = PUB_EJ, archivos = ARCH_EJ, fichaDisco = null } = {}) {
+  const bare = path.join(nueva('bare'), `${nombre}.git`);
+  git(RAIZ_TMP, 'init', '-q', '--bare', '-b', 'main', bare);
+  const d = path.join(proy, nombre);
+  fs.mkdirSync(path.join(d, '.claude'), { recursive: true });
+  for (const [rel, t] of Object.entries(archivos)) {
+    fs.mkdirSync(path.dirname(path.join(d, rel)), { recursive: true });
+    fs.writeFileSync(path.join(d, rel), t);
+  }
+  fs.writeFileSync(path.join(d, '.claude', 'kit.md'), fichaPub(nombre, pub));
+  git(d, 'init', '-q', '-b', 'main');
+  git(d, 'add', '-A');
+  git(d, 'commit', '-qm', 'inicio');
+  git(d, 'remote', 'add', 'origin', bare);
+  git(d, 'push', '-q', 'origin', 'main');
+  git(d, 'fetch', '-q', 'origin');
+  if (fichaDisco !== null) fs.writeFileSync(path.join(d, '.claude', 'kit.md'), fichaDisco);
+  return { d, bare, origin: PUB.normalizarOrigin(bare) };
+}
+const publicaDe = (e) => {
+  const a = PUB.autorizacionesPc(e.home);
+  return a.lista || a;
+};
+
+test('8d C2.2 (crit. C2): ficha con autorizado.publicar y sin --publica → ni publica: ni entrada, y la tabla lo ofrece; con --publica → la huella del ejemplo compartido y la entrada exacta; sin banderas, sigue; --no-publica, se va', { timeout: 300000 }, () => {
+  const proy = nueva('proy');
+  const rp = repoPub(proy, 'tienda');
+  const e = { ...escenario({ proy }) };
+  const r0 = correr(e);
+  assert.equal(r0.codigo, 0, r0.texto);
+  assert.deepEqual(publicaDe(e), []);
+  assert.match(r0.texto, /⚠ publicar · tienda \(.*\) publica sola si lo autorizás desde esta PC · publica con: npm --prefix app run deploy · lo prueba con: node scripts\/humo\.cjs --rapido · vuelve atrás con: node scripts\/humo\.cjs/);
+  assert.ok(!(leerSettings(e).autoMode && leerSettings(e).autoMode.environment || []).some((x) => /noche\.cjs publicar/.test(x)));
+  // el sí
+  const r1 = correr(e, ['--publica', rp.bare]);
+  assert.equal(r1.codigo, 0, r1.texto);
+  assert.deepEqual(publicaDe(e), [{ origin: rp.origin, huella: HUELLA_EJ }]);
+  assert.equal(publicaDe(e)[0].huella, F8.hash(PUB.textoHuella(PUB_EJ, (x) => ARCH_EJ[x])), 'la huella del contrato, la misma que lee noche');
+  const ent = `tienda (${rp.origin}): publicar con «node .claude/scripts/noche.cjs publicar» está autorizado por el dueño en esta PC`;
+  assert.ok(leerSettings(e).autoMode.environment.includes(ent), JSON.stringify(leerSettings(e).autoMode));
+  assert.doesNotMatch(correr(e).texto, /⚠ publicar · tienda/, 'autorizado: no se ofrece de nuevo');
+  // una corrida sin banderas: sigue igual
+  correr(e);
+  assert.equal(publicaDe(e).length, 1);
+  // --no-publica: se va (y su entrada)
+  const r2 = correr(e, ['--no-publica', rp.bare]);
+  assert.equal(r2.codigo, 0, r2.texto);
+  assert.deepEqual(publicaDe(e), []);
+  assert.ok(!leerSettings(e).autoMode.environment.includes(ent));
+});
+
+test('8d C2.2: la ficha del disco dice publicar y la de origin/main no → nada que autorizar; npm run deploy → la huella cambia al cambiar package.json; --publica de algo que no publica → no toca nada', { timeout: 300000 }, () => {
+  const proy = nueva('proy');
+  const solo = repoPub(proy, 'disco', { pub: null, archivos: {}, fichaDisco: fichaPub('disco', PUB_EJ) });
+  const rp = repoPub(proy, 'tienda');
+  const e = escenario({ proy });
+  const r = correr(e);
+  assert.doesNotMatch(r.texto, /⚠ publicar · disco/, 'la vigente no publica');
+  const neg = correr(e, ['--publica', solo.bare]);
+  assert.equal(neg.codigo, 1);
+  assert.match(neg.texto, /✗ publicar · .*no encuentro en tu carpeta de proyectos un repo con ese origin cuya ficha vigente publique/);
+  correr(e, ['--publica', rp.bare]);
+  const antes = publicaDe(e)[0].huella;
+  fs.writeFileSync(path.join(rp.d, 'app', 'package.json'), '{"scripts":{"deploy":"y"}}\n');
+  git(rp.d, 'commit', '-qam', 'otro deploy');
+  git(rp.d, 'push', '-q', 'origin', 'main');
+  git(rp.d, 'fetch', '-q', 'origin');
+  const r2 = correr(e);
+  assert.notEqual(PUB.huella(rp.d, PUB_EJ, 'refs/remotes/origin/main'), antes);
+  assert.equal(publicaDe(e)[0].huella, antes, 'la corrida común no la toca');
+  assert.match(r2.texto, /⚠ publicar · tienda \(.*\) cambió cómo publica: la noche no publica hasta que lo vuelvas a autorizar/);
+});
+
+test('8d C2.5 (35a): lo que el kit ya no trae se borra con su carpeta, si queda vacía', { timeout: 300000 }, () => {
+  const e = escenario();
+  correr(e);
+  const viejo = path.join(e.home, '.claude', 'skills', 'arquitecto-skills', 'anexos-viejos', 'sub', 'nota.md');
+  // un archivo que estuvo en la historia del kit: intacto → se borra; la historia del clon solo tiene un commit, así que se arma uno
+  const kitViejo = path.join(e.kit, 'kit', 'skills', 'arquitecto-skills', 'anexos-viejos', 'sub', 'nota.md');
+  fs.mkdirSync(path.dirname(kitViejo), { recursive: true });
+  fs.writeFileSync(kitViejo, 'viejo\n');
+  git(e.kit, 'add', '-A');
+  git(e.kit, 'commit', '-qm', 'con nota');
+  fs.rmSync(path.dirname(path.dirname(kitViejo)), { recursive: true });
+  git(e.kit, 'add', '-A');
+  git(e.kit, 'commit', '-qm', 'sin nota');
+  git(e.kit, 'tag', '-a', 'v9.0.1', '-m', 'v9.0.1');
+  fs.mkdirSync(path.dirname(viejo), { recursive: true });
+  fs.writeFileSync(viejo, 'viejo\n');
+  const r = correr(e);
+  assert.equal(r.codigo, 0, r.texto);
+  assert.equal(fs.existsSync(viejo), false);
+  assert.equal(fs.existsSync(path.join(e.home, '.claude', 'skills', 'arquitecto-skills', 'anexos-viejos')), false, 'la carpeta vacía también');
+  assert.equal(fs.existsSync(path.join(e.home, '.claude', 'skills', 'arquitecto-skills')), true);
 });

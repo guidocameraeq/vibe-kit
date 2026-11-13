@@ -515,4 +515,4 @@ if (require.main === module) {
 
 // leerSettings, planInstalar, aplicarInstalar, formato y serializar: los usa preparar-pc.cjs (SPEC-paquete-6, P2.2 paso 3) para armar
 // el plan de los hooks por PC sin duplicar la lógica y escribir el settings.json una sola vez (r1-12). Exportarlos no cambia nada acá.
-module.exports = { principal, denyAlmacen, esDelKit, rutas, MATCHER, VERSION, PC, leerSettings, planInstalar, aplicarInstalar, formato, serializar };
+module.exports = { principal, denyAlmacen, esDelKit, rutas, MATCHER, VERSION, PC, leerSettings, planInstalar, aplicarInstalar, formato, serializar, hookPre, hookPrompt };

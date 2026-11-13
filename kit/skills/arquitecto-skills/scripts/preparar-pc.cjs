@@ -45,6 +45,8 @@ const { spawnSync } = require('child_process');
 const { leerJsonSinDuplicados } = require('../pc/lib/zona-propia.cjs');
 const ficha = require('../pc/lib/ficha.cjs');
 const R = require('./lib/repos.cjs');
+const PU = require('../pc/lib/publicar.cjs'); // 8d C2.2: el contrato de la autorización de publicar (el mismo que lee noche.cjs)
+const CX = require('../pc/lib/contexto.cjs'); // la ficha vigente (la de origin/<defecto>, no la del disco)
 const I = require('./instalar-hooks-pc.cjs');
 
 const SKILLS = ['arquitecto', 'arquitecto-skills', 'docs-fyd', 'relevamiento'];
@@ -62,7 +64,7 @@ const PLAZO_PRIVADA = 120000;
 const PLAZO_DOCTOR = 180000;
 const WIN = process.platform === 'win32';
 
-const USO = 'uso: preparar-pc.cjs --kit <raíz del kit> [--home <dir>] [--proyectos <carpeta>] [--plan] [--flota] [--pisar-editados] [--kit-sin-tag (solo con --home)]';
+const USO = 'uso: preparar-pc.cjs --kit <raíz del kit> [--home <dir>] [--proyectos <carpeta>] [--plan] [--flota] [--pisar-editados] [--publica <origin>]… [--no-publica <origin>]… [--kit-sin-tag (solo con --home)]';
 
 const barras = (p) => String(p).replace(/\\/g, '/');
 const esMapa = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -79,12 +81,16 @@ const lin = (est, paso, que, arreglo) => `${est} ${paso} · ${que}${arreglo ? ` 
 
 // ---------------------------------------------------------------- argumentos
 function leerArgs(argv) {
-  const o = { kit: null, home: null, proyectos: null, plan: false, flota: false, pisarEditados: false, kitSinTag: false };
+  const o = { kit: null, home: null, proyectos: null, plan: false, flota: false, pisarEditados: false, kitSinTag: false, publica: [], noPublica: [] };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--kit' || a === '--home' || a === '--proyectos') {
       if (!argv[i + 1]) throw new Error(`${a} sin carpeta`);
       o[a.slice(2)] = argv[++i];
+    } else if (a === '--publica' || a === '--no-publica') {
+      // 8d C2.2: la firma del dueño (el freno de la PC la pregunta: A2.4) — sí o no por repo, por su origin
+      if (!argv[i + 1]) throw new Error(`${a} sin origin`);
+      o[a === '--publica' ? 'publica' : 'noPublica'].push(argv[++i]);
     } else if (a === '--plan') o.plan = true;
     else if (a === '--flota') o.flota = true;
     else if (a === '--pisar-editados') o.pisarEditados = true;
@@ -94,6 +100,7 @@ function leerArgs(argv) {
   if (!o.kit) throw new Error('falta --kit <raíz del kit>');
   if (o.kitSinTag && !o.home) throw new Error('--kit-sin-tag es solo para pruebas: va siempre con --home');
   if (o.flota && o.pisarEditados) throw new Error('--flota no pisa lo editado a mano: no va con --pisar-editados');
+  if (o.flota && (o.publica.length || o.noPublica.length)) throw new Error('--flota no autoriza a publicar: eso es una firma del dueño, aparte');
   return o;
 }
 
@@ -367,12 +374,14 @@ function leerKitPc(home) {
   const txt = (k) => (typeof d[k] === 'string' && d[k].trim() && d[k] !== 'no' ? d[k] : null);
   const am = d['auto-mode'];
   if (am !== undefined && !(Array.isArray(am) && am.every((x) => typeof x === 'string'))) return { rota: '"auto-mode" tiene que ser una lista [..] de textos' };
-  return { datos: { entorno: txt('entorno'), gh: txt('gh'), proyectos: txt('proyectos'), privada: txt('privada'), autoMode: (am || []).filter((x) => x !== DEFAULTS) }, texto: b.toString('utf8') };
+  const pa = PU.autorizacionesPc(home);
+  if (pa.rota) return { rota: pa.rota };
+  return { datos: { entorno: txt('entorno'), gh: txt('gh'), proyectos: txt('proyectos'), privada: txt('privada'), autoMode: (am || []).filter((x) => x !== DEFAULTS), publica: pa.lista || [] }, texto: b.toString('utf8') };
 }
 
 // Un valor para la cabecera: siempre entre comillas, sin \ ni " adentro (la gramática no los acepta).
 const comillas = (s) => `"${String(s).replace(/\\/g, '/').replace(/"/g, "'")}"`;
-function textoKitPc({ entorno, gh, proyectos, privada, autoMode }) {
+function textoKitPc({ entorno, gh, proyectos, privada, autoMode, publica = [] }) {
   return [
     '---',
     '# El archivo de esta PC (SPEC-paquete-6, D6-3). Lo escribe "preparame esta PC" (preparar-pc.cjs) y lo lee doctor. NO es del kit:',
@@ -383,6 +392,8 @@ function textoKitPc({ entorno, gh, proyectos, privada, autoMode }) {
     `proyectos: ${proyectos ? comillas(proyectos) : 'no'}`,
     `privada: ${privada ? comillas(privada) : 'no'}`,
     `auto-mode: [${autoMode.map(comillas).join(', ')}]`,
+    // 8d C2.2: el sí del dueño por repo, con la huella de cómo publica (lo lee noche.cjs publicar; el contrato: pc/lib/publicar.cjs)
+    ...(publica.length ? ['publica:', ...publica.map((x) => `  - {origin: ${comillas(x.origin)}, huella: ${x.huella}}`)] : []),
     '---',
     '',
   ].join('\n');
@@ -397,11 +408,43 @@ function entradaAutoMode(proyecto, entorno, clase, acceso) {
   return limpiar(`${proyecto}: ${entorno} (${clase})${acceso ? `: ${acceso}` : ''}`);
 }
 
+// ---------------------------------------------------------------- publicar (8d C2.2; D8d-5, rt-2, rt-3, r2-4, r2-7)
+// El origin normalizado de un repo (el del contrato), o null.
+function originDe(dir) {
+  const r = spawnSync('git', ['config', '--get', 'remote.origin.url'], { cwd: dir, encoding: 'utf8', windowsHide: true, timeout: 10000 });
+  const u = !r.error && r.status === 0 ? r.stdout.trim() : '';
+  return u ? PU.normalizarOrigin(u) : null;
+}
+// Los repos de la carpeta cuya ficha VIGENTE (la de origin/<defecto>) publica por comando (no al-subir: lo gobierna merge-a-main).
+// → [{ proyecto, origin, publicar, huella }] (la huella de hoy, con los archivos de esa ref)
+function quePublican(carpeta) {
+  const out = [];
+  if (!carpeta) return out;
+  let rec;
+  try {
+    rec = R.recorrer(carpeta);
+  } catch (e) {
+    return out;
+  }
+  for (const { dir, nombre } of rec.repos) {
+    const origin = originDe(dir);
+    if (!origin) continue;
+    const fv = CX.fichaVigente(dir);
+    if (fv.estado !== 'ok' || !fv.ref || !fv.ref.startsWith('refs/remotes/origin/')) continue;
+    const pub = esMapa(fv.datos.autorizado) ? fv.datos.autorizado.publicar : undefined;
+    if (!esMapa(pub) || typeof pub.comando !== 'string' || pub.comando === PU.AL_SUBIR) continue;
+    const proyecto = fv.datos.vars && typeof fv.datos.vars.proyecto === 'string' && fv.datos.vars.proyecto.trim() ? fv.datos.vars.proyecto : nombre;
+    out.push({ proyecto, origin, publicar: pub, huella: PU.huella(dir, pub, fv.ref) });
+  }
+  return out;
+}
+
 // Las fichas de los repos de <carpeta> (lib/repos.cjs, SPEC-paquete-8r2 t7: hasta dos niveles, uno por git-common-dir y por origin,
 // nunca un worktree; la misma regla que `arquitecto.cjs registro`, lib/flota.cjs y cambios-flota.cjs; el JSON de registro no trae
 // los entornos, por eso se recorre acá igual que él) → por cada entorno clase dummy o prueba, una entrada. Orden: repo, entorno.
 // → { entradas: [...], avisos: [...] }
-function generarAutoMode(carpeta) {
+function generarAutoMode(carpeta, publica = []) {
+  const autorizados = new Set(publica.map((x) => x.origin));
   const entradas = [];
   const avisos = [];
   if (!carpeta) return { entradas, avisos };
@@ -424,6 +467,14 @@ function generarAutoMode(carpeta) {
       continue;
     }
     const alias = datos.vars && typeof datos.vars.proyecto === 'string' && datos.vars.proyecto.trim() ? datos.vars.proyecto : nombre;
+    // 8d C2.3: para las sesiones de día, el repo que el dueño autorizó a publicar desde esta PC (la sesión de cierre no lo necesita)
+    if (autorizados.size) {
+      const og = originDe(dir);
+      if (og && autorizados.has(og)) {
+        const e = limpiar(`${alias} (${og}): publicar con «node .claude/scripts/noche.cjs publicar» está autorizado por el dueño en esta PC`);
+        if (!entradas.includes(e)) entradas.push(e);
+      }
+    }
     for (const [ent, v] of Object.entries(esMapa(datos.entornos) ? datos.entornos : {})) {
       if (!esMapa(v) || (v.clase !== 'dummy' && v.clase !== 'prueba')) continue;
       const e = entradaAutoMode(alias, ent, v.clase, typeof v.acceso === 'string' ? v.acceso : '');
@@ -609,7 +660,37 @@ function principal(argv, { env = process.env, cwd = process.cwd(), renombrar = f
     log('no toqué nada.');
     return fin(1);
   }
-  const gen = generarAutoMode(carpeta);
+  // 8d C2.2: el sí por repo. Sin --publica ni --no-publica, publica: queda tal cual (r2-7)
+  const candidatos = quePublican(carpeta);
+  let publica = [...(prev.publica || [])];
+  const lineasPub = [];
+  for (const u of o.noPublica) {
+    const og = PU.normalizarOrigin(u);
+    const antes = publica.length;
+    publica = publica.filter((x) => x.origin !== og);
+    lineasPub.push(lin('✓', 'publicar', antes !== publica.length ? `${og}: saqué tu autorización (la noche ya no publica desde esta PC)` : `${og}: no estaba autorizado`));
+  }
+  for (const u of o.publica) {
+    const og = PU.normalizarOrigin(u);
+    const c = candidatos.find((x) => x.origin === og);
+    if (!c) {
+      log(lin('✗', 'publicar', `${og}: no encuentro en tu carpeta de proyectos un repo con ese origin cuya ficha vigente publique (autorizado.publicar con un comando, en origin)`, 'subí la ficha con autorizado.publicar y volvé a correr'));
+      log('no toqué nada.');
+      return fin(1);
+    }
+    publica = [...publica.filter((x) => x.origin !== og), { origin: og, huella: c.huella }];
+    lineasPub.push(lin('✓', 'publicar', `${c.proyecto} (${og}): autorizado a publicar solo desde esta PC, con la huella de hoy`));
+  }
+  const pedidos = new Set([...o.publica, ...o.noPublica].map((u) => PU.normalizarOrigin(u)));
+  for (const c of candidatos) {
+    if (pedidos.has(c.origin)) continue;
+    const ya = publica.find((x) => x.origin === c.origin);
+    if (ya && ya.huella === c.huella) continue;
+    const como = `publica con: ${c.publicar.comando} · lo prueba con: ${c.publicar.humo || '(sin humo)'} · vuelve atrás con: ${c.publicar.volver || 'no declara'}`;
+    if (ya) lineasPub.push(lin('⚠', 'publicar', `${c.proyecto} (${c.origin}) cambió cómo publica: la noche no publica hasta que lo vuelvas a autorizar · ${como}`, `la sesión te pregunta; con tu sí: --publica ${c.origin}`));
+    else lineasPub.push(lin('⚠', 'publicar', `${c.proyecto} (${c.origin}) publica sola si lo autorizás desde esta PC · ${como}`, `la sesión te pregunta; con tu sí: --publica ${c.origin} (con el no, nada)`));
+  }
+  const gen = generarAutoMode(carpeta, publica);
   const am = mezclarAutoMode(envActual, prev.autoMode, gen.entradas);
   if (am.lista !== undefined) {
     if (!esMapa(v.autoMode)) v.autoMode = {};
@@ -620,7 +701,7 @@ function principal(argv, { env = process.env, cwd = process.cwd(), renombrar = f
 
   // 6. kit-pc.md nuevo
   const privada = prev.privada;
-  const nuevoKitPc = textoKitPc({ entorno: entornoPc(env), gh: prog.gh || prev.gh || null, proyectos: carpeta, privada, autoMode: am.delKit });
+  const nuevoKitPc = textoKitPc({ entorno: entornoPc(env), gh: prog.gh || prev.gh || null, proyectos: carpeta, privada, autoMode: am.delKit, publica });
   const kitPcCambia = kp.texto !== nuevoKitPc;
 
   // ---- el plan, entero
@@ -664,6 +745,7 @@ function principal(argv, { env = process.env, cwd = process.cwd(), renombrar = f
     if (am.sinDefaults) tabla.push(lin('⚠', 'automode', 'tu autoMode.environment no trae "$defaults": reemplaza los de fábrica (Trusted repo, Source control) — lo dejo así', 'si no fue a propósito, agregá "$defaults" al principio de la lista'));
   }
   if (!carpeta) tabla.push(lin('⚠', 'proyectos', 'no sé dónde viven tus proyectos', 'volvé a correr con --proyectos <carpeta>'));
+  tabla.push(...lineasPub);
 
   log('');
   for (const a of acciones) log(`${o.plan ? '· haría: ' : '· '}${a}`);
@@ -674,7 +756,19 @@ function principal(argv, { env = process.env, cwd = process.cwd(), renombrar = f
   if (!o.plan && acciones.length) {
     try {
       for (const c of pk.copiar) escribirAtomico(c.destino, c.buf, renombrar);
-      for (const b of pk.borrar) fs.rmSync(b.destino, { force: true });
+      for (const b of pk.borrar) {
+        fs.rmSync(b.destino, { force: true });
+        // 8d C2.5 (35a): y las carpetas que quedan vacías, hasta la de la skill (esa no)
+        const tope = path.join(home, '.claude', ...b.rel.split('/').slice(0, b.rel.startsWith('skills/') ? 2 : 1));
+        for (let dir = path.dirname(b.destino); dir.length > tope.length && dir.startsWith(tope); dir = path.dirname(dir)) {
+          try {
+            if (fs.readdirSync(dir).length) break;
+            fs.rmdirSync(dir);
+          } catch (e) {
+            break;
+          }
+        }
+      }
       I.aplicarInstalar(r, s, { ...ph, settingsCambia: false });
       if (settingsCambia) escribirAtomico(r.settings, textoSettings, renombrar);
       if (kitPcCambia) escribirAtomico(rutaKitPc(home), nuevoKitPc, renombrar);
@@ -732,6 +826,7 @@ module.exports = {
   principal,
   // para doctor (una sola fuente)
   generarAutoMode,
+  quePublican,
   mezclarAutoMode,
   entradaAutoMode,
   leerKitPc,
