@@ -1287,7 +1287,8 @@ function integrar(L, u, n, a, opciones) {
     } catch (e) {
       pub = null;
     }
-    if (pub && pub.trabado) return no('la última publicación quedó trabada (falló su prueba de humo): de noche no integro; queda para el dueño');
+    // revisor frío de B: también a medias (enCurso: se cortó antes de terminar), como publicar y subir
+    if (pub && (pub.trabado || pub.enCurso)) return no(`la última publicación quedó ${pub.trabado ? 'trabada (falló)' : 'a medias (se cortó antes de terminar)'}: de noche no integro; queda para el dueño`);
   }
   // 5 (el chequeo). El temporal no puede existir.
   G(L, ['worktree', 'prune'], P);
@@ -1549,8 +1550,8 @@ function traerMain(L, u, n) {
     lineas.push(...salidaB);
     lineas.push(`barreras fallaron${toca.ids.length ? `: ${toca.ids.join(', ')}` : ''} — merge abortado, ${n.rama} quedó como estaba`);
     if (nuevo) {
-      lineas.push(`para el dueño, en su checkout principal y en ${def}: ${nuevo}`);
-      lineas.push(`después cambios aprobar <el id que dé> (lo aprieta el dueño: un agente no aprueba) y traer-main ${n.x} de nuevo`);
+      lineas.push(`lo corre la sesión del dueño, en su checkout principal y en ${def}: ${nuevo}`);
+      lineas.push(`después esa sesión le ofrece al dueño cambios aprobar <el id que dé> (su clic es la firma) y traer-main ${n.x} de nuevo`);
     }
     return no('barreras fallaron: nada se commiteó ni subió');
   }

@@ -211,6 +211,23 @@ function dePublicacion(raiz) {
 
 // ---------------------------------------------------------------- la lista
 
+// Lo que viene de un modelo (el --no-pude, los renglones de "te espera" que escribió una sesión) pasa por acá antes de llegarle al
+// dueño (rt B 10): sin SHAs, sin comandos del kit, sin rojo ni verde. Vivía en noche.cjs (el parte); desde la C (revisor frío de B,
+// 6) lo usa también la lista, así /estado no muestra el id y el hash que dejó el handoff.
+function paraElDueno(t) {
+  return String(t)
+    .replace(/`[^`]*`/g, (m) => (/node |git |\.cjs/.test(m) ? 'un paso del kit' : m.slice(1, -1)))
+    .replace(/\bnode \.claude\/\S+(?: [a-z-]+)?/g, 'un paso del kit')
+    .replace(/@?\b[0-9a-f]{7,40}\b/gi, '')
+    .replace(/\b(rojo|roja|rojos|rojas)\b/gi, 'falló')
+    .replace(/\b(verde|verdes)\b/gi, 'pasó')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Las fuentes que escribe el kit (sus textos ya son para el dueño); las otras las escribió una sesión.
+const DEL_KIT = new Set(['cambio propuesto', 'publicar', 'puesta al día del kit']);
+
 function teEspera(raiz, opciones = {}) {
   const ahora = opciones.ahora instanceof Date ? opciones.ahora : new Date();
   // Revisor frío de B (5): el parte nuevo no lee el anterior (sinParte): si no, cada parte copiaba el "te necesito" del otro y lo
@@ -218,6 +235,7 @@ function teEspera(raiz, opciones = {}) {
   const fuentes = [deCambios, dePublicacion, deFusiones, deFichas, deHandoff, (r) => deTodo(r, diaDe(ahora)), ...(opciones.sinParte ? [] : [deParte])];
   const out = [];
   const vistas = new Set();
+  const refs = []; // los ids de los cambios ya listados: un renglón del handoff que nombra uno es el mismo pedido (revisor de B, 6)
   for (const f of fuentes) {
     let items = [];
     try {
@@ -225,7 +243,10 @@ function teEspera(raiz, opciones = {}) {
     } catch (e) {
       items = [];
     }
-    for (const it of items) {
+    for (const it0 of items) {
+      if (it0.ref) refs.push(it0.ref, it0.ref.replace(/^\d{4}-\d{2}-\d{2}-/, ''));
+      if (!DEL_KIT.has(it0.fuente) && refs.some((r) => r.length >= 6 && it0.texto.includes(r))) continue;
+      const it = DEL_KIT.has(it0.fuente) ? it0 : { ...it0, texto: paraElDueno(it0.texto) };
       const k = clave(it.texto);
       if (!k || vistas.has(k)) continue;
       vistas.add(k);
@@ -235,4 +256,4 @@ function teEspera(raiz, opciones = {}) {
   return out;
 }
 
-module.exports = { teEspera, clave, seccion, bullets };
+module.exports = { teEspera, clave, seccion, bullets, paraElDueno };

@@ -373,7 +373,7 @@ test('B3 publicar: un commit de código posterior a lo publicado → negado; las
   g(p.P, 'push', '-q', 'origin', 'main');
   const r = pub(p);
   assert.equal(r.codigo, 1);
-  assert.match(r.out, /entró algo que no es un módulo integrado ni papeles/);
+  assert.match(r.out, /entró algo que no es un módulo integrado, papeles ni lo del kit/);
   assert.equal(veces(p), 1);
   const t = conPublicar();
   fs.writeFileSync(path.join(t.m, 'test-falla'), '1');
@@ -565,6 +565,27 @@ test('rt B 3: un archivo que git no sigue fuera de los papeles frena publicar; e
   assert.equal(pub(p).codigo, 0);
 });
 
+test('revisor frío de B (4), en la C: lo que el setup cambia de lo seguido vuelve solo; lo suelto que deja frena y va a "Te necesito"', () => {
+  // el setup reescribe a.txt (seguido): vuelve a HEAD y se publica
+  const ensucia = "const fs = require('fs'); fs.writeFileSync('a.txt', 'reescrito\\n'); if (process.argv[2]) fs.writeFileSync(process.argv[2], 'x');\n";
+  const p = conPublicar({ setup: 'node scripts/ensucia.cjs', archivos: { 'scripts/ensucia.cjs': ensucia } });
+  const r = pub(p);
+  assert.equal(r.codigo, 0, r.out);
+  assert.equal(fs.readFileSync(path.join(p.P, 'a.txt'), 'utf8'), 'a\n', 'a.txt volvió a como está en HEAD');
+  // el setup deja un archivo suelto fuera de los papeles: no publica, lo nombra y va a "Te necesito"
+  const q = conPublicar({ setup: 'node scripts/ensucia.cjs cobertura.out', archivos: { 'scripts/ensucia.cjs': ensucia } });
+  const s = pub(q);
+  assert.equal(s.codigo, 1, s.out);
+  assert.match(s.out, /archivos que git no sigue fuera de los papeles \(cobertura\.out\), y lo dejaron las pruebas: no publiqué/);
+  assert.equal(veces(q), 0);
+  assert.ok(ESP.teEspera(q.P).some((i) => /cobertura\.out.*decidí si se borran o van al \.gitignore/.test(i.texto)), JSON.stringify(ESP.teEspera(q.P)));
+  // la noche siguiente frena antes de correr nada, y también llega a "Te necesito"
+  const t = pub(q);
+  assert.equal(t.codigo, 1, t.out);
+  assert.match(t.out, /fuera de los papeles \(cobertura\.out\)$/m);
+  assert.ok(ESP.teEspera(q.P).some((i) => /cobertura\.out/.test(i.texto)));
+});
+
 test('rt B 4 y 5: la salida del comando no queda en el temporal; un comando que falla deja trabado; una publicación a medias da 3', () => {
   const antes = pubsEnTmp();
   const p = conPublicar();
@@ -675,7 +696,7 @@ test('red team de B3 (7): un merge con el asunto de integrar cuyo segundo padre 
   g(p.P, 'push', '-q', 'origin', 'main');
   const r = pub(p);
   assert.equal(r.codigo, 1, r.out);
-  assert.match(r.out, /entró algo que no es un módulo integrado ni papeles: no publico/);
+  assert.match(r.out, /entró algo que no es un módulo integrado, papeles ni lo del kit: no publico/);
   assert.equal(veces(p), 1);
 });
 
@@ -742,8 +763,30 @@ test('P4 (2026-11-13): después de publicar, si solo entraron papeles (el parte,
   g(p.P, 'push', '-q', 'origin', 'main');
   const r = pub(p);
   assert.equal(r.codigo, 0, r.out);
-  assert.match(r.out, /desde lo último publicado solo entraron papeles: no hay nada nuevo que publicar/);
+  assert.match(r.out, /desde lo último publicado solo entraron papeles \(o lo del kit\): no hay nada nuevo que publicar/);
   assert.equal(veces(p), 1, 'no volvió a publicar');
+});
+
+test('revisor frío de B (8), en la C: un cambio aprobado de día o la puesta al día del kit no dejan la noche sin publicar', () => {
+  // la primera vez: el módulo entró y, después, de día, se aprobó un cambio de freno y la flota trajo el kit
+  const p = conPublicar();
+  commit(p.P, { '.claude/cambios/2026-11-13-kit-x.md': '---\nestado: aprobado\n---\n' }, 'cambios: aprobado 2026-11-13-kit-x');
+  commit(p.P, { '.claude/hooks/h.cjs': 'nuevo\n', '.githooks/pre-commit': '#!/bin/sh\n', 'CLAUDE.md': '# c\n' }, 'kit: v3.0.0-rc.7');
+  g(p.P, 'push', '-q', 'origin', 'main');
+  const r = pub(p);
+  assert.equal(r.codigo, 0, r.out);
+  assert.equal(veces(p), 1);
+  // después de publicar: solo lo del kit → no hay nada nuevo (no republica)
+  commit(p.P, { '.claude/cambios/2026-11-14-kit-y.md': 'x\n' }, 'cambios: aprobado 2026-11-14-kit-y');
+  g(p.P, 'push', '-q', 'origin', 'main');
+  const s = pub(p);
+  assert.equal(s.codigo, 0, s.out);
+  assert.match(s.out, /solo entraron papeles \(o lo del kit\)/);
+  assert.equal(veces(p), 1);
+  // y un commit que mezcla lo del kit con código de la app sigue negado
+  commit(p.P, { '.claude/cambios/2026-11-15-kit-z.md': 'x\n', 'src/y.js': 'y\n' }, 'mezclado');
+  g(p.P, 'push', '-q', 'origin', 'main');
+  assert.equal(pub(p).codigo, 1);
 });
 
 test('P4 (2026-11-13): el worktree del director de este módulo no cuenta en "carpetas limpias" (sigue vivo después de la noche); el de otro módulo, sí', () => {

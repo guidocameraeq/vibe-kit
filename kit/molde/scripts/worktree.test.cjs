@@ -1631,7 +1631,7 @@ test('8r4 u2: traer-main con barreras en rojo (el merge deja un hook distinto de
   assert.equal(r.codigo, 1, r.out);
   assert.match(r.out, /^candado:barreras · /m);
   assert.match(r.out, /barreras fallaron: hooks:\.claude\/hooks\/h\.cjs — merge abortado, modulo\/x quedó como estaba/);
-  assert.match(r.out, /^para el dueño, en su checkout principal y en main: node \.claude\/scripts\/cambios\.cjs nuevo --slug traer-main-x --clase 3-barrera --toca hooks --id "hooks:\.claude\/hooks\/h\.cjs" --origen "traer main @[0-9a-f]{7} a modulo\/x \(worktree\.cjs traer-main\) falla en barreras" --cuerpo "[^"]+kit-traer-main\/x\.md"$/m);
+  assert.match(r.out, /^lo corre la sesión del dueño, en su checkout principal y en main: node \.claude\/scripts\/cambios\.cjs nuevo --slug traer-main-x --clase 3-barrera --toca hooks --id "hooks:\.claude\/hooks\/h\.cjs" --origen "traer main @[0-9a-f]{7} a modulo\/x \(worktree\.cjs traer-main\) falla en barreras" --cuerpo "[^"]+kit-traer-main\/x\.md"$/m);
   assert.match(r.out, /barreras fallaron: nada se commiteó ni subió/);
   assert.equal(g(p.wx, 'rev-parse', 'HEAD'), antes[0]);
   assert.ok(!gOk(p.wx, 'rev-parse', '-q', '--verify', 'MERGE_HEAD'), 'sin merge a medias');
@@ -1793,6 +1793,11 @@ test('B3.2 integrar de noche con la publicación trabada no sube nada; de día, 
   const r = cli(p.P, ['integrar', 'x']);
   assert.equal(r.codigo, 1, r.out);
   assert.match(r.out, /trabada .*de noche no integro/);
+  // revisor frío de B, en la C: a medias (enCurso) tampoco
+  fs.writeFileSync(path.join(p.P, '.git', 'kit-publicacion.json'), JSON.stringify({ enCurso: { commit: 'x' } }));
+  const m = cli(p.P, ['integrar', 'x']);
+  assert.equal(m.codigo, 1, m.out);
+  assert.match(m.out, /a medias .*de noche no integro/);
   assert.equal(enOrigin(p), base);
   fs.rmSync(path.join(wx, '.kit-noche'));
   assert.equal(cli(p.P, ['integrar', 'x']).codigo, 0);

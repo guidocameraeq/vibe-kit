@@ -87,3 +87,16 @@ test('revisor frío de B (5): con sinParte (lo usa el parte nuevo) no copia el "
   assert.match(ES.teEspera(d).map((i) => i.texto).join('\n'), /falta tu autorización/);
   assert.deepEqual(ES.teEspera(d, { sinParte: true }), []);
 });
+
+test('revisor frío de B (6), en la C: el cambio que el handoff nombra con su id y su hash sale una vez, el del kit; lo del handoff, sin SHAs ni comandos', () => {
+  const d = repo({
+    '.claude/cambios/2026-11-12-quitar-stash.md': CAMBIO('3-barrera'),
+    'docs/SESSION_HANDOFF.md': HANDOFF('- aprobar 2026-11-12-quitar-stash (@3f2a1bc9): `node .claude/scripts/cambios.cjs aprobar 2026-11-12-quitar-stash`\n- mirar si el deploy quedó en verde (commit 3f2a1bc9)'),
+  });
+  const te = ES.teEspera(d);
+  const textos = te.map((i) => i.texto);
+  assert.equal(textos.filter((x) => /quitar-stash|cambio de freno/.test(x)).length, 1, JSON.stringify(textos));
+  assert.equal(te[0].fuente, 'cambio propuesto');
+  assert.ok(textos.includes('mirar si el deploy quedó en pasó (commit )'), JSON.stringify(textos));
+  assert.equal(ES.paraElDueno('quedó en verde: `git push` @abc1234'), 'quedó en pasó: un paso del kit');
+});

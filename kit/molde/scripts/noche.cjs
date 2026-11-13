@@ -275,6 +275,12 @@ const esAncestro = (L, cwd, a, b) => G(L, cwd, ['merge-base', '--is-ancestor', a
 const archivosDe = (L, cwd, sha) => lineasDe(G(L, cwd, ['diff-tree', '--no-commit-id', '--name-only', '-r', '--root', sha]).stdout);
 // ¿Toca solo papeles? La carpeta de papeles y el AGENTS.md que genera agents.cjs (el /cierre lo commitea con los papeles).
 const soloPapeles = (archivos, docs) => archivos.length > 0 && archivos.every((f) => f.startsWith(`${docs}/`) || f === 'AGENTS.md');
+// Revisor frío de B (8), en la C: para PUBLICAR también cuenta lo que escriben los flujos del kit (un cambio aprobado de día en
+// .claude/cambios/, la puesta al día de la flota en .claude/ y .githooks/, el CLAUDE.md, el .gitignore): no es la app, ningún build
+// lo levanta, y lo cuidan los frenos (barreras pide su aprobado). Antes dejaba la noche sin publicar hasta --seguir. SUBIR sigue
+// siendo solo papeles: el cierre no sube nada del kit.
+const DEL_KIT = (f) => /^\.claude\//.test(f) || /^\.githooks\//.test(f) || ['CLAUDE.md', '.gitignore', '.gitattributes'].includes(f);
+const papelesOKit = (archivos, docs) => archivos.length > 0 && archivos.every((f) => soloPapeles([f], docs) || DEL_KIT(f));
 
 // ---- cierre <x>: la línea de la sesión de cierre
 
@@ -480,13 +486,28 @@ function correrPaso(L, cmd, cwd, plazoMs, archivoSalida) {
 
 // ¿La carpeta está como la dejó git? Nada cambiado en lo que git sigue, y nada sin seguir fuera de los papeles (rt B 3: un build
 // levanta solo las páginas que encuentra). Respeta el .gitignore. → null si está, o el motivo.
+// Revisor frío de B (4), en la C: el motivo nombra los archivos (hasta tres), así "Te necesito" dice qué mirar.
+const RUTA_ST = (l) => l.slice(3).replace(/^"|"$/g, '');
+const nombres = (ls) => `${ls.slice(0, 3).map(RUTA_ST).join(', ')}${ls.length > 3 ? ' …' : ''}`;
 function carpetaSucia(L, raiz, docs) {
   const st = G(L, raiz, ['-c', 'core.quotePath=false', 'status', '--porcelain', '--untracked-files=all']);
   if (!st.ok) return 'no pude leer el estado de la carpeta principal';
   const ls = String(st.stdout || '').split('\n').filter((l) => l.trim());
-  if (ls.some((l) => !l.startsWith('?? '))) return 'la carpeta principal tiene cambios sin guardar';
-  if (ls.some((l) => !soloPapeles([l.slice(3).replace(/^"|"$/g, '')], docs))) return 'la carpeta principal tiene archivos que git no sigue fuera de los papeles';
+  const cambiados = ls.filter((l) => !l.startsWith('?? '));
+  if (cambiados.length) return `la carpeta principal tiene cambios sin guardar (${nombres(cambiados)})`;
+  const sueltos = ls.filter((l) => !soloPapeles([RUTA_ST(l)], docs));
+  if (sueltos.length) return `la carpeta principal tiene archivos que git no sigue fuera de los papeles (${nombres(sueltos)})`;
   return null;
+}
+const ESPERA_SUCIA = (m) => `${m}: decidí si se borran o van al .gitignore; hasta entonces no publico`;
+
+// Lo que el setup o las pruebas cambiaron de lo que git sigue (un lockfile reescrito) vuelve a como está en HEAD, como hace
+// worktree.cjs con su setup (limpiarLoDelSetup): eso no lo publica nadie y trababa la noche para siempre. Lo suelto que dejaron
+// NO se esconde (rt B 3: un build levanta lo que encuentra): frena y va a "Te necesito".
+function volverLoSeguido(L, raiz) {
+  const m = G(L, raiz, ['-c', 'core.quotePath=false', 'diff', '--name-only', 'HEAD']);
+  if (!m.ok) return;
+  for (const f of lineasDe(m.stdout)) G(L, raiz, ['checkout', 'HEAD', '--', f]);
 }
 
 function publicar(L, g, x, a, o) {
@@ -537,7 +558,7 @@ function publicar(L, g, x, a, o) {
   if (antes.trabado && !a.seguir) return tres('la publicación quedó trabada (la última falló): no publico hasta que digas que siga', 'la última publicación falló: decidí si sigue');
   // 4. la carpeta, HEAD = origin, el módulo adentro, y desde lo último publicado solo módulos y papeles
   const sucia = carpetaSucia(L, p.raiz, p.docs);
-  if (sucia) return no(sucia);
+  if (sucia) return no(sucia, ESPERA_SUCIA(sucia));
   const head = shaDe(L, p.raiz, 'HEAD');
   const od = shaDe(L, p.raiz, ref);
   if (!head || head !== od) return no(`la carpeta principal no está igual a origin/${p.defecto} (corré git pull --ff-only antes)`);
@@ -577,12 +598,12 @@ function publicar(L, g, x, a, o) {
           continue;
         }
       }
-      if (padres === 1 && soloPapeles(archivosDe(L, p.raiz, c), p.docs)) continue;
-      return no('desde lo último que se publicó entró algo que no es un módulo integrado ni papeles: no publico', 'desde la última publicación entró algo por fuera de un módulo: decidí si se publica');
+      if (padres === 1 && papelesOKit(archivosDe(L, p.raiz, c), p.docs)) continue;
+      return no('desde lo último que se publicó entró algo que no es un módulo integrado, papeles ni lo del kit: no publico', 'desde la última publicación entró algo por fuera de un módulo: decidí si se publica');
     }
     // P4 (2026-11-13): cada cierre commitea papeles; sin un módulo nuevo desde lo último publicado, no hay nada que publicar.
     if (!hayModulo && antes.publicado && base === antes.publicado && antes.ultimaSalida === 0) {
-      return { codigo: 0, lineas: ['publicar: desde lo último publicado solo entraron papeles: no hay nada nuevo que publicar'] };
+      return { codigo: 0, lineas: ['publicar: desde lo último publicado solo entraron papeles (o lo del kit): no hay nada nuevo que publicar'] };
     }
   }
   const salida = path.join(os.tmpdir(), `kit-pub-${crypto.randomBytes(8).toString('hex')}.log`);
@@ -618,8 +639,10 @@ function publicar(L, g, x, a, o) {
       pasos.pruebas = r.ok ? 'pasó' : 'falló';
       if (!r.ok) return fin(1, 'las pruebas fallaron en la carpeta principal: no publiqué', false);
       // lo que corrió no tiene que haber dejado la carpeta distinta de lo que se probó (rt B 3)
-      const otra = carpetaSucia(L, p.raiz, p.docs) || (shaDe(L, p.raiz, 'HEAD') !== head ? 'la carpeta principal cambió mientras corrían las pruebas' : null);
-      if (otra) return fin(1, `${otra}: no publiqué`, false);
+      if (shaDe(L, p.raiz, 'HEAD') !== head) return fin(1, 'la carpeta principal cambió mientras corrían las pruebas: no publiqué', false, 'la carpeta principal cambió mientras corrían las pruebas: decidí si se publica');
+      volverLoSeguido(L, p.raiz);
+      const otra = carpetaSucia(L, p.raiz, p.docs);
+      if (otra) return fin(1, `${otra}, y lo dejaron las pruebas: no publiqué`, false, ESPERA_SUCIA(`las pruebas dejaron archivos sueltos (${otra.split('(').pop().replace(/\)$/, '')})`));
       // 6. publicar. Si falla, lo publicado puede haber quedado a medias: queda trabado (rt B 5).
       const c = correrPaso(L, pub.comando, p.raiz, T_PUBLICAR, salida);
       pasos.comando = c.estado === 'verde' ? 'pasó' : 'falló';
@@ -687,18 +710,9 @@ function subir(L, g, x, o = {}) {
 
 // ---- parte <x>: lo escribe el script, no el modelo (B3.6)
 
-// Lo que viene de un modelo (el --no-pude, los renglones de "te espera" que escribió una sesión) pasa por acá antes de llegarle al
-// dueño (rt B 10): sin SHAs, sin comandos del kit, sin rojo ni verde.
-function paraElDueno(t) {
-  return String(t)
-    .replace(/`[^`]*`/g, (m) => (/node |git |\.cjs/.test(m) ? 'un paso del kit' : m.slice(1, -1)))
-    .replace(/\bnode \.claude\/\S+(?: [a-z-]+)?/g, 'un paso del kit')
-    .replace(/@?\b[0-9a-f]{7,40}\b/gi, '')
-    .replace(/\b(rojo|roja|rojos|rojas)\b/gi, 'falló')
-    .replace(/\b(verde|verdes)\b/gi, 'pasó')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
+// Lo que viene de un modelo pasa por paraElDueno antes de llegarle al dueño (rt B 10): vive en hooks/lib/espera.cjs (la lista
+// también lo usa).
+const { paraElDueno } = require('../hooks/lib/espera.cjs');
 
 function parte(L, g, x, a, o) {
   const p = enPrincipal(L, g);
