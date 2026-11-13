@@ -190,13 +190,13 @@ function caminoDelRojo(clon, principal) {
   const queda = 'lo que se decidió queda en el commit y en el renglón del CHANGELOG de la adopción';
   const despues = 'un aprobado de después no lo cubre (el sello va antes del primer commit que toca)';
   const t = hayRemoto(clon, principal)
-    ? `ese rojo es solo en este clon, antes del push: barreras mira origin/${rama}..HEAD y, pusheado, ningún /cierre lo vuelve a mirar; ${despues} — ${queda}`
-    : `sin remoto, ese rojo no queda en el clon: --traer lleva estos commits a tu carpeta y ahí estructura.cjs todo (tu primer /cierre) da ROJO en ese commit — su rango arranca en el último commit del handoff, antes de la adopción, hasta que un /cierre commitee el handoff; ${despues}: si no lo querés así, revertilo (git revert) — ${queda}`;
+    ? `esa falla es solo en este clon, antes del push: barreras mira origin/${rama}..HEAD y, pusheado, ningún /cierre lo vuelve a mirar; ${despues} — ${queda}`
+    : `sin remoto, esa falla no queda en el clon: --traer lleva estos commits a tu carpeta y ahí estructura.cjs todo (tu primer /cierre) falla en ese commit — su rango arranca en el último commit del handoff, antes de la adopción, hasta que un /cierre commitee el handoff; ${despues}: si no lo querés así, revertilo (git revert) — ${queda}`;
   return prendido
     ? `${t}; ⚠ en este clon core.hooksPath apunta a ${g.out.trim()} (arrancó una sesión acá): el pre-commit frena ese commit — el clon de la adopción va sin githooks (r1-5): git config --unset core.hooksPath (en tu carpeta los prende --traer)`
     : t;
 }
-const lineaFichaVieja = (sha, camino) => `${RUTA_FICHA} ya estuvo en la historia (commit ${sha}) y la exención b pide que no haya existido nunca: el commit de la ficha da ROJO en barreras — ${camino}`;
+const lineaFichaVieja = (sha, camino) => `${RUTA_FICHA} ya estuvo en la historia (commit ${sha}) y la exención b pide que no haya existido nunca: el commit de la ficha falla en barreras — ${camino}`;
 
 // La carpeta: la raíz de un repo git, sin ficha.
 function revisarRaiz(carpeta) {
@@ -638,14 +638,14 @@ function lineasArranquePropio(texto) {
 // pantalla lo pregunta, con la gramática de kit.ejemplo.md; y avisa que la herramienta del ejemplo no es de este proyecto.
 function lineasEntornos() {
   return [
-    'entornos: ninguno declarado — preguntale a Guido cada base y su clase (real · prueba · dummy); sin declararla, la base de prueba cuenta como real',
+    'entornos: ninguno declarado — preguntale al dueño cada base y su clase (real · prueba · dummy); sin declararla, la base de prueba cuenta como real',
     '  así se declaran (la gramática de kit.ejemplo.md; van en la ficha, al nivel de vars:):',
     '    entornos:',
     '      base-real:',
     '        clase: real',
     '      base-prueba:',
     '        clase: prueba',
-    'herramientas: ninguna — el ejemplo de kit.ejemplo.md ("db ping") no es un comando de este proyecto: si se copia, entorno da rojo',
+    'herramientas: ninguna — el ejemplo de kit.ejemplo.md ("db ping") no es un comando de este proyecto: si se copia, entorno falla',
   ];
 }
 
@@ -804,7 +804,7 @@ function lineaWorktreeinclude(carpeta) {
   const cand = configLocal(carpeta);
   if (!cand.length) return null;
   if (hay(carpeta, '.worktreeinclude')) return `config local ignorada en la raíz: ${listaCorta(cand)} — ya hay .worktreeinclude: worktree crear copia lo que lista (mirá que las nombre)`;
-  return `config local ignorada en la raíz: ${listaCorta(cand)} — worktree crear no la copia (sin .worktreeinclude copia solo los .env): con el OK de Guido, --aplicar <propuesta> --worktreeinclude escribe en la raíz un .worktreeinclude con estas líneas (los .env también: con el archivo dejan de ir solos): ${lineasWti(cand).join(' · ')}`;
+  return `config local ignorada en la raíz: ${listaCorta(cand)} — worktree crear no la copia (sin .worktreeinclude copia solo los .env): con el OK del dueño, --aplicar <propuesta> --worktreeinclude escribe en la raíz un .worktreeinclude con estas líneas (los .env también: con el archivo dejan de ir solos): ${lineasWti(cand).join(' · ')}`;
 }
 
 // h5 (8r4): los secretos (o falsos positivos) viejos de la historia, que sin mirarlos aparecen recién en un merge (Hermes: un auth_uid en
@@ -836,7 +836,7 @@ function lineasGitleaks(carpeta, dirTmp, { env = process.env, plazo = PLAZO_GITL
   const out = [`gitleaks: ${vistas.length} en la historia (sin el valor; saltan en un merge o en el pre-commit si se tocan):`];
   for (const v of vistas.slice(0, MAX_HALLAZGOS)) out.push(`  ${v}`);
   if (vistas.length > MAX_HALLAZGOS) out.push(`  y ${vistas.length - MAX_HALLAZGOS} más (gitleaks detect --redact --no-banner los lista)`);
-  out.push('  propuesta: si es real, rotala (cambiala donde se usa: sacarla de la historia no alcanza); si no, su huella en .gitleaksignore con su porqué — es una barrera: pide aprobado de Guido');
+  out.push('  propuesta: si es real, rotala (cambiala donde se usa: sacarla de la historia no alcanza); si no, su huella en .gitleaksignore con su porqué — es una barrera: pide el aprobado del dueño');
   return out;
 }
 
@@ -924,9 +924,9 @@ function mirar(carpeta, opciones) {
         else {
           const skill = id === 'estado' ? '/estado' : '/director';
           const agentes = distintos.every((r) => r.startsWith('.claude/agents/'))
-            ? ` — solo agentes propios (${distintos.map((r) => r.slice('.claude/agents/'.length).replace(/\.md$/i, '')).join(', ')}): la sesión le propone a Guido renombrar los suyos a <nombre>-propio.md (--aplicar <propuesta> --agentes renombrar) y la pieza pasa a sí`
+            ? ` — solo agentes propios (${distintos.map((r) => r.slice('.claude/agents/'.length).replace(/\.md$/i, '')).join(', ')}): la sesión le propone al dueño renombrar los suyos a <nombre>-propio.md (--aplicar <propuesta> --agentes renombrar) y la pieza pasa a sí`
             : '';
-          pone('propia', `⚠ ${listaCorta(distintos)} ya está y es distinto: ${skill} del kit no queda hasta resolverlo con Guido${agentes}`);
+          pone('propia', `⚠ ${listaCorta(distintos)} ya está y es distinto: ${skill} del kit no queda hasta resolverlo con el dueño${agentes}`);
         }
       } else if (id === 'candado' && nuevoRepo) {
         pone('sí', `proyecto nuevo (--nuevo): prendido desde el primer commit${ocupada ? ` — ⚠ ${ocupada}: barreras no anda hasta resolverlo` : ''}`);
@@ -959,7 +959,7 @@ function mirar(carpeta, opciones) {
     // t4: las bases y las herramientas (la propuesta de mirar nunca trae entornos: los declara la sesión con Guido)
     // CF-2: un manifiesto de npm en una subcarpeta que el setup no instala (el web/ en React de Hermes): el gate da rojo sin él
     const sub = manifiestosSinSetup(carpeta, vars['comando-setup'], carpetaDocs);
-    if (sub.length) o(`otro manifiesto: ${listaCorta(sub)} — el comando-setup no lo instala: preguntale a Guido si las pruebas lo necesitan (si sí, sumalo al setup, p. ej. … && npm --prefix ${sub[0].replace(/\/package\.json$/, '')} ci)`);
+    if (sub.length) o(`otro manifiesto: ${listaCorta(sub)} — el comando-setup no lo instala: preguntale al dueño si las pruebas lo necesitan (si sí, sumalo al setup, p. ej. … && npm --prefix ${sub[0].replace(/\/package\.json$/, '')} ci)`);
     for (const l of lineasEntornos()) o(l);
     // t12 (a): la config local ignorada en la raíz, que worktree crear no copia sin .worktreeinclude
     // CF-1: en la carpeta de Guido (con --principal): un clon recién hecho nunca tiene los ignorados
@@ -995,7 +995,7 @@ function mirar(carpeta, opciones) {
       o('  git-seguro y sensible, cambios-metodo, githooks), docs (solo lo que falta) y lo que eso necesita para andar (hooks-lib: la');
       o(`  usan todos los hooks; scripts: estructura, cambios, todo). No trae ${noTrae.length ? `${noTrae.join(', ')} ni ` : ''}docs-fyd.`);
       if (!nuevoRepo && (modSi.length || modPropia.length)) {
-        o(`repo con código (estandar): ${[modSi.length ? `trae ${modSi.join(' y ')} (sí: el módulo con director necesita /director y /obrero)` : '', modPropia.length ? `${modPropia.join(' y ')} en propia (ya hay uno distinto: lo resuelve la sesión con Guido)` : ''].filter(Boolean).join('; ')}`);
+        o(`repo con código (estandar): ${[modSi.length ? `trae ${modSi.join(' y ')} (sí: el módulo con director necesita /director y /obrero)` : '', modPropia.length ? `${modPropia.join(' y ')} en propia (ya hay uno distinto: lo resuelve la sesión con el dueño)` : ''].filter(Boolean).join('; ')}`);
       }
       o(`frenos, sensible y autorizado: los de fábrica del nivel ${nivel} (así el commit de la ficha pasa barreras: exención b)`);
     }
@@ -1009,7 +1009,7 @@ function mirar(carpeta, opciones) {
       // los iguales a un renglón del CLAUDE.md del molde (RF-fix 4: el del kit no es "propio")
       const delMolde = new Set(lf(aN.get('CLAUDE.md') || '').split('\n').map((l) => l.trim()).filter(Boolean));
       const nros = tc.split('\n').map((l, i) => (/director|obrero/i.test(l) && !/\/(director|obrero)\b/i.test(l) && !delMolde.has(l.trim()) ? i + 1 : 0)).filter(Boolean);
-      if (nros.length) o(`CLAUDE.md: tiene su director/obrero propio (renglones ${nros.slice(0, 5).join(', ')}${nros.length > 5 ? ', …' : ''}): choca con /director — la sesión le propone a Guido cambiarlo por un puntero a /director y /obrero (a mano, con su OK)`);
+      if (nros.length) o(`CLAUDE.md: tiene su director/obrero propio (renglones ${nros.slice(0, 5).join(', ')}${nros.length > 5 ? ', …' : ''}): choca con /director — la sesión le propone al dueño cambiarlo por un puntero a /director y /obrero (a mano, con su OK)`);
     }
     if (hay(carpeta, 'AGENTS.md')) o('AGENTS.md: hay — aviso: con otro contenido que el del kit no se toca');
     const copias = COPIAS_KIT.filter((c) => hay(carpeta, c));
@@ -1363,52 +1363,55 @@ function aplicarPropuesta(carpeta, opciones) {
     try {
       A.ejecutar(carpeta, ops, opciones.io);
     } catch (e) {
-      return { codigo: 1, lineas: [...lineas, `adoptar: no pude escribir ${e.ruta || '?'} (${e.code || e.message}) — cada archivo quedó entero, el viejo o el nuevo. Es el clon: \`git checkout -- . && git clean -fd\` (deja .kit-rol) y corré de nuevo`] };
+      return { codigo: 1, lineas: [...lineas, `adoptar: no pude escribir ${e.ruta || '?'} (${e.code || e.message}) — cada archivo quedó entero, el viejo o el nuevo. Es el clon: \`git checkout -- .\` y después \`git clean -fd\` (deja .kit-rol), y corré de nuevo`] };
     }
     // rt-9: el blob de la mezcla de siempre, para el índice del commit de las piezas (un objeto suelto en .git: no es un commit)
     let blobPlano = null;
     if (permisos) {
       const h = spawnSync('git', ['hash-object', '-w', '--path', RUTA_SETTINGS, '--stdin'], { cwd: carpeta, input: permisos.plano, encoding: 'utf8', windowsHide: true });
-      if (h.error || h.status !== 0) return { codigo: 1, lineas: [...lineas, `adoptar: no pude guardar la mezcla del settings para el commit de las piezas (${String(h.stderr || (h.error && h.error.message) || '').trim()}) — los archivos quedaron escritos; es el clon: \`git checkout -- . && git clean -fd\` y corré de nuevo`] };
+      if (h.error || h.status !== 0) return { codigo: 1, lineas: [...lineas, `adoptar: no pude guardar la mezcla del settings para el commit de las piezas (${String(h.stderr || (h.error && h.error.message) || '').trim()}) — los archivos quedaron escritos; es el clon: \`git checkout -- .\` y después \`git clean -fd\`, y corré de nuevo`] };
       blobPlano = h.stdout.trim();
     }
     // t2 (8r2; D8r2-1): lo adoptado llega a la carpeta de Guido, y los githooks se prenden ahí, en un paso propio DESPUÉS de los
     // commits y el push (--traer); acá, con --principal, solo se valida la carpeta y se da el comando (en el clon no: r1-5)
     const traer = lineaTraer(carpeta, opciones.principal); // va la última
     const msg = `kit: adopción ${version}`;
+    // R12 (8d C4): un paso por renglón, sin `&&` (PowerShell 5.1 no lo tiene); los corre la sesión, en orden, y para en el que falle
+    const pasos = (...cmds) => cmds.filter(Boolean).map((c) => `  ${c}`);
+    const UNO_POR_RENGLON = 'un paso por renglón; si uno falla, pará ahí';
     if (algo) {
       // los githooks sh con +x en el índice (en Windows el disco no lo lleva; en la flota lo pone flota, acá el commit)
       const sh = [...ops.keys()].filter((rel) => /^\.githooks\/[^/.]+$/.test(rel) && ops.get(rel) !== null);
-      const x = sh.length ? ` && git update-index --chmod=+x -- ${sh.join(' ')}` : '';
+      const x = sh.length ? `git update-index --chmod=+x -- ${sh.join(' ')}` : null;
       if (blobPlano) {
         // rt-9: tres — en las piezas va la mezcla de siempre (el blob, al índice); D2/D3 en el tercero, solo
-        lineas.push(`van tres commits, en este orden (la exención b compara la ficha con la de fábrica del árbol del padre: la ficha va sola, después; lo de ${MSG_PERMISOS} va aparte, en el tercero):`);
-        lineas.push(`  git add -A -- . ":(exclude)${RUTA_FICHA}" ":(exclude)${RUTA_SETTINGS}" && git update-index --add --cacheinfo 100644,${blobPlano},${RUTA_SETTINGS}${x} && git commit -m "${msg} (piezas)"`);
-        lineas.push(`  git add -- ${RUTA_FICHA} && git commit -m "${msg} (ficha)"`);
-        lineas.push(`  git add -- ${RUTA_SETTINGS} && git commit -m "${msg} (${MSG_PERMISOS})"`);
+        lineas.push(`van tres commits, en este orden (la exención b compara la ficha con la de fábrica del árbol del padre: la ficha va sola, después; lo de ${MSG_PERMISOS} va aparte, en el tercero), ${UNO_POR_RENGLON}:`);
+        lineas.push(...pasos(`git add -A -- . ":(exclude)${RUTA_FICHA}" ":(exclude)${RUTA_SETTINGS}"`, `git update-index --add --cacheinfo 100644,${blobPlano},${RUTA_SETTINGS}`, x, `git commit -m "${msg} (piezas)"`));
+        lineas.push(...pasos(`git add -- ${RUTA_FICHA}`, `git commit -m "${msg} (ficha)"`));
+        lineas.push(...pasos(`git add -- ${RUTA_SETTINGS}`, `git commit -m "${msg} (${MSG_PERMISOS})"`));
       } else {
-        lineas.push('van dos commits, en este orden (la exención b compara la ficha con la de fábrica del árbol del padre: la ficha va sola, después):');
-        lineas.push(`  git add -A -- . ":(exclude)${RUTA_FICHA}"${x} && git commit -m "${msg} (piezas)"`);
-        lineas.push(`  git add -- ${RUTA_FICHA} && git commit -m "${msg} (ficha)"`);
+        lineas.push(`van dos commits, en este orden (la exención b compara la ficha con la de fábrica del árbol del padre: la ficha va sola, después), ${UNO_POR_RENGLON}:`);
+        lineas.push(...pasos(`git add -A -- . ":(exclude)${RUTA_FICHA}"`, x, `git commit -m "${msg} (piezas)"`));
+        lineas.push(...pasos(`git add -- ${RUTA_FICHA}`, `git commit -m "${msg} (ficha)"`));
       }
     } else {
-      lineas.push('va un commit, solo la ficha (no vino ninguna pieza):');
-      lineas.push(`  git add -- ${RUTA_FICHA} && git commit -m "${msg} (ficha)"`);
+      lineas.push(`va un commit, solo la ficha (no vino ninguna pieza), ${UNO_POR_RENGLON}:`);
+      lineas.push(...pasos(`git add -- ${RUTA_FICHA}`, `git commit -m "${msg} (ficha)"`));
     }
     // chequear no va: pide la ficha en la base, y antes de la adopción no hay (corre desde la primera puesta al día de la flota)
     const rango = `node .claude/scripts/estructura.cjs barreras --rango ${antes || '<el HEAD de antes>'}..HEAD`;
     const camino = caminoDelRojo(carpeta, opciones.principal); // 8r3 i4 (rt-3): lo que pasa de verdad con ese rojo
-    if (!algo) lineas.push(`después: barreras da ROJO en el commit de la ficha (sin la fábrica en el árbol del padre no hay exención b): ${camino}`);
-    else if (distintas.length) lineas.push(`después: ${rango} da ROJO en el commit de la ficha (${distintas.join(', ')} no es de fábrica): ${camino}`);
-    else if (fichaVieja) lineas.push(`después: ${rango} da ROJO: ${lineaFichaVieja(fichaVieja, camino)}`);
-    else lineas.push(`después: ${rango} → verde${blobPlano ? ' en las piezas y la ficha' : ''}`);
+    if (!algo) lineas.push(`después: barreras falla en el commit de la ficha (sin la fábrica en el árbol del padre no hay exención b): ${camino}`);
+    else if (distintas.length) lineas.push(`después: ${rango} falla en el commit de la ficha (${distintas.join(', ')} no es de fábrica): ${camino}`);
+    else if (fichaVieja) lineas.push(`después: ${rango} falla: ${lineaFichaVieja(fichaVieja, camino)}`);
+    else lineas.push(`después: ${rango} → pasa${blobPlano ? ' en las piezas y la ficha' : ''}`);
     // rt-9: el tercero toca reglas del settings sin un aprobado sellado (lo dice barreras, regla por regla)
-    if (blobPlano) lineas.push(`después: el commit de los permisos (${MSG_PERMISOS}) da ROJO en barreras (toca reglas del settings sin un aprobado sellado): ${camino}; ya pusheado no se rehace (sería un push forzado): si no lo querés, se revierte con un commit nuevo (git revert) y queda la mezcla de siempre`);
+    if (blobPlano) lineas.push(`después: el commit de los permisos (${MSG_PERMISOS}) falla en barreras (toca reglas del settings sin un aprobado sellado): ${camino}; ya pusheado no se rehace (sería un push forzado): si no lo querés, se revierte con un commit nuevo (git revert) y queda la mezcla de siempre`);
     // u6 (8r4): el NORTE con [completar: lo llena la sesión con Guido (la flota no lo mira)
     const rutaNorte = rutaPapel(carpetaDocs, 'NORTE.md');
     const tNorte = leerP(carpeta, rutaNorte);
     const nNorte = tNorte === null ? 0 : (tNorte.match(/\[completar/g) || []).length;
-    if (nNorte) lineas.push(`${rutaNorte} tiene ${nNorte} [completar]: llenalo con Guido (lo usa el Arquitecto en B1)`);
+    if (nNorte) lineas.push(`${rutaNorte} tiene ${nNorte} [completar]: llenalo con el dueño (lo usa el Arquitecto en B1)`);
     lineas.push(traer);
     return { codigo: 0, lineas };
   } finally {
@@ -1684,7 +1687,7 @@ function bloquesDecision(carpeta, { d1, settings, carpetaDocs = CARPETA_DOCS, ar
     }
   }
   // la gramática de la ficha: no, o la lista de los comandos que duelen (pregunta el que empieza así); un "sí" no se lee
-  out.push(`D4 · sensible: las cinco de sensible: quedan en no; recomendada: datos-reales con los comandos que tocan la base real — se cambia en la propuesta, como lista (p. ej. datos-reales: [sqlcmd]; "sí" no se lee: va no o los comandos, como en kit.ejemplo.md); el commit de la ficha da ROJO en barreras: ${camino}`);
+  out.push(`D4 · sensible: las cinco de sensible: quedan en no; recomendada: datos-reales con los comandos que tocan la base real — se cambia en la propuesta, como lista (p. ej. datos-reales: [sqlcmd]; "sí" no se lee: va no o los comandos, como en kit.ejemplo.md); el commit de la ficha falla en barreras: ${camino}`);
   return out;
 }
 
@@ -1952,7 +1955,7 @@ async function main(argv) {
         const t = `${destino}.kit-tmp-${process.pid}`;
         fs.writeFileSync(t, r.texto);
         fs.renameSync(t, destino);
-        lineas.push(`propuesta escrita en ${destino} — la sesión la muestra, la ajusta con Guido y corre --aplicar`);
+        lineas.push(`propuesta escrita en ${destino} — la sesión la muestra, la ajusta con el dueño y corre --aplicar`);
       }
       return { codigo: 0, lineas };
     }
