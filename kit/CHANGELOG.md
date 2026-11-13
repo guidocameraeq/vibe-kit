@@ -5,6 +5,54 @@ Una sección por versión, la más nueva arriba. Cada una trae su **nota de migr
 Es lo que lee el agente de la fusión al actualizar un proyecto. La historia de sesiones del repo vive aparte, en `docs/CHANGELOG.md`.
 `kit/VERSION` lleva la versión del último tag y se sube en el commit que pone el tag siguiente.
 
+## 3.0.0-rc.7
+
+La candidata a la `v3.0` (2026-11-13, `docs/kit-v3/SPEC-paquete-8d.md`): el dueño no tipea nada y una noche termina sola. Ocho partes
+decididas con Guido el 2026-11-12 sobre lo que midió la revisión de la `rc.6`, en tres tandas (A frenos, B la noche, C adoptar y la PC).
+
+- **Qué piezas cambiaron**:
+  - **El settings pasa a un hook**: en `PreToolUse`, `Bash|PowerShell` ya no registra tres hooks sino uno, `hooks/lib/portero.cjs`, que
+    corre los tres frenos (`git-seguro`, `sensible`, `niega-aprobar`) en un solo proceso, con plazo propio y un aviso honesto si
+    se pasa. `hook-sensible` y `hooks-lib` viajan juntos, igual que el settings y el portero: un settings con el portero y sin su lib
+    negaría todo (por eso la flota corre `adoptar --verificar` y no mezcla si un hook registrado no anda).
+  - **Los frenos del día a día salen del árbol** (`frenos-log.cjs`): cada frenada va a `<carpeta común de git>/kit-frenos.log`, sin
+    versionar; a `.claude/frenos.log` (versionado) va solo la firma (`cambios:aprobar`). El versionado ya no ensucia el árbol ni traba el
+    pull del cierre.
+  - **Aprobar es un clic**: `niega-aprobar` corre en toda la PC (también en `~/.claude/hooks/kit/`), mira el comando y pregunta con una
+    ventana; el clic del dueño es la firma, en la carpeta principal o en la pestaña del director (con su pase), nunca un obrero ni una
+    sesión de fondo. `cambios.cjs nuevo --en-defecto` propone un cambio de freno nacido en un módulo directo en la rama por defecto.
+  - **La ficha**: `autorizado.publicar` (nace en `no`; si no, `{comando, humo, volver?}` con dos formas de comando: un intérprete con un
+    archivo del repo, o `npm|pnpm|yarn … run <script>` — sin `-w`/`--filter` ni opciones después del script; para un paquete de un
+    monorepo, `--prefix|--dir|--cwd`; o `comando: al-subir`). Los nombres sin persona (`necesita-persona`, `con-ok`); **los alias viejos
+    (`necesita-guido`, `con-ok-de-guido`) siguen valiendo**.
+  - **La noche termina sola** (`noche.cjs cierre|cierre-empieza|publicar|subir|parte`, `skills/director/cierre-noche.md`): después de
+    integrar, el director lanza la sesión de cierre (de fondo, en `dontAsk`, con su lista): `/cierre` de papeles, `publicar` (solo con el
+    sí de esta PC y la huella al día; prueba en la carpeta principal, publica, corre el humo y, si falla, vuelve atrás y queda trabada
+    hasta que el dueño decida), `worktree.cjs limpiar`, el parte y `subir` (solo papeles). Para publicar, lo que escriben los flujos del
+    kit (`.claude/`, `.githooks/`, `CLAUDE.md`, `.gitignore`) cuenta como papeles. **El despertador y la mudanza al 40 % ya no existen**:
+    `noche.cjs despertador` dice una línea y sale 0.
+  - **Un solo camino, el de fondo**: el director lanza a los obreros (`encargo.cjs` imprime la línea, con `KIT_FONDO=1` y
+    `--name obrero-<x>--<ID>`); la sesión del director se llama `director-<x>`. El encargo trae `Skill: tramo` y **`- Apertura:
+    director`** (antes la abría el dueño). El turno de la PC (`proceso.conTurno`) ordena las suites pesadas (`presentar`, `verificar`,
+    `integrar`, `publicar`, el `sello`).
+  - **`/estado` del dueño** en cuatro secciones (te necesito · el plan · lo que se hizo · lo que falta) con **una sola lista** de lo que
+    espera al dueño (`hooks/lib/espera.cjs`), sin SHAs ni comandos; el parte de la noche usa la misma.
+  - **Adoptar sin romper**: `--mirar` dice qué reemplaza y qué hacer con lo tuyo; con `--director kit`, lo reemplazado queda en
+    `<papeles>/referencia/adopcion/` y una línea en el TODO; marca con `# ¿?` lo que el repo muestra (publica, gasta, sale afuera) y
+    `--aplicar` se niega hasta contestarlo; `adoptar --verificar` mira que quede andando; `--traer` sale 0 · 1 · 3 · 4.
+  - **Preparar la PC**: `traer-repos.cjs` (listar y clonar los repos de la cuenta, nunca sin elegir), el sí de publicar por repo
+    (`preparar-pc.cjs --publica <origin>` / `--no-publica`), la línea `resumen ·` del plan y el `doctor` resumido.
+  - **El Arquitecto**: lista o cola, `### Tramo N`, "Antes de lanzar: lo del dueño", el `sello` con turno y de fondo.
+  - Textos: el kit no dice "Guido" ni "rojo/verde" en lo que ve el dueño; las líneas para correr van un paso por renglón (sin `&&`).
+- **Automático o pide revisión**: pide revisión si tu proyecto adaptó `/director`, `/obrero` o `/cierre` (cambian el lanzamiento de
+  fondo, el paso 9 del director y el cierre de noche), o si registró hooks propios en `PreToolUse` de `Bash|PowerShell` (el portero
+  reemplaza a los tres del kit; los tuyos quedan como estaban). El commit del kit toca hooks, githooks y el settings: va con la exención
+  del actualizador. `autorizado.publicar` nace en `no`: un proyecto que quiera que la noche publique lo declara en la ficha (con su
+  aprobado) y el dueño lo autoriza en cada PC ("preparame esta PC").
+- **Qué chequear después**: `node "$HOME/.claude/skills/arquitecto-skills/scripts/actualizar.cjs" adoptar <carpeta> --verificar` sale 0
+  (cada hook registrado deja pasar lo inocente y el arranque corre); `git status` limpio después de una sesión con frenadas (van a
+  `kit-frenos.log`); `/estado` muestra sus cuatro secciones; el `doctor` dice `doctor · todo bien · …`.
+
 ## 3.0.0-rc.6
 
 El obrero de cierre de tramo y la segunda vuelta del uso real (2026-11-05, `docs/kit-v3/SPEC-paquete-8c.md`): lo que quedó de la
