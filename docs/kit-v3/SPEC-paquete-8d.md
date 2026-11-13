@@ -819,6 +819,125 @@ buscar: un camino por el que un obrero, una sesión de fondo o el director de no
 *(Lo llena cada tanda: las mediciones de A0, el resultado de P1 a P6, sus decisiones técnicas con la forma `D8d-A1`, `D8d-B1`…, la
 mutación, lo que dijo su revisor frío, y su "Resumen para el director".)*
 
+### Tanda A (sesión 2 del tramo final, 2026-11-12, Opus 5.5)
+
+#### Resumen para el director
+
+1. **Terminó casi entera**: A0, A1, A2, A3, A4, A5, A7 y A8 están en `main`, en 9 commits. **A6 no entró** (partir `frenos.log`): toca a
+   todos los que escriben el registro y unas 20 pruebas, varias de la B y la C. Va a la continuación, con la nota `sesion-2-tanda-A.md`.
+2. **Pruebas**: corrí solo las de lo que toqué, y todas pasan (más de 600 casos en 19 archivos). La suite entera no la corrí: es de la C.
+3. **A0**: con la suite atrás, el peor percentil 99 fue 4,8 s → el plazo queda en 60 s (el propio, 50 s). **P5**: con el portero, lo
+   inocente (lo que se colgaba) baja de 1,4 s a 0,4 s; lo que niega no baja. **P3 pasó**: el hook ve `KIT_FONDO`.
+4. **P7**: lo automático pasó. Un director de fondo recibe la ventana entera y no firma, porque no hay ventana, no por el aislamiento.
+   **El clic con una persona sigue NO VERIFICADO**: está armado en `../vibe-kit-pruebas/rc7/p7-firma` (ver `LEEME-P7.txt`).
+5. **Red team** (dos rondas, Opus) y **revisor frío**: 5 ALTOS, los 5 arreglados con su prueba. Eran: firmar sin clic con un
+   script, un `cd` en otra llamada, la ventana que decía "no aceptes", `sed -Ei` que escribía, y el portero que escondía la segunda
+   pregunta. Los MEDIOS y BAJOS, arreglados o anotados con su razón.
+6. **Mutación**: la prueba detectó todas las reglas rotas. Firma 39 de 39, `sensible` 25, `git-seguro` 13, portero 7 (con una prueba
+   nueva), lo último 9.
+7. **Cambios técnicos míos** (D8d-A1 a A11):
+   - la firma desde el director exige el "pase" que deja su ventana;
+   - una sesión que trabajó como obrero ya no firma.
+8. **Para la B**: hay que limpiar textos con "Guido" o "rojo" en `encargo`, `proceso` y `topes`, y decir que las ramas `tmp/` son
+   locales. **Para la C**: `hook-sensible` y `hooks-lib` viajan juntos, igual que el settings y el portero.
+9. **A Guido no le queda nada obligatorio**. Si el director lo ve oportuno, el clic de P7.
+
+#### A0 y P5: medir antes y después
+
+Cien llamadas por hook y por entrada, de a cuatro en paralelo (`echo hola`, y una que niega). Milisegundos: mediana · percentil 99.
+
+| Cuándo | niega-aprobar | git-seguro | sensible | los tres en un proceso |
+|---|---|---|---|---|
+| Sin carga, inocente / niega | 114·175 / 394·692 | 158·583 / 998·1307 | 178·1034 / 181·348 | 168·258 / 1014·1578 |
+| **Con la suite atrás** (A0), inocente / niega | 388·778 / 1157·2336 | 445·1111 / 2899·**4716** | 442·805 / 702·1570 | 610·1070 / 3078·**4842** |
+| P5, con otra carga igual para los dos: los tres sueltos / el portero | inocente: el peor p99 **1440** · niega: el peor p99 1901 | | | portero: inocente p99 **422** · niega p99 2901 |
+
+- **El plazo** (A5.3): el peor percentil 99 fue 4,8 s → `max(60, 3 × 4,8)` = **60 s** en el settings; el plazo propio, 50 s.
+- **P5: pasó para lo que dolía.** Los 12 cuelgues de las noches fueron comandos inocentes, y ahí el peor percentil 99 baja de 1,4 s
+  a 0,4 s (y un proceso por comando en vez de tres). Lo que niega no baja: lo domina el trabajo de git, no arrancar procesos. Se queda el
+  portero; los tres hooks siguen andando solos (el plan B), con el mismo plazo y el aviso honesto.
+
+#### Probar antes de prometer
+
+- **P3 · pasó.** Una `-p` del binario de la extensión (2.1.322) lanzada con `KIT_FONDO=1`, y un hook de prueba que imprime su entorno:
+  el hook vio `KIT_FONDO: "1"` (y el modo `auto`). Los frenos leen la variable (`contexto.deFondo`); no hace falta la marca `.kit-fondo`.
+- **P5 · pasó a medias** (arriba): baja lo inocente; se queda el portero.
+- **P7 · lo automático pasó; el clic con una persona queda NO VERIFICADO.** Armado en `../vibe-kit-pruebas/rc7/p7-firma` (un clon de
+  `rc7/alfa` con su propio remoto: `alfa` no se toca a mano), con los frenos de la `rc.7` y la pestaña de un director (`modulo/p7`) que
+  ya propuso su cambio con `nuevo --en-defecto` (A3 anduvo en un repo de verdad). Una `-p` de director en ese worktree, en `auto`, corrió
+  `aprobar`: le llegó la ventana entera (*"Es tu firma… Te la pide: director-p7. Cambio … · toca: deny:Bash(git stash:*) · control:
+  3c2368c5…"*) y, como en `-p` no hay quien la acepte, **no firmó nada**: lo frenó la falta de ventana, no el aislamiento. El clic de
+  verdad: las instrucciones están en `p7-firma/LEEME-P7.txt` (abrir la carpeta del director en VS Code y pedir esa línea). Si no
+  anda, rige el plan B (el clic en una sesión de la carpeta principal), que no cambió.
+
+#### Decisiones de la tanda A (ADR-034)
+
+| # | Decisión | Por qué |
+|---|---|---|
+| D8d-A1 | Las tres firmas (y KIT_HOME_PC) viven en `niega-aprobar.cjs`, la misma copia en el proyecto (adentro del portero) y en la PC (adentro de `secretos`) | Una sola regla para las dos puertas; la PC sin preparar conserva la de hoy |
+| D8d-A2 | `noche.cjs publicar --seguir` sigue la regla de `aprobar` (pregunta en la pestaña del director, de día, también en `auto`); `preparar-pc --publica` pregunta solo con rol humano o fuera de un repo | El crit. de A2 juntaba las dos con "desde un director en auto → deny"; A2.4 dice que `--seguir` sigue a `aprobar`, y en `auto` la ventana aparece (verificado en la doc por el red team). Manda el texto |
+| D8d-A3 | **El pase de un solo uso** (red team de la tanda, ALTO): cuando sale la ventana de aprobar en la pestaña del director, queda `<git común>/kit-firma-pedida.json` (id, control, hora; lo escribe quien decide al final, y solo si lo que sale es esa pregunta); el script, corrido desde el director, exige ese pase (mismo id, mismo control después del `pull`, menos de 15 min) y lo borra | Sin él, un script que el freno no ve (escrito y corrido en la misma línea, o un `npm run`) firmaba desde el director sin clic: la defensa doble del script miraba solo la carpeta |
+| D8d-A4 | **Las sesiones de agente quedan anotadas** por `session_id` en `<git común>/kit-sesiones-rol/` en cuanto corren algo en una carpeta de agente (que no sea el director); esa sesión no firma aunque después haga `cd` a la principal | El `cwd` que recibe el hook es el de después del `cd` (doc de hooks): un obrero en otra llamada se volvía "humano" |
+| D8d-A5 | La ventana muestra el cambio de la ref (desde el director, la rama por defecto vigente; en la principal, su `HEAD`), no el disco; una firma por clic; desde el director vale solo el script de la carpeta principal; no se firma si la principal tiene commits sin subir; `nuevo --en-defecto` no corre de noche ni de fondo | Red team de la tanda (3, 4, 5, 6 y uno "a propósito") |
+| D8d-A6 | La excepción de `esDeAprobar` (commit, heredoc, grep/rg/echo/printf) se apaga si la línea escribe un archivo y corre un intérprete, si un intérprete lee la entrada (`| bash`, `bash /dev/stdin`), con `rg --pre`; las asignaciones cuentan | Red team: escribir y correr en un comando volvía invisible el `aprobar` |
+| D8d-A7 | A7 (a): `sed`/`awk` sin `-i` leen; `git grep`/`ls-files`/`blame`/`cat-file` también. `git grep` y `node <archivo>` ya pasaban: no se tocaron | Reproducido antes de tocar: `sed -n '1,40p' .claude/hooks/x.cjs` y `awk` se negaban |
+| D8d-A8 | `KIT_FONDO` vacío o `0` es "no"; cualquier otro valor, "sí" (`contexto.deFondo`, una para todos) | Falla para el lado seguro; antes cada freno lo leía distinto |
+| D8d-A9 | El portero decide qué carga por la ficha **del disco** (no la vigente) | Lo que se carga es el archivo del disco; y no gasta git |
+| D8d-A10 | `sensible`: el id de la guardia es `pregunta:publicar-sin-persona`; ningún `frenos.quitados` la apaga (se apaga con `autorizado.publicar: no`); una ficha rota aporta su `publicar` de la última que se lee; `npm deploy` sin `run` no cuenta | Decididas por la sesión de `sensible`; ver su prueba |
+| D8d-A11 | A8: `habla.test` de `hooks/` no mira las librerías que el spec le da a la B (`encargo`, `proceso`, `inyeccion`, `topes`) | "No hay un archivo en dos tandas". **Para la B**: `encargo.cjs` (`Apertura: Guido`, "tiene que ser Guido o director", "falta el OK de Guido"), `proceso.cjs` ("saldría verde") y `topes.cjs` ("el TODO en rojo") tienen texto que limpiar, y su `habla.test` los tiene que sumar |
+
+#### El red team y el revisor de la tanda A
+
+Tres miradas en Opus, sin el contexto de la sesión: un red team de la firma y de `sensible` (A1.3, A2, A3, A4.1, A7 e), otro de
+`git-seguro`, el portero y A7 a (A4.2, A5, A7 a-d), y el revisor frío sobre el diff entero.
+
+| Quién | Sev. | Qué encontró | Qué se hizo |
+|---|---|---|---|
+| rt A 1 | ALTO | Escribir un script y correrlo en la misma línea (`cat > f.sh <<EOF … EOF; bash f.sh`) firmaba desde el director sin clic: la excepción del heredoc lo dejaba pasar y el script solo miraba la carpeta | Arreglado: la excepción se apaga si la línea escribe y corre (D8d-A6), y el pase de un solo uso (D8d-A3) |
+| rt A 2 | ALTO | El `cwd` del hook es el de después del `cd`: un obrero en otra llamada se volvía "humano" en la principal | Arreglado: las sesiones de agente quedan anotadas (D8d-A4) |
+| rt A 3 | ALTO | Con `nuevo --en-defecto`, la ventana leía el disco de la principal (sin traer): decía "no aceptes" | Arreglado: la ventana lee la ref; el script compara el control (D8d-A5) |
+| rt A 4-6 | MEDIO | Dos firmas en un clic; la firma subía commits ajenos; `--en-defecto` de noche | Arreglados (D8d-A5) |
+| rt A 7-9, 11 | MEDIO/BAJO | `sensible`: formas de npm/yarn/pnpm, banderas con valor y PowerShell, la rama de obrero, `KIT_FONDO` leído distinto | Arreglados (segunda vuelta de la sesión de `sensible`) |
+| rt A 10, 12 | BAJO | Dos preguntas de la PC mostraban una; un `grep KIT_HOME_PC` se negaba | Arreglados |
+| rt A "a propósito" | — | Una variable con la palabra, `rg --pre`, `bash /dev/stdin`, la copia de `cambios.cjs` de la rama del módulo | Arreglados (D8d-A5, D8d-A6) |
+| rt A2 1 · revisor 1 | **ALTO** | A7 a: `sed -Ei`, `-ni`, `--in-pl`, el comando `w`/`e` de sed y `awk '{print > FILENAME}'` escriben y pasaban como lectura (también sobre `~/.claude/settings.json`) | Arreglado: con `sed`, la `i` en cualquier grupo o `--i…`, y `w`/`W`/`e` en el programa, es escribir; con `awk`, `-i`/`--incl…` y `>`, `|`, `system(`, `getline` en el programa. La línea de PowerShell lleva `-NoProfile -ExecutionPolicy Bypass` |
+| rt A2 2 · revisor 2 | **ALTO** | El portero mostraba solo la primera pregunta: con un clic se aceptaba la segunda sin verla | Arreglado: la ventana junta todas las preguntas (la firma primero: "… Además: …") y quedan todos sus renglones; sin plazo corta en el acto; entiende la salida 2 con el motivo en stderr y el JSON con sangría |
+| rt A2 3 | MEDIO | `git-seguro` preguntaba al dueño de fondo o de noche | Arreglado |
+| rt A2 4 | MEDIO | `pull.twohead=ours` por config era `merge -s ours` sin la bandera | Arreglado |
+| rt A2 5, 6 | BAJO | El portero no entendía un hook aparte que niega con salida 2 o con JSON con sangría; el aviso honesto se podía perder | Arreglado: la ventana junta todas las preguntas (la firma primero: "… Además: …") y quedan todos sus renglones; sin plazo corta en el acto; entiende la salida 2 con el motivo en stderr y el JSON con sangría |
+| rt A2 7 | BAJO | Un hook `adaptada` que corre aparte anota su propio renglón | Anotado: "un solo renglón por comando negado" vale para lo que corre adentro del portero |
+| rt A2 8 | BAJO | El número de commits sale de lo último traído | Arreglado: el texto lo dice |
+| rt A2 9 · revisor 10 | BAJO | Una ruta con corchetes que existe igual es un patrón para git (`app/[id]` toca `app/i` si existe) | Anotado: en un proyecto Next.js casi no pasa; `:(literal)` queda para la `v3.1` |
+| revisor 3 | MEDIO | La firma en toda la PC negaba dos palabras sueltas en repos sin el kit (`cat src/cambios/aprobar.ts`) | Arreglado: en un repo sin el kit, dos palabras sueltas no son firma (sí si nombra el script o se va a otro lado); `pull --ff-only origin <defecto>`; el pase lo deja quien decide al final, solo si sale la pregunta (en la PC, solo si el proyecto no tiene los frenos del kit) |
+| revisor 4 | MEDIO | Faltaba `-ExecutionPolicy Bypass` en la línea de PowerShell de `cargar-secreto` (R19) | Arreglado: con `sed`, la `i` en cualquier grupo o `--i…`, y `w`/`W`/`e` en el programa, es escribir; con `awk`, `-i`/`--incl…` y `>`, `|`, `system(`, `getline` en el programa. La línea de PowerShell lleva `-NoProfile -ExecutionPolicy Bypass` |
+| revisor 5 | BAJO | Un obrero puede borrar su `tmp/` en origin según `git-seguro`, pero el githook no le deja subirla ni borrarla | **Para la B (B4, `/obrero`)**: decir que las `tmp/` son locales |
+| revisor 6 | BAJO | `aprobar` desde el director hacía `pull` sin remoto ni rama | Arreglado: en un repo sin el kit, dos palabras sueltas no son firma (sí si nombra el script o se va a otro lado); `pull --ff-only origin <defecto>`; el pase lo deja quien decide al final, solo si sale la pregunta (en la PC, solo si el proyecto no tiene los frenos del kit) |
+| revisor 7 | BAJO | El pase quedaba escrito aunque otro freno negara | Arreglado: en un repo sin el kit, dos palabras sueltas no son firma (sí si nombra el script o se va a otro lado); `pull --ff-only origin <defecto>`; el pase lo deja quien decide al final, solo si sale la pregunta (en la PC, solo si el proyecto no tiene los frenos del kit) |
+| revisor 8 | BAJO | La prueba del portero pasa 12 casos de los tres, no "el mismo juego entero" | Anotado: se quedó en 12 casos representativos (decide lo mismo que los tres sueltos) |
+| revisor 9 | BAJO | Los hooks sueltos (el plan B) niegan con el aviso honesto pero no anotan `freno:sin-tiempo` | Anotado: solo lo anota el portero, que es el camino normal |
+
+#### La mutación
+
+Cada regla rota a propósito, la prueba corrida, y restaurada (el archivo, igual al final).
+
+- **La firma** (`niega-aprobar`, el script, la combinación en `secretos`, A7 a): **39 de 39** reglas detectadas por la prueba, después
+  del red team. Una primera vuelta, antes del red team, dejó viva "la excepción vale con `$( )`": es redundante (lo de adentro se mira
+  como comando propio), quedó como defensa de más.
+- **El portero** (A5): 6 de 7; la que vivía ("un solo renglón" con uno que pregunta y otro que niega) tiene ahora su prueba.
+- **`sensible`** (A1.3, A4.1, A7 e y su red team): 13 + 12 reglas, todas detectadas (dos sobrevivientes eran código que no hacía nada:
+  se sacó).
+- **`git-seguro`** (A4.2, A7 b-d): 13 de 13.
+- **Lo último** (el `sed`/`awk` que escribe, las preguntas juntas, el pase): 9 de 9.
+
+#### Para las tandas que siguen
+
+- **C (C1.5, la flota)**: `hook-sensible` ahora necesita el `contexto.cjs` nuevo (`deFondo`): **`hook-sensible` y `hooks-lib` viajan
+  juntos**, como el settings y el portero; si no, todo comando niega con "freno roto".
+- **B y C, los que leen `frenos.log`**: como A6 quedó para la continuación, por ahora nada cambia de lugar.
+- **Lo que esto no cierra** (suma): si el dueño dice que no a la ventana del director, el pase queda hasta 15 min (de un solo uso); un
+  script del director que lo usara en ese rato firmaría. Es a propósito, no un accidente (ADR-029). Y una sesión de día que alguna vez
+  corrió algo adentro de la carpeta de un obrero ya no firma en ese repo (lo dice: *"esta sesión trabajó como obrero"*).
+
 ## Ejecución
 
 Tres tandas en fila, cada una una sesión Opus 5.5 (subagentes en Sonnet u Opus, nunca en Fable), con este delta y las reglas comunes de
