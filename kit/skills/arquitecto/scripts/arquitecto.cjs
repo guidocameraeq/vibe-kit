@@ -400,7 +400,7 @@ function sello(a, { cwd, ahora, env, error }) {
   const leido = fs.readFileSync(specAbs);
   const r = S.revisarSello(leido, { hayFicha, gateQuitado: () => !!gateQuitado(datos, ahora) });
   if (!leido.equals(final) || r.estado !== 'ok') throw new Roto('lo que quedó escrito no es el sello que se armó');
-  return { codigo: 0, lineas: [`sellado: ${renglon}`, `ahora: el OK de Guido y después ready ${a.pos[0]}`] };
+  return { codigo: 0, lineas: [`sellado: ${renglon}`, `ahora: el OK del dueño y después ready ${a.pos[0]}`] };
 }
 
 // ¿El sello del spec vale? Con la ficha leída solo si hace falta (entorno "— (quitado: …)"), y el quitado se mira el día del sello:

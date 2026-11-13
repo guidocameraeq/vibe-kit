@@ -1,6 +1,6 @@
 # Consultorio (Modo C) — cómo dirigir a Claude
 
-Guido llega con "no sé cómo pedirle esto a Claude". Se va con algo pegable o un veredicto con regla citada. **Nunca con pura teoría.**
+El dueño llega con "no sé cómo pedirle esto a Claude". Se va con algo pegable o un veredicto con regla citada. **Nunca con pura teoría.**
 
 ## 1. El diagnóstico en 3 preguntas
 
@@ -27,7 +27,7 @@ Reglas MEDIDAS, destiladas del playbook y las guías del kit — la fuente real 
 | ¿Spec o pedido directo? | La prueba de tamaño, dos preguntas: ¿hace falta algo más que el pedido y el `git diff` para retomarlo? ¿lleva más de una sesión? Ninguna sí → chico: directo, en el chat del proyecto. Alguna sí → más que chico: el Arquitecto (Modo B) escribe el spec y lo sella, y una sesión fresca lo ejecuta. Tocar plata, permisos o datos no lo agranda: eso lo cuidan los frenos. | Un buen spec le quita a Claude 15-20 decisiones que improvisaría; uno de más le pone el traje grande a un hotfix. | diseño B §6 y H §5 (con la nota de D2.2) |
 | ¿Autonomía? | Pensar/spec → Plan Mode (read-only). Ejecutar → `auto` (si la cuenta no lo tiene o el clasificador frena, `acceptEdits` de respaldo), CON commit previo como red. Nunca bypass/YOLO fuera de sandbox. | El commit previo hace reversible cualquier corrida autónoma; `auto` deja trabajar sin pedir permiso a cada paso y su clasificador frena lo peligroso. | guía del kit |
 
-## 3. Específico vs ambiguo (la duda clásica de Guido)
+## 3. Específico vs ambiguo (la duda clásica)
 
 - **Ambiguo a propósito** cuando explorás: "proponeme 3 formas de mostrar este reporte" — dejás que Claude entreviste y proponga. Ambiguo temprano está BIEN.
 - **Específico** cuando el resultado ya está definido: formato de salida exacto, qué NO tocar, criterios de "terminado". Todo lo que querés construido va con máxima precisión.
@@ -66,7 +66,7 @@ Toda consulta termina en UNA de estas. Nunca teoría sola.
 **(c) Brief de skill** — si es ritual de 3+ confirmado: entregá el prompt listo para armarla, en bloque de código, para pegar en un chat DEL proyecto:
 ```
 Usá writing-skills para crear la skill /<nombre> en .claude/skills/<nombre>/ de este proyecto.
-Qué hace: <los pasos del ritual, en orden, como los repite Guido>.
+Qué hace: <los pasos del ritual, en orden, como los repite el dueño>.
 Cuándo se dispara: <frase típica con la que lo pide>.
 Verificá que .gitignore no ignore .claude/ y que la skill quede trackeada en git.
 ```

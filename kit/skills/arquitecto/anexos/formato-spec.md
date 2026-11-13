@@ -95,12 +95,12 @@ Tamaño: módulo solo
 - Sesiones: una / varias seguidas / director con sus obreros.
 - Modelo: solo el desvío del de por defecto, con su razón (si no hay desvío, este renglón no va).
 - Rama y worktree (solo con director): `modulo/<x>` en `.claude/worktrees/modulo--<x>`, los crea `worktree.cjs crear <x>`.
-- Para abrir: <la línea única que pega Guido>.
+- Para abrir: <la línea única que pega el dueño>.
 - Cómo se prueba: ver "Entorno de prueba".
 ```
 
 - **Su primera línea con texto dice `módulo solo` o `módulo con director`**, una sola de las dos (la lee `sello`). Con ficha, coincide con la ficha del módulo: `módulo solo` ↔ `director: no`; `módulo con director` ↔ `director: sí` y `rama: modulo/<x>`.
-- **Director, solo** con dos o más tareas que se escriben a la vez o noche sin Guido, y con `piezas.director-obrero: sí` (o `molde`) en la ficha del proyecto; varias sesiones seguidas son módulo solo.
+- **Director, solo** con dos o más tareas que se escriben a la vez o noche sin el dueño, y con `piezas.director-obrero: sí` (o `molde`) en la ficha del proyecto; varias sesiones seguidas son módulo solo.
 - **La línea para abrir**: módulo solo, `inicio — ejecutá docs/modulos/<x>/SPEC.md (está READY)` en un chat nuevo en la raíz del proyecto; con director, lo que imprime `worktree.cjs`: primero la vía de VS Code (`code "<ruta del worktree>"` y, en esa ventana, la pestaña de Claude con Opus, sesión `director-<x>`) y, solo si hay `claude`, la de terminal: con `claude` en el PATH, `cd "<ruta>"; claude --name director-<x> --model opus` (con `;` y no `&&`: PowerShell 5.1 no tiene `&&`); si no, con el binario de la extensión de VS Code, la de Git Bash (`cd "<ruta>" && "<ese binario>" --name director-<x> --model opus`); adentro, el primer mensaje es `/director <x>` (lo imprime `worktree.cjs`: `primer mensaje: /director <x>`); SPEC-0, la de módulo solo con `v1`: `inicio — ejecutá docs/modulos/v1/SPEC.md (está READY)`; sin ficha, `inicio — ejecutá el spec docs/SPEC-<x>.md (está READY)`.
 
 ## La sección Entorno de prueba (todo spec READY la lleva)
@@ -111,7 +111,7 @@ Tamaño: módulo solo
 - Datos semilla: <cuáles y de dónde>. Cómo se resetea: <un comando>.
 - Chequeo base (verde antes de tocar código): <comando>. Con un entorno `clase: real`, prueba que apunta al de prueba con algo que solo existe ahí (una cuenta o un dato dummy): comparar la configuración no alcanza.
 - Compartido entre carriles o por worktree: <cuál>. Compartido: el chequeo base es de solo lectura y nadie resetea sin acuerdo.
-- Herramientas, cada una con su chequeo de una línea: <VPN, binario, APK y versión, MCP del navegador, puertos, un Excel cerrado…>. Lo que solo Guido puede poner: "necesita a Guido de día".
+- Herramientas, cada una con su chequeo de una línea: <VPN, binario, APK y versión, MCP del navegador, puertos, un Excel cerrado…>. Lo que solo el dueño puede poner: "necesita al dueño de día".
 ```
 
 - Si falta el entorno, **montarlo es la tarea 0 del spec**; si eso solo es más que chico, es su propio módulo y va antes. `sello` lo chequea con la ficha (`gate:entorno-prueba`: por cada entorno `clase: real` hay un `dummy` o `prueba`; sin `real`, `comando-test` corre en verde; cada herramienta, su chequeo). Sin ficha, el sello dice `— (sin ficha del kit)`.
@@ -127,10 +127,10 @@ Tamaño: módulo solo
 - **Supuesto ≠ decisión**: lo asumido sin preguntar va en Supuestos (el dueño lo corrige de un vistazo); lo charlado y decidido, en Riesgos y decisiones. Lo que no se pudo verificar en el sistema vivo lleva **`[SIN CONTRASTAR]`**.
 - **Las alternativas descartadas se escriben, no se tiran**: los enfoques que no se eligieron van a "Alternativas evaluadas y descartadas" **con su razón**. Aplica siempre, venga o no de un relevamiento (si viene, el HANDOFF trae las que se descartaron antes: esas también van).
 
-## Los topes (el script mide y avisa; Guido decide)
+## Los topes (el script mide y avisa; el dueño decide)
 
 - **Módulo solo: ≤ 10 KB y ≤ 8 criterios. Con director: ≤ 30 KB** con las tareas listadas. Sin tamaño: 30 KB. **Un SPEC-0** (H1 `# SPEC-0:`): 30 KB y sin tope de criterios, diga lo que diga su Ejecución. KB = 1.024 bytes del texto normalizado (el mismo del hash: sin BOM, saltos LF, sin espacios finales, sin la línea del Estado ni la del sello); criterios = renglones `- ` o `N. ` de primer nivel bajo `## Criterios de aceptación`. Números NO VERIFICADO: se calibran en el piloto.
-- **Es un aviso, no un corte**: `arquitecto.cjs tope <spec>` da los números y las secciones de mayor a menor; el Arquitecto **propone dónde cortar** y Guido decide con un clic. Si parte, lo que sobra es **otro módulo hermano** (mismo `parte-de:`), nunca hijo de un módulo con tareas. Si sigue entero: `sello <spec> --no-partir "Guido"` (el sello dice ⚠️ con los números).
+- **Es un aviso, no un corte**: `arquitecto.cjs tope <spec>` da los números y las secciones de mayor a menor; el Arquitecto **propone dónde cortar** y el dueño decide con un clic. Si parte, lo que sobra es **otro módulo hermano** (mismo `parte-de:`), nunca hijo de un módulo con tareas. Si sigue entero: `sello <spec> --no-partir "el dueño"` (el sello dice ⚠️ con los números).
 - **El spec no crece durante la obra.** Un cambio de pedido aprobado va como `SPEC-2.md` en el mismo módulo mientras el conjunto quepa en el tope; lo que lo pasa, es otro módulo. El READY no se edita.
 
 ## El BORRADOR incremental (durante la charla)
