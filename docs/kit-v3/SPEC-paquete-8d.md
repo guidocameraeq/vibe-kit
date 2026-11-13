@@ -938,6 +938,100 @@ Cada regla rota a propósito, la prueba corrida, y restaurada (el archivo, igual
   script del director que lo usara en ese rato firmaría. Es a propósito, no un accidente (ADR-029). Y una sesión de día que alguna vez
   corrió algo adentro de la carpeta de un obrero ya no firma en ese repo (lo dice: *"esta sesión trabajó como obrero"*).
 
+### Tanda B (sesión 3 del tramo final, 2026-11-12, Opus 5.5) — primera sesión; sigue una continuación
+
+#### Resumen para el director
+
+1. **Entró a `main`** (cinco commits): **A6** (el `frenos.log` partido, que la A no alcanzó), **B1** (una cuenta de "encargo cerrado"
+   y una lista de "te espera"), **B2** (`/estado` del dueño en cuatro secciones, script y skill), **B3** entero (la sesión de cierre,
+   `publicar`, `subir`, `parte`, `limpiar`, `cierre-noche.md` y el paso 9 del director), la lib de **B5** (`conTurno`), buena parte de
+   **B4** (el director lanza los obreros; sin 40 % ni despertador en su skill; `Skill: tramo`, `Apertura: dueño`, `- Director:`; la
+   línea de fondo con `/<skill>`, `KIT_FONDO=1` y `--name`; B4.7 y B4.8) y de **B6** la regla en el núcleo, el arranque y el molde.
+2. **Queda para la continuación de la B** (sigue desde "Para la continuación", abajo): de B4, `presentar` que trae la corrección,
+   `mensaje` con `PARA` y sacar el despertador de `noche.cjs`; de B5, el turno en `presentar`/`verificar`/`integrar`; de B6, su
+   `habla.test`; **B7 entero**; P4 y P6 (la sesión de cierre de verdad en `dontAsk`); cinco puntos del red team; el revisor frío.
+3. **Pruebas**: solo las de lo que toqué, unos 35 archivos (`barreras` 89, `kit-githook` 61, `noche` 30, `worktree` 60, `skills` 109
+   entre ellas); todas pasan. La suite entera no (es de la C). `doctor.test` falla desde la A: es de la C (ver "Para la C").
+4. **Red team de B3** (Opus, una ronda): 4 ALTOS y 8 MEDIOS/BAJOS. Arreglados con su prueba 3 de los 4 ALTOS y 7 de los otros; el ALTO
+   que queda (opciones de git que escriben archivos) y cuatro medios van a la continuación, anotados abajo con su razón.
+5. **Mutación de B3**: **21 de 21** reglas detectadas (dos necesitaron una prueba más directa).
+6. **P1 pasó a medias**: `--name` en `-p` anda; el mensaje por nombre queda NO VERIFICADO y el diseño no depende de él.
+7. **A Guido no le queda nada.** Lo que más importa: la noche ya tiene con qué cerrarse sola; falta probarla de verdad (P4, P6) antes de R2.
+
+#### Probar antes de prometer
+
+- **P1 · pasó a medias.** Una `-p` del `claude` de esta PC con `--name p1-prueba-kit`: la charla quedó con ese título (`custom-title`
+  en su `.jsonl`). Que un mensaje llegue por nombre a otra sesión no se probó: queda NO VERIFICADO, y no hace falta (D8d-15).
+- **P4 y P6 · no se corrieron** (piden lanzar la sesión de cierre de verdad, en `dontAsk`, ocho veces): van a la continuación, con
+  el repo de prueba de `../vibe-kit-pruebas/rc7/` y un `allow` de más en su settings local.
+
+#### Decisiones de la tanda B (ADR-034)
+
+| # | Decisión | Por qué |
+|---|---|---|
+| D8d-B1 | A6: el renglón va por el id **exacto** `cambios:aprobar` al versionado; el común se encuentra **solo con fs** (`.git` → `gitdir:` → `commondir`); sin repo, todo al versionado como antes; `leerTodo` junta los dos | Corre en cada freno: no puede lanzar git. `validarSello` no cambia |
+| D8d-B2 | `verificar` no lee el registro común | Lo que mira es que la rama no borre renglones del **versionado**; el común no viaja en ramas |
+| D8d-B3 | `estado.cjs` sin bandera es la vista del dueño; la de antes queda en `--director` | El spec lo pide así; las pruebas viejas pasan a `--director` |
+| D8d-B4 | Los minutos de "lo que se hizo" salen de las ramas vivas y, si la rama ya no está, del renglón de `tiempos.md` | "Nunca de la memoria de nadie"; sobrevive a `limpiar` |
+| D8d-B5 | El contrato de la huella vive en `hooks/lib/publicar.cjs` (nuevo; viaja con `hooks-lib`) | La C lo copia para `preparar-pc` sin escribirlo dos veces |
+| D8d-B6 | Lo negado de la sesión de cierre va en un `--settings` aparte (`<común>/kit-cierre-settings.json`), no en `--disallowedTools` | Red team 11: una regla con `'` o `\` en el settings de la PC rompía la línea en todos los proyectos |
+| D8d-B7 | Una `allow` ancha que cubre un ítem de la lista y no es del kit **frena** el cierre; la del kit (`cambios.cjs:*`) se queda y se niegan aparte `aprobar`, `nuevo`, `rechazar`, `anotar-sha`, `subio-al-kit` | Red team 1: con un `Bash` pelado, `dontAsk` corre de todo |
+| D8d-B8 | `subir` acepta como papel el `AGENTS.md` de la raíz | Lo genera `agents.cjs` en el `/cierre` |
+| D8d-B9 | `publicar` exige también que no haya archivos sin seguir fuera de los papeles, y lo vuelve a mirar antes del comando; la salida se borra siempre; una corrida cortada deja "a medias" (cuenta como trabada); un comando que falla traba | Red team 3, 4 y 5 |
+| D8d-B10 | Con `--seguir` (la firma del dueño) se acepta lo que entró por fuera de un módulo | Red team 8: si no, un commit directo de día dejaba la noche sin publicar para siempre |
+| D8d-B11 | `--con-ok` es el nombre nuevo de `--ok-de-guido` en `integrar` (el viejo sigue) | B3.7 y D8d-11 |
+| D8d-B12 | La sesión de cierre lleva `KIT_CIERRE_ID`; `parte` suelta el candado solo si es el suyo | Red team 6 |
+| D8d-B14 | La línea de fondo del obrero lleva `KIT_FONDO=1` y `--name obrero-<x>--<ID>`, y manda `/<skill>` (obrero o tramo); `Apertura: Guido` se lee como `dueño` | P1 y P3 pasaron; el alias viejo sigue validando (D8d-11) |
+| D8d-B13 | La regla de habla: los textos que **le llegan al dueño** (`estado`, `noche`, `tiempos`, `portada`, `topes`, `proceso`, las skills que corre él) quedan sin "Guido" ni rojo/verde; lo de entre sesiones (`presentar`, `verificar`, `paquete`, el "prueba en rojo primero" del obrero) se queda | B6 dice "lo que es entre sesiones y scripts se queda" |
+
+#### El red team de B3
+
+Una ronda (`redteam-spec`, Opus, sin el contexto de la sesión) sobre el código, con el spec al lado.
+
+| # | Sev. | Qué encontró | Qué se hizo |
+|---|---|---|---|
+| 1 | ALTO | Una `allow` ancha que "cubre" un ítem de la lista quedaba viva: `cambios.cjs rechazar`/`anotar-sha`; con `Bash` o `Bash(git:*)`, push de código | Arreglado (D8d-B7), con prueba |
+| 2 | ALTO | `git log --output=` escribe archivos (también `kit-publicacion.json`); `git fetch --upload-pack` corre un comando | `git fetch` salió de la lista. **`--output` y las otras opciones: anotado, para la continuación** (es una regla de freno para la sesión de cierre; contra accidentes es poco probable, ADR-029, pero un modelo que "arregla" la traba lo haría) |
+| 3 | ALTO | Se publicaba lo que git no sigue (una página suelta en la carpeta) | Arreglado (D8d-B9), con prueba |
+| 4 | ALTO | La salida del comando (con claves) quedaba en el temporal | Arreglado: se borra siempre, y `cierre-noche.md` dice que no se busca; con prueba |
+| 5 | MEDIO | `publicar` dura más que una llamada de Bash; cortado, no dejaba traba | Arreglado: la marca "a medias" y `cierre-noche.md` lo lanza de fondo; con prueba |
+| 6 | MEDIO | El candado lo soltaba cualquiera | Arreglado (D8d-B12), con prueba. **Que `publicar` y `subir` exijan el candado: continuación** |
+| 7 | MEDIO | El chequeo 4 se fía del asunto del merge; si git falla, dejaba pasar | Que git falle ya no deja pasar (prueba en la mutación). **El segundo padre del merge: continuación** |
+| 8 | MEDIO | El chequeo 4 trababa sin decir por qué | Arreglado: su motivo va a "Te necesito" y `--seguir` lo destraba; con prueba |
+| 9 | MEDIO | Huellas que no se mueven: `-w`/`--filter` de npm/pnpm; un archivo que no está en origin | El archivo que falta da 3, con prueba. **`-w`/`--filter`: a la ficha (A1, `formaDePublicar`), continuación o C** |
+| 10 | MEDIO | Al parte le llegaba texto del modelo sin filtrar | Arreglado: `paraElDueno`, con prueba |
+| 11 | MEDIO | En la PC `Usuario` el cierre no arrancaba (una regla con comillas en su settings); la forma ` *` no se entendía | Arreglado (D8d-B6, `cubre` con ` *` y `./`), con prueba |
+| 12 | BAJO | `subir` en un proyecto que publica al subir, con la publicación trabada; el commit del parte con la carpeta no lista | Arreglados (el segundo, en `cierre-noche.md`); el primero con prueba |
+| — | — | Matiz: `publicar --seguir` exige la carpeta principal, y A2.4 dice que el director también puede | **Continuación**: decidir si `--seguir` corre desde el director como `aprobar` |
+
+#### La mutación
+
+Cada regla rota a propósito, las pruebas de B3 corridas, y el archivo restaurado (igual al final).
+
+- **`publicar`**: la ficha sin `publicar`, la PC sin autorizar, la huella distinta, el archivo nombrado que falta, la traba, la
+  corrida a medias, solo módulos y papeles, las pruebas que fallan, la carpeta principal y el rol, `--seguir` de fondo, el comando
+  que falla traba, la salida que se borra: todas detectadas. **La carpeta sucia y `HEAD = origin` sobrevivieron** la primera vuelta
+  (el segundo chequeo, antes del comando, las tapaba): con la prueba "mutación de B3" (frenan antes de correr nada), detectadas.
+- **`subir`**: solo papeles, y no subir en un proyecto que publica al subir con la publicación trabada: detectadas.
+- **La línea del cierre**: negar `git push`, negar `aprobar` y los otros de `cambios.cjs`, frenar una `allow` ancha: detectadas.
+- **`parte`**: no soltar un candado ajeno, el filtro de lo que viene del modelo: detectadas.
+
+#### Para la continuación de la B
+
+Sigue el orden del spec: **lo que falta de B4** (`presentar` trae la corrección, B4.3; `mensaje` con `PARA`, B4.6; `noche.cjs despertador` sale y `me-voy` sin despertador ni "mudate", B4.4; el núcleo §3 y `/obrero`: guardar antes de parar, las `tmp/` son locales) → **B6** (`scripts/habla.test` y `skills/habla.test` sobre lo que le llega al dueño:
+los textos de `worktree.cjs` con "rojo/verde", el paso 4 del `/cierre`, `encargo.cjs` "apertura de Guido") → **B5** (el turno en
+`presentar`, `verificar` e `integrar`, no repetir la base, `plazo-test`) → **B7** → **P4 y P6** → el red team 2, 6, 7 y 9 que quedó
+→ el revisor frío de toda la B. Las cosas que muerden están en la nota `sesion-3-tanda-B.md`.
+
+#### Para la C
+
+- `doctor.test` falla en 11 casos desde la A: `hooks-pc` espera el plazo de 20 s y la A5 lo subió a 60; y el inventario lee solo el
+  `frenos.log` versionado (A6: tiene que leer `frenos-log.leerTodo`, la copia de `pc/lib`).
+- `adoptar` también lee el registro: lo mismo.
+- `preparar-pc --publica` escribe `publica:` con el contrato de `hooks/lib/publicar.cjs` (el ejemplo compartido está en `noche.test`,
+  "B3 el contrato").
+- `hooks/lib/` suma `espera.cjs` y `publicar.cjs`, que viajan con `hooks-lib`; `noche.cjs` y `estado.cjs` los necesitan.
+
 ## Ejecución
 
 Tres tandas en fila, cada una una sesión Opus 5.5 (subagentes en Sonnet u Opus, nunca en Fable), con este delta y las reglas comunes de
