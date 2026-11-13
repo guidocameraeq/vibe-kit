@@ -184,11 +184,15 @@ test('crit 1: en un HOME vacío deja skills, agente, VERSION, hooks/kit, setting
 // ================================================================ criterio 2
 test('crit 2: la segunda corrida dice "sin cambios" y no reescribe nada', () => {
   const e = escenario();
-  assert.equal(correr(e).codigo, 0);
+  const pri = correr(e);
+  assert.equal(pri.codigo, 0);
+  // 51 (8d C4): la segunda línea es el resumen; con algo que escribir, lo nombra
+  assert.match(pri.texto.split('\n')[1], /^resumen · cambié: \d+ archivos del kit, .*el settings, kit-pc\.md · \d+ avisos? · 0 cosas a arreglar$/);
   const antes = foto(e.home);
   const r = correr(e);
   assert.equal(r.codigo, 0, r.texto);
   assert.match(r.texto, /^sin cambios: no hay nada que escribir\.$/m);
+  assert.match(r.texto.split('\n')[1], /^resumen · sin cambios · \d+ avisos? · 0 cosas a arreglar$/);
   assert.match(linea(r, 'kit'), /sin cambios/);
   assert.deepEqual(foto(e.home), antes);
 });

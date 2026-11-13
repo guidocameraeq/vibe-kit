@@ -200,7 +200,7 @@ function chNode(v = process.versions.node) {
 }
 
 function chGitleaks(r, plazoMs) {
-  if (r === 'no-esta') return res('✗', 'no está en el PATH: sin escáner, el pre-commit pasa en rojo', 'corré "preparame esta PC" con el Equipador (o instalá gitleaks ≥ 8.19 desde github.com/gitleaks/gitleaks) y reiniciá la terminal');
+  if (r === 'no-esta') return res('✗', 'no está en el PATH: sin escáner, el pre-commit deja pasar sin mirar los secretos', 'corré "preparame esta PC" con el Equipador (o instalá gitleaks ≥ 8.19 desde github.com/gitleaks/gitleaks) y reiniciá la terminal');
   if (r.plazo) return res('✗', `no respondió en ${Math.round(plazoMs / 1000)} s · causa probable: lento en frío (Defender escanea el programa la primera vez)`, 'volvé a correr doctor: la segunda vez anda en segundos; si sigue, agregá gitleaks a las exclusiones de Defender');
   if (r.error) return res('✗', `no se pudo ejecutar (${r.error})`, 'reinstalá gitleaks ≥ 8.19');
   const v = version(r.salida);
@@ -755,7 +755,7 @@ function chTopeSkills(raiz, f) {
     medidas++;
     const p = Q.pesoSkill(b);
     const tope = Q.topeSkill(n);
-    if (p.kit > tope) out.push(res('⚠', `${n}: ${p.total} B, pasa su tope (${tope}) sin contar su zona propia (${p.kit} B del kit)`, 'eso es del kit, no tuyo: avisale a Guido (la flota da ROTA)'));
+    if (p.kit > tope) out.push(res('⚠', `${n}: ${p.total} B, pasa su tope (${tope}) sin contar su zona propia (${p.kit} B del kit)`, 'eso es del kit, no tuyo: avisá en el repo del kit (la flota da ROTA)'));
     else if (p.total > tope) out.push(res('⚠', `${n}: ${p.total} B, ${p.total - tope} de más por su zona propia (tope ${tope})`, 'mové a un anexo lo propio que no hace falta siempre, nunca lo de producción'));
   }
   if (out.length) return out;
@@ -779,7 +779,7 @@ function chVecinos(raiz, hayGit) {
   if (v.error) return nv(`no pude mirar los worktrees (${v.error})`, 'corré "git worktree list" a mano');
   const ls = V.lineas(v);
   if (!ls.length) return res('✓', 'ningún worktree fuera de .claude/worktrees/ ni carpetas gate-* al lado del repo');
-  return ls.map((l, i) => res('⚠', l.trim(), i === 0 ? 'lo decide Guido, uno por uno (el doctor no borra nada)' : null));
+  return ls.map((l, i) => res('⚠', l.trim(), i === 0 ? 'lo decide el dueño, uno por uno (el doctor no borra nada)' : null));
 }
 
 // 8c p1 (a): el lock del proyecto atrasado, leído (D8c-9: nunca corre el instalador). Un ⚠ por lock, nunca ✗; nada lo arregla solo.
@@ -938,7 +938,7 @@ async function principal(argv, { env = process.env, cwd = process.cwd(), plazoMs
     try {
       x = chequeos[id]();
     } catch (e) {
-      x = res('✗', `el chequeo falló por dentro (${e && e.message ? e.message : e})`, 'avisale a Guido: es un bug del doctor');
+      x = res('✗', `el chequeo falló por dentro (${e && e.message ? e.message : e})`, 'avisá en el repo del kit: es un bug del doctor');
     }
     for (const y of Array.isArray(x) ? x : [x]) { // tope-skills, vecinos y locks: un ⚠ por cosa
       if (y.est === '✗') rojos++;
@@ -946,7 +946,8 @@ async function principal(argv, { env = process.env, cwd = process.cwd(), plazoMs
       lineas.push(`${y.est} ${id} · ${y.qué}${y.arreglo ? ` · ${y.arreglo}` : ''}`);
     }
   }
-  lineas.push(`doctor · ${IDS.length} chequeos · ${rojos} ✗ · ${avisos} ⚠${rojos ? ' · hay que arreglar los ✗' : ''}`);
+  // 51 (8d C4): el resumen para el dueño; el detalle (las líneas de arriba), a pedido
+  lineas.push(`doctor · ${rojos ? 'hay cosas que arreglar' : 'todo bien'} · ${avisos} aviso${avisos === 1 ? '' : 's'} · ${rojos} cosa${rojos === 1 ? '' : 's'} a arreglar · ${IDS.length} chequeos`);
   try {
     lineas.push(...inventario(raiz, f));
   } catch (e) {

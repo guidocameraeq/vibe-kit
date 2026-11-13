@@ -11,15 +11,14 @@ del Arquitecto: él monta proyectos; vos equipás máquinas.
 
 ## Reglas de oro
 
-1. **Solo del menú.** No instalás nada que no esté en el menú. Si Guido pide algo nuevo:
+1. **Solo del menú.** No instalás nada que no esté en el menú. Si piden algo nuevo:
    primero se investiga (repo vivo, licencia, colisiones con su sistema), y si pasa la
-   curaduría se AGREGA al menú con origen y razón — recién entonces se instala. El menú es
-   la fuente de verdad y evoluciona; las instalaciones son consecuencia.
+   curaduría se AGREGA al menú con origen y razón — recién entonces se instala.
 2. **Clonar fresco, siempre.** Cada instalación baja del repo de origen en el momento
    (`git clone --depth 1` a un temp → copiar SOLO la carpeta de la skill → borrar el clone).
    Nunca de copias locales viejas. **Excepción acotada — entradas kit-owned (`docs-fyd`, `relevamiento`):**
    no tienen repo externo; se COPIAN del kit local (o del Arquitecto ya instalado), con el diff
-   mostrado antes de pisar. Es la 2da excepción (la 1ra es shadcn, por CLI); NO se generaliza.
+   mostrado antes de pisar. Es la 2da excepción (la 1ra es shadcn, por CLI).
 3. **Nunca pisar ediciones locales sin mostrar el diff.** Antes de actualizar una skill
    instalada, compará con lo fresco: idéntica → avisar "sin cambios"; upstream cambió →
    mostrar resumen del diff y preguntar; hay ediciones locales → ⚠️ mostrarlas y preguntar
@@ -38,10 +37,10 @@ del Arquitecto: él monta proyectos; vos equipás máquinas.
    ultimo-tag <clon>` — nunca la punta de `main` ni `git tag --sort` (pone el rc arriba).
 2. Corré el script **del clon nuevo**, nunca el instalado en `~/.claude/`:
    `node <clon>/kit/skills/arquitecto-skills/scripts/preparar-pc.cjs --kit <clon> --plan` (no escribe nada).
-3. **UNA pregunta** (`AskUserQuestion`): el plan, lo editado a mano con su diff y la carpeta de proyectos detectada
-   ("¿Lo aplico, con los proyectos en `<carpeta>`?"). Sí → el mismo comando sin `--plan` (con `--pisar-editados` si Guido vio el diff).
+3. Su línea `resumen ·` dice `sin cambios`: decila, sin preguntar, y seguí. Si no, **UNA pregunta** (`AskUserQuestion`): esa línea, lo editado
+   a mano con su diff y la carpeta ("¿Lo aplico, con los proyectos en `<carpeta>`?"). Sí → sin `--plan` (`--pisar-editados` si vio el diff).
 4. Los repos de tu cuenta y publicar sola: `preparar-pc.md` (al lado).
-5. Pegá la tabla final (ya corre `doctor`), borrá el clon y cerrá con **"reiniciá Claude Code"**. Si sale 1, contá su línea.
+5. Su `resumen ·` y la línea `doctor ·` (el detalle, si lo pide), borrá el clon y cerrá con **"reiniciá Claude Code"**. Si sale 1, contá su línea.
 
 **"Instalame skills"** (las del menú):
 1. **Censo** de `~/.claude/skills/` contra el menú.
@@ -57,7 +56,7 @@ del Arquitecto: él monta proyectos; vos equipás máquinas.
 2. Por repo de origen: clone fresco → diff carpeta por carpeta (regla 3). **Lo kit-owned**
    (`arquitecto`, `arquitecto-skills`, `docs-fyd`, `relevamiento`) NO se actualiza acá — se baja del
    **repo canónico** con el **Modo AUTO-ACTUALIZAR EL KIT** (abajo).
-3. Informe final: actualizadas / sin cambios / con ediciones locales (qué decidió Guido).
+3. Informe final: actualizadas / sin cambios / con ediciones locales (qué se decidió).
 4. Si el menú tiene entradas `[ORIGEN A CONFIRMAR]` o `[VERIFICAR]`, intentá resolverlas
    (buscar el repo, verificar que siga vivo) y actualizá el menú con lo encontrado.
 
@@ -77,24 +76,24 @@ NO se usa: allá el sync `kit/`→instalado lo hace `/cierre` (editás `kit/` y 
 El corrector de secretos de esta PC (hooks en `~/.claude/hooks/kit/`). Los scripts viajan con el kit, en
 `~/.claude/skills/arquitecto-skills/scripts/`. **Siempre sobre el `~/.claude/` real de esta PC; nunca con `--home` (eso es de las pruebas).**
 
-1. `node ~/.claude/skills/arquitecto-skills/scripts/instalar-hooks-pc.cjs --plan` — no escribe nada; mostrale a Guido lo que haría.
+1. `node "$HOME/.claude/skills/arquitecto-skills/scripts/instalar-hooks-pc.cjs" --plan` — no escribe nada; mostrá lo que haría.
 2. **UNA pregunta**: "¿Lo aplico?" (es lo único que se pregunta). Si el `--plan` dice que el settings no se entiende (JSON roto,
    claves repetidas), no preguntes: contale el motivo, se arregla a mano.
-3. Sí → el mismo comando **sin** `--plan`. Después `node …/scripts/doctor.cjs` (el completo: 29 chequeos, solo lee; sin red dice "NO VERIFICADO") y pegale las líneas **y el
-   inventario de frenos** (las líneas `inventario ·`): cada `✗` trae cómo se arregla; los `⚠` no traban. Cerrá con **"reiniciá Claude Code"** (los hooks nuevos cargan al reiniciar).
-4. **Sacar el anti-secretos viejo**: cuando Guido confirme que el del kit anda, cruzá los patrones del viejo con los del kit (`hooks/kit/secretos`) y decile cuáles faltan → `… instalar-hooks-pc.cjs --sacar-viejo`
+3. Sí → el mismo comando **sin** `--plan`. Después `node …/scripts/doctor.cjs` (el completo: 29 chequeos, solo lee; sin red dice "NO VERIFICADO") y decile su línea `doctor ·`
+   (todo bien · N avisos · N cosas a arreglar), cada `✗` con su arreglo y **el inventario de frenos** (`inventario ·`); lo demás, si lo pide. Cerrá con **"reiniciá Claude Code"** (los hooks nuevos cargan al reiniciar).
+4. **Sacar el anti-secretos viejo**: cuando confirme que el del kit anda, cruzá los patrones del viejo con los del kit (`hooks/kit/secretos`) y decile cuáles faltan → `… instalar-hooks-pc.cjs --sacar-viejo`
    (saca solo su registro; el archivo queda). **Deshacer todo**: `… --quitar` (deja el `settings.json` como estaba).
-5. Un archivo de `hooks/kit/` editado a mano: el `doctor` lo reporta y el instalador lo pisa con el del kit — decile antes a
-   Guido si la edición debe llevarse al repo madre.
+5. Un archivo de `hooks/kit/` editado a mano: el `doctor` lo reporta y el instalador lo pisa con el del kit — preguntá antes
+   si la edición debe llevarse al repo madre.
 Nunca edites `~/.claude/settings.json` a mano ni toques secretos: el instalador es el único que lo escribe.
 
 ## Modo FLOTA — "poné al día la flota" / "adoptá X"
 
 Los deriva el Arquitecto; los pasos y la pantalla están en su `anexos/flota.md`. Corrés `node "$HOME/.claude/skills/arquitecto-skills/scripts/actualizar.cjs"`:
-- `flota <X>… | todo [--canon <url>] [--proyectos <carpeta>]` (de fondo): la tabla y "te espera:". Si `auto` no deja pushear, la corre Guido. Una mezcla que choca te espera (`flota.md`).
+- `flota <X>… | todo [--canon <url>] [--proyectos <carpeta>]` (de fondo): la tabla y "te espera:". Si `auto` no deja pushear, la corre el dueño. Una mezcla que choca te espera (`flota.md`).
 - `salteado` por obra: AskUserQuestion (esperar, Recomendado · `--con-obra`).
 - Antes de adoptar, `ultimo-tag <clon>` contra `~/.claude/VERSION`: si el tag es más nuevo, la PC está atrás → primero "actualizate" (`--mirar` lo avisa con `⚠ el --kit tiene el tag …`).
-- `adoptar <clon> --kit <clon del kit> --mirar --principal <la carpeta de Guido> --propuesta <archivo>` → la pantalla con Guido (D1-D4: `flota.md`) → con el OK, `--aplicar <archivo> --principal <su carpeta>` y lo elegido, en un clon con `.kit-rol` = `actualizador`, los commits que imprime, `barreras --rango <antes>..HEAD` (lo rojo lo aprueba Guido), push, y `adoptar <clon> --traer <su carpeta>` (trae y **después** prende ahí los githooks).
+- `adoptar <clon> --kit <clon del kit> --mirar --principal <su carpeta> --propuesta <archivo>` → la pantalla con el dueño (D1-D4: `flota.md`) → con el OK, `--aplicar <archivo> --principal <su carpeta>` y lo elegido, en un clon con `.kit-rol` = `actualizador`, los commits que imprime, `barreras --rango <antes>..HEAD` (lo que falla lo aprueba el dueño), push, y `adoptar <clon> --traer <su carpeta>` (trae y **después** prende ahí los githooks).
 
 ## Modo AUDITAR — "qué skills tengo" / "podá"
 
@@ -110,7 +109,7 @@ Los deriva el Arquitecto; los pasos y la pantalla están en su `anexos/flota.md`
    solape con integradas o con el menú actual.
 2. Veredicto con recomendación. Si entra: editá `menu-skills.md` (tier + origen + razón).
    Si no entra: agregala a "Descartadas — CON razón" para no re-evaluarla.
-3. Recién después, si Guido quiere, instalala (Modo INSTALAR).
+3. Recién después, si quiere, instalala (Modo INSTALAR).
 
 ## Si algo sale mal
 

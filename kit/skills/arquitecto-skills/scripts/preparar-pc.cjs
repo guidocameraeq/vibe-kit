@@ -640,7 +640,7 @@ function principal(argv, { env = process.env, cwd = process.cwd(), renombrar = f
   try {
     ph = I.planInstalar(r, s, { sacarViejo: false });
   } catch (e) {
-    log(lin('✗', 'hooks-pc', `no pude armar el plan: ${e.message}`, 'avisale a Guido: es un bug'));
+    log(lin('✗', 'hooks-pc', `no pude armar el plan: ${e.message}`, 'avisá en el repo del kit: es un bug'));
     log('no toqué nada.');
     return fin(1);
   }
@@ -811,6 +811,20 @@ function principal(argv, { env = process.env, cwd = process.cwd(), renombrar = f
       for (const l of `${d.stdout || ''}`.split(/\r?\n/).filter(Boolean)) log(`  ${l}`);
     }
   }
+  // 51 (8d C4): el plan en una línea, la segunda de la salida. Con "sin cambios" la sesión no pregunta: lo dice y sigue.
+  const cuantos = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
+  const nAv = tabla.filter((l) => l.startsWith('⚠ ')).length;
+  const nMal = tabla.filter((l) => l.startsWith('✗ ')).length;
+  const cola = `${cuantos(nAv, 'aviso', 'avisos')} · ${cuantos(nMal, 'cosa', 'cosas')} a arreglar`;
+  const partes = [
+    nKit && cuantos(nKit, 'archivo del kit', 'archivos del kit'),
+    pk.borrar.length && `${pk.borrar.length} para borrar`,
+    saltear.length && cuantos(saltear.length, 'editado a mano sin pisar', 'editados a mano sin pisar'),
+    accionesHooks.length && 'los hooks de la PC',
+    settingsCambia && 'el settings',
+    kitPcCambia && 'kit-pc.md',
+  ].filter(Boolean);
+  salida.splice(1, 0, acciones.length ? `resumen · ${o.plan ? 'cambiaría' : 'cambié'}: ${partes.join(', ') || cuantos(acciones.length, 'cosa', 'cosas')} · ${cola}` : `resumen · sin cambios · ${cola}`);
   log('');
   if (o.plan) log('plan: no escribí nada. Sin --plan, lo aplico.');
   else log(rojo ? 'quedó algo en ✗: arreglalo y volvé a correr. Después, reiniciá Claude Code.' : 'listo: reiniciá Claude Code.');

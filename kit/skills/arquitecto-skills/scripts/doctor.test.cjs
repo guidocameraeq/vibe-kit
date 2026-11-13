@@ -170,7 +170,7 @@ test('verde con todo instalado: los 29 chequeos en ✓, en el orden fijo (los 14
   assert.deepEqual(ids.slice(14), ['version-kit', 'kit-sync', 'githooks', 'archivo-pc', 'credencial', 'gh-push', 'mesa-gh', 'cross-session', 'automode', 'copias-kit', 'frenos-vencidos', 'regla-tamano', 'tope-skills', 'vecinos', 'locks']);
   const chequeos = r.lineas.slice(0, 29);
   chequeos.forEach((l, i) => assert.ok(l.startsWith(`✓ ${ids[i]} · `), `${i}: ${l}`));
-  assert.match(r.lineas[29], /^doctor · 29 chequeos · 0 ✗ · 0 ⚠$/);
+  assert.match(r.lineas[29], /^doctor · todo bien · 0 avisos · 0 cosas a arreglar · 29 chequeos$/);
   assert.equal(r.lineas[30], 'inventario · sin frenadas');
   assert.equal(r.lineas.length, 31);
   // la salida de verde (sin rutas): se la muestra el informe
@@ -204,7 +204,7 @@ test('salida 0 con ⚠ y sin ✗; 1 con algún ✗; 2 con una opción que no con
   falso(e.bin, 'lefthook', 'x');
   const w = correr(e);
   assert.equal(w.codigo, 0, w.out);
-  assert.match(w.lineas[29], /1 ⚠$/);
+  assert.match(w.lineas[29], /^doctor · todo bien · 1 aviso · 0 cosas a arreglar · /);
   falso(e.bin, 'gitleaks', '8.1.0');
   assert.equal(correr(e).codigo, 1);
   const r = spawnSync(process.execPath, [DOCTOR, '--foo'], { encoding: 'utf8', env: entorno(e) });
@@ -784,7 +784,7 @@ test('D8r.4 S, tope-skills: una skill del kit que pasa su tope por la zona propi
     '⚠ tope-skills · cierre: 8975 B, 975 de más por su zona propia (tope 8000) · mové a un anexo lo propio que no hace falta siempre, nunca lo de producción',
     '⚠ tope-skills · tramo: 9179 B, 1179 de más por su zona propia (tope 8000) · mové a un anexo lo propio que no hace falta siempre, nunca lo de producción',
   ]);
-  assert.match(r.out, /doctor · 29 chequeos · 0 ✗ · 2 ⚠/);
+  assert.match(r.out, /doctor · todo bien · 2 avisos · 0 cosas a arreglar · 29 chequeos/);
   // la parte del kit pasa el tope (afuera de la zona): ⚠ distinto, tampoco ✗
   fs.appendFileSync(skill('inicio'), 'k'.repeat(8700));
   const k = correr(e);
@@ -911,7 +911,7 @@ test('u4 (8c, crit. 4): vecinos — un worktree mezclado en ../ y un gate de dat
   const ls = r.lineas.filter((l) => / vecinos · /.test(l));
   assert.equal(ls.length, 3, ls.join('\n'));
   assert.ok(ls.every((l) => l.startsWith('⚠ vecinos · ')));
-  assert.match(ls[0], /^⚠ vecinos · fuera del repo: 1 worktree \(1 ya mezclado\) y 1 carpeta gate-\* en .* · lo decide Guido, uno por uno \(el doctor no borra nada\)$/);
+  assert.match(ls[0], /^⚠ vecinos · fuera del repo: 1 worktree \(1 ya mezclado\) y 1 carpeta gate-\* en .* · lo decide el dueño, uno por uno \(el doctor no borra nada\)$/);
   assert.match(ls[1], /proyecto-vieja · vieja · mezclada \(ya está en main\): se puede borrar con git worktree remove "/);
   assert.match(ls[2], /gate-candados · datos, no un gate: no tocar$/);
   assert.deepEqual(fs.readdirSync(padre).sort(), antes);

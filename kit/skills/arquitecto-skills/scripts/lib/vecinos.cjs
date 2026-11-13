@@ -107,7 +107,7 @@ function vecinos(desde) {
 }
 
 const QUE = {
-  mezclada: (w, def) => `mezclada (ya está en ${def}): se puede borrar con git worktree remove "${barras(w.ruta)}" — lo decide Guido, una por una; borra también lo ignorado (.env, config): miralo antes`,
+  mezclada: (w, def) => `mezclada (ya está en ${def}): se puede borrar con git worktree remove "${barras(w.ruta)}" — lo decide el dueño, una por una; borra también lo ignorado (.env, config): miralo antes`,
   viva: (w, def) => `viva (${def ? `trae lo que ${def} no tiene` : 'no encontré la rama por defecto'}, o cambios sin commitear): no tocar`,
   suelta: () => 'suelta (detached, sin rama): miralo antes de tocarla',
   perdida: () => 'perdida (la carpeta ya no está): git worktree prune la saca de la lista',
