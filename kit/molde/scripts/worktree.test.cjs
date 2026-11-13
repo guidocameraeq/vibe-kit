@@ -51,6 +51,15 @@ function escribir(d, rel, contenido) {
   fs.mkdirSync(path.dirname(p), { recursive: true });
   fs.writeFileSync(p, contenido);
 }
+// A6: un renglón como lo escribía un kit de antes de la rc.7, en el versionado (lo que la mudanza de cerrar y traer-main sigue sabiendo llevar).
+function deAntes(raiz, datos) {
+  const linea = frenosLog.renglon(datos);
+  const p = path.join(raiz, '.claude', 'frenos.log');
+  fs.mkdirSync(path.dirname(p), { recursive: true });
+  const previo = fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : '';
+  fs.appendFileSync(p, `${previo && !previo.endsWith('\n') ? '\n' : ''}${linea}\n`); // como el anotar de antes: siempre LF
+  return linea;
+}
 const leer = (d, rel) => {
   try {
     return fs.readFileSync(path.join(d, ...rel.split('/')), 'utf8');
@@ -546,6 +555,7 @@ test('cerrar x--01 desde el principal en main, con core.autocrlf=true: sin merge
   assert.match(fs.readFileSync(path.join(w1, '.claude', 'frenos.log'), 'utf8'), /\r\n$/, 'autocrlf: el log sale con CRLF');
   commit(w1, { 'encargo.txt': 'hecho\n' });
   const intacto = () => assert.ok(fs.existsSync(w1) && existeRama(p.P, 'modulo/x--01'), 'nada borrado');
+  // A6: los frenos de hoy escriben en el registro común; acá se simula un renglón que dejó un kit de antes en el versionado (la mudanza sigue)
   let r = cli(p.P, ['cerrar', 'x--01']);
   assert.equal(r.codigo, 1);
   assert.match(r.out, /no está mergeada en modulo\/x/);
@@ -554,7 +564,7 @@ test('cerrar x--01 desde el principal en main, con core.autocrlf=true: sin merge
   assert.equal(g(p.P, 'symbolic-ref', '--short', 'HEAD'), 'main');
   assert.ok(!gOk(p.P, 'merge-base', '--is-ancestor', 'modulo/x--01', 'main'), 'no está en main');
   fs.writeFileSync(path.join(w1, 'a.txt'), 'cambiado\n');
-  const suelto = frenosLog.anotar(w1, { id: 'x', herramienta: 'Bash', detalle: 'suelto', rol: 'obrero', rama: 'modulo/x--01' });
+  const suelto = deAntes(w1, { id: 'x', herramienta: 'Bash', detalle: 'suelto', rol: 'obrero', rama: 'modulo/x--01' });
   r = cli(p.P, ['cerrar', 'x--01']);
   assert.equal(r.codigo, 1);
   assert.match(r.out, /cambios sin commitear/);
@@ -588,8 +598,8 @@ test('cerrar x--01 desde el principal en main, con core.autocrlf=true: sin merge
   g(p.P, 'worktree', 'unlock', w1);
   // Un hook de sesión agrega dos renglones (LF) sobre el archivo con CRLF: se mudan al común y remove anda sin --force.
   const dato = { id: 'deny:Bash(git stash:*)', herramienta: 'Bash', detalle: 'git stash', rol: 'obrero', rama: 'modulo/x--01' };
-  const r1 = frenosLog.anotar(w1, dato);
-  const r2 = frenosLog.anotar(w1, { ...dato, detalle: 'git reset --hard' });
+  const r1 = deAntes(w1, dato);
+  const r2 = deAntes(w1, { ...dato, detalle: 'git reset --hard' });
   assert.ok(fs.readFileSync(log, 'utf8').includes('\r\n') && fs.readFileSync(log, 'utf8').endsWith(`${r2}\n`), 'CRLF de la base y LF del hook');
   assert.notEqual(g(w1, 'status', '--porcelain'), '', 'el log quedó sucio');
   r = cli(p.P, ['cerrar', 'x--01']);
@@ -672,7 +682,7 @@ test('RF-fix 8: cerrar con lo sin trackear sugiere clean -nd/-fd con -e .claude/
   const w1 = p.wt('modulo--x--01');
   commit(w1, { 'encargo.txt': 'hecho\n' });
   g(wx, 'merge', '-q', '--no-ff', '-m', 'encargo 01', 'modulo/x--01');
-  const renglon = frenosLog.anotar(w1, { id: 'x', herramienta: 'Edit', detalle: 'a', rol: 'obrero', rama: 'modulo/x--01' });
+  const renglon = deAntes(w1, { id: 'x', herramienta: 'Edit', detalle: 'a', rol: 'obrero', rama: 'modulo/x--01' }); // A6: un renglón de un kit de antes
   escribir(w1, 'coverage/c1.json', '{}\n');
   let r = cli(p.P, ['cerrar', 'x--01']);
   assert.equal(r.codigo, 1);
@@ -847,7 +857,7 @@ test('integrar, mal llamado → 2 (con encargo, sin nombre, bandera repetida o e
   for (const args of [['integrar'], ['integrar', 'x--01'], ['integrar', 'x', '--ok-de-guido', '--ok-de-guido'], ['crear', 'x', '--ok-de-guido'], ['integrar', 'x', '--noche']]) {
     const r = cli(p.P, args);
     assert.equal(r.codigo, 2, JSON.stringify(args));
-    assert.match(r.err, /integrar <x> \[--ok-de-guido\]/);
+    assert.match(r.err, /integrar <x> \[--con-ok\]/);
   }
   moduloX(p);
   // La ficha vigente (la de origin/main) rota: no se sabe qué autoriza → 1.
@@ -867,7 +877,7 @@ test('integrar, mal llamado → 2 (con encargo, sin nombre, bandera repetida o e
   sinTemporal(p);
 });
 
-test('integrar verde: frenos.log del director commiteado antes, merge --no-ff en origin/main, setup→test (r1-1), temporal borrado; dos veces → la segunda no rompe nada', () => {
+test('integrar verde: sin commit de frenos.log (A6, B4.8), merge --no-ff en origin/main, setup→test (r1-1), temporal borrado; dos veces → la segunda no rompe nada', () => {
   const p = proyectoI();
   const wx = moduloX(p);
   const renglon = frenosLog.anotar(wx, { id: 'deny:x', herramienta: 'Bash', detalle: 'algo', rol: 'director', rama: 'modulo/x' });
@@ -876,20 +886,20 @@ test('integrar verde: frenos.log del director commiteado antes, merge --no-ff en
   assert.equal(r.codigo, 0, r.out);
   sinValores(r);
   sinTemporal(p);
-  // D5-11: el commit de frenos.log, por ruta, en el worktree del director, y subido con la rama.
-  assert.equal(g(wx, 'log', '-1', '--format=%s', 'modulo/x'), 'frenos.log del módulo x');
+  // A6 y B4.8: el renglón del director fue al registro común; no hay commit de frenos.log.
+  assert.equal(g(wx, 'log', '-1', '--format=%s', 'modulo/x'), 'trabajo del módulo');
+  assert.ok(frenosLog.leerTodo(p.P).includes(renglon));
   assert.equal(g(wx, 'status', '--porcelain'), '', 'el director quedó limpio');
   assert.equal(enOrigin(p, 'modulo/x'), g(p.P, 'rev-parse', 'modulo/x'));
   // El merge: --no-ff, con los dos padres y el mensaje; frenos.log del director presente en main.
   const merge = enOrigin(p);
   assert.equal(g(p.remoto, 'rev-list', '--parents', '-n', '1', merge), `${merge} ${base} ${g(p.P, 'rev-parse', 'modulo/x')}`);
   assert.equal(g(p.remoto, 'log', '-1', '--format=%B', merge), 'integrar: módulo x');
-  assert.ok(g(p.remoto, 'show', `${merge}:.claude/frenos.log`).includes(renglon));
   assert.equal(g(p.remoto, 'show', `${merge}:m.txt`), 'del módulo');
   assert.match(r.out, new RegExp(`^worktree integrar: módulo x en origin/main — merge ${merge}$`, 'm'));
   assert.match(r.out, /comando-setup anduvo: node setup\.cjs/);
   assert.match(r.out, /comando-test en verde: node test\.cjs/);
-  assert.ok(r.out.endsWith('después: /cierre en tu carpeta principal (los papeles de main quedaron atrás del módulo x)\n'), r.out);
+  assert.ok(r.out.endsWith('después: noche.cjs cierre x (la sesión de cierre pone al día los papeles de main, publica si toca y limpia)\n'), r.out);
   assert.ok(existeRama(p.P, 'modulo/x') && fs.existsSync(wx), 'integrar no cierra el módulo: eso es cerrar');
   // La segunda: nada que integrar, nada cambia.
   const r2 = cli(p.P, ['integrar', 'x']);
@@ -1036,13 +1046,13 @@ test('integrar con la ficha que endurece merge-a-main → 1 sin --ok-de-guido, 0
   const base = enOrigin(p);
   let r = cli(p.P, ['integrar', 'x']);
   assert.equal(r.codigo, 1);
-  assert.match(r.out, /la ficha pide el OK de Guido para mergear a main \(merge-a-main: con-ok-de-guido\): preguntale \(clase 3\) y corré con --ok-de-guido/);
+  assert.match(r.out, /la ficha pide el OK del dueño para mergear a main \(merge-a-main: con-ok-de-guido\): preguntale \(clase 3\) y corré con --con-ok/);
   assert.equal(enOrigin(p), base);
   assert.equal(g(p.P, 'log', '-1', '--format=%s', 'modulo/x'), 'trabajo del módulo', 'ni el commit de frenos.log: los chequeos van antes');
   sinTemporal(p);
   r = cli(p.P, ['integrar', 'x', '--ok-de-guido']);
   assert.equal(r.codigo, 0, r.out);
-  assert.equal(g(p.remoto, 'log', '-1', '--format=%B', 'main'), 'integrar: módulo x\n\ncon --ok-de-guido (la ficha pide merge-a-main: con-ok-de-guido)');
+  assert.equal(g(p.remoto, 'log', '-1', '--format=%B', 'main'), 'integrar: módulo x\n\ncon el OK del dueño (la ficha pide merge-a-main: con-ok-de-guido)');
   const q = proyectoI({ merge: 'libre' });
   moduloX(q);
   r = cli(q.P, ['integrar', 'x']);
@@ -1353,7 +1363,7 @@ test('8r 1: cerrar x--01 borra la de origin si está en origin/modulo/x; mezclad
   assert.ok(enRemoto(p, 'modulo/x--02') && !existeRama(p.P, 'modulo/x--02'));
 });
 
-test('8r 5: integrar termina en "después: /cierre …"; integrados — el merge después del handoff → la línea; con el handoff después → nada; sale 0 siempre', () => {
+test('8r 5 y 8d B3.7: integrar termina en "después: noche.cjs cierre …"; integrados — el merge después del handoff → la línea; con el handoff después → nada; sale 0 siempre', () => {
   const p = proyectoI({ archivos: { 'docs/SESSION_HANDOFF.md': '# handoff\n' } });
   assert.match(W.USO, /integrados/);
   for (const args of [['integrados', 'x'], ['integrados', '--noche']]) assert.equal(cli(p.P, args).codigo, 2, JSON.stringify(args));
@@ -1362,7 +1372,7 @@ test('8r 5: integrar termina en "después: /cierre …"; integrados — el merge
   moduloX(p);
   const i = cli(p.P, ['integrar', 'x']);
   assert.equal(i.codigo, 0, i.out);
-  assert.ok(i.out.endsWith('después: /cierre en tu carpeta principal (los papeles de main quedaron atrás del módulo x)\n'), i.out);
+  assert.ok(i.out.endsWith('después: noche.cjs cierre x (la sesión de cierre pone al día los papeles de main, publica si toca y limpia)\n'), i.out);
   // Antes del pull, la main local no lo tiene: nada.
   assert.deepEqual([cli(p.P, ['integrados']).codigo, cli(p.P, ['integrados']).out], [0, '']);
   g(p.P, 'pull', '-q', 'origin', 'main');
@@ -1549,7 +1559,7 @@ test('8r4 u2: traer-main verde — trae de main un settings.json y un hook ya ap
   const p = proyectoT();
   const antes = g(p.wx, 'rev-parse', 'HEAD');
   const deMain = mainConAprobado(p, { '.claude/settings.json': SETTINGS_T(['Bash(rm:*)', 'Bash(curl:*)']), '.claude/hooks/h.cjs': `${HOOK_T}l8\n` });
-  const renglon = frenosLog.anotar(p.wx, { id: 'deny:x', herramienta: 'Bash', detalle: 'algo', rol: 'director', rama: 'modulo/x' });
+  const renglon = deAntes(p.wx, { id: 'deny:x', herramienta: 'Bash', detalle: 'algo', rol: 'director', rama: 'modulo/x' }); // A6: de un kit de antes
   const r = cli(p.wx, ['traer-main', 'x']);
   assert.equal(r.codigo, 0, r.out);
   const merge = g(p.wx, 'rev-parse', 'HEAD');
@@ -1601,7 +1611,7 @@ test('8r4 u2: traer-main con barreras en rojo (el merge deja un hook distinto de
   // Lo único nuevo en el árbol es el renglón de la frenada en frenos.log.
   const sinLog = (s) => s.split('\n').filter((l) => l && !l.endsWith('.claude/frenos.log')).join('\n');
   assert.equal(sinLog(estado(p.wx)), sinLog(antes[1]));
-  assert.match(leer(p.wx, '.claude/frenos.log'), /candado:barreras/);
+  assert.match(frenosLog.leerTodo(p.wx), /candado:barreras/); // A6: va al registro común
   assert.ok(!gOk(p.remoto, 'rev-parse', '-q', '--verify', 'refs/heads/modulo/x'), 'nada subió');
   const cuerpo = /--cuerpo "([^"]+)"/.exec(r.out)[1];
   assert.match(fs.readFileSync(cuerpo, 'utf8'), /^## Caso de origen\n/);
@@ -1714,4 +1724,48 @@ test('h9 (8c): un config.local.ini ignorado, copiado por .worktreeinclude, con u
     const deny = JSON.parse(leer(d, '.claude/settings.local.json')).permissions.deny;
     assert.ok(!deny.some((x) => x.includes('config.local.ini')), deny.join('\n'));
   }
+});
+
+// ---------------------------------------------------------------- B3 (SPEC-paquete-8d): limpiar y la traba de noche
+
+test('B3.5 limpiar: cierra lo mezclado y limpio, deja lo sucio y lo sin mezclar (lo lista), repetido no hace nada; desde un worktree → 1', () => {
+  const p = proyectoI();
+  const wx = moduloX(p);
+  assert.equal(cli(p.P, ['integrar', 'x']).codigo, 0);
+  g(p.P, 'pull', '-q', 'origin', 'main');
+  // un módulo y sin mezclar; y x, mezclado, primero sucio
+  assert.equal(cli(p.P, ['crear', 'y']).codigo, 0);
+  commit(p.wt('modulo--y'), { 'y.txt': 'y\n' }, 'trabajo de y');
+  fs.writeFileSync(path.join(wx, 'm.txt'), 'sucio\n');
+  const desde = cli(wx, ['limpiar']);
+  assert.equal(desde.codigo, 1);
+  assert.match(desde.out, /corre en la carpeta principal/);
+  const s = cli(p.P, ['limpiar']);
+  assert.equal(s.codigo, 0, s.out);
+  assert.match(s.out, /queda modulo\/x: .*cambios sin commitear/);
+  assert.ok(fs.existsSync(wx), 'lo sucio no se fuerza');
+  g(wx, 'checkout', '--', 'm.txt');
+  const r = cli(p.P, ['limpiar']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(r.out, /worktree limpiar: cerré modulo\/x/);
+  assert.match(r.out, /queda modulo\/y: .*no está mergeada/);
+  assert.ok(!fs.existsSync(wx), 'el mezclado se cerró');
+  assert.ok(fs.existsSync(p.wt('modulo--y')), 'lo sin mezclar no se fuerza');
+  const r2 = cli(p.P, ['limpiar']);
+  assert.equal(r2.codigo, 0);
+  assert.doesNotMatch(r2.out, /cerré/);
+});
+
+test('B3.2 integrar de noche con la publicación trabada no sube nada; de día, sí', () => {
+  const p = proyectoI();
+  const wx = moduloX(p);
+  const base = enOrigin(p);
+  fs.writeFileSync(path.join(p.P, '.git', 'kit-publicacion.json'), JSON.stringify({ trabado: true }));
+  fs.writeFileSync(path.join(wx, '.kit-noche'), 'desde ahora\n');
+  const r = cli(p.P, ['integrar', 'x']);
+  assert.equal(r.codigo, 1, r.out);
+  assert.match(r.out, /trabada .*de noche no integro/);
+  assert.equal(enOrigin(p), base);
+  fs.rmSync(path.join(wx, '.kit-noche'));
+  assert.equal(cli(p.P, ['integrar', 'x']).codigo, 0);
 });

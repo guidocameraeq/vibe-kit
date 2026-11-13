@@ -147,8 +147,8 @@ const RE_CMD_DOS = /(^|&&|\|\||[;|&(])\s*cmd(\.exe)?\s+\/\//i;
 // `cmd //c`. En cmd.exe, `cmd //c …` tampoco corre nada y sale 0.
 function comandoQueNoCorre(cmd, shell, plataforma = process.platform) {
   const c = String(cmd || '');
-  if (esBash(shell) && RE_CMD_UNA.test(c)) return 'en Git Bash es `cmd //c` (con `cmd /c` no corre nada y saldría verde)';
-  if (esCmd(shell, plataforma) && RE_CMD_DOS.test(c)) return '`cmd //c` es de Git Bash: en cmd.exe no corre nada y saldría verde';
+  if (esBash(shell) && RE_CMD_UNA.test(c)) return 'en Git Bash es `cmd //c` (con `cmd /c` no corre nada y daría que pasó)';
+  if (esCmd(shell, plataforma) && RE_CMD_DOS.test(c)) return '`cmd //c` es de Git Bash: en cmd.exe no corre nada y daría que pasó';
   return null;
 }
 
@@ -192,4 +192,93 @@ function correrConPlazo(cmd, { cwd, plazoMs, stdio = 'ignore', shell = shellDeCo
   return { estado: 'verde', como: 'salida 0' };
 }
 
-module.exports = { claudeEnPath, rutaGitBash, claudeDeVSCode, comandoClaude, raizDeGit, shellDeComandos, comandoQueNoCorre, VIGIA, argsVigia, correrConPlazo };
+// ---------------------------------------------------------------- el turno de la suite (SPEC-paquete-8d B5, tracker 45, 56)
+
+// conTurno(quien, fn[, opciones]) → lo que devuelve fn(). Un candado POR PC (una carpeta en el temporal del sistema, con quién lo
+// tiene y su proceso): una corrida pesada a la vez (las pruebas de presentar, verificar, el gate de integrar, publicar, el sello).
+// El que espera lo dice cada tanto; un candado de un proceso que ya no existe se toma; a los 60 min de espera sigue igual, con un
+// aviso (nunca se cuelga). La espera NO cuenta en el plazo de lo que corre adentro: el plazo lo pone fn. Si el candado no se
+// puede tomar por otra cosa que "está tomado" (permisos), corre igual: el turno ordena, no frena.
+// opciones: { dir, esperaMaxMs, cadaMs, salida(texto), vivo(pid) } (las pruebas las inyectan).
+const TURNO_DIR = () => path.join(os.tmpdir(), 'kit-turno-suite');
+const TURNO_ESPERA_MAX = 60 * 60 * 1000;
+const TURNO_CADA = 5000;
+const TURNO_AVISO = 5 * 60 * 1000;
+function procesoVivo(pid) {
+  if (!Number.isInteger(pid) || pid <= 0) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (e) {
+    return !!(e && e.code === 'EPERM');
+  }
+}
+const dormirMs = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+function conTurno(quien, fn, opciones = {}) {
+  const dir = opciones.dir || TURNO_DIR();
+  const esperaMax = Number.isFinite(opciones.esperaMaxMs) ? opciones.esperaMaxMs : TURNO_ESPERA_MAX;
+  const cada = Number.isFinite(opciones.cadaMs) ? opciones.cadaMs : TURNO_CADA;
+  const vivo = opciones.vivo || procesoVivo;
+  const decir = typeof opciones.salida === 'function' ? opciones.salida : () => {};
+  const archivo = path.join(dir, 'quien.json');
+  const t0 = Date.now();
+  let ultimoAviso = -Infinity;
+  let mio = false;
+  for (;;) {
+    try {
+      fs.mkdirSync(dir);
+      fs.writeFileSync(archivo, JSON.stringify({ quien: String(quien), pid: process.pid, desde: new Date().toISOString() }));
+      mio = true;
+      break;
+    } catch (e) {
+      if (!e || e.code !== 'EEXIST') break; // no se puede: corre sin turno
+      let q = null;
+      try {
+        q = JSON.parse(fs.readFileSync(archivo, 'utf8'));
+      } catch (e2) {
+        q = null;
+      }
+      // Sin quien.json todavía (el otro lo está escribiendo): se espera una vuelta; uno sin dueño vivo, se toma.
+      if (q && !vivo(q.pid)) {
+        fs.rmSync(dir, { recursive: true, force: true });
+        continue;
+      }
+      if (!q) {
+        let viejo = false;
+        try {
+          viejo = Date.now() - fs.statSync(dir).mtimeMs > 60000;
+        } catch (e3) {
+          viejo = false;
+        }
+        if (viejo) {
+          fs.rmSync(dir, { recursive: true, force: true });
+          continue;
+        }
+      }
+      const esperado = Date.now() - t0;
+      if (esperado >= esperaMax) {
+        decir(`turno: esperé ${Math.round(esperado / 60000)} min a ${q ? q.quien : 'otra corrida'}; sigo igual (nunca me cuelgo)\n`);
+        break;
+      }
+      if (Date.now() - ultimoAviso >= TURNO_AVISO) {
+        decir(`turno: espero que termine ${q ? q.quien : 'otra corrida'} (una corrida pesada a la vez en esta PC)\n`);
+        ultimoAviso = Date.now();
+      }
+      dormirMs(cada);
+    }
+  }
+  try {
+    return fn();
+  } finally {
+    if (mio) {
+      try {
+        const q = JSON.parse(fs.readFileSync(archivo, 'utf8'));
+        if (q && q.pid === process.pid) fs.rmSync(dir, { recursive: true, force: true });
+      } catch (e) {
+        /* ya no estaba */
+      }
+    }
+  }
+}
+
+module.exports = { conTurno, procesoVivo, claudeEnPath, rutaGitBash, claudeDeVSCode, comandoClaude, raizDeGit, shellDeComandos, comandoQueNoCorre, VIGIA, argsVigia, correrConPlazo };

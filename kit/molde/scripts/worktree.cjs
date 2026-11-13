@@ -52,10 +52,12 @@ const USO = [
   '  sync-env                                      saca de los .env de los worktrees vivos lo que está en el almacén',
   '  cerrar <x>[--<ID>]                            borra carpeta y rama, solo si está mergeada y limpia',
   '  cerrar <x>--<ID> --cancelado                  cancela el encargo: con "cancelado <ID> @<sha7>" commiteado en la ficha',
-  '  integrar <x> [--ok-de-guido]                  merge --no-ff de modulo/<x> en la rama por defecto de origin, con el gate',
+  '  integrar <x> [--con-ok]                       merge --no-ff de modulo/<x> en la rama por defecto de origin, con el gate',
+  '                                                (--con-ok: el OK del dueño, si la ficha lo pide; --ok-de-guido es el alias viejo)',
   '  integrados                                    los módulos integrados después del último handoff (para el /inicio; sale 0)',
   '  donde <x>[--<ID>]                             solo mira: ¿estás adentro de ese worktree, o a qué ruta entrar? (/obrero, /director)',
   '  traer-main <x>                                en el worktree del director: trae la rama por defecto de origin a modulo/<x>',
+  '  limpiar                                       carpeta principal: cierra los worktrees ya mezclados y limpios; lo que no puede, lo lista',
 ].join('\n');
 
 const ROTO = 'worktree roto: corré doctor';
@@ -92,7 +94,7 @@ function nombreDe(token) {
 function leerArgumentos(argv) {
   const [comando, ...resto] = argv;
   if (!comando) malLlamado('Falta el comando.');
-  if (!['crear', 'abrir', 'sync-env', 'cerrar', 'integrar', 'integrados', 'donde', 'traer-main'].includes(comando)) malLlamado(`Comando desconocido: ${comando}`);
+  if (!['crear', 'abrir', 'sync-env', 'cerrar', 'integrar', 'integrados', 'donde', 'traer-main', 'limpiar'].includes(comando)) malLlamado(`Comando desconocido: ${comando}`);
   const conOpciones = comando === 'crear' || comando === 'abrir';
   const a = { comando, nombre: null, noche: false, modelo: null, okDeGuido: false, cancelado: false };
   const pos = [];
@@ -106,8 +108,8 @@ function leerArgumentos(argv) {
       if (a.modelo !== null) malLlamado('--model va una sola vez.');
       a.modelo = resto[++i];
       if (!RE_MODELO.test(a.modelo)) malLlamado(`Modelo inválido: "${a.modelo}".`);
-    } else if (comando === 'integrar' && v === '--ok-de-guido') {
-      if (a.okDeGuido) malLlamado('--ok-de-guido va una sola vez.');
+    } else if (comando === 'integrar' && (v === '--ok-de-guido' || v === '--con-ok')) {
+      if (a.okDeGuido) malLlamado('--con-ok va una sola vez.');
       a.okDeGuido = true;
     } else if (comando === 'cerrar' && v === '--cancelado') {
       if (a.cancelado) malLlamado('--cancelado va una sola vez.');
@@ -118,7 +120,7 @@ function leerArgumentos(argv) {
       pos.push(v);
     }
   }
-  const cuantos = comando === 'sync-env' || comando === 'integrados' ? 0 : 1;
+  const cuantos = comando === 'sync-env' || comando === 'integrados' || comando === 'limpiar' ? 0 : 1;
   if (pos.length !== cuantos) malLlamado(`${comando} lleva ${cuantos} argumento(s) además de las banderas.`);
   if (cuantos) a.nombre = nombreDe(pos[0]);
   if (comando === 'integrar' && a.nombre.id !== null) malLlamado('integrar va con el módulo (<x>), no con un encargo: el encargo se mergea en modulo/<x>.');
@@ -1123,8 +1125,8 @@ function enElTemporal(L, P, tmp, n, def, base, punta, okLinea, opciones) {
     return no(`git push falló (${primeraLinea(push.stderr) || push.error}): nada subió`);
   }
   lineas.push(`worktree integrar: módulo ${n.x} en origin/${def} — merge ${merge}`);
-  // SPEC-paquete-8r (5, R:39): los papeles de <def> quedaron atrás; los pone al día el /cierre de la carpeta principal.
-  lineas.push(`después: /cierre en tu carpeta principal (los papeles de ${def} quedaron atrás del módulo ${n.x})`);
+  // SPEC-paquete-8d B3.7: los papeles de <def> quedaron atrás; los pone al día la sesión de cierre, que lanza el director.
+  lineas.push(`después: noche.cjs cierre ${n.x} (la sesión de cierre pone al día los papeles de ${def}, publica si toca y limpia)`);
   return { codigo: 0, lineas };
 }
 
@@ -1156,6 +1158,47 @@ function integrados(L, u) {
   return { codigo: 0, lineas };
 }
 
+// ---------------------------------------------------------------- limpiar (SPEC-paquete-8d B3.5)
+
+// En la carpeta principal, rol humano: cierra cada worktree de .claude/worktrees/ cuya rama ya está mezclada en su madre y está
+// limpio, con el `cerrar` de siempre (sus mismas condiciones), y `git worktree prune`. Lo que no puede (una carpeta en uso, algo
+// sin mezclar o sucio) NO lo fuerza: lo lista. Se puede correr mil veces. Sale 0 (desde otro lado o con otro rol: 1).
+function limpiar(L, u) {
+  const P = u.principal;
+  if (!mismaRuta(u.raiz, P)) return { codigo: 1, lineas: ['worktree limpiar: no — corre en la carpeta principal, no adentro de un worktree'] };
+  const rol = L.contexto.rol(P);
+  if (rol !== 'humano') return { codigo: 1, lineas: [`worktree limpiar: no — no lo corre una sesión con rol ${rol}`] };
+  const base = path.join(P, ...CARPETAS.split('/'));
+  const cerradas = [];
+  const quedan = [];
+  // Los encargos primero (sus ramas se mezclan en la del módulo), después los módulos.
+  const lista = worktrees(L, P)
+    .filter((w) => w.rama && dentroDe(w.ruta, base) && !mismaRuta(w.ruta, base))
+    .map((w) => ({ w, rama: w.rama.replace(/^refs\/heads\//, '') }))
+    .filter((e) => /^modulo\//.test(e.rama))
+    .sort((a, b) => (b.rama.includes('--') ? 1 : 0) - (a.rama.includes('--') ? 1 : 0));
+  for (const e of lista) {
+    let n;
+    try {
+      n = nombreDe(e.rama.slice('modulo/'.length));
+    } catch (err) {
+      quedan.push(`${e.rama}: no es una rama del kit`);
+      continue;
+    }
+    if (!mismaRuta(e.w.ruta, path.join(base, n.carpeta))) {
+      quedan.push(`${e.rama}: está en otra carpeta`);
+      continue;
+    }
+    const r = cerrar(L, u, n);
+    if (r.codigo === 0) cerradas.push(e.rama);
+    else quedan.push(`${e.rama}: ${(r.lineas[r.lineas.length - 1] || '').replace(/^worktree cerrar: no — /, '')}`);
+  }
+  G(L, ['worktree', 'prune'], P);
+  const lineas = [`worktree limpiar: ${cerradas.length ? `cerré ${cerradas.join(', ')}` : 'nada que cerrar'}`];
+  for (const q of quedan) lineas.push(`  queda ${q}`);
+  return { codigo: 0, lineas };
+}
+
 function integrar(L, u, n, a, opciones) {
   const lineas = [];
   const no = (m) => ({ codigo: 1, lineas: [...lineas, `worktree integrar: no — ${m}`] });
@@ -1184,8 +1227,19 @@ function integrar(L, u, n, a, opciones) {
   const mm = mergeAMain(L, P);
   if (mm.error) return no(mm.error);
   const pideOk = !SIN_OK.includes(mm.valor);
-  if (pideOk && !a.okDeGuido) return no(`la ficha pide el OK de Guido para mergear a main (merge-a-main: ${mm.valor}): preguntale (clase 3) y corré con --ok-de-guido`);
-  const okLinea = pideOk ? `con --ok-de-guido (la ficha pide merge-a-main: ${mm.valor})` : null;
+  if (pideOk && !a.okDeGuido) return no(`la ficha pide el OK del dueño para mergear a main (merge-a-main: ${mm.valor}): preguntale (clase 3) y corré con --con-ok`);
+  const okLinea = pideOk ? `con el OK del dueño (la ficha pide merge-a-main: ${mm.valor})` : null;
+  // SPEC-paquete-8d B3.2 (rt-8): de noche, con la publicación trabada (la última prueba de humo falló), no se integra: espera al dueño.
+  const dirNoche = worktrees(L, P).find((w) => w.rama === `refs/heads/${n.rama}` && fs.existsSync(w.ruta));
+  if (L.contexto.deNoche(u.raiz).noche || (dirNoche && L.contexto.deNoche(dirNoche.ruta).noche)) {
+    let pub = null;
+    try {
+      pub = JSON.parse(fs.readFileSync(path.join(u.gitComun, 'kit-publicacion.json'), 'utf8'));
+    } catch (e) {
+      pub = null;
+    }
+    if (pub && pub.trabado) return no('la última publicación quedó trabada (falló su prueba de humo): de noche no integro; queda para el dueño');
+  }
   // 5 (el chequeo). El temporal no puede existir.
   G(L, ['worktree', 'prune'], P);
   const nombreTmp = `integrar--${n.x}`;
@@ -1210,14 +1264,7 @@ function integrar(L, u, n, a, opciones) {
   if (local && remota && local !== remota && !ancestro(local, remota) && !ancestro(remota, local)) {
     return no(`${n.rama} divergió de origin/${n.rama}: integralas a mano (git pull en el worktree del director) y corré integrar de nuevo`);
   }
-  // Pasaron los chequeos. D5-11: el commit de frenos.log, por ruta, en el worktree del director (su escritor).
-  if (frenos && frenos.estado === 'agregado' && frenos.extra.trim() !== '') {
-    const add = G(L, ['add', '--', LOG], dir.ruta);
-    const c = add.ok ? G(L, ['commit', '-q', '-m', `frenos.log del módulo ${n.x}`, '--', LOG], dir.ruta, { tiempo: 120000 }) : add;
-    if (!c.ok) return no(`no pude commitear ${LOG} en el worktree del director (${primeraLinea(c.stderr) || c.error})`);
-    lineas.push(`commiteé ${LOG} del módulo ${n.x} en el worktree del director`);
-    local = sha(L, P, `refs/heads/${n.rama}`);
-  }
+  // Pasaron los chequeos. SPEC-paquete-8d B4.8 (A6): nadie commitea más frenos.log; lo de todos los días va al registro común.
   // modulo/<x> igual en las dos puntas: local adelante → push por nombre; atrás → se adelanta; divergida → 1 (la regla de abrir).
   let punta = local || remota;
   if (local && local !== remota) {
@@ -1501,6 +1548,8 @@ function main(argv, opciones = {}) {
       r = donde(L, u, a.nombre);
     } else if (a.comando === 'traer-main') {
       r = traerMain(L, u, a.nombre);
+    } else if (a.comando === 'limpiar') {
+      r = limpiar(L, u);
     } else {
       r = cerrar(L, u, a.nombre, a.cancelado);
     }

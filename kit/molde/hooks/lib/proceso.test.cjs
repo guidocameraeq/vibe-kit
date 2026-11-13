@@ -98,12 +98,12 @@ test('rt-2: comandoQueNoCorre — en Git Bash `cmd /c` no corre; en cmd.exe `cmd
   assert.equal(P.comandoQueNoCorre('cmd //c exit 0', bash), null);
   assert.equal(P.comandoQueNoCorre('npm test', bash), null);
   assert.equal(P.comandoQueNoCorre('node scripts/cmd /x', bash), null, 'cmd en el medio de otra palabra no cuenta');
-  assert.match(P.comandoQueNoCorre('cmd //c exit 0', cmd), /`cmd \/\/c` es de Git Bash: en cmd\.exe no corre nada y saldría verde/);
+  assert.match(P.comandoQueNoCorre('cmd //c exit 0', cmd), /`cmd \/\/c` es de Git Bash: en cmd\.exe no corre nada y daría que pasó/);
   assert.match(P.comandoQueNoCorre('cmd.exe //c npm test', true, 'win32'), /es de Git Bash/);
   assert.equal(P.comandoQueNoCorre('cmd /c exit 0', cmd), null);
   assert.equal(P.comandoQueNoCorre('cmd //c exit 0', true, 'linux'), null, 'en /bin/sh no hay cmd: sale 127 solo');
   // correrConPlazo no lo corre: no-corrio con el motivo
-  assert.deepEqual(P.correrConPlazo('cmd //c exit 0', { cwd: TMP, plazoMs: 20000, shell: cmd }), { estado: 'no-corrio', como: '`cmd //c` es de Git Bash: en cmd.exe no corre nada y saldría verde' });
+  assert.deepEqual(P.correrConPlazo('cmd //c exit 0', { cwd: TMP, plazoMs: 20000, shell: cmd }), { estado: 'no-corrio', como: '`cmd //c` es de Git Bash: en cmd.exe no corre nada y daría que pasó' });
   assert.equal(P.correrConPlazo('cmd /c exit 0', { cwd: TMP, plazoMs: 20000, shell: bash }).estado, 'no-corrio');
 });
 
@@ -117,4 +117,41 @@ test('crit. 6: en win32 con Git, el gate corre en Git Bash: `cmd //c exit 3` sal
   // con && y comillas, como lo escribe la consola del director
   assert.equal(P.correrConPlazo('true && echo "a b" > salio.txt', { cwd: TMP, plazoMs: 30000 }).estado, 'verde');
   assert.equal(fs.readFileSync(path.join(TMP, 'salio.txt'), 'utf8').trim(), 'a b');
+});
+
+// ---------------------------------------------------------------- B5 (SPEC-paquete-8d): el turno de la suite
+
+test('B5 conTurno: dos a la vez → el segundo espera y entra; un candado huérfano se toma; la espera tiene tope', () => {
+  const os = require('os');
+  const P = require('./proceso.cjs');
+  const { spawn } = require('child_process');
+  const dir = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'kit-turno-')), 'turno');
+  // 1. otro proceso tiene el turno 1,5 s
+  const marca = path.join(path.dirname(dir), 'el-otro-entro');
+  const otro = spawn(process.execPath, ['-e', `const P=require(${JSON.stringify(path.join(__dirname, 'proceso.cjs'))});P.conTurno('el otro',()=>{require('fs').writeFileSync(${JSON.stringify(marca)},'1');Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,1500);},{dir:${JSON.stringify(dir)}});`], { stdio: 'ignore' });
+  const t0 = Date.now();
+  while (!fs.existsSync(marca) && Date.now() - t0 < 10000) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20);
+  assert.ok(fs.existsSync(marca), 'el otro no arrancó');
+  const dichos = [];
+  const t1 = Date.now();
+  const r = P.conTurno('yo', () => 'corrí', { dir, cadaMs: 50, salida: (s) => dichos.push(s) });
+  assert.equal(r, 'corrí');
+  assert.ok(Date.now() - t1 >= 800, 'tenía que esperar al otro');
+  assert.match(dichos.join(''), /espero que termine el otro/);
+  assert.ok(!fs.existsSync(dir), 'el turno se suelta al terminar');
+  otro.kill();
+  // 2. un candado de un proceso que ya no existe se toma en el acto
+  fs.mkdirSync(dir);
+  fs.writeFileSync(path.join(dir, 'quien.json'), JSON.stringify({ quien: 'muerto', pid: 999999, desde: new Date().toISOString() }));
+  const t2 = Date.now();
+  assert.equal(P.conTurno('yo', () => 1, { dir, cadaMs: 50, vivo: () => false }), 1);
+  assert.ok(Date.now() - t2 < 1000);
+  // 3. uno vivo que no suelta: a la espera máxima sigue igual, con el aviso
+  fs.mkdirSync(dir);
+  fs.writeFileSync(path.join(dir, 'quien.json'), JSON.stringify({ quien: 'colgado', pid: process.pid + 1, desde: new Date().toISOString() }));
+  const ds = [];
+  assert.equal(P.conTurno('yo', () => 2, { dir, cadaMs: 20, esperaMaxMs: 200, vivo: () => true, salida: (s) => ds.push(s) }), 2);
+  assert.match(ds.join(''), /sigo igual \(nunca me cuelgo\)/);
+  assert.ok(fs.existsSync(dir), 'el de otro no se borra');
+  fs.rmSync(path.dirname(dir), { recursive: true, force: true });
 });

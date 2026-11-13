@@ -2,7 +2,8 @@
 // espera.cjs — la lista ÚNICA de lo que espera al dueño (SPEC-paquete-8d B1, tracker 47, 24, 21). La leen `/estado` ("Te necesito")
 // y el parte de la noche: antes eran cuatro listas y el dueño veía una.
 //   teEspera(raiz[, { ahora }]) → [{ texto, fuente, desde, tipo }], sin repetidos (el mismo texto en dos fuentes sale una vez).
-// Las cinco fuentes, en este orden: los cambios de freno `propuesto` (clase 3-barrera: piden el clic del dueño) y las fusiones del
+// Las fuentes, en este orden: los cambios de freno `propuesto` (clase 3-barrera: piden el clic del dueño), lo que dejó publicar
+// esperando (kit-publicacion.json del git común: la autorización de esta PC, o la publicación trabada) y las fusiones del
 // actualizador que esperan (.claude/fusiones/*.md) · la sección "Te espera" de cada ficha activa (Estado: EN OBRA o PAUSADO) · la
 // del handoff · los `espera hasta:` vencidos del TODO · la sección "Te necesito" del último parte de la noche.
 // tipo: `clic` (aprobar un cambio: lo hace el dueño con un clic) · `decisión` (todo lo demás). desde: AAAA-MM-DD o null.
@@ -193,11 +194,26 @@ function deParte(raiz) {
   return bullets(seccion(t, /^te necesito/i)).map((x) => ({ texto: x, fuente: `el parte de la noche (${mejor.x})`, desde: mejor.fecha, tipo: /firm|clic/i.test(x) ? 'clic' : 'decisión' }));
 }
 
+// Lo que dejó `noche.cjs publicar` esperando al dueño (<git común>/kit-publicacion.json, campo teEspera): falta su autorización
+// en esta PC, cambió cómo se publica, o la publicación quedó trabada.
+function dePublicacion(raiz) {
+  const comun = require('./frenos-log.cjs').gitComun(raiz);
+  if (!comun) return [];
+  let j = null;
+  try {
+    j = JSON.parse(fs.readFileSync(path.join(comun, 'kit-publicacion.json'), 'utf8'));
+  } catch (e) {
+    return [];
+  }
+  if (!j || typeof j.teEspera !== 'string' || !j.teEspera.trim()) return [];
+  return [{ texto: j.teEspera.trim(), fuente: 'publicar', desde: typeof j.cuando === 'string' ? j.cuando.slice(0, 10) : null, tipo: 'clic' }];
+}
+
 // ---------------------------------------------------------------- la lista
 
 function teEspera(raiz, opciones = {}) {
   const ahora = opciones.ahora instanceof Date ? opciones.ahora : new Date();
-  const fuentes = [deCambios, deFusiones, deFichas, deHandoff, (r) => deTodo(r, diaDe(ahora)), deParte];
+  const fuentes = [deCambios, dePublicacion, deFusiones, deFichas, deHandoff, (r) => deTodo(r, diaDe(ahora)), deParte];
   const out = [];
   const vistas = new Set();
   for (const f of fuentes) {

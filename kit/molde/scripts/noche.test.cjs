@@ -140,7 +140,7 @@ test('me-voy desde el director: escribe .kit-noche e imprime el checklist (encar
   const sha = g(p.obr, 'rev-parse', 'HEAD').slice(0, 7);
   assert.match(r.lineas[0], /^noche: \.kit-noche escrita en el worktree del director de nz \(desde .+, hasta 07:30\): el director y sus obreros quedan nocturnos hasta "volvi"$/);
   assert.equal(r.lineas[1], `encargo 01 · modulo/nz--01@${sha} · ${r.lineas[1].match(/· (hace [^:]+): /)[1]}: sub-paso 1`);
-  assert.equal(r.lineas[2], 'encargo 02 · sin rama: el obrero no arrancó · ⚠️ Apertura: Guido — de noche para (no lo abre el director)');
+  assert.equal(r.lineas[2], 'encargo 02 · sin rama: el obrero no arrancó · ⚠️ Apertura: dueño — de noche para (no lo abre el director)');
   assert.ok(!r.out.includes('encargo 03'), 'el 03 ya cerró (su evidencia está en modulo/nz)');
   assert.equal(r.lineas[3], 'red: origin responde');
   assert.equal(r.lineas[4], 'vence: VPN, credenciales y dispositivos no los ve el script: miralos vos (los encargos abiertos usan: suite, navegador)');
@@ -316,4 +316,418 @@ test('RF-fix 3: me-voy saca la foto de nuevo — lo que pasó de día no despier
 test('RF-fix 11: el USO dice que --hasta es informativo y que la noche termina con volvi; el despertador nombra --modulo', () => {
   assert.match(N.USO, /--hasta es informativo: la noche termina con volvi/);
   assert.match(N.USO, /despertador \[--modulo <x>\] \[--cada <seg>\] \[--una-vez\]/);
+});
+
+// ================================================================ B3 (SPEC-paquete-8d): la noche termina sola
+
+const PUB = require('../hooks/lib/publicar.cjs');
+const ESP = require('../hooks/lib/espera.cjs');
+const RE_NADA_PARA_EL_DUENO = [/@[0-9a-f]{7}/, /\b[0-9a-f]{40}\b/, /node \.claude/, /\b(rojo|roja|verde)\b/i, /`[^`]+`/];
+
+// Los tres scripts de mentira: publicar deja una marca y cuenta; humo pasa o falla según un archivo; volver deja otra marca.
+// Publicar imprime un "secreto" para probar que la salida del comando no se ve.
+const SCRIPTS_PUB = {
+  'scripts/publicar.cjs': "const fs=require('fs');const f=process.argv[2];if(fs.existsSync(f+'-falla'))process.exit(1);const n=fs.existsSync(f)?Number(fs.readFileSync(f,'utf8')):0;fs.writeFileSync(f,String(n+1));console.log('CLAVE-SECRETA-DE-PRUEBA');\n",
+  'scripts/humo.cjs': "process.exit(require('fs').existsSync(process.argv[2])?1:0);\n",
+  'scripts/volver.cjs': "require('fs').writeFileSync(process.argv[2],'volvi');\n",
+  'scripts/test.cjs': "process.exit(require('fs').existsSync(process.argv[2])?1:0);\n",
+};
+const FICHA_PUB = (o) => {
+  let t = '---\nkit: 3.0.0-rc.6\nnivel: estandar\nvars:\n  proyecto: px\n';
+  if (o.test) t += `  comando-test: ${JSON.stringify(o.test)}\n`;
+  if (o.publicar) t += `autorizado:\n  publicar: ${o.publicar}\n`;
+  return `${t}---\n`;
+};
+// Un proyecto en main con remoto bare, el módulo x integrado (el merge `integrar: módulo x`), la ficha con autorizado.publicar y
+// la PC autorizada (un home de mentira con su kit-pc.md). `m` es la carpeta de las marcas, fuera del repo.
+function conPublicar(o = {}) {
+  const bare = carpeta('remoto');
+  g(bare, 'init', '-q', '--bare', '-b', 'main');
+  const P = carpeta('p');
+  const m = carpeta('marcas');
+  const mk = (n) => path.join(m, n).split('\\').join('/');
+  g(P, 'init', '-q', '-b', 'main');
+  g(P, 'config', 'core.autocrlf', 'false');
+  const publicar = o.publicar !== undefined ? o.publicar : `{comando: "node scripts/publicar.cjs ${mk('publicado')}", humo: "node scripts/humo.cjs ${mk('humo-falla')}", volver: "node scripts/volver.cjs ${mk('volvio')}"}`;
+  const base = { '.gitignore': SNIPPET, 'a.txt': 'a\n', ...SCRIPTS_PUB, 'docs/SESSION_HANDOFF.md': '# Handoff\n\n## Te espera\n\n- nada\n' };
+  base['.claude/kit.md'] = FICHA_PUB({ publicar, test: `node scripts/test.cjs ${mk('test-falla')}` });
+  commit(P, base, 'inicio');
+  g(P, 'remote', 'add', 'origin', bare);
+  g(P, 'push', '-q', '-u', 'origin', 'main');
+  g(P, 'switch', '-q', '-c', 'modulo/x');
+  const mod = { 'src/x.js': '1\n' };
+  mod['docs/modulos/x/bitacora/2026-11-02-encargo-01.md'] = '# Encargo 01 · x · el primero\n';
+  mod['docs/modulos/x/bitacora/2026-11-02-evidencia-01.md'] = 'listo\n';
+  commit(P, mod, 'el módulo');
+  g(P, 'push', '-q', '-u', 'origin', 'modulo/x');
+  g(P, 'switch', '-q', 'main');
+  g(P, 'merge', '-q', '--no-ff', '-m', 'integrar: módulo x', 'modulo/x');
+  g(P, 'push', '-q', 'origin', 'main');
+  const home = carpeta('home');
+  const F = require('../hooks/lib/ficha.cjs');
+  const datos = F.leerCabecera(FICHA_PUB({ publicar })).datos.autorizado.publicar;
+  const huella = o.huella || (typeof datos === 'object' ? PUB.huella(P, datos, 'refs/remotes/origin/main') : '000000000000');
+  const origin = o.origin !== undefined ? o.origin : PUB.normalizarOrigin(bare);
+  if (origin !== null) escribir(home, '.claude/kit-pc.md', `---\nentorno: nativo\npublica:\n  - {origin: "${origin}", huella: ${huella}}\n---\n`);
+  return { bare, P, m, home, mk, huella };
+}
+const pub = (p, args = [], o = {}) => {
+  const out = [];
+  const codigo = N.main(['publicar', 'x', ...args], { cwd: o.cwd || p.P, home: p.home, env: o.env || {}, salida: (s) => out.push(s), error: (s) => out.push(s) });
+  return { codigo, out: out.join('') };
+};
+const resultado = (p) => JSON.parse(fs.readFileSync(path.join(p.P, '.git', N.PUBLICACION), 'utf8'));
+const veces = (p) => (fs.existsSync(path.join(p.m, 'publicado')) ? Number(fs.readFileSync(path.join(p.m, 'publicado'), 'utf8')) : 0);
+
+test('B3 el contrato (C2.2): el origin normalizado y la huella; el mismo ejemplo lo copia la C', () => {
+  for (const u of ['git@github.com:Duenio/Repo.git', 'https://github.com/Duenio/Repo', 'https://GitHub.com/Duenio/Repo.git/', 'ssh://git@github.com/Duenio/Repo.git']) {
+    assert.equal(PUB.normalizarOrigin(u), 'github.com/Duenio/Repo', u);
+  }
+  const p = { comando: 'npm --prefix app run deploy', humo: 'node scripts/humo.cjs --rapido', volver: 'node scripts/humo.cjs' };
+  assert.deepEqual(PUB.archivosNombrados(p), ['app/package.json', 'scripts/humo.cjs']);
+  const archivos = { 'app/package.json': '{"scripts":{"deploy":"x"}}\r\n', 'scripts/humo.cjs': 'h\n' };
+  const t = PUB.textoHuella(p, (r) => archivos[r]);
+  const F = require('../hooks/lib/ficha.cjs');
+  const esperado = ['comando=npm --prefix app run deploy', 'humo=node scripts/humo.cjs --rapido', 'volver=node scripts/humo.cjs', `app/package.json=${F.hash('{"scripts":{"deploy":"x"}}\n')}`, `scripts/humo.cjs=${F.hash('h\n')}`];
+  assert.equal(t, esperado.join('\n'));
+  assert.equal(PUB.textoHuella({ comando: 'al-subir', humo: 'node h.cjs' }, () => null), 'comando=al-subir\nhumo=node h.cjs\nvolver=\nh.cjs=(no está)');
+});
+
+test('B3 publicar: todo bien → 0, publica una vez, el humo pasa y queda el resultado; la salida del comando no se ve; el mismo commit dos veces no repite', () => {
+  const p = conPublicar();
+  const r = pub(p);
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(r.out, /publiqué y la prueba de humo pasó/);
+  assert.doesNotMatch(r.out, /CLAVE-SECRETA|kit-pub-/);
+  assert.equal(veces(p), 1);
+  const j = resultado(p);
+  assert.deepEqual(j.pasos, { pruebas: 'pasó', comando: 'pasó', humo: 'pasó', volver: 'no hay' });
+  assert.equal(j.commit, g(p.P, 'rev-parse', 'HEAD'));
+  assert.equal(pub(p).codigo, 0);
+  assert.equal(veces(p), 1, 'el mismo commit no se publica dos veces');
+});
+
+test('B3 publicar: sin la clave → 3 · sin el repo en publica → 3 y en "te necesito" · el script cambiado después de autorizar → 3 · sin kit-pc → 3', () => {
+  const sin = conPublicar({ publicar: 'no' });
+  const rs = pub(sin);
+  assert.equal(rs.codigo, 3, rs.out);
+  assert.match(rs.out, /este proyecto no publica solo/);
+  const otro = conPublicar({ origin: 'github.com/otro/repo', huella: '111111111111' });
+  const r = pub(otro);
+  assert.equal(r.codigo, 3, r.out);
+  assert.match(r.out, /falta tu autorización para publicar desde esta PC/);
+  assert.ok(ESP.teEspera(otro.P).some((i) => /falta tu autorización/.test(i.texto) && i.tipo === 'clic'));
+  assert.equal(veces(otro), 0);
+  // el script de publicar cambia después de autorizar (lo cambia un módulo integrado)
+  const c = conPublicar();
+  g(c.P, 'switch', '-q', 'modulo/x');
+  commit(c.P, { 'scripts/publicar.cjs': `${SCRIPTS_PUB['scripts/publicar.cjs']}// y ahora migra la base\n` }, 'otro paso');
+  g(c.P, 'switch', '-q', 'main');
+  g(c.P, 'merge', '-q', '--no-ff', '-m', 'integrar: módulo x', 'modulo/x');
+  g(c.P, 'push', '-q', 'origin', 'main');
+  const rc = pub(c);
+  assert.equal(rc.codigo, 3, rc.out);
+  assert.match(rc.out, /cambió cómo se publica este proyecto: falta tu OK de nuevo/);
+  assert.equal(veces(c), 0);
+  const mudado = conPublicar({ origin: 'github.com/otro/repo' }); // la misma huella con otro origin: se mudó el remoto
+  assert.match(pub(mudado).out, /cambió el origin de este proyecto/);
+  const nada = conPublicar({ origin: null });
+  assert.equal(pub(nada).codigo, 3);
+});
+
+test('B3 publicar: el origin escrito de otra forma se reconoce; en un worktree, con rol de agente o con KIT_FONDO y --seguir → negado', () => {
+  const p = conPublicar();
+  const deFile = PUB.normalizarOrigin(`file:///${p.bare.split('\\').join('/')}`);
+  assert.equal(deFile, PUB.normalizarOrigin(p.bare));
+  escribir(p.home, '.claude/kit-pc.md', `---\npublica:\n  - {origin: "${deFile}", huella: ${p.huella}}\n---\n`);
+  assert.equal(pub(p).codigo, 0);
+  const q = conPublicar();
+  const wt = path.join(q.P, '.claude', 'worktrees', 'otro');
+  g(q.P, 'worktree', 'add', '-q', '-b', 'modulo/y', wt);
+  const w = pub(q, [], { cwd: wt });
+  assert.equal(w.codigo, 1);
+  assert.match(w.out, /no — esto corre en la carpeta principal/);
+  fs.writeFileSync(path.join(q.P, '.kit-rol'), 'obrero\n');
+  assert.match(pub(q).out, /no — esto no lo corre una sesión con rol obrero/);
+  fs.rmSync(path.join(q.P, '.kit-rol'));
+  const s = pub(q, ['--seguir'], { env: { KIT_FONDO: '1' } });
+  assert.equal(s.codigo, 1);
+  assert.match(s.out, /firma del dueño/);
+  assert.equal(veces(q), 0);
+});
+
+test('B3 publicar: un commit de código posterior a lo publicado → negado; las pruebas que fallan → 1 y el comando no corrió', () => {
+  const p = conPublicar();
+  assert.equal(pub(p).codigo, 0);
+  commit(p.P, { 'src/suelto.js': 'x\n' }, 'código directo en main');
+  g(p.P, 'push', '-q', 'origin', 'main');
+  const r = pub(p);
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, /entró algo que no es un módulo integrado ni papeles/);
+  assert.equal(veces(p), 1);
+  const t = conPublicar();
+  fs.writeFileSync(path.join(t.m, 'test-falla'), '1');
+  const rt = pub(t);
+  assert.equal(rt.codigo, 1, rt.out);
+  assert.match(rt.out, /las pruebas fallaron en la carpeta principal: no publiqué/);
+  assert.equal(veces(t), 0);
+});
+
+test('B3 publicar: el humo falla con volver → corre volver, sale 1 y la siguiente da 3 (trabada) hasta --seguir', () => {
+  const p = conPublicar();
+  fs.writeFileSync(path.join(p.m, 'humo-falla'), '1');
+  const r = pub(p);
+  assert.equal(r.codigo, 1, r.out);
+  assert.match(r.out, /la prueba de humo falló después de publicar \(se volvió atrás\)/);
+  assert.ok(fs.existsSync(path.join(p.m, 'volvio')));
+  assert.equal(resultado(p).trabado, true);
+  commit(p.P, { 'docs/SESSION_HANDOFF.md': '# Handoff\n\nal día\n' }, 'papeles');
+  g(p.P, 'push', '-q', 'origin', 'main');
+  const t = pub(p);
+  assert.equal(t.codigo, 3, t.out);
+  assert.match(t.out, /trabada/);
+  assert.ok(ESP.teEspera(p.P).some((i) => /decidí si sigue/.test(i.texto)));
+  fs.rmSync(path.join(p.m, 'humo-falla'));
+  const s = pub(p, ['--seguir']);
+  assert.equal(s.codigo, 0, s.out);
+  assert.equal(veces(p), 2);
+});
+
+test('B3 publicar: con al-subir corre solo el humo (ni pruebas ni comando, ni autorización de la PC)', () => {
+  const p = conPublicar({ publicar: '{comando: al-subir, humo: "node scripts/humo.cjs x"}', origin: null });
+  const r = pub(p);
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(r.out, /publica al subir/);
+  assert.deepEqual(resultado(p).pasos, { pruebas: 'no hay', comando: 'no hay', humo: 'pasó', volver: 'no hay' });
+});
+
+test('B3 subir: con código por subir no sube; con solo papeles sube; con origin adelantado trae y sube', () => {
+  const p = conPublicar();
+  const sub = () => {
+    const out = [];
+    return { codigo: N.main(['subir', 'x'], { cwd: p.P, salida: (s) => out.push(s), error: (s) => out.push(s) }), out: out.join('') };
+  };
+  assert.match(sub().out, /nada que subir/);
+  commit(p.P, { 'src/y.js': '1\n' }, 'código');
+  const r = sub();
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, /no son solo papeles/);
+  g(p.P, 'reset', '-q', '--hard', 'HEAD~1');
+  commit(p.P, { 'docs/CHANGELOG.md': '# c\n' }, 'papeles');
+  const otra = carpeta('otra');
+  g(otra, 'clone', '-q', p.bare, '.');
+  commit(otra, { 'docs/TODO.md': '# t\n' }, 'otra PC');
+  g(otra, 'push', '-q', 'origin', 'main');
+  const s = sub();
+  assert.equal(s.codigo, 0, s.out);
+  assert.match(s.out, /subí 1 commit\(s\) de papeles/);
+  assert.equal(g(p.bare, 'rev-parse', 'main'), g(p.P, 'rev-parse', 'HEAD'));
+});
+
+test('B3 cierre-empieza: con el candado tomado espera (y sale 4); con la carpeta en otra rama sale distinto de 0 sin tocar nada', () => {
+  const p = conPublicar();
+  const ce = () => {
+    const out = [];
+    return { codigo: N.main(['cierre-empieza', 'x'], { cwd: p.P, esperaCandadoMs: 300, salida: (s) => out.push(s), error: (s) => out.push(s) }), out: out.join('') };
+  };
+  const dir = path.join(p.P, '.git', N.CANDADO_CIERRE);
+  fs.mkdirSync(dir);
+  fs.writeFileSync(path.join(dir, 'quien.json'), JSON.stringify({ modulo: 'otro', desde: new Date().toISOString() }));
+  const t0 = Date.now();
+  const r = ce();
+  assert.equal(r.codigo, 4, r.out);
+  assert.ok(Date.now() - t0 >= 250);
+  assert.match(r.out, /espero que termine el cierre del módulo otro/);
+  fs.rmSync(dir, { recursive: true });
+  assert.equal(ce().codigo, 0);
+  fs.rmSync(dir, { recursive: true });
+  g(p.P, 'switch', '-q', 'modulo/x');
+  const antes = g(p.P, 'status', '--porcelain');
+  const o = ce();
+  assert.notEqual(o.codigo, 0);
+  assert.match(o.out, /no toco nada/);
+  assert.equal(g(p.P, 'status', '--porcelain'), antes);
+});
+
+test('B3 parte: las cuatro secciones, sin comandos, SHAs ni rojo/verde; suelta el candado', () => {
+  const p = conPublicar();
+  assert.equal(pub(p).codigo, 0);
+  fs.mkdirSync(path.join(p.P, '.git', N.CANDADO_CIERRE));
+  const out = [];
+  const c = N.main(['parte', 'x', '--no-pude', 'algo que no se pudo'], { cwd: p.P, salida: (s) => out.push(s), error: (s) => out.push(s), ahora: new Date() });
+  assert.equal(c, 0, out.join(''));
+  const t = out.join('');
+  const ls = t.split('\n');
+  const k = ['## Qué quedó', '## Te necesito', '## Qué se hizo', '## Lo que no pude'].map((s) => ls.indexOf(s));
+  assert.ok(k.every((i, j) => i >= 0 && (j === 0 || i > k[j - 1])), t);
+  assert.match(t, /- Integrado: sí/);
+  assert.match(t, /- Publicado: sí/);
+  assert.match(t, /- La prueba de humo: pasó/);
+  assert.match(t, /- algo que no se pudo/);
+  const cuerpo = t.split('(el parte quedó en')[0];
+  for (const re of RE_NADA_PARA_EL_DUENO) assert.doesNotMatch(cuerpo, re);
+  assert.ok(!fs.existsSync(path.join(p.P, '.git', N.CANDADO_CIERRE)), 'el candado se suelta');
+});
+
+test('B3 cierre: sin integrar se niega; la línea trae dontAsk, KIT_FONDO=1, --name y la carpeta principal; la lista no trae push ni publicar suelto ni Edit fuera de papeles; una allow de más va a --disallowedTools', () => {
+  const p = conPublicar();
+  const ci = (cwd, x = 'x') => {
+    const out = [];
+    return { codigo: N.main(['cierre', x], { cwd, home: p.home, claudeEnPath: true, salida: (s) => out.push(s), error: (s) => out.push(s) }), out: out.join('') };
+  };
+  g(p.P, 'branch', 'modulo/sin', 'main');
+  g(p.P, 'switch', '-q', 'modulo/sin');
+  commit(p.P, { 'src/z.js': '1\n' }, 'sin integrar');
+  g(p.P, 'switch', '-q', 'main');
+  const no = ci(p.P, 'sin');
+  assert.equal(no.codigo, 1);
+  assert.match(no.out, /todavía no está en main: primero integrar/);
+  escribir(p.P, '.claude/settings.local.json', JSON.stringify({ permissions: { allow: ['Bash(npm run deploy:*)', 'Bash(git status:*)', 'Bash(node .claude/scripts/cambios.cjs:*)'] } }));
+  const r = ci(p.P);
+  assert.equal(r.codigo, 0, r.out);
+  const linea = r.out.split('\n').find((l) => l.startsWith('cierre de fondo: '));
+  assert.ok(linea, r.out);
+  assert.match(linea, /--permission-mode dontAsk/);
+  assert.match(linea, /KIT_FONDO=1 /);
+  assert.match(linea, /--name cierre-x/);
+  assert.ok(linea.includes(`cd "${p.P.split('\\').join('/')}"`), linea);
+  // rt B 11: lo negado va en un settings aparte (sin comillas que rompan la línea)
+  assert.doesNotMatch(linea, /--disallowedTools/);
+  assert.match(linea, /--settings "[^"]+kit-cierre-settings\.json"/);
+  assert.match(linea, /KIT_CIERRE_ID=[0-9a-f]{12} /);
+  const negado = JSON.parse(fs.readFileSync(path.join(p.P, '.git', N.SETTINGS_CIERRE), 'utf8')).permissions.deny.map((r) => `"${r}"`).join(' ');
+  const lista = linea.split(' --allowedTools ')[1];
+  assert.doesNotMatch(lista, /git fetch/, 'rt B 2: git fetch fuera (el pull trae)');
+  assert.doesNotMatch(lista, /git push/);
+  assert.doesNotMatch(lista, /scripts\/publicar|npm run deploy/);
+  for (const e of lista.match(/(Edit|Write)\([^)]*\)/g)) assert.match(e, /^(Edit|Write)\(\.\/docs\/\*\*\)$/);
+  assert.match(negado, /"Bash\(npm run deploy:\*\)"/, 'la allow de más del local');
+  assert.doesNotMatch(negado, /"Bash\(git status:\*\)"/, 'la que ya está en la lista, no');
+  assert.doesNotMatch(negado, /"Bash\(node \.claude\/scripts\/cambios\.cjs:\*\)"/, 'la ancha que cubre verificar no se niega (apagaría la lista)');
+  assert.match(negado, /"Bash\(node \.claude\/scripts\/cambios\.cjs aprobar:\*\)"/, 'pero aprobar sí, siempre');
+  assert.match(negado, /"Bash\(git push:\*\)"/);
+  for (const c of ['rechazar', 'anotar-sha', 'subio-al-kit']) assert.ok(negado.includes(`"Bash(node .claude/scripts/cambios.cjs ${c}:*)"`), c);
+  // rt B 1: una allow ancha que no es del kit (Bash pelado, git entero, Edit sin ruta) frena el cierre; la forma con espacio es la misma
+  for (const ancha of ['Bash', 'Bash(git:*)', 'Bash(git *)', 'Edit']) {
+    escribir(p.P, '.claude/settings.local.json', JSON.stringify({ permissions: { allow: [ancha] } }));
+    const a = ci(p.P);
+    assert.equal(a.codigo, 1, ancha);
+    assert.match(a.out, /hay un permiso ancho/, ancha);
+  }
+  // una allow con la forma de espacio que es la misma de la lista no se niega (si no, apagaría el commit de papeles)
+  escribir(p.P, '.claude/settings.local.json', JSON.stringify({ permissions: { allow: ['Bash(git commit *)', 'Edit(docs/**)', "Bash(cmd //c 'C:\\x\\y.bat' *)"] } }));
+  const e = ci(p.P);
+  assert.equal(e.codigo, 0, e.out);
+  const deny2 = JSON.parse(fs.readFileSync(path.join(p.P, '.git', N.SETTINGS_CIERRE), 'utf8')).permissions.deny;
+  assert.ok(!deny2.includes('Bash(git commit *)') && !deny2.includes('Edit(docs/**)'), JSON.stringify(deny2));
+  assert.ok(deny2.includes("Bash(cmd //c 'C:\\x\\y.bat' *)"), 'la de comillas y barras va al settings, sin romper la línea');
+  fs.rmSync(path.join(p.P, '.claude', 'settings.local.json'));
+  const wt = path.join(p.P, '.claude', 'worktrees', 'modulo--x');
+  g(p.P, 'worktree', 'add', '-q', wt, 'modulo/x');
+  assert.ok(ci(wt).out.includes(`cd "${p.P.split('\\').join('/')}"`), 'desde el worktree del director, la carpeta principal');
+});
+
+test('B3 cubre: la allow ancha cubre al ítem; la de otra herramienta o más angosta, no', () => {
+  assert.equal(N.cubre('Bash(git:*)', 'Bash(git status:*)'), true);
+  assert.equal(N.cubre('Bash(git status:*)', 'Bash(git status:*)'), true);
+  assert.equal(N.cubre('Read', 'Read(./**)'), true);
+  assert.equal(N.cubre('Bash(git push:*)', 'Bash(git status:*)'), false);
+  assert.equal(N.cubre('Edit(./src/**)', 'Edit(./docs/**)'), false);
+  assert.equal(N.cubre('Bash(npm run deploy)', 'Bash(git log:*)'), false);
+  assert.equal(N.cubre('Bash(git *)', 'Bash(git status:*)'), true);
+  assert.equal(N.cubre('Edit(docs/**)', 'Edit(./docs/**)'), true);
+  assert.equal(N.cubre('Bash(git commit:*)', 'Bash(git commit -m x)'), true);
+});
+
+// ---- lo que pidió el red team de B3 (rt B 3 a 12)
+
+const pubsEnTmp = () => fs.readdirSync(os.tmpdir()).filter((n) => n.startsWith('kit-pub-')).length;
+
+test('rt B 3: un archivo que git no sigue fuera de los papeles frena publicar; en los papeles, no', () => {
+  const p = conPublicar();
+  escribir(p.P, 'app/admin/page.tsx', 'x\n');
+  const r = pub(p);
+  assert.equal(r.codigo, 1, r.out);
+  assert.match(r.out, /archivos que git no sigue fuera de los papeles/);
+  assert.equal(veces(p), 0);
+  fs.rmSync(path.join(p.P, 'app'), { recursive: true });
+  escribir(p.P, 'docs/nota-suelta.md', 'x\n');
+  assert.equal(pub(p).codigo, 0);
+});
+
+test('rt B 4 y 5: la salida del comando no queda en el temporal; un comando que falla deja trabado; una publicación a medias da 3', () => {
+  const antes = pubsEnTmp();
+  const p = conPublicar();
+  assert.equal(pub(p).codigo, 0);
+  assert.equal(pubsEnTmp(), antes, 'el archivo de la salida se borra');
+  // el comando falla: queda trabado
+  const q = conPublicar();
+  fs.writeFileSync(path.join(q.m, 'publicado-falla'), '1');
+  const r = pub(q);
+  assert.equal(r.codigo, 1, r.out);
+  assert.match(r.out, /el comando de publicar falló .*queda trabado/);
+  assert.equal(resultado(q).trabado, true);
+  // a medias: la marca "en curso" quedó de una corrida cortada
+  const m = conPublicar();
+  fs.writeFileSync(path.join(m.P, '.git', N.PUBLICACION), JSON.stringify({ enCurso: { commit: 'x' } }));
+  const c = pub(m);
+  assert.equal(c.codigo, 3, c.out);
+  assert.match(c.out, /quedó a medias/);
+  assert.ok(ESP.teEspera(m.P).some((i) => /a medias/.test(i.texto)));
+  assert.equal(veces(m), 0);
+});
+
+test('rt B 8 y 9: el chequeo 4 deja su motivo en "te necesito" y --seguir lo destraba; sin el archivo con que se publica → 3', () => {
+  const p = conPublicar();
+  assert.equal(pub(p).codigo, 0);
+  commit(p.P, { 'src/suelto.js': 'x\n' }, 'código directo en main');
+  g(p.P, 'push', '-q', 'origin', 'main');
+  assert.equal(pub(p).codigo, 1);
+  assert.ok(ESP.teEspera(p.P).some((i) => /por fuera de un módulo/.test(i.texto)));
+  assert.equal(pub(p, ['--seguir']).codigo, 0);
+  assert.equal(veces(p), 2);
+  const sin = conPublicar({ publicar: '{comando: "node scripts/no-esta.cjs", humo: "node scripts/humo.cjs x"}', huella: '000000000000' });
+  const r = pub(sin);
+  assert.equal(r.codigo, 3, r.out);
+  assert.match(r.out, /no encuentro en main el archivo con que se publica \(scripts\/no-esta\.cjs\)/);
+});
+
+test('rt B 6 y 10: el parte filtra lo que viene del modelo (SHAs, comandos, rojo/verde) y no suelta un candado ajeno', () => {
+  const p = conPublicar();
+  const dir = path.join(p.P, '.git', N.CANDADO_CIERRE);
+  fs.mkdirSync(dir);
+  fs.writeFileSync(path.join(dir, 'quien.json'), JSON.stringify({ modulo: 'otro', id: 'abc', desde: new Date().toISOString() }));
+  const out = [];
+  N.main(['parte', 'x', '--no-pude', 'node .claude/scripts/estructura.cjs todo dio rojo en 3f2a1bc9'], { cwd: p.P, env: { KIT_CIERRE_ID: 'def' }, salida: (s) => out.push(s), error: (s) => out.push(s) });
+  const cuerpo = out.join('').split('(el parte quedó en')[0];
+  for (const re of RE_NADA_PARA_EL_DUENO) assert.doesNotMatch(cuerpo, re);
+  assert.match(cuerpo, /un paso del kit dio falló en/);
+  assert.ok(fs.existsSync(dir), 'el candado de otro cierre no se suelta');
+  assert.equal(N.paraElDueno('quedó en verde: `git push` @abc1234'), 'quedó en pasó: un paso del kit');
+});
+
+test('rt B 12: en un proyecto que publica al subir, con la publicación trabada, subir no sube', () => {
+  const p = conPublicar({ publicar: '{comando: al-subir, humo: "node scripts/humo.cjs x"}', origin: null });
+  fs.writeFileSync(path.join(p.P, '.git', N.PUBLICACION), JSON.stringify({ trabado: true }));
+  commit(p.P, { 'docs/CHANGELOG.md': '# c\n' }, 'papeles');
+  const out = [];
+  const c = N.main(['subir', 'x'], { cwd: p.P, salida: (s) => out.push(s), error: (s) => out.push(s) });
+  assert.equal(c, 1);
+  assert.match(out.join(''), /publica al subir y la última publicación quedó trabada/);
+});
+
+test('mutación de B3: la carpeta sucia y HEAD distinto de origin frenan ANTES de correr nada (ni las pruebas)', () => {
+  const p = conPublicar();
+  fs.writeFileSync(path.join(p.P, 'a.txt'), 'cambiado\n');
+  const r = pub(p);
+  assert.equal(r.codigo, 1, r.out);
+  assert.match(r.out, /cambios sin guardar/);
+  assert.equal(resultado(p).pasos, undefined, 'no corrió nada: ni las pruebas');
+  g(p.P, 'checkout', '--', 'a.txt');
+  // un commit de papeles que origin no tiene: no está igual a origin
+  commit(p.P, { 'docs/CHANGELOG.md': '# c\n' }, 'papeles sin subir');
+  const h = pub(p);
+  assert.equal(h.codigo, 1, h.out);
+  assert.match(h.out, /no está igual a origin\/main/);
+  assert.equal(veces(p), 0);
 });
