@@ -534,7 +534,7 @@ function barreras(ctx) {
   if (r.colgado) nv(`barreras no terminó en ${minutos(PLAZO_BARRERAS)}`);
   if (r.error) nv(`barreras no arrancó (${r.error})`);
   const lineas = r.salida.split(/\r?\n/).filter((l) => l.trim());
-  if (r.status === 0) return bien(corto(lineas[0] || 'verde', 200));
+  if (r.status === 0) return bien(corto(lineas[0] || 'pasó', 200));
   if (r.status === 2) nv(`barreras mal llamado: ${corto(lineas[0] || '', 160)}`);
   const frenos = lineas.filter((l) => l.startsWith('candado'));
   return mal(corto((frenos.length ? frenos : lineas).slice(0, 2).join(' | ') || `salió con ${r.status}`, 300));
@@ -682,7 +682,7 @@ function casos(ctx) {
     const espera = rojos.length ? hooksLibEspera(ctx.carpeta) : null;
     return mal(espera ? `${avisoHooksLib(espera.base)} · ${detalle}` : detalle);
   }
-  return bien(`${duenos.size} hook${duenos.size === 1 ? '' : 's'} cambiado${duenos.size === 1 ? '' : 's'}, ${corridas} archivo${corridas === 1 ? '' : 's'} de pruebas del molde nuevo en verde`);
+  return bien(`${duenos.size} hook${duenos.size === 1 ? '' : 's'} cambiado${duenos.size === 1 ? '' : 's'}, ${corridas} archivo${corridas === 1 ? '' : 's'} de pruebas del molde nuevo: pasaron`);
 }
 
 // ---------------------------------------------------------------- 8. pruebas
@@ -807,21 +807,21 @@ function pruebas(ctx) {
   const r = correr(cmd, [], { cwd: ctx.carpeta, plazo: ctx.plazoMs, shell, tmp: ctx.tmp });
   if (r.colgado) nv(`comando-test colgado: no terminó en ${minutos(ctx.plazoMs)}`);
   if (r.error) nv(`comando-test no arrancó (${r.error})`);
-  if (r.status === 0) return bien(`${cmd} en verde`);
+  if (r.status === 0) return bien(`${cmd} pasó`);
   // Rojo: ¿ya lo estaba en <base>?
   let antes = '';
   const cb = clonBase(ctx);
-  if (cb.error) antes = ' (no pude ver si ya estaba rojo antes)';
+  if (cb.error) antes = ' (no pude ver si ya fallaba antes)';
   else {
     const dir = cb.dir;
     const fallaBase = prepararEn(dir);
     const rb = fallaBase ? null : correr(cmd, [], { cwd: dir, plazo: ctx.plazoMs, shell, tmp: ctx.tmp });
-    if (fallaBase) antes = ` (en base ${fallaBase.motivo}: no se sabe si ya estaba rojo antes)`;
-    else if (rb.colgado) antes = ' (en base se colgó: no se sabe si ya estaba rojo antes)';
-    else if (!rb.error && rb.status !== 0) antes = ' — ya estaba rojo antes';
-    else if (rb.status === 0) antes = ' — en base estaba verde: lo rompió la actualización';
+    if (fallaBase) antes = ` (en base ${fallaBase.motivo}: no se sabe si ya fallaba antes)`;
+    else if (rb.colgado) antes = ' (en base se colgó: no se sabe si ya fallaba antes)';
+    else if (!rb.error && rb.status !== 0) antes = ' — ya fallaba antes';
+    else if (rb.status === 0) antes = ' — en base pasaba: lo rompió la actualización';
   }
-  return mal(`${cmd} en rojo (salida ${r.status})${antes}`);
+  return mal(`${cmd} falló (salida ${r.status})${antes}`);
 }
 
 // La línea 8 en ✅ ⚠ por un lock atrasado (p1 b) → el lock (con su carpeta), o null. La flota lo suma a "te espera:" (rt-5).

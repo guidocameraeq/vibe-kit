@@ -553,11 +553,11 @@ test('8 pruebas: comando-test rojo (verde en base) → ❌ "lo rompió"; rojo ya
   const p = armar({ cambio: (d) => escribir(path.join(d, 'prueba.cjs'), PRUEBA_ROJA) });
   const r = correr(p);
   nueveBienFormadas(r);
-  rojo(r, 'pruebas', /node prueba\.cjs en rojo \(salida 1\) — en base estaba verde/);
+  rojo(r, 'pruebas', /node prueba\.cjs falló \(salida 1\) — en base pasaba/);
   assert.equal(r.noVerificado, false);
   const q = armar({ antes: (d) => escribir(path.join(d, 'prueba.cjs'), PRUEBA_ROJA) });
   const rq = correr(q);
-  rojo(rq, 'pruebas', /en rojo \(salida 1\) — ya estaba rojo antes/);
+  rojo(rq, 'pruebas', /falló \(salida 1\) — ya fallaba antes/);
 });
 
 test('8 pruebas: comando-test colgado (con un nieto que hereda la salida) → NO VERIFICADO, ok=false, nueve líneas, sin esperar al nieto', () => {
@@ -603,10 +603,10 @@ test('8 pruebas (RF-5): con comando-setup corre antes, en HEAD y en base ("en ba
       escribir(path.join(d, 'prueba.cjs'), PRUEBA_ROJA);
     },
   });
-  rojo(correr(q), 'pruebas', /en rojo \(salida 1\) — en base estaba verde: lo rompió/);
+  rojo(correr(q), 'pruebas', /falló \(salida 1\) — en base pasaba: lo rompió/);
   // no: sin comando-setup, el mismo proyecto da rojo (no hay dep.txt)
   const s = armar({ antes: conDep, cambio: ficha(null) });
-  rojo(correr(s), 'pruebas', /node prueba\.cjs en rojo \(salida 1\) — ya estaba rojo antes/);
+  rojo(correr(s), 'pruebas', /node prueba\.cjs falló \(salida 1\) — ya fallaba antes/);
 });
 
 test('8 pruebas (RF-5): comando-setup que falla → NO VERIFICADO con su motivo (no rojo); con tubería → NO VERIFICADO', () => {
