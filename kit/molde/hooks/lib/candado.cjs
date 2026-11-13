@@ -530,7 +530,7 @@ function correr(raiz, opciones = {}) {
   const lineas = [...avisos, ...fallas.map(linea)];
   if (!frenan.length) {
     const nota = encendido ? '' : ' · candado apagado en la ficha (piezas.candado): solo barreras';
-    lineas.push(corrieron.length ? `candado: en verde (${corrieron.join(', ')})${alcance}${nota}` : `candado: no corrió nada de lo pedido${nota}`);
+    lineas.push(corrieron.length ? `candado: pasa (${corrieron.join(', ')})${alcance}${nota}` : `candado: no corrió nada de lo pedido${nota}`);
   }
   return { codigo: frenan.length ? 1 : 0, lineas, fallas, corrieron };
 }

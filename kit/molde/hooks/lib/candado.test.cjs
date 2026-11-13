@@ -469,7 +469,7 @@ test('correr (P4.6): indice y rango solo con ids = [barreras], no juntos; llegan
   }
   escribir(d, '.claude/hooks/x.cjs', 'otro\n'); // en el disco, sin git add
   const i = correr(d, { modo: 'ids', ids: ['barreras'], indice: true });
-  assert.deepEqual([i.codigo, i.lineas], [0, ['candado: en verde (barreras) · solo el índice']]);
+  assert.deepEqual([i.codigo, i.lineas], [0, ['candado: pasa (barreras) · solo el índice']]);
   assert.equal(correr(d, { modo: 'ids', ids: ['barreras'] }).codigo, 1);
   g(d, 'add', '.claude/hooks/x.cjs');
   assert.equal(correr(d, { modo: 'ids', ids: ['barreras'], indice: true }).codigo, 1);
@@ -533,7 +533,7 @@ test('correr: ficha vigente rota (rf-9) → no da 1 sola: avisa y corre con los 
   assert.equal(r.lineas[0], 'ficha rota: .claude/kit.md:3 — corré doctor (corro con los frenos de fábrica)');
   assert.deepEqual(r.corrieron, NUEVE, 'entero: el quitado de raiz no vale con la ficha rota');
   assert.equal(r.codigo, 0, r.lineas.join('\n'));
-  assert.match(r.lineas[r.lineas.length - 1], /^candado: en verde \(raiz, /);
+  assert.match(r.lineas[r.lineas.length - 1], /^candado: pasa \(raiz, /);
   assert.match(leerArchivo(d, '.claude/frenos.log'), / · candado:ficha · estructura · \.claude\/kit\.md\n$/);
   escribir(d, 'docs/suelto.md', 'x\n');
   const s = correr(d);
@@ -576,7 +576,7 @@ test('correr (P4.6): rango de una ref nueva (desde null) lo dice en la línea ve
   commit(d, { 'b.txt': 'b\n' });
   const r = correr(d, { modo: 'ids', ids: ['barreras'], rango: K.resolverRango(d, { desde: '0'.repeat(40), hasta: 'HEAD' }) });
   assert.equal(r.codigo, 0, r.lineas.join('\n'));
-  assert.match(r.lineas[r.lineas.length - 1], /^candado: en verde \(barreras\) · el rango nuevo \.\.[0-9a-f]{12}$/);
+  assert.match(r.lineas[r.lineas.length - 1], /^candado: pasa \(barreras\) · el rango nuevo \.\.[0-9a-f]{12}$/);
 });
 
 // ---------------------------------------------------------------- candado:portada (P3.8; r1-4, r1-10)

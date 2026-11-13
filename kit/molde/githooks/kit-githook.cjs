@@ -66,7 +66,7 @@ const RUTAS_BARRERA = Object.freeze([
   '.gitleaksignore',
   '.gitleaks.toml',
 ]);
-const SIN_ESCANER = '⚠️ sin escáner en esta PC: corré "preparame esta PC"';
+const SIN_ESCANER = '⚠️ esta PC no tiene el revisor de secretos (lo instala "preparame esta PC")';
 // h11: la rama de un obrero (contexto.pestana) y el corazón del texto (el mismo que el de git-seguro push-otra-rama).
 const RE_RAMA_OBRERO = /^modulo\/([^/]+?)--([^/]+)$/;
 const SOLO_EL_DIRECTOR = 'a la rama por defecto sube solo el director (worktree.cjs integrar) o vos desde la carpeta principal';
@@ -784,7 +784,7 @@ function principal(argv, opciones = {}) {
     let rojo = false;
     const sinEscaner = (por) => {
       anotar(repo.raiz, rol, cual, 'githook:sin-escaner', por, o);
-      if (ROLES_PASAN_SIN_ESCANER.includes(rol)) lineas.push(`${SIN_ESCANER} (${por}) — pasa por ser ${rol}, en rojo`);
+      if (ROLES_PASAN_SIN_ESCANER.includes(rol)) lineas.push(`pasa, con un aviso: ${SIN_ESCANER} (${por}; pasa por ser ${rol})`);
       else {
         rojo = true;
         lineas.push(`${SIN_ESCANER} (${por}) — con rol ${rol} no se ${cual === 'pre-push' ? 'pushea' : 'commitea'} sin escáner`);
@@ -889,10 +889,10 @@ function principal(argv, opciones = {}) {
         if (p.codigo !== 0) {
           rojo = true;
           lineas.push(`el hook previo ${p.ruta} salió con ${p.codigo === null ? 'nada (lo cortaron)' : p.codigo}`);
-        } else lineas.push(`el hook previo ${p.ruta}: en verde`);
+        } else lineas.push(`el hook previo ${p.ruta}: pasa`);
       }
     }
-    lineas.push(rojo ? `kit ${cual}: ROJO — no pasa` : `kit ${cual}: en verde`);
+    lineas.push(rojo ? `kit ${cual}: no pasa` : `kit ${cual}: pasa`);
     return { codigo: rojo ? 1 : 0, lineas };
   } finally {
     mudarLoDelPase(foto, repo.gitComun);

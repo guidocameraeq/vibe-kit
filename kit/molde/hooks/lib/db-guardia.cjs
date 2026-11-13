@@ -341,7 +341,7 @@ function juzgarSinRed({ raiz, entorno, plan, rol, banderas, ahora }) {
     return niega(
       'db:borra-de-noche',
       `esta migración borra datos reales (${que}) en ${cual} y sin una persona no se hace (${porque}): dejá PARADA en tu ` +
-        `bitácora ("borrar datos reales: ${que}") y pará. Lo decide Guido de día.`,
+        `bitácora ("borrar datos reales: ${que}") y pará. Lo decide el dueño de día.`,
     );
   }
   const bs = Array.isArray(banderas) ? banderas : [];

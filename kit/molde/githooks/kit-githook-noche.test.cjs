@@ -149,7 +149,7 @@ test('rolEfectivo: de día, el de .kit-rol; con .kit-noche (propia o del directo
 test('pre-commit sin escáner: el obrero de día pasa en rojo; tras el "me voy" del director, no se commitea (rol nocturno); al volver, pasa', () => {
   let r = commitear(P.obr, 'dia.txt');
   assert.equal(r.codigo, 0, r.err);
-  assert.match(r.err, /pasa por ser obrero, en rojo/);
+  assert.match(r.err, /pasa por ser obrero\)/);
   fs.writeFileSync(path.join(P.dir, '.kit-noche'), '');
   try {
     r = commitear(P.obr, 'noche.txt');

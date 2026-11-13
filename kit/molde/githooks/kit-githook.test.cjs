@@ -307,9 +307,9 @@ test('pre-commit verde: un archivo común pasa, gitleaks miró lo staged (dir . 
   const llamadas = path.join(TMP, `llamadas-${n++}.log`);
   const r = commitHook(d, { 'b.txt': 'b\n' }, { env: entorno('verde', { FAKE_GITLEAKS_LOG: llamadas }) });
   assert.equal(r.codigo, 0, r.err);
-  assert.match(r.err, /kit pre-commit: en verde/);
-  assert.match(r.err, /candado de origin\/main: candado: en verde \(barreras\)/);
-  assert.match(r.err, /candado del disco: candado: en verde \(barreras\)/);
+  assert.match(r.err, /kit pre-commit: pasa/);
+  assert.match(r.err, /candado de origin\/main: candado: pasa \(barreras\)/);
+  assert.match(r.err, /candado del disco: candado: pasa \(barreras\)/);
   const { args, vio } = JSON.parse(fs.readFileSync(llamadas, 'utf8').trim());
   assert.deepEqual(args.slice(0, 2), ['dir', '.']);
   assert.ok(['--redact', '--no-banner', '--config', '--gitleaks-ignore-path'].every((x) => args.includes(x)), JSON.stringify(args));
@@ -323,7 +323,7 @@ test('criterio 8: una clave de prueba → 1, con regla y archivo:línea, y ni la
   const r = commitHook(d, { 'x.txt': 'hola\n' }, { gitleaks: 'rojo' });
   assert.equal(r.codigo, 1);
   assert.match(r.err, /gitleaks: clave-de-prueba en x\.txt:1/, 'la línea 2 de lo que vio gitleaks es la 1 del archivo');
-  assert.match(r.err, /kit pre-commit: ROJO/);
+  assert.match(r.err, /kit pre-commit: no pasa/);
   assert.ok(!r.err.includes('VALOR-QUE-NO-SE-MUESTRA'), 'la salida de gitleaks no se muestra');
   assert.match(logLocal(d), / · humano · main · githook:gitleaks · pre-commit · x\.txt\n$/);
   assert.equal(log(d), '', 'un rojo tampoco toca el versionado (rf2-3)');
@@ -349,11 +349,11 @@ test('criterio 8: sin gitleaks, humano, director y obrero pasan en rojo con avis
     const antes = head(d);
     const logAntes = log(d);
     const r = commitHook(d, { [`s${i++}.txt`]: 's\n' }, { gitleaks: null });
-    assert.match(r.err, /⚠️ sin escáner en esta PC: corré "preparame esta PC" \(no está\)/, quien);
+    assert.match(r.err, /⚠️ esta PC no tiene el revisor de secretos \(lo instala "preparame esta PC"\) \(no está/, quien);
     const renglon = new RegExp(` · ${quien} · main · githook:sin-escaner · pre-commit · no está$`);
     if (kg.ROLES_PASAN_SIN_ESCANER.includes(quien)) {
       assert.equal(r.codigo, 0, `${quien}: ${r.err}`);
-      assert.match(r.err, new RegExp(`pasa por ser ${quien}, en rojo`));
+      assert.match(r.err, new RegExp(`pasa por ser ${quien}\\)`));
       assert.notEqual(head(d), antes);
       assert.match(logLocal(d).trim().split('\n').pop(), renglon);
       assert.equal(log(d), logAntes, 'un pase no toca el frenos.log versionado');
@@ -380,7 +380,7 @@ test('criterio 8: gitleaks colgado — plazo, un reintento y "sin escáner (colg
     const env = entorno('colgado', { FAKE_GITLEAKS_LOG: llamadas });
     const r = kg.principal(['pre-commit'], { cwd: d, env, plazoGitleaks: 1500 });
     assert.equal(fs.readFileSync(llamadas, 'utf8').trim().split('\n').length, 2, 'dos intentos');
-    assert.ok(r.lineas.some((l) => l.includes('sin escáner en esta PC') && l.includes('(colgado)')));
+    assert.ok(r.lineas.some((l) => l.includes('esta PC no tiene el revisor de secretos') && l.includes('(colgado')));
     assert.equal(r.codigo, rol === null ? 0 : 1, String(rol));
   }
   assert.match(logLocal(d), /githook:sin-escaner · pre-commit · colgado/);
@@ -420,7 +420,7 @@ test('criterio 8: el candado editado en el índice para dar verde → 1 (lo caza
   const r = commitHook(d, { '.claude/hooks/lib/barreras.cjs': BARRERAS_TRAMPA, '.claude/kit.md': QUITA_STASH });
   assert.equal(r.codigo, 1);
   assert.match(r.err, /candado de origin\/main: candado:barreras/);
-  assert.match(r.err, /candado del disco: candado: en verde \(barreras\)/, 'el del disco, editado, da verde');
+  assert.match(r.err, /candado del disco: candado: pasa \(barreras\)/, 'el del disco, editado, da verde');
 });
 
 test('criterio 8: el candado editado en la ref para dar verde → 1 (lo caza la versión del disco)', () => {
@@ -431,7 +431,7 @@ test('criterio 8: el candado editado en la ref para dar verde → 1 (lo caza la 
   // el disco: el candado real, ningún cambio al candado en el índice; HEAD queda atrás de la ref
   const r = commitHook(d, { '.claude/kit.md': QUITA_STASH });
   assert.equal(r.codigo, 1);
-  assert.match(r.err, /candado de origin\/main: candado: en verde \(barreras\)/);
+  assert.match(r.err, /candado de origin\/main: candado: pasa \(barreras\)/);
   assert.match(r.err, /candado del disco: candado:barreras/);
 });
 
@@ -454,10 +454,10 @@ test('la ref con ficha y sin candado → rojo; la ref sin ficha → solo el del 
 });
 
 test('la ref con un candado del orden 2 (no conoce --indice): corre sin él y lo dice; si sale 2 por otra cosa → rojo', () => {
-  const viejo = "const a = process.argv.slice(2);\nif (a.includes('--indice') || a.includes('--rango')) { process.stderr.write('Argumento desconocido: ' + a.find((x) => x.startsWith('--')) + '\\n'); process.exit(2); }\nconsole.log('candado: en verde (barreras)');\n";
+  const viejo = "const a = process.argv.slice(2);\nif (a.includes('--indice') || a.includes('--rango')) { process.stderr.write('Argumento desconocido: ' + a.find((x) => x.startsWith('--')) + '\\n'); process.exit(2); }\nconsole.log('candado: pasa (barreras)');\n";
   const roto = "process.stderr.write('otra cosa\\n'); process.exit(2);\n";
   for (const [script, esperado] of [
-    [viejo, /candado de origin\/main \(no conoce --indice: es del orden 2; corrió sin él\): candado: en verde \(barreras\)/],
+    [viejo, /candado de origin\/main \(no conoce --indice: es del orden 2; corrió sin él\): candado: pasa \(barreras\)/],
     [roto, /candado de origin\/main: salió con 2 — otra cosa/],
   ]) {
     const d = repo();
@@ -527,17 +527,17 @@ test('criterio 8 + rf3-1: pre-merge-commit sin candado (lo dice) y con gitleaks;
   let r = g(d, ['merge', '-q', '--no-edit', 'tema'], { env: entorno('rojo'), puede: true });
   assert.notEqual(r.codigo, 0);
   assert.match(r.err, /gitleaks: clave-de-prueba en x\.txt:1/);
-  assert.match(r.err, /kit pre-merge-commit: ROJO/);
+  assert.match(r.err, /kit pre-merge-commit: no pasa/);
   g(d, ['merge', '--abort']);
   r = g(d, ['merge', '-q', '--no-edit', 'tema'], { env: entorno('verde'), puede: true });
   assert.equal(r.codigo, 0, r.err);
   assert.match(r.err, /pre-merge-commit: el candado no corre acá \(git todavía no dice cuál es el otro padre del merge\) — el merge lo juzga el pre-push, contra cada padre/);
   assert.ok(!/candado(:| de| del)/.test(r.err), r.err);
-  assert.match(r.err, /kit pre-merge-commit: en verde/);
+  assert.match(r.err, /kit pre-merge-commit: pasa/);
   r = g(d, ['push', '-q', 'origin', 'main'], { env: entorno('verde'), puede: true });
   assert.notEqual(r.codigo, 0);
   assert.match(r.err, /candado de origin\/main: candado:barreras · el commit [0-9a-f]{12} toca frenos/);
-  assert.match(r.err, /kit pre-push: ROJO/);
+  assert.match(r.err, /kit pre-push: no pasa/);
 });
 
 test('rf3-1: el pre-push juzga el merge mismo contra cada padre — un merge "malvado" (el freno lo quita el merge) → rojo con el sha del merge', () => {
@@ -588,8 +588,8 @@ test('rf3-1: un git pull con merge que trae un cambio de barrera APROBADO en la 
   assert.equal(gt(d, 'rev-list', '--parents', '-n', '1', 'HEAD').split(' ').length, 3, 'es un merge');
   r = g(d, ['push', '-q', 'origin', 'main'], { env: entorno('verde'), puede: true });
   assert.equal(r.codigo, 0, r.err);
-  assert.match(r.err, /candado de origin\/main: candado: en verde \(barreras\) · el rango/);
-  assert.match(r.err, /candado del disco: candado: en verde \(barreras\) · el rango/);
+  assert.match(r.err, /candado de origin\/main: candado: pasa \(barreras\) · el rango/);
+  assert.match(r.err, /candado del disco: candado: pasa \(barreras\) · el rango/);
   assert.equal(gt(d, 'status', '--porcelain'), '');
 });
 
@@ -601,7 +601,7 @@ test('criterio 8: un commit con --no-verify no sube — pre-push lo caza (barrer
   commitArmado(d, { '.claude/kit.md': QUITA_STASH }, 'quita con --no-verify');
   const r = g(d, ['push', '-q', 'origin', 'main'], { env: entorno('verde', { FAKE_GITLEAKS_LOG: llamadas }), puede: true });
   assert.notEqual(r.codigo, 0);
-  assert.match(r.err, /kit pre-push: ROJO/);
+  assert.match(r.err, /kit pre-push: no pasa/);
   assert.match(r.err, /candado de origin\/main: candado:barreras · el commit [0-9a-f]{12} toca/);
   assert.match(r.err, /candado del disco: candado:barreras/);
   const { args, vio } = JSON.parse(fs.readFileSync(llamadas, 'utf8').trim());
@@ -619,7 +619,7 @@ test('pre-push: una clave en lo que sube → 1 con archivo:línea; lo limpio sub
   assert.ok(!r.err.includes('VALOR-QUE-NO-SE-MUESTRA'));
   r = g(d, ['push', '-q', 'origin', 'main'], { env: entorno('verde'), puede: true });
   assert.equal(r.codigo, 0, r.err);
-  assert.match(r.err, /candado de origin\/main: candado: en verde \(barreras\)/);
+  assert.match(r.err, /candado de origin\/main: candado: pasa \(barreras\)/);
   // ref nueva: limpia sube; con un freno quitado, no
   const llamadas = path.join(TMP, `nueva-${n++}.log`);
   g(d, ['checkout', '-q', '-b', 'nueva']);
@@ -655,7 +655,7 @@ test('pre-push (pendiente b de D3.2, rf2-3): el remoto adelantado → rojo "hac�
   assert.equal(r.codigo, 0, r.err);
   r = g(d, ['push', '-q', 'origin', 'main'], { env: entorno('verde'), puede: true });
   assert.equal(r.codigo, 0, r.err);
-  assert.match(r.err, /kit pre-push: en verde/);
+  assert.match(r.err, /kit pre-push: pasa/);
   assert.equal(gt(d, 'ls-remote', 'origin', 'main').split(/\s/)[0], head(d));
   assert.equal(gt(d, 'status', '--porcelain'), '');
 });
@@ -675,7 +675,7 @@ test('pre-push sin gitleaks: humano sube en rojo con aviso; nocturno → 1; borr
   commitArmado(d, { 'b.txt': 'b\n' });
   let r = g(d, ['push', '-q', 'origin', 'main'], { env: entorno(null), puede: true });
   assert.equal(r.codigo, 0, r.err);
-  assert.match(r.err, /sin escáner en esta PC.*pasa por ser humano, en rojo/);
+  assert.match(r.err, /esta PC no tiene el revisor de secretos.*pasa por ser humano\)/);
   commitArmado(d, { 'c.txt': 'c\n' });
   escribir(d, '.kit-rol', 'nocturno\n');
   // a modulo/* (lo único que sube un nocturno, h11): el freno que salta es el del escáner
@@ -696,7 +696,7 @@ test('criterio 8: el hook previo encadenado — kit.hooksPathPrevio (corre y su 
   assert.equal(r.codigo, 0, r.err);
   assert.equal(fs.readFileSync(marca, 'utf8'), 'previo-corrio\n');
   assert.match(r.err, /\(otros\/pre-commit\) salida del previo/);
-  assert.match(r.err, /el hook previo otros\/pre-commit: en verde/);
+  assert.match(r.err, /el hook previo otros\/pre-commit: pasa/);
   r = commitHook(d, { 'c.txt': 'c\n' }, { env: entorno('verde', { PREVIO_SALE: '7' }) });
   assert.equal(r.codigo, 1);
   assert.match(r.err, /el hook previo otros\/pre-commit salió con 7/);
@@ -832,7 +832,7 @@ test('rf3-2, rf3-3 y rf2-1: ni GITLEAKS_* ni NODE_* ni las GIT_CONFIG_* de un gi
   const extra = { FAKE_GITLEAKS_ENV: vio, GITLEAKS_CONFIG: 'x.toml', gitleaks_config_toml: '[x]', NODE_OPTIONS: '--no-warnings', Node_Path: 'z', GIT_CONFIG_COUNT: '1', GIT_CONFIG_KEY_0: 'core.attributesFile', GIT_CONFIG_VALUE_0: 'no-existe', GIT_CONFIG_PARAMETERS: "'diff.noprefix'='true'" };
   let r = commitHook(d, { 'b.txt': 'b\n' }, { env: entorno('verde', extra) });
   assert.equal(r.codigo, 0, r.err);
-  assert.match(r.err, /el hook previo otros\/pre-commit: en verde/);
+  assert.match(r.err, /el hook previo otros\/pre-commit: pasa/);
   r = g(d, ['push', '-q', 'origin', 'main'], { env: entorno('verde', extra), puede: true });
   assert.equal(r.codigo, 0, r.err);
   escribir(d, 'c.txt', 'c\n');
@@ -957,13 +957,13 @@ test('rf3-3: NODE_OPTIONS="--require x.cjs" con un process.exit(0) no apaga el h
     const r = commitHook(d, { '.claude/kit.md': QUITA_STASH }, { env: entorno('verde', extra) });
     assert.equal(r.codigo, 1, `${Object.keys(extra)}: ${r.err}`);
     assert.match(r.err, /candado de origin\/main: candado:barreras/);
-    assert.match(r.err, /kit pre-commit: ROJO/);
+    assert.match(r.err, /kit pre-commit: no pasa/);
   }
   g(d, ['commit', '-q', '--no-verify', '-m', 'quita']);
   for (const extra of variantes) {
     const r = g(d, ['push', '-q', 'origin', 'main'], { env: entorno('verde', extra), puede: true });
     assert.notEqual(r.codigo, 0);
-    assert.match(r.err, /kit pre-push: ROJO/);
+    assert.match(r.err, /kit pre-push: no pasa/);
   }
   // directo al runner (sin el sh): los dos candados corren sin el --require (si no, salen 0 sin decir nada: "en verde")
   g(d, ['reset', '-q', '--soft', 'origin/main']);
@@ -985,7 +985,7 @@ test('rf3-6 y rf2-3: sin gitleaks y con frenos.log versionado — commit, pull -
   g(otra, ['push', '-q', '--no-verify', 'origin', 'main']);
   let r = commitHook(d, { 'y.txt': 'y\n' }, { gitleaks: null });
   assert.equal(r.codigo, 0, r.err);
-  assert.match(r.err, /pasa por ser humano, en rojo/);
+  assert.match(r.err, /pasa por ser humano\)/);
   assert.equal(gt(d, 'status', '--porcelain'), '');
   r = g(d, ['pull', '-q', '--rebase', 'origin', 'main'], { env: entorno(null), puede: true });
   assert.equal(r.codigo, 0, r.err);
@@ -1206,13 +1206,13 @@ test('rf2-4: BASH_FUNC_env%% (o sed, command) con NODE_OPTIONS --require no apag
   for (const extra of variantes) {
     const r = commitHook(d, { '.claude/kit.md': QUITA_STASH }, { env: entorno('verde', extra) });
     assert.equal(r.codigo, 1, `${Object.keys(extra)}: ${r.err}`);
-    assert.match(r.err, /kit pre-commit: ROJO/);
+    assert.match(r.err, /kit pre-commit: no pasa/);
   }
   g(d, ['commit', '-q', '--no-verify', '-m', 'quita']);
   for (const extra of variantes) {
     const r = g(d, ['push', '-q', 'origin', 'main'], { env: entorno('verde', extra), puede: true });
     assert.notEqual(r.codigo, 0);
-    assert.match(r.err, /kit pre-push: ROJO/);
+    assert.match(r.err, /kit pre-push: no pasa/);
   }
 });
 
@@ -1257,14 +1257,14 @@ test('D6-6: actualizador con KIT_MOLDE — el commit que trae exactamente el mol
   const r = commitHook(d, TRAE_EL_MOLDE(), { env: conMolde() });
   assert.equal(r.codigo, 0, r.err);
   assert.match(r.err, /actualizador: los candados corren con el molde de KIT_MOLDE y el viejo de KIT_MOLDE_VIEJO/);
-  assert.match(r.err, /candado de origin\/main: candado: en verde \(barreras\)/);
-  assert.match(r.err, /candado del disco: candado: en verde \(barreras\)/);
+  assert.match(r.err, /candado de origin\/main: candado: pasa \(barreras\)/);
+  assert.match(r.err, /candado del disco: candado: pasa \(barreras\)/);
   assert.ok(!r.err.includes(moldes().nuevo) && !r.err.includes(moldes().viejo), 'sin los valores');
   const p = subir(d, conMolde());
   assert.equal(p.codigo, 0, p.err);
-  assert.match(p.err, /candado de origin\/main: candado: en verde \(barreras\) · el rango nuevo/);
-  assert.match(p.err, /candado del disco: candado: en verde \(barreras\) · el rango nuevo/);
-  assert.match(p.err, /kit pre-push: en verde/);
+  assert.match(p.err, /candado de origin\/main: candado: pasa \(barreras\) · el rango nuevo/);
+  assert.match(p.err, /candado del disco: candado: pasa \(barreras\) · el rango nuevo/);
+  assert.match(p.err, /kit pre-push: pasa/);
 });
 
 test('D6-6: el mismo commit sin KIT_MOLDE → rojo (pre-commit y pre-push); sin KIT_MOLDE_VIEJO, lo que el molde retira frena', () => {
@@ -1355,7 +1355,7 @@ test('D6-6: la ref con ficha y sin candado (un v2.4.2, como gama) — el actuali
   ponerRol(d, 'actualizador');
   let r = commitHook(d, TRAE_EL_MOLDE(), { env: conMolde() });
   assert.equal(r.codigo, 0, r.err);
-  assert.match(r.err, /candado del molde \(origin\/main tiene ficha y no tiene \.claude\/scripts\/estructura\.cjs: es de antes del candado\): candado: en verde \(barreras\)/);
+  assert.match(r.err, /candado del molde \(origin\/main tiene ficha y no tiene \.claude\/scripts\/estructura\.cjs: es de antes del candado\): candado: pasa \(barreras\)/);
   const molde = head(d);
   // un cambio que no es el molde: lo frena el del molde (y el del disco)
   r = commitHook(d, { '.claude/hooks/git-seguro.cjs': 'module.exports = {};\n' }, { env: conMolde() });
@@ -1367,7 +1367,7 @@ test('D6-6: la ref con ficha y sin candado (un v2.4.2, como gama) — el actuali
   r = commitHook(d, { '.claude/hooks/lib/barreras.cjs': BARRERAS_TRAMPA }, { env: conMolde() });
   assert.equal(r.codigo, 1, r.err);
   assert.match(r.err, /candado del molde \([^)]*\): candado:barreras/);
-  assert.match(r.err, /candado del disco: candado: en verde/);
+  assert.match(r.err, /candado del disco: candado: pasa/);
   g(d, ['reset', '-q', '--hard', 'HEAD']);
   // sin el rol, o sin KIT_MOLDE: como siempre, rojo "tiene ficha y no tiene"
   for (const [rol, env] of [[null, conMolde()], ['actualizador', entorno('verde')]]) {
@@ -1385,7 +1385,7 @@ test('D6-6: la ref con ficha y sin candado (un v2.4.2, como gama) — el actuali
   assert.match(p.err, /candado de origin\/main: tiene ficha y no tiene/);
   p = subir(d, conMolde());
   assert.equal(p.codigo, 0, p.err);
-  assert.match(p.err, /candado del molde \([^)]*\): candado: en verde \(barreras\) · el rango nuevo/);
+  assert.match(p.err, /candado del molde \([^)]*\): candado: pasa \(barreras\) · el rango nuevo/);
 });
 
 test('D6-6: la ref con ficha y sin candado, y un KIT_MOLDE sin el candado → rojo como siempre', () => {
@@ -1403,13 +1403,13 @@ test('D6-6: el candado de la ref que no conoce --molde-viejo, --molde o --indice
   const anota = path.join(TMP, `args-${n++}.log`);
   const viejo = (noConoce) =>
     `const fs = require('fs');\nconst a = process.argv.slice(2);\nfs.appendFileSync(${JSON.stringify(anota)}, JSON.stringify(a) + '\\n');\n` +
-    `const x = a.find((y) => ${JSON.stringify(noConoce)}.includes(y));\nif (x) { process.stderr.write('Argumento desconocido: ' + x + '\\n'); process.exit(2); }\nconsole.log('candado: en verde (barreras)');\n`;
+    `const x = a.find((y) => ${JSON.stringify(noConoce)}.includes(y));\nif (x) { process.stderr.write('Argumento desconocido: ' + x + '\\n'); process.exit(2); }\nconsole.log('candado: pasa (barreras)');\n`;
   const barra = (s) => s.replace(/\\/g, '/');
   const casos = [
-    [[], /candado de origin\/main: candado: en verde/, 1],
-    [['--molde-viejo'], /candado de origin\/main \(no conoce --molde-viejo: corrió sin él\): candado: en verde/, 2],
-    [['--indice', '--molde-viejo'], /candado de origin\/main \(no conoce --indice: es del orden 2; corrió sin él\) \(no conoce --molde-viejo: corrió sin él\): candado: en verde/, 3],
-    [['--molde', '--molde-viejo'], /candado de origin\/main \(no conoce --molde: corrió sin él\): candado: en verde/, 2],
+    [[], /candado de origin\/main: candado: pasa/, 1],
+    [['--molde-viejo'], /candado de origin\/main \(no conoce --molde-viejo: corrió sin él\): candado: pasa/, 2],
+    [['--indice', '--molde-viejo'], /candado de origin\/main \(no conoce --indice: es del orden 2; corrió sin él\) \(no conoce --molde-viejo: corrió sin él\): candado: pasa/, 3],
+    [['--molde', '--molde-viejo'], /candado de origin\/main \(no conoce --molde: corrió sin él\): candado: pasa/, 2],
   ];
   for (const [noConoce, esperado, corridas] of casos) {
     fs.rmSync(anota, { force: true });
@@ -1491,15 +1491,15 @@ test('u9 crit. 9 (a): la rama vieja mergea main con un conflicto en un archivo c
   const llamadas = path.join(TMP, `u9a-${n++}.log`);
   let r = g(d, ['commit', '-q', '--no-edit'], { env: entorno('verde', { FAKE_GITLEAKS_LOG: llamadas }), puede: true });
   assert.equal(r.codigo, 0, r.err);
-  assert.match(r.err, /candado de origin\/main: candado: en verde \(barreras\)/);
-  assert.match(r.err, /candado del disco: candado: en verde \(barreras\)/);
-  assert.match(r.err, /kit pre-commit: en verde/);
+  assert.match(r.err, /candado de origin\/main: candado: pasa \(barreras\)/);
+  assert.match(r.err, /candado del disco: candado: pasa \(barreras\)/);
+  assert.match(r.err, /kit pre-commit: pasa/);
   assert.deepEqual(loQueVio(llamadas), [{ 'a.txt': 'kit-githook\na de main y de la rama\n' }], 'solo lo que trae la resolución');
   assert.equal(gt(d, 'rev-list', '--parents', '-n', '1', 'HEAD').split(' ').length, 3, 'es un merge');
   const push = path.join(TMP, `u9a-push-${n++}.log`);
   r = g(d, ['push', '-q', 'origin', 'vieja'], { env: entorno('verde', { FAKE_GITLEAKS_LOG: push }), puede: true });
   assert.equal(r.codigo, 0, r.err);
-  assert.match(r.err, /kit pre-push: en verde/);
+  assert.match(r.err, /kit pre-push: pasa/);
   assert.deepEqual(loQueVio(push), [{ 'a.txt': 'kit-githook\na de main y de la rama\n' }], 'ni la adopción ni la clave vieja de main');
 });
 
@@ -1510,7 +1510,7 @@ test('u9 crit. 9 (d): el merge sin conflicto con --no-commit y commit --no-edit 
   const llamadas = path.join(TMP, `u9d-${n++}.log`);
   const r = g(d, ['commit', '-q', '--no-edit'], { env: entorno('verde', { FAKE_GITLEAKS_LOG: llamadas }), puede: true });
   assert.equal(r.codigo, 0, r.err);
-  assert.match(r.err, /kit pre-commit: en verde/);
+  assert.match(r.err, /kit pre-commit: pasa/);
   assert.deepEqual(loQueVio(llamadas), [], 'lo de cada lado vino igual de un padre: nada nuevo que escanear');
 });
 
@@ -1525,7 +1525,7 @@ test('u9: el rojo de gitleaks del pre-merge-commit dice que el merge quedó a me
   assert.match(r.err, /pre-merge-commit: el merge quedó a medias: git commit lo juzga contra los dos padres/);
   r = g(e, ['commit', '-q', '--no-edit'], { env: entorno('verde'), puede: true });
   assert.equal(r.codigo, 0, r.err);
-  assert.match(r.err, /kit pre-commit: en verde/);
+  assert.match(r.err, /kit pre-commit: pasa/);
 });
 
 test('u9 (Hermes): main subió un .gitleaksignore; una rama vieja lo mergea --no-ff (main de segundo padre) y git push origin HEAD:main → verde', () => {
@@ -1539,7 +1539,7 @@ test('u9 (Hermes): main subió un .gitleaksignore; una rama vieja lo mergea --no
   const r = g(d, ['push', '-q', 'origin', 'HEAD:main'], { env: entorno('verde'), puede: true });
   assert.equal(r.codigo, 0, r.err);
   assert.doesNotMatch(r.err, /gitleaks:\.gitleaksignore/);
-  assert.match(r.err, /kit pre-push: en verde/);
+  assert.match(r.err, /kit pre-push: pasa/);
 });
 
 test('u9 crit. 9 (e) con el gitleaks de verdad: en la resolución, una clave nueva → rojo; la vieja de main repetida en otro renglón → rojo; la vieja de main en su lugar → no sale', { skip: GITLEAKS_REAL ? false : 'gitleaks no está en esta PC' }, () => {
@@ -1590,7 +1590,7 @@ function noSube(w, remoto, refspec, ref, sujeto) {
   const r = empujar(w, remoto, refspec);
   assert.notEqual(r.codigo, 0, `${refspec} debía frenar: ${r.err}`);
   assert.match(r.err, new RegExp(`pre-push: a ${reTexto(ref)} no sube ${reTexto(sujeto)}: ${reTexto(H11)}`), r.err);
-  assert.match(r.err, /kit pre-push: ROJO/);
+  assert.match(r.err, /kit pre-push: no pasa/);
   assert.equal(enRemoto(w, remoto, ref), antes, `${ref} no cambió en ${remoto}`);
   return r;
 }
@@ -1618,7 +1618,7 @@ test('h11: el obrero sube solo su modulo/<x>--<ID> — a main, a trunk (otro rem
   noSube(w, 'origin', 'v1', 'refs/tags/v1', 'un obrero');
   assert.match(logLocal(d), / · obrero · modulo\/x--01 · githook:solo-el-director · pre-push · refs\/heads\/main/);
   const s = sube(w, 'origin', 'modulo/x--01', 'refs/heads/modulo/x--01');
-  assert.match(s.err, /kit pre-push: en verde/);
+  assert.match(s.err, /kit pre-push: pasa/);
 });
 
 test('h11: un obrero sin .kit-rol (lo borró) sigue siendo obrero por la rama — a main 1; la suya sube', () => {

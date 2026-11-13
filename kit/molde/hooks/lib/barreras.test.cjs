@@ -1132,7 +1132,7 @@ test('8r3 i3: un .pyc ignorado en __pycache__ bajo hooks, .githooks o __PyCache_
   const r = candado.correr(d, { modo: 'ids', ids: ['barreras'] });
   assert.equal(r.codigo, 0, r.lineas.join('\n'));
   assert.ok(r.lineas.some((l) => l.startsWith('candado:barreras · borré 2 cachés de Python ignorados (se rehacen solos del .py seguido): .claude/hooks/__pycache__/a.cpython-314.pyc, .claude/hooks/__pycache__/b.cpython-314.opt-1.pyc')), r.lineas.join('\n'));
-  assert.ok(r.lineas.some((l) => l.startsWith('candado: en verde')), r.lineas.join('\n'));
+  assert.ok(r.lineas.some((l) => l.startsWith('candado: pasa')), r.lineas.join('\n'));
   // Más de cinco: nombra cinco y sigue con "…".
   const m = repoPy();
   for (let i = 0; i < 7; i++) escribir(m, `.claude/hooks/__pycache__/m${i}.cpython-314.pyc`, PYC);
