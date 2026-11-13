@@ -123,8 +123,10 @@ function baseDe(raiz, x, punta, enc) {
 }
 
 // Los commits del obrero, del más viejo al más nuevo: [{ sha, t (segundos), autor, asunto }]. null si no se pudo leer.
-function commitsDe(raiz, base, punta) {
-  const r = G(raiz, ['log', '--reverse', '--no-merges', '--format=%H%x09%ct%x09%an%x09%s', `${base}..${punta}`]);
+// Revisor frío de B (7): con la base en la partida, `--first-parent`: lo que entró con un merge (lo corregido que trajo `presentar`,
+// con código de otro encargo) no es de este obrero.
+function commitsDe(raiz, base, punta, primerPadre = false) {
+  const r = G(raiz, ['log', '--reverse', '--no-merges', ...(primerPadre ? ['--first-parent'] : []), '--format=%H%x09%ct%x09%an%x09%s', `${base}..${punta}`]);
   if (!r.ok) return null;
   return r.stdout
     .split('\n')
@@ -151,13 +153,16 @@ function datosEncargo(raiz, x, rama) {
     d.porQue = 'sin base común con modulo/<x>';
     return d;
   }
-  let cs = commitsDe(raiz, base, rama.sha);
+  let cs = commitsDe(raiz, base, rama.sha, b.viaPartida);
   if (cs && b.viaPartida) {
-    // Desde la partida entran los commits del director que dejaron encargos (de este obrero o de otro): no son sub-pasos del obrero.
-    const soloEncargo = new RegExp('^' + escRe(moduloRel(raiz, x)) + '/bitacora/[^/]*-encargo-[0-9]{2}\\.md$');
+    // Desde la partida entran los commits del director (B7 57: los encargos, la ficha, lo corregido que el obrero trajo con
+    // `presentar`): los que tocan solo los papeles del módulo, salvo la evidencia de este encargo, no son sub-pasos ni desvíos.
+    const papeles = moduloRel(raiz, x);
+    const evidenciaPropia = new RegExp(`^${escRe(papeles)}/bitacora/[^/]+-evidencia-${rama.id}\\.md$`);
+    const delDirector = (r) => r.startsWith(`${papeles}/`) && !evidenciaPropia.test(r);
     cs = cs.filter((c) => {
       const f = archivosDe(raiz, c.sha);
-      return !(f && f.length && f.every((r) => soloEncargo.test(r)));
+      return !(f && f.length && f.every(delDirector));
     });
   }
   if (!cs) {
@@ -309,8 +314,22 @@ function cmdContador(raiz, x) {
       for (const v of d.desvios) det.push(`    - ${v.sha.slice(0, 7)} fuera de ## Toca: ${v.fuera.slice(0, 5).join(', ')}${v.fuera.length > 5 ? ' …' : ''}`);
     }
   }
+  // B7 24: un encargo cuya rama ya no está (cerrado y limpiado) se conserva con los sub-pasos de su renglón de tiempos.md.
+  let previas = [];
+  try {
+    previas = filasPrevias(fs.readFileSync(rutaTiempos(raiz, x), 'utf8').replace(/\r\n/g, '\n'));
+  } catch (e) {
+    previas = [];
+  }
+  const vivos = new Set(datos.map((d) => d.id));
+  const idos = previas.filter((p) => !vivos.has(p.id));
+  for (const p of idos) {
+    const s = Number(p.celdas[4]) || 0;
+    sub += s;
+    det.push(`  ${p.id} · ${s} sub-paso(s) · la rama ya no está (de tiempos.md; los desvíos se juzgaron mientras estaba)`);
+  }
   const nv = sinJuzgar ? ` · ${sinJuzgar} encargo(s) sin juzgar (NO VERIFICADO)` : '';
-  return { codigo: 0, lineas: [`contador ${x}: ${datos.length} encargo(s) · ${sub} sub-paso(s) · ${desv} desvío(s)${nv}`, ...det] };
+  return { codigo: 0, lineas: [`contador ${x}: ${datos.length + idos.length} encargo(s) · ${sub} sub-paso(s) · ${desv} desvío(s)${nv}`, ...det] };
 }
 
 // ---------------------------------------------------------------- alarma

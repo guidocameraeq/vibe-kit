@@ -125,6 +125,41 @@ function plazoBase(opciones) {
   return Number.isFinite(v) && v > 0 ? Math.floor(v) : PLAZO_BASE_MS;
 }
 
+// B5 (E13): un plazo fijo del kit, o el `plazo-test` de la ficha (minutos) si es más grande: una suite larga no queda NO VERIFICADO.
+function conPlazoTest(ms, datos) {
+  const pt = Number(datos && datos.vars ? datos.vars['plazo-test'] : NaN);
+  return Number.isFinite(pt) && pt > 0 ? Math.max(ms, Math.floor(pt * 60000)) : ms;
+}
+
+// B5: el turno de la PC para lo pesado (las pruebas): una corrida a la vez; quien espera lo dice por la salida, en el momento.
+function turno(L, quien, fn, opciones) {
+  return L.proceso.conTurno(quien, fn, { ...(opciones.turno || {}), salida: opciones.salida });
+}
+
+// B5: la base que ya pasó en un commit con ese comando-test no se repite. Se anota en el git común (no viaja en ramas, sin
+// versionar): { "<sha>": ["<comando-test>", …] }, con tope.
+const BASES = 'kit-bases-pasadas.json';
+const TOPE_BASES = 200;
+function leerBases(gitComun) {
+  try {
+    const j = JSON.parse(fs.readFileSync(path.join(gitComun, BASES), 'utf8'));
+    return j && typeof j === 'object' && !Array.isArray(j) ? j : {};
+  } catch (e) {
+    return {};
+  }
+}
+function anotarBase(gitComun, sha, ct) {
+  try {
+    const j = leerBases(gitComun);
+    j[sha] = [...new Set([...(Array.isArray(j[sha]) ? j[sha] : []), ct])];
+    const claves = Object.keys(j);
+    for (const k of claves.slice(0, Math.max(0, claves.length - TOPE_BASES))) delete j[k];
+    escribirAtomico(path.join(gitComun, BASES), JSON.stringify(j));
+  } catch (e) {
+    /* sin anotar, la próxima corre otra vez: nada se pierde */
+  }
+}
+
 // La ficha vigente (de git, regla de 4.7): sus datos, o null si no hay o está rota.
 function datosFicha(L, raiz) {
   const f = L.contexto.fichaVigente(raiz);
@@ -133,11 +168,16 @@ function datosFicha(L, raiz) {
 
 // La base (P5.6 paso 2): vars.comando-test en el worktree, sin mostrar su salida. No cambia la salida de presentar. Corre adentro
 // del vigía (rf-8): pasado el plazo muere con todo lo que lanzó, y no queda un node con el puerto tomado en el worktree del obrero.
-function lineaBase(L, datos, raiz, opciones) {
+function lineaBase(L, datos, g, opciones) {
+  const raiz = g.raiz;
   const ct = datos && datos.vars ? datos.vars['comando-test'] : undefined;
   if (typeof ct !== 'string' || ct.trim() === '') return 'base: NO VERIFICADO (la ficha vigente no tiene vars.comando-test)';
-  const ms = plazoBase(opciones);
-  const r = L.proceso.correrConPlazo(ct, { cwd: raiz, plazoMs: ms });
+  const head = L.E.shaDe(raiz, 'HEAD');
+  const pasadas = head ? leerBases(g.gitComun)[head] : null;
+  if (Array.isArray(pasadas) && pasadas.includes(ct)) return `base: verde (${ct}; ya había pasado en este commit: no la repetí)`;
+  const ms = conPlazoTest(plazoBase(opciones), datos);
+  const r = turno(L, `la base de ${L.contexto.rama(raiz) || 'un encargo'}`, () => L.proceso.correrConPlazo(ct, { cwd: raiz, plazoMs: ms }), opciones);
+  if (r.estado === 'verde' && head) anotarBase(g.gitComun, head, ct);
   if (r.estado === 'colgado') return `base: NO VERIFICADO (${ct} pasó los ${Math.round(ms / 1000)} s; lo maté con todo lo que lanzó)`;
   if (r.estado === 'no-corrio') return `base: NO VERIFICADO (${ct} no corrió: ${r.como})`;
   return r.estado === 'verde' ? `base: verde (${ct})` : `base: ROJA (ya estaba roto: ${ct} ${r.como.replace(/^salida /, 'salió ')})`;
@@ -193,6 +233,22 @@ function presentarSpec(L, g, rama) {
   return { codigo: 0, lineas };
 }
 
+// B4.3: ¿modulo/<x> (la más nueva entre local y origin) avanzó y la rama del obrero no lo tiene? Con el worktree limpio (lo que git
+// sigue), `git merge --no-edit`; si choca, `merge --abort` y es PARADA; con cambios sin guardar no se toca nada. → { ok, linea? } o
+// { ok: false, por }. No es un freno: lo que entra lo juzgan el pre-push y verificar (la base de verificar pasa a ser la corrección).
+function traerCorreccion(L, raiz, ref, madre) {
+  if (L.E.esAncestro(raiz, ref.sha, 'HEAD')) return { ok: true };
+  const st = G(L, raiz, ['status', '--porcelain', '--untracked-files=no']);
+  if (!st.ok) return { ok: false, por: `no pude mirar si hay cambios sin guardar (${(st.stderr || '').trim().split('\n')[0] || st.error})` };
+  if (st.stdout.trim()) return { ok: false, por: `${madre} tiene lo corregido y vos tenés cambios sin guardar: hacé un commit de trabajo y volvé a presentar` };
+  const m = G(L, raiz, ['merge', '--no-edit', '-q', '-m', `trae lo corregido de ${madre}`, ref.sha]);
+  if (m.ok) return { ok: true, linea: `traje lo corregido: ${madre} @${ref.sha.slice(0, 7)}, mezclado en tu rama` };
+  const choques = (G(L, raiz, ['diff', '--name-only', '--diff-filter=U']).stdout || '').split('\n').map((s) => s.trim()).filter(Boolean);
+  G(L, raiz, ['merge', '--abort']);
+  const cuales = choques.length ? ` (${choques.slice(0, 5).join(', ')}${choques.length > 5 ? ' …' : ''})` : '';
+  return { ok: false, por: `PARADA: lo corregido de ${madre} choca con lo tuyo${cuales}: lo deshice, y es una PARADA para el director` };
+}
+
 function presentar(L, g, a, opciones) {
   const rama = L.contexto.rama(g.raiz);
   if (a.spec) return presentarSpec(L, g, rama);
@@ -214,6 +270,9 @@ function presentar(L, g, a, opciones) {
   // SPEC-paquete-8r T3 (rt-1): con el sello de tarea 0, solo el 00 hasta que la ficha de modulo/<x> tenga el entorno de prueba.
   const t0 = L.E.tareaCeroPendiente(g.raiz, n, u.ref, s.buf);
   if (t0) return no(t0);
+  // B4.3 (20): la corrección llega — si modulo/<x> avanzó y la rama no lo tiene, presentar lo mezcla (corregir es relanzar).
+  const t = traerCorreccion(L, g.raiz, u.ref, n.madre);
+  if (!t.ok) return no(t.por);
   // 4. Lo que se presenta, y la base.
   const head = L.E.shaDe(g.raiz, 'HEAD');
   const c = e.campos;
@@ -221,7 +280,11 @@ function presentar(L, g, a, opciones) {
     ...avisos,
     `${n.rama} · @${head ? head.slice(0, 7) : '???????'} · encargo ${u.ruta} · ${c.modelo.modelo} ${c.modelo.esfuerzo} · riesgo ${c.riesgo.riesgo} · apertura ${c.apertura}`,
   ];
-  if (!a.sinBase) lineas.push(lineaBase(L, datosFicha(L, g.raiz), g.raiz, opciones));
+  if (t.linea) lineas.push(t.linea);
+  // B7 43c: los entornos de prueba de la ficha (clase prueba o dummy) con su acceso: el obrero sabe adónde apunta sin abrir la ficha.
+  const entornos = Object.entries((datosFicha(L, g.raiz) || {}).entornos || {}).filter(([, v]) => v && (v.clase === 'prueba' || v.clase === 'dummy'));
+  if (entornos.length) lineas.push(`entornos de prueba: ${entornos.map(([k, v]) => `${k} (${v.clase}${v.acceso ? ` · ${v.acceso}` : ''})`).join(' · ')} — el encargo dice a cuál apunta`);
+  if (!a.sinBase) lineas.push(lineaBase(L, datosFicha(L, g.raiz), g, opciones));
   return { codigo: 0, lineas };
 }
 
@@ -518,14 +581,30 @@ function lineaPruebas(L, c, opciones) {
   const comandos = [ct, ...c.e.secciones.gate.filter((x) => x !== ct)];
   const conTubo = comandos.find(conTuberia);
   if (conTubo) return [MAL, `${NV} — ${conTubo} tiene una tubería: el gate mira el código de salida (sacala)`];
-  const plazoMs = opciones.plazoMs || (c.plazoMin || PLAZO_VERIFICAR_MIN) * 60000;
-  for (const cmd of comandos) {
-    const r = L.proceso.correrConPlazo(cmd, { cwd: c.wt, plazoMs });
-    if (r.estado === 'colgado') return [MAL, `${NV} — ${cmd} ${r.como} (lo maté con todo lo que lanzó)`];
-    if (r.estado === 'no-corrio') return [MAL, `${NV} — ${cmd} no corrió (${r.como})`];
-    if (r.estado === 'rojo') return [MAL, `commit con la suite en rojo: ${cmd} (${r.como})`];
+  // B5: --plazo manda si se pasó; si no, el fijo o el plazo-test de la ficha si es más grande. La espera del turno no cuenta.
+  const plazoMs = opciones.plazoMs || (c.plazoMin ? c.plazoMin * 60000 : conPlazoTest(PLAZO_VERIFICAR_MIN * 60000, c.datos));
+  const r = turno(L, `verificar ${c.n.rama}`, () => {
+    for (const cmd of comandos) {
+      const r = L.proceso.correrConPlazo(cmd, { cwd: c.wt, plazoMs });
+      if (r.estado === 'colgado') return [MAL, `${NV} — ${cmd} ${r.como} (lo maté con todo lo que lanzó)`];
+      if (r.estado === 'no-corrio') return [MAL, `${NV} — ${cmd} no corrió (${r.como})`];
+      if (r.estado === 'rojo') return [MAL, `commit con la suite en rojo: ${cmd} (${r.como})`];
+    }
+    return [OK, `en verde: ${comandos.join(' · ')}`];
+  }, opciones);
+  // B7 23: si falló y la ficha vigente trae otro comando-test que la de la partida (la base de la rama), lo dice: no es el código.
+  if (r[0] === MAL && c.base) {
+    let antes;
+    try {
+      const t = G(L, c.raiz, ['show', `${c.base}:.claude/kit.md`]);
+      const d = t.ok ? require('../hooks/lib/ficha.cjs').leer(t.stdout).datos : null;
+      antes = d && d.vars ? d.vars['comando-test'] : undefined;
+    } catch (e) {
+      antes = undefined;
+    }
+    if (typeof antes === 'string' && antes.trim() && antes !== ct) r[1] += ` · el comando-test cambió desde tu partida (era ${antes})`;
   }
-  return [OK, `en verde: ${comandos.join(' · ')}`];
+  return r;
 }
 
 // 4. alcance (D5-13): lo de más es ⚠️, no ❌ (un desvío de clase 1 puede tocar otro archivo; el director decide).
@@ -686,6 +765,9 @@ function verificar(L, g, a, opciones) {
 
 // ---------------------------------------------------------------- main
 
+// Las opciones con la salida, sin copiarlas (un getter de las pruebas no se lee antes de tiempo): el turno avisa por ahí.
+const conSalida = (opciones, salida) => Object.create(opciones, { salida: { value: salida, enumerable: true } });
+
 function main(argv, opciones = {}) {
   const salida = opciones.salida || ((s) => process.stdout.write(s));
   const error = opciones.error || ((s) => process.stderr.write(s));
@@ -696,9 +778,9 @@ function main(argv, opciones = {}) {
     const g = L.contexto.datosGit(opciones.cwd || process.cwd());
     if (!g) r = { codigo: 1, lineas: ['encargo: no estás dentro de un repo git'] };
     else if (a.comando === 'partida') r = partida(L, g, a.nombre, opciones);
-    else if (a.comando === 'presentar') r = presentar(L, g, a, opciones);
+    else if (a.comando === 'presentar') r = presentar(L, g, a, conSalida(opciones, salida));
     else if (a.comando === 'autorizado') r = autorizado(L, g, a.nombre, opciones);
-    else if (a.comando === 'verificar') r = verificar(L, g, a, opciones);
+    else if (a.comando === 'verificar') r = verificar(L, g, a, conSalida(opciones, salida));
     else r = mensaje(L, g, a);
   } catch (e) {
     if (e instanceof MalLlamado) {

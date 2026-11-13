@@ -184,3 +184,20 @@ test('K5: la sección ## Afirmaciones va entre el diff y las pruebas, con los av
   assert.ok(i > t.indexOf('## Diff completo') && i < t.indexOf('## Pruebas'), 'la sección, en su lugar');
   assert.match(t, /⚠️ a mirar · m\.py:2 · absoluto · ¿promete de más\? "garantiza"/);
 });
+
+test('B7 22: --pruebas con una ruta → "esto parece una ruta: quería un comando" y salida 2; un comando, como siempre', () => {
+  const { d } = proyecto();
+  for (const v of ['kit/molde/scripts/noche.test.cjs', 'test/a.test.js', 'src\\x.spec.ts']) {
+    const r = correr(d, 'HEAD', '--pruebas', v);
+    assert.equal(r.status, 2, v);
+    assert.match(r.stdout + r.stderr, /esto parece una ruta: quería un comando \(por ejemplo "node --test <ruta>"\)/);
+  }
+});
+
+test('revisor frío de B (12): --pruebas con un script de una palabra (./scripts/test.sh, bin/test) no es "una ruta"', () => {
+  const { d, base } = proyecto();
+  for (const v of ['./scripts/test.sh', 'bin/test']) {
+    const r = correr(d, base, '--pruebas', v);
+    assert.doesNotMatch(r.stdout + r.stderr, /parece una ruta/, v);
+  }
+});

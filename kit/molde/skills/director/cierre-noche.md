@@ -11,6 +11,8 @@ lee el parte que dejás. Escribís en criollo y **nunca** le dejás un comando p
 - **Nunca aprobás nada** (ni `cambios aprobar`, ni `publicar --seguir`): son firmas del dueño.
 - No editás código, no corrés las pruebas sueltas, no hacés `git push` (subir es `noche.cjs subir <x>`).
 - **No buscás la salida del comando de publicar** (puede traer claves): lo que pasó lo dice `publicar` y lo lee el parte.
+- **Cada comando, solo y tal cual** como está escrito acá: sin `cd`, sin `;`, `&&` ni `|`, sin `echo` ni redirecciones. La lista
+  los permite exactos; uno armado distinto se niega. `git fetch` no está en la lista: lo trae `git pull --ff-only`.
 
 ## Los pasos, en este orden
 
@@ -20,7 +22,7 @@ lee el parte que dejás. Escribís en criollo y **nunca** le dejás un comando p
    - Sale 1 (la carpeta no está en la rama por defecto o tiene cambios sin guardar): **no toques nada**; andá al paso 5 y corré
      solo `parte`, **sin** el commit ni `subir`.
 2. `node .claude/scripts/noche.cjs publicar <x>`, **en segundo plano** (puede tardar más que una llamada: las pruebas, publicar y
-   el humo), y esperá a que termine; no lo vuelvas a lanzar mientras corre. Salidas: 0 publicó y la prueba de humo pasó · 3 este proyecto no publica solo o
+   el humo), y esperá a que termine (su aviso de que terminó): no sigas con lo de abajo ni leas su salida a medias, y no lo vuelvas a lanzar mientras corre. Salidas: 0 publicó y la prueba de humo pasó · 3 este proyecto no publica solo o
    espera al dueño (no es una falla) · 1 algo falló. Cualquiera que sea, seguí: el resultado lo lee el parte solo.
 3. **Los papeles** (el `/cierre` del proyecto): leé `.claude/skills/cierre/SKILL.md` y seguí sus pasos, en el modo completo, con
    estas diferencias de noche:

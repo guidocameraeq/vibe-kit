@@ -200,7 +200,7 @@ function correrConPlazo(cmd, { cwd, plazoMs, stdio = 'ignore', shell = shellDeCo
 // aviso (nunca se cuelga). La espera NO cuenta en el plazo de lo que corre adentro: el plazo lo pone fn. Si el candado no se
 // puede tomar por otra cosa que "está tomado" (permisos), corre igual: el turno ordena, no frena.
 // opciones: { dir, esperaMaxMs, cadaMs, salida(texto), vivo(pid) } (las pruebas las inyectan).
-const TURNO_DIR = () => path.join(os.tmpdir(), 'kit-turno-suite');
+const TURNO_DIR = () => process.env.KIT_TURNO_DIR || path.join(os.tmpdir(), 'kit-turno-suite'); // la variable: solo para las pruebas
 const TURNO_ESPERA_MAX = 60 * 60 * 1000;
 const TURNO_CADA = 5000;
 const TURNO_AVISO = 5 * 60 * 1000;
@@ -238,6 +238,8 @@ function conTurno(quien, fn, opciones = {}) {
       } catch (e2) {
         q = null;
       }
+      // Adentro de un turno de este mismo proceso (integrar → su gate): no se espera a sí mismo, y no lo suelta al salir.
+      if (q && q.pid === process.pid) break;
       // Sin quien.json todavía (el otro lo está escribiendo): se espera una vuelta; uno sin dueño vivo, se toma.
       if (q && !vivo(q.pid)) {
         fs.rmSync(dir, { recursive: true, force: true });

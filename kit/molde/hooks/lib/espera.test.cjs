@@ -81,3 +81,9 @@ test('las esperas vencidas del TODO y el último parte', () => {
   assert.ok(!/otra/.test(t), t);
   assert.match(t, /nombre del botón/);
 });
+
+test('revisor frío de B (5): con sinParte (lo usa el parte nuevo) no copia el "te necesito" del parte anterior: lo resuelto no vuelve cada noche', () => {
+  const d = repo({ 'docs/modulos/x/bitacora/2026-11-11-parte.md': '# Parte\n\n## Te necesito\n\n- falta tu autorización para publicar desde esta PC\n\n## Qué se hizo\n\n- nada\n' });
+  assert.match(ES.teEspera(d).map((i) => i.texto).join('\n'), /falta tu autorización/);
+  assert.deepEqual(ES.teEspera(d, { sinParte: true }), []);
+});

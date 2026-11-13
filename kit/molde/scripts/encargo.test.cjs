@@ -12,6 +12,9 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'kit-encargo-'));
+// B5: el turno de la PC, propio de este archivo: la suite corre los archivos en paralelo y uno no espera al otro (lo que se prueba
+// del turno, con su carpeta aparte).
+process.env.KIT_TURNO_DIR = path.join(TMP, 'turno');
 const GLOBAL = path.join(TMP, 'gitconfig-vacio');
 fs.writeFileSync(GLOBAL, '[core]\n\tlongpaths = true\n');
 Object.assign(process.env, {
@@ -224,16 +227,19 @@ test('presentar (crit. 1): sin sello → 1 "spec sin Arquitecto: corré Modo B",
   commit(p.dir, { 'docs/modulos/x/SPEC.md': spec({ estado: 'BORRADOR' }) }, 'borrador');
   r = cli(p.obr, ['presentar', 'x--01']);
   assert.equal(r.codigo, 1);
-  assert.equal(r.out, 'presentar: no — spec sin READY: falta el OK de Guido y `ready`\n');
+  assert.equal(r.out, 'presentar: no — spec sin READY: falta el OK del dueño y `ready`\n');
   // Sellado y READY.
   commit(p.dir, { 'docs/modulos/x/SPEC.md': spec() }, 'ready');
   r = cli(p.obr, ['presentar', 'x--01']);
   assert.equal(r.codigo, 0, r.out);
-  assert.equal(r.out, `modulo/x--01 · @${head.slice(0, 7)} · encargo ${RUTA} · sonnet medium · riesgo bajo · apertura dueño\nbase: verde (node base.js)\n`);
-  // Por el script de verdad (otro proceso), igual.
+  // B4.3: los tres commits del director (tocado, borrador, ready) son lo corregido: la primera presentar que sigue los trae.
+  const traido = g(p.obr, 'rev-parse', 'HEAD');
+  assert.notEqual(traido, head);
+  assert.equal(r.out, `modulo/x--01 · @${traido.slice(0, 7)} · encargo ${RUTA} · sonnet medium · riesgo bajo · apertura dueño\ntraje lo corregido: modulo/x @${g(p.P, 'rev-parse', 'modulo/x').slice(0, 7)}, mezclado en tu rama\nbase: verde (node base.js)\n`);
+  // Por el script de verdad (otro proceso), igual (y ya no trae nada).
   const s = spawnSync(process.execPath, [SCRIPT, 'presentar', 'x--01', '--sin-base'], { cwd: p.obr, encoding: 'utf8', env: process.env });
   assert.equal(s.status, 0, s.stdout + s.stderr);
-  assert.equal(s.stdout, `modulo/x--01 · @${head.slice(0, 7)} · encargo ${RUTA} · sonnet medium · riesgo bajo · apertura dueño\n`);
+  assert.equal(s.stdout, `modulo/x--01 · @${traido.slice(0, 7)} · encargo ${RUTA} · sonnet medium · riesgo bajo · apertura dueño\n`);
   // Sello inválido (entorno quitado sin el gate quitado en la ficha) y el spec que no está.
   commit(p.dir, { 'docs/modulos/x/SPEC.md': spec({ entorno: '— (quitado: sin base)' }) }, 'quitado');
   r = cli(p.obr, ['presentar', 'x--01']);
@@ -1032,4 +1038,150 @@ test('B4.5: con Skill: tramo, la línea de fondo manda /tramo', () => {
   const r = aut(p);
   assert.equal(r.codigo, 0, r.out);
   assert.match(r.out, /printf '%s\\n' '\/tramo x--01' \| KIT_FONDO=1 claude/);
+});
+
+test('B4.6: mensaje con PARA — al nombre que sale de la rama vale; a otro → 1 "no es para vos"', () => {
+  const p = proyecto();
+  const sha7 = g(p.P, 'rev-parse', '--short=7', 'modulo/x');
+  assert.deepEqual(cli(p.obr, ['mensaje', 'PARA', 'obrero-x--01', '·', 'CORRECCION', `${RUTA}@${sha7}`]), { codigo: 0, out: `vale: leé ${RUTA}@${sha7}\n`, err: '' });
+  const r = cli(p.obr, ['mensaje', `PARA obrero-x--02 · CORRECCION ${RUTA}@${sha7}`]);
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, /^no es para vos: es para obrero-x--02 y vos sos obrero-x--01 /);
+  assert.deepEqual(cli(p.dir, ['mensaje', 'PARA director-x · PARADA el test no corre']), { codigo: 0, out: 'vale: dato\n', err: '' });
+  assert.equal(cli(p.dir, ['mensaje', 'PARA director-y · PARADA algo']).codigo, 1);
+});
+
+test('B4.3 (20): presentar trae lo corregido — modulo/x avanzó y el worktree limpio → lo mezcla y lo dice; ya lo tiene → nada', () => {
+  const p = proyecto();
+  // Sin nada nuevo: no dice nada de corrección.
+  let r = cli(p.obr, ['presentar', 'x--01', '--sin-base']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.doesNotMatch(r.out, /corregido/);
+  // El director corrige el encargo después de la partida (desde la otra PC, por origin).
+  const nuevo = encargo({ '## Alcance': ['## Alcance', '1. una cosa, corregida'] });
+  const sha = empujarDesdeOtra(p, { [RUTA]: nuevo.replace('## Alcance\n1. una cosa\n', '## Alcance\n') });
+  commit(p.obr, { 'src/x/a.js': 'del obrero\n' }, 'trabajo del obrero');
+  r = cli(p.obr, ['presentar', 'x--01', '--sin-base']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(r.out, new RegExp(`\ntraje lo corregido: modulo/x @${sha.slice(0, 7)}, mezclado en tu rama\n`));
+  assert.equal(spawnSync('git', ['merge-base', '--is-ancestor', sha, 'HEAD'], { cwd: p.obr }).status, 0, 'la corrección quedó en la rama del obrero');
+  assert.equal(fs.readFileSync(path.join(p.obr, 'src', 'x', 'a.js'), 'utf8'), 'del obrero\n', 'lo del obrero sigue');
+  // Repetido: ya la tiene, no hace nada.
+  r = cli(p.obr, ['presentar', 'x--01', '--sin-base']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.doesNotMatch(r.out, /corregido/);
+});
+
+test('B4.3 (20): presentar con la corrección que choca → la deshace y es PARADA; con cambios sin guardar → no la trae y lo dice', () => {
+  const p = proyecto();
+  commit(p.obr, { 'src/x/a.js': 'del obrero\n' }, 'trabajo del obrero');
+  empujarDesdeOtra(p, { 'src/x/a.js': 'del director\n' });
+  const antes = g(p.obr, 'rev-parse', 'HEAD');
+  let r = cli(p.obr, ['presentar', 'x--01', '--sin-base']);
+  assert.equal(r.codigo, 1, r.out);
+  assert.match(r.out, /presentar: no — PARADA: lo corregido de modulo\/x choca con lo tuyo \(src\/x\/a\.js\): lo deshice, y es una PARADA para el director\n$/);
+  assert.equal(g(p.obr, 'rev-parse', 'HEAD'), antes, 'la rama quedó como estaba');
+  assert.equal(g(p.obr, 'status', '--porcelain', '--untracked-files=no'), '', 'sin el merge a medias');
+  // Cambios sin guardar: no la trae.
+  const q = proyecto();
+  empujarDesdeOtra(q, { 'src/x/b.js': 'del director\n' });
+  commit(q.obr, { 'src/x/a.js': 'uno\n' }, 'uno');
+  escribir(q.obr, 'src/x/a.js', 'sin guardar\n');
+  r = cli(q.obr, ['presentar', 'x--01', '--sin-base']);
+  assert.equal(r.codigo, 1, r.out);
+  assert.match(r.out, /presentar: no — modulo\/x tiene lo corregido y vos tenés cambios sin guardar: hacé un commit de trabajo y volvé a presentar\n$/);
+});
+
+// ---------------------------------------------------------------- B5: el turno, la base que no se repite y plazo-test
+
+const CUENTA_JS = "const fs=require('fs');const f=process.env.KIT_PRUEBA_CUENTA;fs.appendFileSync(f,'x');if(process.env.BASE_DUERME)Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,Number(process.env.BASE_DUERME));\n";
+function conEnv(vars, fn) {
+  const antes = {};
+  for (const k of Object.keys(vars)) {
+    antes[k] = process.env[k];
+    process.env[k] = vars[k];
+  }
+  try {
+    return fn();
+  } finally {
+    for (const k of Object.keys(vars)) {
+      if (antes[k] === undefined) delete process.env[k];
+      else process.env[k] = antes[k];
+    }
+  }
+}
+
+test('B5: la segunda presentar sobre el mismo commit no corre el comando (lo anota el git común); otro commit u otro comando-test, sí', () => {
+  const p = proyecto({ ficha: { test: 'node cuenta.js' }, archivos: { 'cuenta.js': CUENTA_JS } });
+  const cuenta = path.join(p.base, 'cuenta');
+  const veces = () => (fs.existsSync(cuenta) ? fs.readFileSync(cuenta, 'utf8').length : 0);
+  conEnv({ KIT_PRUEBA_CUENTA: cuenta }, () => {
+    let r = cli(p.obr, ['presentar', 'x--01']);
+    assert.match(r.out, /\nbase: verde \(node cuenta\.js\)\n$/);
+    assert.equal(veces(), 1);
+    r = cli(p.obr, ['presentar', 'x--01']);
+    assert.equal(r.codigo, 0, r.out);
+    assert.match(r.out, /\nbase: verde \(node cuenta\.js; ya había pasado en este commit: no la repetí\)\n$/);
+    assert.equal(veces(), 1, 'no volvió a correr');
+    commit(p.obr, { 'src/x/a.js': 'otro\n' }, 'otro commit');
+    cli(p.obr, ['presentar', 'x--01']);
+    assert.equal(veces(), 2, 'otro commit: corre');
+  });
+  // Una base que falla no se anota: la próxima vuelve a correr.
+  const q = proyecto({ ficha: { test: 'node base.js' } });
+  conBase('rojo', () => {
+    assert.match(cli(q.obr, ['presentar', 'x--01']).out, /\nbase: ROJA /);
+    assert.match(cli(q.obr, ['presentar', 'x--01']).out, /\nbase: ROJA /, 'la roja no se anota');
+  });
+});
+
+test('B5 (E13): el plazo de la base y de verificar lee plazo-test de la ficha cuando es más grande', () => {
+  const p = proyecto({ ficha: { test: 'node cuenta.js' }, archivos: { 'cuenta.js': CUENTA_JS } });
+  const cuenta = path.join(p.base, 'cuenta');
+  conEnv({ KIT_PRUEBA_CUENTA: cuenta, BASE_DUERME: '2500' }, () => {
+    assert.match(cli(p.obr, ['presentar', 'x--01'], { plazoBaseMs: 1000 }).out, /\nbase: NO VERIFICADO \(node cuenta\.js pasó los 1 s/);
+    commit(p.P, { '.claude/kit.md': ficha({ test: 'node cuenta.js' }).replace('  comando-test: node cuenta.js\n', '  comando-test: node cuenta.js\n  plazo-test: 1\n') }, 'plazo-test');
+    g(p.P, 'push', '-q', 'origin', 'main');
+    assert.match(cli(p.obr, ['presentar', 'x--01'], { plazoBaseMs: 1000 }).out, /\nbase: verde \(node cuenta\.js\)\n$/, 'con plazo-test: 1 (60 s) alcanza');
+  });
+});
+
+test('B5: presentar espera el turno de la PC (una corrida pesada a la vez) y lo dice; la espera tiene tope', () => {
+  const p = proyecto();
+  const dir = path.join(p.base, 'turno');
+  fs.mkdirSync(dir);
+  const otro = require('child_process').spawn(process.execPath, ['-e', 'setTimeout(() => {}, 60000)'], { stdio: 'ignore' }); // otro proceso vivo
+  fs.writeFileSync(path.join(dir, 'quien.json'), JSON.stringify({ quien: 'otra suite', pid: otro.pid, desde: new Date().toISOString() }));
+  let r;
+  try {
+    r = conEnv({ KIT_TURNO_DIR: dir }, () => cli(p.obr, ['presentar', 'x--01'], { turno: { cadaMs: 20, esperaMaxMs: 300 } }));
+  } finally {
+    otro.kill();
+  }
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(r.out, /turno: espero que termine otra suite \(una corrida pesada a la vez en esta PC\)\n/);
+  assert.match(r.out, /turno: esperé 0 min a otra suite; sigo igual \(nunca me cuelgo\)\n/);
+  assert.match(r.out, /\nbase: verde \(node base\.js\)\n$/);
+});
+
+test('B7 43c: presentar imprime los entornos de prueba de la ficha (prueba o dummy, con su acceso); el real no; sin ninguno, nada', () => {
+  const conEntornos = ficha().replace('frenos:\n', 'frenos:\n').replace('---\n\n', '').replace(/---\n$/, '') +
+    'herramientas:\n  db: {chequeo: "db ping", necesita-persona: no}\nentornos:\n  base-real:\n    clase: real\n    herramientas: [db]\n    acceso: "db (solo lectura)"\n  base-local:\n    clase: dummy\n    herramientas: [db]\n    acceso: db (todo)\n  staging:\n    clase: prueba\n    herramientas: [db]\n    acceso: "db (lectura y escritura)"\n---\n';
+  const p = proyecto({ archivos: { '.claude/kit.md': conEntornos } });
+  const r = cli(p.obr, ['presentar', 'x--01', '--sin-base']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(r.out, /\nentornos de prueba: base-local \(dummy · db \(todo\)\) · staging \(prueba · db \(lectura y escritura\)\) — el encargo dice a cuál apunta\n$/);
+  assert.doesNotMatch(r.out, /base-real/);
+  assert.doesNotMatch(cli(proyecto().obr, ['presentar', 'x--01', '--sin-base']).out, /entornos de prueba/);
+});
+
+test('B7 23: verificar dice "el comando-test cambió desde tu partida" cuando la ficha vigente trae otro y las pruebas fallan; igual, no', () => {
+  const p = proyectoV();
+  listo(p);
+  conBase('rojo', () => assert.doesNotMatch(ver(p.dir).linea(3), /cambió desde tu partida/));
+  commit(p.P, { '.claude/kit.md': ficha({ test: 'node no-esta.js' }) }, 'otro comando-test');
+  g(p.P, 'push', '-q', 'origin', 'main');
+  const r = ver(p.dir);
+  assert.equal(r.codigo, 1);
+  assert.match(r.out, /^3\. pruebas · ❌ · commit con la suite en rojo: node no-esta\.js \(salida 1\) · el comando-test cambió desde tu partida \(era node base\.js\)$/m, r.out);
 });

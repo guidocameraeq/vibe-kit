@@ -1,6 +1,7 @@
 # Encargo <ID> · <x> · <título>
 - Partida: rama modulo/<x>--<ID> desde modulo/<x>@<sha7> · <AAAA-MM-DDTHH:MM±HH:MM>
 - Spec: docs/modulos/<x>/SPEC[-N].md:<línea>[-<línea>]
+<!-- el ID son dos dígitos (01, 02…) · - Spec: un solo rango · si usa un entorno de prueba (entornos: de la ficha), decí cuál en el alcance -->
 - Skill: obrero
 <!-- obrero: un encargo acotado que hace una sesión · tramo: un tramo grande que conviene repartir entre subagentes (proyectos grandes) -->
 - Modelo: sonnet | opus · Esfuerzo: low | medium | high · Por qué: <razón>

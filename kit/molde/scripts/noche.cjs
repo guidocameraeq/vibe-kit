@@ -1,23 +1,17 @@
 'use strict';
-// noche.cjs — "me voy", el checklist de la noche y el despertador (SPEC-0 RF-11 y P6.4; delta 5 crit. 16, D5-12, D5-16; D §9.3-§9.5,
-// §11). Uso, desde el repo:
+// noche.cjs — "me voy", el checklist de la noche y la noche que termina sola (SPEC-0 RF-11 y P6.4; delta 5 crit. 16, D5-12, D5-16;
+// D §9.3-§9.5; SPEC-paquete-8d B3 y B4.4). Uso, desde el repo:
 //   node .claude/scripts/noche.cjs me-voy [--hasta HH:MM]
 //   node .claude/scripts/noche.cjs volvi
-//   node .claude/scripts/noche.cjs despertador [--modulo <x>] [--cada <seg>] [--una-vez]
+//   node .claude/scripts/noche.cjs cierre|cierre-empieza|publicar|subir|parte <x>   (ver el USO)
 // `me-voy` corre en el worktree del director (rama modulo/<x>): escribe la marca .kit-noche en su raíz (desde ese momento los hooks,
 // el pre-commit, `db migrar` y `verificar` tratan como nocturno al director y a sus obreros: contexto.deNoche) e imprime el checklist
-// armado por script, sin preguntar nada: encargos abiertos y su obrero, cuáles abre Guido (esos paran de noche), la red, lo que vence
-// y el contexto del director (≥ 40 %: "mudate antes de irte", D §11). `volvi` borra la marca de este checkout y de todos los
-// worktrees del repo (lo llaman /inicio y /estado de Guido SIEMPRE, en el principal: la marca vive en el worktree del director;
-// sin marca dice "ya era de día" y sale 0). `--hasta` es informativo (queda en la marca y en el checklist; no lo lee nadie): la noche
-// termina con `volvi`. `despertador` mira git — las ramas modulo/<x>--<ID> de SU módulo, locales y de origin (tras `fetch --prune`),
-// y la rama por defecto local y de origin (CM-79: un commit en main también despierta) — contra la foto anterior de ese módulo
-// (`<git-dir común>/kit-despertador-<x>.json`, sin versionar; una por módulo, RF-fix 3: con una sola, la vuelta de un director se
-// comía lo que tenía que ver otro) y SOLO imprime cuando algo cambió: `DESPERTAR · <motivo> · <rama>@<sha7>`. El <x> sale de la rama
-// del director (modulo/<x>) o de --modulo <x>. `me-voy` saca la foto de su módulo de nuevo: la primera vuelta de la noche no
-// despierta por lo que pasó de día. Motivos: `PARADA` (la punta de la rama del obrero trae su evidencia empezando con "PARADA:",
-// NUCLEO §8), `commit`, `commit en <defecto>` y `sin red` (una vez, cuando el fetch empieza a fallar). La PARADA de `presentar` no commitea (NUCLEO §8): esa no deja rastro en git y el despertador no la ve.
-// Cómo despierta de verdad al director (Monitor de Claude Code, tarea programada): NO VERIFICADO, piloto.
+// armado por script, sin preguntar nada: encargos abiertos y su obrero, cuáles no abre el director (esos paran de noche), la red, lo
+// que vence y el relevo antes de cada espera larga. `volvi` borra la marca de este checkout y de todos los worktrees del repo (lo
+// llaman /inicio y /estado del dueño SIEMPRE, en el principal: la marca vive en el worktree del director; sin marca dice "ya era de
+// día" y sale 0). `--hasta` es informativo (queda en la marca y en el checklist; no lo lee nadie): la noche termina con `volvi`.
+// B4.4 (28, 31): el despertador y la mudanza al 40 % ya no existen — un obrero de fondo es un proceso que el director lanzó: se
+// entera porque terminó y mira git. `despertador` dice una línea y sale 0 (una línea vieja que lo llame no se rompe).
 // Salidas: 0 anduvo · 1 negado (una línea con qué hacer) · 2 mal llamado. Node estándar, cero dependencias. Es .cjs a propósito.
 
 const fs = require('fs');
@@ -27,12 +21,10 @@ const crypto = require('crypto');
 
 const USO = [
   'Uso: node .claude/scripts/noche.cjs <comando> …   (desde el repo)',
-  '  me-voy [--hasta HH:MM]                    desde el worktree del director: escribe .kit-noche, saca la foto del despertador e imprime el checklist',
+  '  me-voy [--hasta HH:MM]                    desde el worktree del director: escribe .kit-noche e imprime el checklist',
   '                                            (--hasta es informativo: la noche termina con volvi)',
   '  volvi                                     borra .kit-noche (de este checkout y de los worktrees del repo)',
-  '  despertador [--modulo <x>] [--cada <seg>] [--una-vez]   "DESPERTAR · <motivo> · <rama>@<sha7>" solo si hay commit nuevo o PARADA',
-  '                                            (una foto por módulo; <x>: la rama del director o --modulo)',
-  '  (el despertador va en un Monitor de Claude Code o en una tarea fuera del director; cómo despierta al director: NO VERIFICADO)',
+  '  despertador                               ya no existe (el director se entera cuando el obrero de fondo termina)',
   '  cierre <x>                                la línea de la sesión de cierre (de fondo, en la carpeta principal); el director la lanza después de integrar',
   '  cierre-empieza <x>                        (la sesión de cierre) toma el candado del cierre y mira la carpeta principal',
   '  publicar <x> [--seguir]                   el único camino por el que el kit publica sin persona (salidas: 0 publicó · 1 falló · 3 no publica)',
@@ -41,14 +33,10 @@ const USO = [
 ].join('\n');
 
 const ARCHIVO_NOCHE = '.kit-noche';
-// Una foto por módulo (RF-fix 3): con una sola para todos, la vuelta de un director se comía los cambios que tenía que ver otro.
-const fotoDe = (x) => `kit-despertador-${x}.json`;
+const RELEVO = 'antes de cada espera larga: todo commiteado y subido y el relevo al día (si quedás quieto cerca de una hora la plataforma puede resumir la charla, y con el relevo se retoma)';
+const SIN_DESPERTADOR = 'despertador: ya no existe — el director lanza los obreros de fondo y se entera cuando terminan, mirando git';
 const RE_X = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const UMBRAL_MUDANZA = 40; // % de la ventana del director: más que esto, se muda antes de irse (D §9.5, §11)
-const CADA_DEFECTO = 300;
-const CADA_MINIMO = 10;
 const T_RED = 15000; // ls-remote y fetch: un plazo corto, sin red no se cuelga
-const RE_OBRERO = /^modulo\/([a-z0-9]+(?:-[a-z0-9]+)*)--([0-9]{2})$/;
 
 // Los comandos de la noche que termina sola (SPEC-paquete-8d B3): todos con <x>.
 const CON_MODULO = ['cierre', 'cierre-empieza', 'publicar', 'subir', 'parte'];
@@ -63,7 +51,6 @@ function libs() {
     contexto: require('../hooks/lib/contexto.cjs'),
     git: require('../hooks/lib/git.cjs'),
     E: require('../hooks/lib/encargo.cjs'),
-    uso: require('./contexto.cjs'),
     docs: require('../hooks/lib/docs-ruta.cjs'), // 8r3 i1: la carpeta de papeles (docs sin la clave)
     proceso: require('../hooks/lib/proceso.cjs'),
     pub: require('../hooks/lib/publicar.cjs'),
@@ -75,7 +62,8 @@ function libs() {
 function leerArgumentos(argv) {
   const comando = argv[0];
   if (!['me-voy', 'volvi', 'despertador', ...CON_MODULO].includes(comando)) malLlamado(comando ? `no conozco "${String(comando).slice(0, 40)}"` : 'falta el comando');
-  const a = { comando, hasta: null, cada: CADA_DEFECTO, unaVez: false, modulo: null, seguir: false, noPude: [] };
+  const a = { comando, hasta: null, modulo: null, seguir: false, noPude: [] };
+  if (comando === 'despertador') return a; // B4.4: ya no existe; las banderas de antes no rompen
   if (CON_MODULO.includes(comando)) {
     const v = argv[1];
     if (!RE_X.test(v || '') || v.length > 20) malLlamado(`${comando} pide el módulo (minúsculas, números y guiones simples): "${String(v || '').slice(0, 40)}"`);
@@ -94,15 +82,6 @@ function leerArgumentos(argv) {
       const v = argv[++i];
       if (!/^([01][0-9]|2[0-3]):[0-5][0-9]$/.test(v || '')) malLlamado(`--hasta pide una hora HH:MM (00:00 a 23:59): "${v || ''}"`);
       a.hasta = v;
-    } else if (comando === 'despertador' && x === '--cada') {
-      const v = Number(argv[++i]);
-      if (!Number.isInteger(v) || v < CADA_MINIMO) malLlamado(`--cada pide segundos, ${CADA_MINIMO} o más`);
-      a.cada = v;
-    } else if (comando === 'despertador' && x === '--una-vez') a.unaVez = true;
-    else if (comando === 'despertador' && x === '--modulo') {
-      const v = argv[++i];
-      if (!RE_X.test(v || '') || v.length > 20) malLlamado(`--modulo pide un módulo (minúsculas, números y guiones simples): "${v || ''}"`);
-      a.modulo = v;
     }
     else malLlamado(`${comando} no lleva "${String(x).slice(0, 40)}"`);
   }
@@ -195,7 +174,7 @@ function meVoy(L, g, a, o) {
   fs.writeFileSync(path.join(g.raiz, ARCHIVO_NOCHE), `desde ${isoLocal(ahora)}\nhasta ${a.hasta || '—'}\n`);
   lineas.push(`noche: ${ARCHIVO_NOCHE} escrita en el worktree del director de ${p.modulo} (desde ${isoLocal(ahora)}${a.hasta ? `, hasta ${a.hasta}` : ''}): el director y sus obreros quedan nocturnos hasta "volvi"`);
   if (G(L, g.raiz, ['check-ignore', '-q', '--', ARCHIVO_NOCHE]).codigo !== 0) {
-    lineas.push(`⚠️ ${ARCHIVO_NOCHE} no está ignorado: pegá en el .gitignore del principal el gitignore.snippet del kit ENTERO y commitealo`);
+    lineas.push(`⚠️ ${ARCHIVO_NOCHE} no está ignorado en este repo: lo arregla "poné al día este repo"`);
   }
   // 1. los encargos abiertos y su obrero
   const abiertos = encargosAbiertos(L, g.raiz, p.modulo, ahora);
@@ -204,24 +183,19 @@ function meVoy(L, g, a, o) {
     const para = e.apertura === 'director' ? '' : ` · ⚠️ Apertura: ${e.apertura} — de noche para (no lo abre el director)`;
     lineas.push(`encargo ${e.id} · ${e.obrero}${e.parada ? ` · ${e.parada}` : ''}${para}`);
   }
-  // 2. la red: sin red no trabaja nadie y el despertador no ve nada (D §9.5, CM-86)
+  // 2. la red: sin red no trabaja nadie (D §9.5, CM-86)
   const remotos = (L.git.texto(['remote'], { cwd: g.raiz }) || '').split('\n').map((s) => s.trim());
   if (!remotos.includes('origin')) lineas.push('red: sin remoto origin — nadie ve los commits de la noche desde otra PC');
   else {
     const r = G(L, g.raiz, ['ls-remote', '--heads', 'origin'], T_RED);
-    lineas.push(r.ok ? 'red: origin responde' : `red: ❌ origin no responde (${r.error || (r.stderr || '').trim().split('\n')[0].slice(0, 80) || `salió ${r.codigo}`}) — sin red no trabaja nadie y el despertador no ve nada: arreglalo antes de irte`);
+    lineas.push(r.ok ? 'red: origin responde' : `red: ❌ origin no responde (${r.error || (r.stderr || '').trim().split('\n')[0].slice(0, 80) || `salió ${r.codigo}`}) — sin red no trabaja nadie: arreglalo antes de irte`);
   }
   // 3. lo que vence: el script no lo sabe; los recursos de los encargos abiertos sí
   const recursos = [...new Set(abiertos.flatMap((e) => e.recursos))];
   lineas.push(`vence: VPN, credenciales y dispositivos no los ve el script: miralos vos${recursos.length ? ` (los encargos abiertos usan: ${recursos.join(', ')})` : ''}`);
   lineas.push('permisos: lo que no esté en el AUTORIZADO del encargo, de noche es PARADA (predecirlo: NO VERIFICADO)');
-  // 4. el contexto del director (D §11): ≥ 40 %, mudate antes de irte
-  const m = L.uso.medir({ cwd: g.raiz, env: o.env });
-  if (!m.ok) lineas.push(`${L.uso.linea(m)} — medilo antes de irte`);
-  else lineas.push(`${L.uso.linea(m)}${m.pct >= UMBRAL_MUDANZA ? ` — pasa del ${UMBRAL_MUDANZA}%: mudate antes de irte` : ''}`);
-  // 5. la foto del despertador de este módulo, de nuevo: la primera vuelta de la noche compara contra el "me voy", no contra el día.
-  guardarFoto(path.join(g.gitComun, fotoDe(p.modulo)), fotoDeAhora(L, g, p.modulo));
-  lineas.push(`despertador: node .claude/scripts/noche.cjs despertador --modulo ${p.modulo} --cada 300 (en un Monitor o una tarea fuera del director: con --modulo corre desde cualquier checkout)`);
+  // 4. B4.4: sin mudanza ni despertador; el relevo antes de cada espera larga (idleCompaction no se toca: ADR-034).
+  lineas.push(RELEVO);
   return { codigo: 0, lineas };
 }
 
@@ -243,98 +217,12 @@ function volvi(L, g) {
   return { codigo: 0, lineas: [`volví: borré ${ARCHIVO_NOCHE} de ${borradas.join(', ')} — de día otra vez`] };
 }
 
-// ---------------------------------------------------------------- despertador
-
-// La foto de ahora: { refs: { 'refs/...': sha }, red: true|false|null }.
-function fotoDeAhora(L, g, x) {
-  const def = L.contexto.ramaPorDefecto(g.raiz);
-  let red = null;
-  if ((L.git.texto(['remote'], { cwd: g.raiz }) || '').split('\n').map((s) => s.trim()).includes('origin')) {
-    red = G(L, g.raiz, ['fetch', '--prune', '--quiet', 'origin'], 4 * T_RED).ok;
-  }
-  const r = G(L, g.raiz, ['for-each-ref', '--format=%(refname) %(objectname)', 'refs/heads/', 'refs/remotes/origin/']);
-  const refs = {};
-  if (r.ok) {
-    for (const l of r.stdout.split('\n').map((s) => s.trim()).filter(Boolean)) {
-      const [ref, sha] = l.split(' ');
-      const corta = ref.replace(/^refs\/heads\//, '').replace(/^refs\/remotes\/origin\//, '');
-      const m = RE_OBRERO.exec(corta);
-      if ((m && m[1] === x) || (def && corta === def)) refs[ref] = sha;
-    }
-  }
-  return { refs, red, def };
-}
-
-function leerFoto(archivo) {
-  try {
-    const f = JSON.parse(fs.readFileSync(archivo, 'utf8'));
-    return f && typeof f.refs === 'object' && f.refs ? f : null;
-  } catch (e) {
-    return null;
-  }
-}
-function guardarFoto(archivo, f) {
-  const tmp = `${archivo}.${process.pid}.tmp`;
-  fs.writeFileSync(tmp, JSON.stringify({ v: 1, refs: f.refs, red: f.red }));
-  fs.renameSync(tmp, archivo);
-}
-
-// Una vuelta: compara con la foto guardada, la reemplaza y devuelve las líneas DESPERTAR (sin foto anterior: ninguna).
-function vuelta(L, g, x) {
-  const archivo = path.join(g.gitComun, fotoDe(x));
-  const antes = leerFoto(archivo);
-  const ahora = fotoDeAhora(L, g, x);
-  const lineas = [];
-  if (antes) {
-    if (ahora.red === false && antes.red !== false) {
-      const ref = ahora.def ? `refs/remotes/origin/${ahora.def}` : null;
-      lineas.push(`DESPERTAR · sin red · origin@${sha7(ref ? ahora.refs[ref] : null)}`);
-    }
-    // Por rama (local u origin, da igual): un commit que la foto ya tenía en esa rama no despierta otra vez (el push de lo visto).
-    const corta = (ref) => ref.replace(/^refs\/heads\//, '').replace(/^refs\/remotes\/origin\//, '');
-    const vistas = new Set(Object.entries(antes.refs).map(([ref, sha]) => `${corta(ref)}@${sha}`));
-    for (const [ref, sha] of Object.entries(ahora.refs)) {
-      const c = corta(ref);
-      if (vistas.has(`${c}@${sha}`)) continue;
-      vistas.add(`${c}@${sha}`);
-      let motivo = `commit en ${c}`;
-      const m = RE_OBRERO.exec(c);
-      if (m) motivo = paradaDe(evidenciaEn(L, g.raiz, sha, m[1], m[2])) ? 'PARADA' : 'commit';
-      lineas.push(`DESPERTAR · ${motivo} · ${c}@${sha7(sha)}`);
-    }
-  }
-  guardarFoto(archivo, ahora);
-  return lineas;
-}
-
-function despertador(L, g, a, o) {
-  const salida = o.salida;
-  let x = a.modulo;
-  if (!x) {
-    const p = L.contexto.pestana(L.contexto.rama(g.raiz));
-    if (p.tipo !== 'director') return { codigo: 1, lineas: ['despertador: no sé de qué módulo — corrélo desde el worktree del director (rama modulo/<x>) o pasale --modulo <x>'] };
-    x = p.modulo;
-  }
-  if (a.unaVez) return { codigo: 0, lineas: vuelta(L, g, x) };
-  // En loop: imprime solo lo que cambió; nunca termina solo (lo corta quien lo lanzó).
-  const tic = () => {
-    try {
-      const ls = vuelta(L, g, x);
-      if (ls.length) salida(`${ls.join('\n')}\n`);
-    } catch (e) {
-      /* una vuelta rota no corta el loop: la próxima vuelve a mirar */
-    }
-  };
-  tic();
-  setInterval(tic, a.cada * 1000);
-  return { codigo: 0, lineas: [], sigue: true };
-}
-
 // ---------------------------------------------------------------- la noche termina sola (SPEC-paquete-8d B3, D8d-1, D8d-18, D8d-20, D8d-21)
 // La sesión de cierre es de fondo, en la carpeta principal, en `dontAsk` con una lista cerrada; las autorizaciones, las pruebas y el
 // estado de la carpeta los chequea ESTE script, por código, antes de correr nada (no la lectura de un modelo).
 
 const PUBLICACION = 'kit-publicacion.json'; // en el git común, sin versionar: el resultado de la última publicación
+const SOLTADO_CIERRE = 'kit-cierre-soltado.json'; // quién soltó el candado (parte), para que su `subir` siga
 const CANDADO_CIERRE = 'kit-cierre.lock'; // en el git común: dos módulos que terminan la misma noche cierran de a uno (rt-7)
 const CANDADO_VIEJO_MS = 3 * 3600 * 1000;
 const ESPERA_CANDADO_MS = 8 * 60 * 1000; // menos que el plazo de una llamada de Bash: si no alcanza, sale 4 y se vuelve a correr
@@ -396,8 +284,7 @@ function listaCierre(x, defecto, docs) {
     'Read(./**)',
     'Glob',
     'Grep',
-    `Edit(./${docs}/**)`,
-    `Write(./${docs}/**)`,
+    `Edit(./${docs}/**)`, // P4: Edit cubre todas las herramientas que escriben; la línea de comandos avisa que Write no se mira
     'Bash(git status:*)',
     'Bash(git diff:*)',
     'Bash(git log:*)',
@@ -562,6 +449,21 @@ function cierreEmpieza(L, g, x, o) {
   return { codigo: 0, lineas: [`cierre-empieza: la carpeta principal está lista (en ${p.defecto}, sin cambios sin guardar); seguí con git pull --ff-only`] };
 }
 
+// Red team de B3 (6): de fondo, publicar y subir corren solo dentro de la sesión de cierre que tomó el candado (el suyo: el mismo
+// módulo y el mismo KIT_CIERRE_ID). Con persona, no hace falta. → null si puede, o el motivo.
+function sinCandadoDeFondo(L, comun, x, env, que) {
+  if (!L.contexto.deFondo(env)) return null;
+  const q = leerJson(path.join(comun, CANDADO_CIERRE, 'quien.json'));
+  const id = env.KIT_CIERRE_ID ? String(env.KIT_CIERRE_ID) : null;
+  if (q && q.modulo === x && id && (q.id || null) === id && !q.noPude) return null;
+  // P4 (2026-11-13): `parte` suelta el candado y después viene `subir`: sube el mismo cierre que lo soltó, si nadie lo tomó después.
+  if (que === 'subir' && !q && id) {
+    const s = leerJson(path.join(comun, SOLTADO_CIERRE));
+    if (s && s.modulo === x && s.id === id) return null;
+  }
+  return `de fondo, ${que} va dentro de una sesión de cierre con el candado tomado (cierre-empieza ${x} primero)`;
+}
+
 // ---- publicar <x> [--seguir]
 
 const rutaPublicacion = (comun) => path.join(comun, PUBLICACION);
@@ -591,6 +493,8 @@ function publicar(L, g, x, a, o) {
   const p = enPrincipal(L, g);
   if (!p.ok) return { codigo: 1, lineas: [`publicar: no — ${p.por}`] };
   if (a.seguir && (L.contexto.deFondo(o.env || process.env) || L.contexto.deNoche(g.raiz).noche)) return { codigo: 1, lineas: ['publicar: no — destrabar la publicación es una firma del dueño: de fondo o de noche, no'] };
+  const sc = sinCandadoDeFondo(L, p.comun, x, o.env || process.env, 'publicar');
+  if (sc) return { codigo: 1, lineas: [`publicar: no — ${sc}`] };
   const archivo = rutaPublicacion(p.comun);
   const antes = leerJson(archivo) || {};
   const guardar = (d) => escribirJson(archivo, { ...d, cuando: new Date().toISOString() });
@@ -656,14 +560,29 @@ function publicar(L, g, x, a, o) {
   }
   const rango = G(L, p.raiz, ['rev-list', '--first-parent', `${base}..${head}`]);
   if (!rango.ok) return no('no pude leer lo que entró desde la última publicación'); // rt B 7: si git falla, no se publica
+  let hayModulo = false;
   if (!a.seguir) {
     for (const c of lineasDe(rango.stdout)) {
       const pr = G(L, p.raiz, ['rev-list', '--parents', '-n', '1', c]);
       const padres = pr.ok ? lineasDe(pr.stdout)[0].split(' ').length - 1 : 0;
       const asunto = (G(L, p.raiz, ['log', '-1', '--format=%s', c]).stdout || '').trim();
-      if (padres === 2 && RE_INTEGRAR.test(asunto)) continue;
+      // rt B 7: el asunto no alcanza — el segundo padre tiene que ser del módulo que nombra (su rama, acá o en origin). Si esa rama
+      // ya no está (limpiada después de una noche que no publicó), vale el asunto, como antes.
+      const mi = RE_INTEGRAR.exec(asunto);
+      if (padres === 2 && mi) {
+        const segundo = lineasDe(pr.stdout)[0].split(' ')[2];
+        const delModulo = L.E.puntaDe(p.raiz, `modulo/${mi[1]}`);
+        if (!delModulo || esAncestro(L, p.raiz, segundo, delModulo)) {
+          hayModulo = true;
+          continue;
+        }
+      }
       if (padres === 1 && soloPapeles(archivosDe(L, p.raiz, c), p.docs)) continue;
       return no('desde lo último que se publicó entró algo que no es un módulo integrado ni papeles: no publico', 'desde la última publicación entró algo por fuera de un módulo: decidí si se publica');
+    }
+    // P4 (2026-11-13): cada cierre commitea papeles; sin un módulo nuevo desde lo último publicado, no hay nada que publicar.
+    if (!hayModulo && antes.publicado && base === antes.publicado && antes.ultimaSalida === 0) {
+      return { codigo: 0, lineas: ['publicar: desde lo último publicado solo entraron papeles: no hay nada nuevo que publicar'] };
     }
   }
   const salida = path.join(os.tmpdir(), `kit-pub-${crypto.randomBytes(8).toString('hex')}.log`);
@@ -680,14 +599,21 @@ function publicar(L, g, x, a, o) {
     const vars = fv.datos.vars || {};
     if (!alSubir) {
       const plazoT = Math.max(T_PRUEBAS, Number(vars['plazo-test']) * 60000 || 0);
+      // Revisor frío de B (3), cicatriz 52: un `prepare` (husky) del comando-setup cambia core.hooksPath y apaga los githooks del
+      // kit en todo el repo: se anota antes y se repone después (como el setup de worktree.cjs).
+      const hooksAntes = (G(L, p.raiz, ['config', '--get', 'core.hooksPath']).stdout || '').trim();
       const r = L.proceso.conTurno('publicar', () => {
-        for (const k of ['comando-setup', 'comando-test']) {
-          const cmd = typeof vars[k] === 'string' && vars[k].trim() ? vars[k] : null;
-          if (!cmd) continue;
-          const q = correrPaso(L, cmd, p.raiz, plazoT, salida);
-          if (q.estado !== 'verde') return { falla: k };
+        try {
+          for (const k of ['comando-setup', 'comando-test']) {
+            const cmd = typeof vars[k] === 'string' && vars[k].trim() ? vars[k] : null;
+            if (!cmd) continue;
+            const q = correrPaso(L, cmd, p.raiz, plazoT, salida);
+            if (q.estado !== 'verde') return { falla: k };
+          }
+          return { ok: true };
+        } finally {
+          if (hooksAntes && (G(L, p.raiz, ['config', '--get', 'core.hooksPath']).stdout || '').trim() !== hooksAntes) G(L, p.raiz, ['config', 'core.hooksPath', hooksAntes]);
         }
-        return { ok: true };
       }, { salida: o.salida });
       pasos.pruebas = r.ok ? 'pasó' : 'falló';
       if (!r.ok) return fin(1, 'las pruebas fallaron en la carpeta principal: no publiqué', false);
@@ -718,10 +644,12 @@ function publicar(L, g, x, a, o) {
 
 // ---- subir <x>: el único push del cierre, y solo de papeles
 
-function subir(L, g, x) {
+function subir(L, g, x, o = {}) {
   const no = (m) => ({ codigo: 1, lineas: [`subir: no — ${m}`] });
   const p = enPrincipal(L, g);
   if (!p.ok) return no(p.por);
+  const sc = sinCandadoDeFondo(L, p.comun, x, o.env || process.env, 'subir');
+  if (sc) return no(sc);
   // rt B 12: en un proyecto que publica al subir, cada push a la rama por defecto es publicar: con la publicación trabada, no.
   const fv = L.contexto.fichaVigente(p.raiz);
   const pub = fv.estado === 'ok' && fv.datos.autorizado && typeof fv.datos.autorizado === 'object' ? fv.datos.autorizado.publicar : undefined;
@@ -784,8 +712,21 @@ function parte(L, g, x, a, o) {
   if (quien.noPude) noPude.unshift(quien.noPude);
   if (!p.ok && !quien.noPude) noPude.push(`no pude trabajar en la carpeta principal: ${p.por}`);
   // Qué quedó
-  const punta = L.E.puntaDe(raiz, `modulo/${x}`);
   const od = defecto ? shaDe(L, raiz, `refs/remotes/origin/${defecto}`) || shaDe(L, raiz, `refs/heads/${defecto}`) : null;
+  // Revisor frío de B (2): `limpiar` corre antes y borra la rama ya mezclada del módulo: sin la rama, la punta es el segundo padre
+  // del merge `integrar: módulo <x>` más nuevo del primer padre de la rama por defecto.
+  let punta = L.E.puntaDe(raiz, `modulo/${x}`);
+  if (!punta && od) {
+    const lg = G(L, raiz, ['log', '--first-parent', '--merges', '-n', '200', '--format=%P%x09%s', od]);
+    for (const l of lineasDe(lg.stdout)) {
+      const [padres, asunto] = l.split('\t');
+      const m = RE_INTEGRAR.exec(asunto || '');
+      if (m && m[1] === x) {
+        punta = padres.split(' ')[1] || null;
+        break;
+      }
+    }
+  }
   const integrado = !!(punta && od && esAncestro(L, raiz, punta, od));
   if (!integrado) noPude.push(`el módulo ${x} no quedó integrado`);
   const pub = leerJson(rutaPublicacion(comun));
@@ -812,13 +753,23 @@ function parte(L, g, x, a, o) {
     if (ult && esAncestro(L, raiz, punta, ult) && ult !== punta) papeles = 'sí';
   }
   if (papeles === 'no') noPude.push('los papeles (handoff, CHANGELOG, TODO) no quedaron al día');
-  const wts = (L.contexto.worktrees(raiz) || []).length;
-  const limpias = wts <= 1 ? 'sí' : `no (quedan ${wts - 1})`;
-  if (wts > 1) noPude.push(`quedan ${wts - 1} carpeta(s) de trabajo abiertas: las cierra la próxima limpieza`);
+  // P4: también cuenta la carpeta que git ya no registra pero sigue en el disco (una sesión la tenía abierta y no se pudo borrar).
+  const registradas = (L.contexto.worktrees(raiz) || []).filter((w) => path.resolve(w.ruta).toLowerCase() !== path.resolve(raiz).toLowerCase()).map((w) => path.resolve(w.ruta).toLowerCase());
+  let enDisco = [];
+  try {
+    enDisco = fs.readdirSync(path.join(raiz, '.claude', 'worktrees'), { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => path.resolve(raiz, '.claude', 'worktrees', e.name).toLowerCase());
+  } catch (e) {
+    enDisco = [];
+  }
+  // P4: el worktree del director de este módulo sigue vivo después de la noche (muestra el parte y para): no cuenta.
+  const delDirector = path.resolve(raiz, '.claude', 'worktrees', `modulo--${x}`).toLowerCase();
+  const quedan = new Set([...registradas, ...enDisco].filter((r) => r !== delDirector)).size;
+  const limpias = quedan === 0 ? 'sí' : `no (quedan ${quedan})`;
+  if (quedan) noPude.push(`quedan ${quedan} carpeta(s) de trabajo abiertas: las cierra la próxima limpieza`);
   // Te necesito y Qué se hizo
   let te = [];
   try {
-    te = require('../hooks/lib/espera.cjs').teEspera(raiz, { ahora });
+    te = require('../hooks/lib/espera.cjs').teEspera(raiz, { ahora, sinParte: true });
   } catch (e) {
     te = [];
   }
@@ -864,7 +815,10 @@ function parte(L, g, x, a, o) {
   fs.writeFileSync(abs, texto);
   // El candado lo suelta solo el cierre que lo tomó (rt B 6): otro cierre que se cansó de esperar no suelta el de nadie.
   const id = env.KIT_CIERRE_ID ? String(env.KIT_CIERRE_ID) : null;
-  if (!quien.modulo || ((quien.id || null) === id && quien.modulo === x)) fs.rmSync(path.join(comun, CANDADO_CIERRE), { recursive: true, force: true });
+  if (!quien.modulo || ((quien.id || null) === id && quien.modulo === x)) {
+    fs.rmSync(path.join(comun, CANDADO_CIERRE), { recursive: true, force: true });
+    if (quien.modulo && id && !quien.noPude) escribirJson(path.join(comun, SOLTADO_CIERRE), { modulo: x, id, cuando: new Date().toISOString() });
+  }
   return { codigo: 0, lineas: [texto.trimEnd(), '', `(el parte quedó en ${rel})`] };
 }
 
@@ -884,9 +838,9 @@ function main(argv, opciones = {}) {
     else if (a.comando === 'cierre') r = cierre(L, g, a.modulo, opciones);
     else if (a.comando === 'cierre-empieza') r = cierreEmpieza(L, g, a.modulo, { ...opciones, salida });
     else if (a.comando === 'publicar') r = publicar(L, g, a.modulo, a, { ...opciones, salida });
-    else if (a.comando === 'subir') r = subir(L, g, a.modulo);
+    else if (a.comando === 'subir') r = subir(L, g, a.modulo, opciones);
     else if (a.comando === 'parte') r = parte(L, g, a.modulo, a, opciones);
-    else r = despertador(L, g, a, { ...opciones, salida });
+    else r = { codigo: 0, lineas: [SIN_DESPERTADOR] };
   } catch (e) {
     if (e instanceof MalLlamado) {
       error(`${e.message}\n${USO}\n`);
@@ -909,4 +863,4 @@ if (require.main === module) {
   process.exitCode = codigo;
 }
 
-module.exports = { SETTINGS_CIERRE, paraElDueno, partirRegla, USO, ARCHIVO_NOCHE, PUBLICACION, CANDADO_CIERRE, fotoDe, UMBRAL_MUDANZA, leerArgumentos, paradaDe, vuelta, listaCierre, cubre, loQueSobra, main };
+module.exports = { SETTINGS_CIERRE, paraElDueno, partirRegla, USO, ARCHIVO_NOCHE, PUBLICACION, CANDADO_CIERRE, SIN_DESPERTADOR, RELEVO, leerArgumentos, paradaDe, listaCierre, cubre, loQueSobra, main };

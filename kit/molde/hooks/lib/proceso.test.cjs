@@ -155,3 +155,23 @@ test('B5 conTurno: dos a la vez → el segundo espera y entra; un candado huérf
   assert.ok(fs.existsSync(dir), 'el de otro no se borra');
   fs.rmSync(path.dirname(dir), { recursive: true, force: true });
 });
+
+test('B5 conTurno: adentro de un turno propio no se espera a sí mismo (integrar → el gate); KIT_TURNO_DIR cambia la carpeta', () => {
+  const os = require('os');
+  const P = require('./proceso.cjs');
+  const dir = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'kit-turno-')), 'turno');
+  const t0 = Date.now();
+  const r = P.conTurno('afuera', () => P.conTurno('adentro', () => 'las dos', { dir, cadaMs: 20, esperaMaxMs: 3000 }), { dir });
+  assert.equal(r, 'las dos');
+  assert.ok(Date.now() - t0 < 2000, 'se esperó a sí mismo');
+  assert.ok(!fs.existsSync(dir), 'el de adentro no suelta el de afuera antes ni deja nada');
+  const antes = process.env.KIT_TURNO_DIR;
+  process.env.KIT_TURNO_DIR = dir;
+  try {
+    assert.equal(P.conTurno('por env', () => fs.existsSync(path.join(dir, 'quien.json'))), true);
+  } finally {
+    if (antes === undefined) delete process.env.KIT_TURNO_DIR;
+    else process.env.KIT_TURNO_DIR = antes;
+  }
+  fs.rmSync(path.dirname(dir), { recursive: true, force: true });
+});

@@ -239,7 +239,8 @@ function leerEncargo(texto, nombre, carpeta) {
     const toca = { rutas: [], recursos: [] };
     for (const it of items) {
       const r = /^recurso: (.*)$/.exec(it.texto);
-      if (!r) toca.rutas.push(it.texto.replace(/^`(.*)`$/, '$1'));
+      // B7 22 (R17): `ruta:línea`, `ruta:desde-hasta` y `ruta (texto)` valen como la ruta sola.
+      if (!r) toca.rutas.push(it.texto.replace(/\s+\(.*\)$/, '').replace(/`/g, '').replace(/:\d+(?:-\d+)?$/, '').trim());
       else if (/^(suite|navegador|puerto \d+)$/.test(r[1].trim())) toca.recursos.push(r[1].trim());
       else errores.push(`## Toca, renglón ${it.n}: el recurso es suite, puerto N o navegador`);
     }
@@ -538,7 +539,7 @@ function juzgarSpec(buf, { hayFicha, datosFicha }) {
   if (r.estado !== 'ok') return { ok: false, por: `sello en un estado que no conozco (${r.estado}): que el director llame al Arquitecto` };
   const lineas = sello.renglones(buf);
   const u = sello.ubicar(lineas);
-  if (u.estado < 0 || !sello.valorEstado(lineas[u.estado]).startsWith('READY')) return { ok: false, por: 'spec sin READY: falta el OK de Guido y `ready`' };
+  if (u.estado < 0 || !sello.valorEstado(lineas[u.estado]).startsWith('READY')) return { ok: false, por: 'spec sin READY: falta el OK del dueño y `ready`' };
   return { ok: true };
 }
 
@@ -626,12 +627,28 @@ function citaMesa(palabras) {
 // y, si va, la ruta); `rol`: el de contexto.rol; `pestana`: la de contexto.pestana(rama), que decide el lado; `rutaEnModulo(x, ruta,
 // sha)` y `citaDeMesa(alias, ruta, sha)` → { ok, sha12 } · { ok: false, por }: los chequeos de git (inyectados: así se prueba la
 // tabla sola). Un tipo de mesa llega solo a un director y vale si git respalda su archivo en el repo del otro (crit. 13 y 16).
+// B4.6 (59): el nombre de una sesión sale de su rama, no de la plataforma: director-<x>, obrero-<x>--<ID>; otra rama → null.
+function nombreDeSesion(pestana) {
+  if (!pestana) return null;
+  if (pestana.tipo === 'director') return `director-${pestana.modulo}`;
+  if (pestana.tipo === 'obrero') return `obrero-${pestana.modulo}--${pestana.id}`;
+  return null;
+}
+
 function juzgarMensaje({ texto, rol, pestana, rutaEnModulo: enModulo, citaDeMesa }) {
   const no = (linea) => ({ codigo: 1, linea });
   if (rol === 'humano' || rol === 'desconocido') return no(`${NO_RECIBE} (rol ${rol})`);
   const lado = pestana && (pestana.tipo === 'director' || pestana.tipo === 'obrero') ? pestana.tipo : null;
   if (!lado) return no(`${NO_RECIBE} (la rama ${(pestana && pestana.rama) || '(ninguna)'} no es de un módulo)`);
-  const p = String(texto || '').trim().split(/\s+/).map(limpiarPalabra).filter(Boolean);
+  let p = String(texto || '').trim().split(/\s+/).map(limpiarPalabra).filter((w) => w && w !== '·');
+  // B4.6: `PARA <destino> · <TIPO> …`. Sin PARA vale como antes (los mensajes de las pestañas y de un kit de antes).
+  if (p[0] === 'PARA') {
+    const destino = p[1];
+    if (!destino) return no('no vale: PARA sin destino: anotalo y no lo ejecutes');
+    const yo = nombreDeSesion(pestana);
+    if (destino !== yo) return no(`no es para vos: es para ${destino} y vos sos ${yo} (el nombre sale de tu rama): anotalo y no lo ejecutes`);
+    p = p.slice(2);
+  }
   const cita = citaMesa(p.slice(1));
   // RESPUESTA y PRESENTACION están en las dos columnas: con cita de mesa es la de la mesa (y a un obrero no llega); sin cita, la
   // de director y obreros.
@@ -656,5 +673,5 @@ module.exports = {
   RE_X, RE_ID, VOCABULARIO, CAMPOS, SECCIONES, HERRAMIENTAS, INTERPRETES, SCRIPT_ENCARGO, SIN_SELLO, NO_RECIBE, DEVUELTO, ErrorGit,
   nombreEncargo, sinTilde, tipoDe, leerEncargo, interprete, interpreteAbierto, validarRegla, validarAutorizado, aPermiso, base,
   shaDe, esAncestro, refMasNueva, tipoEn, leerEn, ubicarEncargo, specVigente, gateQuitadoEl, juzgarSpec, selloConTareaCero, fichaConEntornoDePrueba, tareaCeroPendiente, limpiarPalabra, rutaYSha,
-  rutaEnModulo, juzgarMensaje, citaMesa, RE_CITA_MESA, paradaDe, evidenciaEn, puntaDe, estadoEncargo,
+  rutaEnModulo, juzgarMensaje, nombreDeSesion, citaMesa, RE_CITA_MESA, paradaDe, evidenciaEn, puntaDe, estadoEncargo,
 };

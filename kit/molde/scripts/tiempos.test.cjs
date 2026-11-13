@@ -264,3 +264,43 @@ test('alarma: --transcript sin ruta es mal llamado (2)', () => {
   assert.equal(correr(TMP, 'alarma', '--transcript').codigo, 2);
   assert.equal(correr(TMP, 'alarma', 'x').codigo, 2);
 });
+
+test('B7 57, 24: contador — el commit del director (solo papeles del módulo, mergeado con lo corregido) no es desvío ni sub-paso; un encargo con la rama borrada se conserva de tiempos.md', () => {
+  const dir = repo();
+  // El director corrige el encargo después de la partida y el obrero lo trae (B4.3); después se integra y la rama del obrero se mergea.
+  git(dir, 'checkout', '-q', 'modulo/m1');
+  commit(dir, { 'docs/modulos/m1/README.md': '# M1\n- Estado: EN OBRA\n- nota del director\n' }, 'ficha: nota', '2026-11-01T10:10:00+00:00');
+  git(dir, 'checkout', '-q', 'modulo/m1--07');
+  git(dir, 'reset', '-q', '--hard', 'HEAD~1'); // sin el desvío de repo()
+  git(dir, 'merge', '-q', '--no-edit', 'modulo/m1');
+  git(dir, 'checkout', '-q', 'modulo/m1');
+  git(dir, 'merge', '-q', '--no-ff', '-m', 'merge 07', 'modulo/m1--07');
+  git(dir, 'checkout', '-q', 'main');
+  let r = correr(dir, 'contador', 'm1');
+  assert.equal(r.codigo, 0, r.err);
+  assert.match(r.out, /^contador m1: 1 encargo\(s\) · 2 sub-paso\(s\) · 0 desvío\(s\)/, r.out);
+  // La rama borrada: tiempos.md la guardó; el contador la sigue contando (sin desvíos que juzgar).
+  correr(dir, 'tiempos', 'm1');
+  git(dir, 'branch', '-D', 'modulo/m1--07');
+  r = correr(dir, 'contador', 'm1');
+  assert.equal(r.codigo, 0, r.err);
+  assert.match(r.out, /^contador m1: 1 encargo\(s\) · 2 sub-paso\(s\) · 0 desvío\(s\)/, r.out);
+  assert.match(r.out, /\n {2}07 · 2 sub-paso\(s\) · la rama ya no está \(de tiempos\.md; los desvíos se juzgaron mientras estaba\)/);
+});
+
+test('revisor frío de B (7): con la rama ya mezclada, los commits de OTRO encargo que entraron con "traje lo corregido" no son sub-pasos de este', () => {
+  const dir = repo();
+  git(dir, 'checkout', '-q', '-b', 'modulo/m1--08', 'modulo/m1');
+  commit(dir, { 'docs/modulos/m1/bitacora/2026-11-01-encargo-08.md': encargo('08', 'm1', 'abc1234', ['src/b/']) }, 'encargo 08', '2026-11-01T09:00:00+00:00');
+  commit(dir, { 'src/b/z.js': '1\n' }, 'el 08', '2026-11-01T10:15:00+00:00');
+  git(dir, 'checkout', '-q', 'modulo/m1');
+  git(dir, 'merge', '-q', '--no-ff', '-m', 'merge 08', 'modulo/m1--08');
+  git(dir, 'checkout', '-q', 'modulo/m1--07');
+  git(dir, 'merge', '-q', '--no-edit', 'modulo/m1'); // presentar trae lo corregido
+  git(dir, 'checkout', '-q', 'modulo/m1');
+  git(dir, 'merge', '-q', '--no-ff', '-m', 'merge 07', 'modulo/m1--07');
+  git(dir, 'checkout', '-q', 'main');
+  const r = correr(dir, 'contador', 'm1');
+  assert.equal(r.codigo, 0, r.err);
+  assert.match(r.out, /\n {2}07 · 3 sub-paso\(s\) · 1 desvío\(s\)\n/, r.out);
+});

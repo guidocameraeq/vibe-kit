@@ -36,7 +36,12 @@ function leerArgumentos(argv) {
       const v = argv[++i];
       if (v === undefined || v.startsWith('--') || v.trim() === '') throw new MalLlamado(`${a} pide un valor`);
       if (a === '--salida') o.salida = v;
-      else if (a === '--pruebas') o.pruebas = v.trim();
+      else if (a === '--pruebas') {
+        // B7 22: una ruta sola a un archivo de pruebas o de texto (sin espacios, `.test.*`, `.spec.*`, `.md`, `.json`) no es un
+        // comando: lo dice en vez de "correrla". Un script de una palabra (`./scripts/test.sh`, `bin/test`) sí vale (revisor, 12).
+        if (/^[^\s]+$/.test(v.trim()) && /\.(?:test|spec)\.[cm]?[jt]sx?$|\.(?:md|json)$/i.test(v.trim())) throw new MalLlamado(`--pruebas "${v.trim()}": esto parece una ruta: quería un comando (por ejemplo "node --test <ruta>")`);
+        o.pruebas = v.trim();
+      }
       else {
         const n = Number(v);
         if (!Number.isFinite(n) || n <= 0) throw new MalLlamado('--plazo pide minutos (un número mayor que 0)');

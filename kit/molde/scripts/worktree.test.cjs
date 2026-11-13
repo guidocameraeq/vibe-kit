@@ -11,6 +11,9 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'kit-worktree-'));
+// B5: el turno de la PC, propio de este archivo: la suite corre los archivos en paralelo y uno no espera al otro (lo que se prueba
+// del turno, con su carpeta aparte).
+process.env.KIT_TURNO_DIR = path.join(TMP, 'turno');
 const GLOBAL = path.join(TMP, 'gitconfig-vacio');
 fs.writeFileSync(GLOBAL, '[core]\n\tlongpaths = true\n'); // el remoto bare en un temporal hondo pasa los 260 de Windows
 const HOME = path.join(TMP, 'home');
@@ -386,6 +389,23 @@ test('comando-setup que falla → 1, lo dice, no borra nada y da la línea igual
   assert.match(r.out, /comando-setup falló \(salida 3\)/);
   assert.ok(r.out.endsWith(apertura(p.wt('modulo--x'), 'Opus', 'director-x')), r.out);
   assert.ok(existeRama(p.P, 'modulo/x') && fs.existsSync(path.join(p.wt('modulo--x'), '.kit-rol')));
+});
+
+test('B7 30 (R18, 52): el comando-setup de crear tiene plazo (colgado → lo mata y lo dice) y, si cambió core.hooksPath, lo vuelve a prender', () => {
+  const p = proyecto({ setup: 'node cuelga.cjs', archivos: { 'cuelga.cjs': 'setTimeout(() => {}, 20000)\n' } });
+  const r = cli(p.P, ['crear', 'x'], { plazoSetup: 1500 });
+  assert.equal(r.codigo, 1, r.out);
+  assert.match(r.out, /comando-setup no terminó en 2 s \(lo maté con todo lo que lanzó\): corrélo a mano adentro del worktree; no borré nada/);
+  const q = proyecto({ setup: 'node prepara.cjs', archivos: { 'prepara.cjs': "require('child_process').execFileSync('git', ['config', 'core.hooksPath', '.husky']);\n" } });
+  g(q.P, 'config', 'core.hooksPath', '.githooks');
+  const s = cli(q.P, ['crear', 'x']);
+  assert.equal(s.codigo, 0, s.out);
+  assert.equal(g(q.P, 'config', '--get', 'core.hooksPath'), '.githooks');
+  assert.match(s.out, /^comando-setup cambió core\.hooksPath \(a \.husky\): lo volví a \.githooks$/m);
+  // Sin cambio, nada que decir.
+  const t = proyecto();
+  g(t.P, 'config', 'core.hooksPath', '.githooks');
+  assert.doesNotMatch(cli(t.P, ['crear', 'x']).out, /core\.hooksPath/);
 });
 
 // t6, rt-2 (D8r.2): el setup corre en la shell de los comandos; `cmd /c` en Git Bash no se corre (saldría verde sin hacer nada).
@@ -820,6 +840,7 @@ const fichaI = (nombre, o = {}) =>
     `  proyecto: ${nombre}`,
     ...(o.setup === null ? [] : [`  comando-setup: ${o.setup || 'node setup.cjs'}`]),
     ...(o.test === null ? [] : [`  comando-test: ${o.test || 'node test.cjs'}`]),
+    ...(o.plazoTest ? [`  plazo-test: ${o.plazoTest}`] : []),
     'frenos:',
     '  opcionales: []',
     ...(o.quitados ? ['  quitados:', ...o.quitados.map((q) => `    - ${q}`)] : ['  quitados: []']),
@@ -898,7 +919,7 @@ test('integrar verde: sin commit de frenos.log (A6, B4.8), merge --no-ff en orig
   assert.equal(g(p.remoto, 'show', `${merge}:m.txt`), 'del módulo');
   assert.match(r.out, new RegExp(`^worktree integrar: módulo x en origin/main — merge ${merge}$`, 'm'));
   assert.match(r.out, /comando-setup anduvo: node setup\.cjs/);
-  assert.match(r.out, /comando-test en verde: node test\.cjs/);
+  assert.match(r.out, /comando-test pasó: node test\.cjs/);
   assert.ok(r.out.endsWith('después: noche.cjs cierre x (la sesión de cierre pone al día los papeles de main, publica si toca y limpia)\n'), r.out);
   assert.ok(existeRama(p.P, 'modulo/x') && fs.existsSync(wx), 'integrar no cierra el módulo: eso es cerrar');
   // La segunda: nada que integrar, nada cambia.
@@ -1000,8 +1021,8 @@ test('integrar con el gate en rojo → 1 y nada sube: un commit que toca una bar
   const r = cli(p.P, ['integrar', 'x']);
   assert.equal(r.codigo, 1);
   assert.match(r.out, /^candado:barreras · .*toca/m);
-  assert.match(r.out, /no corrí comando-test: el gate ya está rojo/);
-  assert.match(r.out, /el gate está en rojo: nada subió/);
+  assert.match(r.out, /no corrí comando-test: el gate ya falló/);
+  assert.match(r.out, /el gate falló: nada subió/);
   assert.equal(enOrigin(p), base);
   sinTemporal(p);
 });
@@ -1010,7 +1031,7 @@ test('integrar con el gate en rojo → 1 y nada sube: comando-test rojo, sin com
   let r;
   let base;
   const casos = [
-    [{ test: 'node rojo.cjs', archivos: { 'rojo.cjs': 'process.exit(4)\n' } }, {}, /comando-test en rojo \(salida 4\): node rojo\.cjs/],
+    [{ test: 'node rojo.cjs', archivos: { 'rojo.cjs': 'process.exit(4)\n' } }, {}, /comando-test falló \(salida 4\): node rojo\.cjs/],
     [{ test: null }, {}, /NO VERIFICADO: la ficha no tiene vars\.comando-test/],
     [
       { test: 'node colgado.cjs', archivos: { 'colgado.cjs': "require('fs').writeFileSync(process.env.KIT_PRUEBA_PID, String(process.pid));\nsetTimeout(() => {}, 20000);\n" } },
@@ -1200,6 +1221,11 @@ test('rf-1: cerrar x--02 --cancelado — sin el renglón (o sin el SHA de la pun
   assert.ok(!gOk(p.remoto, 'rev-parse', '--verify', '-q', 'refs/heads/modulo/x--02'), 'y la de origin');
   assert.match(r.out, new RegExp(`worktree cerrar: modulo/x--02 cancelada \\(el trabajo se recupera por @${punta.slice(0, 7)}, anotado en docs/modulos/x/README\\.md\\)\\n$`));
   assert.equal(g(p.P, 'cat-file', '-t', punta), 'commit', 'el trabajo sigue en el repo, por su SHA');
+  // B7 21: lo que no estaba commiteado (sucio.txt) quedó guardado en refs/kit/rescate/x--02, sobre la punta, y lo dice.
+  const rescate = g(p.P, 'rev-parse', 'refs/kit/rescate/x--02');
+  assert.equal(g(p.P, 'show', `${rescate}:sucio.txt`), 'sin commitear');
+  assert.equal(g(p.P, 'rev-parse', `${rescate}^1`), punta);
+  assert.match(r.out, /^guardé lo que no estaba commiteado en refs\/kit\/rescate\/x--02 \(1 archivo\)$/m);
   // De nuevo: no queda nada que borrar, 0. Y integrar ya no lo ve abierto.
   assert.match(cli(wx, ['cerrar', 'x--02', '--cancelado']).out, /ya no estaba ni acá ni en origin/);
   r = cli(p.P, ['integrar', 'x']);
@@ -1242,7 +1268,7 @@ test('rf-2: integrar con el temporal ensuciado por el test (coverage/ sin ignora
   const bq = enOrigin(q);
   r = cli(q.P, ['integrar', 'x']);
   assert.equal(r.codigo, 1);
-  assert.match(r.out, /el gate está en rojo: nada subió/);
+  assert.match(r.out, /el gate falló: nada subió/);
   assert.equal(enOrigin(q), bq);
   sinTemporal(q);
 });
@@ -1490,15 +1516,17 @@ test('8r4 u1: donde — entrar desde el principal y desde otro worktree, adentro
   const w2 = p.wt('modulo--x--02');
   assert.deepEqual(cli(p.P, ['donde', 'x--02']), { codigo: 0, out: entrar(w2), err: '' });
   assert.equal(cli(w2, ['donde', 'x--02']).out, `adentro: modulo/x--02 · rol nocturno · ${barras(w2)}\n`);
-  // rt-6: el obrero con cambios sin commitear → 1 (frenos.log no cuenta); el director, no.
+  // rt-6 y B7 21: el obrero con cambios sin commitear entra igual a SU encargo (vuelve tras un corte) y se le avisa; frenos.log no
+  // cuenta; el director, sin aviso.
   frenosLog.anotar(w1, { id: 'deny:x', herramienta: 'Bash', detalle: 'algo', rol: 'obrero', rama: 'modulo/x--01' });
-  assert.equal(cli(p.P, ['donde', 'x--01']).codigo, 0, 'frenos.log con renglones no cuenta');
+  assert.doesNotMatch(cli(p.P, ['donde', 'x--01']).out, /^ojo:/, 'frenos.log con renglones no cuenta');
   fs.writeFileSync(path.join(w1, 'sucio.txt'), 'a medias\n');
-  for (const cwd of [p.P, w1]) {
-    r = cli(cwd, ['donde', 'x--01']);
-    assert.equal(r.codigo, 1);
-    assert.match(r.out, /^¿hay otra sesión en este worktree\? .*sucio\.txt/);
-  }
+  r = cli(p.P, ['donde', 'x--01']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(r.out, /^ojo: .* tiene cambios sin commitear \(\?\? sucio\.txt\): si son tuyos de antes de un corte, seguí desde ahí y guardalos; si hay otra sesión adentro, PARADA\nentrar: /);
+  r = cli(w1, ['donde', 'x--01']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(r.out, /^ojo: .*sucio\.txt.*\nadentro: modulo\/x--01 · rol obrero/);
   fs.writeFileSync(path.join(wx, 'sucio.txt'), 'del director\n');
   assert.equal(cli(wx, ['donde', 'x']).codigo, 0, 'el director con cambios: sigue (rt-6 es del obrero)');
 });
@@ -1602,9 +1630,9 @@ test('8r4 u2: traer-main con barreras en rojo (el merge deja un hook distinto de
   const r = cli(p.wx, ['traer-main', 'x']);
   assert.equal(r.codigo, 1, r.out);
   assert.match(r.out, /^candado:barreras · /m);
-  assert.match(r.out, /barreras en rojo: hooks:\.claude\/hooks\/h\.cjs — merge abortado, modulo\/x quedó como estaba/);
-  assert.match(r.out, /^para el dueño, en su checkout principal y en main: node \.claude\/scripts\/cambios\.cjs nuevo --slug traer-main-x --clase 3-barrera --toca hooks --id "hooks:\.claude\/hooks\/h\.cjs" --origen "traer main @[0-9a-f]{7} a modulo\/x \(worktree\.cjs traer-main\) da rojo en barreras" --cuerpo "[^"]+kit-traer-main\/x\.md"$/m);
-  assert.match(r.out, /barreras en rojo: nada se commiteó ni subió/);
+  assert.match(r.out, /barreras fallaron: hooks:\.claude\/hooks\/h\.cjs — merge abortado, modulo\/x quedó como estaba/);
+  assert.match(r.out, /^para el dueño, en su checkout principal y en main: node \.claude\/scripts\/cambios\.cjs nuevo --slug traer-main-x --clase 3-barrera --toca hooks --id "hooks:\.claude\/hooks\/h\.cjs" --origen "traer main @[0-9a-f]{7} a modulo\/x \(worktree\.cjs traer-main\) falla en barreras" --cuerpo "[^"]+kit-traer-main\/x\.md"$/m);
+  assert.match(r.out, /barreras fallaron: nada se commiteó ni subió/);
   assert.equal(g(p.wx, 'rev-parse', 'HEAD'), antes[0]);
   assert.ok(!gOk(p.wx, 'rev-parse', '-q', '--verify', 'MERGE_HEAD'), 'sin merge a medias');
   assert.equal(leer(p.wx, '.claude/hooks/h.cjs'), HOOK_T.replace('l1', 'l1-modulo'));
@@ -1768,4 +1796,45 @@ test('B3.2 integrar de noche con la publicación trabada no sube nada; de día, 
   assert.equal(enOrigin(p), base);
   fs.rmSync(path.join(wx, '.kit-noche'));
   assert.equal(cli(p.P, ['integrar', 'x']).codigo, 0);
+});
+
+// ---------------------------------------------------------------- B5: el turno y plazo-test en el gate de integrar
+
+test('B5: el gate de integrar espera el turno de la PC y lo dice (nunca se cuelga); plazo-test de la ficha agranda el plazo fijo', () => {
+  const dir = path.join(TMP, `turno-${Date.now()}`);
+  fs.mkdirSync(dir);
+  const otro = require('child_process').spawn(process.execPath, ['-e', 'setTimeout(() => {}, 60000)'], { stdio: 'ignore' });
+  fs.writeFileSync(path.join(dir, 'quien.json'), JSON.stringify({ quien: 'otra suite', pid: otro.pid, desde: new Date().toISOString() }));
+  const antes = process.env.KIT_TURNO_DIR;
+  process.env.KIT_TURNO_DIR = dir;
+  try {
+    const p = proyectoI({ test: 'node lento.cjs', plazoTest: 1, archivos: { 'lento.cjs': 'setTimeout(() => {}, 2500)\n' } });
+    moduloX(p);
+    const r = cli(p.P, ['integrar', 'x'], { turno: { cadaMs: 20, esperaMaxMs: 300 }, plazoTest: 1000 });
+    assert.equal(r.codigo, 0, r.out);
+    assert.match(r.out, /turno: espero que termine otra suite \(una corrida pesada a la vez en esta PC\)\n/);
+    assert.match(r.out, /turno: esperé 0 min a otra suite; sigo igual \(nunca me cuelgo\)\n/);
+    assert.match(r.out, /comando-test pasó: node lento\.cjs/, 'con plazo-test: 1 (60 s), los 1000 ms fijos no lo cortan');
+  } finally {
+    otro.kill();
+    if (antes === undefined) delete process.env.KIT_TURNO_DIR;
+    else process.env.KIT_TURNO_DIR = antes;
+  }
+});
+
+test('B7 30, 57: el push de integrar espera 600 s; cerrar reintenta una vez el worktree remove que falla (la carpeta sigue), no más', () => {
+  assert.equal(W.T_PUSH_INTEGRAR, 600000);
+  assert.equal(W.PLAZO_SETUP, 30 * 60 * 1000);
+  const dir = fs.mkdtempSync(path.join(TMP, 'rm-'));
+  let veces = 0;
+  const L = (fallas) => ({ git: { correr: () => (++veces <= fallas ? { ok: false, stderr: 'Permission denied' } : { ok: true }) } });
+  assert.equal(W.quitarWorktree(L(1), dir, TMP, 10).ok, true, 'la segunda anda');
+  assert.equal(veces, 2);
+  veces = 0;
+  assert.equal(W.quitarWorktree(L(5), dir, TMP, 10).ok, false, 'falla dos veces: no insiste');
+  assert.equal(veces, 2);
+  veces = 0;
+  fs.rmSync(dir, { recursive: true, force: true });
+  assert.equal(W.quitarWorktree(L(5), dir, TMP, 10).ok, false, 'sin carpeta no reintenta');
+  assert.equal(veces, 1);
 });

@@ -213,7 +213,9 @@ function dePublicacion(raiz) {
 
 function teEspera(raiz, opciones = {}) {
   const ahora = opciones.ahora instanceof Date ? opciones.ahora : new Date();
-  const fuentes = [deCambios, dePublicacion, deFusiones, deFichas, deHandoff, (r) => deTodo(r, diaDe(ahora)), deParte];
+  // Revisor frío de B (5): el parte nuevo no lee el anterior (sinParte): si no, cada parte copiaba el "te necesito" del otro y lo
+  // resuelto volvía para siempre. /estado sí lo lee (lo de la última noche, hasta el parte siguiente).
+  const fuentes = [deCambios, dePublicacion, deFusiones, deFichas, deHandoff, (r) => deTodo(r, diaDe(ahora)), ...(opciones.sinParte ? [] : [deParte])];
   const out = [];
   const vistas = new Set();
   for (const f of fuentes) {

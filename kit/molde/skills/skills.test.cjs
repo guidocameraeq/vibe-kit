@@ -379,7 +379,7 @@ test('inicio: `cambió después del sello` no invoca a nadie: una línea y sigue
   const paso = /^\d+\. \*\*Módulos sin sello\.\*\*[^\n]*$/m.exec(TEXTOS.inicio);
   assert.ok(paso, 'el paso existe');
   assert.match(paso[0], /Si lista `<x> · sin sello`: sin pedido/);
-  assert.match(paso[0], /Si lista `<x> · cambió después del sello`, \*\*no invoques a nadie\*\*: una línea \*"el spec de <x> cambió después del sello; si fue a propósito, corré `sello` de nuevo"\* y seguí/);
+  assert.match(paso[0], /Si lista `<x> · cambió después del sello`, \*\*no invoques a nadie\*\*: una línea \*"el spec de <x> cambió después del sello; si fue a propósito, ¿lo sello de nuevo\?"\* y seguí/);
   const rama = paso[0].slice(paso[0].indexOf('Si lista `<x> · cambió')).split('Si el script falla')[0];
   assert.doesNotMatch(rama, /invocá `\/arquitecto`/, 'esa rama no invoca al Arquitecto');
 });
@@ -392,7 +392,7 @@ test('inicio: `borrador a medias` ofrece el retome (pregunta, no Modo B corto); 
   assert.match(borrador, /invocá `\/arquitecto` para retomarlo \(su retome, no el Modo B corto\)/);
   assert.doesNotMatch(borrador, /llamo al Arquitecto \(Modo B corto\)/);
   const invalido = paso.slice(paso.indexOf('`<x> · sello inválido: <qué>`')).split('Si el script falla')[0];
-  assert.match(invalido, /una línea \*"el sello de <x> no vale \(<qué>\): corré `sello` de nuevo"\* y seguí/);
+  assert.match(invalido, /una línea \*"el sello de <x> no vale \(<qué>\): ¿lo sello de nuevo\?"\* y seguí/);
   assert.doesNotMatch(invalido, /invocá/);
 });
 
@@ -574,9 +574,9 @@ test('rf-1: /cierre e /inicio traen el remoto con git pull --rebase, nunca con m
   assert.match(TEXTOS.cierre, /Si el rebase reescribió el commit de un `aplicado`, `cambios\.cjs verificar` lo dice con el `anotar-sha` listo/);
 });
 
-test('cierre: rojo se arregla y nunca se commitea encima; sin node o sin salida, no se commitea', () => {
+test('cierre: el candado que falla se arregla y nunca se commitea encima; sin node o sin salida, no se commitea', () => {
   const t = TEXTOS.cierre;
-  assert.match(t, /nunca commitees encima de un rojo/);
+  assert.match(t, /nunca commitees encima de un candado que falla/);
   assert.match(t, /Sin `node`, o si un script no imprime nada o sale con un código que no es el esperado: no se commitea/);
   assert.match(t, /candado:<id> · qué pasa · qué hacer/);
 });
@@ -808,6 +808,19 @@ test('rf-3 y rf-5: el director pushea modulo/<x> después de cada commit del enc
   assert.match(p9, /mostrá el parte tal cual/);
   assert.doesNotMatch(p9, /dale al dueño/);
   assert.doesNotMatch(p9, /worktree\.cjs cerrar <x>`/, 'el director no cierra su carpeta: la cierra limpiar');
+});
+
+test('8d B4.2, B4.6, B7 21: un obrero de fondo no manda mensajes; el mensaje que queda lleva su destino; guardar antes de parar; las tmp/ son locales', () => {
+  assert.match(NUCLEO, /Un obrero de fondo no manda mensajes/);
+  assert.match(NUCLEO, /la tabla es para las pestañas y `\/tramo`/);
+  assert.match(NUCLEO, /`PARA director-<x> · PARADA …`/);
+  assert.match(NUCLEO, /el nombre sale de la rama/);
+  assert.match(TEXTOS.obrero, /De fondo no mandás mensajes/);
+  assert.match(TEXTOS.obrero, /`PARA director-<x> · `/);
+  assert.match(TEXTOS.obrero, /antes de parar, un commit de trabajo/i);
+  assert.match(TEXTOS.obrero, /`tmp\/<x>--<ID>-<algo>`[^\n]*son locales/);
+  assert.match(TEXTOS.obrero, /traje lo corregido/);
+  for (const t of [NUCLEO, TEXTOS.obrero]) assert.ok(Buffer.byteLength(t) <= 8000);
 });
 
 test('rf-1 y rf-7: el obrero para sin push ni commit ante un cancelado; la PARADA de presentar no commitea (obrero y núcleo)', () => {
@@ -1075,4 +1088,23 @@ test('el CLAUDE.md del molde: autonomía con las 5, español, ruta absoluta, y m
   assert.match(claude, /ruta absoluta/);
   assert.match(claude, /## Mapa de documentación/);
   assert.ok(Buffer.byteLength(claude) < 3044, `${Buffer.byteLength(claude)} bytes: tiene que ser más corto que el de antes (3.044)`);
+});
+
+test('8d B7 22 y 43c: la plantilla del encargo dice que el ID son dos dígitos, un solo rango de - Spec y a qué entorno de prueba apunta', () => {
+  assert.match(PLANTILLA, /el ID son dos dígitos/);
+  assert.match(PLANTILLA, /- Spec: un solo rango/);
+  assert.match(PLANTILLA, /entorno de prueba \(entornos: de la ficha\), decí cuál/);
+});
+
+test('8d red team de B3 (el matiz de --seguir): destrabar la publicación es una firma del dueño en la carpeta principal: /estado la ofrece, el director no', () => {
+  const p3 = /^3\. \*\*El clic, ahí mismo\.\*\*[^\n]*$/m.exec(TEXTOS.estado)[0];
+  assert.match(p3, /si la publicación quedó trabada y el dueño dice que siga, `node \.claude\/scripts\/noche\.cjs publicar <x> --seguir`/);
+  assert.doesNotMatch(TEXTOS.director, /publicar <x> --seguir|publicar --seguir/);
+});
+
+test('revisor frío de B (9, 10): /inicio del dueño también limpia callado; el obrero, ante "hacé un commit de trabajo", lo hace una vez y vuelve a presentar', () => {
+  const l = TEXTOS.inicio.split('\n').find((s) => s.includes('noche.cjs volvi'));
+  assert.match(l, /`node \.claude\/scripts\/worktree\.cjs limpiar`/);
+  const p1 = /^1\. \*\*Presentación\.\*\*[^\n]*$/m.exec(TEXTOS.obrero)[0];
+  assert.match(p1, /si dice "hacé un commit de trabajo", hacelo una vez \(lo tuyo de antes del corte\) y volvé a presentar/);
 });

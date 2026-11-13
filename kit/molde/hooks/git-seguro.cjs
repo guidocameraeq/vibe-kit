@@ -101,6 +101,8 @@ const MENSAJES = {
     'reescribir la rama por defecto (reset/rebase) tiraría commits que ya están en origin. Para deshacer lo publicado, `git revert <commit>`. `reset --soft HEAD~1` de lo tuyo sin pushear, `pull --rebase`, `rebase origin/<defecto>` y `--continue`/`--abort` pasan.',
   'historia-defecto-sin-remoto':
     'sin remoto no se puede saber si esos commits de la rama por defecto ya los tiene otra PC o alguien más. Confirmá solo si son tuyos y no salieron de esta PC; para deshacer lo publicado, `git revert <commit>`.',
+  'escribe-o-corre':
+    'de fondo, `--output` (escribe un archivo donde diga, por fuera de los permisos de edición) y `--upload-pack`/`--receive-pack`/`--exec` (corren un programa) no van. Para ver un diff o un log, sin `--output`; para traer o subir, el comando común.',
   'salir-del-worktree':
     'desde una sesión de agente se trabaja en el propio worktree: ni el principal ni otro repo (ni por `cd`, `-C`, `--git-dir` o `--work-tree`, ni con un `.git` que apunta a otro lado). Quedate en tu worktree; el merge al principal lo hace el director.',
 };
@@ -647,6 +649,14 @@ function casosGit(g, dir, ctx, hallar) {
   if (!sub) return;
 
   if (noVerify(g)) hallar('no-verify', 'deny');
+
+  // Red team de B3 (2, ALTO): de fondo nadie mira, y la lista de la sesión de cierre (o de un obrero) permite `git log`/`diff`/`show`
+  // con cualquier opción: `--output` escribe un archivo por fuera de los permisos de edición (también kit-publicacion.json) y
+  // `--upload-pack`/`--receive-pack`/`--exec` corren un programa. Con persona, como siempre.
+  if (ctx.contexto().deFondo(ctx.entorno || process.env)) {
+    const op = rest.find((a) => /^--(?:output|output-directory|upload-pack|receive-pack|exec)(?:=|$)/.test(a));
+    if (op) hallar('escribe-o-corre', 'deny', op.split('=')[0]);
+  }
 
   switch (sub) {
     case 'stash': {

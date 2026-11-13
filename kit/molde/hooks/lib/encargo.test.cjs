@@ -364,7 +364,7 @@ test('juzgarSpec: sin sello → "spec sin Arquitecto: corré Modo B"; cambio; in
   assert.deepEqual(E.juzgarSpec(spec({ sellar: false }), { hayFicha: true }), { ok: false, por: 'spec sin Arquitecto: corré Modo B' });
   assert.deepEqual(E.juzgarSpec(spec({ sellar: false, estado: 'READY' }), { hayFicha: false }), { ok: false, por: 'spec sin Arquitecto: corré Modo B' });
   assert.match(E.juzgarSpec(spec({ despues: 'una línea más\n' }), { hayFicha: true }).por, /^el spec cambió después del sello: que el director corra sello de nuevo$/);
-  assert.match(E.juzgarSpec(spec({ estado: 'BORRADOR' }), { hayFicha: true }).por, /^spec sin READY: falta el OK de Guido y `ready`$/);
+  assert.match(E.juzgarSpec(spec({ estado: 'BORRADOR' }), { hayFicha: true }).por, /^spec sin READY: falta el OK del dueño y `ready`$/);
   assert.match(E.juzgarSpec(spec({ estado: '**BORRADOR**' }), { hayFicha: true }).por, /spec sin READY/);
   assert.deepEqual(E.juzgarSpec(spec(), { hayFicha: true }), { ok: true });
   assert.deepEqual(E.juzgarSpec(spec({ estado: '**READY — sellado**' }), { hayFicha: true }), { ok: true });
@@ -426,6 +426,24 @@ test('juzgarMensaje: sin tipo, rol humano o desconocido, rama que no es de módu
   }
   for (const rol of ['nocturno', 'obrero', 'director', 'actualizador']) assert.equal(juzgar(`CORRECCION ${RUTA}@abc1234`, { rol }).codigo, 0, `rol ${rol}: el lado sale de la rama (r1-11)`);
   assert.deepEqual(juzgar(`CORRECCIÓN ${RUTA}@abc1234`), juzgar(`CORRECCION ${RUTA}@abc1234`), 'la tilde es alias');
+});
+
+test('B4.6 (59): PARA <destino> — el nombre sale de la rama; el de otro → "no es para vos"; sin PARA, como antes', () => {
+  assert.equal(E.nombreDeSesion(OBRERO), 'obrero-x--01');
+  assert.equal(E.nombreDeSesion(DIRECTOR), 'director-x');
+  assert.equal(E.nombreDeSesion({ tipo: 'plana', rama: 'main' }), null);
+  assert.deepEqual(juzgar('PARA director-x · PARADA el test no corre', { pestana: DIRECTOR }), { codigo: 0, linea: 'vale: dato' });
+  assert.deepEqual(juzgar(`PARA obrero-x--01 · CORRECCION ${RUTA}@abc1234`), { codigo: 0, linea: `vale: leé ${RUTA}@abc1234` });
+  assert.deepEqual(juzgar(`PARA obrero-x--01 CORRECCION ${RUTA}@abc1234`), { codigo: 0, linea: `vale: leé ${RUTA}@abc1234` }, 'el · es opcional');
+  assert.deepEqual(juzgar('PARA director-y · PARADA algo', { pestana: DIRECTOR }), {
+    codigo: 1, linea: 'no es para vos: es para director-y y vos sos director-x (el nombre sale de tu rama): anotalo y no lo ejecutes',
+  });
+  assert.equal(juzgar(`PARA obrero-x--02 · CORRECCION ${RUTA}@abc1234`).codigo, 1);
+  assert.match(juzgar(`PARA obrero-x--02 · CORRECCION ${RUTA}@abc1234`).linea, /^no es para vos: es para obrero-x--02 y vos sos obrero-x--01 /);
+  assert.deepEqual(juzgar('PARA'), { codigo: 1, linea: 'no vale: PARA sin destino: anotalo y no lo ejecutes' });
+  assert.deepEqual(juzgar('PARA ·'), { codigo: 1, linea: 'no vale: PARA sin destino: anotalo y no lo ejecutes' });
+  assert.equal(juzgar('PARA obrero-x--01 ·').codigo, 1, 'sin tipo después del destino');
+  assert.deepEqual(juzgar('PARADA algo', { pestana: DIRECTOR }), { codigo: 0, linea: 'vale: dato' }, 'sin PARA vale como antes');
 });
 
 test('juzgarMensaje: ENCARGO/CORRECCION sin ruta, o con una que git no respalda → devuelto; divergido → su línea', () => {
@@ -756,4 +774,10 @@ test('B4 la plantilla: Skill obrero o tramo; Apertura dueño, Guido (alias viejo
   assert.deepEqual(d.errores, []);
   assert.equal(d.campos.director, 'director-x');
   assert.ok(E.leerEncargo(encargo({ '- Suscripción:': ['- Suscripción: —', '- Director: director-otro'] }), N).errores.some((x) => /- Director: /.test(x)), 'el director es el del módulo');
+});
+
+test('B7 22 (R17): ## Toca tolera ruta:línea, ruta:desde-hasta y ruta (texto), con o sin comillas invertidas', () => {
+  const e = E.leerEncargo(encargo({ '- src/x/**': ['- src/x/a.js:12', '- `src/x/b.js`:3-9', '- src/x/c/** (lo del carrito)', '- `src/x/d.js` (texto)', '- src/x/e.js'] }), N);
+  assert.deepEqual(e.errores, []);
+  assert.deepEqual(e.secciones.toca.rutas, ['src/x/a.js', 'src/x/b.js', 'src/x/c/**', 'src/x/d.js', 'src/x/e.js']);
 });

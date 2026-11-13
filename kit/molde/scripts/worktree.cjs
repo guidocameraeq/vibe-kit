@@ -475,7 +475,7 @@ const rolDe = (n, noche) => (noche ? 'nocturno' : n.id === null ? 'director' : '
 // Cómo se llama a `claude` (el del PATH o el de la extensión de VS Code), el vigía y la shell de los comandos de la ficha (Git Bash
 // en Windows, con el guardia de `cmd /c` / `cmd //c`; D8r.2 t6, rt-2): viven en hooks/lib/proceso.cjs (los comparte con encargo.cjs).
 // Las pruebas inyectan la shell con opciones.shell.
-const { comandoClaude, argsVigia, shellDeComandos, comandoQueNoCorre } = require('../hooks/lib/proceso.cjs');
+const { comandoClaude, argsVigia, shellDeComandos, comandoQueNoCorre, conTurno } = require('../hooks/lib/proceso.cjs');
 const shellDe = (opciones) => (opciones && opciones.shell !== undefined ? opciones.shell : shellDeComandos());
 
 // La apertura (rf-1; SPEC-paquete-8r4 u1): primero la vía de una ventana (una sesión nueva en la ventana de siempre, que entra sola
@@ -584,13 +584,28 @@ function correrSetup(L, wt, opciones) {
     return { linea: `${motivo}: corregilo en la ficha y corrélo a mano adentro del worktree; no borré nada`, falla: true, motivo };
   }
   const antes = estadoDelArbol(L, wt);
-  const r = spawnSync(cmd, { cwd: wt, shell, stdio: opciones.heredar === false ? 'pipe' : 'inherit', windowsHide: true });
+  // B7 30 (R18): adentro del vigía, con plazo (30 min; un colgado muere con todo lo que lanzó). 52: un `prepare` del proyecto
+  // (husky) cambia core.hooksPath y apaga los githooks del kit: se anota antes y se vuelve a prender después.
+  const hooksAntes = (G(L, ['config', '--get', 'core.hooksPath'], wt).stdout || '').trim();
+  const plazo = opciones.plazoSetup || PLAZO_SETUP;
+  const t0 = Date.now();
+  const r = spawnSync(process.execPath, argsVigia(cmd, plazo, shell), { cwd: wt, stdio: opciones.heredar === false ? 'pipe' : 'inherit', windowsHide: true, timeout: plazo + 60000 });
+  const extraHooks = [];
+  const hooksDespues = (G(L, ['config', '--get', 'core.hooksPath'], wt).stdout || '').trim();
+  if (hooksAntes && hooksDespues !== hooksAntes) {
+    const c = G(L, ['config', 'core.hooksPath', hooksAntes], wt);
+    extraHooks.push(c.ok ? `comando-setup cambió core.hooksPath (a ${hooksDespues || 'nada'}): lo volví a ${hooksAntes}` : `comando-setup cambió core.hooksPath (a ${hooksDespues || 'nada'}) y no pude volverlo a ${hooksAntes}: sin eso los githooks del kit no corren`);
+  }
+  if ((r.error && r.error.code === 'ETIMEDOUT') || (r.status === 124 && Date.now() - t0 >= plazo)) {
+    const motivo = `comando-setup no terminó en ${plazo >= 60000 ? `${Math.round(plazo / 60000)} min` : `${Math.round(plazo / 1000)} s`} (lo maté con todo lo que lanzó)`;
+    return { linea: `${motivo}: corrélo a mano adentro del worktree; no borré nada`, falla: true, motivo, extra: extraHooks };
+  }
   if (r.error || r.status !== 0) {
     const como = r.error ? r.error.code || r.error.message : `salida ${r.status}`;
     const motivo = `comando-setup falló (${como})`;
-    return { linea: `${motivo}: corrélo a mano adentro del worktree; no borré nada`, falla: true, motivo };
+    return { linea: `${motivo}: corrélo a mano adentro del worktree; no borré nada`, falla: true, motivo, extra: extraHooks };
   }
-  const extra = antes ? limpiarLoDelSetup(L, wt, antes) : [];
+  const extra = [...extraHooks, ...(antes ? limpiarLoDelSetup(L, wt, antes) : [])];
   return { linea: `comando-setup anduvo: ${cmd}`, extra };
 }
 
@@ -892,6 +907,18 @@ function cancelar(L, u, n, lineas, conOrigin) {
   if (entrada && fs.existsSync(wt)) {
     const mf = mudarFrenos(L, wt, u.gitComun, n.carpeta, 'cerrar --cancelado');
     if (mf === 'mudado') lineas.push(`mudé lo nuevo de ${LOG} a ${LOG_COMUN} del repo`);
+    // B7 21: lo que no está commiteado (también lo sin trackear) se guarda antes en refs/kit/rescate/<x>--<ID>: así cancelar puede
+    // correr de noche sin perder nada. El índice del worktree se toca, pero el worktree se borra acá mismo.
+    const sucio = porcelana(L, wt);
+    if (sucio === null) return no('no pude leer el estado del worktree: nada borrado');
+    if (sucio.length) {
+      const add = G(L, ['add', '-A', '--', '.'], wt);
+      const st = add.ok ? G(L, ['stash', 'create', `rescate de ${n.rama} (cerrar --cancelado)`], wt) : add;
+      const shaR = st.ok ? st.stdout.trim() : '';
+      const up = shaR ? G(L, ['update-ref', `refs/kit/rescate/${n.x}--${n.id}`, shaR], P) : { ok: false };
+      if (!up.ok) return no(`no pude guardar lo que no estaba commiteado (${primeraLinea(st.stderr || add.stderr) || 'git stash create'}): nada borrado`);
+      lineas.push(`guardé lo que no estaba commiteado en refs/kit/rescate/${n.x}--${n.id} (${sucio.length} archivo${sucio.length === 1 ? '' : 's'})`);
+    }
     const rm = G(L, ['worktree', 'remove', '--force', wt], P, { tiempo: 120000 });
     if (!rm.ok) return no(`git worktree remove --force falló (${primeraLinea(rm.stderr) || rm.error}): cerrá la pestaña o el claude de ese worktree y corré de nuevo; la rama ${n.rama} sigue`);
     lineas.push(`borré ${CARPETAS}/${n.carpeta}`);
@@ -916,6 +943,16 @@ function cancelar(L, u, n, lineas, conOrigin) {
   if (!local && !remota) lineas.push(`${n.rama} ya no estaba ni acá ni en origin`);
   lineas.push(`worktree cerrar: ${n.rama} cancelada (el trabajo se recupera por @${m[1] || '—'}, anotado en ${rutaFicha})`);
   return { codigo: 0, lineas };
+}
+
+// B7 57, 24: `git worktree remove` falla a veces en Windows porque algo (el indexador, un antivirus, un editor que se acaba de
+// cerrar) tiene un archivo abierto un momento: se reintenta UNA vez, después de una pausa. Si falla de nuevo, el que llama lo dice
+// (cerrá la pestaña de ese worktree). → el resultado de git del último intento.
+function quitarWorktree(L, wt, P, esperaMs = 2000) {
+  const rm = G(L, ['worktree', 'remove', wt], P, { tiempo: 120000 });
+  if (rm.ok || !fs.existsSync(wt)) return rm;
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, esperaMs);
+  return G(L, ['worktree', 'remove', wt], P, { tiempo: 120000 });
 }
 
 function cerrar(L, u, n, cancelado = false) {
@@ -985,7 +1022,7 @@ function cerrar(L, u, n, cancelado = false) {
     const despues = porcelana(L, wt);
     if (despues === null || despues.length) return no(`el worktree sigue sucio: ${(despues || []).slice(0, 5).join(' | ')}`);
     if (m === 'mudado') lineas.push(`mudé lo nuevo de ${LOG} a ${LOG_COMUN} del repo`);
-    const rm = G(L, ['worktree', 'remove', wt], P, { tiempo: 120000 });
+    const rm = quitarWorktree(L, wt, P);
     if (!rm.ok) {
       return {
         codigo: 1,
@@ -1021,6 +1058,8 @@ function cerrarEnOrigin(L, P, n, madre, fetchOk) {
 // ---------------------------------------------------------------- integrar (SPEC-paquete-5; D4-2, D4-3, D5-3, D5-11, D5-14, r1-1)
 
 const PLAZO_TEST = 30 * 60 * 1000; // comando-test del gate: 30 min
+const T_PUSH_INTEGRAR = 600000; // B7 30: el push de integrar (un pre-push con la suite, una red lenta): 600 s, antes 120
+const PLAZO_SETUP = 30 * 60 * 1000; // B7 30 (R18): comando-setup de crear y abrir: 30 min
 const SIN_OK = ['con-gate-verde', 'libre']; // autorizado.merge-a-main que no pide el OK de Guido
 const ES_RECHAZO = /\[rejected\]|non-fast-forward|fetch first|\[remote rejected\]/;
 
@@ -1050,34 +1089,44 @@ function gate(L, tmp, base, punta, opciones) {
     lineas.push(...out.split('\n').map((s) => s.replace(/\r$/, '')).filter(Boolean));
     if (c !== 0) verde = false;
   }
-  if (!verde) return { verde, lineas: [...lineas, 'no corrí comando-test: el gate ya está rojo'] };
+  if (!verde) return { verde, lineas: [...lineas, 'no corrí comando-test: el gate ya falló'] };
   let cmd;
+  let pt = NaN;
   try {
     const d = L.ficha.leerArchivo(path.join(tmp, '.claude', 'kit.md')).datos;
     cmd = d && d.vars ? d.vars['comando-test'] : undefined;
+    pt = Number(d && d.vars ? d.vars['plazo-test'] : NaN);
   } catch (e) {
     return { verde: false, lineas: [...lineas, `NO VERIFICADO: la ficha del merge no se lee (${e.message || e}): no corrí comando-test`] };
   }
   if (typeof cmd !== 'string' || cmd.trim() === '') return { verde: false, lineas: [...lineas, 'NO VERIFICADO: la ficha no tiene vars.comando-test — sumalo'] };
-  const plazo = opciones.plazoTest || PLAZO_TEST;
+  // B5 (E13): el plazo fijo, o el plazo-test de la ficha del merge si es más grande.
+  const plazo = Math.max(opciones.plazoTest || PLAZO_TEST, Number.isFinite(pt) && pt > 0 ? Math.floor(pt * 60000) : 0);
   const shell = shellDe(opciones);
   const niega = comandoQueNoCorre(cmd, shell);
   if (niega) return { verde: false, lineas: [...lineas, `NO VERIFICADO: comando-test no se corre (${niega}): ${cmd}`] };
-  const t0 = Date.now();
-  const r = spawnSync(process.execPath, argsVigia(cmd, plazo, shell), {
-    cwd: tmp,
-    stdio: opciones.heredar === false ? 'pipe' : 'inherit',
-    windowsHide: true,
-    timeout: plazo + 60000,
-  });
+  // B5: con el turno de la PC (una corrida pesada a la vez); quien espera lo dice en el momento y la espera no cuenta en el plazo.
+  const decir = opciones.salida || ((s) => process.stdout.write(s));
+  const { t0, r } = conTurno(`integrar ${path.basename(tmp)}`, () => {
+    const t = Date.now();
+    return {
+      t0: t,
+      r: spawnSync(process.execPath, argsVigia(cmd, plazo, shell), {
+        cwd: tmp,
+        stdio: opciones.heredar === false ? 'pipe' : 'inherit',
+        windowsHide: true,
+        timeout: plazo + 60000,
+      }),
+    };
+  }, { ...(opciones.turno || {}), salida: decir });
   if ((r.error && r.error.code === 'ETIMEDOUT') || (r.status === 124 && Date.now() - t0 >= plazo)) {
     return { verde: false, lineas: [...lineas, `NO VERIFICADO: comando-test no terminó en ${Math.round(plazo / 60000)} min (${cmd})`] };
   }
   if (r.error || r.status !== 0) {
     const como = r.error ? r.error.code || r.error.message : r.signal ? `señal ${r.signal}` : `salida ${r.status}`;
-    return { verde: false, lineas: [...lineas, `comando-test en rojo (${como}): ${cmd}`] };
+    return { verde: false, lineas: [...lineas, `comando-test falló (${como}): ${cmd}`] };
   }
-  return { verde: true, lineas: [...lineas, `comando-test en verde: ${cmd}`] };
+  return { verde: true, lineas: [...lineas, `comando-test pasó: ${cmd}`] };
 }
 
 // Borra el temporal: primero muda al común lo que el gate anotó en su frenos.log y después `worktree remove --force` (rf-2: el
@@ -1118,8 +1167,8 @@ function enElTemporal(L, P, tmp, n, def, base, punta, okLinea, opciones) {
   lineas.push(s.linea, ...(s.extra || []));
   const gt = gate(L, tmp, base, merge, opciones);
   lineas.push(...gt.lineas);
-  if (!gt.verde) return no('el gate está en rojo: nada subió');
-  const push = G(L, ['push', '-q', 'origin', `HEAD:refs/heads/${def}`], tmp, { tiempo: 120000 });
+  if (!gt.verde) return no('el gate falló: nada subió');
+  const push = G(L, ['push', '-q', 'origin', `HEAD:refs/heads/${def}`], tmp, { tiempo: T_PUSH_INTEGRAR });
   if (!push.ok) {
     if (ES_RECHAZO.test(push.stderr)) return no('origin avanzó: corré integrar de nuevo');
     return no(`git push falló (${primeraLinea(push.stderr) || push.error}): nada subió`);
@@ -1321,7 +1370,7 @@ const sinLog = (st) => st.filter((l) => l.slice(3).replace(/^"|"$/g, '') !== LOG
 
 // donde <x>[--<ID>]: ¿el cwd es el worktree de ese nombre, con su rama y su rol? Si no, ¿a qué ruta entrar? No escribe nada ni hace
 // fetch. Con <ID> el rol esperado es obrero o nocturno; sin él, director o nocturno (rt-4: `crear … --noche` escribe nocturno).
-// Un obrero con el árbol con cambios sin commitear (frenos.log no cuenta) → 1: puede haber otra sesión adentro (rt-6).
+// Un obrero con cambios sin commitear (frenos.log no cuenta) entra igual a SU encargo, con un aviso (B7 21; antes, rt-6, era 1).
 function donde(L, u, n) {
   const P = u.principal;
   const wt = path.join(P, ...CARPETAS.split('/'), n.carpeta);
@@ -1342,16 +1391,18 @@ function donde(L, u, n) {
   if (!roles.includes(rol)) {
     return parada(rol === 'humano' ? `${barras(wt)} no tiene .kit-rol (esperaba ${roles.join(' o ')})` : `.kit-rol de ${barras(wt)} dice ${rol}, no ${roles.join(' o ')}`);
   }
+  // B7 21: con cambios sin commitear, el obrero entra igual a SU encargo (vuelve tras un corte) y se le avisa (antes, rt-6, era 1).
+  const avisos = [];
   if (n.id !== null) {
     const st = porcelanaSinEscribir(L, wt);
     if (st === null) return parada(`no pude leer el estado de ${barras(wt)}`);
     const otros = sinLog(st);
     if (otros.length) {
-      return { codigo: 1, lineas: [`¿hay otra sesión en este worktree? ${barras(wt)} tiene cambios sin commitear (${otros.slice(0, 3).join(' | ')}${otros.length > 3 ? ' …' : ''}): no entres; avisale al director`] };
+      avisos.push(`ojo: ${barras(wt)} tiene cambios sin commitear (${otros.slice(0, 3).join(' | ')}${otros.length > 3 ? ' …' : ''}): si son tuyos de antes de un corte, seguí desde ahí y guardalos; si hay otra sesión adentro, PARADA`);
     }
   }
-  if (adentro) return { codigo: 0, lineas: [`adentro: ${n.rama} · rol ${rol} · ${barras(wt)}`] };
-  return { codigo: 0, lineas: [`entrar: ${barras(wt)}`, 'con la herramienta EnterWorktree (path = esa ruta); después volvé a correr donde'] };
+  if (adentro) return { codigo: 0, lineas: [...avisos, `adentro: ${n.rama} · rol ${rol} · ${barras(wt)}`] };
+  return { codigo: 0, lineas: [...avisos, `entrar: ${barras(wt)}`, 'con la herramienta EnterWorktree (path = esa ruta); después volvé a correr donde'] };
 }
 
 // ---------------------------------------------------------------- traer-main (SPEC-paquete-8r4 u2; rt-3, rt-7; u9)
@@ -1418,7 +1469,7 @@ const entreComillas = (s) => `"${String(s).replace(/["\\$`]/g, '')}"`;
 
 function lineaCambiosNuevo(L, u, n, def, corto, toca) {
   const slug = `traer-main-${n.x}`;
-  const origen = `traer ${def} @${corto} a ${n.rama} (worktree.cjs traer-main) da rojo en barreras`;
+  const origen = `traer ${def} @${corto} a ${n.rama} (worktree.cjs traer-main) falla en barreras`;
   const cuerpo = path.join(u.gitComun, 'kit-traer-main', `${n.x}.md`);
   try {
     fs.mkdirSync(path.dirname(cuerpo), { recursive: true });
@@ -1496,12 +1547,12 @@ function traerMain(L, u, n) {
     const nuevo = lineaCambiosNuevo(L, u, n, def, corto, toca);
     abortar();
     lineas.push(...salidaB);
-    lineas.push(`barreras en rojo${toca.ids.length ? `: ${toca.ids.join(', ')}` : ''} — merge abortado, ${n.rama} quedó como estaba`);
+    lineas.push(`barreras fallaron${toca.ids.length ? `: ${toca.ids.join(', ')}` : ''} — merge abortado, ${n.rama} quedó como estaba`);
     if (nuevo) {
       lineas.push(`para el dueño, en su checkout principal y en ${def}: ${nuevo}`);
       lineas.push(`después cambios aprobar <el id que dé> (lo aprieta el dueño: un agente no aprueba) y traer-main ${n.x} de nuevo`);
     }
-    return no('barreras en rojo: nada se commiteó ni subió');
+    return no('barreras fallaron: nada se commiteó ni subió');
   }
   if (fs.existsSync(path.join(wt, ...LOG.split('/')))) G(L, ['add', '--', LOG], wt);
   const ci = G(L, ['commit', '-q', '--no-edit', '-m', `módulo ${n.x}: trae ${def} @${corto}`], wt, { tiempo: 120000 });
@@ -1579,4 +1630,4 @@ if (require.main === module) {
   process.exitCode = codigo;
 }
 
-module.exports = { USO, ROTO, nombreDe, leerArgumentos, proyectoDe, leerAlmacen, filtrarEnv, bloquesEnv, reglasDeny, rutaPermiso, main };
+module.exports = { T_PUSH_INTEGRAR, PLAZO_SETUP, quitarWorktree, USO, ROTO, nombreDe, leerArgumentos, proyectoDe, leerAlmacen, filtrarEnv, bloquesEnv, reglasDeny, rutaPermiso, main };

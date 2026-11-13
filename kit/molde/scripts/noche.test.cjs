@@ -1,15 +1,18 @@
 'use strict';
 // Pruebas de noche.cjs (SPEC-0 RF-11 y P6.4; delta 5 crit. 16, D5-16; D §9.3-§9.5, §11): me-voy (la marca y el checklist), volvi y
-// el despertador. Repos temporales con remoto bare local, sin la config de git de la PC; el transcript del director, falso, con
+// el despertador que ya no existe (B4.4). Repos temporales con remoto bare local, sin la config de git de la PC; el transcript del director, falso, con
 // CLAUDE_CONFIG_DIR apuntado a un temporal. Corren con: node --test kit/molde/scripts/noche.test.cjs
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { spawn, spawnSync } = require('child_process');
+const { spawnSync } = require('child_process');
 
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'kit-noche-'));
+// B5: el turno de la PC, propio de este archivo: la suite corre los archivos en paralelo y uno no espera al otro (lo que se prueba
+// del turno, con su carpeta aparte).
+process.env.KIT_TURNO_DIR = path.join(TMP, 'turno');
 const GLOBAL = path.join(TMP, 'gitconfig-vacio');
 fs.writeFileSync(GLOBAL, '');
 Object.assign(process.env, {
@@ -132,8 +135,8 @@ test('me-voy: fuera del director → 1 con qué hacer y sin marca; mal llamado �
   assert.equal(fs.existsSync(path.join(p.dir, '.kit-noche')), false);
 });
 
-test('me-voy desde el director: escribe .kit-noche e imprime el checklist (encargos, apertura, red, vence, contexto, despertador)', () => {
-  const p = proyecto({ pct: 12 });
+test('me-voy desde el director: escribe .kit-noche e imprime el checklist (encargos, apertura, red, vence, el relevo); B4.4: sin despertador ni mudanza', () => {
+  const p = proyecto({ pct: 60 });
   const r = correr(p.dir, ['me-voy', '--hasta', '07:30'], p.env, AHORA);
   assert.equal(r.codigo, 0, r.out);
   assert.equal(fs.readFileSync(path.join(p.dir, '.kit-noche'), 'utf8'), `desde 2026-11-02T22:05${r.out.match(/desde 2026-11-02T22:05([+-]\d\d:\d\d)/)[1]}\nhasta 07:30\n`);
@@ -145,33 +148,32 @@ test('me-voy desde el director: escribe .kit-noche e imprime el checklist (encar
   assert.equal(r.lineas[3], 'red: origin responde');
   assert.equal(r.lineas[4], 'vence: VPN, credenciales y dispositivos no los ve el script: miralos vos (los encargos abiertos usan: suite, navegador)');
   assert.match(r.lineas[5], /^permisos: lo que no esté en el AUTORIZADO del encargo, de noche es PARADA \(predecirlo: NO VERIFICADO\)$/);
-  assert.equal(r.lineas[6], 'contexto: 120k de 1000k (12%) · faltan 880k · claude-opus-5-5');
-  assert.equal(r.lineas[7], 'despertador: node .claude/scripts/noche.cjs despertador --modulo nz --cada 300 (en un Monitor o una tarea fuera del director: con --modulo corre desde cualquier checkout)');
-  assert.equal(r.lineas.length, 8);
+  assert.equal(r.lineas[6], 'antes de cada espera larga: todo commiteado y subido y el relevo al día (si quedás quieto cerca de una hora la plataforma puede resumir la charla, y con el relevo se retoma)');
+  assert.equal(r.lineas.length, 7);
+  assert.doesNotMatch(r.out, /despertador|mudate|40 ?%/i);
   // y desde ahora el obrero es nocturno (contexto.deNoche)
   assert.deepEqual(require('../hooks/lib/contexto.cjs').deNoche(p.obr), { noche: true, por: 'kit-noche' });
 });
 
-test('me-voy: el director ≥ 40 % → "mudate antes de irte"; un obrero en PARADA lo dice; sin red y sin .gitignore, avisa', () => {
+test('me-voy: un obrero en PARADA lo dice; sin red y sin .gitignore, avisa (B7 51: lo arregla "poné al día este repo")', () => {
   const p = proyecto({ pct: 40, gitignore: '' });
   commit(p.obr, { [`${BIT}/2026-11-02-evidencia-01.md`]: 'PARADA: se negó npm install\n' }, 'PARADA');
   g(p.dir, 'remote', 'set-url', 'origin', path.join(TMP, 'no-existe-el-remoto'));
   const r = correr(p.dir, ['me-voy'], p.env, AHORA);
   assert.equal(r.codigo, 0);
   assert.match(r.out, /\nencargo 01 · modulo\/nz--01@\w{7} \(local y origin distintas\) · hace [^\n]*: PARADA · PARADA: se negó npm install\n/);
-  assert.match(r.out, /\n⚠️ \.kit-noche no está ignorado: pegá en el \.gitignore del principal el gitignore\.snippet del kit ENTERO/);
-  assert.match(r.out, /\nred: ❌ origin no responde \(.+\) — sin red no trabaja nadie y el despertador no ve nada: arreglalo antes de irte\n/);
-  assert.match(r.out, /\ncontexto: 400k de 1000k \(40%\) · faltan 600k · claude-opus-5-5 — pasa del 40%: mudate antes de irte\n/);
+  assert.match(r.out, /\n⚠️ \.kit-noche no está ignorado en este repo: lo arregla "poné al día este repo"\n/);
+  assert.doesNotMatch(r.out, /pegá en el \.gitignore/);
+  assert.match(r.out, /\nred: ❌ origin no responde \(.+\) — sin red no trabaja nadie: arreglalo antes de irte\n/);
   assert.equal(fs.readFileSync(path.join(p.dir, '.kit-noche'), 'utf8').split('\n')[1], 'hasta —');
 });
 
-test('me-voy: sin remoto lo dice; sin transcript, el contexto es NO VERIFICADO (y la marca se escribe igual)', () => {
+test('me-voy: sin remoto lo dice (y la marca se escribe igual)', () => {
   const p = proyecto();
   g(p.dir, 'remote', 'remove', 'origin');
   const r = correr(p.dir, ['me-voy'], { ...p.env, CLAUDE_CONFIG_DIR: carpeta('vacia') }, AHORA);
   assert.equal(r.codigo, 0);
   assert.match(r.out, /\nred: sin remoto origin — nadie ve los commits de la noche desde otra PC\n/);
-  assert.match(r.out, /\ncontexto: NO VERIFICADO · no encuentro la carpeta de esta sesión en .+ — medilo antes de irte\n/);
   assert.ok(fs.existsSync(path.join(p.dir, '.kit-noche')));
 });
 
@@ -191,71 +193,20 @@ test('volvi: borra .kit-noche de todos los worktrees (corrido desde el principal
   assert.equal(correr(p.P, ['volvi', '--ya'], p.env).codigo, 2);
 });
 
-// ---------------------------------------------------------------- despertador
+// ---------------------------------------------------------------- despertador (B4.4: ya no existe)
 
-test('despertador --una-vez: la 1.ª vuelta solo saca la foto (en el git-dir común); sin cambios, silencio; commit, PARADA y main despiertan', () => {
+test('B4.4 (28): despertador ya no existe — una línea y salida 0, con o sin las banderas de antes, sin foto', () => {
   const p = proyecto();
-  const una = (cwd = p.dir) => correr(cwd, ['despertador', '--una-vez'], p.env);
-  let r = una();
-  assert.deepEqual([r.codigo, r.out], [0, '']);
-  assert.ok(fs.existsSync(path.join(p.P, '.git', N.fotoDe('nz'))), 'la foto vive en el git-dir común');
-  assert.equal(una().out, '', 'nada cambió: nada');
-  assert.equal(correr(p.obr, ['despertador', '--una-vez', '--modulo', 'nz'], p.env).out, '', 'desde otro worktree con --modulo, la misma foto');
-  // commit local del obrero (sin push): una línea, aunque después se pushee no se repite
-  const s1 = commit(p.obr, { 'src/a.js': '2\n' }, 'sub-paso 2');
-  assert.equal(una().out, `DESPERTAR · commit · modulo/nz--01@${s1.slice(0, 7)}\n`);
-  g(p.obr, 'push', '-q', 'origin', 'modulo/nz--01');
-  assert.equal(una().out, '', 'el push del mismo commit no despierta otra vez');
-  // PARADA: la evidencia en la punta arranca con "PARADA:"
-  const s2 = commit(p.obr, { [`${BIT}/2026-11-02-evidencia-01.md`]: '\nPARADA: se negó npm install\n' }, 'PARADA');
-  assert.equal(una().out, `DESPERTAR · PARADA · modulo/nz--01@${s2.slice(0, 7)}\n`);
-  // un commit en main del principal (CM-79) y una rama de obrero que llega solo por origin
-  const s3 = commit(p.P, { 'b.txt': 'b\n' }, 'en main');
-  const otro = carpeta('clon');
-  g(TMP, 'clone', '-q', p.bare, otro);
-  g(otro, 'switch', '-q', '-c', 'modulo/nz--02', 'origin/modulo/nz');
-  const s4 = commit(otro, { 'src/b.js': '1\n' }, 'desde otra PC');
-  g(otro, 'push', '-q', 'origin', 'modulo/nz--02');
-  r = una();
-  assert.deepEqual(r.lineas.sort(), [`DESPERTAR · commit en main · main@${s3.slice(0, 7)}`, `DESPERTAR · commit · modulo/nz--02@${s4.slice(0, 7)}`].sort());
-  // modulo/nz (el director) y otras ramas no despiertan; una rama borrada tampoco
-  commit(p.dir, { 'notas.md': 'x\n' }, 'el director anota');
-  g(p.P, 'branch', '-q', 'cualquiera');
-  g(p.P, 'worktree', 'remove', '--force', p.obr);
-  g(p.P, 'branch', '-q', '-D', 'modulo/nz--01');
-  assert.equal(una().out, '');
-});
-
-test('despertador: sin red despierta UNA vez ("sin red"); al volver la red, nada que no sea un commit', () => {
-  const p = proyecto();
-  const una = () => correr(p.dir, ['despertador', '--una-vez'], p.env).out;
-  una();
-  g(p.P, 'remote', 'set-url', 'origin', path.join(TMP, 'no-existe-el-remoto'));
-  assert.match(una(), /^DESPERTAR · sin red · origin@\w{7}\n$/);
-  assert.equal(una(), '', 'sigue sin red: no repite');
-  g(p.P, 'remote', 'set-url', 'origin', p.bare);
-  assert.equal(una(), '');
-  // una foto rota se rehace sin despertar
-  fs.writeFileSync(path.join(p.P, '.git', N.fotoDe('nz')), '{roto');
-  assert.equal(una(), '');
-});
-
-test('despertador en loop: no imprime nada si nada cambió y avisa en la 1.ª vuelta lo que cambió desde la foto (mal llamado → 2)', async () => {
-  const p = proyecto();
-  correr(p.dir, ['despertador', '--una-vez'], p.env);
-  const s = commit(p.obr, { 'src/a.js': '9\n' }, 'antes del loop');
-  const hijo = spawn(process.execPath, [SCRIPT, 'despertador', '--cada', '10'], { cwd: p.dir, env: p.env });
-  let out = '';
-  hijo.stdout.on('data', (b) => (out += b));
-  await new Promise((ok) => setTimeout(ok, 4000));
-  hijo.kill();
-  assert.equal(out, `DESPERTAR · commit · modulo/nz--01@${s.slice(0, 7)}\n`, 'una línea y después silencio');
-  for (const args of [['despertador', '--cada', '5'], ['despertador', '--cada', 'x'], ['despertador', '--hasta', '07:00']]) {
-    assert.equal(correr(p.dir, args, p.env).codigo, 2, args.join(' '));
+  for (const args of [['despertador'], ['despertador', '--una-vez'], ['despertador', '--modulo', 'nz', '--cada', '300']]) {
+    const r = correr(p.dir, args, p.env);
+    assert.deepEqual([r.codigo, r.out, r.err], [0, `${N.SIN_DESPERTADOR}\n`, ''], args.join(' '));
   }
+  assert.match(N.SIN_DESPERTADOR, /^despertador: ya no existe — /);
+  assert.deepEqual(fs.readdirSync(path.join(p.P, '.git')).filter((f) => /despertador/.test(f)), [], 'no saca foto');
+  assert.doesNotMatch(N.USO, /--cada|--una-vez|Monitor/);
 });
 
-// ---------------------------------------------------------------- RF-fix 1, 3 y 11
+// ---------------------------------------------------------------- RF-fix 1 y 11
 
 test('RF-fix 1: la marca SOLO en el worktree del director (como la deja me-voy); volvi desde el principal la borra; sin marca, una línea y 0', () => {
   const p = proyecto();
@@ -271,51 +222,8 @@ test('RF-fix 1: la marca SOLO en el worktree del director (como la deja me-voy);
   assert.deepEqual([s.status, s.stdout, s.stderr], [0, 'volví: no había ninguna .kit-noche (ya era de día)\n', '']);
 });
 
-test('RF-fix 3: una foto por módulo — la vuelta de un director no se come lo del otro; sin módulo → 1; --modulo feo → 2', () => {
-  const p = proyecto();
-  const dirOt = path.join(p.P, '.claude', 'worktrees', 'modulo--ot');
-  g(p.P, 'worktree', 'add', '-q', '-b', 'modulo/ot', dirOt);
-  const obrOt = path.join(p.P, '.claude', 'worktrees', 'modulo--ot--01');
-  g(p.P, 'worktree', 'add', '-q', '-b', 'modulo/ot--01', obrOt);
-  const una = (cwd, ...extra) => correr(cwd, ['despertador', '--una-vez', ...extra], p.env);
-  assert.equal(una(p.dir).out, '');
-  assert.equal(una(dirOt).out, '');
-  assert.ok(fs.existsSync(path.join(p.P, '.git', N.fotoDe('nz'))) && fs.existsSync(path.join(p.P, '.git', N.fotoDe('ot'))), 'dos fotos');
-  // un commit del obrero de nz: la vuelta de ot no lo ve (ni lo consume); la de nz, sí
-  const s = commit(p.obr, { 'src/a.js': '3\n' }, 'de nz');
-  assert.equal(una(dirOt).out, '', 'ot no despierta por nz');
-  assert.equal(una(p.dir).out, `DESPERTAR · commit · modulo/nz--01@${s.slice(0, 7)}\n`, 'nz lo ve aunque ot dio su vuelta antes');
-  // y uno de ot, al revés; desde el principal con --modulo, la foto de ese módulo
-  const t = commit(obrOt, { 'src/b.js': '1\n' }, 'de ot');
-  assert.equal(una(p.dir).out, '');
-  assert.equal(una(p.P, '--modulo', 'ot').out, `DESPERTAR · commit · modulo/ot--01@${t.slice(0, 7)}\n`);
-  // main despierta a los dos (cada uno en su foto)
-  const m = commit(p.P, { 'c.txt': 'c\n' }, 'en main');
-  assert.equal(una(p.dir).out, `DESPERTAR · commit en main · main@${m.slice(0, 7)}\n`);
-  assert.equal(una(dirOt).out, `DESPERTAR · commit en main · main@${m.slice(0, 7)}\n`);
-  // sin módulo (el principal, un obrero) → 1 con qué hacer; --modulo feo → 2
-  for (const cwd of [p.P, p.obr]) {
-    const r = una(cwd);
-    assert.equal(r.codigo, 1);
-    assert.equal(r.out, 'despertador: no sé de qué módulo — corrélo desde el worktree del director (rama modulo/<x>) o pasale --modulo <x>\n');
-  }
-  for (const v of [['--modulo'], ['--modulo', 'NZ'], ['--modulo', 'a--b']]) assert.equal(una(p.P, ...v).codigo, 2, v.join(' '));
-});
-
-test('RF-fix 3: me-voy saca la foto de nuevo — lo que pasó de día no despierta en la primera vuelta de la noche; sin me-voy, sí', () => {
-  for (const conMeVoy of [true, false]) {
-    const p = proyecto();
-    const una = () => correr(p.dir, ['despertador', '--una-vez'], p.env).out;
-    assert.equal(una(), '', 'la foto de la mañana');
-    const s = commit(p.obr, { 'src/a.js': 'de día\n' }, 'de día');
-    if (conMeVoy) assert.equal(correr(p.dir, ['me-voy'], p.env, AHORA).codigo, 0);
-    assert.equal(una(), conMeVoy ? '' : `DESPERTAR · commit · modulo/nz--01@${s.slice(0, 7)}\n`, conMeVoy ? 'con me-voy' : 'sin me-voy');
-  }
-});
-
-test('RF-fix 11: el USO dice que --hasta es informativo y que la noche termina con volvi; el despertador nombra --modulo', () => {
+test('RF-fix 11: el USO dice que --hasta es informativo y que la noche termina con volvi', () => {
   assert.match(N.USO, /--hasta es informativo: la noche termina con volvi/);
-  assert.match(N.USO, /despertador \[--modulo <x>\] \[--cada <seg>\] \[--una-vez\]/);
 });
 
 // ================================================================ B3 (SPEC-paquete-8d): la noche termina sola
@@ -335,6 +243,7 @@ const SCRIPTS_PUB = {
 const FICHA_PUB = (o) => {
   let t = '---\nkit: 3.0.0-rc.6\nnivel: estandar\nvars:\n  proyecto: px\n';
   if (o.test) t += `  comando-test: ${JSON.stringify(o.test)}\n`;
+  if (o.setup) t += `  comando-setup: ${JSON.stringify(o.setup)}\n`;
   if (o.publicar) t += `autorizado:\n  publicar: ${o.publicar}\n`;
   return `${t}---\n`;
 };
@@ -350,7 +259,8 @@ function conPublicar(o = {}) {
   g(P, 'config', 'core.autocrlf', 'false');
   const publicar = o.publicar !== undefined ? o.publicar : `{comando: "node scripts/publicar.cjs ${mk('publicado')}", humo: "node scripts/humo.cjs ${mk('humo-falla')}", volver: "node scripts/volver.cjs ${mk('volvio')}"}`;
   const base = { '.gitignore': SNIPPET, 'a.txt': 'a\n', ...SCRIPTS_PUB, 'docs/SESSION_HANDOFF.md': '# Handoff\n\n## Te espera\n\n- nada\n' };
-  base['.claude/kit.md'] = FICHA_PUB({ publicar, test: `node scripts/test.cjs ${mk('test-falla')}` });
+  base['.claude/kit.md'] = FICHA_PUB({ publicar, test: `node scripts/test.cjs ${mk('test-falla')}`, setup: o.setup });
+  if (o.archivos) Object.assign(base, o.archivos);
   commit(P, base, 'inicio');
   g(P, 'remote', 'add', 'origin', bare);
   g(P, 'push', '-q', '-u', 'origin', 'main');
@@ -365,7 +275,7 @@ function conPublicar(o = {}) {
   g(P, 'push', '-q', 'origin', 'main');
   const home = carpeta('home');
   const F = require('../hooks/lib/ficha.cjs');
-  const datos = F.leerCabecera(FICHA_PUB({ publicar })).datos.autorizado.publicar;
+  const datos = F.leerCabecera(FICHA_PUB({ publicar, setup: o.setup })).datos.autorizado.publicar;
   const huella = o.huella || (typeof datos === 'object' ? PUB.huella(P, datos, 'refs/remotes/origin/main') : '000000000000');
   const origin = o.origin !== undefined ? o.origin : PUB.normalizarOrigin(bare);
   if (origin !== null) escribir(home, '.claude/kit-pc.md', `---\nentorno: nativo\npublica:\n  - {origin: "${origin}", huella: ${huella}}\n---\n`);
@@ -730,4 +640,121 @@ test('mutación de B3: la carpeta sucia y HEAD distinto de origin frenan ANTES d
   assert.equal(h.codigo, 1, h.out);
   assert.match(h.out, /no está igual a origin\/main/);
   assert.equal(veces(p), 0);
+});
+
+test('red team de B3 (6): de fondo, publicar y subir corren solo con el candado del cierre tomado por esa misma sesión', () => {
+  const p = conPublicar();
+  const F = { KIT_FONDO: '1', KIT_CIERRE_ID: 'c-uno' };
+  let r = pub(p, [], { env: F });
+  assert.equal(r.codigo, 1, r.out);
+  assert.match(r.out, /^publicar: no — de fondo, publicar va dentro de una sesión de cierre con el candado tomado \(cierre-empieza x primero\)\n$/);
+  assert.equal(veces(p), 0);
+  const s = N.main(['subir', 'x'], { cwd: p.P, env: F, salida: () => {}, error: () => {} });
+  assert.equal(s, 1);
+  // Con el candado de OTRA sesión de cierre, tampoco.
+  assert.equal(N.main(['cierre-empieza', 'x'], { cwd: p.P, env: { KIT_FONDO: '1', KIT_CIERRE_ID: 'c-otro' }, salida: () => {}, error: () => {} }), 0);
+  assert.equal(pub(p, [], { env: F }).codigo, 1);
+  fs.rmSync(path.join(p.P, '.git', N.CANDADO_CIERRE), { recursive: true, force: true });
+  // Con el suyo: publica.
+  assert.equal(N.main(['cierre-empieza', 'x'], { cwd: p.P, env: F, salida: () => {}, error: () => {} }), 0);
+  r = pub(p, [], { env: F });
+  assert.equal(r.codigo, 0, r.out);
+  assert.equal(veces(p), 1);
+  // Con persona (sin KIT_FONDO), como siempre: no hace falta el candado.
+  fs.rmSync(path.join(p.P, '.git', N.CANDADO_CIERRE), { recursive: true, force: true });
+  assert.equal(pub(p).codigo, 0);
+});
+
+test('red team de B3 (7): un merge con el asunto de integrar cuyo segundo padre no es del módulo no cuenta como módulo integrado', () => {
+  const p = conPublicar();
+  assert.equal(pub(p).codigo, 0);
+  g(p.P, 'switch', '-q', '-c', 'suelta');
+  commit(p.P, { 'src/otro.js': 'de otro lado\n' }, 'código suelto');
+  g(p.P, 'switch', '-q', 'main');
+  g(p.P, 'merge', '-q', '--no-ff', '-m', 'integrar: módulo x', 'suelta');
+  g(p.P, 'push', '-q', 'origin', 'main');
+  const r = pub(p);
+  assert.equal(r.codigo, 1, r.out);
+  assert.match(r.out, /entró algo que no es un módulo integrado ni papeles: no publico/);
+  assert.equal(veces(p), 1);
+});
+
+test('P4 (2026-11-13): de fondo, parte suelta el candado y el subir del MISMO cierre sigue; otro cierre, no; una carpeta de trabajo que quedó en el disco no es "limpias: sí"', () => {
+  const p = conPublicar();
+  const F = { KIT_FONDO: '1', KIT_CIERRE_ID: 'c-uno' };
+  const corre = (args, env) => {
+    const out = [];
+    const codigo = N.main(args, { cwd: p.P, home: p.home, env, salida: (s) => out.push(s), error: (s) => out.push(s) });
+    return { codigo, out: out.join('') };
+  };
+  assert.equal(corre(['cierre-empieza', 'x'], F).codigo, 0);
+  // Una carpeta de trabajo que git ya no tiene registrada pero sigue en el disco (una sesión la tenía abierta).
+  fs.mkdirSync(path.join(p.P, '.claude', 'worktrees', 'modulo--x--02', 'src'), { recursive: true });
+  const pa = corre(['parte', 'x'], F);
+  assert.equal(pa.codigo, 0, pa.out);
+  assert.match(pa.out, /- Las carpetas limpias: no \(quedan 1\)/);
+  assert.equal(fs.existsSync(path.join(p.P, '.git', N.CANDADO_CIERRE)), false, 'parte soltó el candado');
+  const otro = corre(['subir', 'x'], { KIT_FONDO: '1', KIT_CIERRE_ID: 'c-otro' });
+  assert.equal(otro.codigo, 1);
+  assert.match(otro.out, /candado tomado/);
+  const s = corre(['subir', 'x'], F);
+  assert.doesNotMatch(s.out, /candado/, s.out);
+  assert.equal(s.codigo, 0, s.out);
+});
+
+test('P4 (2026-11-13): la lista del cierre no trae Write (la línea de comandos solo mira Edit para archivos) y cierre-noche.md pide cada comando solo y tal cual, sin fetch, y esperar a publicar', () => {
+  const lista = N.listaCierre('x', 'main', 'docs');
+  assert.ok(lista.includes('Edit(./docs/**)'));
+  assert.ok(!lista.some((r) => /^Write\(/.test(r)), lista.join(' '));
+  const t = fs.readFileSync(path.join(__dirname, '..', 'skills', 'director', 'cierre-noche.md'), 'utf8');
+  assert.match(t, /Cada comando, solo y tal cual/);
+  assert.match(t, /sin `cd`, sin `;`, `&&` ni `\|`, sin `echo`/);
+  assert.match(t, /`git fetch` no está en la lista/);
+  assert.match(t, /esperá a que termine \(su aviso de que terminó\)/);
+  assert.ok(t.split('\n').length <= 60, 'cierre-noche.md: ≤ 60 renglones');
+});
+
+test('revisor frío de B (2): con la rama del módulo ya borrada por limpiar, el parte sigue diciendo "Integrado: sí" (por el merge de integrar)', () => {
+  const p = conPublicar();
+  g(p.P, 'branch', '-D', 'modulo/x');
+  g(p.P, 'push', '-q', 'origin', '--delete', 'modulo/x');
+  g(p.P, 'fetch', '-q', '--prune', 'origin');
+  const out = [];
+  assert.equal(N.main(['parte', 'x'], { cwd: p.P, env: {}, salida: (s) => out.push(s), error: (s) => out.push(s) }), 0);
+  assert.match(out.join(''), /- Integrado: sí/);
+  assert.doesNotMatch(out.join(''), /no quedó integrado/);
+});
+
+test('revisor frío de B (3): publicar corre el comando-setup en la carpeta principal y, si cambió core.hooksPath (husky), lo repone', () => {
+  const prepara = "require('child_process').execFileSync('git', ['config', 'core.hooksPath', '.husky']);" + String.fromCharCode(10);
+  const p = conPublicar({ setup: 'node scripts/prepara.cjs', archivos: { 'scripts/prepara.cjs': prepara } });
+  g(p.P, 'config', 'core.hooksPath', '.githooks');
+  const r = pub(p);
+  assert.equal(r.codigo, 0, r.out);
+  assert.equal(g(p.P, 'config', '--get', 'core.hooksPath'), '.githooks');
+});
+
+test('P4 (2026-11-13): después de publicar, si solo entraron papeles (el parte, el handoff), la noche siguiente no vuelve a publicar lo mismo', () => {
+  const p = conPublicar();
+  assert.equal(pub(p).codigo, 0);
+  assert.equal(veces(p), 1);
+  commit(p.P, { 'docs/modulos/x/bitacora/2026-11-13-parte.md': '# Parte\n' }, 'docs: parte de la noche · x');
+  g(p.P, 'push', '-q', 'origin', 'main');
+  const r = pub(p);
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(r.out, /desde lo último publicado solo entraron papeles: no hay nada nuevo que publicar/);
+  assert.equal(veces(p), 1, 'no volvió a publicar');
+});
+
+test('P4 (2026-11-13): el worktree del director de este módulo no cuenta en "carpetas limpias" (sigue vivo después de la noche); el de otro módulo, sí', () => {
+  const p = conPublicar();
+  g(p.P, 'worktree', 'add', '-q', path.join(p.P, '.claude', 'worktrees', 'modulo--x'), 'modulo/x');
+  const parteDe = () => {
+    const out = [];
+    N.main(['parte', 'x'], { cwd: p.P, env: {}, salida: (s) => out.push(s), error: (s) => out.push(s) });
+    return out.join('');
+  };
+  assert.match(parteDe(), /- Las carpetas limpias: sí/);
+  g(p.P, 'worktree', 'add', '-q', '-b', 'modulo/y', path.join(p.P, '.claude', 'worktrees', 'modulo--y'));
+  assert.match(parteDe(), /- Las carpetas limpias: no \(quedan 1\)/);
 });

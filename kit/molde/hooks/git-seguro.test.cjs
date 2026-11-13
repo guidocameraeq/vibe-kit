@@ -556,7 +556,7 @@ test('la tabla de P4.4: cada caso frena (Bash y PowerShell), todo rol y todo mod
   }
   // cada fila de la tabla que es de sintaxis tiene al menos un caso acá (las de contexto van aparte, abajo)
   for (const caso of Object.keys(gs.MENSAJES)) {
-    if (['historia-defecto', 'historia-defecto-sin-remoto', 'push-borrar', 'hooks-path-ausente', 'config-agente', 'plomeria', 'rama-huerfana', 'salir-del-worktree', 'push-otra-rama', 'merge-ours'].includes(caso)) continue;
+    if (['historia-defecto', 'historia-defecto-sin-remoto', 'push-borrar', 'hooks-path-ausente', 'config-agente', 'plomeria', 'rama-huerfana', 'salir-del-worktree', 'push-otra-rama', 'merge-ours', 'escribe-o-corre'].includes(caso)) continue;
     assert.ok(vistos.has(caso), `falta un caso que frene para ${caso}`);
   }
 });
@@ -1522,4 +1522,15 @@ test('rc.7 red team (2.ª ronda): la estrategia ours por config (pull.twohead, p
   assert.equal(decide(d, 'git config pull.twohead ours').decision, 'ask');
   assert.equal(decide(d, 'git config pull.octopus ours').decision, 'ask');
   assert.equal(decide(d, 'git config pull.twohead ort').decision, 'nada');
+});
+
+test('rc.7 red team de B3 (2, ALTO): de fondo, las opciones de git que escriben un archivo o corren un programa (--output, --upload-pack, --receive-pack, --exec) niegan; con persona y lo común de fondo, pasan', () => {
+  const { d } = conRemoto();
+  const F = { entorno: { KIT_FONDO: '1' } };
+  for (const c of ['git log --output=.claude/settings.json', 'git log -p --output .claude/x', 'git diff --output=../afuera.txt', 'git show HEAD --output=a.json',
+    'git diff --no-index a b --output=c', 'git ls-remote --upload-pack="touch x" origin', 'git pull --upload-pack=x origin main', 'git push --receive-pack=x origin HEAD', 'git push --exec=x origin HEAD']) {
+    niega(d, c, 'escribe-o-corre', F);
+  }
+  for (const c of ['git log --oneline -5', 'git diff --stat', 'git show HEAD:docs/a.md', 'git log --format=%H%x09%s', 'git commit -m "output: la salida" -- docs/a.md']) pasa(d, c, F);
+  pasa(d, 'git log --output=salida.txt');
 });
