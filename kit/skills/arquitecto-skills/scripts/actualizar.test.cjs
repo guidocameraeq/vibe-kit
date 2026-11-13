@@ -530,7 +530,7 @@ test('RF-6: tras un corte a mitad, el mensaje dice cómo limpiar el clon; con es
   const r = aplicar(d, { io });
   assert.equal(r.codigo, 1);
   const ultima = r.lineas[r.lineas.length - 1];
-  assert.match(ultima, /Es el clon del actualizador: `git checkout -- \. && git clean -fd` \(deja \.kit-rol, que está en \.git\/info\/exclude\) y corré de nuevo$/);
+  assert.match(ultima, /Es el clon del actualizador: `git checkout -- \.` y después `git clean -fd` \(deja \.kit-rol, que está en \.git\/info\/exclude\) y corré de nuevo$/);
   // no: así como quedó, se niega (sucia)
   const sucia = aplicar(d);
   assert.equal(sucia.codigo, 1);
@@ -977,7 +977,7 @@ test('crit. 2: verificar en rojo → sigue aplicado, la zona queda y la línea l
   commitear(d, { [relCambio(id)]: CA.ponerCampos(leer(d, relCambio(id)), { sha: 'e'.repeat(40) }) }, 'sha roto');
   const r = aplicar(d, { kit: kitConCubiertos([{ cita: `demo ${id}` }]) });
   assert.equal(r.codigo, 0);
-  assert.match(lineaCiclo(r, id), new RegExp(`^no subió al kit · ${id} · verificar en rojo \\(el sha de aplicado no existe en este repo\\): sigue aplicado$`));
+  assert.match(lineaCiclo(r, id), new RegExp(`^no subió al kit · ${id} · verificar falló \\(el sha de aplicado no existe en este repo\\): sigue aplicado$`));
   assert.equal(estadoDe(d, id).estado, 'aplicado');
   assert.match(leer(d, INICIO), /releer el handoff/);
 });
@@ -1154,7 +1154,7 @@ test('resolver mezclar: escribe la propuesta, adaptada con por: y el hash del mo
   assert.equal(leer(d, CIERRE), RS_CIERRE.replace('uno\n', 'uno v2\n').replace('seis\n', 'seis (a nuestra manera)\n'));
   assert.deepEqual(fichaDe(d).piezas.cierre, { estado: 'adaptada', hash: Z.hashPieza(RS_N['skills/cierre/SKILL.md']), por: "el paso seis es 'nuestro'" });
   assert.equal(leer(d, '.claude/fusiones/cierre.md'), null);
-  assert.match(r.lineas.at(-1), /^commit por rutas: git add -A -- \.claude\/skills\/cierre\/SKILL\.md \.claude\/kit\.md \.claude\/fusiones\/cierre\.md && git commit -m "inicio: cierre, mezclar/);
+  assert.match(r.lineas.slice(-3).join('\n'), /^commit por rutas, un paso por renglón \(si uno falla, pará ahí\):\n {2}git add -A -- \.claude\/skills\/cierre\/SKILL\.md \.claude\/kit\.md \.claude\/fusiones\/cierre\.md\n {2}git commit -m "inicio: cierre, mezclar/);
   // no commitea; lo de las otras piezas no se tocó
   assert.deepEqual(git(d, 'status', '--porcelain').split('\n').filter(Boolean).map((l) => l.slice(3)).sort(), ['.claude/fusiones/cierre.md', '.claude/kit.md', CIERRE].sort());
   assert.equal(leer(d, SCR_A), A_NUESTRO);
@@ -1371,7 +1371,7 @@ test('resolver por la CLI: sin --por, salida rara, --a-mano sin mezclar o de má
   fs.rmSync(path.join(d, '.kit-rol'));
   const ok = correr(s, ['resolver', d, 'cierre', 'mezclar', '--por', 'p']);
   assert.equal(ok.status, 0, ok.stdout + ok.stderr);
-  assert.match(ok.stdout, /commit por rutas: /);
+  assert.match(ok.stdout, /commit por rutas, un paso por renglón/);
 });
 
 test('8r2 t10: resolver quedarse y resolver propia (el alias) dejan la misma ficha y el mismo disco; el commit dice quedarse; una salida rara → 1 sin tocar nada', () => {

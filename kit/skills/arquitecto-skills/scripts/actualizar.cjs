@@ -829,7 +829,7 @@ function cerrarCiclo(plan, carpeta, { opciones, llegadas, moldeNuevoDe, fabricaD
     if (!entrada) continue;
     const fallas = CA.verificarCambio(carpeta, c, ctx);
     if (fallas.length) {
-      plan.lineas.push(`no subió al kit · ${c.id} · verificar en rojo (${fallas[0].que}): sigue aplicado`);
+      plan.lineas.push(`no subió al kit · ${c.id} · verificar falló (${fallas[0].que}): sigue aplicado`);
       continue;
     }
     if (opciones.rc || /-rc\./.test(plan.vNuevo)) { // un aplicar suelto con kit -rc, igual que la flota (cambios.cjs no deja subir a un rc)
@@ -908,7 +908,7 @@ function aplicar(carpeta, opciones) {
     try {
       ejecutar(path.resolve(carpeta), plan.ops, opciones.io);
     } catch (e) {
-      return { codigo: 1, lineas: [...lineas, `aplicar: no pude escribir ${e.ruta || '?'} (${e.code || e.message}) — cada archivo quedó entero, el viejo o el nuevo; la ficha no cambió. Es el clon del actualizador: \`git checkout -- . && git clean -fd\` (deja .kit-rol, que está en .git/info/exclude) y corré de nuevo`] };
+      return { codigo: 1, lineas: [...lineas, `aplicar: no pude escribir ${e.ruta || '?'} (${e.code || e.message}) — cada archivo quedó entero, el viejo o el nuevo; la ficha no cambió. Es el clon del actualizador: \`git checkout -- .\` y después \`git clean -fd\` (deja .kit-rol, que está en .git/info/exclude) y corré de nuevo`] };
     }
     return { codigo: 0, lineas };
   } finally {
@@ -1002,6 +1002,8 @@ function kitParaResolver(kit) {
   return fs.existsSync(path.join(k, 'kit', 'VERSION')) && fs.existsSync(path.join(k, 'kit', 'molde', 'settings.json')) ? k : null;
 }
 const NUEVA_COMANDO = 'node .claude/scripts/cambios.cjs';
+// R12 (8d C4): el commit que imprime resolver, un paso por renglón (la sesión los corre en orden; sin `&&`, que PowerShell 5.1 no tiene).
+const COMMIT_POR_RUTAS = 'commit por rutas, un paso por renglón (si uno falla, pará ahí):';
 // Entre comillas dobles, que andan igual en Git Bash y en cmd (como las líneas de adoptar): sin ", \, $ ni ` adentro.
 const entreComillas = (s) => `"${String(s).replace(/["\\$`]/g, '')}"`;
 
@@ -1124,10 +1126,10 @@ function nuevaSinInforme(raiz, { id, def, datos, textoFicha, por, kit: kitPedido
   if (!escritos.length) lineas.push(`${id} · los archivos ya eran los del molde del kit ${vFicha}: solo cambia la ficha`);
   lineas.push(`${RUTA_FICHA} · ${id}: ${valor}`, `${changelog} · un renglón · ${renglon}`);
   const sh = escritos.filter((r) => /^\.githooks\/[^/.]+$/.test(r));
-  const x = sh.length ? ` && git update-index --chmod=+x -- ${sh.join(' ')}` : '';
-  const commit = `git add -A -- ${[...escritos, RUTA_FICHA, changelog].join(' ')}${x} && git commit -m "inicio: ${id}, nueva (${p.replace(/[`$\\"]/g, '')})"`;
+  // R12 (8d C4): un paso por renglón, sin `&&`
+  const commit = [`git add -A -- ${[...escritos, RUTA_FICHA, changelog].join(' ')}`, ...(sh.length ? [`git update-index --chmod=+x -- ${sh.join(' ')}`] : []), `git commit -m "inicio: ${id}, nueva (${p.replace(/[`$\\"]/g, '')})"`];
   if (!toca.categorias.length) {
-    lineas.push(`commit por rutas: ${commit}`);
+    lineas.push(COMMIT_POR_RUTAS, ...commit.map((c) => `  ${c}`));
     return { codigo: 0, lineas };
   }
   // de frenos: el sello antes del commit de la pieza (un aprobado de después no lo cubre)
@@ -1137,7 +1139,7 @@ function nuevaSinInforme(raiz, { id, def, datos, textoFicha, por, kit: kitPedido
   lineas.push(`${id} toca frenos (${toca.categorias.join(', ')}): el sello va ANTES del commit de la pieza (barreras pide un aprobado anterior al primer commit que la toca; uno de después no la cubre) — en este orden, en tu checkout principal y en la rama por defecto, con lo escrito sin commitear:`);
   lineas.push(`  1. ${nuevo}`);
   lineas.push(`  2. ${NUEVA_COMANDO} aprobar ${hoy()}-${slug}   (el id que dijo el paso 1; lo corre la sesión cuando el dueño lo pide, y su clic en la ventana es la firma: en la carpeta principal o en la pestaña del director, nunca un obrero)`);
-  lineas.push(`  3. ${commit}`);
+  commit.forEach((c, k) => lineas.push(`  ${k + 3}. ${c}`));
   lineas.push(`si no lo aprobás: git checkout -- ${escritos.join(' ')} ${RUTA_FICHA} ${changelog}`);
   return { codigo: 0, lineas };
 }
@@ -1286,7 +1288,7 @@ function resolver(carpeta, id, salidaPedida, { por, aMano = false, kit } = {}) {
   if (FU.esFreno(id) && escritos.length) {
     lineas.push(`${id} es de frenos: el candado pide el aprobado del dueño al commitear; si no aprueba, \`git checkout -- ${escritos.join(' ')}\``);
   }
-  lineas.push(`commit por rutas: git add -A -- ${[...escritos, RUTA_FICHA, rInforme].join(' ')} && git commit -m "inicio: ${id}, ${salida} (${p.replace(/[`$\\]/g, '')})"`);
+  lineas.push(COMMIT_POR_RUTAS, `  git add -A -- ${[...escritos, RUTA_FICHA, rInforme].join(' ')}`, `  git commit -m "inicio: ${id}, ${salida} (${p.replace(/[`$\\]/g, '')})"`);
   return { codigo: 0, lineas };
 }
 
