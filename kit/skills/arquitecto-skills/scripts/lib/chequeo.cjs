@@ -244,6 +244,7 @@ function arranque(ctx) {
   const hook = path.join(ctx.carpeta, '.claude', 'hooks', 'session-start.cjs');
   if (!fs.existsSync(hook)) return mal('no está .claude/hooks/session-start.cjs');
   const antes = git(['config', '--local', '--get', 'core.hooksPath'], ctx.carpeta);
+  const previoAntes = git(['config', '--local', '--get', 'kit.hooksPathPrevio'], ctx.carpeta);
   let r;
   try {
     r = correr(process.execPath, [hook], {
@@ -261,6 +262,14 @@ function arranque(ctx) {
     if (v0 !== v1) {
       if (v0 === null) git(['config', '--local', '--unset-all', 'core.hooksPath'], ctx.carpeta);
       else git(['config', '--local', 'core.hooksPath', v0], ctx.carpeta);
+    }
+    // rt C1 9: y el previo que el hook anota al poner .githooks (kit.hooksPathPrevio), también como estaba
+    const despuesPrevio = git(['config', '--local', '--get', 'kit.hooksPathPrevio'], ctx.carpeta);
+    const p0 = previoAntes.ok ? previoAntes.salida.toString('utf8').trim() : null;
+    const p1 = despuesPrevio.ok ? despuesPrevio.salida.toString('utf8').trim() : null;
+    if (p0 !== p1) {
+      if (p0 === null) git(['config', '--local', '--unset-all', 'kit.hooksPathPrevio'], ctx.carpeta);
+      else git(['config', '--local', 'kit.hooksPathPrevio', p0], ctx.carpeta);
     }
   }
   if (r.colgado) nv(`el hook de arranque no terminó en ${minutos(PLAZO_ARRANQUE)}`);
@@ -903,6 +912,221 @@ function gitleaks(ctx) {
 
 // ---------------------------------------------------------------- las nueve
 
+// ---------------------------------------------------------------- 8d C1.5 (52): adoptar --verificar — ¿el repo quedó andando?
+//
+// verificarAdopcion(carpeta) → { ok, lineas: ['verificar · <id> · ✅|❌|⚠ · <detalle>'] }, en este orden: hooks · arranque ·
+// comando-test · hooksPath · zona. ok = ninguna ❌ (un ⚠ avisa y no traba). SÍNCRONO. NO corre el comando-setup (no le ensucia el
+// lockfile al dueño); la flota lo corre en su clon antes. SÍ corre código del repo: el hook de arranque (y su .propio.sh) y cada
+// hook PreToolUse registrado, con una entrada inocente — lo mismo que pasa al abrir una sesión ahí: solo en repos del dueño (en uno
+// recién traído, después de que el dueño diga que sí). Lo que escribe el arranque (la marca en .git/) queda; core.hooksPath y
+// kit.hooksPathPrevio vuelven a como estaban. Un hook del molde que no anda es ❌; uno propio, ⚠ (puede negar a propósito).
+const PLAZO_HOOK = 60000;
+// Lo inocente que cada hook de PreToolUse tiene que dejar pasar (Bash|PowerShell → un echo; Write|Edit → un archivo suelto).
+const INOCENTE = {
+  Bash: () => ({ command: 'echo hola' }),
+  PowerShell: () => ({ command: 'Write-Output hola' }),
+  Write: (c) => ({ file_path: path.join(c, 'kit-verificar.txt'), content: 'hola\n' }),
+  Edit: (c) => ({ file_path: path.join(c, 'kit-verificar.txt'), old_string: 'a', new_string: 'b' }),
+};
+// Los hooks que trae el molde (rt C1 3): si uno de estos no anda, el repo queda frenado (A5.2); uno propio que niega puede ser a propósito.
+const HOOKS_DEL_KIT = new Set(['.claude/hooks/session-start.cjs', '.claude/hooks/escritura-docs.cjs', '.claude/hooks/lib/portero.cjs', '.claude/hooks/git-seguro.cjs', '.claude/hooks/sensible.cjs', '.claude/hooks/niega-aprobar.cjs']);
+// ¿La salida de un hook niega o falla? (el JSON de PreToolUse, la salida 2, u otra que no sea 0: rt C1 4, un hook que revienta
+// sale 1 y Claude Code lo deja pasar: ese freno no frena). → el motivo, o null.
+function niega(r) {
+  if (r.status === 2) return corto(r.salida || 'salió 2', 100);
+  if (r.status !== 0) return `salió ${r.status === null ? 'sin código' : r.status}${r.salida ? `: ${corto(r.salida, 80)}` : ''}`;
+  const t = String(r.salida || '').trim();
+  const i = t.indexOf('{');
+  if (i < 0) return null;
+  try {
+    const j = JSON.parse(t.slice(i));
+    const h = j && j.hookSpecificOutput;
+    if (h && h.permissionDecision === 'deny') return corto(h.permissionDecisionReason || 'deny', 100);
+  } catch (e) {
+    return null;
+  }
+  return null;
+}
+// El relleno de una zona propia del molde: el título "Lo propio de este proyecto" y su renglón en cursiva. Vacía, también.
+function esRelleno(contenido) {
+  return String(contenido || '').replace(/\r\n/g, '\n').split('\n').map((l) => l.trim())
+    .filter((l) => l && !/^#{1,6}\s+Lo propio de este proyecto\s*$/i.test(l) && !/^\*[^*].*\*$/.test(l) && !/^_[^_].*_$/.test(l)).length === 0;
+}
+// El programa de un comando (el primero que no es VAR=valor), o null.
+function programaDe(cmd) {
+  for (const w of palabras(cmd)) if (!/^[A-Za-z_][A-Za-z0-9_]*=/.test(w)) return w;
+  return null;
+}
+function enElPath(prog, env = process.env) {
+  const exts = process.platform === 'win32' ? ['', ...String(env.PATHEXT || '.EXE;.CMD;.BAT;.COM').split(';').filter(Boolean).map((e) => e.toLowerCase())] : [''];
+  for (const d of String(env.PATH || env.Path || '').split(path.delimiter).filter(Boolean)) {
+    for (const e of exts) {
+      try {
+        if (fs.statSync(path.join(d, `${prog}${e}`)).isFile()) return true;
+      } catch (err) {
+        // sigue buscando
+      }
+    }
+  }
+  return false;
+}
+
+function vHooks(ctx) {
+  let s;
+  try {
+    s = leerJsonSinDuplicados(fs.readFileSync(path.join(ctx.carpeta, ...RUTA_SETTINGS.split('/')), 'utf8'));
+  } catch (e) {
+    return mal(`no está ${RUTA_SETTINGS}`);
+  }
+  if (!s.ok || !s.valor || typeof s.valor !== 'object') return mal(`${RUTA_SETTINGS} no se lee: ${corto(s.problema || 'no es un objeto', 120)}`);
+  const hooks = s.valor.hooks && typeof s.valor.hooks === 'object' ? s.valor.hooks : {};
+  const problemas = [];
+  const avisos = [];
+  let n = 0;
+  for (const [evento, grupos] of Object.entries(hooks)) {
+    for (const g of Array.isArray(grupos) ? grupos : []) {
+      for (const h of g && Array.isArray(g.hooks) ? g.hooks : []) {
+        if (!h || h.type !== 'command') continue;
+        n++;
+        for (const t of rutasDeHook(h)) {
+          const abs = path.resolve(ctx.carpeta, t.replace(RE_PROYECTO, () => ctx.carpeta));
+          RE_PROYECTO.lastIndex = 0;
+          const rel = posix(path.relative(ctx.carpeta, abs)) || t;
+          let st = null;
+          try {
+            st = fs.statSync(abs);
+          } catch (err) {
+            st = null;
+          }
+          if (!st || !st.isFile()) {
+            problemas.push(`${evento} apunta a ${rel}, que no está`);
+            continue;
+          }
+          if (!RE_NODE.test(abs)) continue;
+          const c = spawnSync(process.execPath, ['--check', abs], { env: entorno(), encoding: 'utf8', timeout: PLAZO_CHECK, windowsHide: true });
+          if (c.error || c.status !== 0) {
+            problemas.push(`${rel} no compila`);
+            continue;
+          }
+          // anda = deja pasar lo inocente (un hook sin su lib niega todo con "freno roto": 8d A, hook-sensible y hooks-lib juntos)
+          if (evento !== 'PreToolUse') continue;
+          const herramientas = String(g.matcher || 'Bash').split('|').map((x) => x.trim()).filter((x) => INOCENTE[x]);
+          const delKit = HOOKS_DEL_KIT.has(rel);
+          const anota = (m) => (delKit ? problemas : avisos).push(delKit ? m : `${m} (es tuyo: si es a propósito, dejalo)`);
+          for (const tool of herramientas) {
+            const entrada = { session_id: 'kit-verificar', cwd: ctx.carpeta, hook_event_name: 'PreToolUse', permission_mode: 'default', tool_name: tool, tool_input: INOCENTE[tool](ctx.carpeta) };
+            const r = correr(process.execPath, [abs], { cwd: ctx.carpeta, plazo: PLAZO_HOOK, entrada: JSON.stringify(entrada), env: entorno({ CLAUDE_PROJECT_DIR: ctx.carpeta }), tmp: ctx.tmp });
+            if (r.colgado) anota(`${rel} no anda: no terminó en ${minutos(PLAZO_HOOK)} con lo inocente`);
+            else if (r.error) anota(`${rel} no anda: no arrancó (${r.error})`);
+            else {
+              const m = niega(r);
+              if (m) anota(`${rel} no anda: niega lo inocente (${tool}: ${entrada.tool_input.command || 'un archivo suelto'}): ${m}`);
+            }
+          }
+        }
+      }
+    }
+  }
+  if (problemas.length) return mal(problemas.slice(0, 3).join('; ') + (problemas.length > 3 ? ` y ${problemas.length - 3} más` : ''));
+  if (avisos.length) return { ok: true, detalle: `⚠ ${avisos.slice(0, 3).join('; ')}${avisos.length > 3 ? ` y ${avisos.length - 3} más` : ''}` };
+  return bien(`${n} hook${n === 1 ? '' : 's'} registrado${n === 1 ? '' : 's'}: están y andan`);
+}
+
+function vComandoTest(ctx) {
+  const f = leerFicha(ctx);
+  if (f.error) return mal(`la ficha no se lee: ${f.error}`);
+  const v = f.r.datos.vars || {};
+  const cmd = typeof v['comando-test'] === 'string' ? v['comando-test'].trim() : '';
+  if (!cmd) return { ok: true, detalle: '⚠ la ficha no trae comando-test: el gate no tiene con qué probar' };
+  const prog = programaDe(cmd);
+  if (!prog) return mal(`no entiendo el comando-test (${corto(cmd, 80)})`);
+  if (/[\\/]/.test(prog)) {
+    return fs.existsSync(path.resolve(ctx.carpeta, prog)) ? bien(`${prog} está (${corto(cmd, 80)})`) : mal(`${prog} no está en la carpeta (¿falta correr el comando-setup?)`);
+  }
+  return enElPath(prog) ? bien(`${prog} está (${corto(cmd, 80)})`) : mal(`${prog} no está en esta PC (el comando-test es ${corto(cmd, 80)})`);
+}
+
+function vHooksPath(ctx) {
+  if (!fs.existsSync(path.join(ctx.carpeta, '.githooks'))) return bien('sin .githooks/: nada que mirar');
+  const g = git(['config', '--get', 'core.hooksPath'], ctx.carpeta);
+  const v = g.ok ? g.salida.toString('utf8').trim() : '';
+  if (v === '.githooks') return bien('core.hooksPath = .githooks');
+  return mal(`core.hooksPath dice ${v || '(nada)'} y no .githooks: los githooks del kit no corren (¿un prepare o un husky del comando-setup lo cambió?) — lo vuelve a poner el hook de arranque, o git config core.hooksPath .githooks`);
+}
+
+// Una pieza reemplazada en la adopción (<papeles>/referencia/adopcion/<pieza>-anterior.md) con la zona propia de sus archivos
+// todavía en el relleno: lo tuyo no se destiló. Avisa (⚠), no traba.
+function vZona(ctx) {
+  const f = leerFicha(ctx);
+  const docs = f.r ? ficha.carpetaDocs(f.r.datos) : 'docs';
+  const dir = path.join(ctx.carpeta, ...docs.split('/'), 'referencia', 'adopcion');
+  let anteriores = [];
+  try {
+    anteriores = fs.readdirSync(dir).filter((x) => /-anterior\.md$/.test(x)).sort();
+  } catch (e) {
+    return bien('ninguna pieza reemplazada en la adopción espera');
+  }
+  const avisos = [];
+  for (const x of anteriores) {
+    const id = x.replace(/-anterior\.md$/, '');
+    const rutaAnt = `${docs}/referencia/adopcion/${x}`;
+    const rels = [...leer(path.join(dir, x)).matchAll(/^## (\S+)\s*$/gm)].map((m) => m[1]);
+    for (const rel of rels) {
+      let t;
+      try {
+        t = fs.readFileSync(path.join(ctx.carpeta, ...rel.split('/')), 'utf8');
+      } catch (e) {
+        continue;
+      }
+      const z = zonas(t);
+      if (z.ok && z.zonas.length && z.zonas.every((q) => esRelleno(q.contenido))) avisos.push(`${id}: la zona propia de ${rel} sigue con el relleno — lo tuyo de antes está en ${rutaAnt}`);
+    }
+  }
+  if (avisos.length) return { ok: true, detalle: `⚠ ${avisos.slice(0, 3).join('; ')}${avisos.length > 3 ? ` y ${avisos.length - 3} más` : ''}` };
+  return bien(anteriores.length ? 'lo tuyo de las piezas reemplazadas ya está en su zona propia' : 'ninguna pieza reemplazada en la adopción espera');
+}
+const leer = (p) => fs.readFileSync(p, 'utf8');
+
+const VERIFICAR = [['hooks', vHooks], ['arranque', arranque], ['comando-test', vComandoTest], ['hooksPath', vHooksPath], ['zona', vZona]];
+
+function verificarAdopcion(carpeta) {
+  const lineas = [];
+  let ok = true;
+  let tmp = null;
+  try {
+    let raiz;
+    try {
+      raiz = gitTexto(['rev-parse', '--show-toplevel'], path.resolve(carpeta)).trim();
+    } catch (e) {
+      return { ok: false, lineas: [`verificar · repo · ❌ · ${carpeta} no es un repo de git`] };
+    }
+    // sin ficha no es un repo adoptado: no hay nada que verificar (un aviso, no traba)
+    if (!fs.existsSync(path.join(raiz, ...RUTA_FICHA.split('/')))) return { ok: true, lineas: [`verificar · ficha · ⚠ · sin ${RUTA_FICHA}: no es un repo adoptado, no hay nada que verificar`] };
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'kit-verificar-'));
+    const ctx = { carpeta: path.resolve(raiz), tmp };
+    for (const [id, fn] of VERIFICAR) {
+      let r;
+      try {
+        r = fn(ctx);
+      } catch (e) {
+        r = mal(`NO VERIFICADO: ${e instanceof NoVerificado ? e.message : `error propio (${corto(e && e.message ? e.message : e, 120)})`}`);
+      }
+      const aviso = r.ok && r.detalle.startsWith('⚠ ');
+      if (!r.ok) ok = false;
+      lineas.push(`verificar · ${id} · ${r.ok ? (aviso ? '⚠' : '✅') : '❌'} · ${aviso ? r.detalle.slice(2) : r.detalle}`);
+    }
+  } finally {
+    if (tmp) {
+      try {
+        fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+      } catch (e) {
+        // un temporal que Windows no suelta no cambia el resultado
+      }
+    }
+  }
+  return { ok, lineas };
+}
+
 const LINEAS = [llaves, arranque, settings, skills, fichaLinea, barreras, casos, pruebas, gitleaks];
 
 function formatear(i, r) {
@@ -970,4 +1194,4 @@ function chequear(carpeta, opciones = {}) {
   return { lineas, ok: res.every((r) => r.ok), noVerificado: noVerif.length > 0, noVerificados: noVerif };
 }
 
-module.exports = { chequear, IDS, TOPE_SKILL, TOPES_SKILL, topeSkill, pesoSkill, avisosDe, hooksLibEspera, avisoHooksLib, firmaLock, carpetaDelSetup, lockAtrasadoDe, CONSEJO_TOPE, PLAZO_DEFECTO, agregadas, rutasDeHook, cabeceraSkill, pruebasDe, casoRojo, rojosPorArchivo, correr };
+module.exports = { chequear, verificarAdopcion, esRelleno, IDS, TOPE_SKILL, TOPES_SKILL, topeSkill, pesoSkill, avisosDe, hooksLibEspera, avisoHooksLib, firmaLock, carpetaDelSetup, lockAtrasadoDe, CONSEJO_TOPE, PLAZO_DEFECTO, agregadas, rutasDeHook, cabeceraSkill, pruebasDe, casoRojo, rojosPorArchivo, correr };

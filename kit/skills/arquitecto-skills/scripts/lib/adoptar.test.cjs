@@ -858,20 +858,26 @@ test('crit. 2 (8r2 t2; rt-7, rt-8): --traer — sin push "no llegó"; sucia u ot
   git(p, 'switch', '-q', 'main');
   // limpia y en main: el ff, después los githooks, y el setup de una vez (no hay .venv)
   t = await AD.main([c, '--traer', p]);
-  assert.equal(t.codigo, 0, t.lineas.join('\n'));
+  // 8d C1.5: trajo bien, pero este repo de prueba es solo una ficha (sin settings ni hooks): --verificar lo dice y sale 3
+  assert.equal(t.codigo, 3, t.lineas.join('\n'));
+  assert.ok(t.lineas.includes('verificar · hooks · ❌ · no está .claude/settings.json'), t.lineas.join('\n'));
   assert.equal(cabeza(p), sha);
   assert.equal(hooksPath(p, '--local'), '.githooks');
   assert.equal(hooksPath(c), null, 'el clon, nunca (r1-5)');
-  assert.deepEqual(t.lineas, [
+  assert.deepEqual(t.lineas.slice(0, 2), [
     `traer · ${p} · traje ${antes.slice(0, 7)}..${sha.slice(0, 7)} (origin/main)`,
     `githooks · ${p} · puesto`,
-    'en tu carpeta, una vez: python3 -m venv .venv && .venv/bin/python -m pip install -r requirements.txt (el sello corre comando-test acá)',
   ]);
+  assert.ok(t.lineas[2].startsWith('en tu carpeta, una vez: python3 -m venv .venv && .venv/bin/python -m pip install -r requirements.txt (el sello corre comando-test acá); después, '), t.lineas[2]);
+  // 8d C1.5: al final, --verificar en la carpeta (sus cinco líneas)
+  assert.deepEqual(t.lineas.slice(3, 8).map((l) => l.split(' · ')[1]), ['hooks', 'arranque', 'comando-test', 'hooksPath', 'zona'], t.lineas.join('\n'));
+  assert.match(t.lineas[8], /^traer · lo traje, pero algo no anda .*no deshagas nada/);
   // otra vez, con el .venv: nada que traer, ya estaba, sin la línea del setup
   fs.mkdirSync(path.join(p, '.venv'));
   escribir(p, { '.git/info/exclude': '.venv/\n' });
   t = await AD.main([c, '--traer', p]);
-  assert.deepEqual(t.lineas, [`traer · ${p} · ya tenía ${sha.slice(0, 7)}: nada que traer`, `githooks · ${p} · ya estaba`]);
+  assert.deepEqual(t.lineas.slice(0, 2), [`traer · ${p} · ya tenía ${sha.slice(0, 7)}: nada que traer`, `githooks · ${p} · ya estaba`]);
+  assert.ok(!t.lineas.some((l) => l.startsWith('en tu carpeta, una vez')), 'sin la línea del setup');
   // otro repo, o el clon mismo: salida 1, sin tocar
   const otro = repoPelado('otro', { 'a.txt': 'a\n' });
   for (const pr of [otro, c, path.join(T, 'no-existe')]) {
@@ -892,7 +898,7 @@ test('crit. 2 (8r2 t2): --traer sin origin en la carpeta trae del clon (como el 
   assert.equal(t.codigo, 0, t.lineas.join('\n'));
   assert.equal(cabeza(p), cabeza(c));
   assert.equal(leer(p, 'nuevo.txt'), 'adoptado\n');
-  assert.deepEqual(t.lineas, [`traer · ${p} · traje ${antes.slice(0, 7)}..${cabeza(c).slice(0, 7)} (del clon)`, `githooks · ${p} · puesto`], 'sin ficha: sin la línea del setup');
+  assert.deepEqual(t.lineas, [`traer · ${p} · traje ${antes.slice(0, 7)}..${cabeza(c).slice(0, 7)} (del clon)`, `githooks · ${p} · puesto`, 'verificar · ficha · ⚠ · sin .claude/kit.md: no es un repo adoptado, no hay nada que verificar'], 'sin ficha: sin la línea del setup');
   assert.equal(hooksPath(p, '--local'), '.githooks');
 });
 
@@ -1459,7 +1465,7 @@ test('crit. 5 (8r3 i4; rt-3): la línea después: dice la verdad — con remoto,
   assert.equal(spawnSync(cmds[0], { cwd: h.c, shell: true, encoding: 'utf8' }).status, 0, 'las piezas pasan');
   const fx = spawnSync(cmds[1], { cwd: h.c, shell: true, encoding: 'utf8' });
   assert.notEqual(fx.status, 0, 'el commit de la ficha, frenado');
-  assert.match(fx.stdout + fx.stderr, /kit pre-commit: ROJO/);
+  assert.match(fx.stdout + fx.stderr, /kit pre-commit: no pasa/); // 8d A8: el candado habla sin rojo/verde
 });
 
 // crit. 6 (8r3 i5) vive acá y no en actualizar.test: necesita un repo adoptado de verdad (las piezas del molde y su ficha).
@@ -1746,4 +1752,127 @@ test('8r4 u6 (crit.): --aplicar --worktreeinclude escribe las líneas de --mirar
   assert.match(neg.lineas[0], /^adoptar: ya hay un \.worktreeinclude en .*: --worktreeinclude no lo pisa/);
   assert.deepEqual(foto(y), fy);
   assert.equal(await AD.main([d, '--kit', RAIZ_KIT, '--mirar', '--worktreeinclude']), null, 'solo con --aplicar');
+});
+
+// ---------------------------------------------------------------- SPEC-paquete-8d C1: adoptar sin romper (52, 53)
+
+// Los renglones de la propuesta con un ¿? fuera del bloque de lo que vio el adoptador (las preguntas para el dueño).
+const preguntasDe = (texto) => AD.sinObservaciones(texto).split('\n').filter((l) => l.includes('¿?'));
+// La propuesta contestada: cada renglón ¿? se borra y, si se pasa, se cambia un texto.
+function contestar(prop, cambios = {}) {
+  let t = AD.sinObservaciones(fs.readFileSync(prop, 'utf8')).split('\n').filter((l) => !l.includes('¿?')).join('\n');
+  for (const [de, a] of Object.entries(cambios)) t = t.replace(de, a);
+  fs.writeFileSync(prop, t);
+}
+
+test('8d C1.1-2 (crit. C1): /inicio propio con --director kit — el bloque "Lo tuyo que cambia" lo lista; --aplicar guarda el anterior en referencia/adopcion y deja su línea en el TODO', { ...deKit, timeout: 240000 }, async () => {
+  const d = conDirectorPropio('hermes', {
+    '.claude/hooks/viejo-propio.sh': '#!/bin/sh\necho viejo\n',
+    '.claude/settings.json': JSON.stringify({ hooks: { PreToolUse: [{ matcher: 'Bash', hooks: [{ type: 'command', command: 'node .claude/hooks/mi-freno.cjs' }] }] } }, null, 2),
+    '.claude/hooks/mi-freno.cjs': "'use strict';\n",
+  });
+  const r = mirar(d);
+  const ls = r.texto.split('\n');
+  const i = ls.findIndex((l) => l.startsWith('# Lo tuyo que cambia'));
+  assert.ok(i >= 0, r.texto);
+  const bloque = [];
+  for (let k = i + 1; k < ls.length && ls[k].startsWith('#   '); k++) bloque.push(ls[k]);
+  const b = bloque.join('\n');
+  assert.match(b, /\.claude\/skills\/inicio\/SKILL\.md \(inicio\): con --director kit lo reemplaza el del kit/);
+  assert.match(b, /\.claude\/skills\/director\/SKILL\.md \(director-obrero\)/);
+  assert.match(b, /pasarlo a la zona propia · retirarlo · dejarlo/);
+  assert.match(b, /hook PreToolUse Bash: node \.claude\/hooks\/mi-freno\.cjs — corre además de los del kit/, b);
+  assert.match(b, /\.claude\/hooks\/viejo-propio\.sh: ningún hook del settings del repo lo registra \(ni el settings\.local\) — no corre nunca/, b);
+  // --aplicar --director kit: el anterior a referencia/adopcion y la línea del TODO
+  const prop = propuestaDe(d);
+  rol(d);
+  const ap = await sinClaude(() => aplicarCon(d, prop, '--director', 'kit'));
+  assert.equal(ap.codigo, 0, ap.lineas.join('\n'));
+  assert.equal(leer(d, '.claude/skills/inicio/SKILL.md'), delMolde(d, 'skills/inicio/SKILL.md'));
+  const ant = leer(d, 'docs/referencia/adopcion/inicio-anterior.md');
+  assert.ok(ant && ant.includes(INICIO_PROPIO.trim()), String(ant));
+  assert.match(ant, /\.claude\/skills\/inicio\/SKILL\.md/);
+  assert.ok(leer(d, 'docs/referencia/adopcion/director-obrero-anterior.md').includes(DIR_PROPIO.trim()));
+  const todo = leer(d, 'docs/TODO.md');
+  for (const id of ['inicio', 'cierre', 'director-obrero']) {
+    const k = todo.split('\n').filter((l) => l.startsWith(`- [ ] destilar lo propio de ${id} a su zona propia, o descartarlo`)).length;
+    assert.equal(k, 1, `${id}: ${todo}`);
+  }
+  assert.ok(ap.lineas.some((l) => /^adopcion · docs\/referencia\/adopcion\/inicio-anterior\.md/.test(l)), ap.lineas.join('\n'));
+  assert.equal(commitsDeLaLinea(d, ap.lineas), 2);
+  assert.equal(git(d, 'status', '--porcelain'), '');
+  // sin --director kit no se guarda nada
+  const y = conDirectorPropio('hermes2');
+  const py = propuestaDe(y);
+  rol(y);
+  const ay = await sinClaude(() => aplicarCon(y, py));
+  assert.equal(ay.codigo, 0, ay.lineas.join('\n'));
+  assert.equal(leer(y, 'docs/referencia/adopcion/inicio-anterior.md'), null);
+  assert.doesNotMatch(leer(y, 'docs/TODO.md'), /destilar lo propio/);
+});
+
+test('8d C1.3 (crit. C1): un repo con release.yml → ¿? en release y en publicar, con la evidencia; --aplicar se niega hasta contestarlas; un repo sin nada que publicar, sin ¿?', { ...deKit, timeout: 240000 }, async () => {
+  const d = conCodigo('pub', { '.github/workflows/release.yml': 'name: release\non:\n  push:\n    tags: ["v*"]\njobs:\n  r:\n    runs-on: ubuntu-latest\n' });
+  const r = mirar(d);
+  const q = preguntasDe(r.texto);
+  assert.ok(q.some((l) => /^ {2}# ¿\? release — .*\.github\/workflows\/release\.yml/.test(l)), q.join('\n'));
+  assert.ok(q.some((l) => /^ {2}# ¿\? publicar — .*\.github\/workflows\/release\.yml/.test(l)), q.join('\n'));
+  assert.doesNotMatch(r.texto, /integrar es publicar/, 'publica por tag, no al subir');
+  // la ficha se lee igual (los ¿? son comentarios) y sigue de fábrica
+  assert.equal(F.leer(AD.sinObservaciones(r.texto)).datos.sensible.release, 'no');
+  const prop = propuestaDe(d);
+  rol(d);
+  const f0 = foto(d);
+  const neg = await aplicarCon(d, prop);
+  assert.equal(neg.codigo, 1);
+  assert.match(neg.lineas[0], /^adoptar: la propuesta tiene 2 preguntas sin contestar \(¿\?\): publicar, release — /);
+  assert.deepEqual(foto(d), f0, 'no escribió nada');
+  // rt C1 2: un ¿ que se rompió al guardar (PowerShell en ANSI) se sigue viendo
+  fs.writeFileSync(prop, fs.readFileSync(prop, 'utf8').split('¿').join('\uFFFD'));
+  const rota = await aplicarCon(d, prop);
+  assert.equal(rota.codigo, 1);
+  assert.match(rota.lineas[0], /preguntas sin contestar .*: publicar, release — preguntáselas al dueño/);
+  fs.writeFileSync(prop, fs.readFileSync(prop, 'utf8').split('\uFFFD').join('¿'));
+  contestar(prop);
+  const ok = await aplicarCon(d, prop);
+  assert.equal(ok.codigo, 0, ok.lineas.join('\n'));
+  // sin nada que publicar ni gastar: ningún ¿?
+  assert.deepEqual(preguntasDe(mirar(conCodigo('nada')).texto), []);
+});
+
+test('8d C1.3: plata y sale-afuera por las dependencias; smoke y release propias salen propia; un deploy en push → "integrar es publicar" y ¿? en merge-a-main', deKit, () => {
+  const pkg = JSON.stringify({ name: 'bot', scripts: { test: 'node --test', deploy: 'node scripts/deploy.cjs' }, dependencies: { stripe: '1', nodemailer: '1', openai: '1' } });
+  const d = repoPelado('bot', {
+    'package.json': pkg, 'CLAUDE.md': '# bot\n', 'vercel.json': '{}\n',
+    '.claude/skills/smoke/SKILL.md': '# mi smoke\n', '.claude/skills/release/SKILL.md': '# mi release\n',
+    '.github/workflows/deploy.yml': 'name: deploy\non:\n  push:\n    branches: [main]\njobs:\n  d:\n    runs-on: ubuntu-latest\n',
+  });
+  const r = mirar(d);
+  const q = preguntasDe(r.texto).join('\n');
+  assert.match(q, /# ¿\? plata — .*stripe.*openai/);
+  assert.match(q, /# ¿\? sale-afuera — .*nodemailer/);
+  assert.match(q, /# ¿\? release — .*vercel\.json.*package\.json \(deploy\).*\.claude\/skills\/release/);
+  assert.match(q, /# ¿\? merge-a-main — en este proyecto, integrar es publicar \(\.github\/workflows\/deploy\.yml, vercel\.json \(si está conectado a GitHub\)\)/);
+  assert.match(r.texto, /^# en este proyecto, integrar es publicar \(\.github\/workflows\/deploy\.yml, vercel\.json .*\): .*merge-a-main: con-ok.*comando: al-subir/m);
+  const p = piezas(r.texto);
+  assert.equal(p.smoke, 'propia');
+  assert.equal(p.release, 'propia');
+  assert.equal(piezas(mirar(conCodigo('sin-skills')).texto).smoke, 'no');
+});
+
+test('8d C1.4 (crit. C1): el comando-test con el gestor del lockfile (pnpm, yarn); sin lock o con el de npm, npm test', deKit, () => {
+  const v = (extra) => F.leer(AD.sinObservaciones(mirar(conCodigo(`g${n}`, extra)).texto)).datos.vars['comando-test'];
+  assert.equal(v({ 'pnpm-lock.yaml': 'lockfileVersion: 9\n' }), 'pnpm test');
+  assert.equal(v({ 'yarn.lock': '# yarn\n' }), 'yarn test');
+  assert.equal(v({ 'package-lock.json': '{}\n' }), 'npm test');
+  assert.equal(v({}), 'npm test');
+});
+
+test('8d C1.3 (rt C1 1, ALTO): un vercel.json solo (el proveedor conectado a GitHub, sin workflow) → "integrar es publicar" y ¿? en merge-a-main; un build --release no es publicar; las deps de una subcarpeta cuentan', deKit, () => {
+  const r = mirar(conCodigo('web', { 'vercel.json': '{}\n' }));
+  assert.match(preguntasDe(r.texto).join('\n'), /# ¿\? merge-a-main — en este proyecto, integrar es publicar \(vercel\.json \(si está conectado a GitHub\)\)/);
+  const b = mirar(conCodigo('rust', { '.github/workflows/ci.yml': 'name: ci\non:\n  push:\n    branches: [main]\njobs:\n  b:\n    steps:\n      - run: cargo build --release\n' }));
+  assert.deepEqual(preguntasDe(b.texto), [], 'un build --release no publica');
+  const m = mirar(conCodigo('mono', { 'web/package.json': JSON.stringify({ name: 'web', dependencies: { stripe: '1' } }) }));
+  assert.match(preguntasDe(m.texto).join('\n'), /# ¿\? plata — .*stripe/);
 });

@@ -16,7 +16,8 @@ const USO = [
   '                               [--comando-test "<comando>"] [--principal <carpeta principal>]',
   '     node actualizar.cjs adoptar <carpeta> --kit <raíz del kit> --aplicar <archivo de propuesta> [--fecha <AAAA-MM-DD>]',
   '                               [--principal <carpeta principal>] [--claude-md] [--director kit] [--permisos recomendada] [--arranque kit]',
-  '     node actualizar.cjs adoptar <clon> --traer <carpeta principal>',
+  '     node actualizar.cjs adoptar <clon> --traer <carpeta principal>      (al final corre --verificar en la carpeta)',
+  '     node actualizar.cjs adoptar <carpeta> --verificar      (¿quedó andando? hooks, arranque, comando-test, core.hooksPath; solo mira)',
   '     node actualizar.cjs resolver <carpeta> <pieza> mezclar|quedarse|nueva|congelar --por "<texto>" [--a-mano] [--kit <raíz del kit>]',
   '     node actualizar.cjs ultimo-tag <clon del kit>',
   '  aplicar   pone al día <carpeta> pieza por pieza según su ficha (.claude/kit.md), contra el molde del --kit. Escribe solo en',
@@ -105,6 +106,12 @@ const M = require('./lib/molde.cjs');
 const FU = require('./lib/fusion.cjs');
 const CA = require('../pc/lib/cambios.cjs');
 const CU = require('./lib/cubiertos.cjs');
+// 8d C1.6: ¿la zona propia de un texto tiene algo del proyecto? (no vacía y no el relleno del molde). chequeo, adentro: sin ciclo.
+function zonaTocada(texto) {
+  if (texto == null) return false;
+  const z = Z.zonas(texto);
+  return !!(z.ok && z.zonas.length && z.zonas.some((q) => !require('./lib/chequeo.cjs').esRelleno(q.contenido)));
+}
 
 const ROTO = 'actualizador roto: corré doctor';
 const RUTA_FICHA = '.claude/kit.md';
@@ -653,7 +660,8 @@ function armar(plan, carpeta, { textoFicha, datos, nuevo, viejo, opciones = {} }
     // el estado y el hash nuevos
     let nuevoEstado = estado;
     const unico = archivosN.length === 1 ? archivosN[0] : null;
-    if (estado === 'molde' && unico && esTextoConZona(unico.proyecto) && (Z.zonas(mapN.get(unico.proyecto)).zonas || []).length) nuevoEstado = 'molde+propio';
+    // 8d C1.6 (53): molde+propio solo si la zona propia tiene algo tuyo (vacía o con el relleno del molde, sigue molde)
+    if (estado === 'molde' && unico && esTextoConZona(unico.proyecto) && destinos.has(unico.proyecto) && zonaTocada(destinos.get(unico.proyecto).destino)) nuevoEstado = 'molde+propio';
     const h = unico && estado !== 'sí' && estado !== 'no' ? huella(unico.proyecto, mapN.get(unico.proyecto)) : undefined;
     if (!enFicha || nuevoEstado !== actual || hFicha !== h) {
       if (enFicha || nuevoEstado !== 'no') cambiosFicha.set(id, valorPieza(nuevoEstado, h));
@@ -1059,7 +1067,8 @@ function nuevaSinInforme(raiz, { id, def, datos, textoFicha, por, kit: kitPedido
         if (disco === null || lf(disco) !== val.texto) ops.set(a.proyecto, val.texto);
       }
       const unico = archivos.length === 1 ? archivos[0] : null;
-      if (unico && esTextoConZona(unico.proyecto) && (Z.zonas(aN.get(unico.molde)).zonas || []).length) estado = 'molde+propio';
+      // 8d C1.6 (53): molde+propio solo si lo que queda escrito trae algo tuyo en la zona propia
+      if (unico && esTextoConZona(unico.proyecto) && zonaTocada(ops.has(unico.proyecto) ? ops.get(unico.proyecto) : leerD(unico.proyecto))) estado = 'molde+propio';
       h = unico ? huella(unico.proyecto, aN.get(unico.molde)) : undefined;
     }
     valor = valorPieza(estado, h); // molde no lleva por: (la gramática); el porqué va al CHANGELOG

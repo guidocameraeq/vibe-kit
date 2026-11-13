@@ -515,6 +515,14 @@ async function actualizarMain(nombre, url, ctx, est) {
     notas.push(Q.avisoHooksLib((e && e.base) || fila.antes));
   }
   notas.push(...Q.avisosDe(ch.lineas)); // D8r.4 (S): un ⚠ de chequear (la zona propia que pasa el tope) va a la fila; no la vuelve ROTA
+  // 8d C1.5 (52; A5.2): con chequear bien, que los hooks registrados anden (dejan pasar lo inocente) y el arranque corra; si no, no
+  // se mezcla: un settings adelantado a su lib (hook-sensible sin hooks-lib) negaría todo en la rama por defecto. Lo demás de
+  // --verificar (el comando-test, core.hooksPath) en el clon no dice nada de la carpeta del dueño: lo mira --traer allá.
+  if (ch.codigo === 0 && ctx.verificar !== false) {
+    const v = (typeof ctx.verificar === 'function' ? ctx.verificar : Q.verificarAdopcion)(clon);
+    const rotas = v.lineas.filter((l) => /^verificar · (hooks|arranque) · ❌ · /.test(l));
+    if (rotas.length) ch = { ...ch, codigo: 1, lineas: [...rotas, ...ch.lineas] };
+  }
   // p1 (b), rt-5: el lock atrasado del proyecto (línea 8 en ✅ ⚠) también va a "te espera:", para que no se pierda en la nota
   const lock = Q.lockAtrasadoDe(ch.lineas);
   if (lock) fila.espera.push(`${nombre}: tus tests no se probaron, el lock está atrasado — regenerá ${lock} y commitealo`);

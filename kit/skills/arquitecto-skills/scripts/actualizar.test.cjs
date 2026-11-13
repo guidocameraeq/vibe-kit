@@ -1421,3 +1421,24 @@ test('notaDelKit: las secciones > vieja y ≤ nueva (rc incluida), sin archivo o
   assert.equal(A.notaDelKit(kit, '3.0.0', '3.0.0'), null, 'sin sección para estas versiones');
   assert.equal(A.notaDelKit(kit, '3.0.0-rc.2', '3.0.0'), '## 3.0.0\n\n- sí final\n');
 });
+
+// ---------------------------------------------------------------- 8d C1.6 (53): molde+propio solo si se tocó
+
+test('8d C1.6 (crit. C1): una pieza molde con la zona vacía sigue molde al ponerse al día; con algo propio, molde+propio; CRLF y LF dan el mismo hash', () => {
+  const d = armarProyecto({ estados: { inicio: 'molde' } });
+  const r = aplicar(d);
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  assert.match(lineaDe(r, 'inicio'), /^inicio · molde · /, r.lineas.join('\n'));
+  assert.equal(F.leer(leer(d, '.claude/kit.md')).datos.piezas.inicio.estado, 'molde');
+  const d2 = armarProyecto({
+    estados: { inicio: 'molde' },
+    antes: (x) => {
+      const p = path.join(x, '.claude', 'skills', 'inicio', 'SKILL.md');
+      fs.writeFileSync(p, fs.readFileSync(p, 'utf8').replace('<!-- kit:propio -->\n', '<!-- kit:propio -->\n- un paso mío\n'));
+    },
+  });
+  assert.match(lineaDe(aplicar(d2), 'inicio'), /^inicio · molde\+propio · /);
+  const t = '# x\n<!-- kit:propio -->\nlo mío\n<!-- /kit:propio -->\nfin\n';
+  assert.equal(Z.hashPieza(t.replace(/\n/g, '\r\n')), Z.hashPieza(t));
+  assert.equal(F.hash(t.replace(/\n/g, '\r\n')), F.hash(t));
+});

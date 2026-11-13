@@ -906,3 +906,81 @@ test('p1 (b): firma en las dos con un .npmrc en el diff → ❌; comando-setup d
   const q = armarLock({ base: setupQue(SALIDA_NPM), head: setupQue(SALIDA_NPM), setupBase: 'node setup.cjs' });
   rojo(correr(q), 'pruebas', /pero vars\.comando-setup cambió en la actualización: puede ser de la actualización\)$/);
 });
+
+// ---------------------------------------------------------------- 8d C1.5 (52): verificar que el repo queda andando
+
+const verif = (d, o = {}) => Q.verificarAdopcion(d, o);
+const lineaV = (r, id) => r.lineas.find((l) => l.startsWith(`verificar · ${id} · `)) || '';
+
+test('8d C1.5 (crit. C1): un repo adoptado entero → todo ✅ y ok; las cinco líneas en orden', { timeout: 120000 }, () => {
+  const p = armar({ cambio: (d) => escribir(path.join(d, '.githooks', 'pre-commit'), '#!/bin/sh\nexit 0\n') });
+  git(p.d, 'config', 'core.hooksPath', '.githooks');
+  const r = verif(p.d);
+  assert.deepEqual(r.lineas.map((l) => l.split(' · ')[1]), ['hooks', 'arranque', 'comando-test', 'hooksPath', 'zona'], r.lineas.join('\n'));
+  assert.equal(r.ok, true, r.lineas.join('\n'));
+  assert.match(lineaV(r, 'hooks'), / · ✅ · 3 hooks registrados: están y andan$/);
+  assert.match(lineaV(r, 'comando-test'), / · ✅ · node está \(node prueba\.cjs\)$/);
+  assert.match(lineaV(r, 'hooksPath'), / · ✅ · core\.hooksPath = \.githooks$/);
+});
+
+test('8d C1.5 (crit. C1): un settings que apunta a un hook que no está → ❌ y nombra el archivo; uno que no carga (su lib falta) → ❌', { timeout: 120000 }, () => {
+  const p = armar({ cambio: (d) => fs.rmSync(path.join(d, '.claude', 'hooks', 'escritura-docs.cjs')) });
+  const r = verif(p.d);
+  assert.equal(r.ok, false);
+  assert.match(lineaV(r, 'hooks'), / · ❌ · PreToolUse apunta a \.claude\/hooks\/escritura-docs\.cjs, que no está/);
+  // hook-sensible sin su hooks-lib (8d A, "viajan juntos"): está, pero no carga
+  const q = armar({ cambio: (d) => fs.rmSync(path.join(d, '.claude', 'hooks', 'lib', 'contexto.cjs')) });
+  const rq = verif(q.d);
+  assert.equal(rq.ok, false);
+  assert.match(lineaV(rq, 'hooks'), / · ❌ · .*\.claude\/hooks\/lib\/portero\.cjs no anda: niega lo inocente/);
+});
+
+test('8d C1.5 (crit. C1): un prepare que cambió core.hooksPath → ❌; el programa del comando-test que no está → ❌; sin .githooks, nada que mirar', { timeout: 120000 }, () => {
+  const p = armar({ cambio: (d) => escribir(path.join(d, '.githooks', 'pre-commit'), '#!/bin/sh\nexit 0\n') });
+  git(p.d, 'config', 'core.hooksPath', '.husky');
+  const r = verif(p.d);
+  assert.equal(r.ok, false);
+  assert.match(lineaV(r, 'hooksPath'), / · ❌ · core\.hooksPath dice \.husky y no \.githooks/);
+  const q = armar({ cambio: (d) => escribir(path.join(d, '.claude', 'kit.md'), fichaCon({ kit: '3.0.0', comando: 'programa-que-no-existe-kit test' })) });
+  const rq = verif(q.d);
+  assert.match(lineaV(rq, 'comando-test'), / · ❌ · programa-que-no-existe-kit no está en esta PC/);
+  assert.match(lineaV(rq, 'hooksPath'), / · ✅ · sin \.githooks\/: nada que mirar$/);
+  // un programa con ruta relativa (el python del venv) se mira en la carpeta
+  const v = armar({ cambio: (d) => escribir(path.join(d, '.claude', 'kit.md'), fichaCon({ kit: '3.0.0', comando: '.venv/Scripts/python.exe -m pytest' })) });
+  assert.match(lineaV(verif(v.d), 'comando-test'), / · ❌ · \.venv\/Scripts\/python\.exe no está en la carpeta \(¿falta correr el comando-setup\?\)/);
+});
+
+test('8d C1.5: una pieza reemplazada con la zona propia todavía en el relleno → ⚠ (no traba); con lo tuyo destilado, ✅', { timeout: 120000 }, () => {
+  const ant = '# inicio: lo que tenías\n\n## .claude/skills/inicio/SKILL.md\n\n```\n# el inicio de hermes\n```\n';
+  const p = armar({ cambio: (d) => escribir(path.join(d, 'docs', 'referencia', 'adopcion', 'inicio-anterior.md'), ant) });
+  const r = verif(p.d);
+  assert.equal(r.ok, true, r.lineas.join('\n'));
+  assert.match(lineaV(r, 'zona'), / · ⚠ · inicio: la zona propia de \.claude\/skills\/inicio\/SKILL\.md sigue con el relleno — lo tuyo de antes está en docs\/referencia\/adopcion\/inicio-anterior\.md/);
+  const ruta = path.join(p.d, '.claude', 'skills', 'inicio', 'SKILL.md');
+  escribir(ruta, leer(ruta).replace('<!-- /kit:propio -->', '- correr el seed de hermes antes de probar\n<!-- /kit:propio -->'));
+  assert.match(lineaV(verif(p.d), 'zona'), / · ✅ · /);
+  assert.equal(Q.esRelleno('## Lo propio de este proyecto\n\n*Los pasos que agrega este proyecto. El kit no pisa esta zona.*'), true);
+  assert.equal(Q.esRelleno(''), true);
+  assert.equal(Q.esRelleno('## Lo propio de este proyecto\n\n- un paso mío'), false);
+});
+
+test('8d C1.5 (rt C1 3 y 4): un hook propio que niega lo inocente o revienta (sale 1) → ⚠ y no traba; uno del kit que revienta → ❌', { timeout: 120000 }, () => {
+  const conPropio = (cuerpo) => armar({
+    cambio: (d) => {
+      escribir(path.join(d, '.claude', 'hooks', 'mio.cjs'), cuerpo);
+      const s = JSON.parse(leer(path.join(d, '.claude', 'settings.json')));
+      s.hooks.PreToolUse.push({ matcher: 'Bash', hooks: [{ type: 'command', command: 'node', args: ['${CLAUDE_PROJECT_DIR}/.claude/hooks/mio.cjs'] }] });
+      escribir(path.join(d, '.claude', 'settings.json'), JSON.stringify(s, null, 2));
+    },
+  });
+  const niega = conPropio("process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: 'acá no se usa Bash' } }));\n");
+  const r = verif(niega.d);
+  assert.equal(r.ok, true, r.lineas.join('\n'));
+  assert.match(lineaV(r, 'hooks'), / · ⚠ · \.claude\/hooks\/mio\.cjs no anda: niega lo inocente .*acá no se usa Bash \(es tuyo: si es a propósito, dejalo\)/);
+  const revienta = conPropio("throw new Error('falta un paquete');\n");
+  assert.match(lineaV(verif(revienta.d), 'hooks'), / · ⚠ · \.claude\/hooks\/mio\.cjs no anda: niega lo inocente .*salió 1/);
+  const kit = armar({ cambio: (d) => escribir(path.join(d, '.claude', 'hooks', 'escritura-docs.cjs'), "throw new Error('roto');\n") });
+  const rk = verif(kit.d);
+  assert.equal(rk.ok, false);
+  assert.match(lineaV(rk, 'hooks'), / · ❌ · \.claude\/hooks\/escritura-docs\.cjs no anda: .*salió 1/);
+});

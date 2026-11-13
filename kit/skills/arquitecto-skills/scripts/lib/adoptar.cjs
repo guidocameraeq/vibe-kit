@@ -10,6 +10,7 @@
 //                               [--agentes renombrar] [--worktreeinclude]   (8r4 u6: los agentes propios con el nombre de uno
 //                               del kit pasan a <nombre>-propio.md; el .worktreeinclude que propuso --mirar)
 //   node actualizar.cjs adoptar <clon> --traer <carpeta principal>     (el último paso: después de los commits y el push)
+//   node actualizar.cjs adoptar <carpeta> --verificar                   (8d C1.5: ¿quedó andando? solo mira; lo corre --traer al final)
 //
 // Un script determinista (D6-1): MIRA y APLICA. La pantalla (NORTE, MAPA, el plano de docs/, las reglas propias como cambios) la
 // arma la sesión del Arquitecto con Guido delante, leyendo la propuesta (D6-12): eso necesita leer el código y no es de un script.
@@ -71,6 +72,7 @@ const M = require('./molde.cjs');
 const A = require('../actualizar.cjs');
 const V = require('./vecinos.cjs');
 const LK = require('./locks.cjs');
+const Q = require('./chequeo.cjs');
 
 const { Negativa } = A;
 const RUTA_FICHA = '.claude/kit.md';
@@ -87,6 +89,8 @@ const TRAE = ['molde', 'molde+propio', 'sí'];
 const NUEVO_SI = ['candado', 'director-obrero', 'estado'];
 // estandar (un repo con código, sin --nuevo): las del módulo con director, en sí salvo lo propio (SPEC-paquete-8r, T1; D8r-3).
 const MODULOS = ['director-obrero', 'estado'];
+// 8d C1.3: las opcionales que salen propia si el repo ya trae la suya (no se traen y la ficha no las ve como "no").
+const PROPIAS_SI_ESTAN = ['smoke', 'release'];
 // La sección del CLAUDE.md que pide doctor (chReglaTamano: la misma regla) y que --claude-md suma del molde (8r, 4).
 const RE_TAMANO = /^#{1,6}[ \t]+El tamaño del pedido[ \t]*$/m;
 const MIGRAR = 'node "$HOME/.claude/skills/arquitecto-skills/scripts/migrar-cambios.cjs"';
@@ -364,15 +368,17 @@ function inferirVars(carpeta, opciones = {}) {
     let p = null;
     try { p = JSON.parse(pj); } catch { notas.push('package.json no se lee como JSON: sin comando-test ni comando-setup'); }
     if (p) {
-      const t = p.scripts && typeof p.scripts.test === 'string' ? p.scripts.test : '';
-      if (t && !/no test specified/.test(t)) {
-        vars['comando-test'] = 'npm test';
-        notas.push('comando-test = npm test (package.json tiene scripts.test)');
-      }
       // RF-fix 3: con el lock COMMITEADO, el que no lo reescribe (npm ci, --frozen-lockfile); si no, el install a secas (en cada
       // worktree deja el lock sin trackear: worktree.cjs equipar lo saca del medio con info/exclude).
       const lock = [['pnpm-lock.yaml', 'pnpm install --frozen-lockfile', 'pnpm install'], ['yarn.lock', 'yarn install --frozen-lockfile', 'yarn install'], ['package-lock.json', 'npm ci', 'npm install']]
         .find(([f]) => hay(carpeta, f));
+      const t = p.scripts && typeof p.scripts.test === 'string' ? p.scripts.test : '';
+      if (t && !/no test specified/.test(t)) {
+        // 8d C1.4 (52): el gestor del repo, por su lockfile, como el comando-setup (el Hub quedó con el de otro gestor)
+        const gestor = lock ? lock[1].split(' ')[0] : 'npm';
+        vars['comando-test'] = `${gestor} test`;
+        notas.push(`comando-test = ${gestor} test (package.json tiene scripts.test${lock && gestor !== 'npm' ? `; el gestor, por ${lock[0]}` : ''})`);
+      }
       const commiteado = !!lock && trackeado(carpeta, lock[0]);
       const setup = !lock ? 'npm install' : commiteado ? lock[1] : lock[2];
       vars['comando-setup'] = setup;
@@ -643,6 +649,128 @@ function lineasEntornos() {
   ];
 }
 
+// ---------------------------------------------------------------- 8d C1.3 (53): detectar y preguntar, no poner "no"
+
+// Las dependencias que gastan plata (cobro, un modelo pago) o salen afuera (mensajería, mail), por su nombre en package.json,
+// requirements.txt o pyproject.toml. No se lee nada más: es una pista para preguntar, no una decisión.
+const DEP_PLATA = ['stripe', 'mercadopago', 'paypal', '@paypal/checkout-server-sdk', 'braintree', 'square', '@lemonsqueezy/lemonsqueezy.js',
+  'openai', '@anthropic-ai/sdk', 'anthropic', '@google/generative-ai', '@google/genai', 'google-generativeai', 'cohere', 'cohere-ai',
+  '@mistralai/mistralai', 'mistralai', 'groq-sdk', 'groq', 'replicate'];
+const DEP_AFUERA = ['nodemailer', '@sendgrid/mail', 'sendgrid', 'resend', 'mailgun.js', 'mailgun', 'postmark', 'twilio', 'telegraf',
+  'node-telegram-bot-api', 'python-telegram-bot', 'discord.js', 'discord.py', '@slack/web-api', 'slack-sdk', 'slack_sdk',
+  'whatsapp-web.js', '@whiskeysockets/baileys', 'web-push', 'yagmail'];
+const RE_PUBLICA = /\b(release|deploy|publish)\b/i;
+
+function depsDe(carpeta) {
+  const out = [];
+  let subs = [];
+  try {
+    subs = fs.readdirSync(carpeta, { withFileTypes: true }).filter((e) => e.isDirectory() && !NO_MIRAR.has(e.name) && !e.name.startsWith('.')).map((e) => `${e.name}/package.json`);
+  } catch { /* sin subcarpetas */ }
+  for (const rel of ['package.json', ...subs]) {
+    const pj = leerP(carpeta, rel);
+    if (pj === null) continue;
+    try {
+      const p = JSON.parse(pj);
+      for (const k of ['dependencies', 'devDependencies', 'optionalDependencies']) if (esMapa(p[k])) out.push(...Object.keys(p[k]));
+    } catch { /* sin JSON: sin dependencias */ }
+  }
+  for (const rel of ['requirements.txt', 'pyproject.toml', 'Pipfile']) {
+    const t = leerP(carpeta, rel);
+    if (t === null) continue;
+    // cada renglón y cada elemento entre comillas (dependencies = ["openai", "stripe>=1"] en un solo renglón)
+    for (const l of lf(t).split('\n')) {
+      const s = l.replace(/#.*/, '');
+      const m = /^\s*"?([A-Za-z0-9_.@/-]+)/.exec(s);
+      if (m) out.push(m[1].toLowerCase());
+      for (const q of s.matchAll(/["']([A-Za-z0-9_.@/-]+)/g)) out.push(q[1].toLowerCase());
+    }
+  }
+  return [...new Set(out)];
+}
+
+// ¿Un workflow publica al subir? `on: push` (o `push:` con `branches:`) y una palabra de deploy. Por tag no cuenta (rt-8).
+const RE_EN_PUSH = /^["']?on["']?:\s*(push\b|\[[^\]]*\bpush\b)/m;
+const RE_PUBLICA_PASO = /\b(deploy|publish|semantic-release|changesets|gh release|deploy-pages|release-please)\b/i;
+// Los renglones que corren algo en un workflow (run:, uses:) y su nombre: ahí se busca si publica (no en todo el texto: un
+// "cargo build --release" no es publicar).
+const pasosDe = (t) => lf(t).split('\n').filter((l) => /^\s*-?\s*(run|uses|name)\s*:/.test(l)).join('\n');
+function publicaAlSubir(nombre, t) {
+  const sinTags = /^\s+push:\s*$/m.test(t) && /^\s+branches(-ignore)?:/m.test(t);
+  const enPush = RE_EN_PUSH.test(t) || sinTags;
+  return enPush && (RE_PUBLICA_PASO.test(nombre) || RE_PUBLICA_PASO.test(pasosDe(t)));
+}
+// Los proveedores que, conectados a GitHub, publican cada vez que se sube a la rama por defecto.
+const PROVEEDORES = ['vercel.json', 'netlify.toml', 'fly.toml', 'render.yaml', 'railway.json', 'railway.toml'];
+
+// Lo que el repo muestra. → { publica: [evidencia], alSubir: [workflows], plata: [deps], afuera: [deps] }
+function loQueMuestra(carpeta) {
+  const publica = [];
+  const alSubir = [];
+  let wfs = [];
+  try {
+    wfs = fs.readdirSync(path.join(carpeta, '.github', 'workflows')).filter((x) => /\.ya?ml$/i.test(x)).sort();
+  } catch { /* sin workflows */ }
+  for (const x of wfs) {
+    const rel = `.github/workflows/${x}`;
+    const t = lf(leerP(carpeta, rel) || '');
+    if (RE_PUBLICA.test(x) || RE_PUBLICA_PASO.test(pasosDe(t))) publica.push(rel);
+    if (publicaAlSubir(x, t)) alSubir.push(rel);
+  }
+  for (const rel of [...PROVEEDORES, 'Dockerfile', 'docker-compose.yml', 'docker-compose.yaml', 'compose.yml', 'compose.yaml']) {
+    if (!hay(carpeta, rel)) continue;
+    publica.push(rel);
+    if (PROVEEDORES.includes(rel)) alSubir.push(`${rel} (si está conectado a GitHub)`);
+  }
+  const pj = leerP(carpeta, 'package.json');
+  if (pj !== null) {
+    try {
+      const p = JSON.parse(pj);
+      const s = esMapa(p.scripts) ? Object.keys(p.scripts).filter((k) => /^(deploy|release|publish)(:|$)/i.test(k)) : [];
+      if (s.length) publica.push(`package.json (${s.join(', ')})`);
+    } catch { /* sin JSON */ }
+  }
+  for (const s of ['release', 'deploy']) if (hay(carpeta, `.claude/skills/${s}`)) publica.push(`.claude/skills/${s}`);
+  const deps = depsDe(carpeta);
+  return { publica, alSubir, plata: deps.filter((x) => DEP_PLATA.includes(x)), afuera: deps.filter((x) => DEP_AFUERA.includes(x)) };
+}
+
+// Los renglones ¿? para la ficha propuesta, por clave. → { sensible: Map(clave → renglón), antesMerge, publicar }
+function preguntasFicha(m) {
+  const cola = 'y borrá este renglón';
+  const sensible = new Map();
+  if (m.publica.length) sensible.set('release', `  # ¿? release — el repo publica (${listaCorta(m.publica, 4)}): ¿publicar es una pregunta en cada sesión? contestá no o los comandos que publican (una lista), ${cola}`);
+  if (m.plata.length) sensible.set('plata', `  # ¿? plata — el repo gasta plata (${listaCorta(m.plata, 4)}): contestá no o los comandos que gastan (una lista), ${cola}`);
+  if (m.afuera.length) sensible.set('sale-afuera', `  # ¿? sale-afuera — el repo manda cosas afuera (${listaCorta(m.afuera, 4)}): contestá no o los comandos que salen (una lista), ${cola}`);
+  const antesMerge = m.alSubir.length
+    ? `  # ¿? merge-a-main — en este proyecto, integrar es publicar (${listaCorta(m.alSubir, 3)}): ¿integrar de noche sin vos está bien? si no, merge-a-main: con-ok; ${cola}`
+    : null;
+  const publicar = m.publica.length
+    ? `  # ¿? publicar — el repo publica (${listaCorta(m.publica, 4)}): ¿la noche publica sola? contestá publicar: no, o publicar: {comando: "…", humo: "…", volver: "…"}${m.alSubir.length ? ' (acá integrar ya publica: {comando: al-subir, humo: "…"}, sin volver)' : ''}; ${cola}`
+    : null;
+  return { sensible, antesMerge, publicar };
+}
+
+// Los renglones de fábrica (frenos, autorizado, sensible) con los ¿? metidos antes de su clave (publicar, al final de autorizado).
+function conPreguntas(lineas, q) {
+  const out = [];
+  let bloque = null;
+  for (let i = 0; i < lineas.length; i++) {
+    const l = lineas[i];
+    if (/^[a-z]/.test(l)) bloque = l.replace(/:.*$/, '');
+    const m = /^ {2}([a-z-]+):/.exec(l);
+    if (m && bloque === 'sensible' && q.sensible.has(m[1])) out.push(q.sensible.get(m[1]));
+    if (m && bloque === 'autorizado' && m[1] === 'merge-a-main' && q.antesMerge) out.push(q.antesMerge);
+    out.push(l);
+    const fin = bloque === 'autorizado' && (i + 1 >= lineas.length || /^[a-z]/.test(lineas[i + 1]));
+    if (fin && q.publicar) out.push(q.publicar);
+  }
+  return out;
+}
+
+// Las preguntas ¿? sin contestar de una ficha propuesta (sin el bloque de lo que vio el adoptador). → [clave]
+const preguntasSinContestar = (fichaTexto) => lf(fichaTexto).split('\n').map((l) => /^\s*#\s*(?:¿|\S)?\?\s*(release|plata|sale-afuera|merge-a-main|publicar)\s+—/.exec(l)).filter(Boolean).map((m) => m[1]);
+
 // CF-2: los package.json de las subcarpetas de primer nivel (fuera de NO_MIRAR) que el comando-setup no nombra. → ['web/package.json', …]
 function manifiestosSinSetup(carpeta, setup, carpetaDocs = CARPETA_DOCS) {
   let es;
@@ -762,6 +890,14 @@ function mirar(carpeta, opciones) {
       // un repo con código (estandar): el módulo con director necesita /director y /obrero (8r, T1; D8r-3) — salvo lo propio, abajo
       const conModulos = nivel === 'estandar' && MODULOS.includes(id);
       if (pieza.clase === C.OPCIONAL && !conModulos) {
+        // 8d C1.3 (53): un /smoke o /release propio ya está — la ficha lo declara (propia: no se pisa) en vez de no verlo
+        if (PROPIAS_SI_ESTAN.includes(id)) {
+          const { distintos: ds } = distintosDe(carpeta, mapaDe(repN, aN, id), mapaDe(repV, aV, id));
+          if (ds.length) {
+            pone('propia', `ya tenés el tuyo (${listaCorta(ds)}): queda el tuyo y la ficha lo declara`);
+            continue;
+          }
+        }
         pone('no', id === 'docs-fyd' ? 'opcional: se ofrece (si va, docs-fyd: sí; la skill es global y corre en la carpeta)' : 'opcional: no se trae');
         continue;
       }
@@ -837,15 +973,27 @@ function mirar(carpeta, opciones) {
     for (const l of lineasGitleaks(carpeta, tmp, { env: opciones.entornoGitleaks || process.env })) o(l);
     o('piezas (id · estado · qué pasa al aplicar):');
     for (const p of piezas) o(`  ${p.id} · ${p.estado} · ${p.que}`);
+    // 8d C1.1 (52): lo propio que la adopción reemplaza, lo que corre de más y lo que queda muerto, con qué se puede hacer
+    const settingsEntrada = { viejo: aV.has('settings.json') ? aV.get('settings.json') : null, nuevo: aN.get('settings.json'), proyecto: leerP(carpeta, RUTA_SETTINGS) };
+    const cambia = base ? loTuyoQueCambia(carpeta, { d1, arranquePropio, carpetaDocs, settings: settingsEntrada, hooksDisco: hooksPropios(carpeta, new Set([...repN.values()].flatMap((x) => x.archivos.map((a) => a.proyecto))), viejo ? viejo.casados : []) }) : [];
+    if (!cambia.length) o('Lo tuyo que cambia: nada (ninguna pieza tuya se reemplaza, ningún hook tuyo corre de más ni queda muerto)');
+    else {
+      o('Lo tuyo que cambia (al aplicar; cada uno: qué le pasa · qué se puede hacer):');
+      for (const l of cambia) o(`  ${l}`);
+    }
+    // 8d C1.3 (53): lo que el repo muestra (publica, gasta, sale afuera) va como pregunta ¿? en la ficha, no como "no"
+    const muestra = base ? loQueMuestra(carpeta) : { publica: [], alSubir: [], plata: [], afuera: [] };
+    const preguntas = preguntasFicha(muestra);
+    if (muestra.alSubir.length) o(`en este proyecto, integrar es publicar (${listaCorta(muestra.alSubir, 3)}): preguntale al dueño dos cosas — si integrar de noche sin él está bien (si no, merge-a-main: con-ok) y con qué se prueba después de subir (autorizado.publicar: {comando: al-subir, humo: "…"})`);
     if (nuevoRepo) o('proyecto nuevo (--nuevo): lo base en molde, el candado prendido y director-obrero y estado en sí (nace con módulos)');
     if (base) {
       const estadoDeId = (id) => (piezas.find((p) => p.id === id) || {}).estado;
       const modSi = MODULOS.filter((id) => estadoDeId(id) === 'sí');
       const modPropia = MODULOS.filter((id) => estadoDeId(id) === 'propia');
-      const noTrae = ['smoke', 'release', ...MODULOS.filter((id) => estadoDeId(id) === 'no')];
+      const noTrae = [...PROPIAS_SI_ESTAN, ...MODULOS].filter((id) => estadoDeId(id) === 'no');
       o('trae (molde) lo base del catálogo: la ficha, inicio, cierre, el hook con tope, las barreras (settings, los hooks de escritura,');
       o('  git-seguro y sensible, cambios-metodo, githooks), docs (solo lo que falta) y lo que eso necesita para andar (hooks-lib: la');
-      o(`  usan todos los hooks; scripts: estructura, cambios, todo). No trae ${noTrae.join(', ')} ni docs-fyd.`);
+      o(`  usan todos los hooks; scripts: estructura, cambios, todo). No trae ${noTrae.length ? `${noTrae.join(', ')} ni ` : ''}docs-fyd.`);
       if (!nuevoRepo && (modSi.length || modPropia.length)) {
         o(`repo con código (estandar): ${[modSi.length ? `trae ${modSi.join(' y ')} (sí: el módulo con director necesita /director y /obrero)` : '', modPropia.length ? `${modPropia.join(' y ')} en propia (ya hay uno distinto: lo resuelve la sesión con Guido)` : ''].filter(Boolean).join('; ')}`);
       }
@@ -891,6 +1039,8 @@ function mirar(carpeta, opciones) {
       for (const l of bloquesDecision(carpeta, { d1, carpetaDocs, arranquePropio, camino, kit: opciones.kit, tmp: vacia, sensible: F.leer(fabTexto).datos.sensible, settings: { viejo: aV.has('settings.json') ? aV.get('settings.json') : null, nuevo: aN.get('settings.json'), proyecto: leerP(carpeta, RUTA_SETTINGS) } })) o(l);
     }
     o(`al aplicar: dos commits (las piezas, después la ficha sola: la exención b mira la fábrica en el árbol del padre; con --permisos o --arranque, un tercero: los permisos)`);
+    const claves = [...(preguntas.antesMerge ? ['merge-a-main'] : []), ...(preguntas.publicar ? ['publicar'] : []), ...preguntas.sensible.keys()];
+    if (claves.length) o(`preguntas: ${claves.length} en la ficha (¿?: ${claves.join(', ')}) — la sesión se las hace AL DUEÑO una por una (no las contesta ella); --aplicar no anda mientras quede una`);
 
     const lineasVars = Object.entries(vars).map(([k, v]) => `  ${k}: ${valorTexto(v)}`);
     const texto = [
@@ -906,7 +1056,7 @@ function mirar(carpeta, opciones) {
       ...lineasVars,
       'piezas:',
       ...piezas.map((p) => `  ${p.id}: ${valorEstado(p.estado)}`),
-      ...bloquesFabrica(fabTexto),
+      ...conPreguntas(bloquesFabrica(fabTexto), preguntas),
       '---',
       '',
       '## Cómo se adaptó el kit a este proyecto',
@@ -956,6 +1106,9 @@ function aplicarPropuesta(carpeta, opciones) {
     throw new Negativa(`no leo la propuesta ${opciones.propuesta} (${e.code || e.message})`);
   }
   const fichaTexto = sinObservaciones(crudo);
+  // 8d C1.3 (53): las preguntas ¿? las contesta el dueño; mientras quede una, no se aplica nada
+  const sinContestar = preguntasSinContestar(fichaTexto);
+  if (sinContestar.length) throw new Negativa(`la propuesta tiene ${sinContestar.length} pregunta${sinContestar.length === 1 ? '' : 's'} sin contestar (¿?): ${sinContestar.join(', ')} — preguntáselas al dueño una por una (no las contestes vos): con su respuesta cambiá el valor (o dejalo, si dijo que no) y borrá ese renglón ¿?; después corré --aplicar de nuevo. No escribí nada`);
   let datos;
   try {
     datos = F.leer(fichaTexto).datos;
@@ -1057,6 +1210,7 @@ function aplicarPropuesta(carpeta, opciones) {
     for (const [id, v] of Object.entries(propuestas)) if (!trae(id)) forzar.set(id, valorEstado(estadoDe(v)));
     // D1: A — los del kit sobre los tuyos, como una traída normal: el molde nuevo entero, y la ficha en molde (con su hash si es
     // un archivo, y molde+propio si trae zona) o en sí
+    const anteriores = []; // 8d C1.2: { id, ruta } de lo que --director kit guardó
     if (d1.length) {
       const aN = M.archivosDe(plan.moldeNuevo);
       for (const x of d1) {
@@ -1070,20 +1224,40 @@ function aplicarPropuesta(carpeta, opciones) {
           x.renombrados.push(`${rel} → ${nuevoRel}`);
         }
         const archivos = repN.has(x.id) ? repN.get(x.id).archivos : [];
+        // 8d C1.2 (52): con --director kit, lo tuyo que se reemplaza no se pierde de vista: su texto a referencia/adopcion y una
+        // línea en el TODO (no se vuelca a la zona propia: rompería el tope de la skill; lo destila una sesión)
+        if (x.d === 'D1') {
+          const ruta = rutaAnterior(carpetaDocs, x.id);
+          if (leerP(carpeta, ruta) !== null) throw new Negativa(`ya hay ${ruta}: --director kit no lo pisa — movelo o borralo y corré de nuevo; no escribí nada`);
+          ops.set(ruta, textoAnterior(x.id, x.distintos.map((rel) => ({ rel, texto: leerP(carpeta, rel) })), version, fecha));
+          anteriores.push({ id: x.id, ruta });
+        }
         for (const a of archivos) {
           const t = aN.get(a.molde);
           const actual = leerP(carpeta, a.proyecto);
           if (actual === null || lf(actual) !== t) ops.set(a.proyecto, t);
         }
         const unico = archivos.length === 1 ? archivos[0] : null;
-        let e = x.estado;
-        if (e === 'molde' && unico && /\.md$/i.test(unico.proyecto) && (Z.zonas(aN.get(unico.molde)).zonas || []).length) e = 'molde+propio';
+        // 8d C1.6 (53): el del kit recién escrito trae la zona con su relleno: es molde, no molde+propio (lo propio no se tocó)
+        const e = x.estado;
         const h = unico && e !== 'sí' ? huella(unico.proyecto, aN.get(unico.molde)) : undefined;
         forzar.set(x.id, h ? `{estado: ${valorEstado(e)}, hash: ${h}}` : valorEstado(e));
       }
     }
     if (forzar.size) ficha = A.reescribirFicha(ficha, null, forzar);
     const final = F.leer(ficha).datos;
+    // 8d C1.2: una línea por pieza reemplazada en el TODO del repo (el que nace con los docs, o el que ya está)
+    let lineaTodo = null;
+    if (anteriores.length) {
+      const rutaTodo = rutaPapel(carpetaDocs, 'TODO.md');
+      const base = ops.has(rutaTodo) ? ops.get(rutaTodo) : leerP(carpeta, rutaTodo);
+      const items = anteriores.map((x) => `- [ ] destilar lo propio de ${x.id} a su zona propia, o descartarlo (lo anterior está en ${x.ruta})`);
+      if (base === null) lineaTodo = `${rutaTodo} · no está y no nace: anotá a mano ${items.length === 1 ? 'esta línea' : 'estas líneas'} — ${items.join(' · ')}`;
+      else {
+        ops.set(rutaTodo, conItemsTodo(base, items));
+        lineaTodo = `${rutaTodo} · ${items.length} línea${items.length === 1 ? '' : 's'} para destilar lo tuyo (una por pieza reemplazada)`;
+      }
+    }
 
     // CLAUDE.md: si no hay, nace el del molde (si viene algo); si hay, no se toca
     const naceClaude = algo && !hay(carpeta, 'CLAUDE.md');
@@ -1176,6 +1350,8 @@ function aplicarPropuesta(carpeta, opciones) {
       } else lineas.push(trae('settings') ? `${l} (del molde v2)` : `${id} · no se toca`);
     }
     lineas.push(...notasAgentes);
+    for (const x of anteriores) lineas.push(`adopcion · ${x.ruta} · lo tuyo de ${x.id}, antes de reemplazarlo (en el commit de las piezas)`);
+    if (lineaTodo) lineas.push(lineaTodo);
     lineas.push(`CLAUDE.md · ${lineaClaude}`);
     if (lineaWti) lineas.push(lineaWti);
     if (renglon) lineas.push(`${RUTA_CHANGELOG} · un renglón · ${renglon}`);
@@ -1375,6 +1551,82 @@ function settingsElegido(entrada, { permisos, arranque }) {
   return { texto: r.texto, quedan, salen, fuera };
 }
 
+// ---------------------------------------------------------------- 8d C1.1 (52): "Lo tuyo que cambia"
+
+const rutaAnterior = (carpetaDocs, id) => rutaPapel(carpetaDocs, `referencia/adopcion/${id}-anterior.md`);
+const RE_HOOK_SCRIPT = /\.(c?js|mjs|sh|ps1|py)$/i;
+// ¿Dos matchers de hook se pisan? Vacío o * cubre todo; si no, alguna herramienta en común (separadas por |).
+function sePisan(a, b) {
+  const xs = (m) => String(m || '*').split('|').map((s) => s.trim()).filter(Boolean);
+  const A = xs(a);
+  const B = xs(b);
+  return A.includes('*') || B.includes('*') || A.some((x) => B.includes(x));
+}
+// → los renglones (sin el "# " de adelante): una pieza tuya que se reemplaza (D1, D3), un hook tuyo registrado que corre además de
+// uno del kit para lo mismo, un hook tuyo en el disco que ningún hook del settings registra (no corre nunca) y las reglas tuyas que
+// la mezcla apaga. Cada uno con lo que le pasa y lo que se puede hacer.
+function loTuyoQueCambia(carpeta, { d1, arranquePropio, carpetaDocs, settings, hooksDisco }) {
+  const out = [];
+  for (const x of d1) {
+    for (const rel of x.distintos) {
+      out.push(`${rel} (${x.id}): con --director kit lo reemplaza el del kit (el tuyo queda en ${rutaAnterior(carpetaDocs, x.id)} y una línea en el TODO); sin la opción queda el tuyo y el del kit no viene · pasarlo a la zona propia · retirarlo · dejarlo`);
+    }
+  }
+  if (arranquePropio !== null) out.push(`${RUTA_ARRANQUE} (hook-arranque): con --arranque kit lo reemplaza el del kit (lo tuyo queda en la historia) · pasarlo a ${RUTA_ARRANQUE_PROPIO} (el del kit lo corre al final) · retirarlo · dejarlo`);
+  const P = leerSettings(settings.proyecto);
+  const N = leerSettings(settings.nuevo);
+  const V = leerSettings(settings.viejo);
+  if (P && N && settings.proyecto != null) {
+    const delKit = [...Z.reglas(N), ...(V ? Z.reglas(V) : [])].filter((x) => x.tipo === 'hook');
+    const ids = new Set(delKit.map((x) => x.id));
+    const propios = Z.reglas(P).filter((x) => x.tipo === 'hook' && !ids.has(x.id));
+    for (const h of propios) {
+      const pisa = Z.reglas(N).filter((k) => k.tipo === 'hook' && k.evento === h.evento && sePisan(k.matcher, h.matcher));
+      if (pisa.length) out.push(`${textoHook(h)} — corre además de los del kit para lo mismo (${h.evento} ${[...new Set(pisa.map((k) => k.matcher || '*'))].join(', ')}): un proceso más en cada uso · pasarlo a un cambio de freno del kit · retirarlo del settings · dejarlo`);
+    }
+    const d = decisionesSettings({ ...settings, quitados: [] });
+    if (d && d.sevan.length) out.push(`settings: ${d.sevan.length} regla${d.sevan.length === 1 ? '' : 's'} tuya${d.sevan.length === 1 ? '' : 's'} se apaga${d.sevan.length === 1 ? '' : 'n'} con la mezcla (iguales al molde v2; abajo, "se van") · dejarlas (D2: --permisos recomendada) · dejar que se vayan`);
+  }
+  // los hooks tuyos en el disco (solo la carpeta de hooks, sin sus librerías) que ningún hook del settings nombra
+  const local = leerSettings(leerP(carpeta, '.claude/settings.local.json')) || {};
+  const palabras = [P || {}, local].flatMap((s) => Z.reglas(s).filter((x) => x.tipo === 'hook').flatMap((x) => String(x.comando || '').split(/[\s"']+/)))
+    .map((w) => w.replace(/\\/g, '/').replace(/^.*?(\.claude\/hooks\/)/, '$1'));
+  for (const rel of hooksDisco) {
+    if (rel.split('/').length !== 3 || !RE_HOOK_SCRIPT.test(rel) || /\.propio\.sh$/i.test(rel)) continue;
+    if (palabras.includes(rel)) continue;
+    out.push(`${rel}: ningún hook del settings del repo lo registra (ni el settings.local) — no corre nunca, salvo que lo registre tu settings de usuario · registrarlo (un cambio de freno) · retirarlo · dejarlo`);
+  }
+  return out;
+}
+
+// 8d C1.2: el texto de <papeles>/referencia/adopcion/<pieza>-anterior.md — cada archivo tuyo de la pieza, tal cual, en un bloque.
+function textoAnterior(id, archivos, version, fecha) {
+  const out = [`# ${id}: lo que tenías antes de la adopción`, '', `La adopción con el kit ${version} (${fecha}, \`--director kit\`) lo reemplazó por el del kit. Lo tuyo que valga va a la zona`,
+    'propia de la pieza (entre `<!-- kit:propio -->` y `<!-- /kit:propio -->`); lo demás se descarta. El TODO tiene su línea. Cuando', 'esté destilado, este archivo se borra.', ''];
+  for (const { rel, texto } of archivos) {
+    const t = texto === null ? '(no estaba)' : lf(texto).replace(/\n$/, '');
+    const largo = Math.max(3, ...[...t.matchAll(/`{3,}/g)].map((m) => m[0].length + 1));
+    const cerco = '`'.repeat(largo);
+    out.push(`## ${rel}`, '', cerco, t, cerco, '');
+  }
+  return out.join('\n');
+}
+// 8d C1.2: los ítems del TODO debajo de "## 🟠 Importante" (la sección del molde); sin ella, al final.
+function conItemsTodo(texto, items) {
+  const crlf = texto.includes('\r\n');
+  const ls = lf(texto).split('\n');
+  const i = ls.findIndex((l) => /^##\s+🟠/.test(l));
+  if (i < 0) {
+    while (ls.length && ls[ls.length - 1] === '') ls.pop();
+    ls.push('', ...items, '');
+  } else {
+    ls.splice(i + 1, 0, '', ...items);
+    if (ls[i + 1 + 1 + items.length] !== '') ls.splice(i + 1 + 1 + items.length, 0, '');
+  }
+  const t = ls.join('\n');
+  return crlf ? t.replace(/\n/g, '\r\n') : t;
+}
+
 // Los bloques de --mirar: lo que se ve (a)-(d) y D1-D4, cada uno con la recomendada del informe primero y cómo se elige.
 function bloquesDecision(carpeta, { d1, settings, carpetaDocs = CARPETA_DOCS, arranquePropio = null, camino = caminoDelRojo(carpeta), kit = null, tmp = null, sensible = null }) {
   const out = [];
@@ -1543,6 +1795,7 @@ const sinCommitear = (carpeta) => gitEn(carpeta, ['status', '--porcelain']).out.
 // del clon); después, que la carpeta esté limpia y en la rama del clon; recién ahí merge --ff-only. Lo que no se puede: una línea
 // con qué correr, sin tocar nada (salida 0). Salida 1: el clon o la carpeta no son lo que tienen que ser, o el merge falló y la
 // dejó a medias (la línea da el reset --hard). rt-8: si la ficha tiene comando-setup y la carpeta no lo corrió, la línea de una vez.
+// 8d C1.5: al final, --verificar en la carpeta; salida 3 = traje bien pero algo no anda (las ❌): no se deshace nada.
 function traer(clon, principal) {
   const linea = (que) => `traer · ${principal} · ${que}`;
   const top = esCarpeta(clon) ? gitEn(clon, ['rev-parse', '--show-toplevel']) : { ok: false };
@@ -1585,22 +1838,41 @@ function traer(clon, principal) {
   lineas.push(prenderGithooks(clon, principal)); // ahora sí, con .githooks/ en el disco
   // rt-8: el venv (o node_modules) vive en cada checkout: el sello en tu carpeta corre comando-test acá
   const setup = setupDeLaFicha(principal);
+  let faltaSetup = false;
   if (setup) {
     const marca = /\.venv\b/.test(setup) ? '.venv' : /^(npm|pnpm|yarn)\b/.test(setup) ? 'node_modules' : null;
-    if (marca === null || !hay(principal, marca)) lineas.push(`en tu carpeta, una vez: ${setup} (el sello corre comando-test acá)`);
+    if (marca === null || !hay(principal, marca)) {
+      lineas.push(`en tu carpeta, una vez: ${setup} (el sello corre comando-test acá); después, ${ACTUALIZAR} adoptar "${P}" --verificar (rt C1 6: que el setup no haya movido core.hooksPath)`);
+      faltaSetup = true;
+    }
   }
-  return { codigo: 0, lineas };
+  // 8d C1.5 (52): ¿quedó andando? Sale 1 si algo no anda, salvo el programa del comando-test que espera el setup de arriba
+  const v = Q.verificarAdopcion(principal);
+  lineas.push(...v.lineas);
+  const rotas = v.lineas.filter((l) => / · ❌ · /.test(l) && !(faltaSetup && /^verificar · comando-test · ❌ · .*comando-setup/.test(l)));
+  if (rotas.length) lineas.push('traer · lo traje, pero algo no anda (las ❌ de arriba): no deshagas nada — decíselo al dueño y arreglalo; después, adoptar <carpeta> --verificar');
+  return { codigo: rotas.length ? 3 : 0, lineas };
+}
+
+// 8d C1.5: adoptar <carpeta> --verificar → { codigo: 0 si anda (los ⚠ no traban), 1 si no, lineas }. Solo mira.
+function verificar(carpeta) {
+  const v = Q.verificarAdopcion(carpeta);
+  return { codigo: v.ok ? 0 : 1, lineas: [...v.lineas, v.ok ? 'verificar · el repo quedó andando' : 'verificar · algo no anda (las ❌ de arriba): arreglalo antes de la primera noche'] };
 }
 
 // ---------------------------------------------------------------- línea de comandos
 
 function leerArgs(argv) {
-  const o = { mirar: false, nuevo: false, claudeMd: false, worktreeinclude: false };
+  const o = { mirar: false, nuevo: false, claudeMd: false, worktreeinclude: false, verificar: false };
   const conValor = { '--kit': 'kit', '--nivel': 'nivel', '--propuesta': 'propuesta', '--aplicar': 'aplicar', '--fecha': 'fecha', '--principal': 'principal', '--comando-test': 'comandoTest', '--traer': 'traer' };
   Object.assign(conValor, DECISIONES); // D1-D3 (8r2): --director kit, --permisos recomendada, --arranque kit
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--mirar') o.mirar = true;
+    else if (a === '--verificar') {
+      if (o.verificar) return null;
+      o.verificar = true;
+    }
     else if (a === '--nuevo') o.nuevo = true;
     else if (a === '--claude-md') {
       if (o.claudeMd) return null;
@@ -1615,8 +1887,10 @@ function leerArgs(argv) {
     } else if (!a.startsWith('--') && o.carpeta === undefined) o.carpeta = a;
     else return null;
   }
+  // 8d C1.5: --verificar, solo <carpeta> --verificar
+  if (o.verificar) return o.carpeta && Object.keys(o).every((k) => ['carpeta', 'verificar', 'mirar', 'nuevo', 'claudeMd', 'worktreeinclude'].includes(k)) && !o.mirar && !o.nuevo && !o.claudeMd && !o.worktreeinclude ? o : null;
   // --traer (t2): solo <clon> --traer <carpeta>, sin --kit ni nada más
-  if (o.traer !== undefined) return o.carpeta && Object.keys(o).every((k) => ['carpeta', 'traer', 'mirar', 'nuevo', 'claudeMd', 'worktreeinclude'].includes(k)) && !o.mirar && !o.nuevo && !o.claudeMd && !o.worktreeinclude ? o : null;
+  if (o.traer !== undefined) return o.carpeta && Object.keys(o).every((k) => ['carpeta', 'traer', 'mirar', 'nuevo', 'claudeMd', 'worktreeinclude', 'verificar'].includes(k)) && !o.mirar && !o.nuevo && !o.claudeMd && !o.worktreeinclude ? o : null;
   if (!o.carpeta || !o.kit || o.mirar === (o.aplicar !== undefined)) return null;
   if (!o.mirar && (o.nivel !== undefined || o.propuesta !== undefined || o.nuevo || o.comandoTest !== undefined)) return null;
   if (o.comandoTest !== undefined && !escribible(o.comandoTest)) return null; // va entre comillas en la ficha: sin comillas dobles, barras invertidas ni saltos
@@ -1639,6 +1913,7 @@ async function main(argv) {
   if (!o) return null;
   const carpeta = path.resolve(o.carpeta);
   if (o.traer !== undefined) return traer(carpeta, path.resolve(o.traer));
+  if (o.verificar) return verificar(carpeta);
   const kit = path.resolve(o.kit);
   try {
     if (o.mirar) {
@@ -1662,4 +1937,4 @@ async function main(argv) {
   }
 }
 
-module.exports = { mirar, aplicarPropuesta, main, traer, inferirVars, comandosPython, avisoKitAtras, fichaEnLaHistoria, prenderGithooks, normalizarOrigen, casaPlantilla, contenidoPropio, sinObservaciones, MARCA_INI, MARCA_FIN };
+module.exports = { mirar, aplicarPropuesta, main, traer, verificar, inferirVars, comandosPython, avisoKitAtras, fichaEnLaHistoria, prenderGithooks, normalizarOrigen, casaPlantilla, contenidoPropio, sinObservaciones, MARCA_INI, MARCA_FIN };
