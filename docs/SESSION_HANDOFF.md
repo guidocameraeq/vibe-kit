@@ -3,8 +3,8 @@
 > **Save game** del proyecto madre. `/cierre` lo sobreescribe entero; el hook SessionStart lo inyecta en cada chat
 > nuevo de esta carpeta. **Tope 5.500 bytes**; el hook corta y avisa "CORTADO" si se pasa, y termina con la huella.
 
-**CIERRE PARCIAL** 2026-11-12 del **director del tramo final** (PC `Usuario`): cerraron la sesión 1 (el spec de la `rc.7`
-READY) la tanda A y la tanda B entera (en `main`); el tramo va por la **tanda C**.
+**CIERRE PARCIAL** 2026-11-13 del **director del tramo final** (PC `Usuario`): cerraron la sesión 1 (el spec de la `rc.7`
+READY), las tandas A y B enteras y la primera sesión de la C (en `main`); sigue la **continuación de la C**.
 
 ## Dónde estamos
 
@@ -19,8 +19,8 @@ READY) la tanda A y la tanda B entera (en `main`); el tramo va por la **tanda C*
 ## Próximo paso
 
 **El director del tramo final** sigue `docs/kit-v3/TRAMO-FINAL-PLAN.md`, sección 0 (**manda ese archivo**). Hecho: el spec
-`SPEC-paquete-8d.md` READY (Fable 5.2), las tandas A y B. Sigue la construcción: C y su continuación, con
-la suite, la flota y el tag) → R2 con la noche de prueba → (`rc.8` solo si R2 la pide) → la `v3.0` y el repo cerrado (el M6b va ahí).
+`SPEC-paquete-8d.md` READY (Fable 5.2), las tandas A, B y la C primera sesión. Sigue la continuación de la C (resto de
+C4, C5, C6 con la suite, la flota y el tag; arranca en "Para la continuación de la C" del spec) → R2 con la noche de prueba → (`rc.8` solo si R2 la pide) → la `v3.0` y el repo cerrado (el M6b va ahí).
 El director **no lanza solo**: cada sesión es una tarjeta que Guido arranca con un clic; después del clic, verificar el modelo con
 `get_session` (pedir Fable desde Opus se ignora sin aviso). Si sos una de las sesiones 1 a 6: tu tarea es tu sección; no hace falta `/inicio`.
 
