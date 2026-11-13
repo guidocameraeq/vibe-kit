@@ -103,7 +103,7 @@ function decide(cwd, command, o = {}) {
     if (o.modo === undefined) delete e.permission_mode;
     else e.permission_mode = o.modo;
   }
-  const r = gs.decidir(e, { anotar: (raiz, datos) => (renglones.push(datos), 'renglón'), memo: MEMO });
+  const r = gs.decidir(e, { anotar: (raiz, datos) => (renglones.push(datos), 'renglón'), memo: MEMO, entorno: o.entorno || {} });
   return { ...r, renglonesDatos: renglones };
 }
 function niega(cwd, command, caso, o = {}) {
@@ -1127,7 +1127,7 @@ test('rc.7 A7 (c): humano con ventana: branch -D o push --delete de una rama sin
       const r = decide(d, c, { modo });
       assert.equal(r.decision, 'ask', `${c} ${modo}`);
       assert.deepEqual(r.casos, [caso]);
-      assert.match(motivo(r), /la rama suelta tiene 2 commits que no están en main: si la borrás se pierden/);
+      assert.match(motivo(r), /la rama suelta tiene 2 commits que no están en main \(según lo último que trajiste: hacé git fetch antes si dudás\): si la borrás se pierden/);
       assert.equal(r.renglonesDatos[0].detalle, `preguntó: ${caso}`);
     }
     for (const modo of primero ? ['dontAsk', 'bypassPermissions', undefined] : ['dontAsk']) niega(d, c, caso, { modo });
@@ -1135,7 +1135,7 @@ test('rc.7 A7 (c): humano con ventana: branch -D o push --delete de una rama sin
     niega(w, c, caso);
   }
   assert.equal(decide(d, 'git branch -D suelta', { ps: true }).decision, 'ask');
-  assert.match(motivo(decide(d, 'git push origin --delete una')), /la rama una tiene 1 commit que no está en main: si la borrás se pierden/);
+  assert.match(motivo(decide(d, 'git push origin --delete una')), /la rama una tiene 1 commit que no está en main \(según lo último que trajiste: hacé git fetch antes si dudás\): si la borrás se pierden/);
   // un ask y un deny juntos: gana el deny
   assert.deepEqual(niega(d, 'git branch -D suelta && git stash', 'stash').casos, ['stash']);
   // la rama por defecto: deny siempre (en origin, y la local con un commit sin subir)
@@ -1505,4 +1505,26 @@ test('ningún git de los SKILL.md del molde frena (repo humano con .githooks y c
     pasa(d, c);
     pasa(d, c, { modo: 'bypassPermissions' });
   }
+});
+
+test('rc.7 red team (2.ª ronda): de fondo o de noche, el dueño tampoco contesta: borrar sin mezclar y merge -s ours niegan', () => {
+  const { d } = conRemoto();
+  ramaSuelta(d, 'suelta', 2);
+  assert.equal(decide(d, 'git branch -D suelta').decision, 'ask');
+  niega(d, 'git branch -D suelta', 'branch-f', { entorno: { KIT_FONDO: '1' } });
+  assert.equal(decide(d, 'git merge -s ours suelta').decision, 'ask');
+  niega(d, 'git merge -s ours suelta', 'merge-ours', { entorno: { KIT_FONDO: '1' } });
+  fs.writeFileSync(path.join(d, '.kit-noche'), '');
+  niega(d, 'git branch -D suelta', 'branch-f');
+  fs.unlinkSync(path.join(d, '.kit-noche'));
+});
+
+test('rc.7 red team (2.ª ronda): la estrategia ours por config (pull.twohead, pull.octopus) es merge -s ours', () => {
+  const { d } = conRemoto();
+  const w = worktree(d, 'modulo/z--01', 'obrero');
+  niega(w, 'git -c pull.twohead=ours merge modulo/y', 'merge-ours');
+  niega(w, 'git config pull.twohead ours', 'merge-ours');
+  assert.equal(decide(d, 'git config pull.twohead ours').decision, 'ask');
+  assert.equal(decide(d, 'git config pull.octopus ours').decision, 'ask');
+  assert.equal(decide(d, 'git config pull.twohead ort').decision, 'nada');
 });

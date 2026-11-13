@@ -584,6 +584,7 @@ function nuevoContexto(entrada, opciones) {
   const ctx = {
     cwd,
     opciones,
+    entorno: opciones.entorno || process.env,
     modo: typeof entrada.permission_mode === 'string' ? entrada.permission_mode.trim() : '',
     contexto: () => require('./lib/contexto.cjs'),
     git: () => opciones.git || require('./lib/git.cjs'), // opciones.git: solo las pruebas (una falla de git a mano)
@@ -640,6 +641,7 @@ function casosGit(g, dir, ctx, hallar) {
     if (esIncludeKey(k)) hallar('config-include', 'deny');
     if (esAliasKey(k)) hallar('alias', 'deny', `-c/--config-env ${k}`);
     if (esExpireKey(k)) hallar('red-de-rescate', 'deny', k);
+    if (k === 'pull.twohead' || k === 'pull.octopus') hallar('merge-ours', conClic(ctx) ? 'ask' : 'deny', k);
   }
 
   if (!sub) return;
@@ -780,6 +782,8 @@ function casosGit(g, dir, ctx, hallar) {
       if (esDesvioHooks(c.clave)) hallar('hooks-path', 'deny', c.clave);
       if (esIncludeKey(c.clave) || c.valores.some(esIncludeKey)) hallar('config-include', 'deny');
       if (c.clave === 'init.defaultbranch') hallar('config-default-branch', 'deny');
+      // red team de la tanda A (2.ª ronda, 4): la estrategia ours por config deja cada merge/pull siguiente como merge -s ours
+      if ((c.clave === 'pull.twohead' || c.clave === 'pull.octopus') && c.valores.some((v) => /(^|\s)ours(\s|$)/.test(String(v)))) hallar('merge-ours', conClic(ctx) ? 'ask' : 'deny', c.clave);
       if (esExpireKey(c.clave)) hallar('red-de-rescate', 'deny', c.clave);
       if (esAliasKey(c.clave)) {
         const motivo = aliasPeligroso(c.valores[0]);
@@ -821,9 +825,14 @@ function enAgente(ctx, f) {
 
 // ¿Este freno puede preguntar en vez de negar? Solo al dueño: rol humano (no una sesión de agente, tampoco el director ni el
 // actualizador) y un modo con ventana, como historia-defecto-sin-remoto. Sin ventana, nadie contesta: niega (rc.7, A4.2 y A7 c).
+// Red team de la tanda A (2.ª ronda, 3): de fondo (KIT_FONDO) o de noche (.kit-noche) tampoco hay quien conteste.
 function conClic(ctx) {
   const s = ctx.sesion();
-  return !s.agente && s.rol === 'humano' && CON_VENTANA.includes(ctx.modo);
+  if (s.agente || s.rol !== 'humano' || !CON_VENTANA.includes(ctx.modo)) return false;
+  const contexto = ctx.contexto();
+  if (contexto.deFondo(ctx.entorno || process.env)) return false;
+  if (s.raiz && contexto.deNoche(s.raiz, { rama: s.rama }).noche) return false;
+  return true;
 }
 
 // merge-ours (rc.7, A4.2): `git merge`/`git pull` con la estrategia `ours` (`-s ours`, `-sours`, `-qs ours`, `--strategy=ours`,
@@ -876,7 +885,7 @@ function avisoSinMezclar(ctx, raiz, tip, nombre) {
   const n = ctx.contar(raiz, [tip, '--not', rv.ref]);
   if (!n) return null;
   const cuantos = n === 1 ? '1 commit que no está' : `${n} commits que no están`;
-  return `la rama ${nombre} tiene ${cuantos} en ${rv.nombre}: si la borrás se pierden`;
+  return `la rama ${nombre} tiene ${cuantos} en ${rv.nombre} (según lo último que trajiste: hacé git fetch antes si dudás): si la borrás se pierden`;
 }
 
 function hooksPathAusente(dir, ctx, hallar) {
