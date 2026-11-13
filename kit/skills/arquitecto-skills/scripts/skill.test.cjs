@@ -300,3 +300,38 @@ test('crit. 11 (8r t8): SCRIPTS.md y MOLDE.md con lo nuevo; el README manda a "p
   assert.match(instalar, /preparame esta PC/);
   assert.doesNotMatch(instalar, /INSTALAR\.md/);
 });
+
+test('8d C3 (crit. C3): modo-b.md y formato-spec.md — "¿lista o cola?" y Plan: en la ficha, ### Tramo N, "Antes de lanzar: lo del dueño", el nombre director-<x>, nunca "sellada" sin sello, y el sello de fondo', () => {
+  const mb = leer(path.join(ARQ, 'anexos', 'modo-b.md'));
+  const fs2 = leer(path.join(ARQ, 'anexos', 'formato-spec.md'));
+  const ma = leer(path.join(ARQ, 'anexos', 'modo-a.md'));
+  assert.match(mb, /"¿lista o cola\?"/);
+  assert.match(mb, /`- Plan: lista` o `- Plan: cola — <la regla> · termina: <cuándo>`/);
+  assert.match(mb, /`### Tramo 1`/);
+  assert.match(mb, /"Antes de lanzar: lo del dueño"/);
+  assert.match(mb, /La sesión del director se llama `director-<x>`: decilo al armar/);
+  assert.match(mb, /Feature diseñada y armada; el sello lo hace la sesión del director/);
+  assert.match(fs2, /^## Antes de lanzar: lo del dueño$/m);
+  assert.match(fs2, /^- Plan: lista \| cola — <la regla> · termina: <cuándo>$/m);
+  assert.match(fs2, /^### Tramo 1$/m);
+  assert.doesNotMatch(fs2, /^- Director:/m, 'director: es sí o no; el nombre no va en la ficha');
+  // R18: el sello (plazo-test hasta 60 min y el turno) no cabe en los 10 min de una llamada: de fondo
+  for (const [n, t] of [['modo-b', mb], ['modo-a', ma]]) {
+    assert.match(t, /sello[^\n]*en segundo plano\*\* \(`run_in_background`/, n);
+    assert.doesNotMatch(t, /sello`? [^\n]{0,80}con timeout 600000/, n);
+  }
+});
+
+test('8d C2 (crit. C2): "preparame esta máquina" apunta a preparar-pc.md, que pregunta antes de traer, no corre el setup solo y pide el sí de publicar por repo', () => {
+  assert.match(leer(SKILL), /Los repos de tu cuenta y publicar sola: `preparar-pc\.md` \(al lado\)/);
+  const p = leer(path.join(SCRIPTS, '..', 'preparar-pc.md'));
+  assert.match(p, /traer-repos\.cjs listar --proyectos <carpeta>/);
+  assert.match(p, /"¿traigo repos de tu cuenta\?"/);
+  assert.match(p, /Nunca se trae nada que el dueño no eligió/);
+  assert.match(p, /El `comando-setup` de un repo recién traído no corre solo/);
+  assert.match(p, /preparar-pc\.cjs --kit <clon> --publica <origin>/);
+  assert.match(p, /ese clic es la\s+firma del dueño/);
+  assert.match(p, /--no-publica <origin>/);
+  for (const s of ['traer-repos.cjs', 'preparar-pc.cjs']) assert.ok(fs.existsSync(path.join(SCRIPTS, s)), s);
+  assert.doesNotMatch(p, /guido|\brojo\b|\bverde\b/i);
+});

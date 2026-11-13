@@ -205,6 +205,15 @@ function plazoTest(env, datos) {
   return { ms: PLAZO_TEST_MS, deLaFicha: false };
 }
 
+// La espera del turno (ARQUITECTO_TURNO_ESPERA_MS y ARQUITECTO_TURNO_CADA_MS: solo las pruebas; sin ellas, la de proceso.cjs).
+function turnoDe(env) {
+  const o = {};
+  if (plazo(env, 'ARQUITECTO_TURNO_ESPERA_MS', 0) > 0) o.esperaMaxMs = plazo(env, 'ARQUITECTO_TURNO_ESPERA_MS', 0);
+  if (plazo(env, 'ARQUITECTO_TURNO_CADA_MS', 0) > 0) o.cadaMs = plazo(env, 'ARQUITECTO_TURNO_CADA_MS', 0);
+  if (env.KIT_TURNO_DIR) o.dir = env.KIT_TURNO_DIR;
+  return o;
+}
+
 // Corre un comando de la ficha en la raíz, sin mostrar su salida, en la shell de los comandos (lib/proceso.cjs, copia del molde:
 // Git Bash en Windows, como el gate; D8r2-3) y adentro del vigía (pasado el plazo mata el árbol). → { estado: 'verde' | 'rojo' |
 // 'colgado' | 'no-corre', como }. 'no-corre': el guardia de `cmd /c` / `cmd //c` (rt-2) lo niega, sin correrlo. Un comando que no
@@ -280,7 +289,7 @@ function conTareaCero(datos, spec) {
 
 // entorno (gate:entorno-prueba, H §9.2) con la ficha ya leída: { c } o { fallas }. `spec`: { tareaCero, tamano } del spec que se
 // sella, o null (el comando `entorno`).
-function chequearEntornoFicha(raiz, datos, { ahora, env, spec = null }) {
+function chequearEntornoFicha(raiz, datos, { ahora, env, spec = null, aviso = () => {} }) {
   const q = gateQuitado(datos, ahora);
   if (q) {
     const por = String(q.por).trim();
@@ -305,7 +314,8 @@ function chequearEntornoFicha(raiz, datos, { ahora, env, spec = null }) {
     else if (typeof ct !== 'string' || ct.trim() === '') fallas.push('entorno: vars.comando-test tiene que ser un comando (un texto) — corregilo en la ficha');
     else {
       const { ms, deLaFicha } = plazoTest(env, datos);
-      const r = correr(ct, raiz, ms, env);
+      // 8d C3 (R18; B5): el comando-test del sello es una corrida pesada: toma el turno de la PC (espera a la suite o al gate de otro)
+      const r = proceso.conTurno(`sello en ${path.basename(raiz)}`, () => correr(ct, raiz, ms, env), { salida: aviso, ...turnoDe(env) });
       // rt-8 (D8r.2): el venv (o las dependencias) viven en cada worktree; en la carpeta de Guido puede faltar el setup.
       const cs = datos.vars && typeof datos.vars['comando-setup'] === 'string' ? datos.vars['comando-setup'].trim() : '';
       const setup = cs ? ` — ¿corriste el comando-setup en esta carpeta? (${cs})` : '';
@@ -335,13 +345,13 @@ function chequearEntornoFicha(raiz, datos, { ahora, env, spec = null }) {
   return fallas.length ? { fallas } : { c: cTareaCero || S.cOk() };
 }
 
-function chequearEntorno({ raiz, hayFicha, datos, noAplica, ahora, env, spec }) {
+function chequearEntorno({ raiz, hayFicha, datos, noAplica, ahora, env, spec, aviso }) {
   if (noAplica !== undefined) {
     if (hayFicha) return { fallas: [`entorno: con ficha del kit no se saltea — quitá ${GATE} en frenos.quitados con su razón, si de verdad no aplica`] };
     return { c: S.cNo(noAplica) };
   }
   if (!hayFicha) return { c: S.cNo('sin ficha del kit') };
-  return chequearEntornoFicha(raiz, datos, { ahora, env, spec });
+  return chequearEntornoFicha(raiz, datos, { ahora, env, spec, aviso });
 }
 
 // tope (H §12, avisa y no corta): { c, lineas } o { fallas }.
@@ -354,7 +364,7 @@ function chequearTope(buf, tamano, noPartir) {
 
 // ---------------------------------------------------------------- los comandos
 
-function sello(a, { cwd, ahora, env }) {
+function sello(a, { cwd, ahora, env, error }) {
   const specAbs = path.resolve(cwd, a.pos[0]);
   const s = leerSpec(specAbs);
   if (s.error) return { codigo: 1, lineas: [`sello: ${s.error}`] };
@@ -373,7 +383,7 @@ function sello(a, { cwd, ahora, env }) {
   const tam = chequearTamano(lineas, { raiz, specAbs, hayFicha, noAplica: a.noAplica['tamaño'], carpeta });
   if (tam.fallas) fallas.push(...tam.fallas);
   const spec = { tareaCero: S.tareaCero(lineas) !== null, tamano: tam.fallas ? null : tam.tamano, tamanoFallo: !!tam.fallas };
-  const ent = chequearEntorno({ raiz, hayFicha, datos, noAplica: a.noAplica.entorno, ahora, env, spec });
+  const ent = chequearEntorno({ raiz, hayFicha, datos, noAplica: a.noAplica.entorno, ahora, env, spec, aviso: error });
   if (ent.fallas) fallas.push(...ent.fallas);
   const top = chequearTope(s.buf, tam.fallas ? null : tam.tamano, a.noPartir);
   if (top.fallas) fallas.push(...top.fallas);

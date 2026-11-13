@@ -20,6 +20,7 @@ Object.assign(process.env, {
   GIT_AUTHOR_EMAIL: 'prueba@ejemplo.invalid',
   GIT_COMMITTER_NAME: 'Prueba',
   GIT_COMMITTER_EMAIL: 'prueba@ejemplo.invalid',
+  KIT_TURNO_DIR: path.join(TMP, 'turno'), // 8d C3 (D8d-B37): el turno de este archivo, no el de la PC
 });
 test.after(() => fs.rmSync(TMP, { recursive: true, force: true }));
 
@@ -1057,4 +1058,30 @@ test('8r3 i1: con carpeta-docs: arti-docs en la ficha, el módulo es arti-docs/m
   escribir(sin, 'docs/modulos/m/SPEC.md', spec());
   assert.match(correr(['sello', 'docs/modulos/m/SPEC.md'], sin).out, /\(docs\/modulos\/m\/README\.md\) no dice director:/);
   assert.deepEqual(correr(['ready', '--pendientes'], sin).out, 'm · borrador a medias\n');
+});
+
+// 8d C3 (R18; B5): el comando-test del sello es una corrida pesada: toma el turno de la PC y espera al que lo tiene.
+test('8d C3 (crit. C3): el sello con el turno tomado por otro proceso vivo espera (y lo dice); con el turno libre, no espera', () => {
+  const { spawn } = require('child_process');
+  const dir = path.join(TMP, 'turno-c3');
+  fs.mkdirSync(dir);
+  const otro = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 60000)'], { stdio: 'ignore' });
+  try {
+    fs.writeFileSync(path.join(dir, 'quien.json'), JSON.stringify({ quien: 'la suite de otro', pid: otro.pid, desde: new Date().toISOString() }));
+    const d = repo(ficha());
+    escribir(d, 's.md', spec());
+    const env = { ...PLAZOS, KIT_TURNO_DIR: dir, ARQUITECTO_TURNO_ESPERA_MS: '1500', ARQUITECTO_TURNO_CADA_MS: '100' };
+    const t0 = Date.now();
+    const r = correr(['sello', 's.md'], d, { env });
+    assert.equal(r.codigo, 0, r.out + r.err);
+    assert.ok(Date.now() - t0 >= 1500, 'esperó el turno');
+    assert.match(r.err, /turno: espero que termine la suite de otro/);
+  } finally {
+    otro.kill();
+  }
+  const libre = repo(ficha());
+  escribir(libre, 's.md', spec());
+  const r2 = correr(['sello', 's.md'], libre, { env: { ...PLAZOS, KIT_TURNO_DIR: path.join(TMP, 'turno-libre'), ARQUITECTO_TURNO_ESPERA_MS: '60000' } });
+  assert.equal(r2.codigo, 0, r2.out + r2.err);
+  assert.doesNotMatch(r2.err, /turno: espero/);
 });

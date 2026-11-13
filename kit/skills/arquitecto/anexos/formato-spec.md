@@ -196,6 +196,10 @@ EARS simplificado, empezando SIEMPRE por el de regresión:
 ## Ejecución
 ## Entorno de prueba
 
+## Antes de lanzar: lo del dueño
+(Solo con director.) Cada cambio de freno y cada paso que solo puede dar el dueño (un clic, una cuenta, una clave), uno por
+renglón, con el encargo que lo espera; o "nada". El director no reparte un encargo que depende de uno hasta que esté hecho.
+
 ## Supuestos
 [ALTO/BAJO] Lo asumido sin preguntar, con impacto si estuviera mal; `[SIN CONTRASTAR]` si no se vio en el sistema vivo.
 
@@ -224,6 +228,7 @@ El estado del módulo, para que el hook, el TODO y `/estado` lo vean desde el pr
 - director: no
 - parte-de: <iniciativa>
 - rama: modulo/<x>
+- Plan: lista | cola — <la regla> · termina: <cuándo>
 - Próximo paso: <uno, concreto>
 - Tramo: <N> cerrado <AAAA-MM-DD>
 - Cierre de tramo: cada encargo | cada <N> encargos | al checkpoint
@@ -235,7 +240,8 @@ El estado del módulo, para que el hook, el TODO y `/estado` lo vean desde el pr
 La fase; el próximo paso va arriba, en `- Próximo paso:` (lo leen el arranque y `/estado`).
 
 ## Tareas
-- [ ] Una línea por tarea; se tilda solo con evidencia (el commit).
+### Tramo 1
+- [ ] Una línea por tarea, agrupadas por tramo (`### Tramo N`: es lo que lee `/estado`); se tilda solo con evidencia (el commit).
 
 ## Decisiones cerradas
 Una línea cada una; el porqué largo, en el spec.
@@ -251,5 +257,6 @@ Solo con `director: sí`; lo mantiene el director. Un renglón por sesión abier
 - **Solo con `director: sí`** el módulo lleva además `tiempos.md` (lo escribe `tiempos.cjs`, no la cabeza del director), `planes/`, `bitacora/` (encargos, evidencias, relevos, resumen del día) y `mesa/`. Un módulo solo no crea ninguna de las cuatro.
 - **`> Histórico`**: una línea con esa marca en las primeras 10 líneas de un archivo lo declara registro (un acta, una versión reemplazada): `candado:rutas` no le chequea las rutas y quien lo abre sabe que no se edita. Se pone al reemplazar un archivo aprobado por su versión nueva (la vieja queda al lado con la marca), nunca a uno vivo.
 - **`Próximo paso:`** uno y concreto; el arranque lo muestra en la línea del módulo. **`Tramo:`** el último tramo cerrado y su fecha (`<x> · tramo <N> cerrado <edad> · próximo: <…>` en el arranque y en `/estado`); sin tramo cerrado todavía, el renglón no va. **`Cierre de tramo:`** solo con `director: sí`: cada cuánto el director lanza el obrero de cierre de tramo (`plantilla-cierre.md` del `/director`, que escribe la ficha); lo elige el Arquitecto en el Modo B con la Ejecución; sin el renglón, cada encargo.
+- **`Plan:`** solo con `director: sí`: `lista` (las tareas del spec; termina cuando están) o `cola` (va tomando pedidos con su regla, y dice cuándo termina) — lo pregunta el Arquitecto al dueño. La sesión del director se llama `director-<x>` (sale de la rama; no va en la ficha: `director:` es `sí` o `no`).
 - **`director:`** dice `sí` o `no` (lo mira `sello` contra la Ejecución). **`rama:`** existe solo con director, y es `modulo/<x>`; sin director, el renglón no va. **`parte-de:`** solo si el módulo es un tramo de una iniciativa abierta; si no, el renglón no va.
 - Al terminar: `- Estado: COMPLETO <fecha>` y la ficha pasa a ser **el manual del módulo** (qué hace, cómo se usa, qué no toca); la lista de tareas se borra. **La carpeta se queda en `docs/modulos/`.**
