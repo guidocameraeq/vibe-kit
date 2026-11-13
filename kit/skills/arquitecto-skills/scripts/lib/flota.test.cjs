@@ -906,7 +906,7 @@ const SETTINGS_DEL_MODULO = (c) => editar(c, '.claude/settings.json', (t) => t.r
 // chequear ya tiene sus pruebas (crit. 15 y 16): acá lo que se mira es la prueba por módulo.
 const chequearVerde = async () => ({ codigo: 0, lineas: ['(chequear de mentira: verde)'] });
 const ramasDe = (bare) => git(bare, 'for-each-ref', '--format=%(refname) %(objectname)', 'refs/heads').split('\n').filter(Boolean);
-const RE_VERDE = (repo, x) => new RegExp(`^${repo}: modulo/${x}: trae main con node \\.\\./\\.\\./\\.\\./\\.claude/scripts/worktree\\.cjs traer-main ${x} \\(lo corre el director, desde su worktree: el script de main\\) — barreras verde$`);
+const RE_VERDE = (repo, x) => new RegExp(`^${repo}: modulo/${x}: trae main con node \\.\\./\\.\\./\\.\\./\\.claude/scripts/worktree\\.cjs traer-main ${x} \\(lo corre el director, desde su worktree: el script de main\\) — barreras pasa$`);
 
 test('u2 crit. 2: sin --con-obra, salteado y el porqué nombra la bandera; con ella, main avanza un commit (trae settings.json del kit), modulo/a igual y su línea verde', async () => {
   const canon = armarCanon({ molde: MOLDE_SETTINGS });
@@ -980,7 +980,7 @@ test('u2: un módulo que tocó el mismo hook que el kit, sin chocar → barreras
   assert.equal(git(x.bare, 'rev-parse', 'refs/heads/modulo/b'), shaB);
   const er = fila(r, 'rojo').espera.find((e) => e.startsWith('rojo: modulo/b: '));
   assert.ok(er, t);
-  assert.match(er, /^rojo: modulo\/b: trae main con node \.\.\/\.\.\/\.\.\/\.claude\/scripts\/worktree\.cjs traer-main b \(lo corre el director, desde su worktree: el script de main\) — barreras rojo: hooks:\.claude\/hooks\/sensible\.cjs \(lo apruebas vos antes: node \.claude\/scripts\/cambios\.cjs nuevo --slug trae-main-b --clase 3-barrera --toca hooks --id hooks:\.claude\/hooks\/sensible\.cjs --origen "modulo\/b trae main @[0-9a-f]{7}"\)$/);
+  assert.match(er, /^rojo: modulo\/b: trae main con node \.\.\/\.\.\/\.\.\/\.claude\/scripts\/worktree\.cjs traer-main b \(lo corre el director, desde su worktree: el script de main\) — barreras falla: hooks:\.claude\/hooks\/sensible\.cjs \(antes, la sesión corre node \.claude\/scripts\/cambios\.cjs nuevo --slug trae-main-b --clase 3-barrera --toca hooks --id hooks:\.claude\/hooks\/sensible\.cjs --origen "modulo\/b trae main @[0-9a-f]{7}" y el dueño lo aprueba con un clic\)$/);
 });
 
 test('u2 rt-7 (e): main que sale "te espera" (protegida) → la línea de cada módulo es "primero mezclá kit/<tag> en main", sin prueba', async () => {

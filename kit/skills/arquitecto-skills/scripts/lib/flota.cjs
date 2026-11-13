@@ -352,14 +352,14 @@ function probarModulos(clon, def, modulos, ctx, subido) {
       cwd: clon, encoding: 'utf8', windowsHide: true, timeout: PLAZO_RED, killSignal: 'SIGKILL',
       env: entorno(), // barreras solo lee: no corre ningún hook
     });
-    if (b.status === 0) lineas.push(`${pre}barreras verde`);
+    if (b.status === 0) lineas.push(`${pre}barreras pasa`);
     else if (b.status === 1) {
       const r = rojosDeBarreras(b.stdout);
       const ids = r.ids.length ? r.ids : r.que.length ? r.que : [primera(b.stdout) || 'sin salida'];
       const cambio = r.cats.length && r.ids.length
         ? `node .claude/scripts/cambios.cjs nuevo --slug trae-${def.replace(/[^\w-]+/g, '-')}-${x.replace(/[^\w-]+/g, '-')} --clase 3-barrera --toca ${r.cats.join(',')}${r.ids.map((i) => ` --id ${i}`).join('')} --origen "modulo/${x} trae ${def} @${sha7}"`
         : 'cambios nuevo (3-barrera, un --id por cada uno)';
-      lineas.push(`${pre}barreras rojo: ${ids.join(', ')} (lo apruebas vos antes: ${cambio})`);
+      lineas.push(`${pre}barreras falla: ${ids.join(', ')} (antes, la sesión corre ${cambio} y el dueño lo aprueba con un clic)`);
     } else lineas.push(`${pre}barreras NO VERIFICADO (${b.error ? b.error.code || b.error.message : `salió con ${b.status}`})`);
   }
   limpiar();
