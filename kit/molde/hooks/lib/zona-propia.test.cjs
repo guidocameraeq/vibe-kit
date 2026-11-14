@@ -681,10 +681,12 @@ test('forma exec: dos hooks con el mismo command y distintos args tienen ids dis
   assert.deepEqual(reglas(t).map((r) => r.id), ['hook:SessionStart//node $CLAUDE_PROJECT_DIR/x.cjs']);
 });
 
-test('forma exec: mezclarSettings conserva los tres hooks de Bash|PowerShell del molde (del viejo en texto al nuevo en exec, y del molde consigo mismo)', () => {
+// 8d C6 (la suite entera): desde A5 el molde registra para Bash|PowerShell un solo hook, el portero (corre niega-aprobar, git-seguro y
+// sensible en un proceso); el viejo en texto se retira igual.
+test('forma exec: mezclarSettings conserva el portero de Bash|PowerShell del molde (del viejo en texto al nuevo en exec, y del molde consigo mismo)', () => {
   const fs = require('fs');
   const nuevo = fs.readFileSync(path.join(__dirname, '..', '..', 'settings.json'), 'utf8');
-  const nombres = ['niega-aprobar', 'git-seguro', 'sensible'];
+  const nombres = ['portero'];
   const args = (s) => s.hooks.PreToolUse.flatMap((g) => g.hooks.flatMap((h) => h.args || []));
   const viejo = JSON.stringify({ hooks: { PreToolUse: [{ matcher: 'Bash|PowerShell', hooks: [{ type: 'command', command: 'node "$CLAUDE_PROJECT_DIR/.claude/hooks/niega-aprobar.cjs"', timeout: 20, onFailure: 'block' }] }] } });
   for (const [v, p] of [[viejo, viejo], [null, null], [nuevo, nuevo]]) {
@@ -693,9 +695,9 @@ test('forma exec: mezclarSettings conserva los tres hooks de Bash|PowerShell del
     for (const n of nombres) assert.equal(args(m.settings).filter((a) => a.endsWith(`/${n}.cjs`)).length, 1, n);
     assert.ok(!JSON.stringify(m.settings).includes('"$CLAUDE_PROJECT_DIR'), 'el texto viejo se retira');
   }
-  // un hook exec quitado por el proyecto (id con args) no vuelve; los otros dos sí
-  const q = [{ id: 'hook:PreToolUse/Bash|PowerShell/node ${CLAUDE_PROJECT_DIR}/.claude/hooks/sensible.cjs', hasta: 'siempre' }];
+  // un hook exec quitado por el proyecto (id con args) no vuelve; los otros (el de escritura) sí
+  const q = [{ id: 'hook:PreToolUse/Bash|PowerShell/node ${CLAUDE_PROJECT_DIR}/.claude/hooks/lib/portero.cjs', hasta: 'siempre' }];
   const m = mezclarSettings({ viejo: null, nuevo, proyecto: '{}', quitados: q });
-  assert.deepEqual(args(m.settings).filter((a) => /niega-aprobar|git-seguro|sensible/.test(a)).length, 2);
-  assert.ok(!args(m.settings).some((a) => a.endsWith('/sensible.cjs')));
+  assert.ok(!args(m.settings).some((a) => a.endsWith('/portero.cjs')), 'el quitado no vuelve');
+  assert.ok(args(m.settings).some((a) => a.endsWith('/escritura-docs.cjs')), 'los otros, sí');
 });
