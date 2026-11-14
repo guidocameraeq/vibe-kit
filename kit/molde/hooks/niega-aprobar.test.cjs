@@ -444,8 +444,12 @@ test('A2.4 las otras dos firmas: noche.cjs publicar --seguir como aprobar; prepa
   assert.equal(decideNA(entrada(m.d, 'KIT_HOME_PC=/tmp/h node x.cjs'), { entorno: { KIT_FONDO: '1' } }).decision, 'deny');
 });
 
-test('A2 pc/niega-aprobar.cjs es una copia idéntica de la del molde', () => {
-  const pc = path.join(__dirname, '..', '..', 'skills', 'arquitecto-skills', 'pc', 'niega-aprobar.cjs');
+// 8d C6 (la flota de prueba): solo adentro del kit. La línea 7 de chequear corre las pruebas de los hooks en una copia del molde suelto
+// (sin skills/): ahí este caso no tiene con qué compararse.
+const PC_NA = path.join(__dirname, '..', '..', 'skills', 'arquitecto-skills', 'pc', 'niega-aprobar.cjs');
+const EN_EL_KIT = fs.existsSync(path.join(__dirname, '..', '..', 'skills', 'arquitecto-skills'));
+test('A2 pc/niega-aprobar.cjs es una copia idéntica de la del molde', { skip: !EN_EL_KIT && 'fuera del kit (la copia del molde de chequear)' }, () => {
+  const pc = PC_NA;
   assert.ok(fs.existsSync(pc), 'falta pc/niega-aprobar.cjs');
   assert.ok(fs.readFileSync(pc).equals(fs.readFileSync(path.join(__dirname, 'niega-aprobar.cjs'))), 'pc/niega-aprobar.cjs se desvió del molde');
 });

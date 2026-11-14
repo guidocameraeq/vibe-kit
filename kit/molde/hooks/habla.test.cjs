@@ -5,20 +5,23 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('path');
-const habla = require('../../habla.cjs');
+const fs = require('fs');
 
 const KIT = path.resolve(__dirname, '..', '..');
+// 8d C6 (la flota de prueba): fuera del kit (la copia del molde suelto de chequear) no hay habla.cjs ni skills/: se saltea.
+const FUERA = !fs.existsSync(path.join(KIT, 'habla.cjs')) && 'fuera del kit (la copia del molde de chequear)';
+const habla = FUERA ? null : require('../../habla.cjs');
 const ALIAS_VIEJOS = ['con-ok-de-guido', 'necesita-guido'];
 // Los textos que son esos alias (o los nombran, en un mensaje de la ficha que los acepta).
 const esAlias = (t) => ALIAS_VIEJOS.some((a) => t.includes(a)) && !/\bguido\b/i.test(t.split(/con-ok-de-guido|necesita-guido/).join(''));
 
-test('la ayuda: saca los literales sin los comentarios, y encuentra las palabras', () => {
+test('la ayuda: saca los literales sin los comentarios, y encuentra las palabras', { skip: FUERA }, () => {
   const lits = habla.literales("// Guido dijo\nconst a = 'hola'; /* rojo */ const b = \"en verde\"; const c = `x ${'y'}`; const r = /'no'/;\n");
   assert.deepEqual(lits, ['hola', 'en verde', 'x ${}']); // lo de adentro de ${…} es código
   assert.deepEqual(habla.palabras('Lo hace Guido · ROJO · verdes · verdura'), ['guido', 'rojo', 'verdes']);
 });
 
-test('crit. 23 (A8): los hooks, los githooks, el script de cambios y la PC no dicen "guido" ni "rojo/verde"', () => {
+test('crit. 23 (A8): los hooks, los githooks, el script de cambios y la PC no dicen "guido" ni "rojo/verde"', { skip: FUERA }, () => {
   const lista = [
     ...habla.archivos(path.join(KIT, 'molde', 'hooks')),
     ...habla.archivos(path.join(KIT, 'molde', 'githooks')),
