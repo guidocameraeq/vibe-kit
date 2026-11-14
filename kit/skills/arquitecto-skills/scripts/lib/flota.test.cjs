@@ -714,7 +714,7 @@ test('la CLI: sin repos, todo sin --proyectos, un --tag mal formado o una bander
     const r = spawnSync(process.execPath, [path.join(SCRIPTS, 'actualizar.cjs'), ...args], { cwd: T, encoding: 'utf8' });
     assert.equal(r.status, 2, args.join(' '));
     assert.match(r.stderr, /^uso: node actualizar\.cjs aplicar/);
-    assert.match(r.stderr, /node actualizar\.cjs flota <repo>… \| todo --canon/);
+    assert.match(r.stderr, /node actualizar\.cjs flota <repo>… \| todo \[--canon/);
   }
 });
 
