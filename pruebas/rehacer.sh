@@ -618,13 +618,13 @@ try {
   for (const c of ['SessionStart node', 'PreToolUse node']) if (!cmds.some((x) => x.startsWith(c.split(' ')[0]) && x.includes('node'))) mal('el settings no tiene ' + c);
   if (paso === '3') {   // todo hook en forma exec (command = node, el .cjs en args), y los dos nuevos registrados
     // los del molde, en exec (los propios del proyecto, como el check-code.js v2, quedan como estaban)
-    const delMolde = /(session-start|escritura-docs|niega-aprobar|git-seguro|sensible)\.cjs/;
+    const delMolde = /(session-start|escritura-docs|niega-aprobar|git-seguro|sensible|portero)\.cjs/;
     for (const [ev, gs] of Object.entries(s.hooks || {})) for (const g of gs) for (const h of g.hooks || [])
       if (delMolde.test([h.command, ...(Array.isArray(h.args) ? h.args : [])].join(' ')) && (h.command !== 'node' || !Array.isArray(h.args))) mal(`el hook ${ev} «${h.command}» no está en forma exec`);
-    for (const f of ['git-seguro.cjs', 'sensible.cjs']) if (!cmds.some((x) => x.startsWith('PreToolUse') && x.includes(f))) mal('el settings no tiene el hook ' + f);
+    for (const f of ['git-seguro.cjs', 'sensible.cjs']) if (!cmds.some((x) => x.startsWith('PreToolUse') && (x.includes(f) || x.includes('portero.cjs')))) mal('el settings no tiene el hook ' + f);
     if (!((s.permissions || {}).deny || []).includes('Read(./**/.env)')) mal('el settings no niega Read a .env');
   }
-  if (!cmds.some((x) => x.includes('niega-aprobar.cjs'))) mal('el settings no tiene el hook niega-aprobar.cjs');
+  if (!cmds.some((x) => x.includes('niega-aprobar.cjs') || x.includes('portero.cjs'))) mal('el settings no tiene el hook niega-aprobar.cjs'); // 8d A5: o el portero, que lo corre
   if (!cmds.some((x) => x.includes('escritura-docs.cjs'))) mal('el settings no tiene el hook escritura-docs.cjs');
   if (cmds.some((x) => x.includes('session-start.sh'))) mal('el settings sigue con session-start.sh');
   if (!((s.permissions || {}).deny || []).includes('Edit(./.claude/cambios/**)')) mal('el settings no niega Edit a .claude/cambios'); // Edit, no Write: la deny Write(…) no la mira la plataforma
