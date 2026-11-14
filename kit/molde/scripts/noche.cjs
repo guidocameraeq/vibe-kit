@@ -489,25 +489,32 @@ function correrPaso(L, cmd, cwd, plazoMs, archivoSalida) {
 // Revisor frío de B (4), en la C: el motivo nombra los archivos (hasta tres), así "Te necesito" dice qué mirar.
 const RUTA_ST = (l) => l.slice(3).replace(/^"|"$/g, '');
 const nombres = (ls) => `${ls.slice(0, 3).map(RUTA_ST).join(', ')}${ls.length > 3 ? ' …' : ''}`;
+// → null si está, o { motivo, tipo: 'cambios' | 'sueltos' | 'git', archivos } (revisor frío de C, 7: sin partir un texto).
 function carpetaSucia(L, raiz, docs) {
   const st = G(L, raiz, ['-c', 'core.quotePath=false', 'status', '--porcelain', '--untracked-files=all']);
-  if (!st.ok) return 'no pude leer el estado de la carpeta principal';
+  if (!st.ok) return { motivo: 'no pude leer el estado de la carpeta principal', tipo: 'git', archivos: '' };
   const ls = String(st.stdout || '').split('\n').filter((l) => l.trim());
   const cambiados = ls.filter((l) => !l.startsWith('?? '));
-  if (cambiados.length) return `la carpeta principal tiene cambios sin guardar (${nombres(cambiados)})`;
+  if (cambiados.length) return { motivo: `la carpeta principal tiene cambios sin guardar (${nombres(cambiados)})`, tipo: 'cambios', archivos: nombres(cambiados) };
   const sueltos = ls.filter((l) => !soloPapeles([RUTA_ST(l)], docs));
-  if (sueltos.length) return `la carpeta principal tiene archivos que git no sigue fuera de los papeles (${nombres(sueltos)})`;
+  if (sueltos.length) return { motivo: `la carpeta principal tiene archivos que git no sigue fuera de los papeles (${nombres(sueltos)})`, tipo: 'sueltos', archivos: nombres(sueltos) };
   return null;
 }
-const ESPERA_SUCIA = (m) => `${m}: decidí si se borran o van al .gitignore; hasta entonces no publico`;
+// Lo que va a "Te necesito" según qué la ensució (revisor frío de C, 2: un archivo seguido no va al .gitignore).
+const ESPERA_SUCIA = (s, quien = '') => (s.tipo === 'cambios'
+  ? `${quien || 'la carpeta principal tiene'} cambios sin guardar (${s.archivos}): decidí si van en un commit o se descartan; hasta entonces no publico`
+  : s.tipo === 'sueltos'
+    ? `${quien || 'la carpeta principal tiene'} archivos sueltos (${s.archivos}): decidí si se borran o van al .gitignore; hasta entonces no publico`
+    : `${s.motivo}: hasta entonces no publico`);
 
-// Lo que el setup o las pruebas cambiaron de lo que git sigue (un lockfile reescrito) vuelve a como está en HEAD, como hace
-// worktree.cjs con su setup (limpiarLoDelSetup): eso no lo publica nadie y trababa la noche para siempre. Lo suelto que dejaron
-// NO se esconde (rt B 3: un build levanta lo que encuentra): frena y va a "Te necesito".
-function volverLoSeguido(L, raiz) {
+// Los lockfiles que reescribe un setup (npm install, pnpm install, poetry…): esos, y solo esos, vuelven a como están en HEAD después
+// del setup y las pruebas, pasen o fallen (revisor frío de C, 1 y 2). Cualquier otro archivo seguido que cambió puede ser trabajo del
+// dueño en la misma carpeta (una sesión de día mientras corre publicar --seguir): no se toca, frena.
+const LOCKFILES = new Set(['package-lock.json', 'npm-shrinkwrap.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lockb', 'bun.lock', 'poetry.lock', 'Pipfile.lock', 'uv.lock', 'Cargo.lock', 'Gemfile.lock', 'composer.lock']);
+function volverLosLocks(L, raiz) {
   const m = G(L, raiz, ['-c', 'core.quotePath=false', 'diff', '--name-only', 'HEAD']);
   if (!m.ok) return;
-  for (const f of lineasDe(m.stdout)) G(L, raiz, ['checkout', 'HEAD', '--', f]);
+  for (const f of lineasDe(m.stdout)) if (LOCKFILES.has(f.split('/').pop())) G(L, raiz, ['checkout', 'HEAD', '--', f]);
 }
 
 function publicar(L, g, x, a, o) {
@@ -519,11 +526,13 @@ function publicar(L, g, x, a, o) {
   const archivo = rutaPublicacion(p.comun);
   const antes = leerJson(archivo) || {};
   const guardar = (d) => escribirJson(archivo, { ...d, cuando: new Date().toISOString() });
-  const conEspera = (codigo, m, espera) => {
-    guardar({ ...antes, ultimaSalida: codigo, motivo: m, teEspera: espera === undefined ? antes.teEspera || null : espera });
+  // tipoEspera (revisor frío de C, 11): lo que pide una decisión (la carpeta sucia) no es "un clic tuyo" en /estado
+  const conEspera = (codigo, m, espera, tipoEspera) => {
+    const nueva = espera !== undefined;
+    guardar({ ...antes, ultimaSalida: codigo, motivo: m, teEspera: nueva ? espera : antes.teEspera || null, tipoEspera: nueva ? tipoEspera || null : antes.tipoEspera || null });
     return { codigo, lineas: [`publicar: ${codigo === 3 ? '' : 'no — '}${m}`] };
   };
-  const no = (m, espera) => conEspera(1, m, espera);
+  const no = (m, espera, tipoEspera) => conEspera(1, m, espera, tipoEspera);
   const tres = (m, espera) => conEspera(3, m, espera);
   // 1. la ficha vigente
   const fv = L.contexto.fichaVigente(p.raiz);
@@ -558,7 +567,7 @@ function publicar(L, g, x, a, o) {
   if (antes.trabado && !a.seguir) return tres('la publicación quedó trabada (la última falló): no publico hasta que digas que siga', 'la última publicación falló: decidí si sigue');
   // 4. la carpeta, HEAD = origin, el módulo adentro, y desde lo último publicado solo módulos y papeles
   const sucia = carpetaSucia(L, p.raiz, p.docs);
-  if (sucia) return no(sucia, ESPERA_SUCIA(sucia));
+  if (sucia) return no(sucia.motivo, ESPERA_SUCIA(sucia), 'decisión');
   const head = shaDe(L, p.raiz, 'HEAD');
   const od = shaDe(L, p.raiz, ref);
   if (!head || head !== od) return no(`la carpeta principal no está igual a origin/${p.defecto} (corré git pull --ff-only antes)`);
@@ -608,8 +617,8 @@ function publicar(L, g, x, a, o) {
   }
   const salida = path.join(os.tmpdir(), `kit-pub-${crypto.randomBytes(8).toString('hex')}.log`);
   const pasos = { pruebas: 'no hay', comando: 'no hay', humo: 'no hay', volver: 'no hay' };
-  const fin = (codigo, m, trabado, espera = null) => {
-    guardar({ commit: head, publicado: codigo === 0 ? head : antes.publicado || null, pasos, trabado, enCurso: null, ultimaSalida: codigo, motivo: m, teEspera: espera });
+  const fin = (codigo, m, trabado, espera = null, tipoEspera = null) => {
+    guardar({ commit: head, publicado: codigo === 0 ? head : antes.publicado || null, pasos, trabado, enCurso: null, ultimaSalida: codigo, motivo: m, teEspera: espera, tipoEspera });
     return { codigo, lineas: [`publicar: ${m}`] };
   };
   // Desde acá, la salida de lo que corre (puede traer claves) va a un archivo con nombre al azar, y se borra siempre al terminar
@@ -634,15 +643,15 @@ function publicar(L, g, x, a, o) {
           return { ok: true };
         } finally {
           if (hooksAntes && (G(L, p.raiz, ['config', '--get', 'core.hooksPath']).stdout || '').trim() !== hooksAntes) G(L, p.raiz, ['config', 'core.hooksPath', hooksAntes]);
+          volverLosLocks(L, p.raiz); // pasen o fallen (revisor frío de C, 2)
         }
       }, { salida: o.salida });
       pasos.pruebas = r.ok ? 'pasó' : 'falló';
       if (!r.ok) return fin(1, 'las pruebas fallaron en la carpeta principal: no publiqué', false);
       // lo que corrió no tiene que haber dejado la carpeta distinta de lo que se probó (rt B 3)
       if (shaDe(L, p.raiz, 'HEAD') !== head) return fin(1, 'la carpeta principal cambió mientras corrían las pruebas: no publiqué', false, 'la carpeta principal cambió mientras corrían las pruebas: decidí si se publica');
-      volverLoSeguido(L, p.raiz);
       const otra = carpetaSucia(L, p.raiz, p.docs);
-      if (otra) return fin(1, `${otra}, y lo dejaron las pruebas: no publiqué`, false, ESPERA_SUCIA(`las pruebas dejaron archivos sueltos (${otra.split('(').pop().replace(/\)$/, '')})`));
+      if (otra) return fin(1, `${otra.motivo}, después de las pruebas: no publiqué`, false, ESPERA_SUCIA(otra, 'después de las pruebas, la carpeta principal tiene'), 'decisión');
       // 6. publicar. Si falla, lo publicado puede haber quedado a medias: queda trabado (rt B 5).
       const c = correrPaso(L, pub.comando, p.raiz, T_PUBLICAR, salida);
       pasos.comando = c.estado === 'verde' ? 'pasó' : 'falló';

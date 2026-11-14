@@ -565,25 +565,40 @@ test('rt B 3: un archivo que git no sigue fuera de los papeles frena publicar; e
   assert.equal(pub(p).codigo, 0);
 });
 
-test('revisor frío de B (4), en la C: lo que el setup cambia de lo seguido vuelve solo; lo suelto que deja frena y va a "Te necesito"', () => {
-  // el setup reescribe a.txt (seguido): vuelve a HEAD y se publica
-  const ensucia = "const fs = require('fs'); fs.writeFileSync('a.txt', 'reescrito\\n'); if (process.argv[2]) fs.writeFileSync(process.argv[2], 'x');\n";
-  const p = conPublicar({ setup: 'node scripts/ensucia.cjs', archivos: { 'scripts/ensucia.cjs': ensucia } });
+test('revisor frío de B (4) y de C (1, 2, 7, 11): el lockfile que reescribe el setup vuelve solo (pasen o fallen las pruebas); otro archivo seguido no se toca y frena; lo suelto frena; todo va a "Te necesito" como decisión', () => {
+  // el setup reescribe el lockfile (y, con un argumento, deja otra cosa): el lock vuelve a HEAD y se publica
+  const ensucia = "const fs = require('fs'); fs.writeFileSync('package-lock.json', 'reescrito\\n'); const [, , que, ruta] = process.argv; if (que) fs.writeFileSync(que === 'paren' ? 'app/(auth)/x.tsx' : ruta, 'x\\n');\n";
+  const archivos = { 'scripts/ensucia.cjs': ensucia, 'package-lock.json': '{}\n' };
+  const p = conPublicar({ setup: 'node scripts/ensucia.cjs', archivos });
   const r = pub(p);
   assert.equal(r.codigo, 0, r.out);
-  assert.equal(fs.readFileSync(path.join(p.P, 'a.txt'), 'utf8'), 'a\n', 'a.txt volvió a como está en HEAD');
-  // el setup deja un archivo suelto fuera de los papeles: no publica, lo nombra y va a "Te necesito"
-  const q = conPublicar({ setup: 'node scripts/ensucia.cjs cobertura.out', archivos: { 'scripts/ensucia.cjs': ensucia } });
-  const s = pub(q);
+  assert.equal(fs.readFileSync(path.join(p.P, 'package-lock.json'), 'utf8'), '{}\n', 'el lockfile volvió a como está en HEAD');
+  // las pruebas fallan: el lockfile vuelve igual (si no, la noche siguiente frenaba por "cambios sin guardar")
+  const f = conPublicar({ setup: 'node scripts/ensucia.cjs', archivos });
+  fs.writeFileSync(path.join(f.m, 'test-falla'), '1');
+  assert.equal(pub(f).codigo, 1);
+  assert.equal(fs.readFileSync(path.join(f.P, 'package-lock.json'), 'utf8'), '{}\n');
+  // otro archivo seguido que cambió mientras corrían (trabajo del dueño en la misma carpeta): queda como está, y frena
+  const d = conPublicar({ setup: 'node scripts/ensucia.cjs si a.txt', archivos });
+  const s = pub(d);
   assert.equal(s.codigo, 1, s.out);
-  assert.match(s.out, /archivos que git no sigue fuera de los papeles \(cobertura\.out\), y lo dejaron las pruebas: no publiqué/);
-  assert.equal(veces(q), 0);
-  assert.ok(ESP.teEspera(q.P).some((i) => /cobertura\.out.*decidí si se borran o van al \.gitignore/.test(i.texto)), JSON.stringify(ESP.teEspera(q.P)));
-  // la noche siguiente frena antes de correr nada, y también llega a "Te necesito"
+  assert.match(s.out, /cambios sin guardar \(a\.txt\), después de las pruebas: no publiqué/);
+  assert.equal(fs.readFileSync(path.join(d.P, 'a.txt'), 'utf8'), 'x\n', 'lo del dueño no se pisa');
+  const ed = ESP.teEspera(d.P).find((i) => i.fuente === 'publicar');
+  assert.match(ed.texto, /cambios sin guardar \(a\.txt\): decidí si van en un commit o se descartan/);
+  assert.equal(ed.tipo, 'decisión', 'no es un clic: --seguir no la destraba');
+  // lo suelto fuera de los papeles: frena, lo nombra (también con paréntesis en la ruta) y va a "Te necesito"
+  const q = conPublicar({ setup: 'node scripts/ensucia.cjs paren', archivos: { ...archivos, 'app/(auth)/.keep': '' } });
   const t = pub(q);
   assert.equal(t.codigo, 1, t.out);
-  assert.match(t.out, /fuera de los papeles \(cobertura\.out\)$/m);
-  assert.ok(ESP.teEspera(q.P).some((i) => /cobertura\.out/.test(i.texto)));
+  assert.match(t.out, /archivos que git no sigue fuera de los papeles \(app\/\(auth\)\/x\.tsx\), después de las pruebas: no publiqué/);
+  assert.equal(veces(q), 0);
+  assert.ok(ESP.teEspera(q.P).some((i) => /archivos sueltos \(app\/\(auth\)\/x\.tsx\): decidí si se borran o van al \.gitignore/.test(i.texto)), JSON.stringify(ESP.teEspera(q.P)));
+  // la noche siguiente frena antes de correr nada, y también llega a "Te necesito"
+  const u = pub(q);
+  assert.equal(u.codigo, 1, u.out);
+  assert.match(u.out, /fuera de los papeles \(app\/\(auth\)\/x\.tsx\)$/m);
+  assert.ok(ESP.teEspera(q.P).some((i) => /x\.tsx/.test(i.texto) && i.tipo === 'decisión'));
 });
 
 test('rt B 4 y 5: la salida del comando no queda en el temporal; un comando que falla deja trabado; una publicación a medias da 3', () => {
