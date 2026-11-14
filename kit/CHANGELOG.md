@@ -48,7 +48,9 @@ decididas con Guido el 2026-11-12 sobre lo que midió la revisión de la `rc.6`,
   fondo, el paso 9 del director y el cierre de noche), o si registró hooks propios en `PreToolUse` de `Bash|PowerShell` (el portero
   reemplaza a los tres del kit; los tuyos quedan como estaban). El commit del kit toca hooks, githooks y el settings: va con la exención
   del actualizador. `autorizado.publicar` nace en `no`: un proyecto que quiera que la noche publique lo declara en la ficha (con su
-  aprobado) y el dueño lo autoriza en cada PC ("preparame esta PC").
+  aprobado) y el dueño lo autoriza en cada PC ("preparame esta PC"). **Pide revisión si un hook propio escribe con `frenos-log.anotar` y una prueba tuya busca su renglón en
+  `.claude/frenos.log`**: ahora va a `kit-frenos.log` de la carpeta común de git (`frenos-log.rutaDe(raiz, id)` dice dónde; `leerTodo(raiz)`
+  lee los dos). Hasta que la prueba lo lea de ahí, la flota da ROTA en la línea 8 ("lo rompió la actualización") y no mezcla.
 - **Qué chequear después**: `node "$HOME/.claude/skills/arquitecto-skills/scripts/actualizar.cjs" adoptar <carpeta> --verificar` sale 0
   (cada hook registrado deja pasar lo inocente y el arranque corre); `git status` limpio después de una sesión con frenadas (van a
   `kit-frenos.log`); `/estado` muestra sus cuatro secciones; el `doctor` dice `doctor · todo bien · …`.
