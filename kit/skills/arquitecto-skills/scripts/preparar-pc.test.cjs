@@ -193,6 +193,10 @@ test('crit 2: la segunda corrida dice "sin cambios" y no reescribe nada', () => 
   assert.equal(r.codigo, 0, r.texto);
   assert.match(r.texto, /^sin cambios: no hay nada que escribir\.$/m);
   assert.match(r.texto.split('\n')[1], /^resumen · sin cambios · \d+ avisos? · 0 cosas a arreglar$/);
+  // revisor frío de C (5): el plan sin nada que aplicar es la última corrida: corre el doctor (solo lee)
+  const pl = correr(e, ['--plan']);
+  assert.match(pl.texto.split('\n')[1], /^resumen · sin cambios/);
+  assert.match(pl.texto, /^doctor/m);
   assert.match(linea(r, 'kit'), /sin cambios/);
   assert.deepEqual(foto(e.home), antes);
 });

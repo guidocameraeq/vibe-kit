@@ -417,7 +417,9 @@ function originDe(dir) {
 }
 // Los repos de la carpeta cuya ficha VIGENTE (la de origin/<defecto>) publica por comando (no al-subir: lo gobierna merge-a-main).
 // → [{ proyecto, origin, publicar, huella }] (la huella de hoy, con los archivos de esa ref)
-function quePublican(carpeta) {
+// traer (revisor frío de C, 10): antes, un fetch de origin de cada repo cuya ficha publica (preparar-pc sí; el doctor solo lee),
+// así la pregunta muestra el comando de hoy y la huella que se anota es la que la noche va a calcular.
+function quePublican(carpeta, { traer = false } = {}) {
   const out = [];
   if (!carpeta) return out;
   let rec;
@@ -429,8 +431,13 @@ function quePublican(carpeta) {
   for (const { dir, nombre } of rec.repos) {
     const origin = originDe(dir);
     if (!origin) continue;
-    const fv = CX.fichaVigente(dir);
+    let fv = CX.fichaVigente(dir);
     if (fv.estado !== 'ok' || !fv.ref || !fv.ref.startsWith('refs/remotes/origin/')) continue;
+    if (traer && esMapa(fv.datos.autorizado) && esMapa(fv.datos.autorizado.publicar)) {
+      spawnSync('git', ['fetch', '-q', 'origin'], { cwd: dir, windowsHide: true, timeout: 20000 });
+      fv = CX.fichaVigente(dir);
+      if (fv.estado !== 'ok' || !fv.ref || !fv.ref.startsWith('refs/remotes/origin/')) continue;
+    }
     const pub = esMapa(fv.datos.autorizado) ? fv.datos.autorizado.publicar : undefined;
     if (!esMapa(pub) || typeof pub.comando !== 'string' || pub.comando === PU.AL_SUBIR) continue;
     const proyecto = fv.datos.vars && typeof fv.datos.vars.proyecto === 'string' && fv.datos.vars.proyecto.trim() ? fv.datos.vars.proyecto : nombre;
@@ -661,7 +668,7 @@ function principal(argv, { env = process.env, cwd = process.cwd(), renombrar = f
     return fin(1);
   }
   // 8d C2.2: el sí por repo. Sin --publica ni --no-publica, publica: queda tal cual (r2-7)
-  const candidatos = quePublican(carpeta);
+  const candidatos = quePublican(carpeta, { traer: true });
   let publica = [...(prev.publica || [])];
   const lineasPub = [];
   for (const u of o.noPublica) {
@@ -801,8 +808,8 @@ function principal(argv, { env = process.env, cwd = process.cwd(), renombrar = f
   log('');
   for (const l of tabla) log(l);
 
-  // 7. doctor (sin --plan)
-  if (!o.plan) {
+  // 7. doctor (sin --plan; y con --plan si no hay nada que aplicar: esa es la última corrida — revisor frío de C, 5)
+  if (!o.plan || (!acciones.length && !privada)) {
     const doc = path.join(home, '.claude', 'skills', 'arquitecto-skills', 'scripts', 'doctor.cjs');
     if (fs.existsSync(doc)) {
       const d = spawnSync(process.execPath, [doc, '--home', home], { cwd, env, encoding: 'utf8', timeout: PLAZO_DOCTOR, windowsHide: true });
@@ -824,7 +831,10 @@ function principal(argv, { env = process.env, cwd = process.cwd(), renombrar = f
     settingsCambia && 'el settings',
     kitPcCambia && 'kit-pc.md',
   ].filter(Boolean);
-  salida.splice(1, 0, acciones.length ? `resumen · ${o.plan ? 'cambiaría' : 'cambié'}: ${partes.join(', ') || cuantos(acciones.length, 'cosa', 'cosas')} · ${cola}` : `resumen · sin cambios · ${cola}`);
+  // revisor frío de C (5): con capa privada no es "sin cambios" (su plan es suyo: lo ve la sesión); (6): si la escritura falló, no dice "cambié"
+  const sinCambios = !acciones.length && !privada;
+  const verbo = o.plan ? 'cambiaría' : rojo ? 'quiso cambiar (quedó algo en ✗)' : 'cambié';
+  salida.splice(1, 0, sinCambios ? `resumen · sin cambios · ${cola}` : `resumen · ${acciones.length ? `${verbo}: ${partes.join(', ') || cuantos(acciones.length, 'cosa', 'cosas')}` : 'lo público, sin cambios; la capa privada, en su plan (abajo)'} · ${cola}`);
   log('');
   if (o.plan) log('plan: no escribí nada. Sin --plan, lo aplico.');
   else log(rojo ? 'quedó algo en ✗: arreglalo y volvé a correr. Después, reiniciá Claude Code.' : 'listo: reiniciá Claude Code.');
