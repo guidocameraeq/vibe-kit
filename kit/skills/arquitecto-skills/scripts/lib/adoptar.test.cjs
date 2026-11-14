@@ -468,12 +468,12 @@ test('crit. 1 (8r, T1; rt-4): un /director propio distinto → propia con el ⚠
   const conDir = mirar(conCodigo('dir', { '.claude/skills/director/SKILL.md': '# el director de hermes\n' }));
   assert.equal(piezas(conDir.texto)['director-obrero'], 'propia');
   assert.equal(piezas(conDir.texto).estado, 'sí', 'el estado no tiene nada propio');
-  assert.equal(lineaPieza(conDir.texto, 'director-obrero'), '#   director-obrero · propia · ⚠ .claude/skills/director/SKILL.md ya está y es distinto: /director del kit no queda hasta resolverlo con Guido');
-  assert.match(conDir.texto, /^# repo con código \(estandar\): trae estado \(sí: .*\); director-obrero en propia \(ya hay uno distinto: lo resuelve la sesión con el duedo\)$/m);
+  assert.equal(lineaPieza(conDir.texto, 'director-obrero'), '#   director-obrero · propia · ⚠ .claude/skills/director/SKILL.md ya está y es distinto: /director del kit no queda hasta resolverlo con el dueño');
+  assert.match(conDir.texto, /^# repo con código \(estandar\): trae estado \(sí: .*\); director-obrero en propia \(ya hay uno distinto: lo resuelve la sesión con el dueño\)$/m);
   assert.match(conDir.texto, /No trae smoke, release ni docs-fyd\./);
   const conAgente = mirar(conCodigo('ag', { '.claude/agents/revisor.md': '---\nname: revisor\n---\nel revisor de hermes\n' }));
   assert.equal(piezas(conAgente.texto)['director-obrero'], 'propia');
-  assert.equal(lineaPieza(conAgente.texto, 'director-obrero'), '#   director-obrero · propia · ⚠ .claude/agents/revisor.md ya está y es distinto: /director del kit no queda hasta resolverlo con Guido — solo agentes propios (revisor): la sesión le propone a Guido renombrar los suyos a <nombre>-propio.md (--aplicar <propuesta> --agentes renombrar) y la pieza pasa a sí');
+  assert.equal(lineaPieza(conAgente.texto, 'director-obrero'), '#   director-obrero · propia · ⚠ .claude/agents/revisor.md ya está y es distinto: /director del kit no queda hasta resolverlo con el dueño — solo agentes propios (revisor): la sesión le propone al dueño renombrar los suyos a <nombre>-propio.md (--aplicar <propuesta> --agentes renombrar) y la pieza pasa a sí');
   // un agente propio con OTRO nombre (que el kit no trae) no choca
   assert.equal(piezas(mirar(conCodigo('ag2', { '.claude/agents/mio.md': 'mío\n' })).texto)['director-obrero'], 'sí');
   // sin código: liviano, como antes
@@ -1244,7 +1244,7 @@ test('crit. 9 (8r2, t9; rt-9): --aplicar --permisos recomendada --arranque kit �
   assert.equal(b3.status, 1, 'el tercero da rojo: toca reglas del settings');
   assert.match(b3.stdout + b3.stderr, /toca settings \(allow:Bash\(git add:\*\), ask:Bash\(git merge:\*\), hook:SessionStart\/\/bash \.claude\/hooks\/arranque-hermes\.sh\) sin un aprobado sellado/);
   assert.match(t, /^después: node \.claude\/scripts\/estructura\.cjs barreras --rango [0-9a-f]{40}\.\.HEAD → pasa en las piezas y la ficha$/m);
-  assert.match(t, /^después: el commit de los permisos \(permisos: D2\/D3\) falla en barreras \(toca reglas del settings sin un aprobado sellado\): sin remoto, ese rojo no queda en el clon: .*; ya pusheado no se rehace \(sería un push forzado\): si no lo querés, se revierte con un commit nuevo \(git revert\) y queda la mezcla de siempre$/m); // 8r3 i4
+  assert.match(t, /^después: el commit de los permisos \(permisos: D2\/D3\) falla en barreras \(toca reglas del settings sin un aprobado sellado\): sin remoto, esa falla no queda en el clon: .*; ya pusheado no se rehace \(sería un push forzado\): si no lo querés, se revierte con un commit nuevo \(git revert\) y queda la mezcla de siempre$/m); // 8r3 i4
 });
 
 test('8r2 D4: datos-reales con una lista en la propuesta → --aplicar anda y la línea después: dice el camino; con "sí", la propuesta no se lee', { ...deKit, timeout: 240000 }, async () => {
@@ -1261,7 +1261,7 @@ test('8r2 D4: datos-reales con una lista en la propuesta → --aplicar anda y la
   const r = await aplicar(d, prop);
   assert.equal(r.codigo, 0, r.lineas.join('\n'));
   assert.deepEqual(F.leer(leer(d, '.claude/kit.md')).datos.sensible['datos-reales'], ['sqlcmd']);
-  assert.match(r.lineas.join('\n'), /^después: node \.claude\/scripts\/estructura\.cjs barreras --rango [0-9a-f]{40}\.\.HEAD falla en el commit de la ficha \(sensible no es de fábrica\): sin remoto, ese rojo no queda en el clon: .*$/m); // 8r3 i4
+  assert.match(r.lineas.join('\n'), /^después: node \.claude\/scripts\/estructura\.cjs barreras --rango [0-9a-f]{40}\.\.HEAD falla en el commit de la ficha \(sensible no es de fábrica\): sin remoto, esa falla no queda en el clon: .*$/m); // 8r3 i4
   commitsDeLaLinea(d, r.lineas);
   assert.equal(barreras(d, antes).status, 1);
 });
@@ -1471,9 +1471,16 @@ test('crit. 5 (8r3 i4; rt-3): la línea después: dice la verdad — con remoto,
   const rh = await aplicar(h.c, ph);
   assert.equal(rh.codigo, 0, rh.lineas.join('\n'));
   assert.match(ver(rh.lineas), /; ⚠ en este clon core\.hooksPath apunta a \.githooks \(arrancó una sesión acá\): el pre-commit frena ese commit — el clon de la adopción va sin githooks \(r1-5\): git config --unset core\.hooksPath \(en tu carpeta los prende --traer\)$/m);
-  const cmds = rh.lineas.filter((l) => /^ {2}git add /.test(l)).map((l) => l.trim());
-  assert.equal(spawnSync(cmds[0], { cwd: h.c, shell: true, encoding: 'utf8' }).status, 0, 'las piezas pasan');
-  const fx = spawnSync(cmds[1], { cwd: h.c, shell: true, encoding: 'utf8' });
+  // R12 (8d C4): un paso por renglón; cada commit es su grupo, hasta su `git commit`
+  const grupos = [[]];
+  for (const l of rh.lineas.filter((x) => /^ {2}git /.test(x)).map((x) => x.trim())) {
+    grupos[grupos.length - 1].push(l);
+    if (l.startsWith('git commit ')) grupos.push([]);
+  }
+  const correrGrupo = (g) => g.map((c) => spawnSync(c, { cwd: h.c, shell: true, encoding: 'utf8' }));
+  assert.ok(correrGrupo(grupos[0]).every((x) => x.status === 0), 'las piezas pasan');
+  const rs1 = correrGrupo(grupos[1]);
+  const fx = rs1[rs1.length - 1];
   assert.notEqual(fx.status, 0, 'el commit de la ficha, frenado');
   assert.match(fx.stdout + fx.stderr, /kit pre-commit: no pasa/); // 8d A8: el candado habla sin rojo/verde
 });
@@ -1571,6 +1578,7 @@ test('crit. 6 (8r3 i5; rt-7): resolver hook-arranque nueva sobre una propia — 
   const le = re.stdout.trim().split('\n');
   const j = le.findIndex((l) => l.startsWith('hook-arranque toca frenos'));
   paso(e, le[j + 3]);
+  paso(e, le[j + 4]);
   paso(e, le[j + 1]);
   paso(e, le[j + 2]);
   assert.equal(barreras(e, antesE).status, 1, 'el sello después del commit no lo cubre');
