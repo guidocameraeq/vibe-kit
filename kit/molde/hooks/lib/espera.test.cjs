@@ -100,3 +100,14 @@ test('revisor frío de B (6), en la C: el cambio que el handoff nombra con su id
   assert.ok(textos.includes('mirar si el deploy quedó en pasó (commit )'), JSON.stringify(textos));
   assert.equal(ES.paraElDueno('quedó en verde: `git push` @abc1234'), 'quedó en pasó: un paso del kit');
 });
+
+test('revisor frío de C (3, 4): los números y los colores de la app quedan; un slug de una palabra no se come pedidos del handoff', () => {
+  for (const t of ['cobrar 1500000 al cliente antes del 20261120', 'cambiar el botón verde por azul', 'la tabla defaced quedó', 'el lote 12345678 de facturas']) assert.equal(ES.paraElDueno(t), t);
+  const d = repo({
+    '.claude/cambios/2026-11-13-deploy.md': CAMBIO('3-barrera'),
+    'docs/SESSION_HANDOFF.md': HANDOFF('- decidir si el deploy va el viernes\n- aprobar 2026-11-13-deploy'),
+  });
+  const textos = ES.teEspera(d).map((i) => i.texto);
+  assert.ok(textos.includes('decidir si el deploy va el viernes'), JSON.stringify(textos));
+  assert.ok(!textos.includes('aprobar 2026-11-13-deploy'), 'el id entero sí es el mismo pedido');
+});

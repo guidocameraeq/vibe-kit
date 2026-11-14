@@ -206,7 +206,7 @@ function dePublicacion(raiz) {
     return [];
   }
   if (!j || typeof j.teEspera !== 'string' || !j.teEspera.trim()) return [];
-  return [{ texto: j.teEspera.trim(), fuente: 'publicar', desde: typeof j.cuando === 'string' ? j.cuando.slice(0, 10) : null, tipo: 'clic' }];
+  return [{ texto: j.teEspera.trim(), fuente: 'publicar', desde: typeof j.cuando === 'string' ? j.cuando.slice(0, 10) : null, tipo: j.tipoEspera === 'decisión' ? 'decisión' : 'clic' }];
 }
 
 // ---------------------------------------------------------------- la lista
@@ -218,9 +218,10 @@ function paraElDueno(t) {
   return String(t)
     .replace(/`[^`]*`/g, (m) => (/node |git |\.cjs/.test(m) ? 'un paso del kit' : m.slice(1, -1)))
     .replace(/\bnode \.claude\/\S+(?: [a-z-]+)?/g, 'un paso del kit')
-    .replace(/@?\b[0-9a-f]{7,40}\b/gi, '')
-    .replace(/\b(rojo|roja|rojos|rojas)\b/gi, 'falló')
-    .replace(/\b(verde|verdes)\b/gi, 'pasó')
+    // revisor frío de C (3): un SHA tiene letras Y números (un monto o una fecha no); rojo/verde solo como estado de una prueba
+    .replace(/@?\b(?=[0-9a-f]*\d)(?=[0-9a-f]*[a-f])[0-9a-f]{7,40}\b/gi, '')
+    .replace(/\b(en|da|dio|dan|daba|quedó|queda|está|estaba|sale|salió) (rojo|roja|rojos|rojas)\b/gi, '$1 falló')
+    .replace(/\b(en|da|dio|dan|daba|quedó|queda|está|estaba|sale|salió) (verde|verdes)\b/gi, '$1 pasó')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -235,7 +236,10 @@ function teEspera(raiz, opciones = {}) {
   const fuentes = [deCambios, dePublicacion, deFusiones, deFichas, deHandoff, (r) => deTodo(r, diaDe(ahora)), ...(opciones.sinParte ? [] : [deParte])];
   const out = [];
   const vistas = new Set();
-  const refs = []; // los ids de los cambios ya listados: un renglón del handoff que nombra uno es el mismo pedido (revisor de B, 6)
+  // los ids de los cambios ya listados: un renglón DEL HANDOFF que nombra uno (el id entero, o su slug compuesto como palabra) es el
+  // mismo pedido (revisor de B, 6). Un slug de una palabra ("deploy") no alcanza: se comería pedidos distintos (revisor de C, 4).
+  const refs = [];
+  const nombra = (texto) => refs.some((r) => new RegExp(`(^|[^\\w-])${r.replace(/[.*+?^${}()|[\]\\]/g, '\\  const refs = []; // los ids de los cambios ya listados: un renglón del handoff que nombra uno es el mismo pedido (revisor de B, 6)')}([^\\w-]|$)`).test(texto));
   for (const f of fuentes) {
     let items = [];
     try {
@@ -244,8 +248,11 @@ function teEspera(raiz, opciones = {}) {
       items = [];
     }
     for (const it0 of items) {
-      if (it0.ref) refs.push(it0.ref, it0.ref.replace(/^\d{4}-\d{2}-\d{2}-/, ''));
-      if (!DEL_KIT.has(it0.fuente) && refs.some((r) => r.length >= 6 && it0.texto.includes(r))) continue;
+      if (it0.ref) {
+        const slug = it0.ref.replace(/^\d{4}-\d{2}-\d{2}-/, '');
+        refs.push(it0.ref, ...(slug.includes('-') ? [slug] : []));
+      }
+      if (it0.fuente === 'el handoff' && nombra(it0.texto)) continue;
       const it = DEL_KIT.has(it0.fuente) ? it0 : { ...it0, texto: paraElDueno(it0.texto) };
       const k = clave(it.texto);
       if (!k || vistas.has(k)) continue;
