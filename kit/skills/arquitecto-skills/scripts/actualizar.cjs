@@ -10,7 +10,7 @@ const USO = [
   'uso: node actualizar.cjs aplicar  <carpeta> --kit <raíz del kit> [--molde-viejo <dir>] [--plan] [--fecha <AAAA-MM-DD>]',
   '                                   [--claude <exe> | --claude no]',
   '     node actualizar.cjs chequear <carpeta> --kit <raíz del kit> --base <sha> [--molde-viejo <dir>] [--plazo <min>]',
-  '     node actualizar.cjs flota <repo>… | todo --canon <url o dir del canónico> [--tag <vX.Y.Z[-rc.N]>] [--proyectos <carpeta>]',
+  '     node actualizar.cjs flota <repo>… | todo [--canon <url o dir del canónico; sin él, el canónico del doctor>] [--tag <vX.Y.Z[-rc.N]>] [--proyectos <carpeta>]',
   '                               [--plazo <min>] [--fecha <AAAA-MM-DD>] [--molde-viejo <dir>] [--claude <exe> | --claude no] [--con-obra]',
   '     node actualizar.cjs adoptar <carpeta> --kit <raíz del kit> --mirar [--nivel liviano|estandar] [--propuesta <archivo>] [--nuevo]',
   '                               [--comando-test "<comando>"] [--principal <carpeta principal>]',
