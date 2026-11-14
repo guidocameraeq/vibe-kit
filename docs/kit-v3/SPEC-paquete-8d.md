@@ -1227,6 +1227,107 @@ En este orden:
 - **El revisor frío de toda la C** (una vuelta, Opus), desde el commit "rc.7 tanda C · C2".
 - La nota de relevo `sesion-4-tanda-C.md` tiene las cosas que muerden.
 
+### Tanda C, continuación (sesión 4b del tramo final, 2026-11-13 y 14, Opus 5.5)
+
+#### Resumen para el director
+
+1. **Terminó: la `rc.7` está taggeada** (`v3.0.0-rc.7`, después de la suite). Entraron el resto de C4, lo de la B que pasó a la C
+   (revisor 4, 6, 8, 11, `enCurso`; red team B3 9, sin tocar el contrato), C5 (la guía, los manuales, una sola ruta de instalación, la
+   nota de migración) y los 11 hallazgos del revisor frío de toda la C (1 ALTO: `publicar` podía pisar trabajo del dueño), en commits chicos.
+2. **La suite entera** (sola, 65 min): 3.236 casos · 3.232 pasaron · 3 fallaron · 1 salteado. Las 3: `zona-propia` (prueba vieja desde
+   A5: esperaba tres hooks y el molde trae el portero), `flota` (el USO del `--canon` opcional, de esta sesión) y `cambios-flota`
+   "en menos de 5 s" (6,6 s con toda la suite al lado). Arregladas las dos primeras; las tres pasan al correrlas de nuevo, solas. El
+   salteado: `git-seguro` "4.7 caso 1", que se saltea solo porque desde A5 el settings registra el portero y no `git-seguro` suelto.
+3. **La flota de prueba encontró dos bugs reales** antes del tag (con cualquiera, toda adopción de los hooks nuevos daba ROTA): dos pruebas
+   de hooks que miraban fuera del molde, y `publicar.cjs` sin prueba en `hooks/`. Arreglados; después, `alfa`, `beta` y `gama` 2.4.2 →
+   rc.7 mezclados y al día (salida 0 las dos vueltas).
+4. **El clon de Deptos** (rc.6 → rc.7) da **ROTA** en sus pruebas: su prueba del freno de WhatsApp busca su renglón en `.claude/frenos.log`
+   y desde A6 va al registro común. Leyendo los dos (un renglón) pasan sus 224 casos, y `adoptar --verificar` dice "el repo quedó
+   andando". Está en la nota de migración; el tag lo decidió el director (ADR-034). Para R2, abajo.
+5. **A Guido le queda**: `kit-sync.sh sync` si el clasificador lo frena, y el OK para poner al día sus repos (lo pide el director).
+6. Lo que más importa: la flota no dejó mezclar nada roto, y los dos bugs que encontró ya no están.
+
+#### Decisiones de la continuación de la C (ADR-034)
+
+| # | Decisión | Por qué |
+|---|---|---|
+| D8d-C16 | Las líneas que imprimen `adoptar --aplicar` y `actualizar resolver` van **un paso por renglón** (`git add …` · `git update-index …` · `git commit …`), con "si uno falla, pará ahí"; la prueba (`commitsDeLaLinea`) corre cada renglón y cuenta los commits. El ejemplo de `comando-setup` con `&&` se queda: es un valor de la ficha que corre el kit, no una línea para una terminal | R12: PowerShell 5.1 no tiene `&&` |
+| D8d-C17 | "Guido" sale de todo lo que se instala del Equipador y del Arquitecto (`.md` y textos de los scripts), salvo los alias viejos de la ficha; rojo/verde sale de la tabla de la flota, `chequeo` (sus líneas van a esa tabla), la pantalla de la adopción y el `doctor`. Entre sesiones (los anexos) "rojo" se queda. Lo cuida `kit/skills/habla.test.cjs` | R21, 51; la vara de C4 |
+| D8d-C18 | `preparar-pc` imprime en la segunda línea `resumen · sin cambios · N avisos · N cosas a arreglar` (o qué cambiaría); con capa privada nunca dice "sin cambios" (su plan es suyo). El plan sin nada que aplicar corre el `doctor` (solo lee): es la última corrida | 51; revisor frío de C, 5 |
+| D8d-C19 | El `doctor` cierra con `doctor · todo bien · N avisos · N cosas a arreglar · 29 chequeos` en el mismo lugar (después de los chequeos, antes del inventario): el detalle queda arriba, la skill lo da a pedido | 51, sin mover el índice de las pruebas |
+| D8d-C20 | `publicar`: después del setup y las pruebas (pasen o fallen) vuelven a HEAD **solo los lockfiles** conocidos; cualquier otro archivo seguido que cambió frena y queda como está (puede ser trabajo del dueño); lo suelto frena y **no** se esconde en `info/exclude` (rt B 3). Cada caso va a "Te necesito" como **decisión** (no clic), con su texto | Revisor de B, 4; revisor frío de C, 1 (ALTO), 2, 7, 11 |
+| D8d-C21 | Para **publicar**, lo que escriben los flujos del kit (`.claude/`, `.githooks/`, `CLAUDE.md`, `.gitignore`, `.gitattributes`) cuenta como papeles; **subir** sigue solo papeles | Revisor de B, 8: aprobar de día dejaba la noche sin publicar; la puesta al día de la flota también |
+| D8d-C22 | `paraElDueno` se muda a `hooks/lib/espera.cjs` y la lista lo aplica a lo que escribió una sesión (handoff, fichas, TODO, parte). Un SHA es hexa con letras **y** números; rojo/verde se cambian solo como estado ("dio rojo", "en verde"). Del handoff sale el renglón que nombra un cambio ya listado (el id entero, o su slug compuesto, como palabra) | Revisor de B, 6; revisor frío de C, 3 y 4 |
+| D8d-C23 | La ficha no acepta en `autorizado.publicar` las opciones que eligen otro paquete (`-w`, `--workspace(s)`, `-F`, `--filter`, `-r`, `--recursive`) ni opciones del lanzador después del script; lo de después de `--` es del script. La huella (`publicar.cjs`) no cambia: **el contrato queda igual** | Red team de B3, 9 |
+| D8d-C24 | `integrar` de noche frena también con la publicación en curso o cortada (`enCurso`), y dice desde qué hora | Revisor de B (la fila de `trabado`); revisor frío de C, 9 |
+| D8d-C25 | `preparar-pc` hace `fetch` de origin de cada repo cuya ficha publica antes de calcular la huella (el `doctor` no: solo lee) | Revisor frío de C, 10 |
+| D8d-C26 | La `habla.test` de las skills del molde mira, en lo que se le dice al dueño (`*"…"*`), que no haya "corré", `node`/`git` ni SHAs, y que el `/cierre` no reporte un SHA | Revisor de B, 11 |
+| D8d-C27 | Toda librería de `hooks/` lleva una prueba en `hooks/` que la carga (`hooks/lib/publicar.test.cjs`, con el ejemplo del contrato: el mismo que `noche.test` y `preparar-pc.test`) | La línea 7 de chequear exige pruebas en `hooks/` para cada hook que cambia: sin ella, ROTA en toda adopción (la flota de prueba, `gama`) |
+| D8d-C28 | Las pruebas de `hooks/` que leen algo del kit fuera del molde (la copia de la PC, `habla.cjs`) se saltean fuera del kit | La línea 7 las corre en una copia del molde suelto: ahí fallaban siempre (la flota de prueba, `gama`) |
+
+#### El revisor frío de toda la C
+
+Una vuelta (Opus, sin el contexto de la sesión), sobre el diff de `kit/` desde "rc.7 tanda C · C2" con lo sin commitear: 1 ALTO, 4 MEDIOS,
+6 BAJOS. Los once, arreglados con su prueba (D8d-C20 a C25).
+
+| # | Sev. | Qué encontró | Qué se hizo |
+|---|---|---|---|
+| 1 | ALTO | `publicar` volvía a HEAD **todo** lo seguido que cambió durante las pruebas: con `--seguir` de día y una sesión editando en la misma carpeta, se perdía ese trabajo sin aviso | Arreglado (D8d-C20): vuelven solo los lockfiles; otro archivo seguido queda como está y frena; con prueba |
+| 2 | MEDIO | Si las pruebas fallaban, el lockfile reescrito quedaba y la noche siguiente frenaba "para siempre", con un consejo (".gitignore") que no sirve para un archivo seguido | Arreglado: los lockfiles vuelven pasen o fallen (en el `finally`), y "cambios sin guardar" tiene su texto; con prueba |
+| 3 | MEDIO | `paraElDueno` ahora pasa por el TODO, el handoff y las fichas: se comía montos y fechas (7 dígitos o más) y cambiaba "verde/rojo" de la app | Arreglado (D8d-C22): un SHA lleva letras y números; los colores solo como estado de una prueba; con prueba |
+| 4 | MEDIO | El filtro por id del cambio, sin límite de palabra y en todas las fuentes: un slug como `deploy` se comía pedidos distintos | Arreglado: solo en el handoff, el id entero o el slug compuesto, como palabra; con prueba |
+| 5 | MEDIO | Con "sin cambios" la skill no preguntaba ni aplicaba: la capa privada no se instalaba y el `doctor` no corría | Arreglado (D8d-C18): con capa privada nunca es "sin cambios"; el plan sin nada que aplicar corre el `doctor`; con prueba |
+| 6 | BAJO | El resumen decía "cambié" aunque la escritura había fallado | Arreglado: "quiso cambiar (quedó algo en ✗)" |
+| 7 | BAJO | El texto de "Te necesito" se armaba partiendo un texto: se rompía con rutas con paréntesis (`app/(auth)/…`) | Arreglado: `carpetaSucia` da `{motivo, tipo, archivos}`; la prueba usa una ruta con paréntesis |
+| 8 | BAJO | `formaDePublicar` miraba también los argumentos del script (`-- -r us-east-1`) y el error no decía por qué | Arreglado (D8d-C23); con prueba |
+| 9 | BAJO (sin confirmar) | `integrar` de noche llamaba "cortada" a una publicación que podía estar corriendo | Arreglado (D8d-C24): "en curso o se cortó (desde HH:MM)" |
+| 10 | BAJO | `--publica` calculaba la huella con la ficha de origin sin traerla: la noche frenaba por una huella vieja | Arreglado (D8d-C25): `preparar-pc` hace `fetch` antes |
+| 11 | BAJO | "Carpeta sucia" salía en "Te necesito" como "un clic tuyo", que `--seguir` no destraba | Arreglado: `tipoEspera: decisión` en `kit-publicacion.json` |
+
+#### Las pruebas de lo tocado (de a una, de fondo, antes de cada commit)
+
+`noche`+`espera` 42 (y 43 con el revisor) · `ficha` 342 · `copias` 6 · `pc/lib` 5 · `skill` 22 · `doctor` 45 · `preparar-pc` 39 ·
+`actualizar` 62 · `worktree` 61 · `arquitecto` 49 · `flota` 37 · `chequeo` 53 · `adoptar` 63 · las tres `habla` (la nueva,
+`kit/skills/habla.test`, 2). Las que fallaron en el camino fueron textos viejos de las pruebas (cinco en `adoptar`, una en `noche` con
+una ruta con paréntesis que la shell no aceptaba): se arreglaron las pruebas, no el código.
+
+El contrato de la B (`publicar.cjs` y su copia en `pc/lib`) no se tocó: `noche.test` "B3 el contrato" y `preparar-pc.test` "8d C2.2"
+siguen dando la misma huella.
+
+**La mutación**: lo nuevo de esta continuación no es un freno (es publicar, la lista del dueño y textos). Cada regla nueva tiene su
+prueba escrita para fallar sin el cambio (no corrí una mutación aparte): el lockfile que vuelve y el archivo del dueño que no se toca, lo del kit que no traba la noche, el
+duplicado del handoff, los montos que quedan, `-w`/`--filter`, `enCurso` en `integrar`, el `resumen ·` y el `doctor` del plan.
+
+**C5** lo escribió un subagente Opus con alcance cerrado (seis archivos); lo leí entero contra el código (el orden de la sesión de
+cierre, las salidas de `publicar` y de `cierre-empieza`, el plazo del portero, el pase de 15 min): sin errores.
+
+#### C6: la suite, la flota y el clon
+
+- **La suite entera**, sola y en segundo plano, en `b23c530`: 3.236 casos, 3.232 pasaron, 3 fallaron y 1 salteado (65 min). Las tres:
+  `zona-propia.test` (vieja desde A5), `flota.test` (el USO de esta sesión) y `cambios-flota.test` "en menos de 5 s" (6.659 ms bajo carga;
+  sola, 20 de 20). Las dos primeras, al día; las tres pasan al volver a correrlas solas. El salteado, `git-seguro.test` "4.7 caso 1":
+  se saltea solo desde A5 (el settings registra el portero, no `git-seguro` suelto), y su razón dice todavía "lo registra el encargo
+  del settings": **a R2**, si la prueba se reescribe para el portero.
+- **La flota de prueba** (`bash pruebas/rehacer.sh` y `actualizar.cjs flota alfa beta gama` contra un canónico de prueba con el tag
+  anotado `v3.0.0-rc.7`, dos vueltas): la primera vez `gama` ROTA (D8d-C28), la segunda ROTA (D8d-C27), la tercera **mezclados los
+  tres y después al día, salida 0 en las dos vueltas**. `rehacer.sh` también esperaba los tres hooks de antes del portero: al día.
+- **El clon de Deptos** (en el scratchpad: un remoto con las ramas de su origin y una carpeta que apunta a él; de Deptos solo se leyó),
+  rc.6 → rc.7: **ROTA en la línea 8** ("lo rompió la actualización"): su `scripts/test_whatsapp_freno.mjs` busca el renglón de su freno
+  propio en `.claude/frenos.log`, y desde A6 va a `kit-frenos.log`. Las otras ocho líneas, bien (15 hooks cambiados y 26 archivos de pruebas
+  del molde, en la 7). En una copia, con la prueba leyendo los dos registros (`frenos-log.leerTodo`), sus 224 casos pasan;
+  `adoptar --verificar` sobre esa copia en rc.7: **"el repo quedó andando"** (salida 0). La nota de migración lo dice con el arreglo.
+  El tag, con esto, lo decidió el director (ADR-034: es una rc).
+
+#### Para R2
+
+- **Un repo cuyo script propio lee `frenos.log` se rompe al ponerse al día (A6).** La flota no lo deja mezclado (da ROTA y dice "lo
+  rompió la actualización"), y la nota de migración da el arreglo de un renglón. R2 decide si es grande (si alcanza con que rompa un
+  repo al actualizar para pedir que el kit lo resuelva solo) o si alcanza con el aviso. En la noche de prueba sobre el clon de Deptos,
+  el clon necesita ese renglón antes de la flota.
+- El salteado de `git-seguro.test` "4.7 caso 1" (arriba).
+- Lo que no se midió acá: la flota con `--con-obra` (Deptos no tenía `modulo/*` sin mezclar) y P2 (el clic de `--publica` con el
+  clasificador de verdad).
+
 ## Ejecución
 
 Tres tandas en fila, cada una una sesión Opus 5.5 (subagentes en Sonnet u Opus, nunca en Fable), con este delta y las reglas comunes de
