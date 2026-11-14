@@ -1244,7 +1244,7 @@ En este orden:
 4. **El clon de Deptos** (rc.6 → rc.7) da **ROTA** en sus pruebas: su prueba del freno de WhatsApp busca su renglón en `.claude/frenos.log`
    y desde A6 va al registro común. Leyendo los dos (un renglón) pasan sus 224 casos, y `adoptar --verificar` dice "el repo quedó
    andando". Está en la nota de migración; el tag lo decidió el director (ADR-034). Para R2, abajo.
-5. **A Guido le queda**: `kit-sync.sh sync` si el clasificador lo frena, y el OK para poner al día sus repos (lo pide el director).
+5. **A Guido le queda** solo el OK para poner al día sus repos (lo pide el director). `kit-sync.sh sync` anduvo solo: LIMPIO.
 6. Lo que más importa: la flota no dejó mezclar nada roto, y los dos bugs que encontró ya no están.
 
 #### Decisiones de la continuación de la C (ADR-034)
