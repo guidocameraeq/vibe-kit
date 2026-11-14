@@ -1288,7 +1288,7 @@ function integrar(L, u, n, a, opciones) {
       pub = null;
     }
     // revisor frío de B: también a medias (enCurso: se cortó antes de terminar), como publicar y subir
-    if (pub && (pub.trabado || pub.enCurso)) return no(`la última publicación quedó ${pub.trabado ? 'trabada (falló)' : 'a medias (se cortó antes de terminar)'}: de noche no integro; queda para el dueño`);
+    if (pub && (pub.trabado || pub.enCurso)) return no(`la última publicación ${pub.trabado ? 'quedó trabada (falló)' : `está en curso o se cortó (desde ${String((pub.enCurso && pub.enCurso.desde) || '?').slice(11, 16) || '?'})`}: de noche no integro; queda para el dueño`);
   }
   // 5 (el chequeo). El temporal no puede existir.
   G(L, ['worktree', 'prune'], P);

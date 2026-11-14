@@ -1797,7 +1797,7 @@ test('B3.2 integrar de noche con la publicación trabada no sube nada; de día, 
   fs.writeFileSync(path.join(p.P, '.git', 'kit-publicacion.json'), JSON.stringify({ enCurso: { commit: 'x' } }));
   const m = cli(p.P, ['integrar', 'x']);
   assert.equal(m.codigo, 1, m.out);
-  assert.match(m.out, /a medias .*de noche no integro/);
+  assert.match(m.out, /está en curso o se cortó \(desde \?\): de noche no integro/);
   assert.equal(enOrigin(p), base);
   fs.rmSync(path.join(wx, '.kit-noche'));
   assert.equal(cli(p.P, ['integrar', 'x']).codigo, 0);
