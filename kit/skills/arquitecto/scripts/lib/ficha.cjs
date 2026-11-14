@@ -271,7 +271,7 @@ function formaDePublicar(v) {
   if (LANZADORES_PUBLICAR.includes(prog)) {
     const i = w.indexOf('run');
     if (i < 1 || i + 1 >= w.length || !RE_SCRIPT_NPM.test(w[i + 1])) return false;
-    if (w.some((x) => RE_OTRO_PAQUETE.test(x))) return false;
+    if (w.slice(0, i + 2).some((x) => RE_OTRO_PAQUETE.test(x))) return false; // lo de después de `--` es del script
     // después del script, solo `--` y sus argumentos (van al script): una opción suelta ahí la lee el lanzador (`--prefix`)
     if (i + 2 < w.length && w[i + 2] !== '--') return false;
     // entre el lanzador y `run`, solo opciones con su valor (`--dir app`, `--prefix=app`): ningún otro subcomando (exec, dlx, x)
@@ -539,7 +539,7 @@ function validar(datos, st, cierre, avisos) {
           if (c === 'comando' && p[c] === AL_SUBIR) continue;
           if (RE_VARIOS_COMANDOS.test(p[c])) E(L(rc), `"${rc}" tiene que ser un solo comando, sin & | ; > < ni $( ) — si publicar pide varios pasos, envolvelos en un script del proyecto`);
           if (!formaDePublicar(p[c])) {
-            E(L(rc), `"${rc}" no es un comando que se acepte — tiene que ser ${INTERPRETES_PUBLICAR.join('|')} con un archivo del repo (node scripts/publicar.cjs), o ${LANZADORES_PUBLICAR.join('|')} … run <script> (para un paquete de un monorepo, --prefix|--dir|--cwd <carpeta> antes de run, no -w ni --filter)` + (c === 'comando' ? `, o ${AL_SUBIR}` : ''));
+            E(L(rc), `"${rc}" no es un comando que se acepte — tiene que ser ${INTERPRETES_PUBLICAR.join('|')} con un archivo del repo (node scripts/publicar.cjs), o ${LANZADORES_PUBLICAR.join('|')} … run <script> (después del script, solo -- y sus argumentos; para un paquete de un monorepo, --prefix|--dir|--cwd <carpeta> antes de run, no -w ni --filter)` + (c === 'comando' ? `, o ${AL_SUBIR}` : ''));
           }
         }
         if (p.comando === AL_SUBIR && tiene(p, 'volver')) {

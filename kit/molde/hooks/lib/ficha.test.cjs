@@ -1034,6 +1034,7 @@ test('A1 autorizado.publicar: no, y el mapa completo, sin volver, y al-subir con
     ['{comando: "node scripts/publicar.cjs --prod", humo: "py -3 scripts/humo.py"}', { comando: 'node scripts/publicar.cjs --prod', humo: 'py -3 scripts/humo.py' }],
     ['{comando: "npm run publicar", humo: "pnpm --dir app run humo"}', { comando: 'npm run publicar', humo: 'pnpm --dir app run humo' }],
     ['{comando: "npm run deploy -- --prod", humo: "npm --prefix web run humo"}', { comando: 'npm run deploy -- --prod', humo: 'npm --prefix web run humo' }],
+    ['{comando: "npm run deploy -- -r us-east-1", humo: "node scripts/h.cjs"}', { comando: 'npm run deploy -- -r us-east-1', humo: 'node scripts/h.cjs' }],
     ['{comando: "bash scripts/deploy.sh", humo: "yarn run smoke", volver: "pwsh scripts/volver.ps1"}', { comando: 'bash scripts/deploy.sh', humo: 'yarn run smoke', volver: 'pwsh scripts/volver.ps1' }],
     ['{comando: al-subir, humo: "node scripts/humo.cjs"}', { comando: 'al-subir', humo: 'node scripts/humo.cjs' }],
   ];
@@ -1068,7 +1069,7 @@ test('A1 autorizado.publicar: lo que no vale, con su línea y sin repetir el val
     ['{comando: "npm run deploy --workspace=web", humo: "node scripts/h.cjs"}', /"autorizado\.publicar\.comando" no es un comando que se acepte/],
     ['{comando: "pnpm --filter web run deploy", humo: "node scripts/h.cjs"}', /"autorizado\.publicar\.comando" no es un comando que se acepte/],
     ['{comando: "pnpm -r run deploy", humo: "node scripts/h.cjs"}', /"autorizado\.publicar\.comando" no es un comando que se acepte/],
-    ['{comando: "npm run deploy --prefix web", humo: "node scripts/h.cjs"}', /"autorizado\.publicar\.comando" no es un comando que se acepte/],
+    ['{comando: "npm run deploy --prefix web", humo: "node scripts/h.cjs"}', /no es un comando que se acepte .*después del script, solo -- y sus argumentos/],
     ['{comando: "", humo: "node scripts/h.cjs"}', /"autorizado\.publicar\.comando" está vacío/],
     ['{comando: al-subir, humo: "node scripts/h.cjs", volver: "node scripts/v.cjs"}', /"autorizado\.publicar\.volver" no va con "comando: al-subir"/],
     ['{comando: al-subir, humo: al-subir}', /"autorizado\.publicar\.humo" no es un comando que se acepte/],
