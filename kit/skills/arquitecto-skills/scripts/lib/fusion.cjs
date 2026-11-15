@@ -117,6 +117,12 @@ function clasificar({ rel, v, n, p }, tmp) {
     return z.ok ? { tipo: 'molde', destino: z.texto } : { tipo: 'choque', problema: `${rel}: ${z.problema}` };
   }
   const r = mergeFile(vaciarZonas(rel, p), v === null ? '' : vaciarZonas(rel, v), vaciarZonas(rel, n), tmp);
+  // 8e G1 (c): la mezcla sale limpia y es igual a lo nuevo = todo lo que el proyecto había tocado ya viene en el kit. No hay nada
+  // del dueño que cuidar: es la del molde, sin pedir un porqué.
+  if (r.limpio && r.texto === vaciarZonas(rel, n)) {
+    const z = conZona(rel, n, p);
+    if (z.ok) return { tipo: 'molde', destino: z.texto, yaEnElKit: true };
+  }
   return { tipo: 'tres', limpio: r.limpio, texto: r.texto, conflictos: r.conflictos };
 }
 
@@ -544,7 +550,7 @@ function fusionar(o) {
     });
     if (!tres.length && !choques.length) {
       if (fz) return espera(fz.motivo);
-      return { resultado: 'sola', destinos, porque: { de: 'molde', texto: 'el molde no tocó lo adaptado' } };
+      return { resultado: 'sola', destinos, porque: { de: 'molde', texto: archivos.some((a) => a.yaEnElKit) ? 'lo que habías tocado ya viene en el kit' : 'el molde no tocó lo adaptado' } };
     }
     const conflictos = tres.filter((a) => !a.limpio);
     const invalida = tres.find((a) => a.invalida);

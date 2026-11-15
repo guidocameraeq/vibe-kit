@@ -729,3 +729,21 @@ test('sin bypass: el código de la fusión no nombra el modo que saltea permisos
   assert.ok(!FU.ARGS_CLAUDE.join(' ').includes('bypass'));
   assert.deepEqual(FU.ARGS_CLAUDE.slice(0, 3), ['-p', '--permission-mode', 'acceptEdits']);
 });
+
+// 8e G1 (c)
+test('8e G1: una mezcla limpia que da igual a lo nuevo (lo tocado a mano ya viene en el kit) es la del molde, sin porqué; si lo tuyo agrega algo, sigue siendo de tres vías', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'kit-fusion-g1-'));
+  try {
+    const v = ['uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve', ''].join('\n');
+    const n = v.replace('dos', 'DOS').replace('ocho', 'OCHO');
+    const ya = FU.clasificar({ rel: '.claude/scripts/x.cjs', v, n, p: v.replace('dos', 'DOS') }, tmp);
+    assert.equal(ya.tipo, 'molde');
+    assert.equal(ya.destino, n);
+    assert.equal(ya.yaEnElKit, true);
+    const propio = FU.clasificar({ rel: '.claude/scripts/x.cjs', v, n, p: v.replace('cinco', 'CINCO') }, tmp);
+    assert.equal(propio.tipo, 'tres');
+    assert.equal(propio.limpio, true);
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
