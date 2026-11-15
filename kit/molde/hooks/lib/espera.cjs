@@ -228,6 +228,26 @@ function deParte(raiz) {
   return bullets(seccion(t, /^te necesito/i)).map((x) => ({ texto: x, fuente: `el parte de la noche (${mejor.x})`, desde: mejor.fecha, tipo: /firm|clic/i.test(x) ? 'clic' : 'decisión' }));
 }
 
+// ¿Esta PC ya está autorizada a publicar este proyecto como publica hoy? (el mismo cálculo de `noche.cjs publicar`; si algo no se
+// puede leer, no)
+function pcAutorizada(raiz) {
+  try {
+    const X = require('./contexto.cjs');
+    const P = require('./publicar.cjs');
+    const fv = X.fichaVigente(raiz);
+    const pub = fv.estado === 'ok' && fv.datos.autorizado && typeof fv.datos.autorizado === 'object' ? fv.datos.autorizado.publicar : null;
+    if (!pub || typeof pub !== 'object') return false;
+    const url = (git.texto(['remote', 'get-url', 'origin'], { cwd: raiz }) || '').trim();
+    const defecto = X.ramaPorDefecto(raiz);
+    if (!url || !defecto) return false;
+    const home = process.env.KIT_HOME_PC && P.esOriginLocal(url) ? process.env.KIT_HOME_PC : require('os').homedir();
+    const mia = (P.autorizacionesPc(home).lista || []).find((e) => e.origin === P.normalizarOrigin(url));
+    return !!mia && mia.huella === P.huella(raiz, pub, `refs/remotes/origin/${defecto}`);
+  } catch (e) {
+    return false;
+  }
+}
+
 // Lo que dejó `noche.cjs publicar` esperando al dueño (<git común>/kit-publicacion.json, campo teEspera): falta su autorización
 // en esta PC, cambió cómo se publica, o la publicación quedó trabada.
 function dePublicacion(raiz) {
@@ -240,6 +260,9 @@ function dePublicacion(raiz) {
     return [];
   }
   if (!j || typeof j.teEspera !== 'string' || !j.teEspera.trim()) return [];
+  // 8e c2 (R2): "falta tu autorización" quedaba para siempre después de darla (preparar-pc no toca este archivo): si esta PC ya
+  // está autorizada con la huella de hoy, no se pide más.
+  if (j.falta === 'autorizacion' && pcAutorizada(raiz)) return [];
   return [{ texto: j.teEspera.trim(), fuente: 'publicar', desde: typeof j.cuando === 'string' ? j.cuando.slice(0, 10) : null, tipo: j.tipoEspera === 'decisión' ? 'decisión' : 'clic' }];
 }
 
@@ -249,11 +272,24 @@ function dePublicacion(raiz) {
 // dueño (rt B 10): sin SHAs, sin comandos del kit, sin rojo ni verde. Vivía en noche.cjs (el parte); desde la C (revisor frío de B,
 // 6) lo usa también la lista, así /estado no muestra el id y el hash que dejó el handoff.
 function paraElDueno(t) {
-  return String(t)
+  let s = String(t)
     .replace(/`[^`]*`/g, (m) => (/node |git |\.cjs/.test(m) ? 'un paso del kit' : m.slice(1, -1)))
     .replace(/\bnode \.claude\/\S+(?: [a-z-]+)?/g, 'un paso del kit')
-    // revisor frío de C (3): un SHA tiene letras Y números (un monto o una fecha no); rojo/verde solo como estado de una prueba
-    .replace(/@?\b(?=[0-9a-f]*\d)(?=[0-9a-f]*[a-f])[0-9a-f]{7,40}\b/gi, '')
+    // 8e c21 (R2: "el cambio del `git pull` ancho" salía "del un paso del kit ancho"): la contracción se deshace
+    .replace(/\bdel (un paso del kit)/g, 'de $1')
+    .replace(/\bal (un paso del kit)/g, 'a $1');
+  // revisor frío de C (3): un SHA tiene letras Y números (un monto o una fecha no); rojo/verde solo como estado de una prueba
+  const sinCodigos = s.replace(/@?\b(?=[0-9a-f]*\d)(?=[0-9a-f]*[a-f])[0-9a-f]{7,40}\b/gi, '');
+  if (sinCodigos !== s) {
+    // 8e c15 (R2: "Las 4 alertas de negocio , , y ."): sacar los códigos de una lista dejaba los huecos; se cierran
+    s = sinCodigos
+      .replace(/\s+,/g, ',')
+      .replace(/,(?:\s*,)+/g, ',')
+      .replace(/,?\s+y\s*(?=[.;:]|$)/g, '')
+      .replace(/,\s*(?=[.;:]|$)/g, '')
+      .replace(/\s+([.;:])/g, '$1');
+  }
+  return s
     .replace(/\b(en|da|dio|dan|daba|quedó|queda|está|estaba|sale|salió) (rojo|roja|rojos|rojas)\b/gi, '$1 falló')
     .replace(/\b(en|da|dio|dan|daba|quedó|queda|está|estaba|sale|salió) (verde|verdes)\b/gi, '$1 pasó')
     .replace(/\s+/g, ' ')

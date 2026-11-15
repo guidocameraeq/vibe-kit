@@ -326,8 +326,22 @@ test('B3 publicar: sin la clave → 3 · sin el repo en publica → 3 y en "te n
   const r = pub(otro);
   assert.equal(r.codigo, 3, r.out);
   assert.match(r.out, /falta tu autorización para publicar desde esta PC/);
-  assert.ok(ESP.teEspera(otro.P).some((i) => /falta tu autorización/.test(i.texto) && i.tipo === 'clic'));
+  // 8e c2: no es "un clic tuyo" suelto: dice cómo darla, y es una decisión
+  const falta = ESP.teEspera(otro.P).find((i) => /falta tu autorización/.test(i.texto));
+  assert.ok(falta && falta.tipo === 'decisión', JSON.stringify(falta));
+  assert.match(falta.texto, /decime "preparame esta PC"/);
   assert.equal(veces(otro), 0);
+  // 8e c2: cuando el dueño ya autorizó la PC (con la huella de hoy), el pedido viejo no vuelve a salir
+  const pubOtro = require('../hooks/lib/ficha.cjs').leerArchivo(path.join(otro.P, '.claude', 'kit.md')).datos.autorizado.publicar;
+  escribir(otro.home, '.claude/kit-pc.md', `---\nentorno: nativo\npublica:\n  - {origin: "${PUB.normalizarOrigin(otro.bare)}", huella: ${PUB.huella(otro.P, pubOtro, 'refs/remotes/origin/main')}}\n---\n`);
+  const antesHome = process.env.KIT_HOME_PC;
+  process.env.KIT_HOME_PC = otro.home;
+  try {
+    assert.ok(!ESP.teEspera(otro.P).some((i) => /falta tu autorización/.test(i.texto)), 'ya autorizada: no se pide más');
+  } finally {
+    if (antesHome === undefined) delete process.env.KIT_HOME_PC;
+    else process.env.KIT_HOME_PC = antesHome;
+  }
   // el script de publicar cambia después de autorizar (lo cambia un módulo integrado)
   const c = conPublicar();
   g(c.P, 'switch', '-q', 'modulo/x');
@@ -523,6 +537,16 @@ test('B3 cierre: sin integrar se niega; la línea trae dontAsk, KIT_FONDO=1, --n
     const a = ci(p.P);
     assert.equal(a.codigo, 1, ancha);
     assert.match(a.out, /hay un permiso ancho/, ancha);
+  }
+  // 8e G4: `git pull` entero es el permiso ancho de 13 de los 26 repos del banco: ya no frena el cierre (lo peligroso lo niega
+  // git-seguro en esa sesión) y no se niega (apagaría el pull de la lista). Las dos formas, la de `:*` y la de espacio.
+  for (const aceptada of ['Bash(git pull:*)', 'Bash(git pull *)']) {
+    escribir(p.P, '.claude/settings.local.json', JSON.stringify({ permissions: { allow: [aceptada, 'Bash(npm run deploy:*)'] } }));
+    const a = ci(p.P);
+    assert.equal(a.codigo, 0, `${aceptada}: ${a.out}`);
+    const d = JSON.parse(fs.readFileSync(path.join(p.P, '.git', N.SETTINGS_CIERRE), 'utf8')).permissions.deny;
+    assert.ok(!d.includes(aceptada), JSON.stringify(d));
+    assert.ok(d.includes('Bash(npm run deploy:*)'), 'lo que no es de la lista se sigue negando');
   }
   // una allow con la forma de espacio que es la misma de la lista no se niega (si no, apagaría el commit de papeles)
   escribir(p.P, '.claude/settings.local.json', JSON.stringify({ permissions: { allow: ['Bash(git commit *)', 'Edit(docs/**)', "Bash(cmd //c 'C:\\x\\y.bat' *)"] } }));
@@ -815,4 +839,41 @@ test('P4 (2026-11-13): el worktree del director de este módulo no cuenta en "ca
   assert.match(parteDe(), /- Las carpetas limpias: sí/);
   g(p.P, 'worktree', 'add', '-q', '-b', 'modulo/y', path.join(p.P, '.claude', 'worktrees', 'modulo--y'));
   assert.match(parteDe(), /- Las carpetas limpias: no \(quedan 1\)/);
+});
+
+// ---------------------------------------------------------------- 8e (la rc.8) c7: mirar de noche no apaga la noche
+
+test('8e c7 volvi --al-mirar: a las 23 h y a las 3 la marca queda y lo dice; a las 9, la borra; sin la bandera (el dueño dijo "volví"), la borra siempre', () => {
+  const p = proyecto();
+  const marca = path.join(p.dir, '.kit-noche');
+  for (const h of [23, 3, 20]) {
+    fs.writeFileSync(marca, 'x');
+    const r = correr(p.P, ['volvi', '--al-mirar'], p.env, new Date(2026, 10, 2, h, 10));
+    assert.equal(r.codigo, 0);
+    assert.match(r.out, /la noche sigue \(la marca queda: el director trabaja solo\)/, `${h} h`);
+    assert.ok(fs.existsSync(marca), `${h} h: la marca sigue`);
+  }
+  let r = correr(p.P, ['volvi', '--al-mirar'], p.env, new Date(2026, 10, 3, 9, 0));
+  assert.match(r.out, /^volví: borré \.kit-noche de modulo\/nz/);
+  assert.ok(!fs.existsSync(marca));
+  // sin marca, de noche, no hay nada que decir de la noche
+  r = correr(p.P, ['volvi', '--al-mirar'], p.env, new Date(2026, 10, 2, 23, 10));
+  assert.equal(r.out, 'volví: no había ninguna .kit-noche (ya era de día)\n');
+  // "volví" a las 23 h: sin la bandera, se borra
+  fs.writeFileSync(marca, 'x');
+  r = correr(p.P, ['volvi'], p.env, new Date(2026, 10, 2, 23, 10));
+  assert.match(r.out, /^volví: borré \.kit-noche de modulo\/nz/);
+  assert.ok(!fs.existsSync(marca));
+});
+
+test('8e b10 cortarFrase: lo que pasa el tope se corta en el último punto o coma, no a mitad de una palabra; lo corto queda igual', () => {
+  assert.equal(N.cortarFrase('corto y entero', 200), 'corto y entero');
+  const largo = `${'la primera parte de la frase, que es larga y sigue un buen rato más; '.repeat(2)}verificar da la línea 3 (pruebas) en NO VERIFICADO porque la ficha vigente no tiene el comando de las pruebas, y eso frena todo`;
+  const c = N.cortarFrase(largo, 200);
+  assert.ok(c.length <= 201, String(c.length));
+  assert.match(c, /[.,;:]?…$/);
+  assert.ok(largo.startsWith(c.slice(0, -1)), 'es un prefijo del texto');
+  assert.match(largo.slice(c.length - 1, c.length + 1), /^[.,;:] /, 'el corte cae justo antes de un punto, coma, punto y coma o dos puntos');
+  const sinPuntos = 'palabra '.repeat(40).trim();
+  assert.match(N.cortarFrase(sinPuntos, 100), /palabra…$/);
 });

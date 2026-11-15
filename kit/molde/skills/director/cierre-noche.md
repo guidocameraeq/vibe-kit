@@ -34,7 +34,7 @@ lee el parte que dejás. Escribís en criollo y **nunca** le dejás un comando p
      `.claude/frenos.log` ni código;
    - **no hacés el push del `/cierre`** (sus pasos 9 y 10): lo hace el paso 5 con `noche.cjs subir <x>`.
    - Si el candado (`estructura.cjs todo`) no pasa por algo que no se arregla con papeles, no commitees encima: anotalo para el parte.
-4. `node .claude/scripts/worktree.cjs limpiar` (cierra las carpetas de trabajo ya mezcladas; lo que no puede, lo lista).
+4. `node .claude/scripts/worktree.cjs limpiar` (cierra las carpetas de trabajo ya mezcladas; lo que no puede, lo lista). Si dice que la del director de este módulo `está en uso`, es lo esperado (su sesión sigue adentro; se cierra sola después): no va a `--no-pude`.
 5. `node .claude/scripts/noche.cjs parte <x>`, con un `--no-pude "<una línea>"` por cada cosa que no pudiste (lo que se negó, lo que
    el `/cierre` no dejó hacer de noche). Escribe el parte, lo imprime y suelta el candado del cierre. Después, commit por rutas del
    parte (`git add -- <la ruta que imprimió>` y `git commit -m "docs: parte de la noche · <x>" -- <la ruta>`) y

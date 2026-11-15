@@ -151,3 +151,16 @@ test('8e G3: un cambio de freno propuesto en origin/main (con --en-defecto) sale
   assert.equal(ES.teEspera(wt).filter((i) => i.fuente === 'cambio propuesto').length, 0);
   assert.equal(ES.teEspera(d).filter((i) => i.fuente === 'cambio propuesto').length, 0, 'el disco de la principal quedó atrás: manda origin');
 });
+
+// ---------------------------------------------------------------- 8e (la rc.8) c15 y c21: el filtro no deja frases rotas
+
+test('8e c15 y c21: sacar los códigos de una lista no deja los huecos; un comando entre comillas después de "del" o "al" no rompe la frase; lo de antes sigue igual', () => {
+  assert.equal(ES.paraElDueno('Las 4 alertas de negocio a1b2c3d4, e5f6a7b8 y 99aa00bb.'), 'Las 4 alertas de negocio.');
+  assert.equal(ES.paraElDueno('el cambio del `git pull` ancho'), 'el cambio de un paso del kit ancho');
+  assert.equal(ES.paraElDueno('le falta al `node .claude/scripts/x.cjs` un paso'), 'le falta a un paso del kit un paso');
+  assert.equal(ES.paraElDueno('mezclé a1b2c3d y subí todo'), 'mezclé y subí todo');
+  assert.equal(ES.paraElDueno('ver el commit abc1234.'), 'ver el commit.');
+  // sin códigos, la puntuación no se toca
+  assert.equal(ES.paraElDueno('pan y vino, y nada más.'), 'pan y vino, y nada más.');
+  assert.equal(ES.paraElDueno('quedó en verde: `git push` @abc1234'), 'quedó en pasó: un paso del kit');
+});

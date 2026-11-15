@@ -23,7 +23,8 @@ const USO = [
   'Uso: node .claude/scripts/noche.cjs <comando> …   (desde el repo)',
   '  me-voy [--hasta HH:MM]                    desde el worktree del director: escribe .kit-noche e imprime el checklist',
   '                                            (--hasta es informativo: la noche termina con volvi)',
-  '  volvi                                     borra .kit-noche (de este checkout y de los worktrees del repo)',
+  '  volvi [--al-mirar]                        borra .kit-noche (de este checkout y de los worktrees del repo); con --al-mirar,',
+  '                                            entre las 20 y las 6 la deja (mirar el estado de noche no apaga la noche)',
   '  despertador                               ya no existe (el director se entera cuando el obrero de fondo termina)',
   '  cierre <x>                                la línea de la sesión de cierre (de fondo, en la carpeta principal); el director la lanza después de integrar',
   '  cierre-empieza <x>                        (la sesión de cierre) toma el candado del cierre y mira la carpeta principal',
@@ -59,6 +60,17 @@ function libs() {
 
 // ---------------------------------------------------------------- argumentos
 
+// 8e b10 (el banco: "…en NO VERIFICADO porque la"): un texto más largo que el tope se corta en el último punto, coma, punto y
+// coma o dos puntos (si no hay ninguno pasada la mitad, en el último espacio), con "…": nunca a mitad de una palabra.
+function cortarFrase(t, tope) {
+  const s = String(t);
+  if (s.length <= tope) return s;
+  const c = s.slice(0, tope);
+  const k = Math.max(c.lastIndexOf('. '), c.lastIndexOf(', '), c.lastIndexOf('; '), c.lastIndexOf(': '));
+  const hasta = k >= tope / 2 ? k : Math.max(c.lastIndexOf(' '), Math.floor(tope / 2));
+  return `${c.slice(0, hasta).trimEnd()}…`;
+}
+
 function leerArgumentos(argv) {
   const comando = argv[0];
   if (!['me-voy', 'volvi', 'despertador', ...CON_MODULO].includes(comando)) malLlamado(comando ? `no conozco "${String(comando).slice(0, 40)}"` : 'falta el comando');
@@ -71,7 +83,7 @@ function leerArgumentos(argv) {
     for (let i = 2; i < argv.length; i++) {
       const x = argv[i];
       if (comando === 'publicar' && x === '--seguir') a.seguir = true;
-      else if (comando === 'parte' && x === '--no-pude' && argv[i + 1]) a.noPude.push(String(argv[++i]).replace(/[\s`]+/g, ' ').slice(0, 200));
+      else if (comando === 'parte' && x === '--no-pude' && argv[i + 1]) a.noPude.push(cortarFrase(String(argv[++i]).replace(/[\s`]+/g, ' '), 200));
       else malLlamado(`${comando} no lleva "${String(x).slice(0, 40)}"`);
     }
     return a;
@@ -83,6 +95,7 @@ function leerArgumentos(argv) {
       if (!/^([01][0-9]|2[0-3]):[0-5][0-9]$/.test(v || '')) malLlamado(`--hasta pide una hora HH:MM (00:00 a 23:59): "${v || ''}"`);
       a.hasta = v;
     }
+    else if (comando === 'volvi' && x === '--al-mirar') a.alMirar = true;
     else malLlamado(`${comando} no lleva "${String(x).slice(0, 40)}"`);
   }
   return a;
@@ -201,10 +214,22 @@ function meVoy(L, g, a, o) {
 
 // ---------------------------------------------------------------- volvi
 
-function volvi(L, g) {
+// 8e c7 (R2): `/inicio` y `/estado` del dueño lo corren siempre; si el dueño mira a las 23 h, eso apagaba la noche (el director y
+// sus obreros dejaban de ser nocturnos, y lo que de noche es PARADA pasaba a pedir una ventana que nadie ve). Con `--al-mirar`,
+// entre las 20 y las 6 la marca queda y lo dice; sin la bandera (el dueño dijo "volví"), se borra siempre.
+const HORA_NOCHE = 20;
+const HORA_DIA = 6;
+function volvi(L, g, a = {}, o = {}) {
   const carpetas = [g.raiz];
   const lista = L.contexto.worktrees(g.raiz) || [];
   for (const w of lista) if (!carpetas.some((c) => path.resolve(c).toLowerCase() === w.ruta.toLowerCase())) carpetas.push(w.ruta);
+  if (a.alMirar) {
+    const ahora = o.ahora instanceof Date ? o.ahora : new Date();
+    const h = ahora.getHours();
+    if ((h >= HORA_NOCHE || h < HORA_DIA) && carpetas.some((c) => fs.existsSync(path.join(c, ARCHIVO_NOCHE)))) {
+      return { codigo: 0, lineas: [`volví: son las ${dos(h)}:${dos(ahora.getMinutes())} y la noche sigue (la marca queda: el director trabaja solo). Si el dueño dijo que volvió, corré volvi sin --al-mirar`] };
+    }
+  }
   const borradas = [];
   for (const c of carpetas) {
     const p = path.join(c, ARCHIVO_NOCHE);
@@ -347,6 +372,11 @@ function cubre(a, b) {
 // aparte. Cualquier otra allow ancha que cubra un ítem de la lista (un `Bash` pelado, `Bash(git:*)`, `Edit` sin ruta…) frena el
 // cierre: con ella, dontAsk correría de todo (rt B 1).
 const ANCHAS_DEL_KIT = [`Bash(${SCRIPTS}/cambios.cjs:*)`];
+// 8e G4 (R2 y el banco: la noche no se cerró sola en ningún repo con este permiso; 13 de 26 lo tienen, y es el único ancho que
+// apareció): `git pull` entero se acepta. Lo que tenía de peligroso lo niega el freno, no esta lista: de fondo, git-seguro niega
+// `--upload-pack`/`--exec` (corren un programa) y, en la sesión de cierre, todo pull que no sea de origin y de la rama por defecto.
+const ANCHAS_ACEPTADAS = ['Bash(git pull:*)'];
+const esAnchaQueVale = (r) => [...ANCHAS_DEL_KIT, ...ANCHAS_ACEPTADAS].some((k) => cubre(k, r) && cubre(r, k));
 
 // Lo que sobra (r2-1: en dontAsk también corre todo lo que algún settings tenga en allow) → { deny, anchas }: `deny` = las allow
 // que no tienen nada que ver con la lista, más lo que nunca corre de noche; `anchas` = las que cubren un ítem y no son del kit.
@@ -363,7 +393,7 @@ function loQueSobra(lista, principal, home, x) {
   for (const r of allows) {
     if (lista.some((i) => cubre(i, r))) continue; // igual o más angosta que un ítem: ya está permitido
     if (lista.some((i) => cubre(r, i))) {
-      if (!ANCHAS_DEL_KIT.some((k) => cubre(k, r) && cubre(r, k))) anchas.push(r);
+      if (!esAnchaQueVale(r)) anchas.push(r);
       continue;
     }
     deny.push(r);
@@ -396,13 +426,20 @@ function cierre(L, g, x, o) {
   const punta = L.E.puntaDe(g.raiz, `modulo/${x}`);
   if (!punta) return no(`no encuentro la rama del módulo ${x}`);
   const od = shaDe(L, g.raiz, `refs/remotes/origin/${defecto}`) || shaDe(L, g.raiz, `refs/heads/${defecto}`);
-  if (!od || !esAncestro(L, g.raiz, punta, od)) return no(`el módulo ${x} todavía no está en ${defecto}: primero integrar (que salga 0)`);
+  if (!od || !esAncestro(L, g.raiz, punta, od)) {
+    // 8e c18: si ya hubo un `integrar` y después entró un commit al módulo (el relevo, casi siempre), lo dice
+    const lg = G(L, g.raiz, ['log', '--first-parent', '--merges', '-n', '200', '--format=%s', od || 'HEAD']);
+    const yaIntegro = lineasDe(lg.stdout).some((s) => (RE_INTEGRAR.exec(s) || [])[1] === x);
+    return no(yaIntegro
+      ? `el módulo ${x} tiene commits de después de su integrar (¿el relevo?): corré integrar de nuevo (que salga 0) y después el cierre, sin commitear nada en el medio`
+      : `el módulo ${x} todavía no está en ${defecto}: primero integrar (que salga 0)`);
+  }
   const claude = L.proceso.comandoClaude(o);
   if (!claude) return no('no encuentro `claude` (ni en el PATH ni el de la extensión de VS Code)');
   const docs = L.docs.deRaiz(principal);
   const lista = listaCierre(x, defecto, docs);
   const s = loQueSobra(lista, principal, o.home || os.homedir(), x);
-  if (s.anchas.length) return no(`hay un permiso ancho en un settings (${s.anchas.join(', ')}): con él, la sesión de cierre correría de todo sin preguntar. Sacalo (o hacelo más angosto) y volvé a lanzar el cierre`);
+  if (s.anchas.length) return no(`hay un permiso ancho en un settings (${s.anchas.join(', ')}): con él, la sesión de cierre correría de todo sin preguntar. Sacarlo es un cambio de freno (lo firma el dueño): proponelo y dejalo en "Te necesito". Angosto vale solo la forma exacta de un permiso de la lista, sin \`:*\` (por ejemplo, \`Bash(git status)\`)`);
   const cl = lista.map(citar);
   if (cl.includes(null)) return no('un permiso de la lista no se puede citar');
   // Lo negado va en un settings aparte (--settings), no en la línea: así no hay comillas que rompan ni un largo que no entre.
@@ -527,13 +564,14 @@ function publicar(L, g, x, a, o) {
   const antes = leerJson(archivo) || {};
   const guardar = (d) => escribirJson(archivo, { ...d, cuando: new Date().toISOString() });
   // tipoEspera (revisor frío de C, 11): lo que pide una decisión (la carpeta sucia) no es "un clic tuyo" en /estado
-  const conEspera = (codigo, m, espera, tipoEspera) => {
+  // falta (8e c2): 'autorizacion' cuando lo que espera es la autorización de esta PC (la lista lo saca si ya está dada)
+  const conEspera = (codigo, m, espera, tipoEspera, falta) => {
     const nueva = espera !== undefined;
-    guardar({ ...antes, ultimaSalida: codigo, motivo: m, teEspera: nueva ? espera : antes.teEspera || null, tipoEspera: nueva ? tipoEspera || null : antes.tipoEspera || null });
+    guardar({ ...antes, ultimaSalida: codigo, motivo: m, teEspera: nueva ? espera : antes.teEspera || null, tipoEspera: nueva ? tipoEspera || null : antes.tipoEspera || null, falta: nueva ? falta || null : antes.falta || null });
     return { codigo, lineas: [`publicar: ${codigo === 3 ? '' : 'no — '}${m}`] };
   };
   const no = (m, espera, tipoEspera) => conEspera(1, m, espera, tipoEspera);
-  const tres = (m, espera) => conEspera(3, m, espera);
+  const tres = (m, espera, tipoEspera, falta) => conEspera(3, m, espera, tipoEspera, falta);
   // 1. la ficha vigente
   const fv = L.contexto.fichaVigente(p.raiz);
   const pub = fv.estado === 'ok' && fv.datos.autorizado && typeof fv.datos.autorizado === 'object' ? fv.datos.autorizado.publicar : undefined;
@@ -558,9 +596,10 @@ function publicar(L, g, x, a, o) {
     if (!mia) {
       const otro = lista.find((e) => e.huella === hoy);
       const m = otro ? 'cambió el origin de este proyecto: falta tu autorización de nuevo para publicar desde esta PC' : 'falta tu autorización para publicar desde esta PC';
-      return tres(m, m);
+      // 8e c2: no es "un clic tuyo" suelto: dice cómo se da, y la marca `falta` deja que la lista lo saque cuando ya esté dada
+      return tres(m, `${m}: decime "preparame esta PC" y te lo pregunto ahí`, 'decisión', 'autorizacion');
     }
-    if (mia.huella !== hoy) return tres('cambió cómo se publica este proyecto: falta tu OK de nuevo', 'cambió cómo se publica este proyecto: falta tu OK de nuevo para publicar desde esta PC');
+    if (mia.huella !== hoy) return tres('cambió cómo se publica este proyecto: falta tu OK de nuevo', 'cambió cómo se publica este proyecto: falta tu OK de nuevo para publicar desde esta PC: decime "preparame esta PC" y te lo pregunto ahí', 'decisión', 'autorizacion');
   }
   // 3. no quedó trabado, ni a medias (rt B 5: una publicación que se cortó sin terminar cuenta como trabada)
   if (antes.enCurso && !a.seguir) return tres('una publicación anterior quedó a medias (se cortó antes de terminar): no publico hasta que digas que siga', 'una publicación quedó a medias: decidí si sigue');
@@ -787,7 +826,10 @@ function parte(L, g, x, a, o) {
   // P4: el worktree del director de este módulo sigue vivo después de la noche (muestra el parte y para): no cuenta.
   const delDirector = path.resolve(raiz, '.claude', 'worktrees', `modulo--${x}`).toLowerCase();
   const quedan = new Set([...registradas, ...enDisco].filter((r) => r !== delDirector)).size;
-  const limpias = quedan === 0 ? 'sí' : `no (quedan ${quedan})`;
+  // 8e c19 (R2: "Las carpetas limpias: sí" y abajo "no pude cerrar la carpeta del módulo"): la del director de este módulo no se
+  // cuenta, pero si sigue ahí se dice acá, en la misma línea, y no como algo que falló.
+  const sigueLaDelDirector = [...registradas, ...enDisco].includes(delDirector);
+  const limpias = quedan === 0 ? `sí${sigueLaDelDirector ? ' (la del director de este módulo se cierra sola cuando termine su sesión)' : ''}` : `no (quedan ${quedan})`;
   if (quedan) noPude.push(`quedan ${quedan} carpeta(s) de trabajo abiertas: las cierra la próxima limpieza`);
   // Te necesito y Qué se hizo
   let te = [];
@@ -857,7 +899,7 @@ function main(argv, opciones = {}) {
     const g = L.contexto.datosGit(opciones.cwd || process.cwd());
     if (!g) r = { codigo: 1, lineas: ['noche: no estás dentro de un repo git'] };
     else if (a.comando === 'me-voy') r = meVoy(L, g, a, opciones);
-    else if (a.comando === 'volvi') r = volvi(L, g);
+    else if (a.comando === 'volvi') r = volvi(L, g, a, opciones);
     else if (a.comando === 'cierre') r = cierre(L, g, a.modulo, opciones);
     else if (a.comando === 'cierre-empieza') r = cierreEmpieza(L, g, a.modulo, { ...opciones, salida });
     else if (a.comando === 'publicar') r = publicar(L, g, a.modulo, a, { ...opciones, salida });
@@ -886,4 +928,4 @@ if (require.main === module) {
   process.exitCode = codigo;
 }
 
-module.exports = { SETTINGS_CIERRE, paraElDueno, partirRegla, USO, ARCHIVO_NOCHE, PUBLICACION, CANDADO_CIERRE, SIN_DESPERTADOR, RELEVO, leerArgumentos, paradaDe, listaCierre, cubre, loQueSobra, main };
+module.exports = { SETTINGS_CIERRE, cortarFrase, paraElDueno, partirRegla, USO, ARCHIVO_NOCHE, PUBLICACION, CANDADO_CIERRE, SIN_DESPERTADOR, RELEVO, leerArgumentos, paradaDe, listaCierre, cubre, loQueSobra, main };
