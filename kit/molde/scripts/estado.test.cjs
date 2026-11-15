@@ -439,3 +439,16 @@ test('8e c20: parado en la rama de un obrero del módulo, la ficha es la del dis
   git(dir, 'checkout', '-q', 'main');
   assert.equal(S.tareas(S.fichas(dir).find((f) => f.x === 'm1').ficha).hechas, 5, 'desde main manda la rama');
 });
+
+test('8e (revisor frío, 7): la mañana de verdad — con las ramas del módulo y de sus encargos ya borradas (lo que hace limpiar antes de la vista) y sin tiempos.md, LO QUE SE HIZO lo lista igual', () => {
+  const dir = mundo();
+  git(dir, 'checkout', '-q', 'modulo/m1');
+  commit(dir, { 'docs/modulos/m1/README.md': FICHA.replace('- Estado: EN OBRA', '- Estado: COMPLETO 2026-11-01'), 'docs/modulos/m1/bitacora/2026-11-01-evidencia-07.md': '# Evidencia 07\nok\n' }, 'cierre 07 y COMPLETO', '2026-11-01T11:10:00+00:00');
+  git(dir, 'checkout', '-q', 'main');
+  git(dir, 'merge', '-q', '--no-ff', '-m', 'integrar: módulo m1', 'modulo/m1');
+  for (const b of ['modulo/m1--07', 'modulo/m1--08', 'modulo/m1']) git(dir, 'branch', '-q', '-D', b);
+  assert.ok(!fs.existsSync(path.join(dir, 'docs', 'modulos', 'm1', 'tiempos.md')));
+  const r = dueno(dir, [], { ahora: new Date(Date.UTC(2026, 10, 1, 20, 0)) });
+  cuatroEnOrden(r.out);
+  assert.match(r.out.split('LO QUE SE HIZO')[1].split('LO QUE FALTA')[0], /- m1: Probar/, r.out);
+});

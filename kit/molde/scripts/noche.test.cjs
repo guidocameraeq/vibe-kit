@@ -877,3 +877,16 @@ test('8e b10 cortarFrase: lo que pasa el tope se corta en el último punto o com
   const sinPuntos = 'palabra '.repeat(40).trim();
   assert.match(N.cortarFrase(sinPuntos, 100), /palabra…$/);
 });
+
+test('8e (revisor frío, 6) volvi --al-mirar: la noche que empezó a las 18 no se apaga porque el dueño mire a las 19; a la mañana siguiente, sí', () => {
+  const p = proyecto();
+  const marca = path.join(p.dir, '.kit-noche');
+  const desde = new Date(2026, 10, 2, 18, 0);
+  fs.writeFileSync(marca, `desde ${desde.toISOString()}\nhasta —\n`);
+  let r = correr(p.P, ['volvi', '--al-mirar'], p.env, new Date(2026, 10, 2, 19, 0));
+  assert.match(r.out, /la noche sigue \(la marca queda/, r.out);
+  assert.ok(fs.existsSync(marca), 'a las 19 del mismo día, la marca sigue');
+  r = correr(p.P, ['volvi', '--al-mirar'], p.env, new Date(2026, 10, 3, 9, 0));
+  assert.match(r.out, /^volví: borré \.kit-noche de modulo\/nz/);
+  assert.ok(!fs.existsSync(marca), 'a la mañana siguiente se borra');
+});

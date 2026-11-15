@@ -579,7 +579,9 @@ function lineaPruebas(L, c, opciones) {
   const ct = comandoTest(c.datos);
   // 8e B1 (el banco de la rc.7: tres encargos hechos y ninguno mezclado): sin comando-test es legítimo solo si la ficha vigente lo
   // dice (nivel liviano, o gate:entorno-prueba quitado y vigente: ficha.sinComandoTest). Ahí corren solo los de ## GATE, si hay.
-  const sin = ct ? null : require('../hooks/lib/ficha.cjs').sinComandoTest(c.datos);
+  // (el `typeof`: con la lib de los hooks en una versión anterior a la de este script, se niega como antes, sin romper)
+  const FI = require('../hooks/lib/ficha.cjs');
+  const sin = ct || typeof FI.sinComandoTest !== 'function' ? null : FI.sinComandoTest(c.datos);
   if (!ct && !sin) return [MAL, `${NV} — la ficha vigente no tiene vars.comando-test`];
   const comandos = [...(ct ? [ct] : []), ...c.e.secciones.gate.filter((x) => x !== ct)];
   if (!comandos.length) return [OK, `sin comando-test (${sin}): nada que correr`];

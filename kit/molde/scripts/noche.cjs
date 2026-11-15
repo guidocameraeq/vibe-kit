@@ -216,9 +216,27 @@ function meVoy(L, g, a, o) {
 
 // 8e c7 (R2): `/inicio` y `/estado` del dueño lo corren siempre; si el dueño mira a las 23 h, eso apagaba la noche (el director y
 // sus obreros dejaban de ser nocturnos, y lo que de noche es PARADA pasaba a pedir una ventana que nadie ve). Con `--al-mirar`,
-// entre las 20 y las 6 la marca queda y lo dice; sin la bandera (el dueño dijo "volví"), se borra siempre.
+// la marca queda (y lo dice) mientras la noche siga: entre las 20 y las 6, o si la marca se escribió hoy después de las 6 (el dueño
+// dijo "me voy" a las 18 y mira a las 19: revisor frío de la rc.8, 6). La mañana siguiente la borra. Sin la bandera (el dueño dijo
+// "volví"), se borra siempre.
 const HORA_NOCHE = 20;
 const HORA_DIA = 6;
+// ¿Alguna marca es de esta misma jornada? (su `desde` es de hoy a partir de las 6; una que no se lee no cuenta)
+function marcaDeHoy(carpetas, ahora) {
+  const umbral = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate(), HORA_DIA).getTime();
+  for (const c of carpetas) {
+    let t = null;
+    try {
+      t = fs.readFileSync(path.join(c, ARCHIVO_NOCHE), 'utf8');
+    } catch (e) {
+      continue;
+    }
+    const m = /^desde (\S+)/m.exec(t);
+    const d = m ? Date.parse(m[1]) : NaN;
+    if (Number.isFinite(d) && d >= umbral && d <= ahora.getTime()) return true;
+  }
+  return false;
+}
 function volvi(L, g, a = {}, o = {}) {
   const carpetas = [g.raiz];
   const lista = L.contexto.worktrees(g.raiz) || [];
@@ -226,7 +244,8 @@ function volvi(L, g, a = {}, o = {}) {
   if (a.alMirar) {
     const ahora = o.ahora instanceof Date ? o.ahora : new Date();
     const h = ahora.getHours();
-    if ((h >= HORA_NOCHE || h < HORA_DIA) && carpetas.some((c) => fs.existsSync(path.join(c, ARCHIVO_NOCHE)))) {
+    const hay = carpetas.some((c) => fs.existsSync(path.join(c, ARCHIVO_NOCHE)));
+    if (hay && (h >= HORA_NOCHE || h < HORA_DIA || marcaDeHoy(carpetas, ahora))) {
       return { codigo: 0, lineas: [`volví: son las ${dos(h)}:${dos(ahora.getMinutes())} y la noche sigue (la marca queda: el director trabaja solo). Si el dueño dijo que volvió, corré volvi sin --al-mirar`] };
     }
   }
@@ -829,7 +848,7 @@ function parte(L, g, x, a, o) {
   // 8e c19 (R2: "Las carpetas limpias: sí" y abajo "no pude cerrar la carpeta del módulo"): la del director de este módulo no se
   // cuenta, pero si sigue ahí se dice acá, en la misma línea, y no como algo que falló.
   const sigueLaDelDirector = [...registradas, ...enDisco].includes(delDirector);
-  const limpias = quedan === 0 ? `sí${sigueLaDelDirector ? ' (la del director de este módulo se cierra sola cuando termine su sesión)' : ''}` : `no (quedan ${quedan})`;
+  const limpias = quedan === 0 ? `sí${sigueLaDelDirector ? ' (la del director de este módulo queda hasta que cierres su pestaña; después se cierra sola)' : ''}` : `no (quedan ${quedan})`;
   if (quedan) noPude.push(`quedan ${quedan} carpeta(s) de trabajo abiertas: las cierra la próxima limpieza`);
   // Te necesito y Qué se hizo
   let te = [];

@@ -1922,3 +1922,13 @@ test('8e B1 integrar: sin comando-test y con gate:entorno-prueba quitado en la f
   assert.notEqual(enOrigin(p), base, 'el módulo subió');
   sinTemporal(p);
 });
+
+test('8e (revisor frío, 1) limpiar: un módulo que entró a main por otro merge (un PR de GitHub, un merge a mano del dueño) también se cierra', () => {
+  const p = proyectoI();
+  const wx = moduloX(p);
+  g(p.P, 'merge', '-q', '--no-ff', '-m', 'Merge pull request #7 from dueno/modulo/x', 'modulo/x');
+  const r = cli(p.P, ['limpiar']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(r.out, /worktree limpiar: cerré modulo\/x$/m, r.out);
+  assert.ok(!fs.existsSync(wx) && !existeRama(p.P, 'modulo/x'));
+});

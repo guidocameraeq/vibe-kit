@@ -78,9 +78,11 @@ function deCambios(raiz) {
   }
   // 8e G3 (R2, y la noche 2 del banco): un cambio propuesto con `--en-defecto` vive solo en la rama por defecto de origin hasta el
   // próximo pull; desde la pestaña del director, o desde una carpeta principal atrasada, el disco no lo tiene y "Te necesito"
-  // decía nada. Primero los de esa rama (lo que dejó el último fetch: no sale a la red); el disco suma los que ella no tiene.
-  const cargados = [];
-  const ids = new Set();
+  // decía nada. Se leen los de esa rama (lo que dejó el último fetch: no sale a la red) y los del disco. Si un cambio está en los
+  // dos lados, espera la firma solo si LOS DOS dicen propuesto (revisor frío de la rc.8, 4): el dueño que firmó en su carpeta y
+  // todavía no subió ya firmó, y uno ya firmado en origin con el disco atrasado, también.
+  const deOrigin = new Map();
+  const deDisco = new Map();
   try {
     const X = require('./contexto.cjs');
     const R = require('./cambios-ruta.cjs');
@@ -94,11 +96,10 @@ function deCambios(raiz) {
         if (!id) continue;
         const t = git.correr(['show', `${rv.ref}:${rel}`], { cwd: raiz, tiempo: T_GIT });
         if (!t.ok) continue;
-        ids.add(id);
         try {
-          cargados.push({ id, ...C.leer(t.stdout.replace(/\r\n/g, '\n')) });
+          deOrigin.set(id, C.leer(t.stdout.replace(/\r\n/g, '\n')));
         } catch (e) {
-          /* uno que no se lee no está */
+          /* uno que no se lee no está (y no tapa al del disco) */
         }
       }
     }
@@ -112,18 +113,21 @@ function deCambios(raiz) {
     lista = [];
   }
   for (const a of lista) {
-    if (!a.id || ids.has(a.id)) continue;
+    if (!a.id) continue;
     try {
       const c = C.cargar(a);
-      if (c && !c.error) cargados.push({ id: a.id, datos: c.datos, cuerpo: c.cuerpo });
+      if (c && !c.error) deDisco.set(a.id, { datos: c.datos, cuerpo: c.cuerpo });
     } catch (e) {
       /* idem */
     }
   }
-  cargados.sort((x, y) => (x.id < y.id ? -1 : x.id > y.id ? 1 : 0));
-  for (const c of cargados) {
-    const a = { id: c.id };
-    if (!c.datos || c.datos.estado !== 'propuesto' || c.datos.clase !== '3-barrera') continue;
+  const espera = (c) => !!c && !!c.datos && c.datos.estado === 'propuesto' && c.datos.clase === '3-barrera';
+  for (const id of [...new Set([...deOrigin.keys(), ...deDisco.keys()])].sort()) {
+    const o = deOrigin.get(id);
+    const d = deDisco.get(id);
+    if ((o && !espera(o)) || (d && !espera(d))) continue;
+    const c = o || d;
+    const a = { id };
     const regla = C.reglaEnUnaLinea(c.cuerpo) || 'un cambio en un freno';
     out.push({ texto: `firmar el cambio de freno: ${regla}`, fuente: 'cambio propuesto', desde: (/^(\d{4}-\d{2}-\d{2})-/.exec(a.id) || [])[1] || null, tipo: 'clic', ref: a.id });
   }

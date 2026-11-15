@@ -978,8 +978,10 @@ function enUso(wt) {
 
 // 8e G2: ¿esta rama del kit está cerrada de verdad? → null si sí, o por qué no. "Ya es ancestro de su madre" no alcanza: una rama
 // recién creada, sin commits propios, también lo es (R2: `crear foo` y `limpiar` la borraban). Un encargo: su evidencia está en la
-// rama del módulo (estadoEncargo, la cuenta única). Un módulo: la punta de su rama es el segundo padre de un merge
-// `integrar: módulo <x>` del primer padre de la rama por defecto (local o de origin).
+// rama del módulo (estadoEncargo, la cuenta única). Un módulo: su punta entró a la rama por defecto (local o de origin) POR UN
+// MERGE, o sea, es ancestro de ella y no está en su línea de primer padre. Eso vale para `integrar`, para un PR mergeado en GitHub y
+// para un merge a mano del dueño (revisor frío de la rc.8, 1: pedir el asunto `integrar: módulo <x>` dejaba esas carpetas para
+// siempre); una rama recién creada está EN la línea de primer padre, y no se toca.
 function porQueSigue(L, P, n) {
   if (n.id !== null) {
     let estado = 'en obra';
@@ -995,16 +997,12 @@ function porQueSigue(L, P, n) {
   if (!punta || !def) return 'no pude mirar la rama';
   for (const ref of [`refs/heads/${def}`, `refs/remotes/origin/${def}`]) {
     if (!existeRef(L, P, ref)) continue;
-    const r = G(L, ['log', '--first-parent', '--merges', '--format=%P%x09%s', ref], P);
+    if (!G(L, ['merge-base', '--is-ancestor', punta, ref], P).ok) continue;
+    const r = G(L, ['rev-list', '--first-parent', ref], P);
     if (!r.ok) continue;
-    for (const l of r.stdout.split('\n')) {
-      const tab = l.indexOf('\t');
-      if (tab < 0) continue;
-      const m = RE_INTEGRAR.exec(l.slice(tab + 1).replace(/\r$/, ''));
-      if (m && m[1] === n.x && l.slice(0, tab).split(' ')[1] === punta) return null;
-    }
+    if (!r.stdout.split('\n').some((l) => l.trim() === punta)) return null;
   }
-  return `no está mergeada en ${def}: falta su integrar`;
+  return `no está mergeada en ${def}: todavía no entró por un merge (su integrar)`;
 }
 
 function cerrar(L, u, n, cancelado = false) {
@@ -1159,7 +1157,8 @@ function gate(L, tmp, base, punta, opciones) {
     // 8e B1: sin comando-test es legítimo solo si la ficha del merge lo dice (nivel liviano, o gate:entorno-prueba quitado y
     // vigente: ficha.sinComandoTest). Las barreras del rango y el candado ya corrieron arriba: un gate quitado sin la firma del
     // dueño no llega hasta acá.
-    const sin = L.ficha.sinComandoTest(d);
+    // (el `typeof`: si la lib de los hooks quedó en una versión anterior a la de este script, se niega como antes, sin romper)
+    const sin = typeof L.ficha.sinComandoTest === 'function' ? L.ficha.sinComandoTest(d) : null;
     if (sin) return { verde: true, lineas: [...lineas, `sin comando-test (${sin}): no hay pruebas que correr`] };
     return { verde: false, lineas: [...lineas, 'NO VERIFICADO: la ficha no tiene vars.comando-test — sumalo'] };
   }
@@ -1307,7 +1306,14 @@ function limpiar(L, u) {
       quedan.push(`${e.rama}: ${sigue}`);
       continue;
     }
-    const r = cerrar(L, u, n);
+    let r;
+    try {
+      r = cerrar(L, u, n);
+    } catch (err) {
+      // revisor frío (12): un error de cerrar (la prueba de "en uso" que no pudo devolver el nombre) no tira abajo la limpieza
+      quedan.push(`${e.rama}: ${String((err && err.message) || err).split('\n')[0]}`);
+      continue;
+    }
     if (r.codigo === 0) cerradas.push(e.rama);
     else quedan.push(`${e.rama}: ${(r.lineas[r.lineas.length - 1] || '').replace(/^worktree cerrar: no — /, '')}`);
   }

@@ -419,6 +419,18 @@ function encargosDelModulo(raiz, x) {
     } catch (e) {
       /* lo que no se pudo mirar no se da por cerrado */
     }
+    // 8e (revisor frío de la rc.8, 7): a la mañana, `/estado` corre `limpiar` antes de esta vista y la rama del encargo ya no
+    // está; si tampoco quedó su renglón en tiempos.md, "cuándo se cerró" sale del commit que trajo su evidencia.
+    if (estado === 'cerrado' && fin === null) {
+      for (const sha of fuentes) {
+        const r = G(raiz, ['log', '-1', '--format=%ct', sha, '--', `:(glob)${dir}/*-evidencia-${id}.md`]);
+        const t = r.ok ? Number(r.stdout.trim()) : NaN;
+        if (Number.isFinite(t) && t > 0) {
+          fin = t * 1000;
+          break;
+        }
+      }
+    }
     out.push({ id, titulo, estado, minutos, fin });
   }
   return out;

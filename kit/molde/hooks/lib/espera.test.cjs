@@ -164,3 +164,16 @@ test('8e c15 y c21: sacar los códigos de una lista no deja los huecos; un coman
   assert.equal(ES.paraElDueno('pan y vino, y nada más.'), 'pan y vino, y nada más.');
   assert.equal(ES.paraElDueno('quedó en verde: `git push` @abc1234'), 'quedó en pasó: un paso del kit');
 });
+
+test('8e (revisor frío, 4): el dueño firmó en su carpeta y todavía no subió (origin dice propuesto, el disco ya no) → no se le vuelve a pedir', () => {
+  const d = repo({ '.claude/cambios/2026-11-15-quitar-stash.md': CAMBIO('3-barrera') });
+  const bare = path.join(TMP, `o${k++}.git`);
+  g(TMP, 'clone', '-q', '--bare', d, bare);
+  g(d, 'remote', 'add', 'origin', bare);
+  g(d, 'fetch', '-q', 'origin');
+  assert.equal(ES.teEspera(d).filter((i) => i.fuente === 'cambio propuesto').length, 1, 'propuesto en los dos lados: espera');
+  const ruta = path.join(d, '.claude', 'cambios', '2026-11-15-quitar-stash.md');
+  fs.writeFileSync(ruta, fs.readFileSync(ruta, 'utf8').replace(/^estado: propuesto$/m, 'estado: rechazado'));
+  g(d, 'commit', '-q', '-am', 'cambios: resuelto, sin subir');
+  assert.equal(ES.teEspera(d).filter((i) => i.fuente === 'cambio propuesto').length, 0, 'ya lo resolvió en su carpeta');
+});
