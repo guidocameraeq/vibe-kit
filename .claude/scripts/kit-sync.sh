@@ -48,5 +48,23 @@ for r in $SKILLS agents/redteam-spec.md VERSION; do
   fi
 done
 [ "$(grep -m1 "$LINEA" "$ARQ" 2>/dev/null | cut -d'`' -f2)" = "{{CARPETA_DE_PROYECTOS}}" ] && { echo "⚠️ la carpeta de proyectos de esta PC está sin completar ($ARQ)"; sucio=1; }
-[ $sucio = 0 ] && echo "kit ↔ ~/.claude: LIMPIO" || echo "kit ↔ ~/.claude: SUCIO — frenar y mirar antes de pisar nada"
+# Los hooks de la PC (~/.claude/hooks/kit/) no los copia este script: los instala "instalar hooks por PC", que escribe el
+# settings.json de la PC y por eso lo corre el dueño. Pero si quedaron en otra versión que el kit, acá se dice (el banco de la
+# rc.7, B2: el kit en rc.7, los hooks de la PC en rc.6 y este script decía LIMPIO sin una palabra). Es un aviso: no cambia la
+# salida, porque arreglarlo no es de esta sesión.
+INST="$H/hooks/kit/INSTALADO"
+vk=$(tr -d '\r\n' < "$P/kit/VERSION")
+aviso=""
+if [ -f "$INST" ]; then
+  vh=$(grep -m1 '^kit:' "$INST" | sed 's/^kit:[[:space:]]*//' | tr -d '\r')
+  [ "$vh" != "$vk" ] && aviso="los hooks de la PC son del kit ${vh:-?} y el kit es $vk"
+else
+  aviso="esta PC no tiene instalados los hooks del kit"
+fi
+[ -n "$aviso" ] && echo "⚠️ $aviso — falta: instalar hooks por PC (lo corre el dueño)"
+if [ $sucio = 0 ]; then
+  [ -n "$aviso" ] && echo "kit ↔ ~/.claude: LIMPIO (con un aviso: los hooks de la PC)" || echo "kit ↔ ~/.claude: LIMPIO"
+else
+  echo "kit ↔ ~/.claude: SUCIO — frenar y mirar antes de pisar nada"
+fi
 exit $sucio
