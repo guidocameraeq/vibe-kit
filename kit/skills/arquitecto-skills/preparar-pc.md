@@ -2,6 +2,11 @@
 
 El paso 4 del Modo INSTALAR del `SKILL.md`, después de aplicar el plan. `<scripts>` = `<clon>/kit/skills/arquitecto-skills/scripts`.
 
+## Antes: lo que le falta a la PC, sin mandar al dueño a tipear
+
+- **Lo que la tabla dice que falta** (un programa, entrar a GitHub): lo corrés vos con su OK y sin que pregunte nada en pantalla: `winget install <id> --accept-source-agreements --accept-package-agreements`, y para entrar a GitHub, `gh auth login --web --hostname github.com --git-protocol https` (le muestra un código de un solo uso: él lo copia en el navegador y entra). Nunca le das el comando para que lo tipee. Un programa recién instalado no se ve en esta sesión: seguí en una sesión nueva.
+- **La identidad de git**: mirá `git config --global user.name` y `git config --global user.email`. Si falta alguno, preguntale nombre y mail y escribilos vos (`git config --global …`): sin identidad fallan todos los commits, también los de una noche.
+
 ## Los repos de tu cuenta
 
 1. `node <scripts>/traer-repos.cjs listar --proyectos <carpeta>`: los repos de la cuenta de `gh` y de sus organizaciones, cada uno
@@ -9,7 +14,7 @@ El paso 4 del Modo INSTALAR del `SKILL.md`, después de aplicar el plan. `<scrip
 2. Si hay alguno para traer, **una pregunta** (`AskUserQuestion`, varias opciones a la vez): *"¿traigo repos de tu cuenta?"*, con la
    lista. Nunca se trae nada que el dueño no eligió.
 3. Con los elegidos: `node <scripts>/traer-repos.cjs clonar <dueño/repo>… --proyectos <carpeta>`. No pisa una carpeta que ya está
-   (la saltea y lo dice), deja `core.longpaths` y prende los ganchos de un repo con el kit.
+   (la saltea y lo dice), deja `core.longpaths` y prende los ganchos de un repo con el kit. Si dice que falta un programa para un `comando-setup`, va a lo de arriba. Al final, **volvé a correr el `--plan`** de `preparar-pc.cjs` (lo traído entra recién ahí en las preguntas de publicar) y decile que abra una sesión en cada carpeta traída, una vez.
 4. **El `comando-setup` de un repo recién traído no corre solo**: es código de ese repo. Por cada uno que lo traiga, mostrá el
    comando y preguntá, repo por repo, antes de correrlo. Un repo sin el kit: ofrecé "adoptá <repo>".
 

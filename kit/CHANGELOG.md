@@ -5,6 +5,48 @@ Una sección por versión, la más nueva arriba. Cada una trae su **nota de migr
 Es lo que lee el agente de la fusión al actualizar un proyecto. La historia de sesiones del repo vive aparte, en `docs/CHANGELOG.md`.
 `kit/VERSION` lleva la versión del último tag y se sube en el commit que pone el tag siguiente.
 
+## 3.0.0-rc.8
+
+Todo corregido antes de la `v3.0` (2026-11-15, `docs/kit-v3/SPEC-paquete-8e.md`). No trae nada nuevo: arregla lo que encontraron la
+revisión integral de la `rc.7` (sobre un clon real) y el banco de prueba (el kit contra copias de 26 repos).
+
+- **Qué piezas cambiaron**:
+  - **La flota no deja un repo a medias** (`lib/flota.cjs`): si en una pieza de scripts (`scripts`, `candado`, `cambios-metodo`) hay
+    algo tocado a mano que choca con lo nuevo, **no mezcla nada**: el repo sigue entero en la versión de antes, la fila dice `te
+    espera` y `kit/<tag>` sube con la marca `kit: ESPERA — <piezas>` y el informe (la corrida siguiente la rehace sola). Antes
+    mezclaba lo demás y dejaba los scripts viejos. `resolver <pieza> nueva` sin informe vale ahora también sobre una pieza `molde`
+    o `molde+propio` (vuelve a la del molde de su versión). Una mezcla limpia que da igual a lo nuevo se toma sola, sin porqué.
+  - **`worktree.cjs limpiar`** cierra un encargo solo si está cerrado (su evidencia en la rama del módulo) y un módulo solo si ya
+    entró a la rama por defecto por un merge (`integrar`, un PR o un merge a mano); una rama recién creada no se toca. Y `cerrar`
+    no borra una carpeta **en uso** (una sesión parada adentro, en Windows): la del director queda hasta que se cierre su pestaña.
+  - **Sin `comando-test`, solo si la ficha lo dice** (`ficha.sinComandoTest`): con `nivel: liviano` o con `gate:entorno-prueba` en
+    `frenos.quitados` y vigente, la línea 3 de `verificar`, el gate de `integrar` y la línea 8 de la flota dan ✅ `sin comando-test
+    (<razón>)`. Sin eso, siguen negando. **Sacar `vars.comando-test` de la ficha pasa a ser barrera** (id `vars:comando-test`, en
+    frenos). La adopción pregunta por las pruebas en su mismo OK (`D5`).
+  - **El cierre de la noche acepta `Bash(git pull:*)`** en el settings del proyecto (antes se negaba a arrancar). A cambio, en esa
+    sesión `git-seguro` deja pasar `git pull` solo de `origin` y de la rama por defecto, con las opciones conocidas y sin `-c` ni
+    `-C` (caso `pull-del-cierre`). `adoptar --verificar` avisa de día otros permisos anchos (`verificar · noche · ⚠`).
+  - **`/estado`**: `LO QUE SE HIZO` cuenta también el módulo que la noche dejó en COMPLETO; "Te necesito" ve el cambio de freno
+    propuesto con `--en-defecto` desde la pestaña del director y desde una carpeta principal sin `pull`; el clic en la pestaña del
+    director está escrito de punta a punta (`node ../../../.claude/scripts/cambios.cjs aprobar <id>` y `traer-main`).
+  - **`noche.cjs`**: `volvi --al-mirar` (lo corren `/inicio` y `/estado`) no apaga la marca mientras la noche sigue (entre las 20
+    y las 6, o si se escribió ese mismo día); la borra la mañana siguiente o un "volví"; "falta tu
+    autorización para publicar" dice cómo darla y desaparece cuando la PC ya está autorizada; el parte no se contradice sobre las
+    carpetas; `cierre` dice qué hacer si el módulo tiene commits de después de su `integrar`.
+  - **La adopción**: se niega si `.claude` está ignorado en el repo (y `--mirar` lo avisa); `--traer` sale 4 si no hay ficha;
+    `--verificar` avisa (⚠, ya no ❌) lo que la ficha dice `no` y no está; `--mirar` sugiere `--nuevo` en un repo sin commits y avisa del linter del
+    proyecto. `traer-repos` dice qué programa falta para el `comando-setup` de lo que trae.
+  - Chicos: el resumen del obrero de cierre ya no lista como pendientes las tareas que él tildó; la flota repite una vez las
+    pruebas de los hooks si se pasan de tiempo; textos que mandaban al dueño a tipear.
+- **Automático o pide revisión**: automático en un repo que no tocó a mano los scripts del kit. **Pide revisión** si los tocó: la
+  flota no mezcla y te pregunta (lo más simple, tomar la del kit: `resolver <pieza> nueva`). Si tu proyecto no tiene con qué
+  probar, que la ficha lo diga (`gate:entorno-prueba` en `frenos.quitados`, con su razón: es un cambio de freno, lo firma el
+  dueño); si no, el primer módulo no se sella y una noche no suma su trabajo. Sobre la nota de la `rc.7` de `frenos.log`: la forma
+  que anda en las dos versiones es `typeof fl.leerTodo === 'function' ? fl.leerTodo(<raíz>) : <leer .claude/frenos.log como antes>`.
+- **Qué chequear después**: `adoptar <carpeta> --verificar` sale 0 y no trae la línea `noche · ⚠`; después de una noche,
+  `/estado` lista lo que se hizo; en la PC, que los hooks sean los de esta versión (`~/.claude/hooks/kit/INSTALADO` dice el mismo
+  `kit:` que `~/.claude/VERSION`; si no, "instalar hooks por PC").
+
 ## 3.0.0-rc.7
 
 La candidata a la `v3.0` (2026-11-13, `docs/kit-v3/SPEC-paquete-8d.md`): el dueño no tipea nada y una noche termina sola. Ocho partes
@@ -52,7 +94,9 @@ decididas con Guido el 2026-11-12 sobre lo que midió la revisión de la `rc.6`,
   `.claude/frenos.log`**: desde esta versión ese renglón va al registro común (`kit-frenos.log`, en la carpeta común de git), así que la
   prueba deja de encontrarlo y la flota da ROTA en la línea 8 ("lo rompió la actualización") sin mezclar nada. **El arreglo es un renglón,
   en la prueba**: en vez de leer `.claude/frenos.log`, que lea los dos registros con `require("<repo>/.claude/hooks/lib/frenos-log.cjs").leerTodo(<raíz del repo>)`.
-  Lo hace la sesión del proyecto, con el OK del dueño; después, la flota otra vez.
+  Lo hace la sesión del proyecto, con el OK del dueño; después, la flota otra vez. *(Corregido en la `rc.8`: `leerTodo` no existe
+  en la `rc.6`, así que aplicado antes de la flota rompe la prueba del proyecto. La forma que anda en las dos versiones:
+  `typeof fl.leerTodo === 'function' ? fl.leerTodo(<raíz>) : <leer .claude/frenos.log como antes>`.)*
 - **Qué chequear después**: `node "$HOME/.claude/skills/arquitecto-skills/scripts/actualizar.cjs" adoptar <carpeta> --verificar` sale 0
   (cada hook registrado deja pasar lo inocente y el arranque corre); `git status` limpio después de una sesión con frenadas (van a
   `kit-frenos.log`); `/estado` muestra sus cuatro secciones; el `doctor` dice `doctor · todo bien · …`.
