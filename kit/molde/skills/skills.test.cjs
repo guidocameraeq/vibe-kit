@@ -343,7 +343,7 @@ test('inicio y estado: con rol humano, noche.cjs volvi corre SIEMPRE, sin la con
   for (const n of ['inicio', 'estado']) {
     const l = TEXTOS[n].split('\n').find((s) => s.includes('noche.cjs volvi'));
     assert.ok(l, `${n}: cita noche.cjs volvi`);
-    assert.match(l, /corré \*\*siempre\*\* `node \.claude\/scripts\/noche\.cjs volvi`/, n);
+    assert.match(l, /corré \*\*siempre\*\* `node \.claude\/scripts\/noche\.cjs volvi --al-mirar`/, n); // 8e c7: de noche no la apaga
     assert.match(l, /no hay `\.kit-rol`/, n);
     assert.doesNotMatch(l, /existe `\.kit-noche`/, `${n}: sin la condición de la marca`);
     assert.match(l, /Con otro rol, no los? corras/, n);
@@ -1048,9 +1048,23 @@ test('estado (8d B2): corre estado.cjs sin preguntar, nombra las cuatro seccione
   const pos = ['`TE NECESITO`', '`EL PLAN`', '`LO QUE SE HIZO`', '`LO QUE FALTA`'].map((s) => t.indexOf(s));
   assert.ok(pos.every((p, i) => p >= 0 && (i === 0 || p > pos[i - 1])), JSON.stringify(pos));
   assert.match(t, /`node \.claude\/scripts\/worktree\.cjs limpiar`/);
-  assert.match(t, /ofrecé hacerlo ahí: `git pull --ff-only`, `node \.claude\/scripts\/cambios\.cjs aprobar <id>`/);
+  assert.match(t, /ofrecé hacerlo ahí\. En la carpeta principal: `git pull --ff-only`, `node \.claude\/scripts\/cambios\.cjs aprobar <id>`/);
   assert.match(t, /nunca le des el comando para que lo corra él/);
-  assert.ok(Buffer.byteLength(t) < 3200, `${Buffer.byteLength(t)} bytes: la skill es corta`);
+  assert.ok(Buffer.byteLength(t) < 3600, `${Buffer.byteLength(t)} bytes: la skill es corta`); // 8e G3: +300 del clic en la pestaña del director
+});
+
+// 8e G3 (R2): el camino que pidió el dueño, la firma en la pestaña del director, tiene que estar escrito de punta a punta.
+test('8e G3: /estado dice cómo se firma en la pestaña del director (el script de la carpeta principal y traer-main); /director propone el cambio de freno con --en-defecto; el freno dice la ruta buena', () => {
+  const p3 = /^3\. \*\*El clic, ahí mismo\.\*\*[^\n]*$/m.exec(TEXTOS.estado)[0];
+  assert.match(p3, /En la pestaña del director \(rol `director`\)/);
+  assert.match(p3, /`node \.\.\/\.\.\/\.\.\/\.claude\/scripts\/cambios\.cjs aprobar <id>` y después `node \.\.\/\.\.\/\.\.\/\.claude\/scripts\/worktree\.cjs traer-main <x>`/);
+  assert.match(p3, /sin `pull` ni `push` tuyos/);
+  assert.match(TEXTOS.director, /Un cambio de freno: `cambios\.cjs nuevo … --en-defecto`; la firma, por `\/estado`/);
+  const freno = fs.readFileSync(path.join(__dirname, '..', 'hooks', 'niega-aprobar.cjs'), 'utf8');
+  assert.match(freno, /Desde la pestaña del director: node \.\.\/\.\.\/\.\.\/\.claude\/scripts\/cambios\.cjs aprobar <id>/);
+  assert.doesNotMatch(freno, /no uno de otra carpeta: abrí una sesión en ese proyecto/);
+  // 8e c18: el relevo va antes de integrar
+  assert.match(TEXTOS.director, /el relevo también \(después de `integrar`, ni un commit más\)/);
 });
 
 test('comandosRotos: estado.cjs y resumen.cjs no tienen subcomando; sus flags sí se miran contra el USO', () => {

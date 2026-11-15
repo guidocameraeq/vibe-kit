@@ -197,7 +197,7 @@ const MOTIVOS = {
   sesion: (r) => `esta sesión trabajó como ${r}: una firma no se pide desde una sesión de agente, aunque ahora esté en otra carpeta. Dejalo anotado: el director se lo pide al dueño.`,
   dos: 'una firma por clic: este comando trae más de una; pedilas de a una.',
   afuera: 'esta firma se pide desde la carpeta de la sesión, sin irse a otro lado (cd, pushd, Set-Location, git -C): abrí una sesión en ese proyecto.',
-  ruta: 'esta firma corre el script de este proyecto (el de la carpeta de la sesión o el de su carpeta principal), no uno de otra carpeta: abrí una sesión en ese proyecto.',
+  ruta: 'esta firma corre el script de la carpeta principal de este proyecto, no una copia ni el de otra carpeta. Desde la carpeta principal: node .claude/scripts/cambios.cjs aprobar <id>. Desde la pestaña del director: node ../../../.claude/scripts/cambios.cjs aprobar <id>.',
   rama: (d) => `en la carpeta principal la firma va desde la rama por defecto${d ? ` (${d})` : ''}: pasate a ella y pedila de nuevo.`,
   pc: 'autorizar esta PC a publicar es del dueño, con "preparame esta PC": no se corre desde una sesión de agente.',
   homePc: 'KIT_HOME_PC es el home de prueba del kit: no se nombra desde una sesión de agente, de fondo o sin ventana.',
