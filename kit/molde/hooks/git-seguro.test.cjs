@@ -1557,6 +1557,6 @@ test('8e G4: en la sesión de cierre de la noche (KIT_FONDO y KIT_CIERRE_ID), gi
   pasa(d, 'git pull --ff-only origin main', CIERRE); // con la rama dicha, el seguimiento no cuenta
   g(d, 'branch', '-q', '--set-upstream-to=origin/main', 'main');
   pasa(d, 'git pull --ff-only', CIERRE);
-  g(d, 'switch', '-q', '-c', 'otra-local');
+  g(d, 'switch', '-q', '-c', 'otra-local', '--track', 'origin/main'); // otra rama, aunque siga a la de origin: tampoco
   niega(d, 'git pull --ff-only', 'pull-del-cierre', CIERRE);
 });
