@@ -20,12 +20,13 @@ READY), las tandas A, B y C enteras el tag **`v3.0.0-rc.7`** y **R2** (en `main`
 
 **El director del tramo final** sigue `docs/kit-v3/TRAMO-FINAL-PLAN.md`, sección 0 (**manda ese archivo**). Hecho: el spec
 `SPEC-paquete-8d.md` READY (Fable 5.2), las tandas A, B, C y el tag `rc.7`. R2 hecha (`REVISION-INTEGRAL-rc7.md`: G1-G5, la noche no se cerró sola en el clon
-de Deptos) · el ciclo de mejora rehecho (ADR-035) → **5a el banco de prueba** (copias de todos los repos, inocuo) → 5b la `rc.8` (Fable 5.2, todo corregido) → 5c el banco otra vez → 6 la `v3.0` y el repo cerrado (el M6b va ahí).
+de Deptos) · el ciclo de mejora rehecho (ADR-035) → 5a el banco de prueba ✅ (`BANCO-rc7.md`: B1, B2, b1-b13) → **5b la `rc.8`** (Fable 5.2, todo corregido) → 5c el banco otra vez → 6 la `v3.0` y el repo cerrado (el M6b va ahí).
 **Desde el 2026-11-15 las sesiones 5a, 5b, 5c y 6 están abiertas y en espera**: el director las activa en fila con un mensaje
 "arrancá", sin el clic de Guido (ids en la cabecera del plan; la 5b, en Fable 5.2 verificado con `get_session`). Si sos una de las sesiones 1 a 6: tu tarea es tu sección; no hace falta `/inicio`.
 
 ## Te espera (Guido)
 
+- Correr **"instalar hooks por PC"** (B2 del banco: los hooks de esta PC están en `rc.6`; lo frena el clasificador, es suyo).
 - El clic de P7 cuando quiera (`../vibe-kit-pruebas/rc7/p7-firma/LEEME-P7.txt`: cierra el criterio 18); al final de 5c, pasar a fase 2 por escrito los criterios que no se midan; el OK de publicar la `v3.0` y de poner al día sus repos reales (con lo que dijo el banco).
 - Lo demás, solo lo de la tabla "Dónde lo necesita a Guido" del plan del tramo final.
 
