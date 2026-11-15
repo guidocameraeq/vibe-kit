@@ -663,8 +663,12 @@ function casos(ctx) {
   const corridas = todas.size;
   if (corridas) {
     const lista = [...todas].sort();
-    const r = correr(process.execPath, ['--test', '--test-reporter=tap', ...lista.map((p) => `hooks/${p}`)], { cwd: T, plazo: ctx.plazoMs, tmp: ctx.tmp });
-    if (r.colgado) nv(`las pruebas de los hooks (${corridas} archivo${corridas === 1 ? '' : 's'}) no terminaron en ${minutos(ctx.plazoMs)}`);
+    const args = ['--test', '--test-reporter=tap', ...lista.map((p) => `hooks/${p}`)];
+    let r = correr(process.execPath, args, { cwd: T, plazo: ctx.plazoMs, tmp: ctx.tmp });
+    // 8e c16 (R2 y el banco: ROTA por tiempo con la PC cargada, dos de dos): pasarse de tiempo no es "falló". Se repite una vez; si
+    // se vuelve a pasar, lo dice como lo que es: no se pudo probar.
+    if (r.colgado) r = correr(process.execPath, args, { cwd: T, plazo: ctx.plazoMs, tmp: ctx.tmp });
+    if (r.colgado) nv(`las pruebas de los hooks (${corridas} archivo${corridas === 1 ? '' : 's'}) no terminaron en ${minutos(ctx.plazoMs)}, dos veces: no pude probar (¿la PC estaba cargada?) — corré la flota sola, sin nada más andando`);
     if (r.error) nv(`las pruebas de los hooks no arrancaron (${r.error})`);
     if (r.status !== 0) {
       const porArchivo = rojosPorArchivo(r.salida, hooksT);
@@ -759,8 +763,12 @@ function pruebas(ctx) {
   const vars = f.r.datos.vars && typeof f.r.datos.vars === 'object' ? f.r.datos.vars : {};
   const cmd = typeof vars['comando-test'] === 'string' ? vars['comando-test'].trim() : '';
   if (!cmd) {
-    if (f.r.datos.nivel === 'liviano') return bien('nivel liviano: la ficha no trae comando-test');
-    nv('la ficha no dice vars.comando-test');
+    // 8e B1: sin comando-test es legítimo solo si la ficha lo dice (ficha.sinComandoTest: nivel liviano, o gate:entorno-prueba
+    // quitado y vigente). En el banco, 13 de 19 repos adoptados no tenían con qué probar y la flota los dejaba ROTA siempre.
+    const razon = ficha.sinComandoTest(f.r.datos);
+    if (razon === 'nivel liviano') return bien('nivel liviano: la ficha no trae comando-test');
+    if (razon) return bien(`sin comando-test (${razon})`);
+    nv('la ficha no dice vars.comando-test (si el proyecto no tiene con qué probar, que la ficha lo diga: gate:entorno-prueba en frenos.quitados, con su razón)');
   }
   if (conTuberia(cmd)) nv(`comando-test con tuberías o redirecciones no se corre: ${corto(cmd, 80)}`);
   // La shell de los comandos (t6): la de la consola del director; el guardia de `cmd /c` / `cmd //c` (rt-2) antes de correr nada.
@@ -805,7 +813,7 @@ function pruebas(ctx) {
     return bien(`⚠ comando-setup ya fallaba antes de la actualización (lock atrasado: ${firma}): es del proyecto, no del kit — regenerá el lock y commitealo; tus tests no se corrieron (NO VERIFICADO)`);
   }
   const r = correr(cmd, [], { cwd: ctx.carpeta, plazo: ctx.plazoMs, shell, tmp: ctx.tmp });
-  if (r.colgado) nv(`comando-test colgado: no terminó en ${minutos(ctx.plazoMs)}`);
+  if (r.colgado) nv(`comando-test colgado: no terminó en ${minutos(ctx.plazoMs)} (no pude probar: si la PC estaba cargada, corré la flota sola)`);
   if (r.error) nv(`comando-test no arrancó (${r.error})`);
   if (r.status === 0) return bien(`${cmd} pasó`);
   // Rojo: ¿ya lo estaba en <base>?
@@ -1037,7 +1045,12 @@ function vComandoTest(ctx) {
   if (f.error) return mal(`la ficha no se lee: ${f.error}`);
   const v = f.r.datos.vars || {};
   const cmd = typeof v['comando-test'] === 'string' ? v['comando-test'].trim() : '';
-  if (!cmd) return { ok: true, detalle: '⚠ la ficha no trae comando-test: el gate no tiene con qué probar' };
+  if (!cmd) {
+    // 8e B1: si la ficha dice por qué no hay pruebas, está bien; si no, se avisa lo que pasa después (no es ❌: de día el repo anda)
+    const sin = ficha.sinComandoTest(f.r.datos);
+    if (sin) return bien(`sin comando-test (${sin}): lo dice la ficha`);
+    return { ok: true, detalle: '⚠ la ficha no trae comando-test ni dice que no hay pruebas: así el primer módulo no se puede sellar y una noche no puede sumar su trabajo — falta el comando, o gate:entorno-prueba en frenos.quitados con su razón' };
+  }
   const prog = programaDe(cmd);
   if (!prog) return mal(`no entiendo el comando-test (${corto(cmd, 80)})`);
   if (/[\\/]/.test(prog)) {
@@ -1089,6 +1102,20 @@ const leer = (p) => fs.readFileSync(p, 'utf8');
 
 const VERIFICAR = [['hooks', vHooks], ['arranque', arranque], ['comando-test', vComandoTest], ['hooksPath', vHooksPath], ['zona', vZona]];
 
+// 8e G4 (R2 y el banco): los permisos anchos del settings del proyecto que harían que `noche.cjs cierre` se niegue, con el MISMO
+// cálculo (el noche.cjs del proyecto: listaCierre y loQueSobra). Solo los settings del proyecto: los de la PC son del doctor.
+// → "a, b" o null (también si el proyecto no trae ese script o es de una versión que no los exporta).
+function permisosAnchos(carpeta, home) {
+  try {
+    const N = require(path.join(carpeta, '.claude', 'scripts', 'noche.cjs'));
+    if (typeof N.listaCierre !== 'function' || typeof N.loQueSobra !== 'function') return null;
+    const s = N.loQueSobra(N.listaCierre('x', 'main', 'docs'), carpeta, home, 'x');
+    return s && Array.isArray(s.anchas) && s.anchas.length ? s.anchas.join(', ') : null;
+  } catch (e) {
+    return null;
+  }
+}
+
 function verificarAdopcion(carpeta) {
   const lineas = [];
   let ok = true;
@@ -1104,10 +1131,17 @@ function verificarAdopcion(carpeta) {
     if (!fs.existsSync(path.join(raiz, ...RUTA_FICHA.split('/')))) return { ok: true, lineas: [`verificar · ficha · ⚠ · sin ${RUTA_FICHA}: no es un repo adoptado, no hay nada que verificar`] };
     tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'kit-verificar-'));
     const ctx = { carpeta: path.resolve(raiz), tmp };
+    // 8e b5 (el banco: seis repos adoptados solo con la ficha daban ❌ en hooks y arranque, que su ficha dice que no vienen)
+    const fv = leerFicha(ctx);
+    const pz = !fv.error && fv.r.datos.piezas && typeof fv.r.datos.piezas === 'object' ? fv.r.datos.piezas : {};
+    const enNo = (id) => (pz[id] && typeof pz[id] === 'object' ? pz[id].estado : pz[id]) === 'no';
+    // Solo si además el archivo no está (si está, se mira como siempre), y como aviso: ese repo queda sin esa parte del kit.
+    const NO_VIENE = { hooks: ['settings', RUTA_SETTINGS], arranque: ['hook-arranque', '.claude/hooks/session-start.cjs'] };
+    const noViene = (id) => NO_VIENE[id] && enNo(NO_VIENE[id][0]) && !fs.existsSync(path.join(ctx.carpeta, ...NO_VIENE[id][1].split('/')));
     for (const [id, fn] of VERIFICAR) {
       let r;
       try {
-        r = fn(ctx);
+        r = noViene(id) ? { ok: true, detalle: `⚠ la ficha dice que no viene (${NO_VIENE[id][0]}: no): este repo queda sin esa parte del kit hasta que se prenda` } : fn(ctx);
       } catch (e) {
         r = mal(`NO VERIFICADO: ${e instanceof NoVerificado ? e.message : `error propio (${corto(e && e.message ? e.message : e, 120)})`}`);
       }
@@ -1115,6 +1149,9 @@ function verificarAdopcion(carpeta) {
       if (!r.ok) ok = false;
       lineas.push(`verificar · ${id} · ${r.ok ? (aviso ? '⚠' : '✅') : '❌'} · ${aviso ? r.detalle.slice(2) : r.detalle}`);
     }
+    // 8e G4: de día, lo que a la noche frenaría el cierre. Una línea más solo si hay algo que decir (no traba: es un aviso).
+    const ancho = permisosAnchos(ctx.carpeta, path.join(tmp, 'sin-home'));
+    if (ancho) lineas.push(`verificar · noche · ⚠ · con el permiso ${ancho} en el settings del proyecto, una noche no se cierra sola (la sesión de cierre correría de todo sin preguntar): sacarlo es un cambio de freno, lo firma el dueño`);
   } finally {
     if (tmp) {
       try {

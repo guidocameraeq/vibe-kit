@@ -867,9 +867,10 @@ test('crit. 2 (8r2 t2; rt-7, rt-8): --traer — sin push "no llegó"; sucia u ot
   escribir(p, { 'suelto.txt': 'sin seguir, no choca\n' });
   // limpia y en main: el ff, después los githooks, y el setup de una vez (no hay .venv)
   t = await AD.main([c, '--traer', p]);
-  // 8d C1.5: trajo bien, pero este repo de prueba es solo una ficha (sin settings ni hooks): --verificar lo dice y sale 3
-  assert.equal(t.codigo, 3, t.lineas.join('\n'));
-  assert.ok(t.lineas.includes('verificar · hooks · ❌ · no está .claude/settings.json'), t.lineas.join('\n'));
+  // 8d C1.5: trajo bien. Este repo de prueba es solo una ficha (sin settings ni hooks) y su ficha lo dice (settings: no,
+  // hook-arranque: no). 8e b5: eso ya no es "algo no anda" (antes salía 3): es un aviso, y sale 0.
+  assert.equal(t.codigo, 0, t.lineas.join('\n'));
+  assert.ok(t.lineas.includes('verificar · hooks · ⚠ · la ficha dice que no viene (settings: no): este repo queda sin esa parte del kit hasta que se prenda'), t.lineas.join('\n'));
   assert.equal(cabeza(p), sha);
   assert.equal(leer(p, 'suelto.txt'), 'sin seguir, no choca\n', 'lo sin seguir que no choca, intacto');
   assert.equal(hooksPath(p, '--local'), '.githooks');
@@ -881,13 +882,20 @@ test('crit. 2 (8r2 t2; rt-7, rt-8): --traer — sin push "no llegó"; sucia u ot
   assert.ok(t.lineas[2].startsWith('en tu carpeta, una vez: python3 -m venv .venv && .venv/bin/python -m pip install -r requirements.txt (el sello corre comando-test acá); después, '), t.lineas[2]);
   // 8d C1.5: al final, --verificar en la carpeta (sus cinco líneas)
   assert.deepEqual(t.lineas.slice(3, 8).map((l) => l.split(' · ')[1]), ['hooks', 'arranque', 'comando-test', 'hooksPath', 'zona'], t.lineas.join('\n'));
-  assert.match(t.lineas[8], /^traer · lo traje, pero algo no anda .*no deshagas nada/);
+  assert.ok(!t.lineas.some((l) => /algo no anda/.test(l)), t.lineas.join('\n'));
   // otra vez, con el .venv: nada que traer, ya estaba, sin la línea del setup
   fs.mkdirSync(path.join(p, '.venv'));
-  escribir(p, { '.git/info/exclude': '.venv/\n' });
+  escribir(p, { '.git/info/exclude': '.venv/\n.claude/settings.json\n' });
   t = await AD.main([c, '--traer', p]);
   assert.deepEqual(t.lineas.slice(0, 2), [`traer · ${p} · ya tenía ${sha.slice(0, 7)}: nada que traer`, `githooks · ${p} · ya estaba`]);
   assert.ok(!t.lineas.some((l) => l.startsWith('en tu carpeta, una vez')), 'sin la línea del setup');
+  // y si el archivo está aunque la ficha diga que no viene, se mira como siempre: uno roto → algo no anda, sale 3
+  escribir(p, { '.claude/settings.json': '{ roto' });
+  t = await AD.main([c, '--traer', p]);
+  assert.equal(t.codigo, 3, t.lineas.join('\n'));
+  assert.ok(t.lineas.some((l) => /^verificar · hooks · ❌ · /.test(l)), t.lineas.join('\n'));
+  assert.match(t.lineas[t.lineas.length - 1], /^traer · lo traje, pero algo no anda .*no deshagas nada/);
+  fs.rmSync(path.join(p, '.claude', 'settings.json'));
   // otro repo, o el clon mismo: salida 1, sin tocar
   const otro = repoPelado('otro', { 'a.txt': 'a\n' });
   for (const pr of [otro, c, path.join(T, 'no-existe')]) {
@@ -905,10 +913,13 @@ test('crit. 2 (8r2 t2): --traer sin origin en la carpeta trae del clon (como el 
   git(c, 'commit', '-q', '-m', 'kit: adopción');
   const antes = cabeza(p);
   const t = await AD.main([c, '--traer', p]);
-  assert.equal(t.codigo, 0, t.lineas.join('\n'));
+  // 8e b4: este repo de prueba no trae ficha: lo que se trajo no es una adopción y --traer lo dice con su salida (4), no con 0
+  assert.equal(t.codigo, 4, t.lineas.join('\n'));
   assert.equal(cabeza(p), cabeza(c));
   assert.equal(leer(p, 'nuevo.txt'), 'adoptado\n');
-  assert.deepEqual(t.lineas, [`traer · ${p} · traje ${antes.slice(0, 7)}..${cabeza(c).slice(0, 7)} (del clon)`, `githooks · ${p} · puesto`, 'verificar · ficha · ⚠ · sin .claude/kit.md: no es un repo adoptado, no hay nada que verificar'], 'sin ficha: sin la línea del setup');
+  assert.deepEqual(t.lineas.slice(0, 2), [`traer · ${p} · traje ${antes.slice(0, 7)}..${cabeza(c).slice(0, 7)} (del clon)`, `githooks · ${p} · puesto`]);
+  assert.match(t.lineas[2], /^traer · no hay \.claude\/kit\.md en .*: lo que traje no es una adopción/);
+  assert.equal(t.lineas.length, 3, 'sin ficha: sin la línea del setup ni la de verificar');
   assert.equal(hooksPath(p, '--local'), '.githooks');
 });
 
@@ -1324,7 +1335,7 @@ test('crit. 2 (8r3 i1b; rt-4): --mirar sobre el bot → carpeta-docs: arti-docs,
   assert.match(mal.texto, /^# papeles: Arti-Docs\/ tiene SESSION_HANDOFF\.md pero ese nombre no sirve de carpeta-docs:/m);
   // sin ninguna y un docs/ ajeno: la línea que dice cómo elegir
   const sin = mirar(repoPelado('sin', { 'CLAUDE.md': '# sin\n', 'docs/docs.json': '{}\n', 'docs/a.md': '# a\n' }));
-  assert.match(sin.texto, /^# papeles: docs\/ ya tiene docs\.json y 2 archivos que no son del método — si es de otra cosa, escribí carpeta-docs: <otra> en la propuesta/m);
+  assert.match(sin.texto, /^# papeles: docs\/ ya tiene docs\.json y 2 archivos que no son del método — si es de otra cosa, escribí carpeta-docs: <otra> en el primer nivel de la propuesta, arriba de vars:/m);
 });
 
 test('crit. 2 (8r3 i1b; rt-5): --aplicar con carpeta-docs: arti-docs no toca docs/, escribe lo que falta en arti-docs/, la ficha tiene la clave, la mesa del .gitattributes y barreras verde; sin la clave y docs/ ajeno, se niega sin escribir', { ...deKit, timeout: 240000 }, async () => {
@@ -1896,4 +1907,47 @@ test('8d C1.3 (rt C1 1, ALTO): un vercel.json solo (el proveedor conectado a Git
   assert.deepEqual(preguntasDe(b.texto), [], 'un build --release no publica');
   const m = mirar(conCodigo('mono', { 'web/package.json': JSON.stringify({ name: 'web', dependencies: { stripe: '1' } }) }));
   assert.match(preguntasDe(m.texto).join('\n'), /# ¿\? plata — .*stripe/);
+});
+
+// 8e G1 (b): la salida del dueño cuando la flota dejó el repo entero en la versión vieja porque un script tocado a mano chocó.
+test('8e G1: resolver scripts nueva sobre una pieza molde con un archivo tocado a mano y sin informe → vuelve a la del molde de su versión; la ficha sigue en molde', { ...deKit, timeout: 300000 }, async () => {
+  const d = await adoptado(conDirectorPropio('hermes'));
+  assert.equal(F.leer(leer(d, '.claude/kit.md')).datos.piezas.scripts, 'molde');
+  const rel = '.claude/scripts/todo.cjs';
+  escribir(d, { [rel]: leer(d, rel).replace("'use strict';", "'use strict';\n// lo nuestro: un renglón tocado a mano") });
+  git(d, 'add', '-A');
+  git(d, 'commit', '-q', '-m', 'un renglón a mano en un script del kit');
+  const r = resolverEn(d, 'scripts', 'nueva', '--por', 'lo que toqué ya viene en la versión nueva');
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(leer(d, rel), delMolde(d, 'scripts/todo.cjs'));
+  assert.equal(F.leer(leer(d, '.claude/kit.md')).datos.piezas.scripts, 'molde');
+  assert.match(leer(d, 'docs/CHANGELOG.md'), /^kit .*: scripts molde → molde \(resolver nueva, sin informe\): lo que toqué ya viene en la versión nueva$/m);
+});
+
+// 8e b4, b5, b11 y D5 (el banco de la rc.7): lo que dejaba una adopción a medias sin avisar
+test('8e: --mirar avisa que no hay con qué probar (D5), del linter de la raíz, de .claude ignorado y de un repo sin commits; --aplicar se niega con .claude ignorado', { ...deKit, timeout: 300000 }, async () => {
+  const d = repoPelado('sinpruebas', { 'package.json': '{"name":"app"}\n', 'CLAUDE.md': '# x\n', 'eslint.config.mjs': 'export default [];\n', 'src/a.js': '1\n' });
+  const t = mirar(d).texto;
+  assert.match(t, /^# D5 · las pruebas: no encontré con qué probar este repo/m);
+  assert.match(t, /\{id: gate:entorno-prueba, por: "<por qué no hay>", hasta: siempre\}/);
+  assert.match(t, /^# linter: eslint\.config\.mjs — va a mirar los archivos del kit: sumá \.claude\/ y \.githooks\/ a lo que ignora/m);
+  assert.doesNotMatch(t, /está ignorado por el \.gitignore/);
+  assert.doesNotMatch(t, /todavía no tiene ningún commit/);
+  // con pruebas y sin linter, ninguna de las dos
+  const bien = mirar(conCodigo('conpruebas')).texto;
+  assert.doesNotMatch(bien, /D5 · las pruebas/);
+  assert.doesNotMatch(bien, /^# linter: /m);
+  // un repo sin ningún commit: es un proyecto nuevo
+  const vacio = nuevaCarpeta('vacio');
+  git(vacio, 'init', '-q', '-b', 'main');
+  assert.match(mirar(vacio).texto, /^# este repo todavía no tiene ningún commit: es un proyecto nuevo — corré --mirar con --nuevo/m);
+  // .claude ignorado: --mirar lo dice y --aplicar se niega sin escribir nada
+  const ig = repoPelado('ignorado', { 'package.json': PKG, 'CLAUDE.md': '# x\n', '.gitignore': '.claude\n' });
+  assert.match(mirar(ig).texto, /^# ⚠ \.claude\/ está ignorado por el \.gitignore de este repo: así no se adopta/m);
+  const prop = propuestaDe(ig);
+  rol(ig);
+  const r = await sinClaude(() => aplicarCon(ig, prop));
+  assert.equal(r.codigo, 1, r.lineas.join('\n'));
+  assert.match(r.lineas.join('\n'), /\.claude\/kit\.md está ignorado por el \.gitignore de este repo/);
+  assert.equal(git(ig, 'status', '--porcelain'), '', 'no escribió nada');
 });

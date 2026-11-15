@@ -103,7 +103,7 @@ function listar(o) {
     lineas.push(`  ${x.nombre} · ${ya ? `ya está (${ya})` : 'para traer'}`);
   }
   const n = c.repos.filter((x) => !loc.has(claveDe(x.url, x.nombre))).length;
-  lineas.push(n ? `${n} para traer — elegí cuáles (nunca traigo sin que elijas)` : 'todos ya están en tu carpeta');
+  lineas.push(n ? `${n} para traer — elegí cuáles (nunca traigo sin que elijas)${n > 30 ? '; son muchos: mostralos de a 30' : ''}` : 'todos ya están en tu carpeta');
   return { codigo: 0, lineas };
 }
 
@@ -117,9 +117,19 @@ function setupDe(dir) {
   }
 }
 
+// ¿El programa está en el PATH de esta PC? (where en Windows, command -v en los demás; si no se puede mirar, se da por que sí)
+function enElPath(prog) {
+  if (!/^[\w.+-]+$/.test(prog)) return true;
+  const r = process.platform === 'win32'
+    ? spawnSync('where', [prog], { encoding: 'utf8', windowsHide: true, timeout: 10000 })
+    : spawnSync('sh', ['-c', `command -v ${prog}`], { encoding: 'utf8', timeout: 10000 });
+  return r.error ? true : r.status === 0;
+}
+
 function clonar(o) {
   const lineas = [];
   let falla = false;
+  let traidos = 0;
   fs.mkdirSync(o.proyectos, { recursive: true });
   for (const nombre of o.repos) {
     const destino = path.join(o.proyectos, nombre.split('/')[1]);
@@ -144,9 +154,19 @@ function clonar(o) {
       } else partes.push(`core.hooksPath ya decía ${hp.out}: no lo toqué`);
     }
     const setup = conFicha ? setupDe(destino) : null;
-    if (setup) partes.push(`su comando-setup es «${setup}»: es código de ese repo, no lo corrí — la sesión te lo muestra y te pregunta`);
-    else if (!conFicha) partes.push('no tiene el kit (para sumarlo: "adoptá este repo")');
+    if (setup) {
+      partes.push(`su comando-setup es «${setup}»: es código de ese repo, no lo corrí — la sesión te lo muestra y te pregunta`);
+      // 8e b2 (el banco: pnpm, yarn y flutter faltaban en la PC y nadie lo decía): el programa con que arranca ese comando
+      const prog = setup.split(/\s+/)[0];
+      if (prog && !enElPath(prog)) partes.push(`⚠ falta ${prog} en esta PC: sin él ese comando no corre, ni una noche de ese repo`);
+    } else if (!conFicha) partes.push('no tiene el kit (para sumarlo: "adoptá este repo")');
     lineas.push(`${nombre} · ${partes.join(' · ')}`);
+    traidos += 1;
+  }
+  if (traidos) {
+    // 8e c17 y c5 (R2 y el banco): lo que el dueño todavía no sabe de una carpeta recién traída
+    lineas.push('las carpetas recién traídas todavía no son de confianza para Claude Code: abrí una sesión en cada una, una vez (y decile que sí a la carpeta); hasta entonces, una sesión de fondo ahí ignora los permisos del proyecto');
+    lineas.push('y ahora volvé a armar el plan de "preparame esta PC": así lo traído entra en las preguntas (si publica sola, sus entornos)');
   }
   return { codigo: falla ? 1 : 0, lineas };
 }

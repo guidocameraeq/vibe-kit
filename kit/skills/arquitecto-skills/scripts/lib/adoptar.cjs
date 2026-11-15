@@ -198,6 +198,17 @@ function caminoDelRojo(clon, principal) {
 }
 const lineaFichaVieja = (sha, camino) => `${RUTA_FICHA} ya estuvo en la historia (commit ${sha}) y la exención b pide que no haya existido nunca: el commit de la ficha falla en barreras — ${camino}`;
 
+// 8e b11: los archivos de configuración de un linter en la raíz del repo (los nombres de eslint, biome, oxlint y ruff).
+function lintersDeLaRaiz(carpeta) {
+  let nombres = [];
+  try {
+    nombres = fs.readdirSync(carpeta);
+  } catch (e) {
+    return [];
+  }
+  return nombres.filter((n) => n.startsWith('eslint.config.') || n.startsWith('.eslintrc') || ['.eslintignore', 'biome.json', 'biome.jsonc', '.oxlintrc.json', 'ruff.toml', '.ruff.toml'].includes(n)).sort();
+}
+
 // La carpeta: la raíz de un repo git, sin ficha.
 function revisarRaiz(carpeta) {
   if (!fs.existsSync(carpeta) || !fs.statSync(carpeta).isDirectory()) throw new Negativa(`${carpeta} no es una carpeta`);
@@ -562,7 +573,7 @@ function papeles(carpeta) {
   }
   if (docs.ajeno) {
     const que = [docs.sitio.length ? `tiene ${docs.sitio.join(', ')}` : '', `${docs.fuera} archivos que no son del método`].filter(Boolean).join(' y ');
-    lineas.push(`papeles: docs/ ya ${que} — si es de otra cosa, escribí carpeta-docs: <otra> en la propuesta (si los papeles van igual ahí, carpeta-docs: docs); sin la clave, --aplicar no escribe nada`);
+    lineas.push(`papeles: docs/ ya ${que} — si es de otra cosa, escribí carpeta-docs: <otra> en el primer nivel de la propuesta, arriba de vars: (si los papeles van igual ahí, carpeta-docs: docs); sin la clave, --aplicar no escribe nada`);
   }
   return { propone: null, carpeta: CARPETA_DOCS, lineas };
 }
@@ -956,6 +967,19 @@ function mirar(carpeta, opciones) {
     o(`vars: ${notas.join(' · ')}`);
     // t5: los dos comandos, en su línea, para la pantalla
     o(`comandos: setup ${vars['comando-setup'] || 'ninguno'} · test ${vars['comando-test'] || 'ninguno'}`);
+    // 8e B1 (el banco: 13 de 19 adoptados sin comando-test; el primer módulo no se sellaba y la noche no sumaba nada): se pregunta
+    // acá, en el mismo OK de la adopción, y lo que se elija va en la propuesta (entra en el commit de la ficha).
+    // 8e b11 (el banco: 299 errores de lint, todos en los archivos del kit): un linter en la raíz va a mirar .claude/ y .githooks/
+    const linters = lintersDeLaRaiz(carpeta);
+    if (linters.length) o(`linter: ${linters.join(', ')} — va a mirar los archivos del kit: sumá .claude/ y .githooks/ a lo que ignora (lo hace la sesión, en el commit de las piezas, con el mismo OK); si el lint está en el comando-test, sin eso el gate falla`);
+    // 8e b4 y b5: lo que deja la adopción a medias sin avisar
+    if (gitEn(carpeta, ['check-ignore', '-q', '--', RUTA_FICHA]).ok) o('⚠ .claude/ está ignorado por el .gitignore de este repo: así no se adopta (--aplicar se niega). Con el OK del dueño, la excepción al .gitignore va primero, en un commit aparte');
+    if (!nuevoRepo && !gitEn(carpeta, ['rev-parse', '--verify', '-q', 'HEAD']).ok) o('este repo todavía no tiene ningún commit: es un proyecto nuevo — corré --mirar con --nuevo (nace con lo base del kit, el candado y los módulos)');
+    if (nivel !== 'liviano' && !vars['comando-test']) {
+      o('D5 · las pruebas: no encontré con qué probar este repo, y sin eso el primer módulo no se sella y una noche no puede sumar su trabajo.');
+      o('  (recomendada) el comando que corre las pruebas, en la propuesta: vars.comando-test (o --mirar otra vez con --comando-test "<comando>")');
+      o('  (si de verdad no hay pruebas) que la ficha lo diga, en frenos.quitados de la propuesta: - {id: gate:entorno-prueba, por: "<por qué no hay>", hasta: siempre} — el commit de la ficha lo lleva, con el mismo OK');
+    }
     // t4: las bases y las herramientas (la propuesta de mirar nunca trae entornos: los declara la sesión con Guido)
     // CF-2: un manifiesto de npm en una subcarpeta que el setup no instala (el web/ en React de Hermes): el gate da rojo sin él
     const sub = manifiestosSinSetup(carpeta, vars['comando-setup'], carpetaDocs);
@@ -1117,6 +1141,8 @@ function aplicarPropuesta(carpeta, opciones) {
   }
   const version = A.versionDelKit(opciones.kit);
   if (datos.kit !== version) throw new Negativa(`la propuesta es del kit ${datos.kit} y el --kit es ${version} — corré --mirar de nuevo; no escribí nada`);
+  // 8e b4 (el banco: un repo con .claude en su .gitignore; --aplicar salía 0 y el git add que imprimía fallaba)
+  if (gitEn(carpeta, ['check-ignore', '-q', '--', RUTA_FICHA]).ok) throw new Negativa(`${RUTA_FICHA} está ignorado por el .gitignore de este repo: la ficha y las piezas del kit no se podrían commitear — con el OK del dueño, la excepción al .gitignore va primero, en un commit aparte; después, --mirar de nuevo. No escribí nada`);
   // 8r3 i1b: la carpeta de papeles de la propuesta (la validó la ficha); rt-5: un docs/ ajeno sin la clave → no se escribe nada
   const carpetaDocs = F.carpetaDocs(datos);
   if (!Object.prototype.hasOwnProperty.call(datos, 'carpeta-docs')) {
@@ -1875,6 +1901,11 @@ function traer(clon, principal) {
       lineas.push(`en tu carpeta, una vez: ${setup} (el sello corre comando-test acá); después, ${ACTUALIZAR} adoptar "${P}" --verificar (rt C1 6: que el setup no haya movido core.hooksPath)`);
       faltaSetup = true;
     }
+  }
+  // 8e b4: sin ficha en la carpeta no se trajo ninguna adopción (antes salía 0 con un aviso)
+  if (!hay(principal, RUTA_FICHA)) {
+    lineas.push(`traer · no hay ${RUTA_FICHA} en ${P}: lo que traje no es una adopción (¿la ficha quedó sin commitear, o .claude está ignorado en este repo?) — no toqué nada más`);
+    return { codigo: 4, lineas };
   }
   // 8d C1.5 (52): ¿quedó andando? Sale 1 si algo no anda, salvo el programa del comando-test que espera el setup de arriba
   const v = Q.verificarAdopcion(principal);

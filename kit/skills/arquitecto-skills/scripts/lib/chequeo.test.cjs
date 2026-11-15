@@ -984,3 +984,60 @@ test('8d C1.5 (rt C1 3 y 4): un hook propio que niega lo inocente o revienta (sa
   assert.equal(rk.ok, false);
   assert.match(lineaV(rk, 'hooks'), / · ❌ · \.claude\/hooks\/escritura-docs\.cjs no anda: .*salió 1/);
 });
+
+// ---------------------------------------------------------------- 8e (la rc.8) B1: sin comando-test, solo si la ficha lo dice
+
+test('8e B1, la línea 8: nivel estandar sin comando-test → ❌; con gate:entorno-prueba quitado y vigente en la ficha → ✅ "sin comando-test (quitado: …)"; vencido → ❌', { timeout: 120000 }, () => {
+  const fichaSin = (hasta) => {
+    const f = fichaCon({ kit: '3.0.0', comando: null });
+    if (!hasta) return f;
+    const g = f.replace(/^ {2}quitados: \[\]$/m, `  quitados:\n    - {id: gate:entorno-prueba, por: "no hay con qué probar", hasta: ${hasta}}`);
+    assert.notEqual(g, f);
+    return g;
+  };
+  const con = (hasta) => correr(armar({ cambio: (d) => escribir(path.join(d, '.claude', 'kit.md'), fichaSin(hasta)) }));
+  rojo(con(null), 'pruebas', /NO VERIFICADO: la ficha no dice vars\.comando-test/);
+  const r = con('siempre');
+  verde(r, 'pruebas');
+  assert.match(linea(r, 'pruebas'), /sin comando-test \(quitado: no hay con qué probar\)/);
+  rojo(con('2020-01-01'), 'pruebas', /NO VERIFICADO: la ficha no dice vars\.comando-test/);
+});
+
+// 8e G4 (3): de día, verificar avisa el permiso ancho que a la noche frenaría el cierre
+test('8e G4 verificar: con un permiso ancho en el settings del proyecto (Bash(git:*)) → una línea más, "noche · ⚠", que no traba; con git pull entero, o sin ninguno, la línea no sale', { timeout: 120000 }, () => {
+  const conAllow = (allow) => {
+    const p = armar({ cambio: (d) => escribir(path.join(d, '.githooks', 'pre-commit'), '#!/bin/sh\nexit 0\n') });
+    git(p.d, 'config', 'core.hooksPath', '.githooks');
+    const rs = path.join(p.d, '.claude', 'settings.json');
+    const s = JSON.parse(leer(rs));
+    s.permissions = s.permissions || {};
+    s.permissions.allow = [...(s.permissions.allow || []), ...allow];
+    escribir(rs, `${JSON.stringify(s, null, 2)}\n`);
+    return verif(p.d);
+  };
+  const ancho = conAllow(['Bash(git:*)']);
+  assert.match(lineaV(ancho, 'noche'), / · ⚠ · con el permiso Bash\(git:\*\) en el settings del proyecto, una noche no se cierra sola/, ancho.lineas.join('\n'));
+  assert.ok(!ancho.lineas.some((l) => / · ❌ · /.test(l) && /noche/.test(l)));
+  assert.equal(lineaV(conAllow(['Bash(git pull:*)']), 'noche'), '', 'git pull entero ya no frena el cierre');
+  assert.equal(lineaV(conAllow([]), 'noche'), '');
+});
+
+// 8e b5 (el banco: seis repos adoptados solo con la ficha daban ❌ en hooks y arranque)
+test('8e b5 verificar: lo que la ficha dice que no viene (settings: no, hook-arranque: no) no se pide; sin eso en la ficha, sigue ❌', { timeout: 120000 }, () => {
+  const soloFicha = (conPiezas) => {
+    const p = armar({ cambio: (d) => escribir(path.join(d, '.githooks', 'pre-commit'), '#!/bin/sh\nexit 0\n') });
+    git(p.d, 'config', 'core.hooksPath', '.githooks');
+    fs.rmSync(path.join(p.d, '.claude', 'settings.json'));
+    fs.rmSync(path.join(p.d, '.claude', 'hooks', 'session-start.cjs'));
+    if (conPiezas) escribir(path.join(p.d, '.claude', 'kit.md'), fichaCon({ kit: '3.0.0' }).replace(/^frenos:$/m, 'piezas:\n  settings: no\n  hook-arranque: no\nfrenos:'));
+    return verif(p.d);
+  };
+  const r = soloFicha(true);
+  assert.match(lineaV(r, 'hooks'), / · ⚠ · la ficha dice que no viene \(settings: no\): este repo queda sin esa parte del kit/, r.lineas.join('\n'));
+  assert.match(lineaV(r, 'arranque'), / · ⚠ · la ficha dice que no viene \(hook-arranque: no\): /);
+  assert.equal(r.ok, true, r.lineas.join('\n'));
+  const s = soloFicha(false);
+  assert.match(lineaV(s, 'hooks'), / · ❌ · /);
+  assert.match(lineaV(s, 'arranque'), / · ❌ · /);
+  assert.equal(s.ok, false);
+});
