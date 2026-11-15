@@ -5,6 +5,11 @@
 > Si algo de acá choca con lo que diga el handoff inyectado, manda este archivo; si choca con "Cambios al plan" del tracker con una
 > fecha posterior, manda el tracker.
 
+> **Cambió el 2026-11-15** (Guido, después de R2): antes de la `rc.8` va **el banco de prueba** (5a: el kit contra copias de todos
+> los repos de la cuenta, inocuo); la `rc.8` (5b) la decide y la escribe **Fable 5.2** y trae **todo** corregido (los grandes de R2,
+> los del banco y los chicos); después, **el banco otra vez** (5c) da el veredicto final, y la sesión 6 ya no arregla código.
+> Mandan las secciones 5a, 5b y 5c de abajo y la fila del 2026-11-15 de "Cambios al plan" del tracker.
+
 ## Para qué
 
 Guido, 2026-11-12: *"esta RC nueva podría llegar a ser la versión oficial. Si ya la planeamos bien, hacemos un spec bien pensado,
@@ -60,8 +65,10 @@ escrito.
 | 3 | `vibe-kit M5 · Tramo final · Construcción, tanda B` | Opus 5.5 | cuando cierre la 2 | ídem |
 | 4 | `vibe-kit M5 · Tramo final · Construcción, tanda C y el tag rc.7` | Opus 5.5 | cuando cierre la 3 | ídem, `kit/VERSION`, `kit/CHANGELOG.md`, el tag |
 | 5 | `vibe-kit M5 · Tramo final · R2 y la noche de prueba` | Opus 5.5; revisores Opus | con la `rc.7` taggeada | `docs/kit-v3/REVISION-INTEGRAL-rc7.md` |
-| 5b | `vibe-kit M5 · Tramo final · La rc.8` (solo si R2 la pide) | Opus 5.5 | si R2 encuentra algo grande | como la 4, con `3.0.0-rc.8` |
-| 6 | `vibe-kit M5 · Tramo final · La v3.0 y el repo cerrado` | Opus 5.5 | con R2 que dice "sale" | el tag `v3.0`, el ciclo escrito, la portada, `/cierre` completo |
+| 5a | `vibe-kit M5 · Tramo final · El banco de prueba` | Opus 5.5; un lector Sonnet por repo | con R2 cerrada (Guido, 2026-11-15) | `pruebas/banco/` (el script), `docs/kit-v3/BANCO-rc7.md`; el detalle de los repos del trabajo, en `vibe-research` |
+| 5b | `vibe-kit M5 · Tramo final · La rc.8` | **Fable 5.2** (decide y escribe); red team y revisor Opus; corridas Sonnet | con el banco cerrado | `docs/kit-v3/SPEC-paquete-8e.md`, `kit/`, el tag `3.0.0-rc.8` |
+| 5c | `vibe-kit M5 · Tramo final · El banco otra vez` | Opus 5.5; lectores Sonnet | con la `rc.8` taggeada | `docs/kit-v3/BANCO-rc8.md` (el veredicto final) |
+| 6 | `vibe-kit M5 · Tramo final · La v3.0 y el repo cerrado` | Opus 5.5 | con el banco otra vez que dice "sale" | el tag `v3.0`, el ciclo escrito, la portada, `/cierre` completo |
 
 - **En fila, una por vez** (tracker, "Paralelizar: decidido que no"; y nunca dos tandas pesadas a la vez en la PC).
 - **Las tandas A, B y C las define el spec**: el que lo escribe parte las ocho partes en tres grupos que **no tocan los mismos
@@ -80,7 +87,9 @@ escrito.
 | Al final de la sesión 1 | **Sellar el spec** (pasa a READY) y contestar lo de diseño que el spec no pudo cerrar | En criollo, una decisión por vez, la recomendada primero, con la vara del ADR-030 |
 | En la sesión 4, si el clasificador frena | Correr `kit-sync.sh sync` (escribe su `~/.claude/`) | Una sola línea, en PowerShell, sin `&&` |
 | Al tag `rc.7` | **OK para poner al día sus repos reales** con la flota (cuáles) | La lista de repos con lo que cambia en cada uno, en criollo |
-| Al final de la sesión 5 | Si sale `v3.0` o va una `rc.8` | El veredicto de R2 en tres líneas y la recomendada |
+| Al final de la sesión 5 | Si sale `v3.0` o va una `rc.8` | El veredicto de R2 en tres líneas y la recomendada (✅ 2026-11-15: `rc.8`, con el banco antes) |
+| Cuando quiera, antes de la 6 | **El clic de P7** (firmar un cambio de freno en la pestaña del director, ~5 min): cierra el criterio 18 | `../vibe-kit-pruebas/rc7/p7-firma/LEEME-P7.txt` |
+| Al final de la 5c | **Qué criterios de los 20 pasan a fase 2 por escrito** (los que piden una pestaña de VS Code, otra PC o una migración real) | La lista, cada uno con por qué no se pudo medir y la recomendada |
 | En la sesión 6 | **OK para publicar la `v3.0`** (tag y push) | Qué se publica y qué cambia para él |
 
 Todo lo demás lo decide la sesión que lo encuentra (ADR-034) y lo anota. Si Guido no está, lo de diseño **espera** y lo técnico sigue.
@@ -223,10 +232,84 @@ Todo lo demás lo decide la sesión que lo encuentra (ADR-034) y lo anota. Si Gu
 >
 > Presupuesto ~4 h y ~5 subagentes.
 
-## Sesión 5b — La `rc.8` (solo si R2 la pide)
+## Sesión 5a — El banco de prueba (2026-11-15, pedido de Guido)
 
-Como las sesiones 2-4 en una sola tanda: los hallazgos grandes de R2, con su prueba, red team si tocan un freno, la suite, la flota y
-el tag `v3.0.0-rc.8`. Después, **solo lo de R2 que falló** se vuelve a mirar (no otra R2 entera), y sigue la sesión 6.
+**Modelo**: Opus 5.5; un lector Sonnet por repo (nunca Fable). **Escribe**: `pruebas/banco/` (el script, genérico: sin nombres de
+repos ni de clientes), `docs/kit-v3/BANCO-rc7.md` (en abstracto: vibe-kit es público) y el detalle por repo en el privado
+(`../vibe-research/banco/`). Del kit, solo lectura.
+
+Guido: *"que alguien intente el kit con todos mis repos reales, que haga pruebas falsas, intente adaptarlo… algo útil pero inocuo"*.
+R2 probó un solo repo real (Deptos) y ahí salieron tres de los cinco grandes: el banco hace lo mismo con **todos**.
+
+> Sos el banco de prueba de la `rc.7`. Hacés de dueño, con el kit, sobre **copias** de todos los repos de la cuenta de Guido (los que
+> tienen el kit y los que no), y medís qué se rompe, qué pregunta y qué no se entiende. **Nada de lo real se toca.**
+>
+> **Lo inocuo, primero (no se negocia):**
+> 1. **La foto de antes**: de cada carpeta real de proyecto (la carpeta de proyectos de la PC), `HEAD`, rama y `git status --porcelain`,
+>    a un archivo del banco. **Al final, la misma foto y la comparación**: si algo cambió, eso va primero en el informe.
+> 2. **Todo en una carpeta del banco** en el scratchpad: cada repo, `git clone` (de la carpeta real si está en la PC, si no de GitHub
+>    con `gh`, solo lectura) y su `origin` cambiado a un `bare` local del banco. **Antes de cada `push`**, el script mira que el `origin`
+>    caiga adentro del banco; si no, se niega.
+> 3. **Sin llaves**: no se copia ningún `.env` (solo los `.env.example` versionados); las sesiones corren con un **HOME de mentira**
+>    (`KIT_HOME_PC`, `GH_CONFIG_DIR` vacío, sin `GH_TOKEN`), así no ven el `~/.claude/` real, la sesión de `gh` ni la de Vercel o
+>    Supabase. Las skills que publican (`release`, `deploy` y parecidas) salen en un commit del andamio; el "publicar", de mentira
+>    (como el de R2). Docker no se toca.
+> 4. Lo que no se puede aislar (la red), se dice en el informe.
+>
+> **Qué se prueba:**
+> 1. **Primera vuelta, en todos los repos** (barata, un lector Sonnet por repo, de a uno o dos):
+>    - preparar la PC con el HOME de mentira trayendo los repos de la cuenta (prueba C2 de verdad);
+>    - adoptar los que no tienen kit (criterio 10) y poner al día con la flota los que lo tienen (G1 de R2: los scripts tocados a mano);
+>    - `adoptar --verificar`, las pruebas propias de cada repo, un `/inicio` y un pedido chico de mentira (el tamaño en una línea).
+> 2. **Segunda vuelta, en 2 o 3 repos elegidos** (cara, Opus, sola en la PC): un módulo chico con director y obreros, **la noche
+>    entera** y `/estado` a la mañana, como la noche de R2. Elegí con variedad: uno que se usó entero, uno que nunca usó director y uno
+>    recién adoptado.
+> 3. **La tabla**: por repo, qué pasó en cada paso (pasó / falló / preguntó), con su evidencia; y la lista de hallazgos, cada uno
+>    **grande** (rompe un repo, un criterio de éxito o un agujero) o **chico**, con su arreglo propuesto. Lo que ya está en R2
+>    (G1-G5, c1-c21) no se repite: se marca "visto también en N repos".
+> 4. **Los 20 criterios**: los que el banco deja tildar con evidencia (el 10 seguro; el 6, el 15 y el 19 si algún repo lo da).
+> 5. **El script queda** para correrlo otra vez (5c) y en cada vuelta del ciclo.
+>
+> Presupuesto ~4-5 h. Si no entra, primero la vuelta 1 entera y una noche; el resto, anotado.
+
+## Sesión 5b — La `rc.8`: todo corregido, con Fable
+
+**Modelo**: **Fable 5.2** como modelo principal: decide y escribe los arreglos (Guido, 2026-11-15: *"correcciones quirúrgicas, con
+Fable de tomador de decisiones"*). Sus subagentes, nunca en Fable: el red team y el revisor frío en Opus, las corridas largas
+(suite, flota, banco) en Sonnet u Opus. **Escribe**: `docs/kit-v3/SPEC-paquete-8e.md` (delta corto), `kit/`, `kit/VERSION`
+`3.0.0-rc.8`, `kit/CHANGELOG.md`, el tag. **La lanza el director, que verifica el modelo con `get_session`** (pedir Fable desde
+Opus se ignora sin aviso: se corrige con `set_session_model`).
+
+> Sos la `rc.8`, la última `rc` antes de la `v3.0`. Traés **todo** corregido, para que la sesión 6 no arregle código:
+>
+> 1. **El delta** (`SPEC-paquete-8e.md`, corto, formato delta): la lista entera con su origen: los cinco grandes de R2 (G1-G5,
+>    `REVISION-INTEGRAL-rc7.md`), los grandes y chicos del banco (`BANCO-rc7.md`), los chicos de R2 (c1-c21) y lo que R2 dejó suelto
+>    (`git-seguro.test` "4.7 caso 1", el renglón de `frenos.log` en la forma que anda en las dos versiones). De cada uno: el arreglo
+>    **quirúrgico** (la función o la regla que cambia, no un rediseño), su prueba y si toca un freno. Lo que sea de diseño o no entre
+>    sin rediseñar, a la `v3.1` con su razón. Sin sello de Guido: es un delta de arreglos (ADR-034); lo de diseño, se lo pregunta el
+>    director.
+> 2. **Cada arreglo**: la prueba primero (que falle sin el cambio), el cambio, la prueba que pasa, commit chico y push. Si toca un
+>    freno, red team de ese cambio (Opus, una ronda) y mutación.
+> 3. **Al final, en este orden y de a una**: el revisor frío (Opus) sobre todo el diff; la suite entera sola en segundo plano; la flota
+>    de prueba (alfa, beta, gama) y **el script del banco, vuelta 1**, sobre las copias; si todo pasa, `kit/VERSION`, la nota de
+>    migración, el tag `v3.0.0-rc.8` después de la suite, push y `kit-sync.sh sync`.
+>
+> Presupuesto ~6 h; si no entra, el director lanza su continuación (con el revisor, la suite, la flota y el tag).
+
+## Sesión 5c — El banco otra vez
+
+**Modelo**: Opus 5.5; lectores Sonnet. **Escribe**: `docs/kit-v3/BANCO-rc8.md`. Del kit, solo lectura.
+
+> Sos la verificación final antes de la `v3.0`. Con el script del banco (`pruebas/banco/`) sobre la `rc.8`:
+> 1. la vuelta 1 en todos los repos (lo que la 5b ya corrió no se repite: se lee su salida);
+> 2. **la noche entera** en el clon de Deptos (la de R2) y en uno más de los que fallaron en 5a; los cuatro criterios de éxito con su
+>    evidencia;
+> 3. **solo lo que falló** en R2 y en el banco, uno por uno: arreglado o no;
+> 4. los 20 criterios: cuáles se tildan y cuáles **le propone a Guido pasar a fase 2 por escrito**, cada uno con por qué;
+> 5. arriba, en criollo, **el veredicto: sale la `v3.0` o no**, en tres líneas. "No" solo por algo grande; lo chico va a la sesión 6
+>    como nota o a la `v3.1`.
+>
+> Presupuesto ~3 h. La foto de antes y después de las carpetas reales, como en 5a.
 
 ## Sesión 6 — La `v3.0` y el repo cerrado
 
@@ -235,7 +318,8 @@ el tag `v3.0.0-rc.8`. Después, **solo lo de R2 que falló** se vuelve a mirar (
 > Sos la sesión que saca la `v3.0` y deja el repo cerrado. Guido: *"cerrar el repo con todo el ciclo de mejora, cómo lo hicimos, todas
 > las RC que son los fixes, cómo sacar una versión nueva"*.
 >
-> 1. **Los arreglos chicos de R2** que el informe manda acá (con sus pruebas), si los hay.
+> 1. **Sin arreglos de código** (desde el 2026-11-15 todo va a la `rc.8`). Si el banco otra vez (5c) dejó algo chico, solo texto o
+>    docs; lo que sea código, a la `v3.1`. Con la lista de 5c, Guido pasa a fase 2 por escrito los criterios que no se pudieron medir.
 > 2. **El ciclo escrito** en `docs/CICLO-DE-MEJORA.md` (es una receta, no una skill: regla de 3+), con la vuelta 1 vivida entera:
 >    - **la 6b**: §3.5 (probar en un proyecto real y medir: lo que hicimos con Deptos, Hermes y los siete repos) y §8 (la fecha de
 >      corte de la próxima vuelta y el diario);
