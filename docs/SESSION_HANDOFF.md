@@ -3,8 +3,8 @@
 > **Save game** del proyecto madre. `/cierre` lo sobreescribe entero; el hook SessionStart lo inyecta en cada chat
 > nuevo de esta carpeta. **Tope 5.500 bytes**; el hook corta y avisa "CORTADO" si se pasa, y termina con la huella.
 
-**CIERRE PARCIAL** 2026-11-14 del **director del tramo final** (PC `Usuario`): cerraron la sesión 1 (el spec de la `rc.7`
-READY), las tandas A, B y C enteras y el tag **`v3.0.0-rc.7`** (en `main`); sigue **R2**.
+**CIERRE PARCIAL** 2026-11-15 del **director del tramo final** (PC `Usuario`): cerraron la sesión 1 (el spec de la `rc.7`
+READY), las tandas A, B y C enteras el tag **`v3.0.0-rc.7`** y **R2** (en `main`: veredicto `rc.8` corta, 5 grandes); espera la decisión de Guido.
 
 ## Dónde estamos
 
@@ -19,14 +19,14 @@ READY), las tandas A, B y C enteras y el tag **`v3.0.0-rc.7`** (en `main`); sigu
 ## Próximo paso
 
 **El director del tramo final** sigue `docs/kit-v3/TRAMO-FINAL-PLAN.md`, sección 0 (**manda ese archivo**). Hecho: el spec
-`SPEC-paquete-8d.md` READY (Fable 5.2), las tandas A, B, C y el tag `rc.7`. Sigue R2 (sesión 5; el clon de Deptos da ROTA por una prueba propia que
-lee `frenos.log`: un renglón, en la nota de migración) → la decisión de Guido con la noche de prueba → (`rc.8` solo si R2 la pide) → la `v3.0` y el repo cerrado (el M6b va ahí).
+`SPEC-paquete-8d.md` READY (Fable 5.2), las tandas A, B, C y el tag `rc.7`. R2 hecha (`REVISION-INTEGRAL-rc7.md`: G1-G5, la noche no se cerró sola en el clon
+de Deptos) → la decisión de Guido → la `rc.8` (5b: los 5 grandes y repetir solo la noche) → la `v3.0` y el repo cerrado (el M6b va ahí).
 El director **no lanza solo**: cada sesión es una tarjeta que Guido arranca con un clic; después del clic, verificar el modelo con
 `get_session` (pedir Fable desde Opus se ignora sin aviso). Si sos una de las sesiones 1 a 6: tu tarea es tu sección; no hace falta `/inicio`.
 
 ## Te espera (Guido)
 
-- El OK para poner al día sus repos reales con la `rc.7` (la flota); el veredicto `v3.0`/`rc.8` cuando cierre R2; opcional, el clic de P7 (`../vibe-kit-pruebas/rc7/p7-firma/LEEME-P7.txt`).
+- El OK para poner al día sus repos reales con la `rc.7` (la flota); decidir `rc.8` (la recomendada) o `v3.0` con lo que dice R2; opcional, el clic de P7 (`../vibe-kit-pruebas/rc7/p7-firma/LEEME-P7.txt`).
 - Lo demás, solo lo de la tabla "Dónde lo necesita a Guido" del plan del tramo final.
 
 ## Cosas que muerden y no están en ningún otro doc
