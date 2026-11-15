@@ -295,13 +295,13 @@ test('crit. 16: main protegido (pre-receive) → kit/v3.0.0-rc.1 queda viva y va
   assert.equal(r.codigo, 0, texto);
   const f = fila(r, 'alfa');
   assert.equal(f.resultado, 'te espera', texto);
-  assert.match(f.porque, /protegida; mezclá kit\/v3\.0\.0-rc\.1 vos/);
+  assert.match(f.porque, /protegida; decime y mezclo kit\/v3\.0\.0-rc\.1/);
   assert.match(f.porque, /te espera: hook-x/);
   assert.equal(git(x.bare, 'rev-parse', 'main'), x.base, 'main no se movió');
   assert.deepEqual(ramasKit(x.bare), ['refs/heads/kit/v3.0.0-rc.1']);
   assert.equal(git(x.bare, 'rev-parse', 'kit/v3.0.0-rc.1^'), x.base);
   assert.match(texto, /^te espera:$/m);
-  assert.match(texto, /^ {2}- alfa: la rama por defecto está protegida; mezclá kit\/v3\.0\.0-rc\.1 en main vos$/m);
+  assert.match(texto, /^ {2}- alfa: la rama por defecto está protegida; decime y mezclo kit\/v3\.0\.0-rc\.1 en main$/m);
   assert.match(texto, /^ {2}- en alfa, la próxima sesión te pregunta por hook-x$/m);
 });
 
@@ -699,7 +699,8 @@ test('fusionDe, primeraRoja, porqueRechazo, resolverOrigen', () => {
     'a · molde · reemplazada', 'b · adaptada · fusionada (sola, el paso · seis)', 'c · adaptada · fusionada (sola, otro)',
     'd · adaptada (desvío detectado) · te espera: sin porqué · desvío: no se tocó (x)', 'e · adaptada · sin cambios', 'b · adaptada · fusionada (sola, el paso · seis)',
     'f · adaptada · te espera: la mezcla chocó: la propuesta la armó claude, elegí vos',
-  ]), { fusionadas: ['b', 'c'], esperan: ['d', 'f'] });
+    'g · adaptada · te espera: te quedaste con la tuya en el kit 2.9.0: se te vuelve a ofrecer desde ahí, no se fusiona sola',
+  ]), { fusionadas: ['b', 'c'], esperan: ['d', 'f', 'g'], decididas: ['g'] }); // 8e G1 (red team, 5): la que el dueño ya contestó
   assert.equal(FL.porqueRechazo('! [remote rejected] main -> main (pre-receive hook declined)'), 'la rama por defecto está protegida');
   assert.equal(FL.porqueRechazo(' ! [rejected] main -> main (fetch first)'), 'la rama por defecto se movió mientras actualizaba');
   const d = path.join(T, 'x');
@@ -1093,4 +1094,43 @@ test('8d C1.5 (A5.2): con chequear bien, si --verificar da ❌ en los hooks la f
   const ry = await correr({ repos: ['gama'], canon, proyectos: P, chequear: chequearVerde, verificar: () => ({ ok: true, lineas: [] }) });
   assert.equal(fila(ry, 'gama').resultado, 'mezclado', ry.lineas.join('\n'));
   assert.ok(y);
+});
+
+// ---------------------------------------------------------------- 8e (la rc.8) G1: la flota no mezcla a medias
+
+const TOCAR_TODO = (renglon) => (t) => t.replace("'use strict';\n", `'use strict';\n${renglon}\n`);
+test('8e G1: un script del kit tocado a mano que choca con lo nuevo → main queda entero en la versión vieja; kit/<tag> con la marca ESPERA y el informe; resuelto, la corrida siguiente la rehace y mezcla', async () => {
+  const canon = armarCanon({ molde: moldeCon((d) => editar(d, 'scripts/todo.cjs', TOCAR_TODO('// kit 3.0.0: un renglón nuevo del molde'))) });
+  const P = nuevaCarpeta('proyectos');
+  const x = armarRepo(P, 'alfa', {
+    antes: (d) => {
+      editar(d, '.claude/scripts/todo.cjs', TOCAR_TODO('// lo nuestro: un renglón tocado a mano'));
+      git(d, 'add', '-A');
+      git(d, 'commit', '-q', '--amend', '--no-edit');
+    },
+  });
+  const r = await correr({ repos: ['alfa'], canon, tag: 'v3.0.0-rc.1', proyectos: P });
+  const texto = r.lineas.join('\n');
+  const f = fila(r, 'alfa');
+  assert.equal(f.resultado, 'te espera', texto);
+  assert.equal(git(x.bare, 'rev-parse', 'main'), x.base, 'la rama por defecto no se tocó: el repo sigue entero en la versión vieja');
+  assert.deepEqual(ramasKit(x.bare), ['refs/heads/kit/v3.0.0-rc.1']);
+  assert.match(git(x.bare, 'log', '-1', '--format=%s', 'kit/v3.0.0-rc.1'), /^kit: ESPERA — scripts$/);
+  assert.match(git(x.bare, 'show', 'kit/v3.0.0-rc.1:.claude/fusiones/scripts.md'), /la mezcla chocó/);
+  assert.match(texto, /^ {2}- alfa: quedó entero en 2\.9\.0 .*scripts/m);
+  assert.doesNotMatch(texto, /mezclá .* vos/);
+  // sin resolver, la corrida siguiente no la saltea: la rehace (un delete y un push nuevo) y sigue esperando
+  const r2 = await correr({ repos: ['alfa'], canon, tag: 'v3.0.0-rc.1', proyectos: P });
+  assert.equal(fila(r2, 'alfa').resultado, 'te espera', r2.lineas.join('\n'));
+  assert.equal(git(x.bare, 'rev-parse', 'main'), x.base);
+  // resuelto (la del molde de su versión otra vez, en la rama por defecto): la corrida siguiente mezcla y no queda ninguna kit/*
+  const c = nuevaCarpeta('clon-resuelve');
+  git(T, 'clone', '-q', x.bare, c);
+  fs.copyFileSync(path.join(MOLDE_VIEJO, 'scripts', 'todo.cjs'), path.join(c, '.claude', 'scripts', 'todo.cjs'));
+  git(c, 'commit', '-q', '-am', 'scripts: la del kit');
+  git(c, 'push', '-q', 'origin', 'HEAD:main');
+  const r3 = await correr({ repos: ['alfa'], canon, tag: 'v3.0.0-rc.1', proyectos: P });
+  assert.equal(fila(r3, 'alfa').resultado, 'mezclado', r3.lineas.join('\n'));
+  assert.deepEqual(ramasKit(x.bare), []);
+  assert.match(git(x.bare, 'show', 'main:.claude/scripts/todo.cjs'), /kit 3\.0\.0: un renglón nuevo del molde/);
 });

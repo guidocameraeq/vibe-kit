@@ -52,6 +52,11 @@ const PLAZO_RED = 5 * 60 * 1000; // clon y push: nada colgado
 const PLAZO_LOCAL = 60 * 1000;
 const RE_TAG = /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-rc\.(0|[1-9]\d*))?$/;
 const RE_ROTA = /^kit: ROTA — /;
+// 8e G1: la marca de una kit/<tag> que no se mezcló porque espera una pieza que las skills llaman, y cuáles son esas piezas (las de
+// .claude/scripts/: los pasos de /director, /estado, /inicio y /cierre son comandos de esos scripts). hooks-lib tiene su propio
+// camino (la línea 7 y --verificar la dejan ROTA si los hooks nuevos no andan con la lib vieja).
+const RE_ESPERA = /^kit: ESPERA — /;
+const LLAMADAS = ['scripts', 'candado', 'cambios-metodo'];
 // La identidad del commit del kit: va por el entorno, que le gana a la config de la PC y a un GIT_AUTHOR_* heredado.
 const IDENTIDAD = {
   GIT_AUTHOR_NAME: 'kit-actualizador', GIT_AUTHOR_EMAIL: 'kit-actualizador@kit.invalid',
@@ -219,14 +224,20 @@ function etiquetaDe(dir, proyectos) {
 function fusionDe(lineas) {
   const fusionadas = [];
   const esperan = [];
+  // 8e G1 (red team, 5): las que esperan porque el dueño YA contestó "me quedo con la mía" (`desde:` en la ficha). Esas no frenan
+  // la mezcla: fue su decisión, y si frenaran el repo no avanzaría nunca más.
+  const decididas = [];
   for (const l of lineas || []) {
     const p = String(l).split(' · ');
     if (p.length < 3) continue;
     const resto = p.slice(2).join(' · ');
     if (/^fusionada \(/.test(resto) && !fusionadas.includes(p[0])) fusionadas.push(p[0]);
-    else if (/^te espera: /.test(resto) && !esperan.includes(p[0])) esperan.push(p[0]);
+    else if (/^te espera: /.test(resto) && !esperan.includes(p[0])) {
+      esperan.push(p[0]);
+      if (/te quedaste con la tuya/.test(resto)) decididas.push(p[0]);
+    }
   }
-  return { fusionadas, esperan };
+  return { fusionadas, esperan, decididas };
 }
 const primeraRoja = (lineas) => (lineas || []).find((l) => / · ❌ · /.test(l)) || (lineas || []).find(Boolean) || 'chequear no dijo nada';
 
@@ -423,11 +434,13 @@ async function actualizarMain(nombre, url, ctx, est) {
   let rehecha = false;
   if (ramas.includes(rama)) {
     const s = git(clon, ['log', '-1', '--format=%s', `refs/remotes/origin/${rama}`]);
-    if (!s.ok || !RE_ROTA.test(s.out.trim())) return fin('salteado', `${rama} ya está en el remoto: la sesión te ofrece mezclarla o, si no la querés, borrarla (la próxima corrida la rehace)`);
-    // D6-16: la ROTA se borra y se rehace — un delete y un push nuevo, nunca --force
+    const marca = s.ok ? s.out.trim() : '';
+    if (!RE_ROTA.test(marca) && !RE_ESPERA.test(marca)) return fin('salteado', `${rama} ya está en el remoto: la sesión te ofrece mezclarla o, si no la querés, borrarla (la próxima corrida la rehace)`);
+    // D6-16: la ROTA se borra y se rehace — un delete y un push nuevo, nunca --force. 8e G1: la que quedó esperando una pieza
+    // de la que dependen las demás (la marca ESPERA), también: si el dueño ya la resolvió, esta corrida mezcla.
     const d = git(clon, ['push', '-q', 'origin', '--delete', rama], { plazo: PLAZO_RED });
-    if (!d.ok) return fin('sin tocar', `${rama} está ROTA y no pude borrarla del remoto: ${d.colgado ? 'no respondió' : primera(d.err)}`);
-    rehecha = true;
+    if (!d.ok) return fin('sin tocar', `${rama} está ${RE_ROTA.test(marca) ? 'ROTA' : 'esperando'} y no pude borrarla del remoto: ${d.colgado ? 'no respondió' : primera(d.err)}`);
+    rehecha = RE_ROTA.test(marca);
   }
 
   // (4) el rol y la rama
@@ -516,6 +529,22 @@ async function actualizarMain(nombre, url, ctx, est) {
     notas.push(Q.avisoHooksLib((e && e.base) || fila.antes));
   }
   notas.push(...Q.avisosDe(ch.lineas)); // D8r.4 (S): un ⚠ de chequear (la zona propia que pasa el tope) va a la fila; no la vuelve ROTA
+  // 8e G1 (R2, el clon de Deptos): si quedó esperando una pieza que las skills llaman (los scripts), NO se mezcla. Con ella vieja y
+  // lo demás nuevo el repo queda a medias (el /director nuevo manda un comando que el script viejo no tiene). La rama por defecto
+  // no se toca: el repo sigue entero en la versión de antes. kit/<tag> sube con la marca ESPERA (lleva el informe) y la corrida
+  // siguiente la rehace. Va ANTES de mirar si chequear pasó (revisor frío, 3): ese estado a medias puede hacer fallar una línea, y
+  // al dueño le sirve la pregunta ("¿qué hacemos con lo que tocaste?"), no un "quedó ROTA" por la primera línea que cayó.
+  const llamadas = fus.esperan.filter((id) => LLAMADAS.includes(id) && !(fus.decididas || []).includes(id));
+  if (llamadas.length) {
+    ponerHooks();
+    const mc = git(clon, ['commit', '-q', '--allow-empty', '-m', `kit: ESPERA — ${llamadas.join(', ')}`, ...(ch.codigo !== 0 ? ['-m', ch.lineas.join('\n')] : [])], { env, plazo: PLAZO_RED });
+    if (!mc.ok) throw new Error(`no pude commitear la marca ESPERA: ${primera(mc.err)}`);
+    const q = git(clon, ['push', '-q', 'origin', `${rama}:refs/heads/${rama}`], { env, plazo: PLAZO_RED });
+    const subida = q.ok ? '' : ` (no pude subir ${rama}: ${q.colgado ? 'el remoto no respondió' : primera(q.err)})`;
+    const cuales = llamadas.join(', ');
+    fila.espera.push(`${nombre}: quedó entero en ${fila.antes} — en ${cuales} hay algo tocado a mano que choca con la versión nueva, y sin esa pieza lo demás no anda. Decime qué hacemos con eso (lo más simple: tomar la del kit; lo tuyo queda en la historia) y lo vuelvo a poner al día${subida}`);
+    return fin('te espera', conNotas(`${cuales} chocó con algo tocado a mano: no mezclé nada${ch.codigo !== 0 ? ` (y así el chequeo dio: ${primeraRoja(ch.lineas)})` : ''}${subida}`));
+  }
   // 8d C1.5 (52; A5.2): con chequear bien, que los hooks registrados anden (dejan pasar lo inocente) y el arranque corra; si no, no
   // se mezcla: un settings adelantado a su lib (hook-sensible sin hooks-lib) negaría todo en la rama por defecto. Lo demás de
   // --verificar (el comando-test, core.hooksPath) en el clon no dice nada de la carpeta del dueño: lo mira --traer allá.
@@ -560,9 +589,9 @@ async function actualizarMain(nombre, url, ctx, est) {
   const porque = porqueRechazo(p.err);
   const q = git(clon, ['push', '-q', 'origin', `${rama}:refs/heads/${rama}`], { env, plazo: PLAZO_RED });
   if (!q.ok) return fin('sin tocar', conNotas(`${porque} (${primera(p.err)}) y no pude subir ${rama}: ${q.colgado ? 'no respondió' : primera(q.err)}`));
-  fila.espera.push(`${nombre}: ${porque}; mezclá ${rama} en ${def} vos`);
+  fila.espera.push(`${nombre}: ${porque}; decime y mezclo ${rama} en ${def}`);
   avisarFusiones();
-  return fin('te espera', conNotas(`${porque}; mezclá ${rama} vos`));
+  return fin('te espera', conNotas(`${porque}; decime y mezclo ${rama}`));
 }
 
 // ---------------------------------------------------------------- la tabla
@@ -669,4 +698,4 @@ async function main(argv) {
   });
 }
 
-module.exports = { flota, main, leerArgs, probarModulos, rojosDeBarreras, SI_SABES, entorno, porqueNoSubio, actualizarRepo, pendienteDeSubir, hooksDelMolde, prepararCanon, tagsDe, elegirTag, compararTags, versionDeTag, origenDe, resolverOrigen, todosLosRepos, rutaDeRepo, fusionDe, primeraRoja, porqueRechazo, tabla, Negativa, RE_ROTA };
+module.exports = { flota, main, leerArgs, probarModulos, rojosDeBarreras, SI_SABES, entorno, porqueNoSubio, actualizarRepo, pendienteDeSubir, hooksDelMolde, prepararCanon, tagsDe, elegirTag, compararTags, versionDeTag, origenDe, resolverOrigen, todosLosRepos, rutaDeRepo, fusionDe, primeraRoja, porqueRechazo, tabla, Negativa, RE_ROTA, RE_ESPERA, LLAMADAS };

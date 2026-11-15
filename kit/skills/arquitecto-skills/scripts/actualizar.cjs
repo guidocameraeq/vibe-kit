@@ -1015,8 +1015,9 @@ const entreComillas = (s) => `"${String(s).replace(/["\\$`]/g, '')}"`;
 // aprobar → el commit de la pieza (el sello va antes del primer commit que toca: barreras.cjs, cubre).
 function nuevaSinInforme(raiz, { id, def, datos, textoFicha, por, kit: kitPedido, no, leerD }) {
   const vFicha = datos.kit;
+  const estaba = estadoDe((esMapa(datos.piezas) ? datos.piezas : {})[id]) || 'propia'; // 8e G1: también molde y molde+propio
   const kit = kitParaResolver(kitPedido);
-  if (!kit) return no(`${id} está propia y no hay informe: nueva trae la del molde del kit ${vFicha}, y acá no encuentro el molde — pasá --kit <un clon del kit en v${vFicha}>; no toqué nada`);
+  if (!kit) return no(`${id} está ${estaba} y no hay informe: nueva trae la del molde del kit ${vFicha}, y acá no encuentro el molde — pasá --kit <un clon del kit en v${vFicha}>; no toqué nada`);
   let vKit;
   try {
     vKit = versionDelKit(kit);
@@ -1085,7 +1086,7 @@ function nuevaSinInforme(raiz, { id, def, datos, textoFicha, por, kit: kitPedido
   }
   const p = porLimpio(por);
   const changelog = rutaChangelog(carpetaDocs);
-  const renglon = `kit ${vFicha}: ${id} propia → molde (resolver nueva, sin informe): ${p}`;
+  const renglon = `kit ${vFicha}: ${id} ${estaba} → molde (resolver nueva, sin informe): ${p}`;
   let t = leerD(changelog);
   t = ponerRenglon(t === null ? '' : lf(t), renglon);
   const escritos = [...ops.keys()];
@@ -1112,10 +1113,10 @@ function nuevaSinInforme(raiz, { id, def, datos, textoFicha, por, kit: kitPedido
     if (cuerpo) {
       fs.mkdirSync(path.dirname(cuerpo), { recursive: true });
       fs.writeFileSync(cuerpo, [
-        '## Caso de origen', `${id} estaba propia en la ficha y se trae la del kit ${vFicha} (resolver ${id} nueva, sin informe): ${p}`, '',
+        '## Caso de origen', `${id} estaba ${estaba} en la ficha y se trae la del kit ${vFicha} (resolver ${id} nueva, sin informe): ${p}`, '',
         '## Regla', `${id} pasa a la del molde del kit ${vFicha} (${valor})`, '',
         '## Dónde vive', escritos.join(', '), '',
-        '## Medición', '| antes | después |', '|---|---|', `| ${id}: propia | ${id}: ${valor.replace(/\|/g, '/')} |`, '',
+        '## Medición', '| antes | después |', '|---|---|', `| ${id}: ${estaba} | ${id}: ${valor.replace(/\|/g, '/')} |`, '',
       ].join('\n'));
     }
   } catch (e) {
@@ -1186,8 +1187,10 @@ function resolver(carpeta, id, salidaPedida, { por, aMano = false, kit } = {}) {
   if (!Object.prototype.hasOwnProperty.call(piezas, id)) return no(`la ficha no tiene la pieza ${id}`);
   const rInforme = FU.rutaInforme(id);
   const textoInforme = leerD(rInforme);
-  // 8r3 i5 (rt-7): nueva sobre una propia, sin informe (la flota saltea una ficha al día): la del molde de la versión de la ficha
-  if (textoInforme === null && salida === 'nueva' && estadoDe(piezas[id]) === 'propia') {
+  // 8r3 i5 (rt-7): nueva sobre una propia, sin informe (la flota saltea una ficha al día): la del molde de la versión de la ficha.
+  // 8e G1: también sobre una molde o molde+propio (un archivo tocado a mano que chocó con la versión nueva: la flota no mezcló
+  // nada y el informe quedó en kit/<tag>): vuelve a la del molde de SU versión, y la flota siguiente la actualiza limpia.
+  if (textoInforme === null && salida === 'nueva' && ['propia', 'molde', 'molde+propio'].includes(estadoDe(piezas[id]))) {
     return nuevaSinInforme(raiz, { id, def, datos, textoFicha, por, kit, no, leerD });
   }
   if (textoInforme === null) return no(`no hay ${rInforme}: no hay nada que resolver`);
