@@ -794,7 +794,26 @@ function cli(argv) {
   }
 }
 
-module.exports = { leer, leerCabecera, leerArchivo, hash, compararVersiones, RE_VERSION, ErrorFicha, RE_CARPETA_DOCS, CARPETA_DOCS, carpetaDocs };
+// 8e B1 (el banco de la rc.7): ¿esta ficha puede NO tener vars.comando-test? → la razón, o null. Es legítimo solo si la ficha lo
+// dice: nivel liviano (sin código), o `gate:entorno-prueba` en frenos.quitados y vigente el día `dia` ('AAAA-MM-DD'; sin él, hoy).
+// null también cuando SÍ tiene comando-test (no es el caso) y cuando le falta sin que la ficha lo diga (ahí se sigue negando). La
+// leen los tres que corren las pruebas del proyecto: `encargo.cjs verificar`, el gate de `worktree.cjs integrar` y la línea 8 del
+// chequeo de la flota. Quitar el gate es un cambio de barrera: lo firma el dueño.
+const GATE_ENTORNO = 'gate:entorno-prueba';
+function sinComandoTest(datos, dia) {
+  const d = datos && typeof datos === 'object' ? datos : {};
+  const vars = d.vars && typeof d.vars === 'object' && !Array.isArray(d.vars) ? d.vars : {};
+  if (typeof vars['comando-test'] === 'string' && vars['comando-test'].trim() !== '') return null;
+  if (d.nivel === 'liviano') return 'nivel liviano';
+  const esDia = (t) => /^\d{4}-\d{2}-\d{2}$/.test(String(t || ''));
+  const hoy = esDia(dia) ? String(dia) : ((f) => `${f.getFullYear()}-${String(f.getMonth() + 1).padStart(2, '0')}-${String(f.getDate()).padStart(2, '0')}`)(new Date());
+  const q = d.frenos && typeof d.frenos === 'object' && Array.isArray(d.frenos.quitados) ? d.frenos.quitados : [];
+  const g = q.find((x) => x && x.id === GATE_ENTORNO && (x.hasta === 'siempre' || (esDia(x.hasta) && String(x.hasta) >= hoy)));
+  if (!g) return null;
+  return `quitado: ${typeof g.por === 'string' && g.por.trim() ? g.por.trim() : 'sin razón escrita'}`;
+}
+
+module.exports = { leer, leerCabecera, leerArchivo, hash, compararVersiones, RE_VERSION, ErrorFicha, RE_CARPETA_DOCS, CARPETA_DOCS, carpetaDocs, sinComandoTest, GATE_ENTORNO };
 
 if (require.main === module) {
   process.exitCode = cli(process.argv.slice(2));

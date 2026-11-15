@@ -839,3 +839,17 @@ test('8r3 i1: toca de la ficha — cambiar carpeta-docs: (ponerla, sacarla o cam
   const t = C.armar({ clase: '3-barrera', toca: ['frenos'], ids: ['carpeta-docs'], origen: 'o', cicatriz: 'no', chico: 'sí', urgente: 'no', cuerpo: CUERPO });
   assert.deepEqual(C.leer(t).datos.ids, ['carpeta-docs']);
 });
+
+// ---------------------------------------------------------------- 8e (la rc.8), red team (1): sacar comando-test es barrera
+
+test('8e red team (1): sacar vars.comando-test de la ficha (o dejarlo vacío) es barrera de frenos; ponerlo o cambiarlo, no', () => {
+  const con = (ct) => FICHA().replace('  proyecto: px', ct === null ? '  proyecto: px' : `  proyecto: px\n  comando-test: ${ct}`);
+  assert.deepEqual(C.idsFicha(con('npm test'), con(null)).ids, ['vars:comando-test']);
+  assert.deepEqual(C.idsFicha(con('npm test'), con(null)).categorias, ['frenos']);
+  assert.deepEqual(C.idsFicha(con('npm test'), con('""')).ids, ['vars:comando-test'], 'vacío es sacarlo');
+  assert.deepEqual(C.idsFicha(con(null), con('npm test')).ids, [], 'ponerlo aprieta: no cuenta');
+  assert.deepEqual(C.idsFicha(con('npm test'), con('npm run prueba')).ids, [], 'cambiarlo no cuenta');
+  assert.deepEqual(C.idsFicha(con('npm test'), con('npm test')).ids, []);
+  // una ficha con comando-test que se borra entera lo cuenta, como todo lo demás
+  assert.ok(C.idsFicha(con('npm test'), null).ids.includes('vars:comando-test'));
+});

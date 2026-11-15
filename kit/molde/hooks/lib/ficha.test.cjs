@@ -1127,3 +1127,21 @@ test('A1 el ejemplo usa los nombres nuevos y su comentario de autorizado no prom
   assert.ok(!/autorizado:.*lo que no es pregunta/.test(t), 'el comentario de autorizado sigue prometiendo que no es pregunta');
   assert.ok(/publicar: \{comando:/.test(t), 'el ejemplo no muestra autorizado.publicar');
 });
+
+// ---------------------------------------------------------------- 8e (la rc.8) B1: sin comando-test, solo si la ficha lo dice
+
+test('8e B1 sinComandoTest: con comando-test → null; sin él → la razón solo con nivel liviano o gate:entorno-prueba quitado y vigente', () => {
+  const { sinComandoTest } = require('./ficha.cjs');
+  const quitado = (hasta, mas = {}) => ({ nivel: 'estandar', frenos: { quitados: [{ id: 'gate:entorno-prueba', por: 'no hay con qué probar', hasta }] }, ...mas });
+  assert.equal(sinComandoTest({ nivel: 'estandar', vars: { 'comando-test': 'npm test' } }), null, 'tiene comando-test: no es el caso');
+  assert.equal(sinComandoTest({ nivel: 'estandar', vars: { proyecto: 'x' } }), null, 'le falta y la ficha no lo dice: se sigue negando');
+  assert.equal(sinComandoTest({ nivel: 'estandar', vars: { 'comando-test': '   ' } }), null);
+  assert.equal(sinComandoTest({ nivel: 'liviano' }), 'nivel liviano');
+  assert.equal(sinComandoTest(quitado('siempre')), 'quitado: no hay con qué probar');
+  assert.equal(sinComandoTest(quitado('2026-11-15'), '2026-11-15'), 'quitado: no hay con qué probar', 'vigente hasta hoy inclusive');
+  assert.equal(sinComandoTest(quitado('2026-11-14'), '2026-11-15'), null, 'vencido');
+  assert.equal(sinComandoTest(quitado('algún día')), null, 'un hasta que no es fecha ni siempre no vale');
+  assert.equal(sinComandoTest({ nivel: 'estandar', frenos: { quitados: [{ id: 'hook:git-seguro/stash', por: 'x', hasta: 'siempre' }] } }), null, 'otro freno quitado no cuenta');
+  assert.equal(sinComandoTest(quitado('siempre', { vars: { 'comando-test': 'npm test' } })), null, 'con el gate quitado pero con comando-test, se corre');
+  assert.equal(sinComandoTest(null), null);
+});

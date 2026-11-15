@@ -426,9 +426,12 @@ function todosLosIds(datos) {
   for (const k of Object.keys(datos && esMapa(datos.autorizado) ? datos.autorizado : {})) ids.push(`autorizado:${k}`);
   for (const k of ['secretos', 'publicas']) for (const x of nombresDe(datos, k)) ids.push(`${k}:${x}`);
   if (tiene(datos, 'datos-de-prueba')) ids.push('datos-de-prueba');
+  if (comandoTestDe(datos) !== '') ids.push('vars:comando-test');
   ids.push('nivel', ...PIEZAS_FRENO.map((p) => `pieza:${p}`));
   return ids;
 }
+// El vars.comando-test de una ficha ya leída, sin espacios ('' si no está o no es un texto).
+const comandoTestDe = (datos) => (datos && esMapa(datos.vars) && typeof datos.vars['comando-test'] === 'string' ? datos.vars['comando-test'].trim() : '');
 // Los nombres de secretos: o publicas: (D-3): la lista de textos, o [] si no está o no es lista (eso lo dice ficha.cjs).
 const nombresDe = (datos, k) => [...new Set(datos && Array.isArray(datos[k]) ? datos[k].filter(esTexto) : [])];
 
@@ -486,6 +489,10 @@ function idsFicha(antesB, despuesB) {
   }
   if (a) {
     if (A.nivel === 'estandar' && D.nivel !== 'estandar') pares.add(par('frenos', 'nivel'));
+    // Red team de la rc.8 (1, ALTO): sacar vars.comando-test afloja. Desde la rc.8, sin él las pruebas dejan de correr cuando la
+    // ficha es de nivel liviano o tiene el gate de entorno quitado (ficha.sinComandoTest): un agente lo borraba en su rama sin
+    // firma de nadie e `integrar` subía el módulo sin probar. Solo cuando afloja: ponerlo o cambiarlo no cuenta.
+    if (comandoTestDe(A) !== '' && comandoTestDe(D) === '') pares.add(par('frenos', 'vars:comando-test'));
     for (const p of PIEZAS_FRENO) {
       const ea = estadoPieza(A, p);
       const ed = estadoPieza(D, p);

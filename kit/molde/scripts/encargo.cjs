@@ -577,8 +577,12 @@ function lineaLimpio(L, c) {
 // lo que lanzó); el primero que no da verde corta.
 function lineaPruebas(L, c, opciones) {
   const ct = comandoTest(c.datos);
-  if (!ct) return [MAL, `${NV} — la ficha vigente no tiene vars.comando-test`];
-  const comandos = [ct, ...c.e.secciones.gate.filter((x) => x !== ct)];
+  // 8e B1 (el banco de la rc.7: tres encargos hechos y ninguno mezclado): sin comando-test es legítimo solo si la ficha vigente lo
+  // dice (nivel liviano, o gate:entorno-prueba quitado y vigente: ficha.sinComandoTest). Ahí corren solo los de ## GATE, si hay.
+  const sin = ct ? null : require('../hooks/lib/ficha.cjs').sinComandoTest(c.datos);
+  if (!ct && !sin) return [MAL, `${NV} — la ficha vigente no tiene vars.comando-test`];
+  const comandos = [...(ct ? [ct] : []), ...c.e.secciones.gate.filter((x) => x !== ct)];
+  if (!comandos.length) return [OK, `sin comando-test (${sin}): nada que correr`];
   const conTubo = comandos.find(conTuberia);
   if (conTubo) return [MAL, `${NV} — ${conTubo} tiene una tubería: el gate mira el código de salida (sacala)`];
   // B5: --plazo manda si se pasó; si no, el fijo o el plazo-test de la ficha si es más grande. La espera del turno no cuenta.
@@ -590,7 +594,7 @@ function lineaPruebas(L, c, opciones) {
       if (r.estado === 'no-corrio') return [MAL, `${NV} — ${cmd} no corrió (${r.como})`];
       if (r.estado === 'rojo') return [MAL, `commit con la suite en rojo: ${cmd} (${r.como})`];
     }
-    return [OK, `en verde: ${comandos.join(' · ')}`];
+    return [OK, `en verde: ${comandos.join(' · ')}${sin ? ` · sin comando-test (${sin})` : ''}`];
   }, opciones);
   // B7 23: si falló y la ficha vigente trae otro comando-test que la de la partida (la base de la rama), lo dice: no es el código.
   if (r[0] === MAL && c.base) {

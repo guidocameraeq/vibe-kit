@@ -1185,3 +1185,18 @@ test('B7 23: verificar dice "el comando-test cambió desde tu partida" cuando la
   assert.equal(r.codigo, 1);
   assert.match(r.out, /^3\. pruebas · ❌ · commit con la suite en rojo: node no-esta\.js \(salida 1\) · el comando-test cambió desde tu partida \(era node base\.js\)$/m, r.out);
 });
+
+// ---------------------------------------------------------------- 8e (la rc.8) B1: sin comando-test, solo si la ficha lo dice
+
+test('8e B1 verificar línea 3: sin comando-test y con gate:entorno-prueba quitado en la ficha vigente → ✅ (corre solo lo de ## GATE) y el encargo se puede mezclar; sin quitarlo, sigue ❌', () => {
+  const p = proyectoV({ ficha: { test: '', quitado: true } });
+  listo(p);
+  const r = ver(p.dir);
+  assert.equal(r.linea(3), '3. pruebas · ✅ · en verde: node gate.js · sin comando-test (quitado: sin base)', r.out);
+  assert.equal(r.codigo, 0, r.out);
+  const s = proyectoV({ ficha: { test: '' } });
+  listo(s);
+  const rs = ver(s.dir);
+  assert.equal(rs.linea(3), '3. pruebas · ❌ · NO VERIFICADO — la ficha vigente no tiene vars.comando-test');
+  assert.equal(rs.codigo, 1);
+});
