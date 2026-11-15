@@ -76,20 +76,54 @@ function deCambios(raiz) {
   } catch (e) {
     return out;
   }
+  // 8e G3 (R2, y la noche 2 del banco): un cambio propuesto con `--en-defecto` vive solo en la rama por defecto de origin hasta el
+  // próximo pull; desde la pestaña del director, o desde una carpeta principal atrasada, el disco no lo tiene y "Te necesito"
+  // decía nada. Primero los de esa rama (lo que dejó el último fetch: no sale a la red); el disco suma los que ella no tiene.
+  const cargados = [];
+  const ids = new Set();
+  try {
+    const X = require('./contexto.cjs');
+    const R = require('./cambios-ruta.cjs');
+    const dg = X.datosGit(raiz);
+    const principal = dg && dg.gitDir !== dg.gitComun ? path.dirname(dg.gitComun) : raiz;
+    const rv = X.refVigente(principal);
+    if (rv && rv.origen !== 'local') {
+      const ls = git.correr(['ls-tree', '-z', '--name-only', rv.ref, '--', `${R.CARPETA}/`], { cwd: raiz, tiempo: T_GIT });
+      for (const rel of ls.ok ? ls.stdout.split('\0').filter(Boolean) : []) {
+        const id = R.idDeRuta(rel);
+        if (!id) continue;
+        const t = git.correr(['show', `${rv.ref}:${rel}`], { cwd: raiz, tiempo: T_GIT });
+        if (!t.ok) continue;
+        ids.add(id);
+        try {
+          cargados.push({ id, ...C.leer(t.stdout.replace(/\r\n/g, '\n')) });
+        } catch (e) {
+          /* uno que no se lee no está */
+        }
+      }
+    }
+  } catch (e) {
+    /* sin git que conteste, queda el disco */
+  }
   let lista = [];
   try {
     lista = C.listarArchivos(raiz);
   } catch (e) {
-    return out;
+    lista = [];
   }
   for (const a of lista) {
-    let c;
+    if (!a.id || ids.has(a.id)) continue;
     try {
-      c = a.id ? C.cargar(a) : null;
+      const c = C.cargar(a);
+      if (c && !c.error) cargados.push({ id: a.id, datos: c.datos, cuerpo: c.cuerpo });
     } catch (e) {
-      c = null;
+      /* idem */
     }
-    if (!c || c.error || !c.datos || c.datos.estado !== 'propuesto' || c.datos.clase !== '3-barrera') continue;
+  }
+  cargados.sort((x, y) => (x.id < y.id ? -1 : x.id > y.id ? 1 : 0));
+  for (const c of cargados) {
+    const a = { id: c.id };
+    if (!c.datos || c.datos.estado !== 'propuesto' || c.datos.clase !== '3-barrera') continue;
     const regla = C.reglaEnUnaLinea(c.cuerpo) || 'un cambio en un freno';
     out.push({ texto: `firmar el cambio de freno: ${regla}`, fuente: 'cambio propuesto', desde: (/^(\d{4}-\d{2}-\d{2})-/.exec(a.id) || [])[1] || null, tipo: 'clic', ref: a.id });
   }
@@ -239,7 +273,7 @@ function teEspera(raiz, opciones = {}) {
   // los ids de los cambios ya listados: un renglón DEL HANDOFF que nombra uno (el id entero, o su slug compuesto como palabra) es el
   // mismo pedido (revisor de B, 6). Un slug de una palabra ("deploy") no alcanza: se comería pedidos distintos (revisor de C, 4).
   const refs = [];
-  const nombra = (texto) => refs.some((r) => new RegExp(`(^|[^\\w-])${r.replace(/[.*+?^${}()|[\]\\]/g, '\\  const refs = []; // los ids de los cambios ya listados: un renglón del handoff que nombra uno es el mismo pedido (revisor de B, 6)')}([^\\w-]|$)`).test(texto));
+  const nombra = (texto) => refs.some((r) => new RegExp(`(^|[^\\w-])${r.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^\\w-]|$)`).test(texto));
   for (const f of fuentes) {
     let items = [];
     try {

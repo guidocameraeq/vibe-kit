@@ -111,3 +111,43 @@ test('revisor frío de C (3, 4): los números y los colores de la app quedan; un
   assert.ok(textos.includes('decidir si el deploy va el viernes'), JSON.stringify(textos));
   assert.ok(!textos.includes('aprobar 2026-11-13-deploy'), 'el id entero sí es el mismo pedido');
 });
+
+// ---------------------------------------------------------------- 8e (la rc.8) G3: el cambio que vive solo en la rama por defecto de origin
+
+test('8e G3: un cambio de freno propuesto en origin/main (con --en-defecto) sale desde la pestaña del director y desde una carpeta principal sin pull; firmado allá, ya no', () => {
+  const d = repo({});
+  const bare = path.join(TMP, `o${k++}.git`);
+  g(TMP, 'clone', '-q', '--bare', d, bare);
+  g(d, 'remote', 'add', 'origin', bare);
+  g(d, 'fetch', '-q', 'origin');
+  // el worktree del director, en la rama del módulo
+  const wt = path.join(d, '.claude', 'worktrees', 'modulo--x');
+  g(d, 'worktree', 'add', '-q', '-b', 'modulo/x', wt, 'main');
+  // el cambio entra SOLO a origin/main (lo que hace `cambios nuevo --en-defecto`): ni el disco de la principal ni el del worktree lo tienen
+  const otro = path.join(TMP, `c${k++}`);
+  g(TMP, 'clone', '-q', bare, otro);
+  fs.mkdirSync(path.join(otro, '.claude', 'cambios'), { recursive: true });
+  fs.writeFileSync(path.join(otro, '.claude', 'cambios', '2026-11-15-quitar-stash.md'), CAMBIO('3-barrera'));
+  g(otro, 'add', '-A');
+  g(otro, 'commit', '-q', '-m', 'cambios: propuesto 2026-11-15-quitar-stash');
+  g(otro, 'push', '-q', 'origin', 'HEAD:main');
+  g(d, 'fetch', '-q', 'origin');
+  for (const [donde, carpeta] of [['la pestaña del director', wt], ['la carpeta principal sin pull', d]]) {
+    const l = ES.teEspera(carpeta).filter((i) => i.fuente === 'cambio propuesto');
+    assert.equal(l.length, 1, `${donde}: ${JSON.stringify(ES.teEspera(carpeta))}`);
+    assert.equal(l[0].tipo, 'clic');
+    assert.match(l[0].texto, /no guardar con stash/);
+    assert.equal(l[0].desde, '2026-11-15');
+  }
+  // con pull, el disco y origin dicen lo mismo: sale una sola vez
+  g(d, 'pull', '-q', '--ff-only', 'origin', 'main');
+  assert.equal(ES.teEspera(d).filter((i) => i.fuente === 'cambio propuesto').length, 1);
+  // ya firmado en origin (manda origin sobre un disco atrasado): no sale
+  const ruta = path.join(otro, '.claude', 'cambios', '2026-11-15-quitar-stash.md');
+  fs.writeFileSync(ruta, fs.readFileSync(ruta, 'utf8').replace(/^estado: propuesto$/m, 'estado: rechazado'));
+  g(otro, 'commit', '-q', '-am', 'cambios: rechazado');
+  g(otro, 'push', '-q', 'origin', 'HEAD:main');
+  g(d, 'fetch', '-q', 'origin');
+  assert.equal(ES.teEspera(wt).filter((i) => i.fuente === 'cambio propuesto').length, 0);
+  assert.equal(ES.teEspera(d).filter((i) => i.fuente === 'cambio propuesto').length, 0, 'el disco de la principal quedó atrás: manda origin');
+});
