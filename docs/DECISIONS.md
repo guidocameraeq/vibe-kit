@@ -757,3 +757,49 @@ proyecto real (7), una pieza adaptada sin la opción "tomar la nueva" (6). Ning�
   decidís con la recomendada y lo avisás en una línea").
 - **Descartado:** *una revisión integral por paquete* (cara y repetida; la del paquete ya es el revisor frío) · *que Guido decida todo
   lo que toque más de una pieza* (casi todo toca más de una; sube la intervención, criterio 1).
+
+## ADR-035 · Cómo sale una versión: banco de prueba como paso fijo, `rc` quirúrgicas de a una, y el tramo final con un director y sesiones en fila (2026-11-15)
+La v3 pasó de la beta a la candidata en siete `rc` y trece días (`docs/CICLO-DE-MEJORA.md` §9). La lectura de la 6b (2026-11-15, seis
+lectores sobre los chats del 03 al 15/11; lo crudo, en el privado) mostró tres cosas:
+1. **Lo real encontró siempre lo que la prueba de taller no veía**: R1b sobre un clon, la primera mañana de uso, las noches reales, y R2
+   con una noche de prueba, que en un solo repo real halló tres de sus cinco grandes.
+2. **Las `rc` de uso costaron más en esperas que en trabajo**: tags que se esperaban entre sí, la receta completa aplicada a lo
+   chico (la `rc.4` "exprés", 10 h).
+3. **La fila de sesiones del tramo final se frenó por la app**: el clic por sesión, el modelo que se ignora sin aviso y el director
+   que no se despierta solo.
+
+Guido decidió el banco y la `rc.8` en Fable el 2026-11-15 (tracker, "Cambios al plan"). Lo demás lo decidió la sesión 6b con la vara
+(ADR-030 y ADR-034), y Guido lo repasa.
+- **Decisión:**
+  1. **El banco de prueba es paso fijo para sacar una versión** (de Guido): el kit contra **copias de todos los repos de la cuenta**,
+     inocuo (la foto de antes y después, los `origin` locales, un HOME de mentira, sin `.env`, el publicar de mentira), con una vuelta
+     barata en todos y la noche entera en 2 o 3. Corre en la revisión de la candidata, antes de su spec, y otra vez como veredicto
+     final. En la v3 corrió después de R2, porque nació ahí; la próxima vez va antes (decisión de la 6b).
+     `[mejor código · acordarse de menos]`
+  2. **Las `rc` del uso son quirúrgicas y de a una**: un delta corto con el arreglo y la prueba de cada hallazgo, y el nivel de control
+     por cambio. La siguiente `rc` arranca del tag anterior, o se juntan las dos en una. **La última `rc` antes de la versión la decide
+     y la escribe Fable** (de Guido); Opus revisa y Sonnet corre. `[workflow · mejor código]`
+  3. **Un tramo de varias sesiones se arma con un plan en un archivo**, con los prompts y la lista única de lo que se le pide a Guido.
+     Lo corre **un director Opus en una sesión nueva** que activa las sesiones de a una, **abiertas en espera desde el principio con su
+     modelo verificado**, y que verifica cada una en disco. `[workflow · acordarse de menos · coherencia]`
+  4. **Qué cambia del ADR-029 para las `rc`**: un arreglo de `rc` que cambia una regla de un freno es construir esa regla, así que
+     lleva red team de ese cambio y mutación **solo de las reglas que cambió, con el tope de 20 min**. Los arreglos del revisor frío
+     dentro de la misma `rc` siguen sin mutación (ADR-029, regla 3). Lo chico y mecánico, en Sonnet (regla 5). Las mutaciones de la
+     `rc.7` (piezas nuevas, en nivel completo) tardaron 1-1 h 40, y una hubo que repetirla: en una `rc` de arreglos eso no se paga.
+     `[consistencia · workflow]`
+- **Por qué:** los tres atacan lo que más costó en la vuelta: lo que se escapaba por probar sobre repos prolijos, el reloj perdido en
+  esperas, y el dueño despertado de noche para un clic.
+- **Descartado:**
+  - *una tercera revisión integral en vez del banco*: busca en el mismo lugar ("no hay que hacer 800 revisiones integrales", Guido,
+    2026-11-03), y R2 mostró que lo que faltaba era más repos reales, no más miradas;
+  - *otra noche real en un proyecto*: Guido ya no la quería ("no necesito hacer ninguna noche … más", 2026-11-12), toca la carpeta real y prueba
+    un solo repo;
+  - *sacar la versión con una `rc` corta y repetir solo la noche* (lo que recomendaba R2): deja sin probar los repos que no son el de la noche;
+  - *las `rc` del uso con la receta completa* (la `rc.4` y la `rc.5`): 10-15 h cada una;
+  - *la madre que lanza subagentes en vez de sesiones*: va todo en un solo contexto, que se compactó dos veces, y Guido no ve ni frena cada pieza;
+  - *tarjetas con el clic de Guido para cada sesión*: de noche la fila quedó parada ≥8 h;
+  - *sesiones en paralelo*: dos tandas pesadas en una PC tardan el doble (tracker, "Paralelizar: decidido que no").
+- **Costo aceptado:** el banco suma unas horas por versión, y hay que mantener su script con la gramática del kit. Las sesiones abiertas
+  en espera solo se pueden abrir con Guido presente. Todo el mecanismo del tramo depende de la app de escritorio; en la extensión de
+  VS Code está **NO VERIFICADO**, y ahí el plan sirve igual abriendo cada sesión a mano.
+- **Dónde vive:** `docs/CICLO-DE-MEJORA.md` §6 (los pasos), §7 (las `rc`) y §8 (el tramo).
