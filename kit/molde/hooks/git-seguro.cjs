@@ -103,6 +103,8 @@ const MENSAJES = {
     'sin remoto no se puede saber si esos commits de la rama por defecto ya los tiene otra PC o alguien más. Confirmá solo si son tuyos y no salieron de esta PC; para deshacer lo publicado, `git revert <commit>`.',
   'escribe-o-corre':
     'de fondo, `--output` (escribe un archivo donde diga, por fuera de los permisos de edición) y `--upload-pack`/`--receive-pack`/`--exec` (corren un programa) no van. Para ver un diff o un log, sin `--output`; para traer o subir, el comando común.',
+  'pull-del-cierre':
+    'la sesión de cierre de la noche trae solo de origin y de la rama por defecto: `git pull --ff-only` o `git pull --rebase origin <defecto>`. De otro remoto, de una dirección o de otra rama, no: nadie miró ese código.',
   'salir-del-worktree':
     'desde una sesión de agente se trabaja en el propio worktree: ni el principal ni otro repo (ni por `cd`, `-C`, `--git-dir` o `--work-tree`, ni con un `.git` que apunta a otro lado). Quedate en tu worktree; el merge al principal lo hace el director.',
 };
@@ -114,6 +116,8 @@ function salida(decision, motivo) {
 }
 
 const esOpcion = (a) => typeof a === 'string' && a.length > 1 && a.startsWith('-');
+// 8e G4: las únicas opciones de `git pull` que valen en la sesión de cierre de la noche (lo demás, negado).
+const OPCIONES_PULL_CIERRE = ['--ff-only', '--rebase', '--no-rebase', '-q', '--quiet', '--no-edit', '--no-stat'];
 const sinRefsHeads = (r) => r.replace(/^refs\/heads\//, '');
 
 // Las variables que desvían git (D-13, r1-1, r2-6) o lo que corre en sus hooks (rf3-2: GITLEAKS_*; rf3-3: NODE_OPTIONS,
@@ -738,9 +742,37 @@ function casosGit(g, dir, ctx, hallar) {
       mergeOurs(rest, ctx, hallar);
       hooksPathAusente(dir, ctx, hallar);
       return;
-    case 'pull':
+    case 'pull': {
       mergeOurs(rest, ctx, hallar);
+      // 8e G4: la sesión de cierre de la noche (de fondo y con KIT_CIERRE_ID, que le pone `noche.cjs cierre`) corre en dontAsk con
+      // lo que los settings permitan. El permiso `git pull` ancho del proyecto (13 de 26 repos lo tienen) ya no frena el cierre:
+      // a cambio, ahí `git pull` trae solo de origin y de la rama por defecto. De otro remoto, de una dirección o de otra rama
+      // metería en la carpeta principal código que nadie miró (también el del kit, que después corre).
+      const e = ctx.entorno || process.env;
+      if (ctx.contexto().deFondo(e) && e.KIT_CIERRE_ID != null && String(e.KIT_CIERRE_ID).trim() !== '') {
+        const pos = rest.filter((a) => !esOpcion(a));
+        const R = raiz();
+        const rv = ctx.refVigente(R);
+        const defecto = rv ? rv.nombre : null;
+        // Red team de la rc.8 (3 y 7): las opciones, por lista de las que valen (no de las que duelen: `--recurse-submodules` baja
+        // código de otras direcciones, `--strategy=<x>` corre un programa), y sin `-c` ni `-C` (otro remoto u otra carpeta).
+        const otra = rest.find((a) => esOpcion(a) && !OPCIONES_PULL_CIERRE.includes(a));
+        let por = null;
+        if (g.dirs.length || g.configs.length || g.gitDir !== null || g.workTree !== null) por = 'con -C, -c, --git-dir o --work-tree';
+        else if (otra) por = otra;
+        else if (!defecto) por = 'no sé cuál es la rama por defecto';
+        else if (pos.length > 2 || (pos.length >= 1 && pos[0] !== 'origin') || (pos.length === 2 && pos[1] !== defecto)) por = pos.join(' ');
+        else if (pos.length < 2) {
+          // Red team (2): sin rama, git trae lo que diga el seguimiento de la rama en la que está parado, y eso lo cambia cualquiera
+          // con `git branch --set-upstream-to`. Vale solo parado en la rama por defecto y con ella siguiendo a la de origin.
+          const rama = ctx.rama(R);
+          const sigue = String(ctx.git().texto(['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{upstream}'], { cwd: R }) || '').trim();
+          if (rama !== defecto || sigue !== `origin/${defecto}`) por = `acá la rama es ${rama || '?'} y sigue a ${sigue || 'ninguna'}`;
+        }
+        if (por) hallar('pull-del-cierre', 'deny', por);
+      }
       return;
+    }
     case 'push':
       push(g, dir, ctx, hallar, raiz);
       hooksPathAusente(dir, ctx, hallar);

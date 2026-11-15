@@ -556,7 +556,7 @@ test('la tabla de P4.4: cada caso frena (Bash y PowerShell), todo rol y todo mod
   }
   // cada fila de la tabla que es de sintaxis tiene al menos un caso acá (las de contexto van aparte, abajo)
   for (const caso of Object.keys(gs.MENSAJES)) {
-    if (['historia-defecto', 'historia-defecto-sin-remoto', 'push-borrar', 'hooks-path-ausente', 'config-agente', 'plomeria', 'rama-huerfana', 'salir-del-worktree', 'push-otra-rama', 'merge-ours', 'escribe-o-corre'].includes(caso)) continue;
+    if (['historia-defecto', 'historia-defecto-sin-remoto', 'push-borrar', 'hooks-path-ausente', 'config-agente', 'plomeria', 'rama-huerfana', 'salir-del-worktree', 'push-otra-rama', 'merge-ours', 'escribe-o-corre', 'pull-del-cierre'].includes(caso)) continue;
     assert.ok(vistos.has(caso), `falta un caso que frene para ${caso}`);
   }
 });
@@ -1386,24 +1386,17 @@ test('el hook real: deny en JSON, salida 0, un renglón por caso en el registro 
   assert.match(log(sin), / · hook:git-seguro\/historia-defecto · Bash · preguntó: historia-defecto\n$/);
 });
 
-// 4.7 caso 1 (sin node): no lo puede ver el hook (no arranca); lo cubre onFailure "block" (G0, medido con la plataforma). El
-// registro en el settings.json del molde es de otro encargo (MODIFICA): mientras no esté, la prueba queda en skip y lo dice; cuando
-// esté, exige la forma de P4.7 (exec, timeout 20, block).
-test('4.7 caso 1 (sin node): si el settings.json del molde registra git-seguro, es en forma exec con timeout 20 y onFailure "block"', (t) => {
+// 4.7 caso 1 (sin node): no lo puede ver el hook (no arranca); lo cubre onFailure "block" (G0, medido con la plataforma). Desde la
+// rc.7 (A5) el settings del molde no registra git-seguro suelto: registra el portero, que lo carga adentro. La forma del registro
+// (un solo hook sobre Bash|PowerShell, exec, su plazo y block) la cuida `kit/molde/settings.test.cjs` ("8d A5"). Acá queda lo que es
+// de este hook: que el portero lo traiga. (8e: antes este caso se salteaba solo, con una razón que ya no valía.)
+test('4.7 caso 1 (sin node): git-seguro corre adentro del portero, que es el que el settings registra con onFailure "block"', () => {
+  const portero = require('./lib/portero.cjs');
+  assert.ok(portero.HOOKS.some((h) => h.archivo === 'git-seguro.cjs' && h.pieza === 'hook-git-seguro'), JSON.stringify(portero.HOOKS));
   const s = JSON.parse(fs.readFileSync(path.join(MOLDE, 'settings.json'), 'utf8'));
-  const pre = (s.hooks && s.hooks.PreToolUse) || [];
-  const grupos = pre.filter((x) => (x.hooks || []).some((h) => /git-seguro\.cjs/.test(`${h.command} ${(h.args || []).join(' ')}`)));
-  if (!grupos.length) {
-    t.skip('git-seguro todavía no está registrado en kit/molde/settings.json (lo registra el encargo del settings)');
-    return;
-  }
+  const grupos = ((s.hooks && s.hooks.PreToolUse) || []).filter((x) => x.matcher === 'Bash|PowerShell');
   assert.equal(grupos.length, 1);
-  assert.equal(grupos[0].matcher, 'Bash|PowerShell');
-  const [h] = grupos[0].hooks.filter((x) => /git-seguro\.cjs/.test(`${x.command} ${(x.args || []).join(' ')}`));
-  assert.equal(h.command, 'node');
-  assert.deepEqual(h.args, ['${CLAUDE_PROJECT_DIR}/.claude/hooks/git-seguro.cjs']);
-  assert.equal(h.timeout, 20);
-  assert.equal(h.onFailure, 'block');
+  assert.ok(grupos[0].hooks.every((h) => h.onFailure === 'block' && /portero\.cjs$/.test((h.args || []).join(' '))), JSON.stringify(grupos[0].hooks));
   // sin node, el proceso ni arranca: eso es lo que onFailure convierte en freno
   const r = spawnSync(path.join(TMP, 'no-existe-node.exe'), [HOOK], { input: '{}', encoding: 'utf8' });
   assert.ok(r.error || r.status !== 0);
@@ -1533,4 +1526,37 @@ test('rc.7 red team de B3 (2, ALTO): de fondo, las opciones de git que escriben 
   }
   for (const c of ['git log --oneline -5', 'git diff --stat', 'git show HEAD:docs/a.md', 'git log --format=%H%x09%s', 'git commit -m "output: la salida" -- docs/a.md']) pasa(d, c, F);
   pasa(d, 'git log --output=salida.txt');
+});
+
+// ---------------------------------------------------------------- 8e (la rc.8) G4: el pull de la sesión de cierre
+
+test('8e G4: en la sesión de cierre de la noche (KIT_FONDO y KIT_CIERRE_ID), git pull trae solo de origin y de la rama por defecto; un obrero de fondo y una persona, como siempre', () => {
+  const { d } = conRemoto();
+  const CIERRE = { entorno: { KIT_FONDO: '1', KIT_CIERRE_ID: 'abc123' } };
+  for (const c of ['git pull --ff-only', 'git pull -q --ff-only', 'git pull --rebase origin main', 'git pull --ff-only origin', 'git pull origin main']) pasa(d, c, CIERRE);
+  for (const c of ['git pull https://example.invalid/otro.git main', 'git pull otro main', 'git pull origin otra-rama', 'git pull --rebase origin main otra', 'git pull ../otro-repo', 'git pull --ff-only origin refs/heads/otra',
+    'git pull -s ours origin main', 'git pull origin +main:main']) {
+    niega(d, c, 'pull-del-cierre', CIERRE);
+  }
+  // sin el id del cierre (un obrero de fondo trae la rama de su módulo) y con persona: no cambia nada
+  pasa(d, 'git pull origin modulo/x', { entorno: { KIT_FONDO: '1' } });
+  pasa(d, 'git pull otro main');
+  pasa(d, 'git pull otro main', { entorno: { KIT_CIERRE_ID: 'abc123' } });
+  // red team de la rc.8 (3 y 7): las opciones van por lista de las que valen, y sin -c ni -C
+  for (const c of ['git pull --recurse-submodules', 'git pull --ff-only --recurse-submodules=yes origin main', 'git pull --strategy=ours origin main', 'git pull --rebase=merges origin main',
+    'git pull --allow-unrelated-histories origin main', 'git -c remote.origin.url=https://example.invalid/x.git pull --ff-only', 'git -c core.sshCommand=x pull origin main', 'git -C ../otro pull --ff-only']) {
+    assert.equal(decide(d, c, CIERRE).decision, 'deny', c);
+  }
+  niega(d, 'git pull --recurse-submodules', 'pull-del-cierre', CIERRE);
+  // red team (2): sin rama, vale solo parado en la rama por defecto y con ella siguiendo a la de origin
+  g(d, 'push', '-q', 'origin', 'main:otra');
+  g(d, 'fetch', '-q', 'origin');
+  g(d, 'branch', '-q', '--set-upstream-to=origin/otra', 'main');
+  niega(d, 'git pull --ff-only', 'pull-del-cierre', CIERRE);
+  niega(d, 'git pull --ff-only origin', 'pull-del-cierre', CIERRE);
+  pasa(d, 'git pull --ff-only origin main', CIERRE); // con la rama dicha, el seguimiento no cuenta
+  g(d, 'branch', '-q', '--set-upstream-to=origin/main', 'main');
+  pasa(d, 'git pull --ff-only', CIERRE);
+  g(d, 'switch', '-q', '-c', 'otra-local');
+  niega(d, 'git pull --ff-only', 'pull-del-cierre', CIERRE);
 });
