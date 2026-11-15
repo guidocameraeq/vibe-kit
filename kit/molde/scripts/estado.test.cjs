@@ -403,3 +403,39 @@ test('B2: un plan cola dice "es una cola" y no inventa un %; con tres encargos c
   assert.match(e.out, /Cuarta · ~40 min/, e.out);
   assert.match(e.out, /falta: ~1,5 h/, e.out);
 });
+
+// ---------------------------------------------------------------- 8e (la rc.8): G5 y c20
+
+test('8e G5: a la mañana, un módulo que la noche dejó COMPLETO e integrado sale en LO QUE SE HIZO (no en EL PLAN ni en LO QUE FALTA)', () => {
+  const dir = mundo();
+  const completa = FICHA.replace('- Estado: EN OBRA', '- Estado: COMPLETO 2026-11-01');
+  git(dir, 'checkout', '-q', 'modulo/m1');
+  commit(dir, { 'docs/modulos/m1/README.md': completa, 'docs/modulos/m1/bitacora/2026-11-01-evidencia-07.md': '# Evidencia 07\nok\n' }, 'cierre 07 y COMPLETO', '2026-11-01T11:10:00+00:00');
+  git(dir, 'checkout', '-q', 'main');
+  git(dir, 'merge', '-q', '--no-ff', '-m', 'integrar: módulo m1', 'modulo/m1');
+  const r = dueno(dir, [], { ahora: new Date(Date.UTC(2026, 10, 1, 20, 0)) });
+  assert.equal(r.codigo, 0, r.err);
+  cuatroEnOrden(r.out);
+  const sec = (s) => { const ls = r.out.split('\n'); const i = ls.indexOf(s); const j = ls.findIndex((l, k) => k > i && l === ''); return ls.slice(i + 1, j < 0 ? undefined : j); };
+  assert.ok(sec('LO QUE SE HIZO').some((l) => /m1: Probar · 65 min/.test(l)), r.out);
+  assert.ok(!sec('EL PLAN').some((l) => /m1:/.test(l)), r.out);
+  assert.ok(!sec('LO QUE FALTA').some((l) => /m1:/.test(l)), r.out);
+  // dos días después ya no es "lo que se hizo"
+  const viejo = dueno(dir, [], { ahora: new Date(Date.UTC(2026, 10, 3, 20, 0)) });
+  assert.ok(!viejo.out.split('LO QUE SE HIZO')[1].split('LO QUE FALTA')[0].includes('m1:'), viejo.out);
+});
+
+test('8e c20: parado en la rama de un obrero del módulo, la ficha es la del disco (lo que él tildó), no la punta de modulo/<x>', () => {
+  const dir = mundo();
+  git(dir, 'checkout', '-q', 'modulo/m1--08');
+  const ruta = path.join(dir, 'docs', 'modulos', 'm1', 'README.md');
+  fs.writeFileSync(ruta, fs.readFileSync(ruta, 'utf8').replace('- [ ] Cuarta', '- [x] Cuarta'));
+  const m = S.fichas(dir).find((f) => f.x === 'm1');
+  assert.equal(S.tareas(m.ficha).hechas, 4, 'desde el obrero manda el disco');
+  git(dir, 'checkout', '-q', '--', 'docs/modulos/m1/README.md');
+  // desde main, como siempre: manda la rama del módulo
+  git(dir, 'checkout', '-q', 'modulo/m1');
+  commit(dir, { 'docs/modulos/m1/README.md': FICHA.replace('- [ ] Cuarta', '- [x] Cuarta').replace('- [ ] Quinta', '- [x] Quinta') }, 'dos más', '2026-11-02T08:00:00+00:00');
+  git(dir, 'checkout', '-q', 'main');
+  assert.equal(S.tareas(S.fichas(dir).find((f) => f.x === 'm1').ficha).hechas, 5, 'desde main manda la rama');
+});

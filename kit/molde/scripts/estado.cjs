@@ -111,6 +111,9 @@ function fichas(raiz) {
     return [];
   }
   const out = [];
+  // 8e c20: parado en la rama del módulo o en la de un obrero suyo, el disco es lo más nuevo (el obrero de cierre tilda las tareas
+  // ahí antes de que el director lo mezcle): no se pisa con la punta de la rama.
+  const actual = git.texto(['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: raiz }) || '';
   for (const x of nombres) {
     const rel = papeles(raiz, `modulos/${x}/README.md`);
     let texto = null;
@@ -121,7 +124,7 @@ function fichas(raiz) {
     }
     if (texto === null) continue;
     let f = leerFicha(texto);
-    if (f.campos.rama) {
+    if (f.campos.rama && actual !== f.campos.rama && !actual.startsWith(`${f.campos.rama}--`)) {
       try {
         const ref = E.refMasNueva(raiz, f.campos.rama);
         const b = ref.ok ? E.leerEn(raiz, ref.sha, rel) : null;
@@ -429,6 +432,12 @@ const mediana = (ns) => {
 };
 const enHoras = (min) => (min < 60 ? `${min} min` : `${Math.round((min / 60) * 2) / 2} h`.replace('.', ','));
 
+// ¿Algún commit de cualquier rama tocó los papeles del módulo desde `desdeMs`? (si git no contesta, no)
+function tocadoDesde(raiz, x, desdeMs) {
+  const r = G(raiz, ['log', '-1', '--format=%H', `--since=${new Date(desdeMs).toISOString()}`, '--all', '--', `${papeles(raiz, `modulos/${x}`)}/`]);
+  return r.ok && r.stdout.trim() !== '';
+}
+
 function vistaDueno(raiz, ms, ahora, soloUno) {
   const L = [...deNoche(raiz)];
   // 1. TE NECESITO: la lista única (B1), cada ítem en una línea.
@@ -448,6 +457,16 @@ function vistaDueno(raiz, ms, ahora, soloUno) {
   const desde24 = ahora.getTime() - 24 * 3600 * 1000;
   for (const m of ms) {
     const f = m.ficha;
+    // 8e G5: un módulo que ya no está activo (la noche lo terminó) no entra en EL PLAN ni en LO QUE FALTA, pero lo que se hizo en
+    // las últimas 24 h sí se cuenta. Se miran solo los que tuvieron un commit en ese plazo (un git log por módulo, no todo).
+    if (!soloUno && !activo(f)) {
+      if (!m.conDirector || !tocadoDesde(raiz, m.x, desde24)) continue;
+      for (const e of encargosDelModulo(raiz, m.x)) {
+        if (e.estado !== 'cerrado' || !(e.fin && e.fin >= desde24)) continue;
+        hecho.push(`- ${m.x}: ${e.titulo || 'un encargo'}${Number.isFinite(e.minutos) ? ` · ${e.minutos} min` : ''}`);
+      }
+      continue;
+    }
     const tramos = tramosDe(f);
     const todas = tramos.flatMap((t) => t.tareas);
     const enc = m.conDirector ? encargosDelModulo(raiz, m.x) : [];
@@ -516,7 +535,7 @@ function main(argv, opciones = {}) {
       salida(`${vistaDueno(raiz, [m], ahora, true).join('\n')}\n`);
       return 0;
     }
-    salida(`${vistaDueno(raiz, todas.filter((m) => activo(m.ficha)), ahora, false).join('\n')}\n`);
+    salida(`${vistaDueno(raiz, todas, ahora, false).join('\n')}\n`);
     return 0;
   }
   argv = argv.slice(1);
