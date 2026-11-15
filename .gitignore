@@ -8,3 +8,5 @@ assets/social-preview.png
 pruebas/*
 !pruebas/rehacer.sh
 !pruebas/pedidos.md
+# el banco de prueba (sesión 5a del tramo final, 2026-11-15): el script va a git; sus copias viven en un scratchpad
+!pruebas/banco/
