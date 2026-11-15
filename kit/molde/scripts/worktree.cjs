@@ -955,6 +955,58 @@ function quitarWorktree(L, wt, P, esperaMs = 2000) {
   return G(L, ['worktree', 'remove', wt], P, { tiempo: 120000 });
 }
 
+// 8e G2: ¿la carpeta está en uso? En Windows, un proceso parado adentro (o con un archivo abierto) no deja renombrarla: se
+// prueba con un renombre de ida y vuelta, que no cambia nada. En los otros sistemas no hay cómo saberlo así: false.
+function enUso(wt) {
+  if (!WIN) return false;
+  const otro = `${wt}.kit-en-uso`;
+  try {
+    fs.renameSync(wt, otro);
+  } catch (e) {
+    return true;
+  }
+  for (let i = 0; ; i++) {
+    try {
+      fs.renameSync(otro, wt);
+      return false;
+    } catch (e) {
+      if (i >= 4) throw new Error(`no pude devolverle el nombre a ${barras(otro)} (era ${barras(wt)}): renombrala a mano`);
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 300);
+    }
+  }
+}
+
+// 8e G2: ¿esta rama del kit está cerrada de verdad? → null si sí, o por qué no. "Ya es ancestro de su madre" no alcanza: una rama
+// recién creada, sin commits propios, también lo es (R2: `crear foo` y `limpiar` la borraban). Un encargo: su evidencia está en la
+// rama del módulo (estadoEncargo, la cuenta única). Un módulo: la punta de su rama es el segundo padre de un merge
+// `integrar: módulo <x>` del primer padre de la rama por defecto (local o de origin).
+function porQueSigue(L, P, n) {
+  if (n.id !== null) {
+    let estado = 'en obra';
+    try {
+      estado = require('../hooks/lib/encargo.cjs').estadoEncargo(P, n.x, n.id);
+    } catch (e) {
+      return 'no pude mirar el estado del encargo';
+    }
+    return estado === 'cerrado' ? null : `el encargo está ${estado}`;
+  }
+  const punta = sha(L, P, `refs/heads/${n.rama}`);
+  const def = L.contexto.ramaPorDefecto(P);
+  if (!punta || !def) return 'no pude mirar la rama';
+  for (const ref of [`refs/heads/${def}`, `refs/remotes/origin/${def}`]) {
+    if (!existeRef(L, P, ref)) continue;
+    const r = G(L, ['log', '--first-parent', '--merges', '--format=%P%x09%s', ref], P);
+    if (!r.ok) continue;
+    for (const l of r.stdout.split('\n')) {
+      const tab = l.indexOf('\t');
+      if (tab < 0) continue;
+      const m = RE_INTEGRAR.exec(l.slice(tab + 1).replace(/\r$/, ''));
+      if (m && m[1] === n.x && l.slice(0, tab).split(' ')[1] === punta) return null;
+    }
+  }
+  return `no está mergeada en ${def}: falta su integrar`;
+}
+
 function cerrar(L, u, n, cancelado = false) {
   const lineas = [];
   const no = (m) => ({ codigo: 1, lineas: [...lineas, `worktree cerrar: no — ${m}`] });
@@ -998,6 +1050,9 @@ function cerrar(L, u, n, cancelado = false) {
     if (!borrarSiSobra(L, P, wt)) return no(`${CARPETAS}/${n.carpeta} existe pero no es el worktree de ${n.rama}: revisala a mano`);
     lineas.push(`${CARPETAS}/${n.carpeta} ya no era un worktree y tenía solo lo ignorado: la borré`);
   } else {
+    // 8e G2: con una sesión parada adentro, `git worktree remove` en Windows borra el contenido y deja la carpeta (R2, la noche de
+    // prueba): si está en uso no se toca nada.
+    if (enUso(wt)) return no(`${CARPETAS}/${n.carpeta} está en uso (hay una sesión o un programa adentro): nada borrado; se cierra cuando esa sesión termine`);
     const antes = porcelana(L, wt);
     if (antes === null) return no('no pude leer el estado del worktree');
     const otros = antes.filter((l) => l.slice(3).replace(/^"|"$/g, '') !== LOG);
@@ -1092,14 +1147,22 @@ function gate(L, tmp, base, punta, opciones) {
   if (!verde) return { verde, lineas: [...lineas, 'no corrí comando-test: el gate ya falló'] };
   let cmd;
   let pt = NaN;
+  let d = null;
   try {
-    const d = L.ficha.leerArchivo(path.join(tmp, '.claude', 'kit.md')).datos;
+    d = L.ficha.leerArchivo(path.join(tmp, '.claude', 'kit.md')).datos;
     cmd = d && d.vars ? d.vars['comando-test'] : undefined;
     pt = Number(d && d.vars ? d.vars['plazo-test'] : NaN);
   } catch (e) {
     return { verde: false, lineas: [...lineas, `NO VERIFICADO: la ficha del merge no se lee (${e.message || e}): no corrí comando-test`] };
   }
-  if (typeof cmd !== 'string' || cmd.trim() === '') return { verde: false, lineas: [...lineas, 'NO VERIFICADO: la ficha no tiene vars.comando-test — sumalo'] };
+  if (typeof cmd !== 'string' || cmd.trim() === '') {
+    // 8e B1: sin comando-test es legítimo solo si la ficha del merge lo dice (nivel liviano, o gate:entorno-prueba quitado y
+    // vigente: ficha.sinComandoTest). Las barreras del rango y el candado ya corrieron arriba: un gate quitado sin la firma del
+    // dueño no llega hasta acá.
+    const sin = L.ficha.sinComandoTest(d);
+    if (sin) return { verde: true, lineas: [...lineas, `sin comando-test (${sin}): no hay pruebas que correr`] };
+    return { verde: false, lineas: [...lineas, 'NO VERIFICADO: la ficha no tiene vars.comando-test — sumalo'] };
+  }
   // B5 (E13): el plazo fijo, o el plazo-test de la ficha del merge si es más grande.
   const plazo = Math.max(opciones.plazoTest || PLAZO_TEST, Number.isFinite(pt) && pt > 0 ? Math.floor(pt * 60000) : 0);
   const shell = shellDe(opciones);
@@ -1209,8 +1272,9 @@ function integrados(L, u) {
 
 // ---------------------------------------------------------------- limpiar (SPEC-paquete-8d B3.5)
 
-// En la carpeta principal, rol humano: cierra cada worktree de .claude/worktrees/ cuya rama ya está mezclada en su madre y está
-// limpio, con el `cerrar` de siempre (sus mismas condiciones), y `git worktree prune`. Lo que no puede (una carpeta en uso, algo
+// En la carpeta principal, rol humano: cierra cada worktree de .claude/worktrees/ cuya rama está cerrada de verdad (porQueSigue, 8e
+// G2: un encargo con su evidencia en el módulo; un módulo ya integrado) y está limpio, con el `cerrar` de siempre (sus mismas
+// condiciones; una carpeta en uso no se toca), y `git worktree prune`. Lo que no puede (una carpeta en uso, algo
 // sin mezclar o sucio) NO lo fuerza: lo lista. Se puede correr mil veces. Sale 0 (desde otro lado o con otro rol: 1).
 function limpiar(L, u) {
   const P = u.principal;
@@ -1236,6 +1300,11 @@ function limpiar(L, u) {
     }
     if (!mismaRuta(e.w.ruta, path.join(base, n.carpeta))) {
       quedan.push(`${e.rama}: está en otra carpeta`);
+      continue;
+    }
+    const sigue = porQueSigue(L, P, n);
+    if (sigue) {
+      quedan.push(`${e.rama}: ${sigue}`);
       continue;
     }
     const r = cerrar(L, u, n);

@@ -1843,3 +1843,82 @@ test('B7 30, 57: el push de integrar espera 600 s; cerrar reintenta una vez el w
   assert.equal(W.quitarWorktree(L(5), dir, TMP, 10).ok, false, 'sin carpeta no reintenta');
   assert.equal(veces, 1);
 });
+
+// ---------------------------------------------------------------- 8e (la rc.8) G2: limpiar no cierra lo recién creado ni lo que está en uso
+
+test('8e G2 limpiar: un módulo y un encargo recién creados (sin commits propios) no se tocan; un encargo en obra, tampoco', () => {
+  const p = proyectoI();
+  const cy = cli(p.P, ['crear', 'y']);
+  assert.equal(cy.codigo, 0, cy.out + cy.err);
+  const wy = p.wt('modulo--y');
+  let r = cli(p.P, ['limpiar']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.doesNotMatch(r.out, /cerré/, r.out);
+  assert.match(r.out, /queda modulo\/y: .*no está mergeada/);
+  assert.ok(fs.existsSync(wy) && existeRama(p.P, 'modulo/y'), 'la carpeta y la rama recién creadas siguen');
+  // un encargo recién abierto (su rama nace igual a la del módulo) y otro con trabajo sin cerrar
+  commit(wy, { 'z.txt': 'z\n' }, 'trabajo de y');
+  assert.equal(cli(p.P, ['crear', 'y--01']).codigo, 0);
+  assert.equal(cli(p.P, ['crear', 'y--02']).codigo, 0);
+  commit(p.wt('modulo--y--02'), { 'o.txt': 'o\n' }, 'paso del obrero');
+  r = cli(p.P, ['limpiar']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.doesNotMatch(r.out, /cerré/, r.out);
+  assert.match(r.out, /queda modulo\/y--01: el encargo está (en obra|sin arrancar)/);
+  assert.match(r.out, /queda modulo\/y--02: el encargo está en obra/);
+  for (const c of ['modulo--y', 'modulo--y--01', 'modulo--y--02']) assert.ok(fs.existsSync(p.wt(c)), `${c} sigue`);
+  for (const b of ['modulo/y', 'modulo/y--01', 'modulo/y--02']) assert.ok(existeRama(p.P, b), `${b} sigue`);
+});
+
+test('8e G2 limpiar: un encargo cerrado (su evidencia en la rama del módulo) se cierra; el módulo, recién cuando está integrado', () => {
+  const p = proyectoI();
+  const wx = moduloX(p);
+  assert.equal(cli(p.P, ['crear', 'x--01']).codigo, 0);
+  const w1 = p.wt('modulo--x--01');
+  commit(w1, { 'o.txt': 'o\n', 'docs/modulos/x/bitacora/2026-11-15-evidencia-01.md': '# Evidencia 01\nok\n' }, 'cierre 01');
+  g(wx, 'merge', '-q', '--no-ff', '-m', 'merge 01', 'modulo/x--01');
+  let r = cli(p.P, ['limpiar']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(r.out, /worktree limpiar: cerré modulo\/x--01$/m, r.out);
+  assert.ok(!fs.existsSync(w1) && fs.existsSync(wx), 'el encargo cerrado se fue; el módulo sin integrar, no');
+  assert.equal(cli(p.P, ['integrar', 'x']).codigo, 0);
+  g(p.P, 'pull', '-q', 'origin', 'main');
+  r = cli(p.P, ['limpiar']);
+  assert.match(r.out, /worktree limpiar: cerré modulo\/x$/m, r.out);
+  assert.ok(!fs.existsSync(wx));
+});
+
+test('8e G2 cerrar: con una sesión parada adentro (Windows), la carpeta queda entera y lo dice', { skip: process.platform !== 'win32' && 'la prueba de "en uso" es de Windows' }, () => {
+  const p = proyectoI();
+  const wx = moduloX(p);
+  assert.equal(cli(p.P, ['integrar', 'x']).codigo, 0);
+  g(p.P, 'pull', '-q', 'origin', 'main');
+  const adentro = require('child_process').spawn(process.execPath, ['-e', 'setTimeout(() => {}, 60000)'], { cwd: wx, stdio: 'ignore' });
+  try {
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 800);
+    const antes = fs.readdirSync(wx).sort();
+    const r = cli(p.P, ['limpiar']);
+    assert.equal(r.codigo, 0, r.out);
+    assert.match(r.out, /queda modulo\/x: .*está en uso/, r.out);
+    assert.deepEqual(fs.readdirSync(wx).sort(), antes, 'no se borró nada de adentro');
+    assert.ok(existeRama(p.P, 'modulo/x'));
+  } finally {
+    adentro.kill();
+  }
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 800);
+  const r2 = cli(p.P, ['limpiar']);
+  assert.match(r2.out, /worktree limpiar: cerré modulo\/x$/m, r2.out);
+});
+
+// ---------------------------------------------------------------- 8e (la rc.8) B1: integrar sin comando-test, solo si la ficha lo dice
+
+test('8e B1 integrar: sin comando-test y con gate:entorno-prueba quitado en la ficha → el gate pasa y el módulo sube; sin quitarlo, sigue negando (el caso de arriba)', () => {
+  const p = proyectoI({ test: null, quitados: ['{id: gate:entorno-prueba, por: "no hay con qué probar", hasta: siempre}'] });
+  moduloX(p);
+  const base = enOrigin(p);
+  const r = cli(p.P, ['integrar', 'x']);
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(r.out, /sin comando-test \(quitado: no hay con qué probar\): no hay pruebas que correr/);
+  assert.notEqual(enOrigin(p), base, 'el módulo subió');
+  sinTemporal(p);
+});
