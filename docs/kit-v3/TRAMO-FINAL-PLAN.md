@@ -9,6 +9,14 @@
 > los repos de la cuenta, inocuo); la `rc.8` (5b) la decide y la escribe **Fable 5.2** y trae **todo** corregido (los grandes de R2,
 > los del banco y los chicos); después, **el banco otra vez** (5c) da el veredicto final, y la sesión 6 ya no arregla código.
 > Mandan las secciones 5a, 5b y 5c de abajo y la fila del 2026-11-15 de "Cambios al plan" del tracker.
+>
+> **Y cómo se lanzan, desde el 2026-11-15** (Guido: *"ya abrir las sesiones y dejarlas esperando… te van a quedar como obreros y vos
+> vas a ser el director… las vas a poder largar en secuencia, sin necesitar mi aprobación"*): las cuatro (5a, 5b, 5c, 6) se abrieron
+> juntas, **en espera**; el director activa cada una con un mensaje ("arrancá") cuando cierra y verifica la anterior, sin el clic de
+> Guido. Las ids: 5a `local_24efab7c-6f5f-4f45-b0e1-db7e512568bf` · 5b `local_d9243a07-fa50-4a6e-ba5d-3aa94a56f848` (en Fable 5.2,
+> verificado) · 5c `local_11c5923f-eb21-4f76-974a-5c35d535fe34` · 6 `local_ec361f24-9162-41e9-8b21-da3a50ca82c7`. Si una necesita
+> continuación, el director la abre nueva. Lo que sigue siendo de Guido (publicar la `v3.0`, sus repos reales, los criterios a fase
+> 2, lo de diseño) no lo cubre este permiso.
 
 ## Para qué
 
