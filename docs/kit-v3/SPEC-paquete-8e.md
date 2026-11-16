@@ -5,7 +5,7 @@ La `rc.8` no trae nada nuevo: arregla lo que encontraron la revisión integral d
 B2, b1-b13), más lo que R2 dejó suelto. Cada arreglo es una función o una regla, con su prueba. Es la sesión 5b del tramo final
 ([`TRAMO-FINAL-PLAN.md`](TRAMO-FINAL-PLAN.md)).
 
-- Estado: EN OBRA (2026-11-15). Sin sello del dueño: es un delta de arreglos (ADR-034, `docs/CICLO-DE-MEJORA.md` §7).
+- Estado: ✅ IMPLEMENTADO 2026-11-15: tag `v3.0.0-rc.8`. Sin sello del dueño: es un delta de arreglos (ADR-034, `docs/CICLO-DE-MEJORA.md` §7).
 - Fecha: 2026-11-15 · Misión: 5, tramo final, sesión 5b · Decide y escribe: Fable 5.2; red team y revisor frío: Opus.
 - **Nivel de la `rc`: MEDIO-ALTO** (§7 del ciclo): tres cambios tocan un freno o el actualizador (G1, G4, B1). El red team, una
   ronda, **solo** sobre esos tres; la mutación, solo en las reglas que cambian (G4 y B1). Lo demás, medio o liviano.
@@ -15,7 +15,21 @@ B2, b1-b13), más lo que R2 dejó suelto. Cada arreglo es una función o una reg
 
 ## Resumen para el director
 
-(se completa al cerrar la sesión)
+1. **Hecho: el tag `v3.0.0-rc.8`** (commit `0332c92`, en `origin`), después de la suite; `kit-sync` LIMPIO, con el aviso de los hooks.
+2. **Entró todo lo grande**: G1 a G5, B1 y B2, cada uno con su prueba. Y los chicos c2 a c9, c15 a c21, b2 a b8, b10 y b11.
+3. **Red team** (Opus, sobre G1, G4 y B1): 7 hallazgos, 5 arreglados; dos eran altos (sacar el `comando-test` sin firma; el
+   `pull` del cierre siguiendo una rama cambiada). **Revisor frío**: 12, 11 arreglados. **Mutación**: 28 de 28 muertos.
+4. **La suite entera**: 3.264 de 3.265. La que falló es la prueba de tiempo de `cambios-flota`, por la PC cargada (con el código
+   de la `rc.7` tarda igual); con la PC libre pasa, 20 de 20. **La flota de prueba**: mezclados y después al día, salida 0.
+5. **El banco, vuelta 1, reducida**: preparar la PC anduvo; **17 de 18 adopciones quedan andando** (eran 12 de 19) y la otra se
+   niega diciendo por qué; en la copia más usada, G1 deja el repo **entero en la versión vieja** con `te espera`. Lo real, sin tocar.
+6. **El banco encontró una cosa más y se arregló**: con un módulo vivo, un renglón mandaba a mezclar la rama que no se mezcla.
+7. **No se corrió** (es de la 5c): sesiones, noches, instalaciones, la flota de las otras seis copias con kit y, en la copia, el
+   paso "resolver y volver a correr". Después de la suite entraron tres cambios chicos: se probaron sus archivos, no la suite.
+8. **A la v3.1, con su razón**: b1, b9, el chequeo de identidad en el `doctor`, el checklist de "me voy", que la flota pregunte
+   en el momento. **Para la sesión 6**: c1, c9 a c14 y c4 en `ROLES.md`. **Para el tracker**: b12 no es del kit; b13 es B2.
+9. **Espera a Guido**: correr "instalar hooks por PC" (siguen en la `rc.6`), antes de la 5c. Y una decisión suya, anotada sin
+   tocar: si *cambiar* el `comando-test` tiene que pedir su firma (hoy la pide solo sacarlo).
 
 ## Las decisiones de esta sesión (técnicas, ADR-034)
 
@@ -59,7 +73,7 @@ Nivel: L liviano · M medio · MA medio-alto. "Freno": si el cambio decide algo 
 |---|---|---|---|
 | c2 | "Falta tu autorización para publicar" pasa a `decisión` y dice cómo darla ("decime: preparame esta PC"); `dePublicacion` lo descarta si la PC ya está autorizada con la huella de hoy | `scripts/noche.cjs`, `lib/espera.cjs` | M |
 | c3 | La sesión que prepara la PC mira la identidad de git y, si falta, pregunta nombre y mail y los escribe ella; lo que falte instalar lo instala con el OK del dueño. `INSTALAR.md` ya no manda a tipear. (Texto; un chequeo nuevo en el `doctor` cambia su cuenta fija: a la `v3.1`) | `preparar-pc.md`, `INSTALAR.md` | L |
-| c4 | Los textos que mandaban al dueño a la terminal (`NUCLEO.md`, `modo-b.md`, `flota.md`, `arquitecto-skills/SKILL.md`, `lib/flota.cjs` "mezclá … vos") | los cinco | L |
+| c4 | Los textos que mandaban al dueño a la terminal (`NUCLEO.md`, `modo-b.md`, `flota.md`, `arquitecto-skills/SKILL.md`, `lib/flota.cjs` "mezclá … vos"). **Se deja** `modo-b.md:67`: es la línea con la que el dueño abre la sesión del director (lo único que hace él), la da `worktree.cjs` y la fija una prueba (RF-fix 10) | los cinco | L |
 | c5 | Después de traer repos, "preparame esta PC" vuelve a armar su plan (así los traídos entran en las preguntas); la lista, de a 30 | `preparar-pc.md`, `scripts/traer-repos.cjs` | L |
 | c6 | El `SKILL.md` del Equipador dice lo mismo que su anexo en la adopción; el repo sin remoto tiene su camino | `arquitecto-skills/SKILL.md`, `anexos/flota.md` | L |
 | c7 | `/inicio` y `/estado` llaman `volvi --al-mirar`: de noche (20 a 6) no apaga la marca y lo dice; "volví" la apaga siempre | `scripts/noche.cjs`, `skills/inicio`, `skills/estado` | M |
@@ -77,7 +91,7 @@ Nivel: L liviano · M medio · MA medio-alto. "Freno": si el cambio decide algo 
 | b4 | `--mirar` avisa si `.claude` está ignorado y propone la excepción; `--traer` sale distinto de 0 sin ficha | `lib/adoptar.cjs` | M |
 | b5 | `--verificar` no pide lo que la ficha dice `no`; `--mirar` en un repo sin commits sugiere `--nuevo` | `lib/chequeo.cjs`, `lib/adoptar.cjs` | M |
 | b6 | El mensaje de `carpeta-docs:` dice dónde va | `lib/adoptar.cjs` | L |
-| b7 | La línea del commit de los permisos lo dice como esperado, no como falla | `lib/adoptar.cjs` | L |
+| b7 | Las líneas de la adopción que anuncian la falla de `barreras` (el commit de la ficha y el de los permisos) dicen además que es lo esperado con lo que el dueño eligió, y que a él se le dice que van con su OK de la adopción. La explicación de por qué falla no se toca (la fijó el red team 8r3) | `lib/adoptar.cjs` | L |
 | b11 | `--mirar` ve el linter del proyecto y dice que `.claude/` y `.githooks/` van a lo que ignora | `lib/adoptar.cjs` | M |
 | b12, b13 | Se reproducen primero (un lector Opus); el arreglo, según lo que salga | (abajo, "Lo que dio la investigación") | — |
 | suelto | `git-seguro.test` "4.7 caso 1": la razón del salteo | `hooks/git-seguro.test.cjs` | L |
@@ -179,4 +193,60 @@ Doce hallazgos, ninguno abre un freno. Las copias que tienen que ser idénticas 
 
 ## Cómo se hizo y qué quedó
 
-(se completa al cerrar)
+**Cada arreglo**, con su prueba primero (la vi fallar antes del cambio y pasar después), en commits chicos, con gitleaks sobre el
+rango antes de cada push. Los que tocan un freno (G4, B1) y el actualizador (G1) pasaron por el red team; todo el diff, por el
+revisor frío (arriba, las dos tablas).
+
+- **Mutación** (solo en las reglas que cambian: el `pull` del cierre, `sinComandoTest` y la barrera `vars:comando-test`): 28
+  mutantes, los 28 muertos. Uno sobrevivió en la primera pasada (el seguimiento de la rama): la prueba no lo cubría y se corrigió.
+- **La suite entera**, sola y en segundo plano, en `023baa4`: **3.265 casos, 3.264 pasaron, 1 falló, ninguno salteado** (91 min; en
+  la `rc.7` eran 65: la PC tenía ~900 MB de memoria libre y varias sesiones abiertas). El que falló es `cambios-flota.test` "en
+  menos de 5 s" (6.295 ms), **el mismo que falló bajo carga en la suite de la `rc.7`**. Esta vez tampoco pasa solo (5,6 a 6,2 s), y
+  **no es de la `rc.8`**: con el código de la `rc.7` sacado a una carpeta aparte y corrido en el mismo momento tarda lo mismo
+  (5.580 y 5.763 ms contra 5.579 y 5.640). Lo que mide es la PC: hoy cada llamada a `git` tarda ~200 ms. No se tocó ni la prueba
+  ni el código. **Con la PC libre, al final, pasa**: 2.070 y 2.252 ms, y su archivo entero, 20 de 20.
+- **Después de la suite** entraron tres cambios chicos: dos textos que el repaso de la tabla contra el diff mostró sin hacer (b7
+  y un renglón de `modo-b.md`, de c4) y el renglón de la flota que encontró el banco (abajo). **No se volvió a correr la suite
+  entera**; se corrieron, de a uno, los archivos de prueba que los miran: `flota.test` (los 9 casos de G1, de módulos con obra y
+  de rt-7: 9 de 9), `adoptar.test` entero (65 de 65) y las pruebas de los textos de las skills (138 de 138).
+- **La flota de prueba** (`bash pruebas/rehacer.sh`: LISTO; `actualizar.cjs flota alfa beta gama` contra un canónico de prueba con
+  el tag anotado `v3.0.0-rc.8`): primera vuelta, **mezclados los tres** (32 min); segunda, **al día los tres**; salida 0 en las dos.
+
+### El banco, vuelta 1 (reducida)
+
+Con una copia del script (`pruebas/banco/`), sobre las copias que dejó el banco de la `rc.7`, vueltas a como estaban antes de que
+ese banco las tocara: 25 repos (18 sin kit, 7 con el kit en la `rc.6`). **Reducida, y esto es lo que no se corrió**: ninguna sesión
+(`/inicio` y el pedido chico), ninguna noche, ninguna instalación (`pruebas`), y la flota sobre **una** de las siete copias con kit
+(la más usada, que es donde R2 vio G1). Eso es de la 5c, el banco entero.
+
+| Paso | `rc.7` (5a) | `rc.8` (esta vuelta) |
+|---|---|---|
+| "Preparame esta PC" trayendo los repos | anduvo | anduvo, salida 0; ahora avisa que las carpetas traídas no son de confianza todavía (c17) y manda a rearmar el plan (c5) |
+| Adoptar los que no tienen kit, con lo recomendado | 12 de 19 quedan andando · 6 con ❌ en hooks y arranque (b5) · 1 no adopta y nadie lo dice (b4) | **17 de 18 quedan adoptados y verificados** · las 6 de "todo en no" pasan con un ⚠ que dice que la ficha lo eligió así · la que tiene `.claude` ignorado **se niega con el motivo y el camino** antes de escribir nada |
+| La pregunta de las pruebas (B1) | no existía: 13 de 19 quedaban sin `comando-test` y sin aviso | sale en 10 de las 18 propuestas (`D5`); las 9 que se adoptaron sin contestarla quedan con el ⚠ de `verificar` que dice qué no va a poder hacer ese repo |
+| El linter del proyecto (b11) | 299 errores en una noche | 2 propuestas lo avisan |
+| `barreras` después de la adopción recomendada | 17 de 19 en 1, como falla | 15 de 17 en 1 (es lo esperado: b7 cambia cómo se dice, no el resultado) |
+| La flota sobre la copia con scripts tocados a mano (G1) | la dejó a medias: scripts viejos con libs nuevas | **`te espera`: quedó entera en la `rc.6`**, la rama por defecto sin tocar, y `kit/v3.0.0-rc.8` con la marca `kit: ESPERA — scripts`, el informe y las nueve líneas del chequeo (30 min). Ocho líneas bien (la 7: 16 hooks cambiados, 26 archivos de pruebas del molde); la 8 falla por lo que ya dice la nota de la `rc.7` (una prueba propia de ese repo lee el registro viejo de frenos) |
+
+**La segunda mitad del criterio 1** (resolver la pieza y que la flota siguiente mezcle) **no se corrió en la copia**: su línea 8
+la dejaría `ROTA` por esa prueba propia, que es del repo y no del kit. Queda cubierta por `flota.test` ("8e G1": resuelta, la
+corrida siguiente la rehace y mezcla).
+
+**Lo que encontró esta vuelta y se arregló**: con `--con-obra` y un módulo vivo, debajo de "quedó entero" salía *"modulo/x:
+primero mezclá kit/<tag> en main"*. Esa rama lleva la marca ESPERA: mezclarla es el repo a medias que G1 evita. Ahora dice
+*"espera a lo de arriba (kit/<tag> lleva el informe y no se mezcla)"*, con su prueba (falló antes, pasa después).
+
+**Lo inocuo**: la foto de las carpetas reales antes y después (`foto`, `comparar`): **ninguna cambió**, salvo vibe-kit mismo
+(los archivos de esta sesión, en obra en ese momento). Todo push fue a los `bare` del scratchpad.
+
+### Lo que queda
+
+- **Espera a Guido**: correr "instalar hooks por PC" (los hooks de esta PC siguen en la `rc.6`; desde hoy `kit-sync` lo avisa).
+  `kit-sync.sh sync` corrió bien acá: LIMPIO, con ese aviso.
+- **Anotado, sin tocar (es decisión suya)**: *cambiar* el `comando-test` por uno que no prueba nada no es barrera (red team).
+- **La prueba de tiempo de `cambios-flota`** depende de la PC: en una de 8 GB con sesiones abiertas no pasa, con este código ni con
+  el de la `rc.7`. Si se quiere que la suite no dependa de eso, es cambiar un criterio del paquete 7 (medir contra lo que tarda
+  `git` en esa PC): no lo decidí yo.
+- **Para el tracker** (no son del kit): b12 (un hook propio del repo de esa noche) y b13 (es B2).
+- **Para la 5c**: que corra después de "instalar hooks por PC" (si no, el banco hereda los hooks de la `rc.6` de esta PC); y la
+  flota de las otras seis copias con kit, las sesiones y las noches, que esta vuelta no corrió.
