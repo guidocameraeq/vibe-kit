@@ -5,6 +5,29 @@ Una sección por versión, la más nueva arriba. Cada una trae su **nota de migr
 Es lo que lee el agente de la fusión al actualizar un proyecto. La historia de sesiones del repo vive aparte, en `docs/CHANGELOG.md`.
 `kit/VERSION` lleva la versión del último tag y se sube en el commit que pone el tag siguiente.
 
+## 3.0.0
+
+La versión (2026-11-16): **el mismo código de la `rc.8`**, más tres renglones de texto de las skills. La probó el banco otra vez
+(`docs/kit-v3/BANCO-rc8.md`): dos noches que terminaron y publicaron solas en copias de repos reales, sin que el dueño tipee nada, y
+la flota que puso al día una copia desde la `rc.6` sin dejarla a medias.
+
+- **Qué piezas cambiaron** (contra la `rc.8`):
+  - `inicio`: confirma en tres líneas **sin códigos** (ni de commits ni copiados del handoff).
+  - `cierre`: el reporte, sin códigos.
+  - El anexo de la adopción del Arquitecto (`anexos/flota.md`): en un repo "todo en `no`" (sin ficha ni `CLAUDE.md`), la sesión le
+    dice al dueño antes del OK que queda solo la ficha, sin `/inicio`, `/cierre` ni la regla del tamaño.
+  - Ningún script, hook ni freno cambió.
+- **Automático o pide revisión**: automático. **Si venís de una `rc` anterior**, valen también las notas de la `rc.7` y la `rc.8` de
+  abajo; las dos que le piden algo al dueño, en criollo:
+  1. **Un repo sin pruebas** (las sacaste, o nunca tuvo): la flota no lo pone al día hasta que la ficha lo diga
+     (`gate:entorno-prueba` en `frenos.quitados`, con su razón, o `nivel: liviano`). Es un cambio de freno: lo firma el dueño con un
+     clic. Mientras, la fila de la flota dice qué falta.
+  2. **Un script del kit tocado a mano** (`.claude/scripts/`): la flota no mezcla; el repo queda entero en su versión, con la marca
+     `kit: ESPERA`, y la sesión te pregunta con cuál te quedás (lo más simple: la del kit). La vuelta siguiente lo pone al día.
+- **Qué chequear después**: `adoptar <carpeta> --verificar` sale 0; en la PC, que `~/.claude/hooks/kit/INSTALADO` diga `kit:
+  3.0.0`. Si dice una versión vieja, "instalar hooks por PC": con los hooks de antes de la `rc.7`, los frenos de la PC leen mal la
+  forma nueva de `autorizado.publicar` y avisan "ficha rota" sobre una ficha que está bien.
+
 ## 3.0.0-rc.8
 
 Todo corregido antes de la `v3.0` (2026-11-15, `docs/kit-v3/SPEC-paquete-8e.md`). No trae nada nuevo: arregla lo que encontraron la
