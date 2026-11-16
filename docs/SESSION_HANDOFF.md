@@ -8,7 +8,7 @@ READY), las tandas A, B y C enteras el tag **`v3.0.0-rc.7`** y **R2** (en `main`
 
 ## Dónde estamos
 
-- **Beta `v3.0.0-rc.7`** (taggeada 2026-11-14; `kit-sync` LIMPIO). Antes: La revisión de la `rc.7` terminó: cinco informes en `docs/kit-v3/REVISION-rc7-*.md` (mirada 1, pruebas,
+- **Beta `v3.0.0-rc.8`** (taggeada 2026-11-15 por la 5b en Fable; `kit-sync` LIMPIO con el aviso de los hooks de la PC). La `rc.7`, 2026-11-14. Antes: La revisión de la `rc.7` terminó: cinco informes en `docs/kit-v3/REVISION-rc7-*.md` (mirada 1, pruebas,
   mirada 2, los siete repos con el kit, y el plan), integrados al tracker, **"De la prueba real", ítems 17 a 60**.
 - **Decidido con Guido el 2026-11-12** (tracker, "Cambios al plan"): **ocho partes a la `rc.7`** (la noche termina sola y publica con
   red; aprobar con un clic y cerrar los agujeros; `/estado` del dueño; el parte sin comandos; un solo camino de fondo y los nombres de
@@ -20,12 +20,13 @@ READY), las tandas A, B y C enteras el tag **`v3.0.0-rc.7`** y **R2** (en `main`
 
 **El director del tramo final** sigue `docs/kit-v3/TRAMO-FINAL-PLAN.md`, sección 0 (**manda ese archivo**). Hecho: el spec
 `SPEC-paquete-8d.md` READY (Fable 5.2), las tandas A, B, C y el tag `rc.7`. R2 hecha (`REVISION-INTEGRAL-rc7.md`: G1-G5, la noche no se cerró sola en el clon
-de Deptos) · el ciclo de mejora rehecho (ADR-035) → 5a el banco de prueba ✅ (`BANCO-rc7.md`: B1, B2, b1-b13) → **5b la `rc.8`** (Fable 5.2, todo corregido) → 5c el banco otra vez → 6 la `v3.0` y el repo cerrado (el M6b va ahí).
+de Deptos) · el ciclo de mejora rehecho (ADR-035) → 5a el banco de prueba ✅ (`BANCO-rc7.md`: B1, B2, b1-b13) → 5b la `rc.8` ✅ (`SPEC-paquete-8e.md`) → **5c el banco otra vez** → 6 la `v3.0` y el repo cerrado (el M6b va ahí).
 **Desde el 2026-11-15 las sesiones 5a, 5b, 5c y 6 están abiertas y en espera**: el director las activa en fila con un mensaje
 "arrancá", sin el clic de Guido (ids en la cabecera del plan; la 5b, en Fable 5.2 verificado con `get_session`). Si sos una de las sesiones 1 a 6: tu tarea es tu sección; no hace falta `/inicio`.
 
 ## Te espera (Guido)
 
+- Decidir si **cambiar** el `comando-test` de un repo pide su firma (hoy la pide solo sacarlo; la 5b lo anotó sin tocar).
 - Correr **"instalar hooks por PC"** (B2 del banco: los hooks de esta PC están en `rc.6`; lo frena el clasificador, es suyo).
 - El clic de P7 cuando quiera (`../vibe-kit-pruebas/rc7/p7-firma/LEEME-P7.txt`: cierra el criterio 18); al final de 5c, pasar a fase 2 por escrito los criterios que no se midan; el OK de publicar la `v3.0` y de poner al día sus repos reales (con lo que dijo el banco).
 - Lo demás, solo lo de la tabla "Dónde lo necesita a Guido" del plan del tramo final.
