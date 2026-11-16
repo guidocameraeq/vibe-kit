@@ -1444,7 +1444,7 @@ test('crit. 5 (8r3 i4; rt-3): la línea después: dice la verdad — con remoto,
   const r = await aplicarCon(c, prop, '--principal', p);
   assert.equal(r.codigo, 0, r.lineas.join('\n'));
   const t = ver(r.lineas);
-  assert.match(t, /^después: .* falla en el commit de la ficha \(sensible no es de fábrica\): esa falla es solo en este clon, antes del push: barreras mira origin\/main\.\.HEAD y, pusheado, ningún \/cierre lo vuelve a mirar; un aprobado de después no lo cubre \(el sello va antes del primer commit que toca\) — lo que se decidió queda en el commit y en el renglón del CHANGELOG de la adopción$/m);
+  assert.match(t, /^después: .* falla en el commit de la ficha \(sensible no es de fábrica\): esa falla es solo en este clon, antes del push: barreras mira origin\/main\.\.HEAD y, pusheado, ningún \/cierre lo vuelve a mirar; un aprobado de después no lo cubre \(el sello va antes del primer commit que toca\) — lo que se decidió queda en el commit y en el renglón del CHANGELOG de la adopción; es lo esperado con lo que el dueño eligió en la propuesta, no un error: a él decile que esos commits van con su OK de la adopción$/m); // 8e b7
   commitsDeLaLinea(c, r.lineas);
   assert.equal(barreras(c, antes).status, 1, 'en el clon, rojo');
   git(c, 'push', '-q', 'origin', 'main');

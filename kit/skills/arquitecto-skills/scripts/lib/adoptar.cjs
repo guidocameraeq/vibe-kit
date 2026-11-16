@@ -187,7 +187,8 @@ function caminoDelRojo(clon, principal) {
   const g = gitEn(clon, ['config', '--get', 'core.hooksPath']);
   const prendido = g.ok && g.out.trim() !== '';
   const rama = gitEn(clon, ['symbolic-ref', '-q', '--short', 'HEAD']).out.trim() || '<la rama>';
-  const queda = 'lo que se decidió queda en el commit y en el renglón del CHANGELOG de la adopción';
+  // 8e b7 (el banco: 17 de 19 adopciones con barreras en 1, y el dueño leía "falla" en lo que se le recomendó): es lo esperado
+  const queda = 'lo que se decidió queda en el commit y en el renglón del CHANGELOG de la adopción; es lo esperado con lo que el dueño eligió en la propuesta, no un error: a él decile que esos commits van con su OK de la adopción';
   const despues = 'un aprobado de después no lo cubre (el sello va antes del primer commit que toca)';
   const t = hayRemoto(clon, principal)
     ? `esa falla es solo en este clon, antes del push: barreras mira origin/${rama}..HEAD y, pusheado, ningún /cierre lo vuelve a mirar; ${despues} — ${queda}`
