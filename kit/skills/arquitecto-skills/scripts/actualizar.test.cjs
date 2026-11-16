@@ -1448,3 +1448,33 @@ test('8d C4 (R6): quién aprueba, dicho como en A2 — lo corre la sesión cuand
   assert.match(t, /lo corre la sesión cuando el dueño lo pide, y su clic en la ventana es la firma: en la carpeta principal o en la pestaña del director, nunca un obrero/);
   assert.doesNotMatch(t, /lo apretás vos|un agente no aprueba/);
 });
+
+// 3.0.1 (la madre, 2026-11-16): el arranque propio no se pisa, y la flota que sigue tampoco lo pisa
+test('3.0.1: hook-arranque propia sin session-start.cjs → el settings no gana el hook del arranque del kit y el SessionStart propio queda; en molde, sí entra', () => {
+  // el molde nuevo cambia la regla del arranque (así su id no es la del viejo y la mezcla la sumaría)
+  const ssN = { SessionStart: [{ matcher: '', hooks: [{ type: 'command', command: 'node', args: ['${CLAUDE_PROJECT_DIR}/.claude/hooks/session-start.cjs', '--con-tope'] }] }] };
+  const kit = armarKit({ ...MOLDE_N, 'settings.json': settings({ ...JSON.parse(MOLDE_N['settings.json']), hooks: { ...JSON.parse(MOLDE_N['settings.json']).hooks, ...ssN } }) });
+  const SH = 'bash "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh"';
+  const conPropio = (estado) => armarProyecto({
+    estados: { 'hook-arranque': estado },
+    antes: (x) => {
+      if (estado !== 'molde') fs.rmSync(path.join(x, '.claude', 'hooks', 'session-start.cjs'));
+      escribirArbol(x, { '.claude/hooks/session-start.sh': 'echo "el arranque de la madre"\n' });
+      const s = JSON.parse(leer(x, '.claude/settings.json'));
+      s.hooks.SessionStart = [{ matcher: '', hooks: [{ type: 'command', command: SH }] }];
+      fs.writeFileSync(path.join(x, '.claude', 'settings.json'), settings(s));
+    },
+  });
+  const comandos = (d) => (JSON.parse(leer(d, '.claude/settings.json')).hooks.SessionStart || []).flatMap((g) => g.hooks.map((h) => [h.command, ...(h.args || [])].join(' ')));
+  const d = conPropio('propia');
+  const r = aplicar(d, { kit });
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  assert.equal(leer(d, '.claude/hooks/session-start.cjs'), null, 'propia: no se trae');
+  assert.deepEqual(comandos(d), [SH], 'el SessionStart propio queda y el del kit no entra');
+  assert.ok(JSON.parse(leer(d, '.claude/settings.json')).hooks.PreToolUse, 'lo demás del molde entra igual');
+  // molde: el session-start.cjs está y se pone al día, y su regla entra
+  const m = conPropio('molde');
+  assert.equal(aplicar(m, { kit }).codigo, 0);
+  assert.ok(leer(m, '.claude/hooks/session-start.cjs'));
+  assert.ok(comandos(m).includes('node ${CLAUDE_PROJECT_DIR}/.claude/hooks/session-start.cjs --con-tope'), comandos(m).join('\n'));
+});

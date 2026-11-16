@@ -1951,3 +1951,28 @@ test('8e: --mirar avisa que no hay con qué probar (D5), del linter de la raíz,
   assert.match(r.lineas.join('\n'), /\.claude\/kit\.md está ignorado por el \.gitignore de este repo/);
   assert.equal(git(ig, 'status', '--porcelain'), '', 'no escribió nada');
 });
+
+// 3.0.1 (la madre, 2026-11-16): un session-start.sh propio con la regla del settings igual a la del v2. La pieza quedaba propia
+// pero la mezcla se llevaba su regla y enchufaba el session-start.cjs, que no venía: el repo arrancaba sin nada.
+test('3.0.1: un session-start.sh propio (regla igual a la del v2) → --aplicar deja su regla y no la del .cjs; --verificar da ⚠ en arranque; con --permisos recomendada, igual', { ...deKit, timeout: 400000 }, async () => {
+  const SH = 'bash "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh"';
+  const ARRANQUE = '#!/bin/bash\necho "el handoff de la madre"\necho "inyectado: 7614 caracteres de 10000"\n';
+  for (const extra of [[], ['--permisos', 'recomendada']]) {
+    const d = repoV2('madre', { archivos: { '.claude/hooks/session-start.sh': ARRANQUE } });
+    assert.ok(hooksDe(settingsDe(d), 'SessionStart').includes(SH), 'la regla es la del v2');
+    const prop = propuestaDe(d);
+    assert.equal(piezas(fs.readFileSync(prop, 'utf8'))['hook-arranque'], 'propia');
+    rol(d);
+    const r = await aplicarCon(d, prop, ...extra);
+    assert.equal(r.codigo, 0, r.lineas.join('\n'));
+    assert.equal(leer(d, '.claude/hooks/session-start.cjs'), null, 'propia: el del kit no viene');
+    assert.equal(leer(d, '.claude/hooks/session-start.sh'), ARRANQUE, 'el tuyo queda');
+    const ss = hooksDe(settingsDe(d), 'SessionStart');
+    assert.deepEqual(ss, [SH], `${extra.join(' ') || 'sin opciones'}: queda la regla del tuyo y no entra la del .cjs`);
+    assert.ok(hooksDe(settingsDe(d), 'PreToolUse').some((c) => c.includes('escritura-docs.cjs')), 'lo demás del molde entra');
+    const v = await AD.main([d, '--verificar']);
+    const t = v.lineas.join('\n');
+    assert.match(t, /^verificar · arranque · ⚠ · arranque propio \(\.claude\/hooks\/session-start\.sh\): corre; sin la huella del kit no se mide el tope$/m, t);
+    assert.match(t, /^verificar · hooks · (✅|⚠) · /m, t);
+  }
+});

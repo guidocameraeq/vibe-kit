@@ -1206,7 +1206,8 @@ function aplicarPropuesta(carpeta, opciones) {
       if (d1.length) fichaPlan = A.reescribirFicha(fichaTexto, null, new Map(d1.map((x) => [x.id, 'propia'])));
     }
     // el planificador de aplicar: se niega como aplicar (sucia salvo .kit-rol, .kit-rol ≠ actualizador)
-    plan = A.planear(carpeta, { kit: opciones.kit, moldeViejo: viejo ? viejo.dir : opciones.kit, fecha, ficha: fichaPlan });
+    // 3.0.1: con D3 el session-start.cjs del kit viene (se escribe abajo): la mezcla del settings lo enchufa
+    plan = A.planear(carpeta, { kit: opciones.kit, moldeViejo: viejo ? viejo.dir : opciones.kit, fecha, ficha: fichaPlan, arranqueKit: d1.some((x) => x.d === 'D3') });
   } finally {
     M.borrar(tmp);
   }
@@ -1340,8 +1341,11 @@ function aplicarPropuesta(carpeta, opciones) {
       const proyecto = leerP(carpeta, RUTA_SETTINGS);
       const plano = ops.has(RUTA_SETTINGS) ? ops.get(RUTA_SETTINGS) : proyecto;
       const quitados = esMapa(final.frenos) && Array.isArray(final.frenos.quitados) ? final.frenos.quitados : [];
+      // 3.0.1: la misma regla que la mezcla del plan (sin el session-start.cjs del kit, el arranque propio no se pisa)
+      const hayArranque = ops.has(RUTA_ARRANQUE) ? ops.get(RUTA_ARRANQUE) !== null : leerP(carpeta, RUTA_ARRANQUE) !== null;
+      const sinArranque = !d1.some((x) => x.d === 'D3') && A.sinArranqueDelKit(estado(D3_PIEZA), hayArranque);
       const el = trae('settings') && sN && proyecto !== null
-        ? settingsElegido({ viejo: sV && fs.existsSync(sV) ? fs.readFileSync(sV, 'utf8') : null, nuevo: fs.readFileSync(sN, 'utf8'), proyecto, quitados }, { permisos: !!opciones.permisos, arranque: !!opciones.arranque })
+        ? settingsElegido({ viejo: sV && fs.existsSync(sV) ? fs.readFileSync(sV, 'utf8') : null, nuevo: fs.readFileSync(sN, 'utf8'), proyecto, quitados }, { permisos: !!opciones.permisos, arranque: !!opciones.arranque, sinArranque })
         : null;
       if (!el) lineasD.push(`settings · ${nombre}: no hay nada que elegir (${trae('settings') ? 'sin un settings propio que se mezcle' : 'la pieza settings no viene'}) — no toqué nada`);
       else {
@@ -1551,7 +1555,7 @@ function quienCubre(regla, { kit, tmp, sensible }) {
 
 // El settings con D2 y/o D3 elegidas: la misma mezcla, con el v2 sin las allow que se iban (así quedan donde están) y el proyecto
 // sin los ask que frenan y sin el SessionStart propio. → { texto, quedan, salen, fuera } o null (no hay nada que elegir).
-function settingsElegido(entrada, { permisos, arranque }) {
+function settingsElegido(entrada, { permisos, arranque, sinArranque = false }) {
   const d = decisionesSettings(entrada);
   if (!d) return null;
   const { P, V } = d;
@@ -1576,7 +1580,7 @@ function settingsElegido(entrada, { permisos, arranque }) {
     else delete P.hooks.SessionStart;
     fuera.push(...d.arranque.map(textoHook));
   }
-  const r = Z.mezclarSettings({ viejo: JSON.stringify(V), nuevo: entrada.nuevo, proyecto: JSON.stringify(P), quitados: entrada.quitados || [] });
+  const r = A.mezclarSettings({ viejo: JSON.stringify(V), nuevo: entrada.nuevo, proyecto: JSON.stringify(P), quitados: entrada.quitados || [] }, { sinArranque }); // 3.0.1
   if (!r.ok) return null;
   return { texto: r.texto, quedan, salen, fuera };
 }

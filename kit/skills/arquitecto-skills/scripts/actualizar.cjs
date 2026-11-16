@@ -266,6 +266,50 @@ const hashDe = (v) => (esMapa(v) ? v.hash : undefined);
 const porDe = (v) => (esMapa(v) && typeof v.por === 'string' ? v.por : undefined);
 const desdeDe = (v) => (esMapa(v) && typeof v.desde === 'string' ? v.desde : undefined);
 
+// ---------------------------------------------------------------- 3.0.1: el settings sin el arranque del kit
+
+// La madre (2026-11-16): con un session-start.sh propio, hook-arranque quedó propia, pero la mezcla se llevó su regla (igual a la
+// del v2) y enchufó la del session-start.cjs, que no vino: el repo arrancó sin nada. La regla, una sola para la adopción (planear
+// con la ficha propuesta y los D2/D3 de adoptar.cjs) y la puesta al día (aplicar, la flota, resolver … nueva):
+// sin el session-start.cjs del kit (hook-arranque en propia o no, y el archivo no está), el SessionStart del proyecto queda tal
+// cual y no se suma el hook del molde que corre ese archivo. --arranque kit (D3) es lo contrario y no pasa por acá.
+const RUTA_ARRANQUE = '.claude/hooks/session-start.cjs';
+const RE_ARRANQUE_KIT = /[\\/]session-start\.cjs\b/;
+const sinArranqueDelKit = (estado, hayArchivo) => ['propia', 'no'].includes(estado) && !hayArchivo;
+
+// Un settings (valor) sin los hooks SessionStart que `fuera(regla)` elige (las reglas de Z.reglas); el evento queda aunque vacío
+// (así la mezcla no cambia el orden de las claves).
+function sinSessionStart(valor, fuera) {
+  const s = JSON.parse(JSON.stringify(valor));
+  if (!esMapa(s.hooks) || !Array.isArray(s.hooks.SessionStart)) return s;
+  const sacar = new Set(Z.reglas({ hooks: { SessionStart: s.hooks.SessionStart } }).filter(fuera).map((x) => x.entrada));
+  s.hooks.SessionStart = s.hooks.SessionStart
+    .map((g) => (esMapa(g) && Array.isArray(g.hooks) ? { ...g, hooks: g.hooks.filter((h) => !sacar.has(h)) } : g))
+    .filter((g) => !(esMapa(g) && Array.isArray(g.hooks) && !g.hooks.length));
+  return s;
+}
+
+// Z.mezclarSettings con la regla de arriba (sinArranque): al viejo le saca lo que el proyecto tiene en SessionStart (así no se
+// retira ni se cambia) y al nuevo, el hook del session-start.cjs (así no entra). Un texto que no se lee va tal cual: lo dice la mezcla.
+function mezclarSettings(entrada, { sinArranque = false } = {}) {
+  if (!sinArranque) return Z.mezclarSettings(entrada);
+  const leer = (t) => {
+    if (t == null) return null;
+    const r = Z.leerJsonSinDuplicados(t);
+    return r.ok && esMapa(r.valor) ? r.valor : undefined;
+  };
+  const V = leer(entrada.viejo);
+  const N = leer(entrada.nuevo);
+  const P = leer(entrada.proyecto);
+  if (V === undefined || !N || P === undefined) return Z.mezclarSettings(entrada);
+  const propios = new Set(Z.reglas(P || {}).filter((x) => x.tipo === 'hook' && x.evento === 'SessionStart').map((x) => x.id));
+  return Z.mezclarSettings({
+    ...entrada,
+    viejo: V ? JSON.stringify(sinSessionStart(V, (x) => propios.has(x.id))) : entrada.viejo,
+    nuevo: JSON.stringify(sinSessionStart(N, (x) => RE_ARRANQUE_KIT.test(x.comando))),
+  });
+}
+
 // El valor de una pieza en la ficha. `por` (el porqué de Guido, D6-19) viaja siempre que la pieza lo tenía. `desde` (paquete 8b,
 // r1-1) solo lo escribe resolver ("quedarse" con la tuya) y se va cuando la pieza se mezcla o toma la nueva.
 function valorPieza(estado, hash, por, desde) {
@@ -552,7 +596,9 @@ function armar(plan, carpeta, { textoFicha, datos, nuevo, viejo, opciones = {} }
       const textoV = archivosV.length ? aV.get(archivosV[0].molde) : null;
       const proyecto = leerP(rel);
       const quitados = esMapa(datos.frenos) && Array.isArray(datos.frenos.quitados) ? datos.frenos.quitados : [];
-      const r = Z.mezclarSettings({ viejo: textoV, nuevo: textoN, proyecto, quitados });
+      // 3.0.1: sin el session-start.cjs del kit, el arranque propio no se pisa (opciones.arranqueKit: D3 de adoptar, que lo trae)
+      const sinArranque = sinArranqueDelKit(opciones.arranqueKit ? 'molde' : estadoDe(piezas['hook-arranque']), leerP(RUTA_ARRANQUE) !== null);
+      const r = mezclarSettings({ viejo: textoV, nuevo: textoN, proyecto, quitados }, { sinArranque });
       if (!r.ok) throw new Negativa(`${rel}: ${r.problema} — no escribí nada`);
       const cambia = proyecto === null || lf(proyecto) !== r.texto;
       if (cambia) {
@@ -1056,7 +1102,8 @@ function nuevaSinInforme(raiz, { id, def, datos, textoFicha, por, kit: kitPedido
       // el settings, regla por regla (la mezcla de aplicar, sin molde viejo: lo propio queda)
       const textoN = aN.get(archivos[0].molde);
       const quitados = esMapa(datos.frenos) && Array.isArray(datos.frenos.quitados) ? datos.frenos.quitados : [];
-      const r = Z.mezclarSettings({ viejo: null, nuevo: textoN, proyecto: leerD(archivos[0].proyecto), quitados });
+      const sinArranque = sinArranqueDelKit(estadoDe((esMapa(datos.piezas) ? datos.piezas : {})['hook-arranque']), leerD(RUTA_ARRANQUE) !== null); // 3.0.1
+      const r = mezclarSettings({ viejo: null, nuevo: textoN, proyecto: leerD(archivos[0].proyecto), quitados }, { sinArranque });
       if (!r.ok) return no(`${archivos[0].proyecto}: ${r.problema} — no toqué nada`);
       const d = leerD(archivos[0].proyecto);
       if (d === null || lf(d) !== r.texto) ops.set(archivos[0].proyecto, r.texto);
@@ -1374,7 +1421,7 @@ async function main(argv) {
 }
 
 // Antes de correr: lib/adoptar.cjs (que se carga desde main) lee estos exports.
-module.exports = { aplicar, planear, chequear, resolver, main, reescribirFicha, ejecutar, versionDelKit, notaDelKit, piezaDeRutaProyecto, ponerRenglon, Negativa, USO };
+module.exports = { aplicar, planear, chequear, resolver, main, reescribirFicha, ejecutar, versionDelKit, notaDelKit, piezaDeRutaProyecto, ponerRenglon, mezclarSettings, sinArranqueDelKit, RUTA_ARRANQUE, Negativa, USO };
 
 if (require.main === module) {
   main(process.argv.slice(2))
