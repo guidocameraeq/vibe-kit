@@ -4,7 +4,7 @@ La `rc.7` junta las **ocho partes** que Guido cerró el 2026-11-12 después de l
 60 de "De la prueba real" del tracker). No rediseña el kit: mueve el último tramo de la noche a donde hay alguien que lo haga, deja la
 firma del dueño en un clic, y saca lo que frena sin proteger.
 
-- Estado: **READY** (2026-11-12). Guido contestó la única pregunta de diseño (por el director del tramo): *"el clik lo quiero hacer
+- Estado: **✅ IMPLEMENTADO 2026-11-14** (tag `v3.0.0-rc.7`; lo que R2 encontró lo arregló la `rc.8`, `SPEC-paquete-8e.md`) · **READY** (2026-11-12). Guido contestó la única pregunta de diseño (por el director del tramo): *"el clik lo quiero hacer
   siempre en director, las aprobaciones son con el, no con los obreros"* (A2.3, D8d-6, P7). Red team: una ronda sobre el spec entero
   (3 ALTOS, 8 MEDIOS, 3 BAJOS) y una segunda solo de lo ALTO (4 ALTOS, 3 MEDIOS): los 21, integrados (ver "El red team del spec").
 - Fecha: 2026-11-12 · Misión: 5, tramo final, **sesión 1** (`TRAMO-FINAL-PLAN.md`). La vara: ADR-029, ADR-030 y ADR-034.

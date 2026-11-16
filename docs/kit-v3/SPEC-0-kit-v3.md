@@ -1,6 +1,6 @@
 # SPEC-0: el kit v3 de vibe-kit (el pack)
 El kit v3 es el método de vibe coding de Guido convertido en piezas instalables y medibles: un Arquitecto que viene solo, un molde de proyecto con tope y candado, un canon director/obrero con un solo dialecto, seguridad de fábrica, y un actualizador que pone al día los diez repos sin pisar lo propio.
-- Estado: READY (OK de Guido, 2026-10-27, después del red team y el revisor frío: "lo leí por encima y me parece bien")
+- Estado: **✅ IMPLEMENTADO 2026-11-16** (el código de la `v3.0` en `main`: la `rc.8` y el veredicto del banco otra vez, `BANCO-rc8.md`; el tag espera el OK de Guido; los criterios que no se midieron, a fase 2 por escrito) · READY (OK de Guido, 2026-10-27, después del red team y el revisor frío: "lo leí por encima y me parece bien")
 - Fecha: 2026-10-27
 - Misión: 4, tramo 5 (el spec) → se construye en la misión 5 → piloto en Deptos → kit `v3.0`
 - Fuentes: los ocho `docs/mision-4/DISENO-*.md` (A frenos · B documentos · C salida hacia Guido · D director/obrero · E molde y flota · F seguridad · G mesa y PCs · H niveles y puertas), `TABLERO.md` §1 y §9-§10, ADR-021 a ADR-026, y la [guía del kit v3](GUIA-KIT-V3.md) (el repaso charlado con Guido el 2026-10-27). Este spec **no repite los diseños**: fija qué se construye, en qué orden, cómo se prueba y cómo se mide. Cada pieza apunta a la sección del diseño que la define.

@@ -1,7 +1,7 @@
 # SPEC delta: paquete 2 — documentos con tope, hook en node, candado, `cambios`, zona propia, `/inicio` y `/cierre` v3 — vibe-kit
 Cada proyecto arranca viendo un estado que no miente (con edad y huella), no puede tirar archivos sueltos en `docs/`, cierra con un
 candado que dice qué arreglar, y ningún freno se quita sin el clic de Guido.
-- Estado: READY (sellado por Guido el 2026-10-28) · **D2.1 ✅ IMPLEMENTADO 2026-10-28** · **D2.2 ✅ IMPLEMENTADO 2026-10-29**, sin Guido (ver "Lo que cambió en la construcción" de cada uno y "Decisiones sin Guido" en el tracker)
+- Estado: **✅ IMPLEMENTADO 2026-10-29** · READY (sellado por Guido el 2026-10-28) · **D2.1 ✅ IMPLEMENTADO 2026-10-28** · **D2.2 ✅ IMPLEMENTADO 2026-10-29**, sin Guido (ver "Lo que cambió en la construcción" de cada uno y "Decisiones sin Guido" en el tracker)
 - Fecha: 2026-10-28
 - Misión: 5, directores **D2.1** (este delta y la primera mitad) y **D2.2** (la segunda mitad y el revisor frío del paquete)
 - Plano: [`SPEC-0-kit-v3.md`](SPEC-0-kit-v3.md), orden 2 = **P3.3, P3.5, P3.6, P3.9, P3.10, P4.1, P4.2, P6.1, P6.8a, P5.1, P5.2**, más

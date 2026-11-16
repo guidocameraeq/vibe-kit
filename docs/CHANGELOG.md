@@ -2,6 +2,34 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-11-10 al 16 — Misión 5, el tramo final: de la rc.6 a la v3.0 (la rc.7, R2, el banco, la rc.8 y el banco otra vez) · v3.0.0-rc.7 · v3.0.0-rc.8
+
+PC `Usuario`. Lo llevó **un director del tramo** (Opus) con las sesiones en fila (`docs/kit-v3/TRAMO-FINAL-PLAN.md`); desde el 15/11,
+abiertas en espera y activadas por él con un mensaje, sin el clic de Guido (ADR-035). Guido decidió lo de diseño (la charla de la
+revisión del 11-12/11, "todo a la rc.7"; después de R2, el banco antes de la rc.8 y la rc.8 en Fable). El detalle de cada paso está en
+su informe y en el tracker (`docs/kit-v3/PLAN-construccion.md`); la nota de cada versión, en `kit/CHANGELOG.md`.
+
+**Added**
+- **La `rc.7`** (14/11; spec `SPEC-paquete-8d.md` en Fable, tres tandas A, B y C): la noche que termina sola (una sesión de cierre
+  integra, publica si la ficha y la PC lo autorizan, prueba de humo y parte); aprobar un cambio de freno con un clic; `/estado` del
+  dueño en cuatro secciones; el parte sin comandos; un solo camino de fondo (sin despertador); frenos que no se cuelgan; adoptar sin
+  romper (`--verificar`, D1-D5) y "preparame esta PC" que trae los repos de la cuenta.
+- **El banco de prueba** (`pruebas/banco/`, 15/11, pedido de Guido): el kit contra copias de los 26 repos de la cuenta, inocuo (foto de
+  antes y después, remotos locales, HOME de mentira). Informes `docs/kit-v3/BANCO-rc7.md` y `BANCO-rc8.md`.
+- **El ciclo de mejora, entero** (`docs/CICLO-DE-MEJORA.md`, rehecho por la 6b el 15/11 y completado por la sesión 6): la vuelta 1 vivida
+  de la `rc.1` a la `v3.0`, cómo sacar una versión nueva en 16 pasos, la fecha de corte y la vuelta 2 (2027-03-01).
+
+**Changed**
+- **R2** (14-15/11, `REVISION-INTEGRAL-rc7.md`): la noche de prueba en un clon de Deptos no se cerró sola → `rc.8`.
+- **La `rc.8`** (15/11, `SPEC-paquete-8e.md`, Fable): los cinco grandes de R2 (la flota no deja un repo a medias, `limpiar` no cierra lo
+  recién creado, la firma en la pestaña del director, el permiso ancho del cierre, "lo que se hizo" a la mañana), los dos del banco (un
+  repo sin pruebas, los hooks de la PC sin aviso) y ~24 chicos; red team, revisor frío, mutación 28/28, suite 3.264/3.265.
+- **La versión** (sesión 6, 16/11): `kit/VERSION` 3.0.0 con su nota; tres renglones de texto de las skills (sin códigos en `/inicio` y
+  `/cierre`, el "todo en no" de la adopción); la portada, la guía y los manuales al día con lo de la `rc.7` y la `rc.8`; el TODO sin las
+  misiones 5 y 6; los specs marcados ✅. Los chats del tramo, el diario y el corte, en el privado.
+
+El banco otra vez: *sale la v3.0, con los hooks de la PC al día*. Lo que falta, en el TODO.
+
 ## 2026-11-05 — Misión 5, D8c.1: la rc.6, el obrero de cierre de tramo y la vuelta 2 del uso real · v3.0.0-rc.6
 
 Sin Guido (PC `Guido-PC-eQ`, Opus, ~13 h con ~10 h esperando el tag de la rc.5), lanzada por la sesión madre de la recta final. Delta

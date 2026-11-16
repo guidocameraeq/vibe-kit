@@ -2,24 +2,21 @@
 
 > ÚNICA fuente de pendientes del proyecto. Completado → SE BORRA (la historia vive en `CHANGELOG.md` y git). Header de 1 línea, sin narrativa de sesión.
 
-2026-11-04 — ver SESSION_HANDOFF.md
+2026-11-16 — ver SESSION_HANDOFF.md
 
 ## 🔴 Crítico
 > **La hoja de ruta, reordenada el 2026-10-26 (ADR-025)**: 4 cerrar el diseño sin mensajería → 4½ ordenar la casa → 5 construir **v3.0** →
 > 6 el ciclo como proceso → 7 la mensajería agéntica (**v3.1**). Después, el reloj: una vuelta cada 3-4 meses (abajo, "El ciclo").
 
-- [ ] **Misión 5 — construir el pack por piezas → kit v3.0** (en curso: **beta `v3.0.0-rc.6`** y la primera noche de director en Deptos; siguen, en orden (tracker, "Cambios al plan" del 2026-11-10): **la `rc.7` de taller** (lo medido de esa noche que no depende del loop) → la segunda noche de Deptos (módulo `cola`) → M6b → R2 contra un clon de Deptos y la `v3.0`. La cola y el cierre de noche, a la v3.1. Ya no se espera al primer módulo de Hermes; el modelo de cada rol, en la sección "Ejecución" del spec). **El plano es `docs/kit-v3/SPEC-0-kit-v3.md` (READY, 2026-10-27)**:
-  9 paquetes en el orden de su tabla "Orden de construcción" (1 ficha y parser · 2 documentos, hook, candado, `cambios` · 3 seguridad · 4 Arquitecto
-  y `worktree` · 5 canon director/obrero, `/estado`, mesa · 6 Equipador, actualizador, adoptador · 7 ciclo y portada · 8 observatorio y docs del
-  método · 8½ credenciales de Deptos · 9 piloto · 10 tag). Cada paquete con spec delta en `docs/kit-v3/SPEC-paquete-N.md`, red team si toca
-  permisos, revisor frío. **Prueba real: Hermes Desktop, con su módulo nuevo, desde el 2026-11-04** (ya no un piloto en Deptos), medición contra TABLERO §1; su lista NO VERIFICADO y "Lo que hacés vos de nuevo" están
-  en el spec. La primera sesión abre con la línea de la sección "Ejecución". **Por dónde vamos: `docs/kit-v3/PLAN-construccion.md`** (el tracker: no
-  se repite acá; este ítem sale cuando el tracker diga ✅ el paquete 10).
-- [ ] **Misión 6 — el ciclo de mejora del método** (adelantada por Guido el 2026-11-03 y partida en dos). **6a ✅ 2026-11-03**:
-  `docs/CICLO-DE-MEJORA.md` (la receta: el reloj, los cinco pasos con lo de adentro y lo de afuera, cómo se decide con ADR-030 y ADR-034,
-  la revisión integral como paso fijo, cómo trabajamos de verdad en la vuelta 1, lo que costó, las lecciones y las plantillas; el plan y la
-  medición en `docs/mision-6/PLAN-6a.md`). **Falta la 6b**, corta, cuando termine la segunda noche de Deptos (cambiado el 2026-11-10: antes esperaba al primer módulo de Hermes): §3.5 (probar en un proyecto
-  real y medir) y §8 (la fecha de corte de la próxima vuelta) con lo vivido. Es una receta, no una skill (regla de 3+).
+- [ ] **Sacar la `v3.0` — espera a Guido** (el código está en `main`: el de la `rc.8` más tres renglones de texto, con `kit/VERSION`
+  `3.0.0` y su nota; el veredicto del banco otra vez: *sale, con los hooks de la PC al día*, `docs/kit-v3/BANCO-rc8.md`). En orden:
+  (1) Guido corre **"instalar hooks por PC"** (los de esta PC están en la `rc.6`; el `kit-sync sync` ya dejó la `3.0.0` en
+  `~/.claude`, así que quedan en esa; lo frena el clasificador, es suyo); (2) la **noche corta**
+  de confirmación (`banco.sh noche` sobre la copia sin pruebas, ~17 min; la receta, en la nota de la 5c y en `pruebas/banco/LEEME.md`);
+  (3) Guido pasa **a fase 2 por escrito** los criterios que no se midieron (la lista, en `BANCO-rc8.md`, "Los 20 criterios"); (4) **su OK**
+  para el tag `v3.0.0` y el push; (5) **la flota real**, con su OK por repo. Después, `/cierre`
+  completo: el tracker dice ✅ el paquete 10, sale este ítem y la misión 5 queda en el CHANGELOG. El ciclo de mejora (misión 6) ya está
+  escrito entero (`docs/CICLO-DE-MEJORA.md`, ADR-035).
 - [ ] **Misión 7 — la mensajería agéntica → kit v3.1** (lo que era G.1; brief en `DISENO-G` §18 + sus insumos del acta de contraste: hueco 3/P71,
   P68, P77 y las "otras" 5, 8 y 24). Con investigación en internet y piloto. Guido, 2026-10-26: "no está bien claro todavía; siguiente versión;
   no bien termine lo otro, lo hago".
@@ -35,14 +32,24 @@
   - Cruzarlo con la mesa entre directores (paquete 5).
   - Cruzarlo con lo que se escribió en Hermes (`docs/legacy/una-sola-identidad/`).
   - Las consultas a las bases van con el rol de solo lectura (el módulo `lector` de Hermes).
+  **Lo que el tramo final dejó para la v3.1** (de taller, sin charla de diseño; el detalle y su porqué en cada informe):
+  - del plan del tramo (`TRAMO-FINAL-PLAN.md`, "Lo que ya está decidido", 2): el director corto, el aviso al celular, el kit como
+    plugin (REJ-001), la poda de frenos por evidencia, el costo por encargo, el director sin `EnterWorktree`, el candado en repos con
+    historia (tracker, 58) y la mesa en lote;
+  - de la `rc.8` (`SPEC-paquete-8e.md`, "A la v3.1"): que `publicar` acepte lo que ya estaba en origin (c1), la flota que dice qué
+    ramas de módulo parecen muertas (b1), el checklist de "me voy" en criollo, la identidad de git en el `doctor` (c3), por qué el
+    director narra algunos renglones en inglés (b9) y que la flota pregunte en el momento (G1);
+  - del banco otra vez (`BANCO-rc8.md`): "no pude probar: falta pnpm" en vez de ROTA (n1), la fila "te espera una decisión" para un
+    repo sin pruebas (n2), cómo prender lo base en una adopción "todo en no" (n3), un encargo cerrado que sale dos veces en `/estado`
+    (n5), el renglón en inglés de Claude Code en el parte (n6) y los cinco arreglos del script del banco;
+  - **una decisión de Guido**, anotada sin tocar: si *cambiar* el `comando-test` de la ficha tiene que pedir su firma (hoy la pide
+    solo sacarlo).
 
-## 🔁 El ciclo (cada 3-4 meses; la próxima vuelta arranca del corte del 2026-10-26 y cae entre febrero y marzo de 2027)
-1. **Investigar**: condensar los chats desde el corte anterior y leerlos con las decisiones vigentes en la mano (como la lectura de contraste);
-   leer también los registros de cambios de método de los proyectos. Lo crudo al privado `vibe-research`, el acta con alias a `tips/`.
-2. **Ordenar la casa**: repo limpio, legacy con lápida, guía y manuales.
-3. **Diseñar con Guido**: solo lo que la evidencia reabre, en racimos, con los 11 criterios y revisor frío.
-4. **Construir y pilotear**: versión nueva del kit, un proyecto piloto, un mes de uso.
-5. **Medir**: los scripts gratis contra las líneas base; de ahí sale la fecha de la próxima vuelta. La misión 6 lo deja escrito.
+## 🔁 El ciclo (cada 3-4 meses; la vuelta en `docs/CICLO-DE-MEJORA.md` §2 y §5, y cómo sacar una versión, §6)
+- [ ] **La medición de la `v3.0`**, al mes de la versión (~2026-12-15): la corrida mensual (`flota.py`, `huella.py`) contra la línea
+  base del 2026-11-03 (§5.6 del ciclo). Es el primer insumo de la vuelta 2.
+- [ ] **La vuelta 2 arranca el 2027-03-01** (o antes por un disparador, §2). Lee desde el corte de la vuelta 1: **`Usuario`
+  2026-11-15, 15:42 UTC** y **`clientes` 2026-11-05** (`CORTE.md` del privado). La v3.1 (misión 7) no la espera.
 
 ## 🟠 Importante
 - [ ] **El hook v2.4.3 al Bot y a su Panel** (inyectaban 15.500 y ~18.000 caracteres el 2026-10-22: arrancan sin ver su estado).
@@ -54,9 +61,6 @@
   más? ¿el Arquitecto repitió alguna? (Hubo un estreno parcial en la PC del compañero: Anexo A1 del acta.)
 - [ ] **Estreno real del Modo B**: primera feature grande sobre el ERP con `/arquitecto` en la carpeta
   del proyecto.
-- [ ] **PC `Usuario`**: traer la misión 3 antes de trabajar ahí. `git pull` y después
-  `bash .claude/scripts/kit-sync.sh sync` hasta que dé LIMPIO (el script conserva solo su carpeta de
-  proyectos), o decirle `actualizate` al Equipador. Los pasos están en el handoff del 2026-10-21.
 
 ## 🟡 Cuando se pueda
 - [ ] **Elegir el nombre del proyecto** (descartados: Obrador, Andamio, Batuta, Cimientos, Plano). Al

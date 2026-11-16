@@ -51,8 +51,13 @@ skills que hacen el trabajo ordenado sin que tengas que acordarte.
    primero; si es una idea tuya, vas directo a `/arquitecto`, que te entrevista y monta el proyecto.
 2. **Cada proyecto trabaja igual**: un chat por misión, que arranca con `inicio` y termina con
    `cierre`. El chat se tira; el proyecto recuerda.
-3. **El sistema aprende del uso real.** El observatorio mira los chats y los tips, deja actas con
-   propuestas, y lo que aprobás entra al kit. El Equipador lo lleva a cada PC.
+3. **Lo grande va por módulos, con un director.** Una sesión directora reparte el trabajo en encargos
+   a obreros que trabajan aparte, prueba cada uno antes de sumarlo y, si te vas, sigue de noche: la
+   noche termina sola (integra, publica si el proyecto lo permite y te deja un parte). A la mañana,
+   `/estado` te dice qué te necesita, el plan, lo que se hizo y lo que falta. Vos no tipeás comandos:
+   lo que es tuyo es un clic.
+4. **El sistema aprende del uso real.** El observatorio mira los chats y los tips, deja actas con
+   propuestas, y lo que aprobás entra al kit. El Equipador lo lleva a cada PC y pone al día tus proyectos.
 
 ## Las piezas
 
@@ -64,6 +69,7 @@ Cada pieza es una *skill*: instrucciones que Claude Code carga cuando las llamá
 | 📋 | **`/relevamiento`** | Cuando te piden algo en el laburo: ordena la charla en 4 documentos con un PDF por etapa, y decide con evidencia si hace falta software (construir es solo una de seis salidas) |
 | 🧰 | **`/arquitecto-skills`** · el Equipador | Prepara la PC (el kit, sus frenos y las skills de un menú curado), pone al día tus proyectos y se actualiza a sí mismo (`actualizate`) |
 | 🔁 | **`inicio` / `cierre`** | Los rituales de cada chat: arrancar sabiendo dónde quedaste, cerrar con todo guardado, commiteado y listo para tirar el chat |
+| 🧭 | **`/director` · `/obrero` · `/estado`** | Vienen en cada proyecto nuevo y al adoptar uno con código: el director lleva un módulo de punta a punta repartiendo encargos, los obreros los hacen aparte, y `/estado` te cuenta cómo va en cuatro secciones. Con frenos que de noche paran en vez de preguntar |
 | 🗂️ | **`/docs-fyd`** | La documentación técnica de auditoría de un repo, sacada del código; lo que el código no sabe, te lo pregunta con opciones |
 | 🔭 | **El observatorio** | Mira y anota, no toca: extrae tips de videos e investiga los chats reales para proponer mejoras ([más](observatorio/)) |
 
@@ -81,6 +87,13 @@ vos      dale, arrancá con la carga de remitos
 claude   (trabaja, prueba, te muestra la evidencia)
 vos      cierre
 claude   (deja los docs al día, commitea y sube) Chat listo para descartar.
+
+         ── algo grande: el Arquitecto lo planea y lo lleva un director ──
+
+vos      (a la noche, en la pestaña del director) me voy
+claude   (te dice qué queda andando y sigue solo; termina, integra y te deja el parte)
+vos      (a la mañana) /estado
+claude   Te necesito: nada · El plan · Lo que se hizo: 4 encargos · Lo que falta: el tramo 2
 ```
 
 Las recetas para cada situación ("me pidieron algo", "quiero una feature grande", "estoy en una PC
@@ -116,8 +129,10 @@ Hace falta: [Claude Code](https://claude.com/claude-code) funcionando y git.
 
 - 🧭 **Hoja de ruta y pendientes:** [`docs/TODO.md`](docs/TODO.md) — el rumbo: que el kit lo pueda usar
   otra persona sin Guido al lado. El plano: [`docs/kit-v3/SPEC-0-kit-v3.md`](docs/kit-v3/SPEC-0-kit-v3.md).
-- 📜 **Qué cambió y cuándo:** [`docs/CHANGELOG.md`](docs/CHANGELOG.md) · **por qué es como es:**
-  [`docs/DECISIONS.md`](docs/DECISIONS.md) · **para qué existe:** [`docs/MISION-Y-VISION.md`](docs/MISION-Y-VISION.md)
+- 📜 **Qué cambió y cuándo:** [`docs/CHANGELOG.md`](docs/CHANGELOG.md) (y el del kit, por versión:
+  [`kit/CHANGELOG.md`](kit/CHANGELOG.md)) · **por qué es como es:** [`docs/DECISIONS.md`](docs/DECISIONS.md) · **para qué
+  existe:** [`docs/MISION-Y-VISION.md`](docs/MISION-Y-VISION.md)
+- 🔄 **Cómo se mejora el método y cómo sale una versión nueva:** [`docs/CICLO-DE-MEJORA.md`](docs/CICLO-DE-MEJORA.md)
 
 <details>
 <summary><b>Qué hay en cada carpeta</b></summary>

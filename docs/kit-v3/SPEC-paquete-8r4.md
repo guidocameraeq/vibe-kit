@@ -2,7 +2,7 @@
 Lo que dolió en la primera semana de uso real de la beta (Hermes Desktop con `cashflow`, el analytics de Arti, el bot que espera) y que
 Guido quiere ya. El corazón: **el obrero (y el director) de una sola ventana** y **la flota con obra en curso como opción**. Lo que era
 la `rc.5` (D8c.1: el obrero de cierre de tramo y los experimentos de método) pasa a la `rc.6`.
-- Estado: READY (D8r.4, 2026-11-04, después de una ronda de red team)
+- Estado: ✅ IMPLEMENTADO 2026-11-04 (D8r.4, la beta `v3.0.0-rc.5`) · READY (D8r.4, 2026-11-04, después de una ronda de red team)
 - Fecha: 2026-11-04 · Misión: 5, director **D8r.4** (lo lanzó la sesión madre de la recta final; la vara: ADR-030 y ADR-034; el presupuesto: ADR-029)
 - Plano: [`SPEC-0-kit-v3.md`](SPEC-0-kit-v3.md); el modelo: [`SPEC-paquete-8r3.md`](SPEC-paquete-8r3.md). La fuente: tracker, Pendientes, "De la
   prueba real, lo que cuenta Guido" (1, 2, 3, 4, 6, 7), "De la adopción real de Hermes" (1, 3, 4, 5, 6, 7, 8, 11 c) y lo que la `rc.4`
