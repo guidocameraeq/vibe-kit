@@ -240,14 +240,55 @@ function llaves(ctx) {
 
 // ---------------------------------------------------------------- 2. arranque
 
+// 3.0.1 (la madre): sin el session-start.cjs del kit, el arranque propio que registra el settings — el primer hook SessionStart
+// que apunta a un archivo del repo que está: un .sh (con bash) o un .cjs/.js/.mjs (con node). → { rel, abs, bash } o null.
+function arranquePropio(ctx) {
+  let s;
+  try {
+    s = leerJsonSinDuplicados(fs.readFileSync(path.join(ctx.carpeta, ...RUTA_SETTINGS.split('/')), 'utf8'));
+  } catch (e) {
+    return null;
+  }
+  const hooks = s.ok && s.valor && typeof s.valor === 'object' && s.valor.hooks && typeof s.valor.hooks === 'object' ? s.valor.hooks : {};
+  for (const g of Array.isArray(hooks.SessionStart) ? hooks.SessionStart : []) {
+    for (const h of g && Array.isArray(g.hooks) ? g.hooks : []) {
+      if (!h || h.type !== 'command') continue;
+      for (const t of rutasDeHook(h)) {
+        const abs = path.resolve(ctx.carpeta, t.replace(RE_PROYECTO, () => ctx.carpeta));
+        RE_PROYECTO.lastIndex = 0;
+        const rel = posix(path.relative(ctx.carpeta, abs));
+        if (!rel || rel.startsWith('../') || path.isAbsolute(rel)) continue; // solo un archivo del repo
+        const bash = /\.sh$/i.test(abs);
+        if (!bash && !RE_NODE.test(abs)) continue;
+        try {
+          if (fs.statSync(abs).isFile()) return { rel, abs, bash };
+        } catch (e) {
+          // no está: el siguiente
+        }
+      }
+    }
+  }
+  return null;
+}
+// El bash con que se corre un arranque propio: en Windows, el de Git (shellDeComandos); si no, el del PATH.
+const bashDe = () => {
+  const sh = process.platform === 'win32' ? shellDeComandos() : null;
+  return typeof sh === 'string' ? sh : 'bash';
+};
+
 function arranque(ctx) {
-  const hook = path.join(ctx.carpeta, '.claude', 'hooks', 'session-start.cjs');
-  if (!fs.existsSync(hook)) return mal('no está .claude/hooks/session-start.cjs');
+  let hook = path.join(ctx.carpeta, '.claude', 'hooks', 'session-start.cjs');
+  let propio = null;
+  if (!fs.existsSync(hook)) {
+    propio = arranquePropio(ctx);
+    if (!propio) return mal('no está .claude/hooks/session-start.cjs (ni un arranque propio registrado en el settings)');
+    hook = propio.abs;
+  }
   const antes = git(['config', '--local', '--get', 'core.hooksPath'], ctx.carpeta);
   const previoAntes = git(['config', '--local', '--get', 'kit.hooksPathPrevio'], ctx.carpeta);
   let r;
   try {
-    r = correr(process.execPath, [hook], {
+    r = correr(propio && propio.bash ? bashDe() : process.execPath, [hook], {
       cwd: ctx.carpeta,
       plazo: PLAZO_ARRANQUE,
       entrada: JSON.stringify({ cwd: ctx.carpeta, hook_event_name: 'SessionStart' }),
@@ -274,8 +315,10 @@ function arranque(ctx) {
   }
   if (r.colgado) nv(`el hook de arranque no terminó en ${minutos(PLAZO_ARRANQUE)}`);
   if (r.error) nv(`el hook de arranque no arrancó (${r.error})`);
-  if (r.status !== 0) return mal(`el hook de arranque salió con ${r.status}`);
+  if (r.status !== 0) return mal(propio ? `el arranque propio (${propio.rel}) salió con ${r.status}` : `el hook de arranque salió con ${r.status}`);
   const huellas = [...r.salida.matchAll(/inyectado: (\d{1,3}(?:\.\d{3})*|\d+) de 9\.700/g)];
+  // 3.0.1: un arranque propio puede dejar otra huella (o ninguna): corre, y eso es un aviso
+  if (!huellas.length && propio) return bien(`⚠ arranque propio (${propio.rel}): corre; sin la huella del kit no se mide el tope`);
   if (!huellas.length) return mal('el hook de arranque corrió pero no dejó la huella "inyectado: N de 9.700"');
   const n = Number(huellas[huellas.length - 1][1].replace(/\./g, ''));
   if (n > TOPE_ARRANQUE) return mal(`inyectado: ${huellas[huellas.length - 1][1]} de 9.700 — pasa el tope`);

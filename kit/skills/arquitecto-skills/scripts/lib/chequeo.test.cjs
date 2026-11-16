@@ -1041,3 +1041,33 @@ test('8e b5 verificar: lo que la ficha dice que no viene (settings: no, hook-arr
   assert.match(lineaV(s, 'arranque'), / · ❌ · /);
   assert.equal(s.ok, false);
 });
+
+// 3.0.1 (la madre, 2026-11-16: un session-start.sh propio, registrado en el settings, y ❌ por no ser session-start.cjs)
+test('3.0.1 arranque: sin session-start.cjs, el arranque propio registrado — sale 0 sin huella → ⚠; sale 1 → ❌; con la huella, se mide el tope; sin nada registrado → ❌', { timeout: 180000 }, () => {
+  const conPropio = (archivo, cuerpo, comando) => armar({
+    cambio: (d) => {
+      fs.rmSync(path.join(d, '.claude', 'hooks', 'session-start.cjs'));
+      escribir(path.join(d, '.claude', 'hooks', archivo), cuerpo);
+      const rs = path.join(d, '.claude', 'settings.json');
+      const s = JSON.parse(leer(rs));
+      if (comando === null) delete s.hooks.SessionStart;
+      else s.hooks.SessionStart = [{ matcher: '', hooks: [{ type: 'command', command: comando }] }];
+      escribir(rs, `${JSON.stringify(s, null, 2)}\n`);
+    },
+  });
+  const SH = 'bash "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh"';
+  const anda = conPropio('session-start.sh', '#!/bin/bash\necho "handoff propio"\necho "inyectado: 7614 caracteres de 10000"\n', SH);
+  const r = verif(anda.d);
+  assert.match(lineaV(r, 'arranque'), / · ⚠ · arranque propio \(\.claude\/hooks\/session-start\.sh\): corre; sin la huella del kit no se mide el tope$/, r.lineas.join('\n'));
+  // la línea 2 de chequear es la misma función: un aviso, no un ❌
+  const c = correr(anda);
+  assert.match(linea(c, 'arranque'), /^2\. arranque · ✅ · ⚠ arranque propio \(\.claude\/hooks\/session-start\.sh\): corre/, c.lineas.join('\n'));
+  const falla = conPropio('session-start.sh', '#!/bin/bash\necho "se rompió"\nexit 1\n', SH);
+  assert.match(lineaV(verif(falla.d), 'arranque'), / · ❌ · el arranque propio \(\.claude\/hooks\/session-start\.sh\) salió con 1$/);
+  // un .cjs propio con otro nombre corre con node; con la huella del kit, el tope se mide como siempre
+  const gordo = conPropio('arranque-mio.cjs', "process.stdout.write('inyectado: 9.800 de 9.700\\n');\n", 'node "${CLAUDE_PROJECT_DIR}/.claude/hooks/arranque-mio.cjs"');
+  assert.match(lineaV(verif(gordo.d), 'arranque'), / · ❌ · inyectado: 9\.800 de 9\.700 — pasa el tope$/);
+  // sin SessionStart en el settings: como antes
+  const nada = conPropio('session-start.sh', 'echo hola\n', null);
+  assert.match(lineaV(verif(nada.d), 'arranque'), / · ❌ · no está \.claude\/hooks\/session-start\.cjs/);
+});
