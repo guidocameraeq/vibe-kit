@@ -20,7 +20,7 @@ READY), las tandas A, B y C enteras el tag **`v3.0.0-rc.7`** y **R2** (en `main`
 
 **El director del tramo final** sigue `docs/kit-v3/TRAMO-FINAL-PLAN.md`, sección 0 (**manda ese archivo**). Hecho: el spec
 `SPEC-paquete-8d.md` READY (Fable 5.2), las tandas A, B, C y el tag `rc.7`. R2 hecha (`REVISION-INTEGRAL-rc7.md`: G1-G5, la noche no se cerró sola en el clon
-de Deptos) · el ciclo de mejora rehecho (ADR-035) → 5a el banco de prueba ✅ (`BANCO-rc7.md`: B1, B2, b1-b13) → 5b la `rc.8` ✅ (`SPEC-paquete-8e.md`) → **5c el banco otra vez** → 6 la `v3.0` y el repo cerrado (el M6b va ahí).
+de Deptos) · el ciclo de mejora rehecho (ADR-035) → 5a el banco de prueba ✅ (`BANCO-rc7.md`: B1, B2, b1-b13) → 5b la `rc.8` ✅ (`SPEC-paquete-8e.md`) → 5c el banco otra vez ✅ (`BANCO-rc8.md`: **sale la `v3.0`**, con los hooks de la PC al día y una noche corta) → **6 la `v3.0`** y el repo cerrado (el M6b va ahí).
 **Desde el 2026-11-15 las sesiones 5a, 5b, 5c y 6 están abiertas y en espera**: el director las activa en fila con un mensaje
 "arrancá", sin el clic de Guido (ids en la cabecera del plan; la 5b, en Fable 5.2 verificado con `get_session`). Si sos una de las sesiones 1 a 6: tu tarea es tu sección; no hace falta `/inicio`.
 
