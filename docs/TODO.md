@@ -8,15 +8,11 @@
 > **La hoja de ruta, reordenada el 2026-10-26 (ADR-025)**: 4 cerrar el diseño sin mensajería → 4½ ordenar la casa → 5 construir **v3.0** →
 > 6 el ciclo como proceso → 7 la mensajería agéntica (**v3.1**). Después, el reloj: una vuelta cada 3-4 meses (abajo, "El ciclo").
 
-- [ ] **Sacar la `v3.0` — espera a Guido** (el código está en `main`: el de la `rc.8` más tres renglones de texto, con `kit/VERSION`
-  `3.0.0` y su nota; el veredicto del banco otra vez: *sale, con los hooks de la PC al día*, `docs/kit-v3/BANCO-rc8.md`). En orden:
-  (1) Guido corre **"instalar hooks por PC"** (los de esta PC están en la `rc.6`; el `kit-sync sync` ya dejó la `3.0.0` en
-  `~/.claude`, así que quedan en esa; lo frena el clasificador, es suyo); (2) la **noche corta**
-  de confirmación (`banco.sh noche` sobre la copia sin pruebas, ~17 min; la receta, en la nota de la 5c y en `pruebas/banco/LEEME.md`);
-  (3) Guido pasa **a fase 2 por escrito** los criterios que no se midieron (la lista, en `BANCO-rc8.md`, "Los 20 criterios"); (4) **su OK**
-  para el tag `v3.0.0` y el push; (5) **la flota real**, con su OK por repo. Después, `/cierre`
-  completo: el tracker dice ✅ el paquete 10, sale este ítem y la misión 5 queda en el CHANGELOG. El ciclo de mejora (misión 6) ya está
-  escrito entero (`docs/CICLO-DE-MEJORA.md`, ADR-035).
+- [ ] **Poner al día la flota real con la `v3.0.0`, repo por repo con el OK de Guido** (los siete con kit están en la `rc.6`, foto del
+  banco del 15/11: Deptos en dos vueltas por G1; uno pide `pnpm` en la PC; otro, sin pruebas, la ficha con `gate:entorno-prueba` y su
+  firma; los que tienen obra viva, cuando la cierren). Lo que cambia en cada uno: el resumen de la sesión 6 en la nota del director.
+- [ ] **Adoptar el kit en este repo** (pedido de Guido, 2026-11-16): `adoptar --mirar` primero, decidir con él qué pasa con el `/inicio`,
+  el `/cierre` y el `CLAUDE.md` propios de la madre (el `kit-sync`, las actas, el diario).
 - [ ] **Misión 7 — la mensajería agéntica → kit v3.1** (lo que era G.1; brief en `DISENO-G` §18 + sus insumos del acta de contraste: hueco 3/P71,
   P68, P77 y las "otras" 5, 8 y 24). Con investigación en internet y piloto. Guido, 2026-10-26: "no está bien claro todavía; siguiente versión;
   no bien termine lo otro, lo hago".

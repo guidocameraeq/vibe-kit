@@ -2,7 +2,7 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
-## 2026-11-10 al 16 — Misión 5, el tramo final: de la rc.6 a la v3.0 (la rc.7, R2, el banco, la rc.8 y el banco otra vez) · v3.0.0-rc.7 · v3.0.0-rc.8
+## 2026-11-10 al 16 — Misión 5, el tramo final: de la rc.6 a la v3.0 (la rc.7, R2, el banco, la rc.8 y el banco otra vez) · v3.0.0-rc.7 · v3.0.0-rc.8 · v3.0.0
 
 PC `Usuario`. Lo llevó **un director del tramo** (Opus) con las sesiones en fila (`docs/kit-v3/TRAMO-FINAL-PLAN.md`); desde el 15/11,
 abiertas en espera y activadas por él con un mensaje, sin el clic de Guido (ADR-035). Guido decidió lo de diseño (la charla de la
@@ -28,7 +28,11 @@ su informe y en el tracker (`docs/kit-v3/PLAN-construccion.md`); la nota de cada
   `/cierre`, el "todo en no" de la adopción); la portada, la guía y los manuales al día con lo de la `rc.7` y la `rc.8`; el TODO sin las
   misiones 5 y 6; los specs marcados ✅. Los chats del tramo, el diario y el corte, en el privado.
 
-El banco otra vez: *sale la v3.0, con los hooks de la PC al día*. Lo que falta, en el TODO.
+**Released**
+- **La `v3.0.0`** (16/11, con el OK de Guido: *"me encanta esta versión del kit"*), sobre el código de la `rc.8` más tres renglones
+  de texto. Antes del tag: "instalar hooks por PC" en esta PC (los hooks pasaron de la `rc.6` a la 3.0.0; el `doctor`, todo bien) y la noche
+  corta de confirmación (pasó en 16 min, sin "ficha rota"); los 20 criterios, 11 tildados y nueve a fase 2 por escrito (Guido). La misión 5
+  y la 6 quedan cerradas. Lo que sigue (la flota real repo por repo, adoptar el kit en este repo, la `v3.1`), en el TODO.
 
 ## 2026-11-05 — Misión 5, D8c.1: la rc.6, el obrero de cierre de tramo y la vuelta 2 del uso real · v3.0.0-rc.6
 
