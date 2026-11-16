@@ -28,6 +28,7 @@ frenos:
   quitados:
     - {id: hook:git-seguro/push-otra-rama, por: "la madre del kit: sus sesiones suben a main desde la carpeta principal (director del tramo, /cierre); no hay módulos de app ni obreros en ramas — decidido con Guido el 2026-11-16", hasta: siempre}
     - {id: gate:entorno-prueba, por: "la suite del kit tarda ~90 min: cada cambio corre las pruebas de lo que toca y la suite entera va antes de cada versión (CICLO-DE-MEJORA §6) — decidido con Guido el 2026-11-16", hasta: siempre}
+    - {id: candado:raiz, por: "la madre tiene su propio mapa de docs/ (el del CLAUDE.md: specs, kit-v3/, consulta/) y docs: no; el árbol del molde le frenaba todo archivo nuevo — decidido con Guido el 2026-11-16", hasta: siempre}
 autorizado:
   merge-a-main: con-gate-verde
   escribir-produccion: por-comando-con-foto
