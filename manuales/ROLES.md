@@ -18,7 +18,7 @@ ficha del proyecto lo trae (`piezas.director-obrero: sí`; al adoptar un repo co
   pregunta; una mezcla que choca te la cuenta y la decide con vos, siempre). Después del `pull`, si se integró un módulo después del
   último handoff (`worktree.cjs integrados`), te propone `/cierre` para poner los papeles al día. Con tu pedido en el mensaje, **la
   primera línea es el tamaño**: chico lo hace; más que chico llama al Arquitecto. En tu carpeta principal, además, borra la marca
-  de la noche (`noche.cjs volvi`) y cierra callado las carpetas de trabajo ya mezcladas (`worktree.cjs limpiar`).
+  de la noche (`noche.cjs volvi --al-mirar`: de noche la deja y lo dice) y cierra callado las carpetas de trabajo ya mezcladas (`worktree.cjs limpiar`).
 - **En la pestaña de un módulo**, el `/inicio` mira primero el rol de la carpeta (`.kit-rol`) y la rama: si es la del director, invoca
   `/director`; si es la de un obrero, `/obrero <x>--<ID>`. Así da igual si pegás "inicio" o el primer mensaje que te dio el script.
 - **`/cierre`**: docs al día (el handoff con tope, "Te espera"), el candado que pasa, commit y push. Solo en la rama por defecto.
@@ -39,7 +39,8 @@ El detalle de lo que tocan (el handoff, el TODO, el candado): `manuales/MOLDE.md
 - **El gate lo corre un script**, nunca a mano. Rojo donde antes había verde es PARADA. Un error del script es **NO VERIFICADO**:
   nunca verde, nunca merge.
 - **Pruebas**: la prueba en rojo primero, casos de sí y de no; el revisor frío en cada sub-paso con código.
-- **Permisos**: nadie se lanza saltando permisos. Lo que un encargo necesita va a su `## AUTORIZADO`; si falta, lo tipeás vos.
+- **Permisos**: nadie se lanza saltando permisos. Lo que un encargo necesita va a su `## AUTORIZADO`; si falta, en la pestaña que abriste te aparece
+  la ventana; de fondo, el obrero para y el director lo anota (si es tuyo, en "te necesito").
 
 ## 3. El director (`/director`)
 
@@ -131,13 +132,14 @@ Solo informa: no decide ni pregunta. Las cifras las calcula un script (`estado.c
   los vencidos del TODO y el "Te necesito" del último parte de la noche), `EL PLAN`, `LO QUE SE HIZO` y
   `LO QUE FALTA` (con la mediana de los encargos cerrados; con menos de tres, "no sé todavía": nunca un número inventado). Sin SHAs
   ni comandos. En la pestaña de un módulo, o con `/estado <x>`, la de ese módulo. En tu carpeta principal, antes de mostrarla, borra
-  la marca de la noche y cierra las carpetas ya mezcladas (como el `/inicio`).
+  la marca de la noche (de noche la deja y lo dice) y cierra las carpetas ya mezcladas (como el `/inicio`).
 - **El clic, ahí mismo**: si `TE NECESITO` trae una firma (un cambio de freno, o seguir con una publicación trabada), te ofrece
   hacerla ahí; vos solo apretás en la ventana (§9).
 - **El director** usa la suya, la de antes: `estado.cjs --director` (`TE ESPERA` arriba, una línea por módulo activo con su avance
   medido, qué pestañas cerrar, las esperas y el uso de contexto).
 - **"¿Cómo terminamos?"** (o a partir de las 18 h): suma **el resumen del día** (`resumen.cjs`), una vez por día.
-- **"Agregá tal línea al estado"**: queda en `.claude/estado-lineas.md` y se muestra siempre.
+- **"Agregá tal línea al estado"**: queda en `.claude/estado-lineas.md` y sale en la vista del director (con o sin módulo), no en
+  tu `/estado`.
 - `avance —` quiere decir que la ficha no tiene tareas de dónde medir. `NO VERIFICADO` se muestra tal cual.
 
 ## 7. La noche — "me voy"
@@ -150,7 +152,8 @@ día (§3, paso 6).
 - **De noche** los frenos tratan al director y a sus obreros como **nocturnos**: lo que de día te preguntaría, de noche es PARADA.
 - **Ya no hay despertador ni mudanza al 40 %**: el director lanza a los obreros de fondo y se entera cuando el proceso termina, mirando
   git. (`noche.cjs despertador` quedó solo para que una línea vieja no se rompa: dice eso y sale 0.)
-- **Cuando volvés**, tu `/inicio` o tu `/estado` en la pestaña principal borran la marca (`noche.cjs volvi`): "ya es de día".
+- **Cuando volvés**, tu `/inicio` o tu `/estado` en la pestaña principal borran la marca (`noche.cjs volvi --al-mirar`): "ya es de
+  día". Pero de noche (de 20 a 6, o el mismo día en que dijiste "me voy") la dejan y te lo dicen; si volviste de verdad, decíselo y la borran: así mirar cómo va no le corta la noche al director.
 
 ### La noche termina sola: la sesión de cierre
 

@@ -75,8 +75,8 @@ módulo **hermano**; vos decidís con un clic.
    terceros, antes pasa el red team. **Tu aprobación es la puerta**: sin ella no escribe nada más que el borrador.
 6. **El montaje**: corre el scaffolding del stack y `git init`, y monta **el molde v3 con el adoptador** (`adoptar --nuevo`) sobre
    un clon del proyecto, nunca a mano: la ficha `.claude/kit.md`, `CLAUDE.md`, `docs/`, `/inicio`, `/cierre`, los frenos, los hooks,
-   el candado prendido y `/director` y `/obrero` (todo proyecto nuevo nace con módulos). Los githooks se prenden en tu carpeta
-   (`--principal`) y el resultado vuelve a ella con un `pull`. Con la ficha puesta, sella el SPEC-0 (§7) y lo pasa a READY; si es
+   el candado prendido y `/director` y `/obrero` (todo proyecto nuevo nace con módulos). El resultado vuelve a tu carpeta con
+   `--traer`, que además prende ahí los githooks. Con la ficha puesta, sella el SPEC-0 (§7) y lo pasa a READY; si es
    `estandar`, te pregunta si lleva también `docs-fyd`. Termina con una tabla de lo montado.
 7. **La línea**: te da la ruta y la frase para pegar en un chat nuevo ahí (`inicio — ejecutá docs/modulos/v1/SPEC.md (está READY)`).
    Y se apaga.
@@ -110,15 +110,19 @@ Los pasos:
      director cuando su spec no tiene sello.
 4. **El spec delta**: "Pedido original, textual" (nunca inventado), AGREGA / MODIFICA / **NO SE TOCA** (obligatoria), "Ejecución" y
    "Entorno de prueba". El director va solo si la ficha del proyecto lo trae (`piezas.director-obrero: sí`); si no, módulo solo y te
-   dice cómo prenderlo. Con ficha corre el chequeo del entorno: si da rojo, montarlo es **la tarea 0**. Si el proyecto tiene la base
+   dice cómo prenderlo. Con ficha corre el chequeo del entorno: si falla, montarlo es **la tarea 0**. Si el proyecto tiene la base
    real y ninguna de prueba, en un módulo con director la tarea 0 va como primer renglón de "Entorno de prueba"
    (`- **Tarea 0**: montar la base de prueba`): el sello la acepta y el primer encargo, el `00`, monta la base; hasta que esté,
    ningún otro obrero arranca. En un módulo solo no vale: la base de prueba es un módulo previo.
+   **Con director, desde la `rc.7`**, además: **"¿lista o cola?"** (una pregunta: *lista* son las tareas del spec y termina cuando
+   están; *cola* va tomando pedidos con una regla y dice cuándo termina; queda en la ficha, `- Plan:`), **"Antes de lanzar: lo del
+   dueño"** (la lista de los cambios de freno y los pasos que solo podés dar vos: el director no reparte un encargo que dependa de uno
+   hasta que esté hecho) y las tareas **agrupadas por tramo** (`### Tramo N`: es lo que lee `/estado`).
 5. **Termina armando**: sello → tu OK (si cambiás algo, sella de nuevo) → READY. Con ficha: un commit en la rama por defecto **solo
    con lo del módulo** (nunca `git add -A`), push si hay remoto y, si es con director, `worktree.cjs crear <x>` (la rama
    `modulo/<x>` y su carpeta aparte). Si el proyecto no tiene `worktree.cjs`, lo dice y no arma el worktree a mano.
 6. **La línea**: módulo solo → chat nuevo en la carpeta, `inicio — ejecutá docs/modulos/<x>/SPEC.md (está READY)`; con director → en tu
-   ventana de siempre, una sesión nueva con Opus y el primer mensaje `/director`: entra sola al worktree (`worktree.cjs donde` y
+   ventana de siempre, una sesión nueva con Opus y el primer mensaje `/director <x>`: entra sola al worktree (`worktree.cjs donde` y
    EnterWorktree); la alternativa, `code "<worktree>"` en otra ventana; sin ficha → `inicio — ejecutá el spec docs/SPEC-<x>.md (está READY)`.
 
 Implementado, el spec no se archiva: su estado pasa a `COMPLETO <fecha>`.
@@ -163,7 +167,7 @@ Qué mira `sello` antes de escribir la línea:
 - **tamaño**: que "Ejecución" diga `módulo solo` o `módulo con director` en su primera línea, y que coincida con la ficha del módulo.
 - **entorno** (solo con ficha): que haya dónde probar. Si la ficha declara un entorno real, tiene que haber uno de prueba al lado (o,
   en un módulo con director y con el kit ≥ `3.0.0-rc.2`, la tarea 0 en el spec: el sello dice `entorno — (tarea 0: montar el entorno
-  de prueba)`); si no, `comando-test` tiene que dar verde (corre en la misma consola que el gate: Git Bash en Windows; si da rojo y la ficha tiene `comando-setup`, el sello te pregunta si lo corriste en esa carpeta). Y las herramientas que nombra la ficha tienen que andar.
+  de prueba)`), o que la ficha diga que no hay pruebas (`gate:entorno-prueba` quitado, con su razón); si no, `comando-test` tiene que pasar (corre en la misma consola que el gate: Git Bash en Windows; si falla y la ficha tiene `comando-setup`, el sello te pregunta si lo corriste en esa carpeta). Y las herramientas que nombra la ficha tienen que andar.
 - **tope**: el tamaño del spec contra su límite (avisa; si decidiste seguir entero, va `--no-partir "Guido"`).
 
 Si niega, dice qué falta en una línea; se arregla y se vuelve a correr. Si después del sello alguien toca el spec, el sello deja de

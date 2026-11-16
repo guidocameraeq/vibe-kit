@@ -7,7 +7,7 @@
 
 Lo normal es que no toques nada de esto a mano: lo pone el adoptador (`actualizar.cjs adoptar`), con `--nuevo` cuando el Arquitecto
 monta un proyecto nuevo (Modo A) o con "adoptá X" para uno que ya existe, y lo mantiene el actualizador (`manuales/EQUIPADOR.md`). En
-los dos casos trabaja sobre un clon y prende los githooks en tu carpeta con `--principal` (pone `core.hooksPath` = `.githooks`). Tu
+los dos casos trabaja sobre un clon y, al final, `--traer` lleva lo adoptado a tu carpeta (la que nombra `--principal`) y prende ahí los githooks (pone `core.hooksPath` = `.githooks`). Tu
 `CLAUDE.md`, si ya había uno, no se toca, salvo que en el OK de la adopción digas que sí a `--claude-md` (le suma al final "El tamaño
 del pedido"). Lo que sí te toca a vos: leer la ficha de vez en cuando,
 aprobar los cambios del método y contestar las cinco preguntas.
@@ -76,6 +76,10 @@ Se registran en el `settings.json` del molde. Desde la `rc.7`, sobre Bash/PowerS
 `niega-aprobar` corre además en toda la PC (lo instalan los frenos de la PC). Los que **niegan** llevan `onFailure: "block"`: si el
 hook se rompe, frena y dice "freno roto: corré doctor". Los hooks son avisos y frenos de primer nivel, **no una frontera** (un
 script armado a propósito los esquiva); la red de verdad es el candado y los githooks.
+
+**Dónde queda cada frenada** (desde la `rc.7`): la firma de un cambio aprobado (`cambios:aprobar`) va a `.claude/frenos.log`, que
+se versiona; todo lo demás (cada freno que negó o preguntó) va a `kit-frenos.log`, en la carpeta común de git (`.git/`), sin
+versionar y compartido por la carpeta principal y sus worktrees. Así el registro no ensucia el repo ni traba un merge.
 
 | Hook | Cuándo corre | Qué hace |
 |---|---|---|
@@ -255,7 +259,7 @@ proyecto nuevo y al adoptar uno con código. Cómo se usan: `manuales/ROLES.md`.
 
 Lo que hacen los scripts del módulo que vale saber desde acá (el detalle, en `ROLES.md` y `SCRIPTS.md`):
 - **Una sola ventana** (rc.5): `worktree.cjs crear` arranca con `en tu ventana de siempre, una sesión nueva de Claude; primer mensaje:
-  /director` (o `/obrero <x>--<ID>`): la skill corre `worktree.cjs donde`, entra con EnterWorktree y verifica rama y `.kit-rol` antes de
+  /director <x>` (o `/obrero <x>--<ID>`): la skill corre `worktree.cjs donde`, entra con EnterWorktree y verifica rama y `.kit-rol` antes de
   tocar nada. `code "<ruta>"` queda de alternativa. El deny del `.env` del principal vive en su `.claude/settings.local.json` (no viaja
   por git: cada PC lo arma con su primer `crear` o `abrir`). Entre encargos, el director trae `main` con `worktree.cjs traer-main <x>`; adentro del worktree, `donde` y `traer-main` van con el script de `main` (`node ../../../.claude/scripts/worktree.cjs …`): un módulo de antes de la rc.5 trae el viejo, sin esos comandos.
 - **La tarea 0**: con el sello `entorno — (tarea 0: montar el entorno de prueba)`, `encargo.cjs autorizado` niega todo encargo que no

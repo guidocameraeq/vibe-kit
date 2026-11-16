@@ -92,12 +92,13 @@ Al cerrar cada tramo (el grupo de encargos entre dos cierres), un obrero de cier
 
 ### 👋 "Me voy" (y quedó un módulo con director andando)
 Decile **"me voy"** al director: sin preguntarte nada te muestra el checklist de la noche y qué queda andando. Cuando volvés, tu
-`/inicio` o `/estado` le avisa que ya es de día. → [`manuales/ROLES.md`](manuales/ROLES.md) §7
+`/inicio` o `/estado` le avisan que ya es de día; de noche (de 20 a 6, o el mismo día en que dijiste "me voy") la dejan y te lo dicen; si volviste de verdad, decíselo y la borran. → [`manuales/ROLES.md`](manuales/ROLES.md) §7
 
 ### 🌙 "¿Qué pasó anoche?"
 Cuando el director termina un módulo, la noche termina sola: una sesión de cierre pone los papeles al día, publica si el proyecto y
 esta PC lo autorizan, limpia y te deja **el parte de la noche** (qué quedó, qué te necesita, qué se hizo, qué no pudo). Lo ves en la
-pestaña del director, y lo que te necesita aparece en tu `/estado`. → [`manuales/ROLES.md`](manuales/ROLES.md) §7
+pestaña del director, y lo que te necesita aparece en tu `/estado`. Si de día hiciste algo chico en la rama principal, la noche te
+pregunta antes de publicarlo (no publica lo que no vio integrar). → [`manuales/ROLES.md`](manuales/ROLES.md) §7
 
 ### 📊 "¿Cómo vamos?"
 **`/estado`** en el proyecto (o `/estado <módulo>`): siempre cuatro secciones, en el mismo orden: **te necesito · el plan · lo que se
@@ -203,7 +204,7 @@ de la anterior en `tips/tanda-2026-10-chats.md` §0; lo ya hallado en `D:\vibe-h
 | `/arquitecto` con el plan ya charlado | Modo B corto: sin entrevista, la charla se vuelve un spec sellado que ejecuta otra sesión |
 | `/estado` · `¿cómo terminamos?` | Cómo vamos: te necesito · el plan · lo que se hizo · lo que falta · más el resumen del día |
 | `me voy` | (al director) El checklist de la noche y qué queda andando; a la mañana, el parte; tu `/inicio` al volver dice que ya es de día |
-| `cambios aprobar <id>` | Aprobar un cambio de freno, en la pestaña del director (o tu carpeta principal): `cambios aprobar` lo corre la sesión cuando el dueño lo pide, y su clic en la ventana es la firma; nunca por su cuenta |
+| `firmá el cambio que está en te necesito` | Aprobar un cambio de freno, en la pestaña del director (o tu carpeta principal): `cambios aprobar` lo corre la sesión cuando el dueño lo pide, y su clic en la ventana es la firma; nunca por su cuenta |
 | `preparame esta PC` | El Equipador deja la PC entera lista: kit, frenos y ajustes, con una sola pregunta; trae los repos que elijas y te pide el sí de publicar |
 | `instalame skills` | El Equipador instala lo que falte del menú curado |
 | `/docs-fyd` | Documenta el repo para la auditoría FyD (te pregunta por opciones lo que el código no sabe) |

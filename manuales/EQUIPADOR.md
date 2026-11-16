@@ -113,20 +113,25 @@ así que la sesión la corre en segundo plano). Por cada repo, uno detrás del o
 3. En la rama `kit/<versión>` aplica el kit pieza por pieza según la ficha del proyecto (`.claude/kit.md`), commitea y corre el
    **chequeo** (nueve líneas) y después `adoptar --verificar` en el clon: si un hook registrado o el arranque no anda, no mezcla. El
    commit y el push los juzgan los frenos del molde nuevo.
-4. **Verde** → la rama por defecto avanza con un commit del kit. **Rojo** → nada llega a la rama por defecto: queda la rama `kit/…`
+4. **Si el chequeo pasa** → la rama por defecto avanza con un commit del kit. **Si falla** → nada llega a la rama por defecto: queda la rama `kit/…`
    con un commit `kit: ROTA — <qué falló>` (la próxima vuelta la rehace). **Push rechazado** (rama protegida) → la rama queda
-   "te espera".
+   "te espera". **Una pieza de `.claude/scripts/` que queda esperando tu decisión** (la tocaste a mano y la mezcla choca) → tampoco
+   mezcla: sube `kit/<versión>` con el informe y la marca `kit: ESPERA`, y el repo queda **entero en la versión vieja**, nunca a
+   medias. La sesión te pregunta con qué te quedás (`resolver`) y la vuelta siguiente lo pone al día (desde la `rc.8`).
+5. **Un repo sin pruebas**: si sacaste sus pruebas (o nunca tuvo), la ficha lo tiene que decir (nivel `liviano`, o
+   `gate:entorno-prueba` en `frenos.quitados` con su razón); si no, la flota no lo pone al día y la fila dice qué falta. Sacar el
+   `comando-test` de la ficha es un cambio de freno: lo firmás vos.
 
 Te devuelve **una tabla** (mezclado · salteado con su porqué · ROTA · te espera) y la lista "te espera:". **Con obra en curso**
 (ramas `modulo/*` vivas) sale `salteado`; si sabés que podés, `--con-obra` actualiza `main` igual y prueba en el clon, sin subir nada,
-traer `main` a cada módulo: "te espera:" dice por módulo verde, rojo (lo aprobás vos antes) o choca, y lo trae su director con
+traer `main` a cada módulo: "te espera:" dice por módulo si pasa, si falla (lo aprobás vos antes) o si choca, y lo trae su director con
 `worktree.cjs traer-main <x>`. Una skill que pasa su tope **por su zona propia** da ⚠ y no ROTA (decidido por Guido, 2026-11-04).
 **El lock del proyecto atrasado** (el `comando-setup` ya fallaba antes de la actualización por eso, y el kit no tocó ni el lock ni el
 setup) tampoco traba: el repo sale `mezclado` y "te espera:" dice que tus tests no se probaron hasta que regeneres el lock. Si
 `hooks-lib` te espera y un hook nuevo la necesita, la fila dice que la resuelvas primero (`resolver . hooks-lib …`).
 
-**`todo` sin `--tag` reparte el último tag anotado, rc incluido, a todo proyecto con ficha.** Hoy solo Hermes tiene ficha; cuando se
-sumen otros, una beta les llega igual: para repartir solo una versión final (sin beta), pasá `--tag v<X.Y.Z>`.
+**`todo` sin `--tag` reparte el último tag anotado, rc incluido, a todo proyecto con ficha.** Hoy tienen ficha los siete repos que ya
+usan el kit, y una beta les llega igual: para repartir solo una versión final (sin beta), pasá `--tag v<X.Y.Z>`.
 
 **Lo que adaptaste en un proyecto no se pisa.** Una pieza adaptada (la cambiaste a tu gusto; su porqué es el `por:` en la ficha):
 - con su porqué y una mezcla limpia (el kit cambió en otro lugar que vos) → se fusiona sola;
@@ -169,7 +174,10 @@ Un repo que todavía no tiene el kit v3 **se adopta, no se actualiza**. Va en do
    cada worktree), cada base y su clase (`entornos:`: sin declararla, la de prueba cuenta como real), y lo que el comentario marque como
    **D1** (tu director, `/inicio` y `/cierre`, o los del kit: `--director kit`), **D2** (qué permisos se van y qué `ask` frenan al
    director: `--permisos recomendada`), **D3** (dos hooks de arranque, un `session-start.cjs` propio con el nombre del del kit, el
-   handoff gordo: `--arranque kit`, que en el caso del mismo nombre lo reemplaza por el del kit) y **D4** (las cinco de `sensible:`).
+   handoff gordo: `--arranque kit`, que en el caso del mismo nombre lo reemplaza por el del kit) y **D4** (las cinco de `sensible:`). Si no encuentra con qué probar el repo, **D5**: el comando de las pruebas o, si de verdad no
+   hay, que la ficha lo diga con su razón (sin una de las dos, el primer módulo no se sella y una noche no suma su trabajo). Un repo
+   **sin ficha ni `CLAUDE.md`** sale con todo en `no`: queda solo la ficha, sin `/inicio`, `/cierre` ni la regla del tamaño, y la
+   sesión te lo dice antes del OK.
    Si tus papeles no están en `docs/` (el bot: `docs/` es el sitio de OpenClaw y los papeles van en `arti-docs/`), la propuesta trae
    `carpeta-docs: <carpeta>` y todo el método usa esa carpeta; con un `docs/` ajeno y sin la clave, `--aplicar` se niega. Vos das el OK.
 3. **Aplicar**, todo dentro de ese mismo OK. El clon sale del origin de tu carpeta (sin remoto, de tu carpeta misma) a un temporal;
@@ -182,14 +190,15 @@ Un repo que todavía no tiene el kit v3 **se adopta, no se actualiza**. Va en do
      `/obrero`.
    - Si el proyecto tiene su registro de cambios propio (el `CAMBIOS.md` de Hermes), la migración: `migrar-cambios.cjs --plan` para
      ver, después `--commit` (ver abajo).
-   - Los commits (las piezas, la ficha y, si elegiste D2 o D3, el de los permisos), el chequeo de frenos (lo rojo no se aprueba
-     después: el sello va antes del commit; con remoto el rojo es solo en el clon y, pusheado, ningún `/cierre` lo vuelve a mirar; sin
+   - Los commits (las piezas, la ficha y, si elegiste D2 o D3, el de los permisos), el chequeo de frenos (lo que falla no se aprueba
+     después: el sello va antes del commit; con remoto falla solo en el clon y, pusheado, ningún `/cierre` lo vuelve a mirar; sin
      remoto lo ve tu primer `/cierre`: la línea `después:` dice cuál) y push. Al final, `adoptar <clon> --traer <tu carpeta>`: trae lo adoptado a tu
      carpeta (solo si está limpia y en la rama) y **después prende ahí los githooks** (`core.hooksPath` = `.githooks`, nunca en el
      clon; la línea `githooks ·` dice cómo quedó). La **portada** (el README que se ve en GitHub, armado
      desde `NORTE.md`); si el repo ya tiene un README propio, queda como está y te avisa *"portada: README propio, queda apagada"*.
 4. **¿Quedó andando?** Al final, `--traer` corre `adoptar <tu carpeta> --verificar`: prueba cada hook registrado con algo inocente,
-   el arranque, el `comando-test` y `core.hooksPath` (corre código de tu repo, como abrir una sesión ahí; no corre el setup). Lo que
+   el arranque, el `comando-test` y `core.hooksPath`, y avisa (`verificar · noche · ⚠`) si el settings del proyecto tiene un permiso
+   ancho que no deja cerrarse sola a una noche (corre código de tu repo, como abrir una sesión ahí; no corre el setup). Lo que
    te importa de `--traer` es cómo salió:
    - **0**: lo trajo y anda.
    - **1**: el clon o tu carpeta no son lo que tienen que ser, o el merge la dejó a medias (la línea dice cómo volverla atrás).
