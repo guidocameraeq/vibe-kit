@@ -10,3 +10,16 @@ pruebas/*
 !pruebas/pedidos.md
 # el banco de prueba (sesión 5a del tramo final, 2026-11-15): el script va a git; sus copias viven en un scratchpad
 !pruebas/banco/
+.env
+.env.*
+*.pem
+*.key
+secrets/
+/.claude/worktrees/
+/.claude/settings.local.json
+/.claude/launch.json
+/.kit-rol
+/.kit-noche
+/.claude/paquetes/
+.venv/
+!/.claude/frenos.log
