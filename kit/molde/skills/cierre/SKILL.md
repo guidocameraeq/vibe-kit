@@ -35,7 +35,7 @@ Dos modos: **`cierre`** (completo) y **`cierre parcial`** (el contexto se llenó
 8. `node .claude/scripts/cambios.cjs verificar` de nuevo: tiene que pasar.
 9. **Push público.** Si la ficha (`.claude/kit.md`) dice `push-publica: sí`, una línea antes de pushear: *"este repo es público: lo que sube lo ve cualquiera"*. No preguntes.
 10. `git push`. Si falla porque origin avanzó: `git pull --rebase`, **nunca un pull con merge sobre la rama por defecto** (un merge deja el sello fuera de la historia de primer padre y el `aprobado` deja de valer). Si el rebase reescribió el commit de un `aplicado`, `cambios.cjs verificar` lo dice con el `anotar-sha` listo: correlo, commit por rutas con el archivo del cambio y pusheá. Si el conflicto no es trivial, pará y avisá. Nunca `--force`. Si el pre-push frena, como el pre-commit: se arregla, nunca `--no-verify`.
-11. **Reporte**: qué se guardó (el asunto del commit, sin su código) · archivos actualizados · próximo paso · bloqueos · *"Chat listo para descartar: la próxima misión arranca con /inicio en un chat nuevo."*
+11. **Reporte** (sin códigos): qué se guardó (el asunto del commit, sin su código) · archivos actualizados · próximo paso · bloqueos · *"Chat listo para descartar: la próxima misión arranca con /inicio en un chat nuevo."*
 
 ## Cierre parcial
 

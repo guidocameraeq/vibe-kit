@@ -148,7 +148,7 @@ test('modo-a.md (8b, 15): el Paso 5 nombra adoptar --nuevo y --principal, el --t
 // RF-fix rf-7: la nota de 3.0.0 de kit/CHANGELOG.md (la que lee la fusión al actualizar) nombra lo nuevo del paquete 7.
 const CHANGELOG_KIT = path.join(SCRIPTS, '..', '..', '..', 'CHANGELOG.md'); // kit/CHANGELOG.md (solo en el kit, no instalado)
 test('kit/CHANGELOG.md, la nota de 3.0.0: subio-al-kit y cubiertos.md, portada.cjs armar y piezas.portada, cambios-flota, migrar-cambios', { skip: !fs.existsSync(CHANGELOG_KIT) && 'sin kit/CHANGELOG.md' }, () => {
-  const m = /^## 3\.0\.0(?:-rc\.1)?\n([\s\S]*?)(?=\n## )/m.exec(leer(CHANGELOG_KIT)); // D8b: la nota v3 entera vive en la del rc.1 (las rc.N de después traen solo lo suyo: D8r.1)
+  const m = /^## 3\.0\.0-rc\.1\n([\s\S]*?)(?=\n## )/m.exec(leer(CHANGELOG_KIT)); // D8b: la nota v3 entera vive en la del rc.1 (las rc.N de después traen solo lo suyo: D8r.1; la de 3.0.0 también, sesión 6 del tramo final)
   assert.ok(m, 'trae la sección 3.0.0');
   const piezas = /- \*\*Qué piezas cambiaron\*\*:([\s\S]*?)\n- \*\*/.exec(m[1]);
   assert.ok(piezas, 'con su "Qué piezas cambiaron"');
