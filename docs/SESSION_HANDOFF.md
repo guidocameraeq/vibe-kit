@@ -19,10 +19,10 @@
 
 ## Próximo paso
 
-1. **Adoptar el kit en este repo** (pedido de Guido, 2026-11-16): `adoptar . --kit . --mirar` ya corrió (la propuesta, fuera del
-   repo). Antes de `--aplicar`, decidir con Guido: el `/inicio` y el `/cierre` de la madre (tienen el `kit-sync`, el diario, las actas)
-   ¿quedan propios o los reemplaza el del kit?; el `comando-test` (la suite entera tarda ~90 min); los 4 docs que nacerían (`MAPA`,
-   `NORTE`, `referencia/PRUEBA`…) frente al mapa de `CLAUDE.md`. Título de la sesión: `vibe-kit · Adoptar el kit en la madre`.
+1. **El kit ya está adoptado en este repo** (2026-11-16, con Guido): ficha `.claude/kit.md` (nivel estandar), los frenos (portero,
+   escritura, `git-seguro` sin `push-otra-rama`: las sesiones suben a `main`), director/obrero/`/estado`; el arranque, `/inicio`
+   y `/cierre` siguen siendo los de la madre; sin `comando-test` (la suite tarda ~90 min, con su razón); candado apagado; sin los docs
+   del molde. **Falla del kit para la `v3.0.1`** (en el TODO): `--verificar` da ❌ "arranque" con el propio andando.
 2. **La flota real con la `v3.0.0`, repo por repo con el OK de Guido** (en el TODO, con lo que cambia en cada uno).
 3. La `v3.1` (misión 7: el buzón, "probar una idea nueva", el PO) con su charla de diseño.
 
