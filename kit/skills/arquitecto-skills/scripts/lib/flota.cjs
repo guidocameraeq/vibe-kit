@@ -387,6 +387,8 @@ async function actualizarRepo(nombre, url, ctx) {
   if (!ctx.conObra || !est.modulos || !est.modulos.length) return fila;
   let lineas = [];
   if (fila.resultado === 'mezclado') lineas = probarModulos(est.clon, est.def, est.modulos, ctx, est.subido);
+  // 8e G1 (el banco de la rc.8): la rama con la marca ESPERA lleva el informe y no se mezcla: mandarla a mezclar es el repo a medias
+  else if (est.rama && est.esperaPieza) lineas = est.modulos.map((m) => `${m}: espera a lo de arriba (${est.rama} lleva el informe y no se mezcla)`);
   else if (est.rama && ['te espera', 'ROTA', 'salteado'].includes(fila.resultado)) lineas = est.modulos.map((m) => `${m}: primero mezclá ${est.rama} en ${est.def}`);
   fila.espera.push(...lineas.map((l) => `${nombre}: ${l}`));
   return fila;
@@ -542,6 +544,7 @@ async function actualizarMain(nombre, url, ctx, est) {
     const q = git(clon, ['push', '-q', 'origin', `${rama}:refs/heads/${rama}`], { env, plazo: PLAZO_RED });
     const subida = q.ok ? '' : ` (no pude subir ${rama}: ${q.colgado ? 'el remoto no respondió' : primera(q.err)})`;
     const cuales = llamadas.join(', ');
+    est.esperaPieza = true;
     fila.espera.push(`${nombre}: quedó entero en ${fila.antes} — en ${cuales} hay algo tocado a mano que choca con la versión nueva, y sin esa pieza lo demás no anda. Decime qué hacemos con eso (lo más simple: tomar la del kit; lo tuyo queda en la historia) y lo vuelvo a poner al día${subida}`);
     return fin('te espera', conNotas(`${cuales} chocó con algo tocado a mano: no mezclé nada${ch.codigo !== 0 ? ` (y así el chequeo dio: ${primeraRoja(ch.lineas)})` : ''}${subida}`));
   }

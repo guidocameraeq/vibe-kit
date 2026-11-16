@@ -1134,3 +1134,25 @@ test('8e G1: un script del kit tocado a mano que choca con lo nuevo → main que
   assert.deepEqual(ramasKit(x.bare), []);
   assert.match(git(x.bare, 'show', 'main:.claude/scripts/todo.cjs'), /kit 3\.0\.0: un renglón nuevo del molde/);
 });
+
+// El banco de la rc.8 (vuelta 1, la copia con un módulo vivo): la fila decía "quedó entero" y, abajo, "modulo/x: primero mezclá
+// kit/<tag> en main". Esa rama lleva la marca ESPERA: mezclarla es justo el repo a medias que G1 evita.
+test('8e G1 con obra: main que espera por una pieza tocada a mano → la línea de cada módulo NO manda a mezclar kit/<tag>', async () => {
+  const canon = armarCanon({ molde: moldeCon((d) => editar(d, 'scripts/todo.cjs', TOCAR_TODO('// kit 3.0.0: un renglón nuevo del molde'))) });
+  const P = nuevaCarpeta('proyectos');
+  const x = armarRepo(P, 'alfa', {
+    antes: (d) => {
+      editar(d, '.claude/scripts/todo.cjs', TOCAR_TODO('// lo nuestro: un renglón tocado a mano'));
+      git(d, 'add', '-A');
+      git(d, 'commit', '-q', '--amend', '--no-edit');
+    },
+    remoto: (b) => ramaEnRemoto(b, 'modulo/a'),
+  });
+  const r = await correr({ repos: ['alfa'], canon, tag: 'v3.0.0-rc.1', proyectos: P, chequear: chequearVerde, conObra: true });
+  const texto = r.lineas.join('\n');
+  const f = fila(r, 'alfa');
+  assert.equal(f.resultado, 'te espera', texto);
+  assert.match(git(x.bare, 'log', '-1', '--format=%s', 'kit/v3.0.0-rc.1'), /^kit: ESPERA — scripts$/);
+  assert.doesNotMatch(texto, /primero mezclá/, texto);
+  assert.ok(f.espera.includes('alfa: modulo/a: espera a lo de arriba (kit/v3.0.0-rc.1 lleva el informe y no se mezcla)'), texto);
+});
