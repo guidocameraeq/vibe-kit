@@ -28,7 +28,7 @@
 
 ## Te espera (Guido)
 
-- Decidir lo de la adopción de este repo (arriba) y el OK por repo de la flota.
+- El OK por repo de la flota real.
 - El clic de P7 cuando quiera (`../vibe-kit-pruebas/rc7/p7-firma/LEEME-P7.txt`): tilda el criterio 18.
 - En la otra PC (`clientes`): "actualizá el kit" e "instalar hooks por PC" (los de esta ya están).
 
