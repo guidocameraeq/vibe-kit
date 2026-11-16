@@ -2,8 +2,8 @@
 
 > La guía práctica del sistema completo, organizada por situación: **"quiero X → hacé Y"**.
 > No repite procedimientos (viven en el kit y las skills — si algo difiere, ganan ellos);
-> te dice qué decir, dónde, y qué esperar; el detalle está en `manuales/`. Actualizada 2026-11-13 (kit v3 `rc.7`: la noche que
-> termina sola y su parte, tu `/estado` de cuatro secciones, el clic en la pestaña del director, traer repos y publicar sola).
+> te dice qué decir, dónde, y qué esperar; el detalle está en `manuales/`. Al día con el kit `v3.0.1` (2026-11-16): la noche que
+> termina sola y su parte, tu `/estado` de cuatro secciones, el clic en la pestaña del director, traer repos y publicar sola.
 
 ## El mapa mental en 30 segundos
 
@@ -132,7 +132,7 @@ repo: *"leé tips/tanda-<fecha> y procesemos las conclusiones"* — ahí decidí
 
 ### 💻 "Preparame esta PC" (PC nueva, o actualizar la del SAAS)
 Decile al Equipador (o al Arquitecto) **"preparame esta PC"**: te hace **una sola pregunta** (ninguna, si no hay nada que cambiar),
-deja el kit, los frenos y los ajustes de Claude Code, y cierra con "reiniciá Claude Code". Anda desde la beta del kit v3 (baja el último tag anotado).
+deja el kit, los frenos y los ajustes de Claude Code, y cierra con "reiniciá Claude Code". Anda desde el kit v3 (baja el último tag anotado).
 También te ofrece **traer los repos de tu cuenta** que todavía no están en esta PC (solo los que elijas) y, si un proyecto publica
 solo, te pide **tu sí para que publique desde esta PC** (tu clic es la firma).
 → [`manuales/EQUIPADOR.md`](manuales/EQUIPADOR.md) §1 · cómo declara un proyecto que publica solo: [`manuales/MOLDE.md`](manuales/MOLDE.md) §4

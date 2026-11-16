@@ -44,8 +44,8 @@
 - 🤖 **`start_session` con un modelo más caro que el del que lanza se ignora sin aviso**: verificar con `get_session` y corregir con
   `set_session_model` (Guido puede rechazarlo; entonces se deja).
 - 🧪 **Nunca dos tandas pesadas a la vez**. La suite entera tarda ~90 min con la PC cargada.
-- ⚙️ `core.hooksPath` de esta carpeta apunta a `.githooks`, que no existe (lo puso una sesión del kit): no frena nada; la adopción lo
-  resuelve.
+- ⚙️ Los githooks del kit (`.githooks`) corren en cada commit y push de acá: con el candado apagado, solo las barreras.
+- 🗂️ La prueba de Juan quedó guardada en el tag `archivo/prueba-juan-2026-11-06`; la rama `prueba/juan` sigue, por si él vuelve a subir.
 - 🚪 **No le marques a Guido tareas de sus otros repos** desde acá (su regla, 2026-11-10): lo que se vea allá va al tracker.
 - 🔒 Los repos del trabajo se leen en copias del scratchpad; a vibe-kit (público) va solo el comportamiento del kit, en abstracto.
 

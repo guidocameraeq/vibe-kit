@@ -4,6 +4,9 @@
 
 2026-11-16 — ver SESSION_HANDOFF.md
 
+> ⏰ **Fechas del ciclo** (si hoy ya pasó alguna, avisale a Guido al arrancar): **~2026-12-15** la medición de la `v3.0` ·
+> **2027-03-01** la vuelta 2. El detalle, abajo en "El ciclo".
+
 ## 🔴 Crítico
 > **La hoja de ruta, reordenada el 2026-10-26 (ADR-025)**: 4 cerrar el diseño sin mensajería → 4½ ordenar la casa → 5 construir **v3.0** →
 > 6 el ciclo como proceso → 7 la mensajería agéntica (**v3.1**). Después, el reloj: una vuelta cada 3-4 meses (abajo, "El ciclo").
