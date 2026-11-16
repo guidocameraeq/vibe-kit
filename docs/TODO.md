@@ -8,14 +8,10 @@
 > **La hoja de ruta, reordenada el 2026-10-26 (ADR-025)**: 4 cerrar el diseño sin mensajería → 4½ ordenar la casa → 5 construir **v3.0** →
 > 6 el ciclo como proceso → 7 la mensajería agéntica (**v3.1**). Después, el reloj: una vuelta cada 3-4 meses (abajo, "El ciclo").
 
-- [ ] **Poner al día la flota real con la `v3.0.0`, repo por repo con el OK de Guido** (los siete con kit están en la `rc.6`, foto del
+- [ ] **Poner al día la flota real con la `v3.0.1`, repo por repo con el OK de Guido** (los siete con kit están en la `rc.6`, foto del
   banco del 15/11: Deptos en dos vueltas por G1; uno pide `pnpm` en la PC; otro, sin pruebas, la ficha con `gate:entorno-prueba` y su
   firma; los que tienen obra viva, cuando la cierren). Lo que cambia en cada uno: el resumen de la sesión 6 en la nota del director.
-- [ ] **v3.0.1 — la adopción con un arranque propio** (visto al adoptar la madre, 2026-11-16): con `hook-arranque: propia` (un
-  `session-start.sh` propio), la mezcla del settings igual cambia el `SessionStart` a `session-start.cjs`, que no trae: el repo arrancaría
-  sin handoff. Y `adoptar --verificar` exige ese `.cjs` (da ❌ "arranque" con el propio andando). En la madre se arregló a mano en la
-  adopción (el settings apunta al `.sh`); el `--verificar` de la madre va a dar ese ❌ hasta el arreglo, y la flota la marcaría ROTA.
-  Arreglo: con la pieza en `propia`, la mezcla deja el `SessionStart` propio y `--verificar` mira el hook registrado, no el nombre.
+  Con la `3.0.1` un repo con arranque propio ya no lo pierde al ponerse al día.
 - [ ] **Misión 7 — la mensajería agéntica → kit v3.1** (lo que era G.1; brief en `DISENO-G` §18 + sus insumos del acta de contraste: hueco 3/P71,
   P68, P77 y las "otras" 5, 8 y 24). Con investigación en internet y piloto. Guido, 2026-10-26: "no está bien claro todavía; siguiente versión;
   no bien termine lo otro, lo hago".

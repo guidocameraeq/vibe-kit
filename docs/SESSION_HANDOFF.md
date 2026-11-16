@@ -4,13 +4,13 @@
 > nuevo de esta carpeta. **Tope 5.500 bytes**; el hook corta y avisa "CORTADO" si se pasa, y termina con la huella.
 
 **CIERRE** 2026-11-16 del **director del tramo final** (PC `Usuario`, Opus 5.5): **la `v3.0.0` está publicada** (tag sobre
-`cac9620`, con el OK de Guido). Las misiones 5 y 6 quedan cerradas.
+`cac9620`, con el OK de Guido) y el mismo día el **hotfix `v3.0.1`** (un arranque propio no se pisa). Misiones 5 y 6 cerradas.
 
 ## Dónde estamos
 
 - **Kit `v3.0.0`**: el código de la `rc.8` más tres renglones de texto. Probado en copias de los 26 repos de la cuenta (dos bancos y
   R2): la noche termina y publica sola, adoptar no rompe (17 de 18), la flota no deja un repo a medias. Notas en `kit/CHANGELOG.md`.
-- **Esta PC** tiene el kit y los hooks de la PC en 3.0.0 (`kit-sync` LIMPIO, `doctor` todo bien). La noche corta de confirmación pasó.
+- **Esta PC** tiene el kit en 3.0.1 (`kit-sync` LIMPIO) y los hooks de la PC en 3.0.0 (no cambiaron; solo el número da un aviso).
 - **Los 20 criterios**: 11 con evidencia y nueve a fase 2 por escrito (tracker, "Los 20 criterios"; el 18 se tilda con el clic de P7).
 - **El ciclo de mejora**, entero en `docs/CICLO-DE-MEJORA.md` (ADR-035): cómo sacar una versión en 16 pasos, el banco de prueba fijo,
   las `rc` quirúrgicas, el tramo con director y sesiones en espera. **La vuelta 2 arranca el 2027-03-01.**
@@ -22,15 +22,16 @@
 1. **El kit ya está adoptado en este repo** (2026-11-16, con Guido): ficha `.claude/kit.md` (nivel estandar), los frenos (portero,
    escritura, `git-seguro` sin `push-otra-rama`: las sesiones suben a `main`), director/obrero/`/estado`; el arranque, `/inicio`
    y `/cierre` siguen siendo los de la madre; sin `comando-test` (la suite tarda ~90 min, con su razón); candado apagado; sin los docs
-   del molde. **Falla del kit para la `v3.0.1`** (en el TODO): `--verificar` da ❌ "arranque" con el propio andando.
-2. **La flota real con la `v3.0.0`, repo por repo con el OK de Guido** (en el TODO, con lo que cambia en cada uno).
+   del molde. Con la `v3.0.1`, `--verificar` da ⚠ en el arranque (el propio anda) y "el repo quedó andando".
+2. **La flota real con la `v3.0.1`, repo por repo con el OK de Guido** (en el TODO, con lo que cambia en cada uno).
 3. La `v3.1` (misión 7: el buzón, "probar una idea nueva", el PO) con su charla de diseño.
 
 ## Te espera (Guido)
 
 - El OK por repo de la flota real.
 - El clic de P7 cuando quiera (`../vibe-kit-pruebas/rc7/p7-firma/LEEME-P7.txt`): tilda el criterio 18.
-- En la otra PC (`clientes`): "actualizá el kit" e "instalar hooks por PC" (los de esta ya están).
+- En la otra PC (`clientes`): "actualizá el kit" e "instalar hooks por PC". En esta, "instalar hooks por PC" cuando quiera: solo
+  sube el número a 3.0.1 y saca el aviso.
 
 ## Cosas que muerden y no están en ningún otro doc
 
