@@ -2245,7 +2245,10 @@ si falla, se anota qué pasó y va a "Pendientes".
 Están en la sección "Criterios de aceptación" del spec. Se tilda cada uno con la fecha y la sesión que lo verificó **con evidencia**.
 El tag `v3.0` no sale con uno sin tildar, salvo que Guido lo pase a fase 2 por escrito.
 
-- [ ] 1 · Regresión: todo lo de `v2.4.2` sigue andando
+> **2026-11-16, Guido**: *"sí, así"*: **11 de 20 tildados** (2, 3, 4, 5, 6, 8, 9, 10, 14, 17, 20) y **nueve a fase 2 por escrito** (1, 7, 11,
+> 12, 13, 15, 16, 18, 19), cada uno con su porqué abajo (de `BANCO-rc8.md`, "Los 20 criterios"). El 18 se tilda si hace el clic de P7.
+
+- [ ] 1 · **→ fase 2, por escrito (Guido, 2026-11-16): nadie corrió el Modo A de punta a punta en la rc.8; se ve en el primer proyecto nuevo.** Regresión: todo lo de `v2.4.2` sigue andando
 - [x] 2 · El tamaño del pedido dicho en una línea — **2026-10-30, D4.2: 10 de 10** (`claude.exe -p` 2.1.312, plan, una corrida cada uno, clones de
   `alfa`/`beta` con el `CLAUDE.md` del molde de verdad, D4.2-1): 1, 2, 6, 7 → "chico, lo hago acá" sin invocar nada; 8 y 10 → "esto es más que chico:
   llamo al Arquitecto" como primer bloque de texto e invocan `arquitecto`. 3, 4, 5 y 9 pasaron en D4.1 (solo con `/inicio`; el párrafo nuevo solo suma
@@ -2259,36 +2262,36 @@ El tag `v3.0` no sale con uno sin tildar, salvo que Guido lo pase a fase 2 por e
   preguntas**; `sello` y `ready` 0 en **~3 min de reloj** (126 s + 50 s); un commit en `main` con solo `docs/modulos/calc-historial/` (README con
   `director: sí` y `rama: modulo/calc-historial`), pusheado al remoto; `worktree.cjs crear` dejó la rama y `.claude/worktrees/modulo--calc-historial`
   con `.kit-rol` = `director`; la línea de apertura al final (seguida de las de `/smoke` y `cierre`). Verificado por el director en el clon
-- [ ] 5 · El hook inyecta ≤ 9.700, con huella, edad y CORTADO
-- [ ] 6 · `/cierre` encuentra lo suelto, lo roto y lo pasado de tope — *D2.2: el candado lo encuentra, frena y anota (pruebas de
+- [x] 5 · **✅ 2026-11-16 — R2, en el clon real de Deptos (inyectado 4.573 de 9.700; BANCO-rc8: 3.390).** El hook inyecta ≤ 9.700, con huella, edad y CORTADO
+- [x] 6 · **✅ 2026-11-16 — BANCO-rc8 (con un archivo suelto en `docs/`, lo encontró, no lo commiteó y preguntó); lo tilda Guido.** `/cierre` encuentra lo suelto, lo roto y lo pasado de tope — *D2.2: el candado lo encuentra, frena y anota (pruebas de
   `estructura.cjs` y `todo` 0 en `alfa`/`beta`); falta ver una sesión real que corra el `/cierre` del molde y no commitee encima*
-- [ ] 7 · Sin pop-up ante lo AUTORIZADO
-- [ ] 8 · El director no escribe ante un aviso sin novedad
+- [ ] 7 · **→ fase 2, por escrito (Guido, 2026-11-16): la mitad vista (noches sin ventanas); la otra pide un encargo que toque una de las cinco de A de noche.** Sin pop-up ante lo AUTORIZADO
+- [x] 8 · **✅ 2026-11-16 — R2 y las dos noches del banco otra vez (cada encargo mezclado después de `verificar`).** El director no escribe ante un aviso sin novedad
 - [x] 9 · "Poné al día la flota" devuelve una tabla por repo — **2026-11-02, D6.2: `actualizar.cjs flota alfa beta gama` sobre copias de los remotos de prueba y un canónico `bare` con `v3.0.0-rc.1`**: una fila por repo, `alfa` y `beta` mezclados en un commit, `gama` salteado por `modulo/x`; y `gama` v2.4.2 puro → 3.0.0 con las nueve ✅ de `chequear` y mezclado (17,6 min). Falta, del piloto: con un repo real (fila 4 del delta)
-- [ ] 10 · Adoptar un repo viejo con un OK — *D6.2: `adoptar --mirar` no toca nada y `--aplicar` deja ficha de fábrica, `/inicio`, `/cierre`, hook con tope y barreras con `barreras` verde (pruebas sobre un v2.4.2 sin ficha, 12 + RF-fix). Falta: la pantalla con Guido delante en un repo real (el piloto)*
-- [ ] 11 · La lista cerrada de lo que se frena, también en bypass — *D3.3: los hooks del paquete 3 registrados en el molde (G7) y
+- [x] 10 · **✅ 2026-11-16 — BANCO-rc8 (17 de 18 adopciones andando; la noche de un repo recién adoptado sin pruebas cerró sola).** Adoptar un repo viejo con un OK — *D6.2: `adoptar --mirar` no toca nada y `--aplicar` deja ficha de fábrica, `/inicio`, `/cierre`, hook con tope y barreras con `barreras` verde (pruebas sobre un v2.4.2 sin ficha, 12 + RF-fix). Falta: la pantalla con Guido delante en un repo real (el piloto)*
+- [ ] 11 · **→ fase 2, por escrito (Guido, 2026-11-16): pide la pestaña real de VS Code y otra PC.** La lista cerrada de lo que se frena, también en bypass — *D3.3: los hooks del paquete 3 registrados en el molde (G7) y
   vivos en `claude.exe -p` en bypass (G13); falta la pestaña real y los hooks por PC instalados (Guido)*
-- [ ] 12 · Los cambios de método de clase 2 quedan en `.claude/cambios/` — *D2.2: el script es el único camino (el `Write` a `cambios/`
+- [ ] 12 · **→ fase 2, por escrito (Guido, 2026-11-16): ninguna noche tuvo un cambio de clase 2; lo cubren las pruebas de `cambios`.** Los cambios de método de clase 2 quedan en `.claude/cambios/` — *D2.2: el script es el único camino (el `Write` a `cambios/`
   negado en `-p`), un `3-barrera` queda `propuesto` con su línea de "te espera" y `barreras` da rojo sin el sellado (caso a mano en `alfa`);
   falta que un agente aplique uno de clase 2 en una sesión real*
-- [ ] 13 · La mesa escribe el archivo antes del mensaje — *D5.2: `mesa nuevo` escribe, commitea y sube el archivo y recién después imprime el aviso
+- [ ] 13 · **→ fase 2, por escrito (Guido, 2026-11-16): la mesa real es de la v3.1, con el buzón.** La mesa escribe el archivo antes del mensaje — *D5.2: `mesa nuevo` escribe, commitea y sube el archivo y recién después imprime el aviso
   (si el push falla, sale 1 sin aviso); G §19 reproducida entre dos clones con remotos `bare`. **Falta**: una mesa real entre dos sesiones (`SendMessage`), el piloto*
 - [x] 14 · Ninguna skill con rutas absolutas, sesiones, ramas ni SHAs — 2026-10-29, D2.2: `candado:datos` verde sobre las skills del molde
   instaladas en `alfa` y `beta` (`estructura.cjs todo` 0), con casos sí/no en sus pruebas
-- [ ] 15 · Lo `sensible:` pregunta solo en el paso que lo toca
-- [ ] 16 · Si un hook que niega falla, la acción se frena — *D3.3: los cinco que niegan con `onFailure: "block"` en el molde (G7) y
+- [ ] 15 · **→ fase 2, por escrito (Guido, 2026-11-16): ningún encargo tocó nada sensible; se ve en el primer módulo que toque datos.** Lo `sensible:` pregunta solo en el paso que lo toca
+- [ ] 16 · **→ fase 2, por escrito (Guido, 2026-11-16): pide la pestaña de VS Code y otra PC.** Si un hook que niega falla, la acción se frena — *D3.3: los cinco que niegan con `onFailure: "block"` en el molde (G7) y
   los cuatro casos de falla frenan en `-p` (G0); falta VS Code y la otra PC (Guido)*
 - [x] 17 · Un obrero que edita sus frenos no se los saca — **2026-10-30, D4.1 (J5a, `claude.exe -p` 2.1.312 en bypass, desde PowerShell, en el
   worktree `modulo--calc--01` creado por `worktree.cjs`)**: la sesión editó `frenos.quitados` de `.claude/kit.md`, sus hooks no cambiaron y el
   `git commit` dio `kit pre-commit: ROJO` (`candado:barreras`, sin `aprobado`). Antes — *D2.2: su commit da rojo en `barreras` (prueba) y los hooks leen la ficha de la
   rama por defecto (D2.1); que el corrector frene la edición misma de los hooks es del orden 3 (4.3)* — *D3.3: `frenos-del-proyecto` y `salir-del-worktree`
   vivos en una sesión real de obrero (G13), siguiendo los `cd` (RF-C2); se tilda con el `worktree` del orden 4*
-- [ ] 18 · `cambios aprobar` se niega desde un worktree de obrero — *D2.2: se niega con cada `.kit-rol` de agente, por nombre y por ruta,
+- [ ] 18 · **→ fase 2, por escrito (Guido, 2026-11-16): lo cierra el clic de P7 cuando Guido lo haga.** `cambios aprobar` se niega desde un worktree de obrero — *D2.2: se niega con cada `.kit-rol` de agente, por nombre y por ruta,
   fuera del principal y fuera de la rama por defecto (pruebas); el hook niega en `dontAsk` (`claude.exe -p`) y bypass (pruebas), y en `auto` pregunta (Guido, 2026-10-29);
   sello a mano o de otra carpeta → rojo. **D5.2**: el resumen del día lista los `aprobado` del día con quién los corrió (prueba: el de hoy sí, el de
   ayer no). **Falta**: la ventana en una pestaña real de Guido (bypass con `claude.exe`: ✅ D3.3, G13)*
-- [ ] 19 · Una migración a `real` sin veredicto del revisor no corre
-- [ ] 20 · El actualizador respeta la zona propia de cada `settings.json` — *D2.2: `mezclarSettings` a tres puntas (pruebas) y el commit
+- [ ] 19 · **→ fase 2, por escrito (Guido, 2026-11-16): sin migraciones en el banco; lo cubre `db-guardia.test`.** Una migración a `real` sin veredicto del revisor no corre
+- [x] 20 · **✅ 2026-11-16 — R2 y BANCO-rc8 (la flota mezcló Deptos, `molde+propio`, sin tocar su zona).** El actualizador respeta la zona propia de cada `settings.json` — *D2.2: `mezclarSettings` a tres puntas (pruebas) y el commit
   `molde v3 orden 2b` de `rehacer.sh` pasa `barreras --molde` en verde (y rojo sin `--molde`); la creación de la ficha con fábrica (b), por
   pruebas. Se tilda con el actualizador de verdad (orden 6), que además necesita el molde viejo (Pendientes)*
 
