@@ -5,6 +5,24 @@ Una sección por versión, la más nueva arriba. Cada una trae su **nota de migr
 Es lo que lee el agente de la fusión al actualizar un proyecto. La historia de sesiones del repo vive aparte, en `docs/CHANGELOG.md`.
 `kit/VERSION` lleva la versión del último tag y se sube en el commit que pone el tag siguiente.
 
+## 3.0.1
+
+Hotfix (2026-11-16): **un arranque propio no se pisa**. Lo encontró la madre al adoptar su propio kit.
+
+- **Qué piezas cambiaron** (`actualizar.cjs`, `lib/adoptar.cjs`, `lib/chequeo.cjs`; ningún hook ni freno del molde):
+  - **La mezcla del settings** (adopción, puesta al día y `resolver`): con `hook-arranque` en `propia` o `no` y sin
+    `.claude/hooks/session-start.cjs`, el `SessionStart` del proyecto queda tal cual y no entra el del kit (antes se iba la regla
+    propia igual a la del v2 y entraba una al `.cjs` que no venía: el repo arrancaba sin handoff). Al revés, cuando el arranque
+    del kit llega después (`resolver hook-arranque nueva`, o de `no` a molde) y el settings no lo corre, su regla entra.
+    `--arranque kit` (D3) sigue igual.
+  - **`adoptar --verificar` y la línea 2 de `chequear`** miran el arranque **registrado**: sin el `.cjs` y con la pieza en
+    `propia` o `no`, corren el `SessionStart` de startup con sus args (un `.sh` con el bash de Git, nunca el del PATH; un `.cjs`
+    con node). Si sale 0 sin la huella del kit es un aviso (⚠), no una falla. Con `molde` y sin el `.cjs`, sigue en falla.
+- **Automático o pide revisión**: automático.
+- **Qué chequear después**: en un repo con arranque propio, `adoptar <carpeta> --verificar` da ⚠ (no ❌) en arranque y el
+  settings sigue corriendo el propio. **Un repo que la 3.0.0 ya dejó apuntando a un `session-start.cjs` que no está no se cura
+  solo**: el `SessionStart` vuelve a mano al arranque propio (con la 3.0.0 lo adoptó solo la madre, ya arreglada).
+
 ## 3.0.0
 
 La versión (2026-11-16): **el mismo código de la `rc.8`**, más tres renglones de texto de las skills. La probó el banco otra vez
