@@ -227,3 +227,22 @@ Ya estaban tildados 9 (R2): 2, 3, 4, 5, 8, 9, 14, 17 y 20. El banco suma evidenc
 - **La charla de la adopción con el dueño**: el banco contesta a lo seguro.
 - **Las carpetas "de confianza"**: las sesiones de fondo del banco ignoran los `allow` del proyecto (c17); en la PC de Guido no.
 - **La suite entera**: no se volvió a correr (la corrió la 5b; después entraron tres cambios chicos, probados por archivo).
+
+## La noche corta, con los hooks al día (2026-11-16, 09:01 a 09:17)
+
+La condición del veredicto. Guido instaló los hooks de la PC (`~/.claude/hooks/kit/INSTALADO`: `kit: 3.0.0`; `kit-sync`: `LIMPIO`,
+sin el aviso). La misma copia sin pruebas, sola en la PC, con la copia del script de `$BANCO/corrida/`: un commit del andamio sacó
+el módulo de la noche anterior, y después `noche-armar` (el sello pasó de una) y `noche`.
+
+| Criterio | Resultado | Evidencia |
+|---|---|---|
+| **Ni el parte ni los obreros dicen "ficha rota"** | **Pasa** | cero avisos en las charlas de los cuatro obreros. Las menciones de la carpeta principal y del director son lecturas del TODO de la noche anterior, que tenía anotado ese aviso como pendiente: ningún hook lo volvió a decir. El parte no habla de un error en la ficha |
+| **0 comandos para el dueño** | **Pasa** | el parte y `/estado`, sin comandos para correr |
+| **Termina y publica sola** | **Pasa** | 16 min: 4 encargos mezclados, una integración, el cierre arrancó solo. `produccion` del remoto de prueba es el merge del módulo, con `publicado.txt`; `kit-publicacion.json`: pruebas, comando y humo *"pasó"* |
+| **`/estado`: las cuatro secciones** | **Pasa** | con obreros vivos y a la mañana; *"LO QUE SE HIZO"* lista los cuatro encargos de esta noche |
+| **Nada dice "rojo"** | **Pasa** | cero |
+
+**Además**: un solo freno negó algo en toda la noche: un obrero que quiso tocar los ganchos del repo (`secretos:frenos-del-proyecto`).
+Es legítimo y esta vez su mensaje no trae el agregado de "ficha rota". El director costó USD 1,80.
+
+**La condición se cumple: sale la `v3.0`.**
