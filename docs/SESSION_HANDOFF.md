@@ -22,7 +22,8 @@
 1. **El kit ya está adoptado en este repo** (2026-11-16, con Guido): ficha `.claude/kit.md` (nivel estandar), los frenos (portero,
    escritura, `git-seguro` sin `push-otra-rama`: las sesiones suben a `main`), director/obrero/`/estado`; el arranque, `/inicio`
    y `/cierre` siguen siendo los de la madre; sin `comando-test` (la suite tarda ~90 min, con su razón); candado apagado; sin los docs
-   del molde. Con la `v3.0.1`, `--verificar` da ⚠ en el arranque (el propio anda) y "el repo quedó andando".
+   del molde. Con la `v3.0.1`, `--verificar` da ⚠ en el arranque (el propio anda) y "el repo quedó andando". `candado:raiz` quitado
+   (la madre tiene su propio mapa de `docs/`). El log por tanda: `docs/kit-v3/TANDAS-DE-VERSIONES.md` (se suma una sección por tanda).
 2. **La flota real con la `v3.0.1`, repo por repo con el OK de Guido** (en el TODO, con lo que cambia en cada uno).
 3. La `v3.1` (misión 7: el buzón, "probar una idea nueva", el PO) con su charla de diseño.
 

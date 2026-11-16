@@ -19,6 +19,14 @@ PC `Usuario`, el director del tramo (Opus). Con Guido.
   registraba; todos arreglados), suite 3.272/3.273 (la del reloj de `cambios-flota`, sola, pasa), gitleaks limpio, `kit-sync` LIMPIO.
   En la madre, `--verificar` da ⚠ en el arranque y "el repo quedó andando". Nota en `kit/CHANGELOG.md` (los repos ya rotos por la 3.0.0
   no se curan solos; el único era la madre).
+- **El freno del árbol de `docs/` en la madre** (con el aprobado de Guido, `2026-11-16-quitar-arbol-docs-madre`): la madre adoptó con
+  `docs: no`, pero `candado:raiz` le frenaba todo archivo nuevo en `docs/`; quitado con su razón. La falla del kit, al TODO.
+
+**Después**
+- **La ordenada del repo**: la página de la `v3.0.1` en GitHub; las carpetas y ramas viejas de la revisión de la `rc.7` afuera; la prueba de
+  Juan guardada en el tag `archivo/prueba-juan-2026-11-06` (la rama sigue); la guía al día; las fechas del ciclo arriba del TODO.
+- **El log de la tanda** (`docs/kit-v3/TANDAS-DE-VERSIONES.md`, y con chats y costos en el privado): la tanda 1 de la v3, de la `rc.6` a
+  la `v3.0.1`. Los 18 chats de la tanda, en el privado; las cinco sesiones del tramo, archivadas.
 
 ## 2026-11-10 al 16 — Misión 5, el tramo final: de la rc.6 a la v3.0 (la rc.7, R2, el banco, la rc.8 y el banco otra vez) · v3.0.0-rc.7 · v3.0.0-rc.8 · v3.0.0
 

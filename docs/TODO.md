@@ -50,6 +50,10 @@
   2026-11-15, 15:42 UTC** y **`clientes` 2026-11-05** (`CORTE.md` del privado). La v3.1 (misión 7) no la espera.
 
 ## 🟠 Importante
+- [ ] **Kit: adoptar con `docs: no` deja prendido el freno del árbol de `docs/`** (visto en la madre, 2026-11-16): `hook-escritura` queda
+  en `molde` y `candado:raiz` frena todo archivo nuevo en `docs/` aunque el repo use su propio mapa. En la madre se quitó `candado:raiz`
+  (aprobado `2026-11-16-quitar-arbol-docs-madre`). Arreglo: con `docs: no`, que la adopción proponga `hook-escritura: no` o el
+  `candado:raiz` quitado con su razón, y que el banco sume un repo así. Para la `3.0.2` o la `v3.1`, con el ciclo (§6).
 - [ ] **El hook v2.4.3 al Bot y a su Panel** (inyectaban 15.500 y ~18.000 caracteres el 2026-10-22: arrancan sin ver su estado).
   En un chat de cada uno: *"traé el hook de arranque del molde del kit y medilo"* (receta en `GUIA-DE-USO.md`). El molde nuevo solo
   llega a los proyectos que se montan desde ahora.

@@ -9,6 +9,7 @@ Qué hay en esta carpeta, qué es cada cosa y cuándo leerla. El repo en general
 | [`SESSION_HANDOFF.md`](SESSION_HANDOFF.md) | El "save game": dónde quedó la última sesión | Lo inyecta el hook al abrir un chat; a mano, casi nunca |
 | [`TODO.md`](TODO.md) | **La única lista de pendientes**, por prioridad | Para saber qué falta |
 | [`CHANGELOG.md`](CHANGELOG.md) | La historia: una entrada por sesión, con la versión si hubo tag | Para saber qué cambió y cuándo |
+| [`kit-v3/TANDAS-DE-VERSIONES.md`](kit-v3/TANDAS-DE-VERSIONES.md) | El log por tanda: de una versión a la siguiente, en números, paso a paso y cómo nos fue | Para ver de un vistazo cómo salió una tanda, o al planear la próxima |
 | [`DECISIONS.md`](DECISIONS.md) | Los ADR: por qué el kit es como es (índice al tope) | Antes de cambiar algo que parece raro |
 | [`REJECTED.md`](REJECTED.md) | Lo descartado, con su razón y cuándo reabrirlo | Antes de proponer algo "nuevo" |
 
