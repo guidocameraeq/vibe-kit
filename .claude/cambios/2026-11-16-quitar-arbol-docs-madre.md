@@ -1,5 +1,5 @@
 ---
-estado: propuesto
+estado: aprobado
 clase: 3-barrera
 toca: [frenos]
 ids: ["candado:raiz"]
@@ -7,6 +7,7 @@ origen: "Guido, 2026-11-16: «Sí, quitalo» (al crear el log de la tanda, el fr
 cicatriz: no
 chico: sí
 urgente: no
+aprobo: {sesion: sin-marca, fecha: "2026-11-16T14:08:23-03:00", carpeta: ., rol: humano, hash: d80b8ebada58, freno: "2026-11-16T14:08:23-03:00 · humano · main · cambios:aprobar · cambios.cjs · 2026-11-16-quitar-arbol-docs-madre"}
 ---
 
 ## Caso de origen
