@@ -240,8 +240,12 @@ function llaves(ctx) {
 
 // ---------------------------------------------------------------- 2. arranque
 
-// 3.0.1 (la madre): sin el session-start.cjs del kit, el arranque propio que registra el settings — el primer hook SessionStart
-// que apunta a un archivo del repo que está: un .sh (con bash) o un .cjs/.js/.mjs (con node). → { rel, abs, bash } o null.
+// 3.0.1 (la madre): sin el session-start.cjs del kit, el arranque propio que registra el settings. De los grupos SessionStart
+// que corren al abrir (matcher vacío, * o con startup; no los de compact/resume/clear), el primer hook cuyo comando nombra un
+// archivo del repo que está; se corre ESE comando con sus args (sin shell: solo se expande CLAUDE_PROJECT_DIR), con bash si el
+// programa es bash/sh o el .sh mismo, con node si es node o el .cjs mismo. → { rel, bash, args } · { noSe: rel } (un .ps1, un
+// python…) · null.
+const deStartup = (g) => g.matcher == null || String(g.matcher).split('|').map((x) => x.trim()).some((x) => x === '' || x === '*' || x === 'startup');
 function arranquePropio(ctx) {
   let s;
   try {
@@ -250,48 +254,68 @@ function arranquePropio(ctx) {
     return null;
   }
   const hooks = s.ok && s.valor && typeof s.valor === 'object' && s.valor.hooks && typeof s.valor.hooks === 'object' ? s.valor.hooks : {};
+  let noSe = null;
   for (const g of Array.isArray(hooks.SessionStart) ? hooks.SessionStart : []) {
-    for (const h of g && Array.isArray(g.hooks) ? g.hooks : []) {
-      if (!h || h.type !== 'command') continue;
-      for (const t of rutasDeHook(h)) {
-        const abs = path.resolve(ctx.carpeta, t.replace(RE_PROYECTO, () => ctx.carpeta));
-        RE_PROYECTO.lastIndex = 0;
-        const rel = posix(path.relative(ctx.carpeta, abs));
-        if (!rel || rel.startsWith('../') || path.isAbsolute(rel)) continue; // solo un archivo del repo
-        const bash = /\.sh$/i.test(abs);
-        if (!bash && !RE_NODE.test(abs)) continue;
+    if (!g || typeof g !== 'object' || !deStartup(g)) continue;
+    for (const h of Array.isArray(g.hooks) ? g.hooks : []) {
+      if (!h || h.type !== 'command' || typeof h.command !== 'string') continue;
+      const toks = [...palabras(h.command), ...(Array.isArray(h.args) ? h.args.filter((a) => typeof a === 'string') : [])].map((x) => x.replace(RE_PROYECTO, () => ctx.carpeta));
+      const i = toks.findIndex((x, k) => {
+        if (!RE_SCRIPT.test(x)) return false;
+        const rel = posix(path.relative(ctx.carpeta, path.resolve(ctx.carpeta, x)));
+        if (!rel || rel.startsWith('../') || path.isAbsolute(rel)) return false; // solo un archivo del repo
         try {
-          if (fs.statSync(abs).isFile()) return { rel, abs, bash };
+          return fs.statSync(path.resolve(ctx.carpeta, x)).isFile();
         } catch (e) {
-          // no está: el siguiente
+          return false;
         }
-      }
+      });
+      if (i < 0) continue;
+      const rel = posix(path.relative(ctx.carpeta, path.resolve(ctx.carpeta, toks[i])));
+      const prog = path.basename(toks[0]).toLowerCase().replace(/\.exe$/, '');
+      let r = null;
+      if (i === 0 && /\.sh$/i.test(toks[0])) r = { rel, bash: true, args: toks };
+      else if (i === 0 && RE_NODE.test(toks[0])) r = { rel, bash: false, args: toks };
+      else if (i > 0 && (prog === 'bash' || prog === 'sh')) r = { rel, bash: true, args: toks.slice(1) };
+      else if (i > 0 && prog === 'node') r = { rel, bash: false, args: toks.slice(1) };
+      if (r) return r;
+      if (!noSe) noSe = { noSe: rel };
     }
   }
-  return null;
+  return noSe;
 }
-// El bash con que se corre un arranque propio: en Windows, el de Git (shellDeComandos); si no, el del PATH.
-const bashDe = () => {
-  const sh = process.platform === 'win32' ? shellDeComandos() : null;
-  return typeof sh === 'string' ? sh : 'bash';
-};
+// El bash de un arranque propio: en Windows, el de Git (shellDeComandos); si no da una ruta, NO VERIFICADO — nunca el bash del PATH,
+// que puede ser el de WSL. ctx.bashArranque: lo inyectan las pruebas (lo que devolvería shellDeComandos).
+function bashDe(ctx, rel) {
+  const sh = ctx.bashArranque !== undefined ? ctx.bashArranque : process.platform === 'win32' ? shellDeComandos() : 'bash';
+  if (typeof sh !== 'string') nv(`no encontré el bash de Git (el del PATH puede ser el de WSL): el arranque propio ${rel} no se corrió`);
+  return sh;
+}
 
 function arranque(ctx) {
-  let hook = path.join(ctx.carpeta, '.claude', 'hooks', 'session-start.cjs');
+  let cmd = process.execPath;
+  let args = [path.join(ctx.carpeta, '.claude', 'hooks', 'session-start.cjs')];
   let propio = null;
-  if (!fs.existsSync(hook)) {
+  if (!fs.existsSync(args[0])) {
+    // 3.0.1: el arranque propio cuenta solo si la ficha dice que el del kit no viene (hook-arranque propia o no)
+    const f = leerFicha(ctx);
+    const pz = !f.error && f.r.datos.piezas && typeof f.r.datos.piezas === 'object' ? f.r.datos.piezas : {};
+    const e = pz['hook-arranque'] && typeof pz['hook-arranque'] === 'object' ? pz['hook-arranque'].estado : pz['hook-arranque'];
+    if (e !== 'propia' && e !== 'no') return mal('no está .claude/hooks/session-start.cjs');
     propio = arranquePropio(ctx);
     if (!propio) return mal('no está .claude/hooks/session-start.cjs (ni un arranque propio registrado en el settings)');
-    hook = propio.abs;
+    if (propio.noSe) return mal(`un arranque propio que no sé correr (${propio.noSe})`);
+    cmd = propio.bash ? bashDe(ctx, propio.rel) : process.execPath;
+    args = propio.args;
   }
   const antes = git(['config', '--local', '--get', 'core.hooksPath'], ctx.carpeta);
   const previoAntes = git(['config', '--local', '--get', 'kit.hooksPathPrevio'], ctx.carpeta);
   let r;
   try {
-    r = correr(propio && propio.bash ? bashDe() : process.execPath, [hook], {
+    r = correr(cmd, args, {
       cwd: ctx.carpeta,
       plazo: PLAZO_ARRANQUE,
-      entrada: JSON.stringify({ cwd: ctx.carpeta, hook_event_name: 'SessionStart' }),
+      entrada: JSON.stringify({ cwd: ctx.carpeta, hook_event_name: 'SessionStart', source: 'startup' }),
       env: entorno({ CLAUDE_PROJECT_DIR: ctx.carpeta }),
       tmp: ctx.tmp,
     });
@@ -1159,7 +1183,8 @@ function permisosAnchos(carpeta, home) {
   }
 }
 
-function verificarAdopcion(carpeta) {
+// opciones.bashArranque: solo para las pruebas (3.0.1: lo que devolvería shellDeComandos para correr un arranque propio .sh).
+function verificarAdopcion(carpeta, opciones = {}) {
   const lineas = [];
   let ok = true;
   let tmp = null;
@@ -1173,7 +1198,7 @@ function verificarAdopcion(carpeta) {
     // sin ficha no es un repo adoptado: no hay nada que verificar (un aviso, no traba)
     if (!fs.existsSync(path.join(raiz, ...RUTA_FICHA.split('/')))) return { ok: true, lineas: [`verificar · ficha · ⚠ · sin ${RUTA_FICHA}: no es un repo adoptado, no hay nada que verificar`] };
     tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'kit-verificar-'));
-    const ctx = { carpeta: path.resolve(raiz), tmp };
+    const ctx = { carpeta: path.resolve(raiz), tmp, bashArranque: opciones && opciones.bashArranque };
     // 8e b5 (el banco: seis repos adoptados solo con la ficha daban ❌ en hooks y arranque, que su ficha dice que no vienen)
     const fv = leerFicha(ctx);
     const pz = !fv.error && fv.r.datos.piezas && typeof fv.r.datos.piezas === 'object' ? fv.r.datos.piezas : {};
@@ -1226,7 +1251,7 @@ function chequear(carpeta, opciones = {}) {
   let tmp = null;
   try {
     const o = opciones || {};
-    const ctx = { moldeViejo: o.moldeViejo ? path.resolve(o.moldeViejo) : null, version: o.version || null, gitleaks: o.gitleaks, shell: o.shell };
+    const ctx = { moldeViejo: o.moldeViejo ? path.resolve(o.moldeViejo) : null, version: o.version || null, gitleaks: o.gitleaks, shell: o.shell, bashArranque: o.bashArranque };
     ctx.plazoMs = Number.isFinite(o.plazoMs) && o.plazoMs > 0 ? o.plazoMs : PLAZO_DEFECTO;
     if (typeof carpeta !== 'string' || !carpeta) throw new NoVerificado('no me pasaron la carpeta');
     let raiz;

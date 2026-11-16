@@ -1042,19 +1042,26 @@ test('8e b5 verificar: lo que la ficha dice que no viene (settings: no, hook-arr
   assert.equal(s.ok, false);
 });
 
-// 3.0.1 (la madre, 2026-11-16: un session-start.sh propio, registrado en el settings, y ❌ por no ser session-start.cjs)
-test('3.0.1 arranque: sin session-start.cjs, el arranque propio registrado — sale 0 sin huella → ⚠; sale 1 → ❌; con la huella, se mide el tope; sin nada registrado → ❌', { timeout: 180000 }, () => {
-  const conPropio = (archivo, cuerpo, comando) => armar({
+// 3.0.1 (la madre, 2026-11-16: un session-start.sh propio, registrado en el settings, y ❌ por no ser session-start.cjs).
+// El proyecto sin session-start.cjs, con <archivo> y el SessionStart que diga `ss` (un comando, una lista de grupos o null = sin
+// SessionStart), y hook-arranque en `estado` en la ficha (null = la ficha de fábrica, sin piezas).
+function conPropio(archivo, cuerpo, ss, { estado = 'propia', extra = {} } = {}) {
+  return armar({
     cambio: (d) => {
       fs.rmSync(path.join(d, '.claude', 'hooks', 'session-start.cjs'));
       escribir(path.join(d, '.claude', 'hooks', archivo), cuerpo);
+      for (const [rel, t] of Object.entries(extra)) escribir(path.join(d, ...rel.split('/')), t);
       const rs = path.join(d, '.claude', 'settings.json');
       const s = JSON.parse(leer(rs));
-      if (comando === null) delete s.hooks.SessionStart;
-      else s.hooks.SessionStart = [{ matcher: '', hooks: [{ type: 'command', command: comando }] }];
+      if (ss === null) delete s.hooks.SessionStart;
+      else s.hooks.SessionStart = typeof ss === 'string' ? [{ matcher: '', hooks: [{ type: 'command', command: ss }] }] : ss;
       escribir(rs, `${JSON.stringify(s, null, 2)}\n`);
+      if (estado !== null) escribir(path.join(d, '.claude', 'kit.md'), fichaCon({ kit: '3.0.0' }).replace(/^frenos:$/m, `piezas:\n  hook-arranque: ${estado}\nfrenos:`));
     },
   });
+}
+
+test('3.0.1 arranque: sin session-start.cjs, el arranque propio registrado — sale 0 sin huella → ⚠; sale 1 → ❌; con la huella, se mide el tope; sin nada registrado → ❌', { timeout: 180000 }, () => {
   const SH = 'bash "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh"';
   const anda = conPropio('session-start.sh', '#!/bin/bash\necho "handoff propio"\necho "inyectado: 7614 caracteres de 10000"\n', SH);
   const r = verif(anda.d);
@@ -1070,4 +1077,36 @@ test('3.0.1 arranque: sin session-start.cjs, el arranque propio registrado — s
   // sin SessionStart en el settings: como antes
   const nada = conPropio('session-start.sh', 'echo hola\n', null);
   assert.match(lineaV(verif(nada.d), 'arranque'), / · ❌ · no está \.claude\/hooks\/session-start\.cjs/);
+});
+
+// 3.0.1, lo que marcó el revisor: el grupo de startup y el comando con sus args; molde sin el .cjs; lo que no se sabe correr; sin
+// el bash de Git en Windows
+test('3.0.1 arranque: corre el grupo de startup con su comando y sus args (source: startup); molde sin el .cjs → ❌; un .py → "no sé correr"; sin bash de Git → NO VERIFICADO', { timeout: 180000 }, () => {
+  const SH = 'bash "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh"';
+  const ANDA = '#!/bin/bash\necho "handoff propio"\n';
+  // dos grupos: el de compact (revienta) va primero; el de startup lleva un arg y mira el stdin
+  const conArgs = conPropio('session-start.sh', [
+    '#!/bin/bash',
+    'entrada=$(cat)',
+    '[ "$1" = "--modo-madre" ] || { echo "sin el arg"; exit 1; }',
+    'case "$entrada" in *\'"source":"startup"\'*) ;; *) echo "sin source startup"; exit 1 ;; esac',
+    'echo "arranque con $1"',
+    '',
+  ].join('\n'), [
+    { matcher: 'compact', hooks: [{ type: 'command', command: 'node "$CLAUDE_PROJECT_DIR/.claude/hooks/compacto.cjs"' }] },
+    { matcher: 'startup', hooks: [{ type: 'command', command: `${SH} --modo-madre` }] },
+  ], { extra: { '.claude/hooks/compacto.cjs': 'process.exit(1);\n' } });
+  const r = verif(conArgs.d);
+  assert.match(lineaV(r, 'arranque'), / · ⚠ · arranque propio \(\.claude\/hooks\/session-start\.sh\): corre; /, r.lineas.join('\n'));
+  // hook-arranque en molde (o sin decir) sin el .cjs: falta lo del kit, aunque haya un .sh registrado
+  for (const estado of ['molde', null]) {
+    const m = conPropio('session-start.sh', ANDA, SH, { estado });
+    assert.match(lineaV(verif(m.d), 'arranque'), / · ❌ · no está \.claude\/hooks\/session-start\.cjs$/, String(estado));
+  }
+  // un .py registrado: no lo sé correr
+  const py = conPropio('arranque.py', 'print("hola")\n', 'python "$CLAUDE_PROJECT_DIR/.claude/hooks/arranque.py"');
+  assert.match(lineaV(verif(py.d), 'arranque'), / · ❌ · un arranque propio que no sé correr \(\.claude\/hooks\/arranque\.py\)$/);
+  // Windows sin el bash de Git (shellDeComandos no da una ruta): NO VERIFICADO, nunca el bash del PATH (puede ser el de WSL)
+  const sinBash = conPropio('session-start.sh', ANDA, SH);
+  assert.match(lineaV(Q.verificarAdopcion(sinBash.d, { bashArranque: true }), 'arranque'), / · ❌ · NO VERIFICADO: no encontré el bash de Git .*session-start\.sh/);
 });
