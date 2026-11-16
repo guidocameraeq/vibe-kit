@@ -3,47 +3,54 @@
 > **Save game** del proyecto madre. `/cierre` lo sobreescribe entero; el hook SessionStart lo inyecta en cada chat
 > nuevo de esta carpeta. **Tope 5.500 bytes**; el hook corta y avisa "CORTADO" si se pasa, y termina con la huella.
 
-**CIERRE PARCIAL** 2026-11-15 del **director del tramo final** (PC `Usuario`): cerraron la sesión 1 (el spec de la `rc.7`
-READY), las tandas A, B y C enteras el tag **`v3.0.0-rc.7`** y **R2** (en `main`: veredicto `rc.8`). **Decidido con Guido el 2026-11-15**: banco de prueba → `rc.8` con Fable → banco otra vez → `v3.0`.
+**CIERRE PARCIAL** 2026-11-16 de la **sesión 6 del tramo final** (la `v3.0` y el repo cerrado; PC `Usuario`, Opus 5.5), de
+noche y con Guido durmiendo: todo lo que no pide su OK está hecho y en `main`. **Falta el tag `v3.0.0`**: espera a Guido.
 
 ## Dónde estamos
 
-- **Beta `v3.0.0-rc.8`** (taggeada 2026-11-15 por la 5b en Fable; `kit-sync` LIMPIO con el aviso de los hooks de la PC). La `rc.7`, 2026-11-14. Antes: La revisión de la `rc.7` terminó: cinco informes en `docs/kit-v3/REVISION-rc7-*.md` (mirada 1, pruebas,
-  mirada 2, los siete repos con el kit, y el plan), integrados al tracker, **"De la prueba real", ítems 17 a 60**.
-- **Decidido con Guido el 2026-11-12** (tracker, "Cambios al plan"): **ocho partes a la `rc.7`** (la noche termina sola y publica con
-  red; aprobar con un clic y cerrar los agujeros; `/estado` del dueño; el parte sin comandos; un solo camino de fondo y los nombres de
-  director y obrero; frenos que no se cuelgan; lo chico; **adoptar sin romper** y preparar la PC que traiga los repos de la cuenta).
-  `/tramo` se queda (REJ-017). **No hay más noches de Deptos**: la `rc.7` es la candidata a la `v3.0` y su criterio se mide en una
-  noche de prueba dentro de R2, sobre un clon de Deptos.
+- **La `v3.0` está lista en `main`, sin tag**: el código de la `rc.8` (taggeada el 15/11) más tres renglones de texto de las skills
+  (sin códigos en `/inicio` y `/cierre`; el "todo en no" de la adopción), sin pruebas nuevas (las de los textos pasan); `kit/VERSION` = `3.0.0` y la nota en
+  `kit/CHANGELOG.md`. El actualizador baja el último tag anotado: hasta el tag, nadie recibe la `3.0.0`.
+- **El veredicto del banco otra vez** (`docs/kit-v3/BANCO-rc8.md`): *sale la v3.0, con los hooks de esta PC al día y una noche corta*.
+- **Hecho en la 6**: el ciclo de mejora sin ✍️ (`docs/CICLO-DE-MEJORA.md`); la portada, la guía y los manuales con lo de la `rc.7` y
+  la `rc.8`; el TODO (salen la 5 y la 6; la 7 con lo que va a la `v3.1`); los specs marcados ✅; la entrada del CHANGELOG del tramo;
+  los chats del tramo, el diario (16 filas) y el corte de la vuelta 1, en el privado.
+- `kit-sync sync` **ya corrió** (la PC tiene la `3.0.0` en `~/.claude`): `LIMPIO`, con el aviso de los hooks de la PC. Fue antes del
+  tag a propósito: "instalar hooks por PC" toma la versión de `~/.claude/VERSION`. Es local: no publica nada.
 
 ## Próximo paso
 
-**El director del tramo final** sigue `docs/kit-v3/TRAMO-FINAL-PLAN.md`, sección 0 (**manda ese archivo**). Hecho: el spec
-`SPEC-paquete-8d.md` READY (Fable 5.2), las tandas A, B, C y el tag `rc.7`. R2 hecha (`REVISION-INTEGRAL-rc7.md`: G1-G5, la noche no se cerró sola en el clon
-de Deptos) · el ciclo de mejora rehecho (ADR-035) → 5a el banco de prueba ✅ (`BANCO-rc7.md`: B1, B2, b1-b13) → 5b la `rc.8` ✅ (`SPEC-paquete-8e.md`) → 5c el banco otra vez ✅ (`BANCO-rc8.md`: **sale la `v3.0`**, con los hooks de la PC al día y una noche corta) → **6 la `v3.0`** y el repo cerrado (el M6b va ahí).
-**Desde el 2026-11-15 las sesiones 5a, 5b, 5c y 6 están abiertas y en espera**: el director las activa en fila con un mensaje
-"arrancá", sin el clic de Guido (ids en la cabecera del plan; la 5b, en Fable 5.2 verificado con `get_session`). Si sos una de las sesiones 1 a 6: tu tarea es tu sección; no hace falta `/inicio`.
+**Guido**, en este orden (lo pide el director del tramo, en criollo):
+1. **"instalar hooks por PC"** (los de esta PC son de la `rc.6`; con el sync hecho, quedan en `3.0.0`; lo frena el clasificador
+   de `auto`: es suyo).
+2. **La noche corta de confirmación** (~17 min, sola en la PC): la receta en la nota de la 5c (carpeta de notas del director,
+   `sesion-5c-banco-rc8.md`): sobre la copia sin pruebas, borrar su carpeta de `noches/`, `noche-armar` y `noche` con la copia
+   del script de `$BANCO/corrida/`. La medida: ni el parte ni los obreros dicen "ficha rota: .claude/kit.md".
+3. **Los criterios a fase 2, por escrito** (la lista en `BANCO-rc8.md`, "Los 20 criterios"; el 6, recomendado tildar).
+4. **Su OK de publicar**: tag anotado `v3.0.0` sobre la punta de `main` (si `kit/` no cambió desde el commit de `VERSION`),
+   gitleaks sobre el rango y push del tag; `kit-sync.sh` tiene que seguir en `LIMPIO`.
+5. **La flota real, con su OK por repo** (lo que cambia en cada uno: el resumen de la sesión 6 al director).
+6. `/cierre` completo: el tracker ✅ paquete 10 (lo escribe el director), sale el ítem "Sacar la v3.0" del TODO, el título del
+   CHANGELOG suma ` · v3.0.0`, y el chat de la 6 re-condensado al privado.
 
 ## Te espera (Guido)
 
-- Decidir si **cambiar** el `comando-test` de un repo pide su firma (hoy la pide solo sacarlo; la 5b lo anotó sin tocar).
-- Correr **"instalar hooks por PC"** (B2 del banco: los hooks de esta PC están en `rc.6`; lo frena el clasificador, es suyo).
-- El clic de P7 cuando quiera (`../vibe-kit-pruebas/rc7/p7-firma/LEEME-P7.txt`: cierra el criterio 18); al final de 5c, pasar a fase 2 por escrito los criterios que no se midan; el OK de publicar la `v3.0` y de poner al día sus repos reales (con lo que dijo el banco).
-- Lo demás, solo lo de la tabla "Dónde lo necesita a Guido" del plan del tramo final.
+- Los cinco pasos de arriba. Y una decisión suya, anotada en el TODO: si *cambiar* el `comando-test` pide su firma.
+- El clic de P7 cuando quiera (`../vibe-kit-pruebas/rc7/p7-firma/LEEME-P7.txt`): si no, el criterio 18 va a fase 2.
 
 ## Cosas que muerden y no están en ningún otro doc
 
 - 🔑 **Identidad de git**: `guido.camera.eq@gmail.com`. Nunca `eq.chatgpt`.
 - 🔴 **gitleaks antes de cada push, sobre el rango** (`--log-opts="origin/main..HEAD"`), sin tubería: vibe-kit es público.
 - 🐍 **Python**: `py -3`; para leer los `.jsonl` de las charlas, `py -3 -I` con `sys.stdout.reconfigure(encoding="utf-8")`.
-- 💻 **La terminal de Guido es PowerShell 5.1**: si alguna vez queda una línea para él, en PowerShell y sin `&&` (mejor: ninguna).
-- 🧱 **El clasificador del modo `auto` frena escribir el `~/.claude/settings.json`** (preparar-pc, kit-sync sync): eso lo corre Guido.
+- 💻 **La terminal de Guido es PowerShell 5.1**: si queda una línea para él, en PowerShell y sin `&&` (mejor: ninguna).
+- 🧱 **El clasificador del modo `auto` frena escribir el `~/.claude/settings.json`** (preparar-pc, kit-sync sync, instalar hooks).
 - 🚪 **No le marques a Guido tareas de sus otros repos** desde acá (su regla, 2026-11-10): lo que se vea allá va al tracker.
-- 🧪 **Nunca dos tandas pesadas a la vez** (suite + suite o suite + flota). El tag va siempre después de la suite.
+- 🧪 **Nunca dos tandas pesadas a la vez**. `adoptar.test` solo tarda >15 min con la PC cargada: correrlo sin `timeout`.
 - 📬 El tracker lo escribe solo el director del tramo; las otras sesiones dejan su archivo y él lo integra.
 - 🔒 Los repos del trabajo se leen en copias del scratchpad; a vibe-kit (público) va solo el comportamiento del kit, en abstracto.
+- ✍️ En la terminal de Windows, los heredocs largos se rompen: el script va a un archivo y se corre.
 
 ## Bloqueos
 
-Ninguno. **Falta al cierre completo de esta sesión** (lo hace el `/cierre` de la sesión 6): la entrada del CHANGELOG, el TODO
-(la misión 5 dice todavía "la segunda noche de Deptos"), el diario y el chat al privado.
+Ninguno técnico. El tag espera el OK de Guido (pasos 1 a 4).

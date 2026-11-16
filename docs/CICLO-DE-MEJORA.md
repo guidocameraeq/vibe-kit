@@ -3,7 +3,7 @@
 > Cómo se mejora el método (el kit, el playbook, director y obrero) **con evidencia del uso real**, y cómo se saca una versión nueva.
 > Es una **receta**, no una skill: se corre pocas veces (regla de 3+). La escribió la misión 6a (2026-11-03) con la vuelta 1 hasta la
 > beta, y la rehízo la 6b (2026-11-15) con el tramo de las `rc`: de la `rc.1` a la `rc.7`, las dos revisiones finales, las noches
-> reales y el banco de prueba. **La sesión 6 suma el final** (la `rc.8` y la `v3.0`) en los lugares marcados ✍️.
+> reales y el banco de prueba. La sesión 6 (2026-11-16) le sumó el final: la `rc.8`, los dos bancos y la `v3.0`.
 > Lo crudo de las dos lecturas está en el privado (`vibe-research/mision-6/lectura-6a/` y `lectura-6b/`). El plan de la 6a está en
 > [`mision-6/PLAN-6a.md`](mision-6/PLAN-6a.md).
 
@@ -42,7 +42,7 @@ y §8 (el corte) es §2.*
 **La vuelta 1 y la que sigue** (cierra la 6b):
 - **El corte de la vuelta 1, por PC**, es lo último que leyó la 6b: el **2026-11-15** en `Usuario` (el chat del director hasta las
   15:42 UTC) y el **2026-11-05** en `clientes`. Todo lo posterior entra a la vuelta 2: el director después de esa hora, el banco, la
-  `rc.8`, la 6 y lo que se haya trabajado en `clientes` desde el 05/11. ✍️ La sesión 6 lo copia a `CORTE.md` tal cual, sin moverlo.
+  `rc.8`, la 6 y lo que se haya trabajado en `clientes` desde el 05/11. Está copiado tal cual en el `CORTE.md` privado.
 - **La vuelta 2 arranca el 2027-03-01**, unos 3½ meses después del corte, o antes por uno de los disparadores. Mide la `v3.0` y,
   si ya salió y lleva un mes andando, la `v3.1`.
 - **La `v3.1` (misión 7) no espera la vuelta.** Es una versión con su propio diseño con el dueño (el buzón, "probar una idea nueva" y el
@@ -50,9 +50,8 @@ y §8 (el corte) es §2.*
   hace la mensajería hoy), y no relee chats.
 - **La medición de la `v3.0` contra su línea base** (§5.6) va al mes de la versión, alrededor del 2026-12-15, con la corrida mensual.
   Es el primer insumo de la vuelta 2.
-- **Quién arranca**: la madre, con `/inicio` en vibe-kit, cuando el TODO lo diga; lee este documento, §5 y §6. ✍️ La sesión 6 anota en
-  `docs/TODO.md`, en "El ciclo", la medición del 2026-12-15, la vuelta 2 del 2027-03-01 y el corte por PC. El TODO todavía dice
-  que la próxima vuelta lee desde el corte del 2026-10-26.
+- **Quién arranca**: la madre, con `/inicio` en vibe-kit, cuando el TODO lo diga; lee este documento, §5 y §6. Las tres fechas (la
+  medición del 2026-12-15, la vuelta 2 del 2027-03-01 y el corte por PC) están en `docs/TODO.md`, en "El ciclo".
 
 ## 3. Cómo se decide
 
@@ -206,7 +205,7 @@ Cierra lo que la 6a dejó para la 6b. Lo que se decidió y lo que enseñó la vu
   | La flota contra un clon real | La historia y lo propio de un proyecto | Skills sobre el tope, `.pyc`, ramas de antes |
   | **Una noche real con director** | Los tiempos, las esperas, el entorno del dueño y su cansancio | ~12 cosas que ningún peldaño vio |
   | **La noche de prueba en un clon real** | Que termine y publique sola, sin dueño | El permiso propio ancho que traba el cierre |
-  | **El banco: copias de todos los repos** | Lo mismo en todos a la vez | ✍️ (la sesión 6, con lo que digan 5a y 5c) |
+  | **El banco: copias de todos los repos** | Lo mismo en todos a la vez | Sobre la `rc.7`, 26 copias: un repo sin pruebas no tenía noche ni flota (13 de 19 adoptados) y ninguna noche se cerró sola; sobre la `rc.8`, las dos noches terminaron y publicaron solas |
 
   Los repos de prueba se arman parecidos a los reales (historia larga, método propio, `.gitignore` genéricos), pero **no reemplazan a los reales**.
 - **Cada noche real lleva una bitácora de método**: `notas-del-metodo.md` en el proyecto, una línea por traba (hora, qué pasó, qué
@@ -231,7 +230,7 @@ Cierra lo que la 6a dejó para la 6b. Lo que se decidió y lo que enseñó la vu
 - **Medir contra la línea base**: la corrida mensual (`flota.py`, `huella.py`) al mes de la versión, comparada con la línea base que se
   midió antes de construir. La de la v3 es del 2026-11-03: la tabla pública está en
   [`observatorio/investigacion/mediciones/2026-11-03.md`](../observatorio/investigacion/mediciones/2026-11-03.md), y cómo se corre, en
-  `METODO.md`, "La corrida mensual". ✍️ La sesión 6 deja dicha la fecha (§2).
+  `METODO.md`, "La corrida mensual". La de la `v3.0` va alrededor del 2026-12-15 (§2).
 
 ## 6. Cómo sacar una versión nueva
 
@@ -247,14 +246,14 @@ de cada paso sale de lo medido en la v3. Para planear: pasarlo es una señal par
 | 5 | **R1 sobre un clon real** (§5.5) y su tanda | Tres revisores Opus; la tanda, un director | Lo de diseño que la tanda le deje | `rc.2` | ~30 min + 4-5 h |
 | 6 | **El uso real**: adoptar en un clon y después en la carpeta, con bitácora. Cada lote, una `rc` quirúrgica (§7), **de a una** | Las `rc`, sesiones Opus | Trabaja con la beta y cuenta lo que molesta; da el OK de adoptar | `rc.3…` | 1-2 semanas; cada `rc`, 1,5-4 h según su nivel |
 | 7 | **Una noche real con director** (o el uso de punta a punta que la versión prometa), con el proyecto congelado | El director del proyecto; dos lectores Sonnet la leen | La lanza, y a la mañana lee el parte | La bitácora y lo que falló | Una noche |
-| 8 | **La revisión de la candidata**, en paralelo: dos sesiones Fable (la fricción y el sistema), pruebas cortas Opus, lectores sobre **los repos reales que ya usan el kit** y **el banco, vuelta 1** | Una sesión por pieza, cada una con su archivo | Nada | Los informes, con su resumen arriba | ~1 h las miradas y los repos; el banco ✍️ |
+| 8 | **La revisión de la candidata**, en paralelo: dos sesiones Fable (la fricción y el sistema), pruebas cortas Opus, lectores sobre **los repos reales que ya usan el kit** y **el banco, vuelta 1** | Una sesión por pieza, cada una con su archivo | Nada | Los informes, con su resumen arriba | ~1 h las miradas y los repos; el banco, ~4 h (26 copias y dos noches) |
 | 9 | **La charla** (§3) y **el plan del tramo** con sus prompts (§8) | La madre; abre las sesiones en espera (§8) | Decide de a una y dice "lanzá" antes de irse | Lo decidido y `<versión>/TRAMO-...-PLAN.md` | ~2 h de charla |
 | 10 | **El spec de la candidata** | Fable; lectores Sonnet; red team Opus | Lo sella | El delta READY, partido en tandas que no se pisan | ~1-3 h |
 | 11 | **Las tandas** (§7). La última: la suite sola, la flota de prueba, un clon real y el tag | Opus, en fila | Nada (si el clasificador frena `kit-sync`, pega una línea) | La `rc` candidata | ~4 h por tanda; el spec dice cuántas |
 | 12 | **R2, la integral final, con una noche de prueba** en un clon real: sin dueño, sin llaves y con publicar de mentira. Mide el criterio de éxito | Opus; tres revisores Opus | Decide si sale o va otra `rc` | El veredicto | ~3 h |
-| 13 | **La última `rc`**: todo lo de R2 y del banco, quirúrgico (§7) | **Fable** decide y escribe; Opus revisa; Sonnet corre | Nada | `rc.N` | ~6 h ✍️ |
-| 14 | **El banco otra vez**: el veredicto final | Opus; lectores Sonnet | Pasa a fase 2 por escrito lo que no se pudo medir | "Sale / no sale" | ~3 h ✍️ |
-| 15 | **La versión** (abajo) | Opus | **El OK de publicar** y el OK por repo para poner al día sus proyectos | `vX.0.0` | ~4 h ✍️ |
+| 13 | **La última `rc`**: todo lo de R2 y del banco, quirúrgico (§7) | **Fable** decide y escribe; Opus revisa; Sonnet corre | Nada | `rc.N` | ~6 h (la `rc.8`: ~6,5 h) |
+| 14 | **El banco otra vez**: el veredicto final | Opus; lectores Sonnet | Pasa a fase 2 por escrito lo que no se pudo medir | "Sale / no sale" | ~3 h (en la v3: ~3,3 h) |
+| 15 | **La versión** (abajo) | Opus | **El OK de publicar** y el OK por repo para poner al día sus proyectos | `vX.0.0` | ~4 h (en la v3: ~1 h sin la flota real) |
 | 16 | **Al mes, la medición** contra la línea base (§5.6) | La corrida mensual | Nada | El primer insumo de la vuelta siguiente | ~25 min |
 
 **Lo que hace el dueño en toda la versión**: decidir lo de diseño (pasos 1, 2, 9 y 12), sellar dos specs, decir "lanzá" una vez por
@@ -284,7 +283,8 @@ tramo, trabajar con la beta, y dar los OK de publicar y de su flota. Todo lo dem
 
   Tiene dos vueltas. La primera, barata, va en todos los repos: preparar la PC, adoptar o poner al día, `adoptar --verificar`, sus
   pruebas, un `/inicio` y un pedido chico. La segunda, cara, va en 2 o 3 repos elegidos con variedad: un módulo con director y la noche
-  entera. Plan: [`kit-v3/TRAMO-FINAL-PLAN.md`](kit-v3/TRAMO-FINAL-PLAN.md), sesión 5a. ✍️ Lo que midió, en `kit-v3/BANCO-rc7.md` y `BANCO-rc8.md`.
+  entera. Plan: [`kit-v3/TRAMO-FINAL-PLAN.md`](kit-v3/TRAMO-FINAL-PLAN.md), sesión 5a. Lo que midió, en [`kit-v3/BANCO-rc7.md`](kit-v3/BANCO-rc7.md) (la vuelta 1, sobre la candidata) y
+  [`kit-v3/BANCO-rc8.md`](kit-v3/BANCO-rc8.md) (el veredicto).
 - **La versión (paso 15)**:
   1. `kit/VERSION` y la nota de migración en `kit/CHANGELOG.md`, en un commit sobre el código de la última `rc` (`VERSION` se sube
      en el commit que lleva el tag: `kit/CHANGELOG.md`, arriba);
@@ -295,10 +295,23 @@ tramo, trabajar con la beta, y dar los OK de publicar y de su flota. Todo lo dem
   5. la portada, la guía, los manuales y el TODO al día, y los specs marcados `✅ IMPLEMENTADO`;
   6. los chats al privado, el diario y `/cierre`.
 
-  ✍️ La sesión 6 agrega acá cómo salió de verdad.
+  **Cómo salió en la v3** (2026-11-16):
+  - el banco otra vez dijo *"sale, con una condición"*: los hooks de la PC seguían en la `rc.6` (los instala el dueño con "instalar
+    hooks por PC": el clasificador del modo `auto` no deja que lo haga una sesión) y, después, una noche corta de confirmación
+    (~17 min). **Para la próxima**: mirar los hooks de la PC antes del banco del paso 14 (`kit-sync` lo avisa desde la `rc.8`) y
+    pedírselo al dueño ahí, no al final. Y el `kit-sync sync` va **antes** de instalar los hooks (el instalador toma la versión de
+    `~/.claude/VERSION`): es local y no publica nada;
+  - la sesión de la versión no tocó código: tres renglones de texto de las skills (sin códigos en `/inicio` y `/cierre`, el "todo en
+    no" de la adopción), sin pruebas nuevas (las de los textos siguen pasando), y los manuales al día con lo que la `rc.8` y el banco le dejaron;
+  - `kit/VERSION` y la nota se commitearon de noche, con el dueño durmiendo; el tag esperó su OK. Subir ese commit no publica: el
+    actualizador baja el último tag anotado, nunca la punta de `main`;
+  - los criterios que no se pudieron medir, el dueño los pasa a fase 2 por escrito con la lista del banco otra vez, cada uno con su porqué.
 - **El presupuesto de una versión, para planear**: en la v3, del paso 8 al 12 (del 11 al 15/11), las sesiones trabajaron ~24 h en cuatro
   días de calendario, y el resto fue espera. Con las esperas cortadas (§8), del paso 8 al 15 debería entrar en ~3-4 días y ~25-30 h de
-  sesiones (estimado, **NO VERIFICADO**: ✍️ la sesión 6 lo corrige con lo que llevaron la `rc.8` y los bancos).
+  sesiones (era el estimado de la 6b). **Lo medido en la v3**: del paso 8 al 15 (11 al 16/11), ~6 días de calendario y ~37 h de
+  sesiones: las miradas y la charla ~4 h, el spec y las tandas ~16 h, R2 2,5 h, el banco ~4 h, la `rc.8` ~6,5 h, el banco otra vez
+  ~3,3 h y la versión ~1 h. Con las sesiones abiertas en espera, del banco a la versión (5a a 6) corrió de un tirón en ~15 h de
+  reloj, de la tarde a la madrugada y sin clics. **Para planear: ~5 días y ~40 h.**
 
 
 ## 7. Una `rc`: los arreglos quirúrgicos y su nivel de control
@@ -454,7 +467,10 @@ Se copian, se cambia lo que va entre `< >` y se pegan. Los de la v3, ya llenos, 
 (`vibe-research/mision-6/lectura-6b/LECTOR-ciclo-6b.md`). Va un lector Sonnet por lote de 200-300 KB, y al prompt solo se le suman
 su lote y su archivo de salida.
 
-**G · El banco**: su prompt es la sesión 5a de [`kit-v3/TRAMO-FINAL-PLAN.md`](kit-v3/TRAMO-FINAL-PLAN.md), y su script, `pruebas/banco/`. ✍️
+**G · El banco**: su prompt es la sesión 5a de [`kit-v3/TRAMO-FINAL-PLAN.md`](kit-v3/TRAMO-FINAL-PLAN.md) (y la 5c para la vuelta del
+veredicto), y su script, `pruebas/banco/` con su `LEEME.md`. La 5c corrió una copia con dos cambios (el pedido a Claude por la
+entrada estándar y `--con-obra`) y dejó cinco arreglos para el script en [`kit-v3/BANCO-rc8.md`](kit-v3/BANCO-rc8.md), "Para el script
+del banco": se hacen al principio de la próxima vuelta, antes de correrlo.
 
 ## 10. Plantillas
 
@@ -546,8 +562,8 @@ El detalle de cada `rc` está en [`kit/CHANGELOG.md`](../kit/CHANGELOG.md) (su n
 | — | 09-11/11 | Dos noches de director en un proyecto real | — | 8 h la primera, sin intervenciones |
 | `rc.7` | 14/11 | La candidata, en ocho partes: la noche termina sola, aprobar con un clic, `/estado` del dueño, sin comandos, adoptar sin romper | La revisión de 4 sesiones, la charla, el spec en Fable y 5 sesiones de obra | 11/11 al 14/11 |
 | R2 | 14-15/11 | El veredicto: va una `rc.8` (cinco grandes, todos chicos de arreglar) | La noche de prueba en un clon real y tres revisores | 2,5 h |
-| `rc.8` | ✍️ | Todo corregido: lo de R2, lo del banco y los chicos | El banco (5a) | ✍️ |
-| `v3.0` | ✍️ | ✍️ | El banco otra vez (5c) | ✍️ |
+| `rc.8` | 15/11 | Todo corregido: los cinco grandes de R2, los dos del banco (un repo sin pruebas, los hooks de la PC sin aviso) y ~24 chicos; red team, revisor frío y mutación (28 de 28) | R2 y el banco (5a) | ~6,5 h, en Fable |
+| `v3.0` | 16/11 el commit; el tag, con el OK del dueño | El código de la `rc.8`, más tres renglones de texto de las skills y los manuales al día | El banco otra vez (5c): sale, con los hooks de la PC al día y una noche corta | ~1 h |
 
 **Lo que haríamos distinto** (ya está en §6 y §7):
 - **R1 sobre un clon real**, y no R1 más R1b.
@@ -590,12 +606,15 @@ este tramo no se anotaron**: en la vuelta 1 sumaban ~1,5-2 M por director, así 
 | La revisión de la candidata (11-12/11) | 3 en paralelo y la charla | 20-35 min cada mirada; la charla ~2 h de trabajo en 29 h | ~2,1 M |
 | El spec en Fable, 5 tandas y el tag `rc.7` (12-14/11) | 1 Fable y 5 Opus | ~16 h de sesiones en 2 días | ~5,7 M |
 | R2 con la noche de prueba (14-15/11) | 1 Opus y 3 revisores | 2,5 h | ~0,5 M |
-| El director del tramo (12-15/11) | 1 Opus | 68 h de calendario | ~1,7 M |
-| **El tramo de las `rc`, sin el final** | ~20 sesiones | 13 días | **~17 M + los subagentes** |
+| El ciclo rehecho, el banco y la `rc.8` (15/11) | La 6b y la 5a (Opus), la 5b (Fable) | ~11 h de sesiones en un día | ~2,3 M |
+| El banco otra vez y la versión (16/11) | La 5c y la 6 (Opus) | ~4,5 h, de noche | ~0,9 M |
+| El director del tramo (12-16/11) | 1 Opus | 4 días de calendario | ~1,8 M |
+| **El tramo de las `rc`, entero** | ~25 sesiones | 14 días | **~20 M + los subagentes** |
 
 **Lo que dice**: el tramo de las `rc` costó en tokens menos que leer chats en la vuelta 1, pero **el reloj se fue en esperas**. Hubo tags
 que se esperaban entre sí, clics de noche, el director sin despertar y decisiones que tardaban un día. Un día de calendario rinde entre
-4 y 8 h de sesiones. ✍️ La sesión 6 suma la `rc.8`, los bancos y la `v3.0`.
+4 y 8 h de sesiones. **El final** (los dos bancos, la `rc.8` y la versión) llevó ~15 h de reloj en un solo tirón (15 al 16/11), casi sin
+esperas: las sesiones abiertas en espera (§8) cortaron lo que más costaba.
 
 ## 13. Lecciones, por paso
 
