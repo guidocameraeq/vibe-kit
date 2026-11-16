@@ -1976,3 +1976,73 @@ test('3.0.1: un session-start.sh propio (regla igual a la del v2) → --aplicar 
     assert.match(t, /^verificar · hooks · (✅|⚠) · /m, t);
   }
 });
+
+// 3.0.1, lo que marcó el revisor: la madre ya adoptada en propia. resolver settings nueva (sin molde viejo) tampoco enchufa el
+// .cjs; resolver hook-arranque nueva trae el .cjs y la ficha en molde sin tocar el settings, y la puesta al día siguiente enchufa
+// su regla (antes de esto, la mezcla la veía en el molde viejo y no en el proyecto: "la borró el proyecto", y no entraba nunca).
+test('3.0.1: la madre en propia — resolver settings nueva no enchufa el .cjs; resolver hook-arranque nueva y la puesta al día siguiente → entra la regla del .cjs', { ...deKit, timeout: 400000 }, async () => {
+  const A = require('../actualizar.cjs');
+  const SH = 'bash "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh"';
+  const paso = (d, l) => {
+    const r = spawnSync(l.replace(/^ {2}\d\. /, '').replace(/ {3}\(el id .*$/, ''), { cwd: d, shell: true, encoding: 'utf8' });
+    assert.equal(r.status, 0, `${l}\n${r.stdout}${r.stderr}`);
+  };
+  const d = await adoptado(repoV2('madre', { archivos: { '.claude/hooks/session-start.sh': '#!/bin/bash\necho "el handoff de la madre"\n' } }));
+  assert.equal(F.leer(leer(d, '.claude/kit.md')).datos.piezas['hook-arranque'], 'propia');
+  assert.deepEqual(hooksDe(settingsDe(d), 'SessionStart'), [SH]);
+  // resolver settings nueva (nuevaSinInforme, la mezcla sin molde viejo): el SessionStart queda como estaba
+  const rs = resolverEn(d, 'settings', 'nueva', '--por', 'la del molde');
+  assert.equal(rs.status, 0, rs.stdout + rs.stderr);
+  assert.deepEqual(hooksDe(settingsDe(d), 'SessionStart'), [SH], 'resolver settings nueva no enchufa el .cjs que no está');
+  git(d, 'checkout', '-q', '--', '.');
+  assert.equal(git(d, 'status', '--porcelain'), '');
+  // resolver hook-arranque nueva: el .cjs y la ficha en molde; el settings, igual — los pasos que da, en su orden
+  const r = resolverEn(d, 'hook-arranque', 'nueva', '--por', 'el arranque del kit');
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(leer(d, '.claude/hooks/session-start.cjs'), delMolde(d, 'hooks/session-start.cjs'));
+  assert.equal(F.leer(leer(d, '.claude/kit.md')).datos.piezas['hook-arranque'].estado, 'molde');
+  assert.deepEqual(hooksDe(settingsDe(d), 'SessionStart'), [SH]);
+  const ls = r.stdout.trim().split('\n');
+  const i = ls.findIndex((l) => l.startsWith('hook-arranque toca frenos'));
+  assert.ok(i > 0, r.stdout);
+  for (const k of [1, 2, 3, 4]) paso(d, ls[i + k]);
+  assert.equal(git(d, 'status', '--porcelain'), '');
+  // la puesta al día siguiente (el mismo kit: el molde viejo es el nuevo, y trae la regla del .cjs)
+  rol(d);
+  const a = A.aplicar(d, { kit: RAIZ_KIT, fecha: FECHA, claude: 'no' });
+  assert.equal(a.codigo, 0, a.lineas.join('\n'));
+  const ss = hooksDe(settingsDe(d), 'SessionStart');
+  assert.ok(ss.some((c) => c.includes('session-start.cjs')), `entra la regla del .cjs: ${ss.join(' | ')}`);
+  assert.ok(ss.includes(SH), 'la tuya queda');
+});
+
+// 3.0.1, lo que marcó el revisor: D3 en el caso que cambió (propia sin .cjs, como la madre) y hook-arranque: no sin archivo
+test('3.0.1: --arranque kit en la madre → el commit de las piezas trae el .cjs y su regla; hook-arranque: no sin el .cjs → su regla no entra y la del v2 queda', { ...deKit, timeout: 400000 }, async () => {
+  const SH = 'bash "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh"';
+  const d = repoV2('madre', { archivos: { '.claude/hooks/session-start.sh': '#!/bin/bash\necho "el handoff de la madre"\n' } });
+  const prop = propuestaDe(d);
+  assert.equal(piezas(fs.readFileSync(prop, 'utf8'))['hook-arranque'], 'propia');
+  rol(d);
+  const r = await aplicarCon(d, prop, '--arranque', 'kit');
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  commitsDeLaLinea(d, r.lineas);
+  assert.equal(git(d, 'status', '--porcelain'), '');
+  const sha = git(d, 'log', '--format=%H %s').trim().split('\n').find((l) => l.endsWith('(piezas)')).split(' ')[0];
+  assert.ok(git(d, 'show', '--name-only', '--format=', sha).split('\n').includes('.claude/hooks/session-start.cjs'), 'el .cjs, en el commit de las piezas');
+  const sP = JSON.parse(git(d, 'show', `${sha}:.claude/settings.json`));
+  assert.ok(hooksDe(sP, 'SessionStart').some((c) => c.includes('session-start.cjs')), `y su regla: ${hooksDe(sP, 'SessionStart').join(' | ')}`);
+  assert.ok(hooksDe(settingsDe(d), 'SessionStart').some((c) => c.includes('session-start.cjs')), 'y queda en HEAD');
+  // hook-arranque: no (lo decide la sesión en la propuesta), el v2 sin editar
+  const n = repoV2('nada');
+  const pn = propuestaDe(n);
+  const tn = fs.readFileSync(pn, 'utf8');
+  const tn2 = tn.replace(/^ {2}hook-arranque: molde$/m, '  hook-arranque: no');
+  assert.notEqual(tn2, tn);
+  fs.writeFileSync(pn, tn2);
+  rol(n);
+  const rn = await aplicarCon(n, pn);
+  assert.equal(rn.codigo, 0, rn.lineas.join('\n'));
+  assert.equal(leer(n, '.claude/hooks/session-start.cjs'), null);
+  assert.deepEqual(hooksDe(settingsDe(n), 'SessionStart'), [SH], 'no entra la del .cjs; la del v2 queda con su archivo');
+  assert.ok(leer(n, '.claude/hooks/session-start.sh'));
+});

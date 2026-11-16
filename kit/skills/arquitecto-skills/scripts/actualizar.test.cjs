@@ -1478,3 +1478,33 @@ test('3.0.1: hook-arranque propia sin session-start.cjs → el settings no gana 
   assert.ok(leer(m, '.claude/hooks/session-start.cjs'));
   assert.ok(comandos(m).includes('node ${CLAUDE_PROJECT_DIR}/.claude/hooks/session-start.cjs --con-tope'), comandos(m).join('\n'));
 });
+
+// 3.0.1, lo que marcó el revisor: un repo que pasó de propia (o de no) al arranque del kit (resolver hook-arranque nueva escribe el
+// .cjs y la ficha en molde, pero no el settings) — en la puesta al día siguiente la regla del .cjs entra aunque el molde viejo
+// la traiga; un freno quitado no vuelve. Y propia CON el .cjs (el suyo, con el nombre del del kit): la mezcla de siempre.
+test('3.0.1: hook-arranque molde con el .cjs y el settings sin su regla → la regla entra (salvo quitada); propia con el .cjs → la mezcla de siempre', () => {
+  const SH = 'bash "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh"';
+  const KIT_CJS = 'node ${CLAUDE_PROJECT_DIR}/.claude/hooks/session-start.cjs';
+  const comandos = (d) => (JSON.parse(leer(d, '.claude/settings.json')).hooks.SessionStart || []).flatMap((g) => g.hooks.map((h) => [h.command, ...(h.args || [])].join(' ')));
+  const soloSh = (x) => {
+    const s = JSON.parse(leer(x, '.claude/settings.json'));
+    s.hooks.SessionStart = [{ matcher: '', hooks: [{ type: 'command', command: SH }] }];
+    fs.writeFileSync(path.join(x, '.claude', 'settings.json'), settings(s));
+    escribirArbol(x, { '.claude/hooks/session-start.sh': 'echo "el arranque de la madre"\n' });
+  };
+  const d = armarProyecto({ antes: soloSh });
+  const r = aplicar(d);
+  assert.equal(r.codigo, 0, r.lineas.join('\n'));
+  assert.deepEqual(comandos(d), [SH, KIT_CJS], 'el arranque del kit está en el disco: su regla entra, y la tuya queda');
+  // quitado en la ficha: no vuelve
+  const q = armarProyecto({ antes: soloSh, quitados: [`    - {id: "hook:SessionStart//${KIT_CJS}", por: prueba, hasta: siempre}`] });
+  assert.equal(aplicar(q).codigo, 0);
+  assert.deepEqual(comandos(q), [SH]);
+  // propia con su propio session-start.cjs (y la regla del molde viejo): la regla no aplica — lo del molde se pone al día
+  const ssN = { SessionStart: [{ matcher: '', hooks: [{ type: 'command', command: 'node', args: ['${CLAUDE_PROJECT_DIR}/.claude/hooks/session-start.cjs', '--con-tope'] }] }] };
+  const kit = armarKit({ ...MOLDE_N, 'settings.json': settings({ ...JSON.parse(MOLDE_N['settings.json']), hooks: { ...JSON.parse(MOLDE_N['settings.json']).hooks, ...ssN } }) });
+  const p = armarProyecto({ estados: { 'hook-arranque': 'propia' }, antes: (x) => escribirArbol(x, { '.claude/hooks/session-start.cjs': '// el arranque mío, con el nombre del del kit\n' }) });
+  assert.equal(aplicar(p, { kit }).codigo, 0);
+  assert.equal(leer(p, '.claude/hooks/session-start.cjs'), '// el arranque mío, con el nombre del del kit\n');
+  assert.deepEqual(comandos(p), [`${KIT_CJS} --con-tope`]);
+});
