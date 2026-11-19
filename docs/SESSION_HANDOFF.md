@@ -28,7 +28,6 @@
 
 ## Te espera (Guido)
 
-- Enterarte de las seis decisiones del buzón (las tomó el probador con tu OK): ADR-037 en una pantalla.
 - Decidir cuándo sale el tag con `reflexion` (en el TODO).
 - La tensión anotada en el acta de la prueba de `reflexion`: con el dueño ausente, "propone y no escribe" deja las propuestas esperando.
 - El OK por repo de la flota real · "instalar hooks por PC" en las dos PCs · el clic de P7 (`../vibe-kit-pruebas/rc7/p7-firma/LEEME-P7.txt`).
