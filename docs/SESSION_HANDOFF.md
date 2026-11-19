@@ -18,8 +18,10 @@ el kit sigue en `v3.0.1`; `reflexion` y el buzón entero esperan en el `[Unrelea
 
 ## Próximo paso
 
-1. **El tag que lleve `reflexion` y el buzón** (lo decide Guido; `docs/CICLO-DE-MEJORA.md` §6): la suite entera (~90 min, sola) y el
-   banco antes. Título sugerido: `vibe-kit Tag · La v3.1 con reflexion y el buzón`.
+1. **`vibe-kit Tag · La 3.1.0-rc.1 con reflexion y el buzón`** (Guido la corre el 2026-11-20; necesita la PC prendida ~2-3 h). Es el
+   paso 4 de `docs/CICLO-DE-MEJORA.md` §6: la suite entera sola, la flota de prueba (`pruebas/rehacer.sh`), `kit/VERSION` y la nota de
+   `[Unreleased]` a su número, y el tag (publicar, con su OK). **Recomendado y no decidido todavía**: beta ahora con dos de las tres
+   cosas de la 3.1 (las otras dos, "probar una idea nueva" y el PO, en una rc siguiente) o esperar a las tres. Preguntárselo al arrancar.
 2. **El piloto de un mes**, después del tag, en la PC del probador: actualizar el kit, "registrame en el buzón", "instalar hooks por
    PC" y `buzon.cjs medir --linea-base`. La persona mira la lista de las `auto: true` de `medir` una vez por semana.
 3. **`vibe-kit Flota · Los repos reales a la v3.0.1`**: repo por repo con el OK de Guido (en el TODO).
