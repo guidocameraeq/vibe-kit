@@ -2,6 +2,29 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-11-19 — La skill `reflexion`
+
+La PC del probador de la beta (Opus 5.5), con su OK y el de Guido para trabajar en `main`. Sin tag (lo decide Guido).
+
+**Added**
+- **`kit/skills/reflexion/SKILL.md`**, una skill global kit-owned (ADR-036): una pasada por la sesión antes de cerrarla (lo pedido
+  contra lo hecho, los cabos sueltos, las contradicciones, lo aprendido, qué guardar y dónde) con veredicto. Propone y no escribe nada
+  sin el OK de cada ítem. Cicatriz: la impresión del 2026-11-19 (*"muchas veces lo que hacemos es algo muy manual, muy parecido entre
+  sesiones"*) y su prueba de escritorio, en la rama de prueba de la beta.
+- **La prueba con y sin la skill** (`writing-skills`): `docs/kit-v3/PRUEBA-reflexion.md`, con el proyecto ficticio en
+  `pruebas/reflexion/`. Sin la skill, 3 de 3 escribieron de 6 a 7 archivos sin preguntar y ninguna dio veredicto. Con la skill, 4 de 4
+  (una bajo presión, con el dueño ausente) no escribieron nada, miraron antes de afirmar y dieron veredicto y propuestas.
+
+**Changed**
+- La instalación la cuenta como pieza del kit: `preparar-pc.cjs` (y su test), `kit-sync.sh` (6 rutas), `lib/adoptar.cjs` (copias del
+  kit dentro de un repo), el menú del Equipador, su `SKILL.md`, `manuales/EQUIPADOR.md` y `MOLDE.md`, la portada y la chuleta de la guía.
+  El `/cierre` del molde no cambia. La nota para el próximo tag, en el `[Unreleased]` de `kit/CHANGELOG.md`.
+- El índice de `docs/DECISIONS.md` suma la línea de ADR-035, que faltaba.
+
+**Fixed**
+- En esta PC, `kit-sync` daba SUCIO por un resto viejo (`~/.claude/skills/arquitecto/templates/universales`, que el kit mandó a
+  `legacy/`); el `sync` lo retiró.
+
 ## 2026-11-16 — El kit adoptado en la madre y el hotfix · v3.0.1
 
 PC `Usuario`, el director del tramo (Opus). Con Guido.

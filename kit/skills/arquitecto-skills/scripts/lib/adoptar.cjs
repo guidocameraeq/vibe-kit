@@ -96,7 +96,7 @@ const RE_TAMANO = /^#{1,6}[ \t]+El tamaño del pedido[ \t]*$/m;
 const MIGRAR = 'node "$HOME/.claude/skills/arquitecto-skills/scripts/migrar-cambios.cjs"';
 const FUENTE_CAMBIOS = 'docs/metodo/CAMBIOS.md'; // la de fábrica de migrar-cambios.cjs (sin --fuente)
 // Las skills del kit que viven en ~/.claude: una copia adentro del repo se queda vieja sola.
-const COPIAS_KIT = ['.claude/skills/arquitecto', '.claude/skills/arquitecto-skills', '.claude/skills/docs-fyd', '.claude/skills/relevamiento'];
+const COPIAS_KIT = ['.claude/skills/arquitecto', '.claude/skills/arquitecto-skills', '.claude/skills/docs-fyd', '.claude/skills/relevamiento', '.claude/skills/reflexion'];
 const V2 = ['.claude/hooks/session-start.sh', '.claude/hooks/check-code.js'];
 // El nivel: con código → estandar. Código = un manifiesto en la raíz o un archivo de código fuera de lo del método y lo generado.
 const MANIFIESTOS = ['package.json', 'pyproject.toml', 'requirements.txt', 'go.mod', 'Cargo.toml', 'pom.xml', 'build.gradle', 'composer.json', 'Gemfile'];

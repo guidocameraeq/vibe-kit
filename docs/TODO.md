@@ -2,7 +2,7 @@
 
 > ÚNICA fuente de pendientes del proyecto. Completado → SE BORRA (la historia vive en `CHANGELOG.md` y git). Header de 1 línea, sin narrativa de sesión.
 
-2026-11-16 — ver SESSION_HANDOFF.md
+2026-11-19 — ver SESSION_HANDOFF.md
 
 > ⏰ **Fechas del ciclo** (si hoy ya pasó alguna, avisale a Guido al arrancar): **~2026-12-15** la medición de la `v3.0` ·
 > **2027-03-01** la vuelta 2. El detalle, abajo en "El ciclo".
@@ -54,6 +54,9 @@
   en `molde` y `candado:raiz` frena todo archivo nuevo en `docs/` aunque el repo use su propio mapa. En la madre se quitó `candado:raiz`
   (aprobado `2026-11-16-quitar-arbol-docs-madre`). Arreglo: con `docs: no`, que la adopción proponga `hook-escritura: no` o el
   `candado:raiz` quitado con su razón, y que el banco sume un repo así. Para la `3.0.2` o la `v3.1`, con el ciclo (§6).
+- [ ] **`reflexion` en el próximo tag** (la skill nueva, 2026-11-19, ADR-036): entra en el `[Unreleased]` de `kit/CHANGELOG.md`; el tag y
+  su número los decide Guido (`docs/CICLO-DE-MEJORA.md` §6). NO VERIFICADO hasta la primera sesión real con la skill instalada: que
+  "reflexioná" o "¿quedó algo suelto?" la disparen solos (en la prueba la descripción se pasó a mano: `docs/kit-v3/PRUEBA-reflexion.md`).
 - [ ] **El hook v2.4.3 al Bot y a su Panel** (inyectaban 15.500 y ~18.000 caracteres el 2026-10-22: arrancan sin ver su estado).
   En un chat de cada uno: *"traé el hook de arranque del molde del kit y medilo"* (receta en `GUIA-DE-USO.md`). El molde nuevo solo
   llega a los proyectos que se montan desde ahora.

@@ -5,6 +5,19 @@ Una sección por versión, la más nueva arriba. Cada una trae su **nota de migr
 Es lo que lee el agente de la fusión al actualizar un proyecto. La historia de sesiones del repo vive aparte, en `docs/CHANGELOG.md`.
 `kit/VERSION` lleva la versión del último tag y se sube en el commit que pone el tag siguiente.
 
+## [Unreleased]
+
+Para el próximo tag (sin número todavía: lo decide el dueño del kit).
+
+- **Qué piezas cambiaron**: una skill global nueva, **`reflexion`** (`kit/skills/reflexion/SKILL.md`). Es una pasada por la sesión
+  antes de cerrarla: lo pedido contra lo hecho, los cabos sueltos, las contradicciones, lo aprendido, qué guardar y dónde, y un
+  veredicto. Propone y no escribe nada sin el OK de cada ítem. La instala y la pone al día el Equipador, como `docs-fyd` y
+  `relevamiento` (`preparar-pc.cjs`, `kit-sync.sh`, el menú). La adopción la cuenta entre las copias del kit que no van adentro de
+  un repo (`lib/adoptar.cjs`). Ningún hook, freno ni pieza del molde cambia; el `/cierre` del molde queda igual.
+- **Automático o pide revisión**: automático. Es una carpeta nueva en `~/.claude/skills/` y no toca nada de los proyectos.
+- **Qué chequear después**: que `~/.claude/skills/reflexion/SKILL.md` esté, y que "reflexioná" o "¿quedó algo suelto?" la disparen
+  en una sesión nueva. La prueba, con y sin la skill, está en `docs/kit-v3/PRUEBA-reflexion.md`.
+
 ## 3.0.1
 
 Hotfix (2026-11-16): **un arranque propio no se pisa**. Lo encontró la madre al adoptar su propio kit.

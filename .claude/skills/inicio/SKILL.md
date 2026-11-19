@@ -18,7 +18,7 @@ lo que falta con Read antes de confirmar, y el `/cierre` achica el handoff o el 
 1. **Cruzar el handoff con la realidad** (barato, todo local — mostrar solo lo que llame la atención):
    - `git status -sb` → ¿working tree limpio? ¿`main` = `origin/main`? ¿el último commit coincide
      con el handoff?
-   - **`bash .claude/scripts/kit-sync.sh`** (compara las 5 rutas canónicas kit↔`~/.claude/`, ignorando
+   - **`bash .claude/scripts/kit-sync.sh`** (compara las 6 rutas canónicas kit↔`~/.claude/`, ignorando
      la carpeta de proyectos de cada PC) → **el drift más peligroso de este repo**: si no da `LIMPIO`,
      alguien editó `~/.claude/` directo (prohibido) o quedó un cierre a medias. FRENAR y mostrarlo
      antes de trabajar — nunca pisar a ciegas en ninguna dirección.

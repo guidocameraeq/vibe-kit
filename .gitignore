@@ -10,6 +10,8 @@ pruebas/*
 !pruebas/pedidos.md
 # el banco de prueba (sesión 5a del tramo final, 2026-11-15): el script va a git; sus copias viven en un scratchpad
 !pruebas/banco/
+# la prueba de la skill reflexion (2026-11-19): el script que arma el proyecto ficticio y la clave van a git; las copias, a un scratchpad
+!pruebas/reflexion/
 .env
 .env.*
 *.pem

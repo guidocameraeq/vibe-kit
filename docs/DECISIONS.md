@@ -40,6 +40,8 @@
 - ADR-032 · El actualizador es un script de node; el único agente es el de la fusión con conflictos, y el clon lo juzga el runner del molde nuevo (2026-11-02)
 - ADR-033 · La credencial del Hub no pasa por el kit: el Equipador no maneja tokens, sin excepciones (2026-11-03)
 - ADR-034 · La vara suma la coherencia entre piezas; lo técnico lo decide la sesión; la revisión integral es paso fijo (2026-11-03)
+- ADR-035 · Cómo sale una versión: banco de prueba como paso fijo, `rc` quirúrgicas de a una, y el tramo final con un director y sesiones en fila (2026-11-15)
+- ADR-036 · La skill `reflexion`: global, aparte del `/cierre`, y propone sin escribir (2026-11-19)
 
 *Cada ADR nuevo suma su línea acá (lo pide `/cierre`).*
 
@@ -803,3 +805,26 @@ Guido decidió el banco y la `rc.8` en Fable el 2026-11-15 (tracker, "Cambios al
   en espera solo se pueden abrir con Guido presente. Todo el mecanismo del tramo depende de la app de escritorio; en la extensión de
   VS Code está **NO VERIFICADO**, y ahí el plan sirve igual abriendo cada sesión a mano.
 - **Dónde vive:** `docs/CICLO-DE-MEJORA.md` §6 (los pasos), §7 (las `rc`) y §8 (el tramo).
+
+## ADR-036 · La skill `reflexion`: global, aparte del `/cierre`, y propone sin escribir (2026-11-19)
+La pasada de "cabos sueltos / qué vale persistir / si hay un mejor camino" se pedía a mano en cada sesión de cada repo (la impresión
+del 2026-11-19 en la rama de prueba de la beta, y su prueba de escritorio). Se suma una skill kit-owned, `reflexion`.
+- **Decisión:**
+  1. **Global, en `~/.claude/skills/reflexion/`**, como `docs-fyd` y `relevamiento`: la instala y la pone al día el Equipador
+     (`preparar-pc.cjs`, `kit-sync.sh`, el menú). Lo de cada proyecto sale de leer su `CLAUDE.md` y su mapa de docs. Un proyecto con
+     chequeos propios los pone en una sección `## Reflexión` de su `CLAUDE.md`. `[acordarse de menos · coherencia]`
+  2. **Aparte del `/cierre`**: la reflexión mira y propone; el cierre escribe el estado. No se toca el `/cierre` del molde.
+  3. **Propone y no escribe**: nada se edita sin el OK de cada ítem, aunque el pedido diga "anotá" o "guardá".
+- **Por qué:** la prueba con y sin la skill (`docs/kit-v3/PRUEBA-reflexion.md`). Sin la skill, las tres corridas encontraron los
+  cabos, pero escribieron de 6 a 7 archivos cada una sin preguntar, reescribieron el código, afirmaron sin mirar y no dieron veredicto.
+  Con la skill, las cuatro no escribieron nada, miraron antes de afirmar y cerraron con veredicto y propuestas.
+- **Descartado:**
+  - *una copia por repo, como pieza del molde*: siete copias que se desactualizan, y la skill no tiene nada propio de cada repo que
+    no esté ya en su `CLAUDE.md`;
+  - *un paso dentro del `/cierre` del molde*: el cierre ya cruza lo anunciado con lo anotado; ya está en 7.957 de
+    8.000 bytes de tope (una línea más lo pasa), y cambiaba el molde de todos los repos por algo que se pide a demanda;
+  - *que escriba lo de bajo riesgo sola* (las trampas, por ejemplo): la impresión pidió el OK por ítem. Queda anotado como tensión
+    en el acta, por si con el dueño ausente conviene otra cosa.
+- **Costo aceptado:** con el dueño ausente, las propuestas esperan hasta que vuelva. La descripción se probó pasada a mano: el disparo
+  real de la plataforma queda NO VERIFICADO hasta la primera sesión con la skill instalada.
+- **Dónde vive:** `kit/skills/reflexion/SKILL.md`; la entrada del menú en `kit/skills/arquitecto-skills/menu-skills.md`.

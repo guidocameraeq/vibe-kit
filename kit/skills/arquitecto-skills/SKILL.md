@@ -1,6 +1,6 @@
 ---
 name: arquitecto-skills
-description: El Equipador — instala, actualiza y poda las skills globales de Claude Code según el menú curado (hermana del Arquitecto). Puede AUTO-ACTUALIZARSE: baja la última versión del Arquitecto/Equipador/docs-fyd/relevamiento del repo canónico y se actualiza a sí mismo. Usar cuando el usuario dice "preparame esta máquina", "instalame skills", "actualizá las skills", "actualizá el kit", "actualizate", "traé lo último del Arquitecto", "instalar hooks por PC", "corré el doctor", "poné al día la flota", "adoptá X", "qué skills tengo instaladas", "agregá tal skill al menú", o al estrenar una PC nueva. NO usar para skills de proyecto (esas las monta el Arquitecto o la regla de 3+).
+description: El Equipador — instala, actualiza y poda las skills globales de Claude Code según el menú curado (hermana del Arquitecto). Puede AUTO-ACTUALIZARSE: baja la última versión del kit del repo canónico y se actualiza a sí mismo. Usar cuando el usuario dice "preparame esta máquina", "instalame skills", "actualizá las skills", "actualizá el kit", "actualizate", "traé lo último del Arquitecto", "instalar hooks por PC", "corré el doctor", "poné al día la flota", "adoptá X", "qué skills tengo instaladas", "agregá tal skill al menú", o al estrenar una PC nueva. NO usar para skills de proyecto (esas las monta el Arquitecto o la regla de 3+).
 ---
 
 # El Equipador (`/arquitecto-skills`)
@@ -16,7 +16,7 @@ del Arquitecto: él monta proyectos; vos equipás máquinas.
    curaduría se AGREGA al menú con origen y razón — recién entonces se instala.
 2. **Clonar fresco, siempre.** Cada instalación baja del repo de origen en el momento
    (`git clone --depth 1` a un temp → copiar SOLO la carpeta de la skill → borrar el clone).
-   Nunca de copias locales viejas. **Excepción acotada — entradas kit-owned (`docs-fyd`, `relevamiento`):**
+   Nunca de copias locales viejas. **Excepción acotada — entradas kit-owned (`docs-fyd`, `relevamiento`, `reflexion`):**
    no tienen repo externo; se COPIAN del kit local (o del Arquitecto ya instalado), con el diff
    mostrado antes de pisar. Es la 2da excepción (la 1ra es shadcn, por CLI).
 3. **Nunca pisar ediciones locales sin mostrar el diff.** Antes de actualizar una skill
@@ -46,7 +46,7 @@ del Arquitecto: él monta proyectos; vos equipás máquinas.
 1. **Censo** de `~/.claude/skills/` contra el menú.
 2. **Menú con AskUserQuestion** (multiSelect): lo FALTANTE del Tier 1 con default ON (tandas de a 4); el Tier 2 es "por-proyecto, cuando lo pidas".
 3. **Instalá lo elegido** (regla 2): un clone por repo de origen, copiar solo las carpetas elegidas, verificar `name` + `description`
-   con `head -5`. Las kit-owned (`docs-fyd`, `relevamiento`) vienen con `preparame`, no de acá.
+   con `head -5`. Las kit-owned (regla 2) vienen con `preparame`, no de acá.
 4. **Plugins/MCPs**: los comandos exactos del menú, para que él los corra.
 5. **Cierre con evidencia** (regla 5) y reiniciar Claude Code.
 
@@ -54,7 +54,7 @@ del Arquitecto: él monta proyectos; vos equipás máquinas.
 
 1. Censo de instaladas que estén en el menú (las de proyecto no se tocan).
 2. Por repo de origen: clone fresco → diff carpeta por carpeta (regla 3). **Lo kit-owned**
-   (`arquitecto`, `arquitecto-skills`, `docs-fyd`, `relevamiento`) NO se actualiza acá — se baja del
+   (`arquitecto`, `arquitecto-skills`, `docs-fyd`, `relevamiento`, `reflexion`) NO se actualiza acá — se baja del
    **repo canónico** con el **Modo AUTO-ACTUALIZAR EL KIT** (abajo).
 3. Informe final: actualizadas / sin cambios / con ediciones locales (qué se decidió).
 4. Si el menú tiene entradas `[ORIGEN A CONFIRMAR]` o `[VERIFICAR]`, intentá resolverlas
@@ -63,7 +63,7 @@ del Arquitecto: él monta proyectos; vos equipás máquinas.
 ## Modo AUTO-ACTUALIZAR EL KIT — "actualizá el kit" / "actualizate" / "traé lo último del Arquitecto"
 
 Es el mismo camino que **preparame** (arriba): clon completo con tags, el tag de `ultimo-tag`, el `preparar-pc.cjs` **del clon nuevo**,
-`--plan` y la **una** pregunta. Actualiza las kit-owned (`arquitecto`, `arquitecto-skills` —vos mismo—, `docs-fyd`, `relevamiento`),
+`--plan` y la **una** pregunta. Actualiza las kit-owned (`arquitecto`, `arquitecto-skills` —vos mismo—, `docs-fyd`, `relevamiento`, `reflexion`),
 `agents/redteam-spec.md` y `VERSION`; conserva la carpeta de proyectos de la PC; un archivo editado a mano no se pisa sin
 `--pisar-editados`. La versión nueva de vos carga al reiniciar Claude Code.
 

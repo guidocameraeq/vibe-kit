@@ -198,6 +198,7 @@ de la anterior en `tips/tanda-2026-10-chats.md` §0; lo ya hallado en `D:\vibe-h
 | `basta de preguntas de más` | Las lentes siguen anotando pero dejan de preguntar (`prendé las lentes` revierte) |
 | `relevamiento sirvió` | A las 6 semanas: ¿se cumplió el criterio que escribiste? Con el número, no con la sensación |
 | `inicio` | El chat del proyecto arranca sabiendo dónde están |
+| `reflexioná` · `¿quedó algo suelto?` | Antes del cierre: cabos sueltos, lo aprendido y qué guardar, con veredicto. Te propone y vos elegís qué se aplica |
 | `cierre` | Docs al día, commit, push — chat descartable |
 | `cierre parcial` | Emergencia pre-compactación: guarda el estado y seguís |
 | `dale con los defaults` | El Arquitecto salta a confirmar solo las 2 decisiones irreversibles |

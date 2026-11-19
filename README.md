@@ -68,6 +68,7 @@ Cada pieza es una *skill*: instrucciones que Claude Code carga cuando las llamá
 | 📐 | **`/arquitecto`** | Piensa antes de hacer. Proyecto nuevo → entrevista, plano y montaje completo. Feature grande sobre algo que ya anda → explora el código y escribe qué cambia y qué no. ¿No sabés cómo pedir algo? → te arma el pedido |
 | 📋 | **`/relevamiento`** | Cuando te piden algo en el laburo: ordena la charla en 4 documentos con un PDF por etapa, y decide con evidencia si hace falta software (construir es solo una de seis salidas) |
 | 🧰 | **`/arquitecto-skills`** · el Equipador | Prepara la PC (el kit, sus frenos y las skills de un menú curado), pone al día tus proyectos y se actualiza a sí mismo (`actualizate`) |
+| 🪞 | **`/reflexion`** | Antes de cerrar: una pasada por la sesión (lo pedido contra lo hecho, los cabos sueltos, lo que vale guardar y dónde) con un veredicto. Propone y no escribe nada sin tu OK |
 | 🔁 | **`inicio` / `cierre`** | Los rituales de cada chat: arrancar sabiendo dónde quedaste, cerrar con todo guardado, commiteado y listo para tirar el chat |
 | 🧭 | **`/director` · `/obrero` · `/estado`** | Vienen en cada proyecto nuevo y al adoptar uno con código: el director lleva un módulo de punta a punta repartiendo encargos, los obreros los hacen aparte, y `/estado` te cuenta cómo va en cuatro secciones. Con frenos que de noche paran en vez de preguntar |
 | 🗂️ | **`/docs-fyd`** | La documentación técnica de auditoría de un repo, sacada del código; lo que el código no sabe, te lo pregunta con opciones |

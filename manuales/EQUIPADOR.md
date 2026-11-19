@@ -27,7 +27,7 @@ si hacen falta). Lo hace un script, `preparar-pc.cjs`; la sesión no lo repite a
 Qué deja puesto, en orden:
 - **Chequea los programas** (node, git, `gh` y su cuenta, gitleaks, Claude Code). **No instala programas**: lo que falta sale en la
   tabla con cómo conseguirlo, y sigue.
-- **El kit** en `~/.claude/`: el Arquitecto, el Equipador, `docs-fyd`, `relevamiento`, el agente `redteam-spec` y `VERSION`. Conserva
+- **El kit** en `~/.claude/`: el Arquitecto, el Equipador, `docs-fyd`, `relevamiento`, `reflexion`, el agente `redteam-spec` y `VERSION`. Conserva
   la carpeta de proyectos de la PC. **Un archivo editado a mano no se pisa** sin que lo veas (si viste el diff y querés pisarlo, va
   `--pisar-editados`).
 - **Los frenos de la PC** (los mismos que §3) y dos ajustes de Claude Code en `~/.claude/settings.json`: el bloque `autoMode` (siempre
@@ -59,7 +59,7 @@ Si sale 1, la sesión te cuenta su línea. NO VERIFICADO todavía: la línea par
 ## 2. "Actualizate" (o "actualizá el kit", "traé lo último del Arquitecto")
 
 **Es el mismo camino que "preparame esta PC"**: clon con tags, último tag anotado, el script del clon nuevo, `--plan` y la una pregunta.
-Actualiza solo lo del kit (Arquitecto, Equipador, `docs-fyd`, `relevamiento`, `redteam-spec`, `VERSION`). La versión nueva carga al
+Actualiza solo lo del kit (Arquitecto, Equipador, `docs-fyd`, `relevamiento`, `reflexion`, `redteam-spec`, `VERSION`). La versión nueva carga al
 reiniciar Claude Code. **En este repo (vibe-kit) no se usa**: acá el kit se sincroniza con `/cierre`.
 
 "Actualizá las skills" es otra cosa: actualiza las skills **del menú** (las externas), cada una desde su repo, con diff antes de pisar.
