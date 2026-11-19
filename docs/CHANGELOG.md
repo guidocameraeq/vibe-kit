@@ -2,6 +2,39 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-11-19 — Misión 7: la construcción del buzón, sesión 1 (el instalador, el aviso y el doctor)
+
+La PC del probador de la beta (Opus 5.5), sesión `vibe-kit M7 · La construcción del buzón`, en `main`. La primera de las dos sesiones
+de `docs/kit-v3/SPEC-G1-buzon.md`. Sin tag: va al `[Unreleased]` de `kit/CHANGELOG.md`, junto a `reflexion`.
+
+**Added**
+- **La prueba 0** (los NO VERIFICADO del spec), medida: una sesión interactiva de terminal llega a los hooks con
+  `CLAUDE_CODE_ENTRYPOINT=cli`; `PostToolUse` acepta `additionalContext` (el modelo lo recibió). `claude-vscode` figura en el binario
+  de Claude Code 2.1.327, que además pasa a `sdk-cli` una `-p` lanzada desde una sesión `cli` (leído en el código; VS Code en vivo,
+  NO VERIFICADO). El agujero de "se hereda" queda solo para una `-p` lanzada desde la app de escritorio o VS Code.
+- **El aviso del buzón** (`kit/skills/arquitecto-skills/pc/aviso-buzon.cjs`, 21 pruebas): la cáscara de `SessionStart`,
+  `UserPromptSubmit` y `PostToolUse` (portón de 15 min mirado con un `stat` antes de cargar nada; p95 medido de 68 a 114 ms), inerte
+  sin config, que falla abierto, corta a los 800 ms con `buzon.cjs` en un hilo aparte, limpia el asunto (NFKC, invisibles, marcas,
+  separadores) y anota en `tiempos.log`. Su encabezado trae el contrato `paraAviso` que cumple la sesión 2.
+- **ADR-039**: las cuatro decisiones del red team del código, con su línea en el índice.
+
+**Changed**
+- **`instalar-hooks-pc.cjs`** (31 pruebas): cuatro eventos y la tabla `PIEZAS` (un grupo por pieza y por evento: arregla el bug de
+  §4.5, el aviso ya no pisa al corrector en `UserPromptSubmit`), y la regla `allow` del buzón (D2) solo con config, con `buzon.cjs` en
+  el kit y con un home de lista blanca. Reinstalar sin config la saca, y `--quitar` la saca siempre. `INSTALADO` anota `allow-agregado`.
+- **`doctor.cjs`** (48 pruebas, 30 chequeos): `hooks-pc` mira solo `secretos.cjs`; chequeo nuevo `buzon` (sin buzón · registrado ·
+  compartida · falta algo · una regla `allow` de más, también en los settings de los repos de los agentes).
+- **`kit/molde/hooks/lib/inyeccion.cjs`**: `correctorRegistrado` busca `hooks/kit/secretos.cjs` por nombre.
+- La cuenta del doctor (29 → 30) en el `SKILL.md` del Equipador (mismos bytes), `manuales/EQUIPADOR.md` y `manuales/SCRIPTS.md` (con el
+  aviso y la regla); `kit/CHANGELOG.md` `[Unreleased]` con la nota de migración.
+
+**Verificado**
+- **El red team del código** (Opus, 12 hallazgos): 11 aplicados, y el de las redirecciones se midió (`< archivo` y `<<<` pasan la
+  regla). Queda para la sesión 2: `responder` se niega si su entrada es un archivo.
+- **Mutación**: 36 mutantes sobre la regla del instalador, el aviso y el doctor; mueren todas (una sobrevivía y se le sumó la prueba).
+- **Las pruebas de lo tocado**: 329 pasan, 0 fallan, 1 salteada (instalador, aviso, doctor, skill, arranque, inyección, preparar-pc,
+  secretos y topes). La suite entera no se corrió: va antes del tag. `kit-sync`: LIMPIO.
+
 ## 2026-11-19 — Misión 7: el spec del buzón entre agentes
 
 La PC del probador de la beta (Opus 5.5), sesión `vibe-kit M7 · El spec del buzón`. Decidió el probador con el OK de Guido. Solo el spec:

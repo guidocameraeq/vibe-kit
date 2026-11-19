@@ -21,7 +21,7 @@ si hacen falta). Lo hace un script, `preparar-pc.cjs`; la sesión no lo repite a
 3. **La pregunta**: si el resumen dice `sin cambios`, te lo dice y sigue, **sin preguntarte nada**. Si no, te muestra esa línea, lo que
    encontró editado a mano (con su diff) y la carpeta de proyectos que detectó: *"¿Lo aplico, con los proyectos en `<carpeta>`?"*.
 4. Con tu sí lo aplica. Después, **los repos de tu cuenta** y **publicar sola** (abajo).
-5. Te cuenta su `resumen ·` y la línea del `doctor` (`doctor · todo bien · N avisos · N cosas a arreglar · 29 chequeos`; la tabla
+5. Te cuenta su `resumen ·` y la línea del `doctor` (`doctor · todo bien · N avisos · N cosas a arreglar · 30 chequeos`; la tabla
    entera, `✓ / ✗ / ⚠ · qué · cómo se arregla`, si la pedís). Termina con **"reiniciá Claude Code"**.
 
 Qué deja puesto, en orden:
@@ -83,9 +83,9 @@ Nunca se edita `~/.claude/settings.json` a mano: el instalador es el único que 
 
 `doctor.cjs` revisa la PC y el repo donde estás parado. **Solo lee**: no cambia nada.
 
-- Lo que te dice la sesión es **el resumen**: `doctor · todo bien · N avisos · N cosas a arreglar · 29 chequeos` (o `hay cosas que
+- Lo que te dice la sesión es **el resumen**: `doctor · todo bien · N avisos · N cosas a arreglar · 30 chequeos` (o `hay cosas que
   arreglar`), cada `✗` con su arreglo y el **inventario de frenos** del repo (las líneas `inventario ·`). El detalle, si lo pedís: una
-  línea por chequeo (29), siempre en el mismo orden, `✓ / ✗ / ⚠ · qué · cómo se arregla`.
+  línea por chequeo (30), siempre en el mismo orden, `✓ / ✗ / ⚠ · qué · cómo se arregla`.
 - Mira, entre otras cosas: la versión de Claude Code, `gh`, gitleaks, los hooks de la PC, copias del kit, frenos vencidos, el
   pre-commit y la ficha del repo, y las variables de la capa privada (por nombre). Parado en un proyecto, además: los **vecinos**
   (worktrees fuera de `.claude/worktrees/`, carpetas `gate-*`) y el **lock atrasado** (un `package.json` que su lock no tiene al día:

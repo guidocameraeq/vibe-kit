@@ -160,19 +160,19 @@ function foto(dir) {
 }
 
 // ================================================================ criterio 12: verde, igual, sin escribir
-test('verde con todo instalado: los 29 chequeos en ✓, en el orden fijo (los 14 de siempre primero), sale 0', () => {
+test('verde con todo instalado: los 30 chequeos en ✓, en el orden fijo (los 14 de siempre primero), sale 0', () => {
   const e = escenario();
   const r = correr(e);
   assert.equal(r.codigo, 0, r.out + r.err);
   const ids = D.IDS;
-  assert.equal(ids.length, 29);
+  assert.equal(ids.length, 30);
   assert.deepEqual(ids.slice(0, 14), ['node', 'gitleaks', 'claude-code', 'lefthook', 'git-bash', 'settings-pc', 'hooks-pc', 'hooks-pc-iguales', 'deny-almacen', 'anti-secretos-viejo', 'plazo-arranque', 'pre-commit', 'ficha', 'sensible-prosa']);
-  assert.deepEqual(ids.slice(14), ['version-kit', 'kit-sync', 'githooks', 'archivo-pc', 'credencial', 'gh-push', 'mesa-gh', 'cross-session', 'automode', 'copias-kit', 'frenos-vencidos', 'regla-tamano', 'tope-skills', 'vecinos', 'locks']);
-  const chequeos = r.lineas.slice(0, 29);
+  assert.deepEqual(ids.slice(14), ['version-kit', 'kit-sync', 'githooks', 'archivo-pc', 'credencial', 'gh-push', 'mesa-gh', 'cross-session', 'automode', 'copias-kit', 'frenos-vencidos', 'regla-tamano', 'tope-skills', 'vecinos', 'locks', 'buzon']);
+  const chequeos = r.lineas.slice(0, 30);
   chequeos.forEach((l, i) => assert.ok(l.startsWith(`✓ ${ids[i]} · `), `${i}: ${l}`));
-  assert.match(r.lineas[29], /^doctor · todo bien · 0 avisos · 0 cosas a arreglar · 29 chequeos$/);
-  assert.equal(r.lineas[30], 'inventario · sin frenadas');
-  assert.equal(r.lineas.length, 31);
+  assert.match(r.lineas[30], /^doctor · todo bien · 0 avisos · 0 cosas a arreglar · 30 chequeos$/);
+  assert.equal(r.lineas[31], 'inventario · sin frenadas');
+  assert.equal(r.lineas.length, 32);
   // la salida de verde (sin rutas): se la muestra el informe
   assert.ok(!r.out.includes(RAIZ_TMP.replace(/\\/g, '/')) && !r.out.includes(RAIZ_TMP), 'ninguna ruta de la prueba en la salida');
   if (process.env.G11_MOSTRAR) process.stderr.write(`\n${r.out}\n`);
@@ -204,7 +204,7 @@ test('salida 0 con ⚠ y sin ✗; 1 con algún ✗; 2 con una opción que no con
   falso(e.bin, 'lefthook', 'x');
   const w = correr(e);
   assert.equal(w.codigo, 0, w.out);
-  assert.match(w.lineas[29], /^doctor · todo bien · 1 aviso · 0 cosas a arreglar · /);
+  assert.match(w.lineas[30], /^doctor · todo bien · 1 aviso · 0 cosas a arreglar · /);
   falso(e.bin, 'gitleaks', '8.1.0');
   assert.equal(correr(e).codigo, 1);
   const r = spawnSync(process.execPath, [DOCTOR, '--foo'], { encoding: 'utf8', env: entorno(e) });
@@ -784,7 +784,7 @@ test('D8r.4 S, tope-skills: una skill del kit que pasa su tope por la zona propi
     '⚠ tope-skills · cierre: 8975 B, 975 de más por su zona propia (tope 8000) · mové a un anexo lo propio que no hace falta siempre, nunca lo de producción',
     '⚠ tope-skills · tramo: 9179 B, 1179 de más por su zona propia (tope 8000) · mové a un anexo lo propio que no hace falta siempre, nunca lo de producción',
   ]);
-  assert.match(r.out, /doctor · todo bien · 2 avisos · 0 cosas a arreglar · 29 chequeos/);
+  assert.match(r.out, /doctor · todo bien · 2 avisos · 0 cosas a arreglar · 30 chequeos/);
   // la parte del kit pasa el tope (afuera de la zona): ⚠ distinto, tampoco ✗
   fs.appendFileSync(skill('inicio'), 'k'.repeat(8700));
   const k = correr(e);
@@ -862,7 +862,7 @@ test('dos corridas seguidas sobre una copia de alfa (con un frenos.log de prueba
   assert.equal(a.out, b.out);
   assert.equal(a.codigo, b.codigo);
   assert.ok(inventarioDe(a).includes('inventario · hook:git-seguro/stash · corrector · frenó 2 · molestó 1'), a.out);
-  assert.equal(a.lineas.filter((l) => /^[✓✗⚠] /.test(l)).length, 29);
+  assert.equal(a.lineas.filter((l) => /^[✓✗⚠] /.test(l)).length, 30);
 });
 
 // ================================================================ SPEC-paquete-8c: h10, u4 (vecinos) y p1 (a) (locks)
@@ -961,4 +961,94 @@ test('8d C4 (35b, R8, R20): un alias de WindowsApps (py.exe: stat falla, lstat n
   assert.equal(D.buscarEnPath('py', { PATH: dir, PATHEXT: '.EXE' }, fsx), alias);
   assert.equal(D.existePrograma(path.join(RAIZ_TMP, 'otro', 'py.exe'), { __win: true, statSync: fsx.statSync, lstatSync: () => ({}) }), false, 'fuera de WindowsApps, un lstat solo no alcanza');
   for (const f of ['doctor.cjs', 'preparar-pc.cjs']) assert.doesNotMatch(fs.readFileSync(path.join(__dirname, f), 'utf8'), /corregilo a mano/, f);
+});
+
+// ================================================================ SPEC-G1-buzon: el aviso al lado del corrector y la línea buzon
+const I_PC = path.resolve(__dirname, '..', 'pc');
+const configBuzon = (e, valor) => {
+  const d = path.join(e.home, '.config', 'kit-buzon');
+  fs.mkdirSync(d, { recursive: true });
+  fs.writeFileSync(path.join(d, 'config.json'), typeof valor === 'string' ? valor : JSON.stringify(valor));
+};
+// Un instalador desde una copia del kit con un buzon.cjs de mentira (el kit de esta sesión todavía no lo trae)
+const INSTALADOR_CON_BUZON = (() => {
+  const eq = path.join(RAIZ_TMP, 'kit-con-buzon', '.claude', 'skills', 'arquitecto-skills');
+  fs.cpSync(I_PC, path.join(eq, 'pc'), { recursive: true, filter: (p) => !p.endsWith('.test.cjs') });
+  fs.mkdirSync(path.join(eq, 'pc', 'buzon'), { recursive: true });
+  fs.writeFileSync(path.join(eq, 'pc', 'buzon', 'buzon.cjs'), '// de mentira');
+  fs.mkdirSync(path.join(eq, 'scripts'), { recursive: true });
+  fs.copyFileSync(INSTALADOR, path.join(eq, 'scripts', 'instalar-hooks-pc.cjs'));
+  fs.writeFileSync(path.join(RAIZ_TMP, 'kit-con-buzon', '.claude', 'VERSION'), fs.readFileSync(path.resolve(__dirname, '..', '..', '..', 'VERSION')));
+  return path.join(eq, 'scripts', 'instalar-hooks-pc.cjs');
+})();
+const reinstalar = (e, inst = INSTALADOR_CON_BUZON) => {
+  const r = spawnSync(process.execPath, [inst, '--home', e.home], { encoding: 'utf8', env: { ...process.env, HOME: HOME_PROCESO, USERPROFILE: HOME_PROCESO }, cwd: RAIZ_TMP });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+};
+
+test('hooks-pc: con el aviso del buzón al lado (UserPromptSubmit con dos grupos del kit) sigue ✓; mira solo el hook de secretos.cjs', () => {
+  const e = escenario();
+  const v = leerSettings(e);
+  const ups = v.hooks.UserPromptSubmit.filter((g) => g.hooks.some((h) => (h.args || []).join(' ').includes('/.claude/hooks/kit/')));
+  assert.equal(ups.length, 2, 'el corrector y el aviso');
+  assert.match(linea(correr(e), 'hooks-pc'), /^✓ hooks-pc · /);
+  // sin el corrector pero con el aviso: el aviso no lo reemplaza
+  v.hooks.UserPromptSubmit = v.hooks.UserPromptSubmit.filter((g) => !g.hooks.some((h) => (h.args || []).join(' ').includes('secretos.cjs')));
+  escribirSettings(e, v);
+  rojo(e, 'hooks-pc', '✗', /UserPromptSubmit: no está registrado/);
+});
+
+test('buzon: sin config.json → ✓ sin buzón en esta PC', () => {
+  const e = escenario();
+  assert.equal(linea(correr(e), 'buzon'), '✓ buzon · sin buzón en esta PC');
+});
+
+test('buzon: registrado (config, aviso en los tres eventos y la regla) → ✓ con la cuenta de agentes; compartida → ⚠; sin regla o sin aviso → ⚠', () => {
+  let e = escenario();
+  configBuzon(e, { protocolo: 1, carpeta: 'X:/b', persona: 'ana', cuenta: 'PC-ana', compartida: false, agentes: [{ id: 'devoluciones/ana' }, { id: 'mobile/ana' }], contestar_solo: true });
+  // la config llegó después de instalar: falta la regla
+  rojo(e, 'buzon', '⚠', /falta la regla o el aviso.*instalar hooks por PC/);
+  // un kit que todavía no trae buzon.cjs: ni regla ni ✓ (nunca "aviso y regla" con el archivo ausente)
+  reinstalar(e, INSTALADOR);
+  rojo(e, 'buzon', '⚠', /falta la regla o el aviso: buzon\.cjs en hooks\/kit\/buzon\//);
+  reinstalar(e);
+  assert.equal(linea(correr(e), 'buzon'), '✓ buzon · registrado: 2 agentes, aviso y regla');
+  // con buzon.cjs y el aviso, pero sin una de las reglas
+  const sinRegla = leerSettings(e);
+  sinRegla.permissions.allow = sinRegla.permissions.allow.filter((x) => !x.includes(' responder:'));
+  escribirSettings(e, sinRegla);
+  rojo(e, 'buzon', '⚠', /falta la regla o el aviso: la regla de turnos, leer y responder/);
+  reinstalar(e);
+  // sin el aviso en PostToolUse
+  const v = leerSettings(e);
+  delete v.hooks.PostToolUse;
+  escribirSettings(e, v);
+  rojo(e, 'buzon', '⚠', /falta la regla o el aviso.*PostToolUse/);
+  // compartida
+  e = escenario();
+  configBuzon(e, { protocolo: 1, compartida: true, agentes: [{ id: 'devoluciones/ana' }] });
+  reinstalar(e);
+  rojo(e, 'buzon', '⚠', /cuenta compartida: nadie verifica desde esta PC/);
+  // config rota
+  e = escenario();
+  configBuzon(e, '{ roto');
+  rojo(e, 'buzon', '⚠', /config\.json no se lee/);
+});
+
+test('buzon: una regla allow de más para buzon.cjs (en el settings global o en el de un repo de agente) → ⚠ aunque esté todo lo demás', () => {
+  const e = escenario();
+  const repo = nuevaCarpeta('repo-agente');
+  configBuzon(e, { protocolo: 1, compartida: false, agentes: [{ id: 'devoluciones/ana', repo }] });
+  reinstalar(e);
+  assert.match(linea(correr(e), 'buzon'), /^✓ buzon · registrado: 1 agente, aviso y regla$/);
+  // el "sí, y no volver a preguntar" ante escribir, en el settings local del repo del agente
+  fs.mkdirSync(path.join(repo, '.claude'), { recursive: true });
+  fs.writeFileSync(path.join(repo, '.claude', 'settings.local.json'), JSON.stringify({ permissions: { allow: ['Bash(node C:/x/.claude/hooks/kit/buzon/buzon.cjs escribir:*)'] } }));
+  rojo(e, 'buzon', '⚠', /regla allow de más para buzon\.cjs \(\.claude\/settings\.local\.json de repo-agente\d+\)/);
+  fs.rmSync(path.join(repo, '.claude', 'settings.local.json'));
+  // una más ancha en el global
+  const v = leerSettings(e);
+  v.permissions.allow.push('Bash(node C:/x/.claude/hooks/kit/buzon/buzon.cjs:*)');
+  escribirSettings(e, v);
+  rojo(e, 'buzon', '⚠', /regla allow de más para buzon\.cjs \(~\/\.claude\/settings\.json\)/);
 });

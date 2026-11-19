@@ -96,10 +96,56 @@ function sinKit(v) {
   if (c.permissions && c.permissions.deny) {
     c.permissions.deny = c.permissions.deny.filter((x) => !x.includes('kit-secretos'));
     if (!c.permissions.deny.length) delete c.permissions.deny;
-    if (!Object.keys(c.permissions).length) delete c.permissions;
   }
+  if (c.permissions && c.permissions.allow) {
+    c.permissions.allow = c.permissions.allow.filter((x) => !x.includes('/.claude/hooks/kit/buzon/'));
+    if (!c.permissions.allow.length) delete c.permissions.allow;
+  }
+  if (c.permissions && !Object.keys(c.permissions).length) delete c.permissions;
   return c;
 }
+
+// ================================================================ SPEC-G1-buzon: el aviso y la regla del buzón
+const avisoDe = (h) => path.join(kitDe(h), 'aviso-buzon.cjs').replace(/\\/g, '/');
+const conBuzon = (h) => {
+  fs.mkdirSync(path.join(h, '.config', 'kit-buzon'), { recursive: true });
+  fs.writeFileSync(path.join(h, '.config', 'kit-buzon', 'config.json'), '{"protocolo":1}');
+};
+const sinBuzon = (h) => fs.rmSync(path.join(h, '.config', 'kit-buzon', 'config.json'));
+const reglasBuzon = (h) => {
+  const base = `node ${path.resolve(h).replace(/\\/g, '/')}/.claude/hooks/kit/buzon/buzon.cjs`;
+  return [`Bash(${base} turnos:*)`, `Bash(${base} leer:*)`, `Bash(${base} responder:*)`, `PowerShell(${base} turnos:*)`, `PowerShell(${base} leer:*)`];
+};
+const allowKit = (v) => ((v.permissions && v.permissions.allow) || []).filter((x) => x.includes('/.claude/hooks/kit/buzon/'));
+const leerV = (h) => JSON.parse(fs.readFileSync(settingsDe(h), 'utf8'));
+// El instalador corriendo desde una copia del kit (como lo deja kit-sync), con un buzon.cjs de mentira en pc/buzon/ o sin él: la
+// regla del buzón sale solo si lo que se instala trae buzon.cjs (red team de la construcción, 11), y en esta sesión el kit no lo trae.
+function copiaKit(nombre, conBuzonCjs) {
+  const eq = path.join(RAIZ_TMP, nombre, '.claude', 'skills', 'arquitecto-skills');
+  fs.cpSync(PC, path.join(eq, 'pc'), { recursive: true, filter: (p) => !p.endsWith('.test.cjs') });
+  fs.rmSync(path.join(eq, 'pc', 'buzon'), { recursive: true, force: true });
+  if (conBuzonCjs) {
+    fs.mkdirSync(path.join(eq, 'pc', 'buzon'), { recursive: true });
+    fs.writeFileSync(path.join(eq, 'pc', 'buzon', 'buzon.cjs'), '// de mentira: la prueba del instalador\n');
+  }
+  fs.mkdirSync(path.join(eq, 'scripts'), { recursive: true });
+  fs.copyFileSync(SCRIPT, path.join(eq, 'scripts', 'instalar-hooks-pc.cjs'));
+  fs.writeFileSync(path.join(RAIZ_TMP, nombre, '.claude', 'VERSION'), `${VERSION_KIT}\n`);
+  return path.join(eq, 'scripts', 'instalar-hooks-pc.cjs');
+}
+const KIT_CON = copiaKit('kit-con-buzon', true);
+const KIT_SIN = copiaKit('kit-sin-buzon', false);
+function correrDe(script, h, ...args) {
+  const r = spawnSync(process.execPath, [script, '--home', h, ...args], { encoding: 'utf8', env: env(), cwd: RAIZ_TMP });
+  return { codigo: r.status, out: r.stdout, err: r.stderr };
+}
+const correrB = (h, ...args) => correrDe(KIT_CON, h, ...args);
+// Los grupos de un evento, como lista de "pieza" (el archivo bajo hooks/kit/, o "ajeno").
+const piezas = (lista) => (lista || []).map((g) => {
+  const t = (g.hooks || []).map((x) => `${x.command} ${(x.args || []).join(' ')}`).join(' ');
+  const m = /\/\.claude\/hooks\/kit\/([^\s"']+)/.exec(t.replace(/\\/g, '/'));
+  return m ? m[1] : 'ajeno';
+});
 
 // ================================================================ criterio 11
 test('registra por regla e INSTALADO: exec con la ruta absoluta, timeout 60 en PreToolUse (8d A5.3) y 20 en el prompt, block en PreToolUse y SIN block en UserPromptSubmit; el deny del almacén', () => {
@@ -114,7 +160,7 @@ test('registra por regla e INSTALADO: exec con la ruta absoluta, timeout 60 en P
   assert.deepEqual(pre[0], { matcher: 'Bash|PowerShell|Write|Edit|MultiEdit|NotebookEdit', hooks: [{ type: 'command', command: 'node', args: [secretosDe(h)], timeout: 60, onFailure: 'block' }] });
   assert.ok(path.isAbsolute(pre[0].hooks[0].args[0]));
   const ups = gruposKit(v.hooks.UserPromptSubmit);
-  assert.equal(ups.length, 1);
+  assert.equal(ups.length, 2, 'el corrector y el aviso del buzón, cada uno en su grupo');
   assert.deepEqual(ups[0], { hooks: [{ type: 'command', command: 'node', args: [secretosDe(h)], timeout: 20 }] });
   assert.ok(!('onFailure' in ups[0].hooks[0]), 'UserPromptSubmit falla abierto (D-5)');
   const deny = v.permissions.deny.filter((x) => x.includes('kit-secretos'));
@@ -581,6 +627,237 @@ test('instalado como lo deja kit-sync (~/.claude/skills/arquitecto-skills/script
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(fs.readFileSync(path.join(kitDe(casa), 'INSTALADO'), 'utf8'), /^kit: 9\.9\.9\n/);
   assert.ok(fs.existsSync(path.join(kitDe(casa), 'lib', 'zona-propia.cjs')));
+});
+
+// ================================================================ SPEC-G1-buzon (criterio 6)
+test('buzón: un grupo por pieza y por evento — el corrector en PreToolUse y UserPromptSubmit, el aviso en SessionStart, UserPromptSubmit y PostToolUse', () => {
+  const h = home();
+  ponerSettings(h, textoAjeno());
+  const r = correr(h);
+  assert.equal(r.codigo, 0, r.out);
+  const v = leerV(h);
+  assert.deepEqual(piezas(v.hooks.PreToolUse), ['ajeno', 'secretos.cjs']);
+  assert.deepEqual(piezas(v.hooks.UserPromptSubmit), ['ajeno', 'secretos.cjs', 'aviso-buzon.cjs'], 'el bug de §4.5: el aviso no pisa al corrector');
+  assert.deepEqual(piezas(v.hooks.SessionStart), ['ajeno', 'aviso-buzon.cjs']);
+  assert.deepEqual(piezas(v.hooks.PostToolUse), ['aviso-buzon.cjs']);
+  const aviso = { type: 'command', command: 'node', args: [avisoDe(h)], timeout: 5 };
+  assert.deepEqual(gruposKit(v.hooks.SessionStart), [{ hooks: [aviso] }], 'sin matcher y sin onFailure');
+  assert.deepEqual(gruposKit(v.hooks.UserPromptSubmit)[1], { hooks: [aviso] });
+  assert.deepEqual(gruposKit(v.hooks.PostToolUse), [{ matcher: I.MATCHER, hooks: [aviso] }]);
+  assert.ok(fs.existsSync(path.join(kitDe(h), 'aviso-buzon.cjs')));
+  assert.deepEqual(allowKit(v), [], 'sin config.json, sin regla');
+  // dos veces → sin cambios, y lo ajeno igual
+  assert.match(correr(h).out, /sin cambios\./);
+  assert.deepEqual(sinKit(leerV(h)), AJENO);
+});
+
+test('buzón: reinstalar deja uno por pieza aunque haya duplicados, desorden o un hook bajo hooks/kit/ que no está en la tabla', () => {
+  const h = home();
+  assert.equal(correr(h).codigo, 0);
+  const v = leerV(h);
+  v.hooks.UserPromptSubmit.reverse(); // el aviso antes que el corrector
+  v.hooks.SessionStart.push(JSON.parse(JSON.stringify(v.hooks.SessionStart[0]))); // el aviso dos veces
+  v.hooks.PostToolUse.push({ hooks: [{ type: 'command', command: 'node', args: [path.join(kitDe(h), 'sobra.cjs').replace(/\\/g, '/')] }] });
+  v.hooks.SessionStart.unshift({ hooks: [{ type: 'command', command: 'echo mio' }] });
+  fs.writeFileSync(settingsDe(h), JSON.stringify(v, null, 2));
+  const r = correr(h);
+  assert.equal(r.codigo, 0, r.out);
+  const d = leerV(h);
+  assert.deepEqual(piezas(d.hooks.UserPromptSubmit), ['secretos.cjs', 'aviso-buzon.cjs']);
+  assert.deepEqual(piezas(d.hooks.SessionStart), ['ajeno', 'aviso-buzon.cjs']);
+  assert.deepEqual(piezas(d.hooks.PostToolUse), ['aviso-buzon.cjs'], 'lo que no está en la tabla se va');
+  assert.match(correr(h).out, /sin cambios\./);
+});
+
+test('buzón: la regla de los tres verbos sale solo con config.json, Bash para los tres y PowerShell sin responder; dos veces → sin cambios', () => {
+  const h = home();
+  ponerSettings(h, textoAjeno());
+  conBuzon(h);
+  const r = correrB(h);
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(r.out, /registro la regla del buzón/);
+  const v = leerV(h);
+  assert.deepEqual(allowKit(v), reglasBuzon(h));
+  assert.ok(!allowKit(v).some((x) => x.startsWith('PowerShell(') && x.includes(' responder:')), 'responder solo por Bash');
+  assert.ok(!allowKit(v).some((x) => /buzon\.cjs (escribir|registrar|mudar|medir)/.test(x)), 'los otros verbos quedan sin regla');
+  for (const x of allowKit(v)) assert.match(x, /^(Bash|PowerShell)\(node \S+\/\.claude\/hooks\/kit\/buzon\/buzon\.cjs (turnos|leer|responder):\*\)$/);
+  assert.equal(v.permissions.allow[0], 'Bash(npm test)', 'lo ajeno, primero y en su lugar');
+  assert.match(fs.readFileSync(path.join(kitDe(h), 'INSTALADO'), 'utf8'), /\nallow-agregado: sí\n/);
+  assert.match(correrB(h).out, /sin cambios\./);
+  // una regla del kit editada a mano vuelve a la del kit
+  const e = leerV(h);
+  e.permissions.allow = e.permissions.allow.filter((x) => !x.includes(' leer:')).concat(`Bash(node C:/otro/.claude/hooks/kit/buzon/buzon.cjs turnos:*)`);
+  fs.writeFileSync(settingsDe(h), JSON.stringify(e, null, 2));
+  assert.match(correrB(h).out, /actualizo la regla del buzón/);
+  assert.deepEqual(allowKit(leerV(h)), reglasBuzon(h));
+  // al actualizar, las del kit quedan juntas en el lugar de la primera que había (lo ajeno de después sigue después)
+  const h2 = home();
+  ponerSettings(h2, JSON.stringify({ permissions: { allow: ['Bash(ls)', 'Bash(node C:/otro/.claude/hooks/kit/buzon/buzon.cjs leer:*)', 'Bash(git status)'] } }));
+  conBuzon(h2);
+  assert.equal(correrB(h2).codigo, 0);
+  assert.deepEqual(leerV(h2).permissions.allow, ['Bash(ls)', ...reglasBuzon(h2), 'Bash(git status)']);
+});
+
+test('buzón: sin config.json, reinstalar saca la regla (así se apaga el buzón de una PC) y deja el corrector', () => {
+  const h = home();
+  ponerSettings(h, textoAjeno());
+  conBuzon(h);
+  assert.equal(correrB(h).codigo, 0);
+  assert.equal(allowKit(leerV(h)).length, 5);
+  sinBuzon(h);
+  const r = correrB(h);
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(r.out, /saco la regla del buzón/);
+  const v = leerV(h);
+  assert.deepEqual(allowKit(v), []);
+  assert.deepEqual(v.permissions.allow, ['Bash(npm test)']);
+  assert.deepEqual(piezas(v.hooks.PreToolUse), ['ajeno', 'secretos.cjs'], 'el anti-secretos sigue');
+  assert.match(correrB(h).out, /sin cambios\./);
+});
+
+test('buzón: una regla allow que puso la persona para otro verbo (escribir) no es del kit: no se toca, ni con config ni sin ella', () => {
+  const h = home();
+  const base = `node ${path.resolve(h).replace(/\\/g, '/')}/.claude/hooks/kit/buzon/buzon.cjs`;
+  const mias = [`Bash(${base} escribir:*)`, `Bash(${base}:*)`, `PowerShell(${base} responder:*)x`];
+  ponerSettings(h, JSON.stringify({ permissions: { allow: mias } }, null, 2));
+  conBuzon(h);
+  assert.equal(correrB(h).codigo, 0);
+  const v = leerV(h);
+  assert.deepEqual(v.permissions.allow.filter((x) => mias.includes(x)), mias, 'las de la persona quedan, en su lugar');
+  assert.deepEqual(v.permissions.allow.filter((x) => !mias.includes(x)), reglasBuzon(h));
+  sinBuzon(h);
+  assert.equal(correrB(h).codigo, 0);
+  assert.deepEqual(leerV(h).permissions.allow, mias, 'sin config se va solo lo del kit');
+  assert.equal(correrB(h, '--quitar').codigo, 0);
+  assert.deepEqual(JSON.parse(fs.readFileSync(settingsDe(h), 'utf8')).permissions.allow, mias);
+});
+
+test('buzón: con espacios en la ruta del home no pone la regla y dice por qué', () => {
+  const h = path.join(RAIZ_TMP, `con espacio ${++n}`);
+  fs.mkdirSync(h, { recursive: true });
+  conBuzon(h);
+  const r = correrB(h);
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(r.out, /espacios/);
+  assert.deepEqual(allowKit(leerV(h)), []);
+  assert.ok(gruposKit(leerV(h).hooks.SessionStart).length === 1, 'el aviso igual se registra');
+});
+
+test('buzón: --quitar saca los cuatro eventos y la regla y deja el settings byte a byte', () => {
+  const h = home();
+  const original = textoAjeno();
+  ponerSettings(h, original);
+  conBuzon(h);
+  assert.equal(correrB(h).codigo, 0);
+  assert.equal(correrB(h, '--quitar').codigo, 0);
+  assert.equal(fs.readFileSync(settingsDe(h), 'utf8'), original);
+  // sin la copia del original (algo ajeno cambió entretanto): igual saca lo del kit de los cuatro eventos y la regla
+  const h2 = home();
+  ponerSettings(h2, textoAjeno());
+  conBuzon(h2);
+  assert.equal(correrB(h2).codigo, 0);
+  const v = leerV(h2);
+  v.model = 'sonnet';
+  fs.writeFileSync(settingsDe(h2), JSON.stringify(v, null, 2));
+  assert.equal(correrB(h2, '--quitar').codigo, 0);
+  const d = leerV(h2);
+  assert.deepEqual(sinKit(d), d, 'no quedó nada del kit');
+  assert.deepEqual(d, { ...AJENO, model: 'sonnet' });
+});
+
+test('buzón: desde un INSTALADO de la v3.0.1 (sin allow-agregado) la regla que se suma queda anotada y --quitar la saca, byte a byte', () => {
+  const h = home();
+  const original = textoAjeno();
+  ponerSettings(h, original);
+  assert.equal(correrB(h).codigo, 0);
+  // así quedaba una PC con la 3.0.1: INSTALADO sin el renglón, sin aviso ni regla
+  const inst = path.join(kitDe(h), 'INSTALADO');
+  fs.writeFileSync(inst, fs.readFileSync(inst, 'utf8').replace(/^allow-agregado: .*\n/m, ''));
+  const v = leerV(h);
+  for (const ev of ['SessionStart', 'UserPromptSubmit', 'PostToolUse']) v.hooks[ev] = (v.hooks[ev] || []).filter((g) => !piezas([g]).includes('aviso-buzon.cjs'));
+  if (!v.hooks.PostToolUse.length) delete v.hooks.PostToolUse;
+  fs.writeFileSync(settingsDe(h), JSON.stringify(v, null, 4).replace(/\n/g, '\r\n') + '\r\n');
+  assert.doesNotMatch(fs.readFileSync(inst, 'utf8'), /allow-agregado/);
+  conBuzon(h);
+  assert.equal(correrB(h).codigo, 0);
+  assert.match(fs.readFileSync(inst, 'utf8'), /\nallow-agregado: sí\n/);
+  assert.equal(allowKit(leerV(h)).length, 5);
+  assert.equal(correrB(h, '--quitar').codigo, 0);
+  assert.equal(fs.readFileSync(settingsDe(h), 'utf8'), original);
+});
+
+test('buzón: un settings con SessionStart, PostToolUse o permissions.allow de otra forma → no toca nada y sale 1', () => {
+  for (const texto of ['{"hooks":{"SessionStart":{}}}', '{"hooks":{"PostToolUse":"x"}}', '{"permissions":{"allow":"x"}}', '{"permissions":{"allow":[1]}}']) {
+    const h = home();
+    ponerSettings(h, texto);
+    conBuzon(h);
+    const antes = foto(h);
+    const r = correrB(h);
+    assert.equal(r.codigo, 1, `${texto}: ${r.out}`);
+    assert.match(r.out, /no toqué nada/);
+    assert.deepEqual(foto(h), antes);
+  }
+});
+
+test('buzón: pc/buzon/ viaja con el resto de pc/** y entra en INSTALADO (si existe en el kit)', () => {
+  const h = home();
+  assert.equal(correr(h).codigo, 0);
+  const inst = fs.readFileSync(path.join(kitDe(h), 'INSTALADO'), 'utf8');
+  assert.match(inst, / {2}aviso-buzon\.cjs\n/);
+  if (fs.existsSync(path.join(PC, 'buzon', 'buzon.cjs'))) assert.match(inst, / {2}buzon\/buzon\.cjs\n/);
+  assert.ok(!/aviso-buzon\.test\.cjs/.test(inst));
+});
+
+test('buzón: con config pero un kit que no trae buzon.cjs → sin regla y lo dice (nunca una regla hacia un archivo que no está)', () => {
+  const h = home();
+  conBuzon(h);
+  const r = correrDe(KIT_SIN, h);
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(r.out, /todavía no trae buzon\.cjs/);
+  assert.deepEqual(allowKit(leerV(h)), []);
+  assert.equal(gruposKit(leerV(h).hooks.SessionStart).length, 1, 'el aviso igual (inerte hasta que llegue buzon.cjs)');
+  // con la regla puesta por un kit que lo traía, uno que no lo trae la saca
+  assert.equal(correrB(h).codigo, 0);
+  assert.equal(allowKit(leerV(h)).length, 5);
+  assert.match(correrDe(KIT_SIN, h).out, /saco la regla del buzón \(este kit todavía no trae buzon\.cjs\)/);
+  assert.deepEqual(allowKit(leerV(h)), []);
+});
+
+test('buzón: un home con caracteres que la shell interpreta ($, paréntesis) → sin regla, como con espacios', () => {
+  const h = path.join(RAIZ_TMP, `h$b(${++n})`);
+  fs.mkdirSync(h, { recursive: true });
+  conBuzon(h);
+  const r = correrB(h);
+  assert.equal(r.codigo, 0, r.out);
+  assert.match(r.out, /otros caracteres que la shell interpreta/);
+  assert.deepEqual(allowKit(leerV(h)), []);
+});
+
+test('buzón: --quitar saca la regla aunque INSTALADO diga allow-agregado: no (se borró hooks/kit a mano, o venía de la 3.0.1 con una regla)', () => {
+  // (i) borro hooks/kit/ a mano y reinstalo: la regla ya estaba ("sin cambios")
+  const h = home();
+  ponerSettings(h, textoAjeno());
+  conBuzon(h);
+  assert.equal(correrB(h).codigo, 0);
+  fs.rmSync(kitDe(h), { recursive: true, force: true });
+  assert.equal(correrB(h).codigo, 0);
+  assert.equal(correrB(h, '--quitar').codigo, 0);
+  assert.deepEqual(allowKit(leerV(h)), []);
+  assert.deepEqual(leerV(h).permissions.allow, ['Bash(npm test)']);
+  // (ii) INSTALADO viejo y una regla turnos previa: queda "actualizado" y --quitar saca las cinco
+  const h2 = home();
+  ponerSettings(h2, textoAjeno());
+  assert.equal(correrB(h2).codigo, 0);
+  const inst = path.join(kitDe(h2), 'INSTALADO');
+  fs.writeFileSync(inst, fs.readFileSync(inst, 'utf8').replace(/^allow-agregado: .*\n/m, ''));
+  const v = leerV(h2);
+  v.permissions.allow.push(reglasBuzon(h2)[0]);
+  fs.writeFileSync(settingsDe(h2), JSON.stringify(v, null, 2));
+  conBuzon(h2);
+  assert.match(correrB(h2).out, /actualizo la regla del buzón/);
+  assert.match(fs.readFileSync(inst, 'utf8'), /\nallow-agregado: sí\n/);
+  assert.equal(correrB(h2, '--quitar').codigo, 0);
+  assert.deepEqual(allowKit(leerV(h2)), []);
 });
 
 test('nunca escribió en el HOME del proceso', () => {

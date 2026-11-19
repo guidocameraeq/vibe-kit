@@ -44,6 +44,7 @@
 - ADR-036 · La skill `reflexion`: global, aparte del `/cierre`, y propone sin escribir (2026-11-19)
 - ADR-037 · El buzón entre agentes: aviso en cada sesión, `proyecto/persona`, contestar con citas, en el kit y mudanza PC por PC (2026-11-19)
 - ADR-038 · El spec del buzón: el turno y la verificación de un mensaje v0, y la regla de permiso la pone el instalador por PC (2026-11-19)
+- ADR-039 · La construcción del buzón, sesión 1: el aviso corre `buzon.cjs` en un hilo aparte, y la regla sale solo con `buzon.cjs` instalado (2026-11-19)
 
 *Cada ADR nuevo suma su línea acá (lo pide `/cierre`).*
 
@@ -880,3 +881,30 @@ cuál y quién la pone.
   que se contesta solo son citas. El instalador pasa a tocar `allow` además de `deny`. Durante el piloto, la persona mira una vez por
   semana la lista de respuestas automáticas: es el corte que la regla de salida no puede darse sola (red team 6).
 - **Dónde vive:** `docs/kit-v3/SPEC-G1-buzon.md` (READY, sellado; el red team, 14 hallazgos, al final del spec).
+
+## ADR-039 · La construcción del buzón, sesión 1: el aviso corre `buzon.cjs` en un hilo aparte, y la regla sale solo con `buzon.cjs` instalado (2026-11-19)
+La sesión 1 del spec del buzón (ADR-038) construyó el instalador por PC, el aviso, el `doctor` y `correctorRegistrado`. El red team
+del código (Opus, 12 hallazgos, 10 probados en homes falsos) encontró cuatro cosas que el spec no decía cómo resolver: (1) el corte de
+800 ms es un `setTimeout`, que no se dispara mientras `paraAviso` hace trabajo síncrono (medido: 2 s de bucle salían con el texto), y
+la sesión 2 va a usar `dir /q` y lecturas sobre una carpeta de red; (2) entre la sesión 1 y la 2, la regla `allow` apuntaría a un
+`buzon.cjs` que no existe; (3) `--quitar` dejaba la regla si `INSTALADO` decía `allow-agregado: no` (se borró `hooks/kit/` a mano, o
+venía de la 3.0.1 con una regla); (4) medido con `claude -p`: con la regla puesta, `responder < archivo` y `<<<` **pasan** sin pedir
+permiso (`2>` y `>>` piden).
+- **Decisión** (la sesión, ADR-034: lo técnico lo decide la sesión):
+  1. **`paraAviso` corre en un `worker_thread`**: el hilo principal corta a los 800 ms y sale (`process.exit` mata al worker), haga lo
+     que haga `buzon.cjs`.
+  2. **La regla se pone solo si lo que se instala trae `buzon/buzon.cjs`**, con config y con un home de lista blanca
+     (`[A-Za-z0-9._/-]`, no solo sin espacios). El `doctor` da ✓ solo con `hooks/kit/buzon/buzon.cjs` instalado, y avisa ante
+     cualquier `allow` de más para `buzon.cjs`, en el settings global o en los de los repos de los agentes.
+  3. **`--quitar` saca siempre la regla del buzón**: autoriza un archivo de `hooks/kit/`, que `--quitar` borra. `allow-agregado`
+     queda como anotación.
+  4. **`responder` (sesión 2) se niega si su entrada es un archivo** (`fs.fstatSync(0).isFile()`). Medido en Git Bash: `< archivo`
+     llega como archivo, y el heredoc, `<<<` y un tubo, no.
+- **Por qué:** el corte y la regla son frenos de la PC: tienen que valer sin depender de cómo se escriba la otra mitad.
+- **Descartado:** escribir en el contrato "solo E/S asíncrona" (se rompe con el primer `spawnSync` de la sesión 2, sin aviso) · dar
+  ✓ con la regla puesta y sin `buzon.cjs` · reglas `ask` para los otros verbos (que un `ask` le gane a un `allow` local está NO
+  VERIFICADO; el `doctor` lo avisa).
+- **Costo aceptado:** abrir el worker suma unos ms después del portón (el portón de `PostToolUse`, medido: p95 de 68 a 114 ms, con node
+  vacío de 51 a 92 ms). El aviso se registra en toda PC aunque no tenga buzón: es inerte, pero es un node más por herramienta.
+- **Dónde vive:** `kit/skills/arquitecto-skills/pc/aviso-buzon.cjs`, `scripts/instalar-hooks-pc.cjs` y `scripts/doctor.cjs`, con sus
+  pruebas; el spec, sin tocar (el sello).

@@ -462,6 +462,11 @@ test('líneas de F: corrector de la PC ✅ solo con un hook registrado bajo /.cl
   assert.equal(conHome(undefined), NO);
   assert.equal(conHome('{ roto'), NO);
   assert.equal(conHome({ permissions: { deny: ['Read(/home/x/.claude/hooks/kit/**)'] } }), NO, 'una regla no es un hook registrado');
+  // SPEC-G1-buzon: el aviso del buzón vive en la misma carpeta, pero no es el corrector (se busca secretos.cjs por nombre)
+  const aviso = { hooks: { SessionStart: [{ hooks: [{ type: 'command', command: 'node', args: ['/home/x/.claude/hooks/kit/aviso-buzon.cjs'], timeout: 5 }] }], UserPromptSubmit: [{ hooks: [{ type: 'command', command: 'node', args: ['/home/x/.claude/hooks/kit/aviso-buzon.cjs'], timeout: 5 }] }] } };
+  assert.equal(conHome(aviso), NO, 'solo el aviso registrado no da corrector ✅');
+  assert.equal(conHome({ hooks: { ...aviso.hooks, ...registro('/home/x/.claude/hooks/kit/secretos.cjs').hooks } }), 'corrector de la PC: ✅');
+  assert.equal(conHome(registro('/home/x/.claude/hooks/kit/secretos.cjs.viejo')), NO, 'el nombre exacto');
 });
 
 test('líneas de F: barreras de fábrica N de N contra el settings menos frenos.quitados vigentes', () => {

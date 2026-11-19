@@ -79,7 +79,7 @@ El corrector de secretos de esta PC (hooks en `~/.claude/hooks/kit/`). Los scrip
 1. `node "$HOME/.claude/skills/arquitecto-skills/scripts/instalar-hooks-pc.cjs" --plan` — no escribe nada; mostrá lo que haría.
 2. **UNA pregunta**: "¿Lo aplico?" (es lo único que se pregunta). Si el `--plan` dice que el settings no se entiende (JSON roto,
    claves repetidas), no preguntes: contale el motivo, se arregla a mano.
-3. Sí → el mismo comando **sin** `--plan`. Después `node …/scripts/doctor.cjs` (el completo: 29 chequeos, solo lee; sin red dice "NO VERIFICADO") y decile su línea `doctor ·`
+3. Sí → el mismo comando **sin** `--plan`. Después `node …/scripts/doctor.cjs` (el completo: 30 chequeos, solo lee; sin red dice "NO VERIFICADO") y decile su línea `doctor ·`
    (todo bien · N avisos · N cosas a arreglar), cada `✗` con su arreglo y **el inventario de frenos** (`inventario ·`); lo demás, si lo pide. Cerrá con **"reiniciá Claude Code"** (los hooks nuevos cargan al reiniciar).
 4. **Sacar el anti-secretos viejo**: cuando confirme que el del kit anda, cruzá los patrones del viejo con los del kit (`hooks/kit/secretos`) y decile cuáles faltan → `… instalar-hooks-pc.cjs --sacar-viejo`
    (saca solo su registro; el archivo queda). **Deshacer todo**: `… --quitar` (deja el `settings.json` como estaba).

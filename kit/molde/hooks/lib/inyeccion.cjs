@@ -460,7 +460,9 @@ function lineaBarreras(raiz, fv, ahora) {
   return `barreras de fábrica: ${esperadas.length - faltan.length} de ${esperadas.length} ⚠️ falta ${listaCortaF(faltan)} · corré doctor`;
 }
 
-// ¿<home>/.claude/settings.json registra un hook bajo /.claude/hooks/kit/? (lo que escribe instalar-hooks-pc; D-2)
+// ¿<home>/.claude/settings.json registra el corrector, hooks/kit/secretos.cjs? (lo que escribe instalar-hooks-pc; D-2). Por nombre:
+// el aviso del buzón vive en la misma carpeta y no es el corrector (SPEC-G1-buzon).
+const RE_CORRECTOR = /\/\.claude\/hooks\/kit\/secretos\.cjs(?=$|[\s"'])/;
 function correctorRegistrado(home) {
   if (!home) return false;
   const s = leerJsonF(path.join(home, '.claude', 'settings.json'));
@@ -470,7 +472,7 @@ function correctorRegistrado(home) {
       for (const h of esMapaF(gr) && Array.isArray(gr.hooks) ? gr.hooks : []) {
         if (!esMapaF(h)) continue;
         const texto = [h.command, ...(Array.isArray(h.args) ? h.args : [])].filter((x) => typeof x === 'string').join(' ');
-        if (texto.replace(/\\/g, '/').toLowerCase().includes(MARCA_PC)) return true;
+        if (RE_CORRECTOR.test(texto.replace(/\\/g, '/').toLowerCase())) return true;
       }
     }
   }

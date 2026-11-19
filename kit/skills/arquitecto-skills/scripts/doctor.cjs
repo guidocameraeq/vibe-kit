@@ -40,7 +40,7 @@ const VAR_PLAZO = 'KIT_PLAZO_ARRANQUE_MS';
 const HOOKS_GIT = ['pre-commit', 'pre-merge-commit', 'pre-push'];
 const IDS = ['node', 'gitleaks', 'claude-code', 'lefthook', 'git-bash', 'settings-pc', 'hooks-pc', 'hooks-pc-iguales', 'deny-almacen', 'anti-secretos-viejo', 'plazo-arranque', 'pre-commit', 'ficha', 'sensible-prosa',
   'version-kit', 'kit-sync', 'githooks', 'archivo-pc', 'credencial', 'gh-push', 'mesa-gh', 'cross-session', 'automode', 'copias-kit', 'frenos-vencidos', 'regla-tamano', 'tope-skills',
-  'vecinos', 'locks'];
+  'vecinos', 'locks', 'buzon'];
 const VIEJO = 'gh' + 'p_'; // el prefijo que delata al anti-secretos viejo (armado: ninguna forma de clave literal en kit/)
 const ARREGLO_INSTALAR = 'pedile al Equipador "instalar hooks por PC" (o corré scripts/instalar-hooks-pc.cjs) y reiniciá Claude Code';
 
@@ -182,13 +182,14 @@ function leerSettings(ruta) {
   return { valor: l.valor };
 }
 const textoHook = (h) => barras(`${typeof h.command === 'string' ? h.command : ''} ${Array.isArray(h.args) ? h.args.join(' ') : ''}`);
-// Los hooks (de un evento) registrados bajo hooks/kit/, con su grupo.
-function hooksDelKit(s, evento) {
+// Los hooks (de un evento) registrados bajo hooks/kit/, con su grupo; con `archivo`, solo los de ese archivo del kit (SPEC-G1-buzon:
+// el aviso del buzón comparte UserPromptSubmit con el corrector, y cada chequeo mira su pieza).
+function hooksDelKit(s, evento, archivo) {
   const out = [];
   const grupos = esMapa(s.hooks) && Array.isArray(s.hooks[evento]) ? s.hooks[evento] : [];
   for (const g of grupos) {
     if (!esMapa(g) || !Array.isArray(g.hooks)) continue;
-    for (const h of g.hooks) if (esMapa(h) && I.esDelKit(h)) out.push({ grupo: g, hook: h });
+    for (const h of g.hooks) if (esMapa(h) && I.esDelKit(h) && (!archivo || I.archivoKit(h) === archivo)) out.push({ grupo: g, hook: h });
   }
   return out;
 }
@@ -300,7 +301,7 @@ function chHooks(r, s) {
   const esperado = barras(r.secretos).toLowerCase();
   const problemas = [];
   const revisar = (evento, obligaOnFailure) => {
-    const hs = hooksDelKit(s.valor, evento);
+    const hs = hooksDelKit(s.valor, evento, 'secretos.cjs');
     if (!hs.length) return problemas.push(`${evento}: no está registrado`);
     if (hs.length > 1) problemas.push(`${evento}: registrado ${hs.length} veces`);
     const { grupo, hook } = hs[0];
@@ -391,6 +392,52 @@ function chDeny(r, s) {
   if (deny.includes(esperado)) return res('✓', 'el deny de Read sobre el almacén de secretos (~/.config/kit-secretos/) está');
   const otro = deny.some((x) => typeof x === 'string' && /kit-secretos/.test(x));
   return res('✗', otro ? 'hay un deny del almacén pero apunta a otra carpeta que la de esta PC' : 'falta el deny de Read sobre ~/.config/kit-secretos/**: Claude podría leer los secretos guardados', ARREGLO_INSTALAR);
+}
+
+// SPEC-G1-buzon: el buzón de esta PC. Sin ~/.config/kit-buzon/config.json no hay buzón (✓). Con config: el aviso en sus tres eventos,
+// buzon.cjs instalado y la regla de los tres verbos (salvo con un home que la shell interpreta, donde no se puede poner); una cuenta
+// compartida nunca verifica. Y ninguna regla allow de más para buzon.cjs, en el settings global ni en los de los repos de los
+// agentes: un "sí, y no volver a preguntar" ante `buzon.cjs escribir` deja salir sin el OK lo que el spec deja para la persona (red
+// team de la construcción, 6).
+const RE_BUZON_CJS = /buzon\.cjs/;
+function allowDe(valor) {
+  return esMapa(valor) && esMapa(valor.permissions) && Array.isArray(valor.permissions.allow) ? valor.permissions.allow.filter((x) => typeof x === 'string') : [];
+}
+function chBuzon(r, s) {
+  const ruta = path.join(r.home, '.config', 'kit-buzon', 'config.json');
+  const t = leerTexto(ruta);
+  if (t === null) return res('✓', 'sin buzón en esta PC');
+  let cfg;
+  try {
+    cfg = JSON.parse(t.trim()); // trim saca también el BOM
+  } catch (e) {
+    cfg = null;
+  }
+  if (!esMapa(cfg)) return res('⚠', '~/.config/kit-buzon/config.json no se lee: el aviso y contestar solo no andan', 'volvé a registrarte en el buzón (pedile a la sesión "registrame en el buzón")');
+  const valor = s.valor || {};
+  const nuestras = new Set(I.reglasBuzon(r.home));
+  const deMas = [];
+  for (const x of allowDe(valor)) if (RE_BUZON_CJS.test(x) && !nuestras.has(x)) deMas.push('~/.claude/settings.json');
+  for (const a of Array.isArray(cfg.agentes) ? cfg.agentes : []) {
+    if (!esMapa(a) || typeof a.repo !== 'string') continue;
+    for (const f of ['settings.json', 'settings.local.json']) {
+      const sr = leerSettings(path.join(a.repo, '.claude', f));
+      if (sr.valor && allowDe(sr.valor).some((x) => RE_BUZON_CJS.test(x))) deMas.push(`.claude/${f} de ${path.basename(a.repo)}`);
+    }
+  }
+  if (deMas.length) return res('⚠', `hay una regla allow de más para buzon.cjs (${lista([...new Set(deMas)], 3)}): deja correr sin tu OK lo que el buzón deja para vos (escribir, registrar)`, 'sacala de ese archivo: las únicas que van son las de turnos, leer y responder que pone el instalador en ~/.claude/settings.json');
+  if (cfg.compartida === true) return res('⚠', 'cuenta compartida: nadie verifica desde esta PC (el aviso muestra todo como no verificado y nadie contesta solo)', 'si esta cuenta de Windows es solo tuya, volvé a registrarte en el buzón con --compartida no');
+  const faltan = [];
+  for (const ev of ['SessionStart', 'UserPromptSubmit', 'PostToolUse']) if (!hooksDelKit(valor, ev, 'aviso-buzon.cjs').length) faltan.push(`el aviso en ${ev}`);
+  const conBuzonCjs = existe(path.join(r.kit, 'buzon', 'buzon.cjs'));
+  if (!conBuzonCjs) faltan.push('buzon.cjs en hooks/kit/buzon/');
+  const homeLimpio = I.homeSinRaros(r.home);
+  const allow = allowDe(valor);
+  if (homeLimpio && conBuzonCjs && ![...nuestras].every((x) => allow.includes(x))) faltan.push('la regla de turnos, leer y responder');
+  if (faltan.length) return res('⚠', `falta la regla o el aviso: ${lista(faltan, 4)}`, ARREGLO_INSTALAR);
+  const n = Array.isArray(cfg.agentes) ? cfg.agentes.length : 0;
+  if (!homeLimpio) return res('⚠', `registrado: ${n} agente${n === 1 ? '' : 's'} y el aviso, sin la regla: la ruta del home tiene espacios u otros caracteres que la shell interpreta, y contestar solo va a pedir permiso`, 'es así en esta PC; el resto del buzón anda');
+  return res('✓', `registrado: ${n} agente${n === 1 ? '' : 's'}, aviso y regla`);
 }
 
 function archivoDeHook(h, home) {
@@ -929,6 +976,7 @@ async function principal(argv, { env = process.env, cwd = process.cwd(), plazoMs
     'tope-skills': () => chTopeSkills(raiz, f),
     vecinos: () => chVecinos(raiz, !!pGitBin),
     locks: () => chLocks(raiz, f),
+    buzon: () => chBuzon(r, s),
   };
   const lineas = [];
   let rojos = 0;

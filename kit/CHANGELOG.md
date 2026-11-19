@@ -18,6 +18,19 @@ Para el próximo tag (sin número todavía: lo decide el dueño del kit).
 - **Qué chequear después**: que `~/.claude/skills/reflexion/SKILL.md` esté, y que "reflexioná" o "¿quedó algo suelto?" la disparen
   en una sesión nueva. La prueba, con y sin la skill, está en `docs/kit-v3/PRUEBA-reflexion.md`.
 
+**El buzón entre agentes, primera mitad** (SPEC-G1-buzon, sesión 1 de 2; la skill `buzon` y `buzon.cjs` llegan en la sesión 2):
+
+- **Qué piezas cambiaron**: los hooks por PC (`instalar-hooks-pc.cjs`) registran ahora cuatro eventos, cada pieza en su grupo: el
+  corrector en `PreToolUse` y `UserPromptSubmit`, y **el aviso del buzón** (`pc/aviso-buzon.cjs`, nuevo) en `SessionStart`,
+  `UserPromptSubmit` y `PostToolUse`. El aviso es inerte sin `~/.config/kit-buzon/config.json` (no dice ni escribe nada) y falla
+  abierto. Con esa config, el instalador suma al `~/.claude/settings.json` la regla `allow` de `turnos`, `leer` y `responder` de
+  `hooks/kit/buzon/buzon.cjs` (sin config, o con espacios en el home, no la pone; reinstalar sin config la saca; `--quitar` la saca).
+  El `doctor` suma el chequeo `buzon` (30 chequeos) y mira en `hooks-pc` solo el hook de `secretos.cjs`; el arranque del molde
+  (`correctorRegistrado`) busca `secretos.cjs` por nombre.
+- **Automático o pide revisión**: automático en la PC (instalar hooks por PC). En los proyectos, el arranque del molde cambia una
+  línea de `lib/inyeccion.cjs`; no suele estar adaptada.
+- **Qué chequear después**: "instalar hooks por PC" y el `doctor`: `hooks-pc` ✓ y `buzon · sin buzón en esta PC` (hasta registrarse).
+
 ## 3.0.1
 
 Hotfix (2026-11-16): **un arranque propio no se pisa**. Lo encontró la madre al adoptar su propio kit.

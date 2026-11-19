@@ -150,12 +150,12 @@ Solo lectura y sin red: lee lo commiteado en la rama por defecto local de cada r
 ### doctor
 El chequeo de salud de esta PC y de este repo.
 `node doctor.cjs [--home <dir>]`
-**Solo lectura.** Una línea por chequeo, `✓|✗|⚠ <id> · qué · cómo se arregla`; después el resumen para el dueño, `doctor · todo bien · N avisos · N cosas a arreglar · 29 chequeos` (o `hay cosas que arreglar`), y debajo el inventario de frenos del repo. La sesión le dice al dueño el resumen y cada ✗ con su arreglo; el detalle, si lo pide. Ids (29): `node`, `gitleaks`, `claude-code`, `lefthook`, `git-bash`, `settings-pc`, `hooks-pc`, `hooks-pc-iguales`, `deny-almacen`, `anti-secretos-viejo`, `plazo-arranque`, `pre-commit`, `ficha`, `sensible-prosa`, `version-kit`, `kit-sync`, `githooks`, `archivo-pc`, `credencial`, `gh-push`, `mesa-gh`, `cross-session`, `automode`, `copias-kit`, `frenos-vencidos`, `regla-tamano`, `tope-skills`, `vecinos`, `locks`. Sin red o sin poder correr algo externo: ⚠ NO VERIFICADO. Sale 0 si no hay ningún ✗; 1 si hay alguno.
+**Solo lectura.** Una línea por chequeo, `✓|✗|⚠ <id> · qué · cómo se arregla`; después el resumen para el dueño, `doctor · todo bien · N avisos · N cosas a arreglar · 30 chequeos` (o `hay cosas que arreglar`), y debajo el inventario de frenos del repo. La sesión le dice al dueño el resumen y cada ✗ con su arreglo; el detalle, si lo pide. Ids (30): `node`, `gitleaks`, `claude-code`, `lefthook`, `git-bash`, `settings-pc`, `hooks-pc`, `hooks-pc-iguales`, `deny-almacen`, `anti-secretos-viejo`, `plazo-arranque`, `pre-commit`, `ficha`, `sensible-prosa`, `version-kit`, `kit-sync`, `githooks`, `archivo-pc`, `credencial`, `gh-push`, `mesa-gh`, `cross-session`, `automode`, `copias-kit`, `frenos-vencidos`, `regla-tamano`, `tope-skills`, `vecinos`, `locks`, `buzon` (SPEC-G1-buzon: sin `~/.config/kit-buzon/config.json`, "sin buzón en esta PC"; con él, el aviso en sus tres eventos y la regla de los tres verbos, o ⚠). Sin red o sin poder correr algo externo: ⚠ NO VERIFICADO. Sale 0 si no hay ningún ✗; 1 si hay alguno.
 
 ### instalar-hooks-pc
 El corrector de secretos de la PC.
 `node instalar-hooks-pc.cjs [--home <dir>] [--plan] [--quitar] [--sacar-viejo]`
-Copia `pc/` a `~/.claude/hooks/kit/` y lo registra en `~/.claude/settings.json` regla por regla (los hooks `PreToolUse`, el `UserPromptSubmit` y el `deny` del almacén de secretos). Lo que no es del kit no se toca. Igual → "sin cambios". `--plan` no escribe; `--quitar` deja la PC como antes; `--sacar-viejo` saca solo el registro del anti-secretos viejo. JSON inválido o forma rara → no toca nada, sale 1.
+Copia `pc/` a `~/.claude/hooks/kit/` y lo registra en `~/.claude/settings.json` regla por regla: cada pieza en su grupo (el corrector en `PreToolUse` y `UserPromptSubmit`; el aviso del buzón en `SessionStart`, `UserPromptSubmit` y `PostToolUse`), el `deny` del almacén de secretos y, solo si la PC tiene `~/.config/kit-buzon/config.json` y el home no tiene espacios, la regla `allow` del buzón (`turnos`, `leer` y `responder` de `hooks/kit/buzon/buzon.cjs`; sin config, reinstalar la saca). Lo que no es del kit no se toca. Igual → "sin cambios". `--plan` no escribe; `--quitar` deja la PC como antes; `--sacar-viejo` saca solo el registro del anti-secretos viejo. JSON inválido o forma rara → no toca nada, sale 1.
 
 ### migrar-cambios
 Pasa un `CAMBIOS.md` de archivo único (el de Hermes) al registro chico del kit.
@@ -190,6 +190,9 @@ Los instala `instalar-hooks-pc` en `~/.claude/hooks/kit/`: son de la PC, no de u
 
 ### secretos
 El corrector de secretos. Hook que **niega** (`PreToolUse` sobre Bash, PowerShell, Write, Edit…) lo que escribe o pega una clave con forma real, y `UserPromptSubmit` que bloquea el prompt con una clave (este último **falla abierto**). Corre en todo proyecto, con kit o sin kit. En su mismo proceso carga `niega-aprobar.cjs` (copia idéntica del del molde): las tres firmas del dueño (`cambios aprobar`, `noche.cjs publicar --seguir`, `preparar-pc.cjs --publica|--no-publica`) preguntan con ventana en toda la PC y se niegan sin ella.
+
+### aviso-buzon
+El aviso del buzón entre agentes (SPEC-G1-buzon). Una cáscara sin modelo que falla abierto: sin `~/.config/kit-buzon/config.json` sale sin decir nada. Con él, en `SessionStart` (siempre), `UserPromptSubmit` (si cambió algo) y `PostToolUse` (como mucho cada 15 min) le pasa a la sesión un renglón con los turnos abiertos de los agentes de la PC, y corta a los 800 ms. La lógica del buzón la pone `buzon/buzon.cjs`, al lado; los tiempos quedan en `~/.config/kit-buzon/tiempos.log`.
 
 ### cargar-secreto
 Guarda **una** credencial sin pasarla por el chat. La corre el humano, no Claude.

@@ -8,6 +8,11 @@
 // - Registra en <home>/.claude/settings.json, regla por regla: un grupo PreToolUse propio (exec: node + la ruta absoluta en args,
 //   timeout 20, onFailure "block"), el UserPromptSubmit (sin onFailure: falla abierto, D-5) y el deny del almacén
 //   (Read(//<home>/.config/kit-secretos/**), la forma absoluta que G0 midió en Windows).
+// - SPEC-G1-buzon: cuatro eventos y una tabla PIEZAS (qué hook va en qué evento, cada uno en su grupo): secretos.cjs en PreToolUse
+//   y UserPromptSubmit; aviso-buzon.cjs en SessionStart, UserPromptSubmit y PostToolUse (timeout 5, sin onFailure: falla abierto).
+//   Y la regla allow del buzón (D2: turnos, leer y responder de hooks/kit/buzon/buzon.cjs; PowerShell sin responder), solo si
+//   existe <home>/.config/kit-buzon/config.json y el home no tiene espacios; sin config, reinstalar la saca. INSTALADO anota
+//   allow-agregado (un INSTALADO de la 3.0.1 no lo trae: si esta corrida la suma, queda "sí" y --quitar la saca).
 // - Lo del kit se reconoce por /.claude/hooks/kit/ en el comando; lo demás no se toca. Igual → "sin cambios": no se reescribe nada.
 // - JSON inválido, claves duplicadas o una forma que no se entiende → no toca nada y sale 1.
 // - Toda escritura: temporal, renombre, relee y compara (si no da igual, sale 1).
@@ -31,6 +36,11 @@ const MARCA_KIT = '/.claude/hooks/kit/';
 const MATCHER = 'Bash|PowerShell|Write|Edit|MultiEdit|NotebookEdit';
 const VIEJO = 'gh' + 'p_'; // el prefijo que delata al anti-secretos viejo (armado: ninguna forma de clave literal en kit/)
 const RE_DENY_KIT = /^Read\(.*\/\.config\/kit-secretos\/\*\*\)$/;
+// SPEC-G1-buzon D2: la regla de permiso del buzón, solo para tres verbos (turnos y leer también por PowerShell; responder, solo Bash)
+const RE_ALLOW_KIT = /^(Bash|PowerShell)\(node \S+\/\.claude\/hooks\/kit\/buzon\/buzon\.cjs (turnos|leer|responder):\*\)$/;
+const VERBOS_BUZON = [['Bash', 'turnos'], ['Bash', 'leer'], ['Bash', 'responder'], ['PowerShell', 'turnos'], ['PowerShell', 'leer']];
+// Los cuatro eventos que toca el instalador.
+const EVENTOS = ['PreToolUse', 'UserPromptSubmit', 'SessionStart', 'PostToolUse'];
 
 const barras = (p) => String(p).replace(/\\/g, '/');
 const esMapa = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -66,8 +76,19 @@ function rutas(home) {
     instalado: path.join(kit, 'INSTALADO'),
     antes: path.join(kit, 'settings.antes.json'),
     secretos: barras(path.join(kit, 'secretos.cjs')),
+    aviso: barras(path.join(kit, 'aviso-buzon.cjs')),
+    configBuzon: path.join(home, '.config', 'kit-buzon', 'config.json'),
   };
 }
+
+// Las reglas allow del buzón para este home: node <home>/.claude/hooks/kit/buzon/buzon.cjs <verbo>:* con barras "/" y la unidad como
+// la da path.resolve (C:/Users/x). La regla compara el texto literal: buzon.cjs imprime el comando con esta misma ruta, sin comillas.
+function reglasBuzon(home) {
+  const base = `node ${barras(path.resolve(home)).replace(/\/+$/, '')}/.claude/hooks/kit/buzon/buzon.cjs`;
+  return VERBOS_BUZON.map(([h, v]) => `${h}(${base} ${v}:*)`);
+}
+// ¿La ruta del home se puede escribir sin comillas en un comando? Lista blanca (Windows deja $ ( ) ' & ! en un nombre de usuario).
+const homeSinRaros = (home) => /^([A-Za-z]:)?[A-Za-z0-9._/-]+$/.test(barras(path.resolve(home)));
 
 // Read(//c/Users/x/.config/kit-secretos/**) en Windows; Read(//home/x/...) en Unix: "//" = absoluta desde la raíz (G0 midió que anda,
 // también sin confianza). No se usa "~" porque con --home la regla tiene que apuntar al home que se instala, no al del proceso.
@@ -81,12 +102,35 @@ function denyAlmacen(home) {
 
 const hookPre = (r) => ({ type: 'command', command: 'node', args: [r.secretos], timeout: 60, onFailure: 'block' }); // 8d A5.3: secretos.cjs se da 10 s menos
 const hookPrompt = (r) => ({ type: 'command', command: 'node', args: [r.secretos], timeout: 20 }); // sin onFailure (D-5)
+const hookAviso = (r) => ({ type: 'command', command: 'node', args: [r.aviso], timeout: 5 }); // falla abierto: sin onFailure
 const grupoPre = (r) => ({ matcher: MATCHER, hooks: [hookPre(r)] });
 const grupoPrompt = (r) => ({ hooks: [hookPrompt(r)] });
+
+// PIEZAS (SPEC-G1-buzon): qué hook del kit va en qué evento, cada uno en su grupo y en este orden. Un hook bajo hooks/kit/ que no
+// está acá sobra y se saca.
+const PIEZAS = [
+  { archivo: 'secretos.cjs', etiqueta: 'el corrector', eventos: { PreToolUse: grupoPre, UserPromptSubmit: grupoPrompt } },
+  {
+    archivo: 'aviso-buzon.cjs',
+    etiqueta: 'el aviso del buzón',
+    eventos: {
+      SessionStart: (r) => ({ hooks: [hookAviso(r)] }),
+      UserPromptSubmit: (r) => ({ hooks: [hookAviso(r)] }),
+      PostToolUse: (r) => ({ matcher: MATCHER, hooks: [hookAviso(r)] }),
+    },
+  },
+];
+const piezasDe = (evento) => PIEZAS.filter((p) => p.eventos[evento]);
 
 // El texto que identifica a un hook: el comando y sus args.
 const textoHook = (h) => barras(`${typeof h.command === 'string' ? h.command : ''} ${Array.isArray(h.args) ? h.args.join(' ') : ''}`);
 const esDelKit = (h) => esMapa(h) && textoHook(h).includes(MARCA_KIT);
+// El archivo del kit de un hook (lo que viene después de /.claude/hooks/kit/), o null.
+function archivoKit(h) {
+  if (!esDelKit(h)) return null;
+  const m = /\/\.claude\/hooks\/kit\/([^\s"']+)/.exec(textoHook(h));
+  return m ? m[1] : null;
+}
 
 // ---------------------------------------------------------------- los archivos de pc/
 function archivosPc() {
@@ -112,7 +156,7 @@ function leerVersion() {
 
 // INSTALADO: cabecera "clave: valor", un renglón en blanco, y "sha256  ruta" por archivo (rutas con /, en orden).
 function textoInstalado(version, previo, hashes) {
-  const cab = [`kit: ${version}`, `settings-previo: ${previo.existia ? 'existía' : 'no existía'}`, `deny-agregado: ${previo.denyAgregado ? 'sí' : 'no'}`, `carpetas-creadas: ${previo.creadas.length ? previo.creadas.join(' ') : '-'}`];
+  const cab = [`kit: ${version}`, `settings-previo: ${previo.existia ? 'existía' : 'no existía'}`, `deny-agregado: ${previo.denyAgregado ? 'sí' : 'no'}`, `allow-agregado: ${previo.allowAgregado ? 'sí' : 'no'}`, `carpetas-creadas: ${previo.creadas.length ? previo.creadas.join(' ') : '-'}`];
   return `${cab.join('\n')}\n\n${hashes.map(([rel, h]) => `${h}  ${rel}`).join('\n')}\n`;
 }
 function leerInstalado(r) {
@@ -130,7 +174,8 @@ function leerInstalado(r) {
     else if ((m = /^([0-9a-f]{64}) {2}(.+)$/.exec(l))) archivos.push(m[2]);
   }
   const creadas = (cab['carpetas-creadas'] || '-').split(' ').filter((x) => x === '.claude' || x === '.claude/hooks');
-  return { existia: cab['settings-previo'] !== 'no existía', denyAgregado: cab['deny-agregado'] === 'sí', creadas, archivos };
+  // allow-agregado falta en un INSTALADO de la v3.0.1: vale "no" y, si esta corrida suma la regla, queda "sí" (red team 13)
+  return { existia: cab['settings-previo'] !== 'no existía', denyAgregado: cab['deny-agregado'] === 'sí', allowAgregado: cab['allow-agregado'] === 'sí', creadas, archivos };
 }
 
 // ---------------------------------------------------------------- escritura: temporal, renombre, relee y compara
@@ -159,14 +204,16 @@ function leerSettings(r) {
   if (!esMapa(v)) return { problema: `${r.settings}: no es un objeto { … } — así no se toca` };
   if ('hooks' in v) {
     if (!esMapa(v.hooks)) return { problema: `${r.settings}: "hooks" no es un objeto — así no se toca` };
-    for (const ev of ['PreToolUse', 'UserPromptSubmit']) {
+    for (const ev of EVENTOS) {
       if (ev in v.hooks && !Array.isArray(v.hooks[ev])) return { problema: `${r.settings}: "hooks.${ev}" no es una lista — así no se toca` };
     }
   }
   if ('permissions' in v) {
     if (!esMapa(v.permissions)) return { problema: `${r.settings}: "permissions" no es un objeto — así no se toca` };
-    if ('deny' in v.permissions && !(Array.isArray(v.permissions.deny) && v.permissions.deny.every((x) => typeof x === 'string'))) {
-      return { problema: `${r.settings}: "permissions.deny" no es una lista de textos — así no se toca` };
+    for (const k of ['deny', 'allow']) {
+      if (k in v.permissions && !(Array.isArray(v.permissions[k]) && v.permissions[k].every((x) => typeof x === 'string'))) {
+        return { problema: `${r.settings}: "permissions.${k}" no es una lista de textos — así no se toca` };
+      }
     }
   }
   return { existe: true, texto, valor: v };
@@ -205,14 +252,30 @@ function sacarHooks(lista, cual) {
   return { sacados, lugar };
 }
 
-// Deja en el evento exactamente un grupo del kit igual a `grupo`. 'sin cambios' | 'agregado' | 'actualizado'.
-function ponerGrupo(v, evento, grupo) {
+// Deja en el evento exactamente los grupos del kit de `grupos` (uno por pieza, en ese orden), juntos en el lugar del primer hook del
+// kit que había (o al final). Lo del kit se reconoce por la ruta (/.claude/hooks/kit/<archivo>): un hook de una pieza que no va en
+// este evento, o de un archivo que no está en PIEZAS, se saca. 'sin cambios' | 'agregado' | 'actualizado'.
+function ponerEvento(v, evento, grupos) {
   const lista = v.hooks[evento];
   const delKit = lista.filter((g) => esMapa(g) && Array.isArray(g.hooks) && g.hooks.some(esDelKit));
-  if (delKit.length === 1 && igualJson(delKit[0], grupo)) return 'sin cambios';
+  if (delKit.length === grupos.length && delKit.every((g, i) => igualJson(g, grupos[i]))) return 'sin cambios';
   const { sacados, lugar } = sacarHooks(lista, esDelKit);
-  lista.splice(lugar < 0 || lugar > lista.length ? lista.length : lugar, 0, grupo);
+  lista.splice(lugar < 0 || lugar > lista.length ? lista.length : lugar, 0, ...grupos);
   return sacados ? 'actualizado' : 'agregado';
+}
+
+// La regla allow del buzón: exactamente `esperadas` (puede ser []), juntas en el lugar de la primera del kit (o al final).
+// 'sin cambios' | 'agregado' | 'actualizado' | 'sacado'.
+function ponerAllow(v, esperadas) {
+  const actual = Array.isArray(v.permissions.allow) ? v.permissions.allow : [];
+  const delKit = actual.filter((x) => RE_ALLOW_KIT.test(x));
+  if (igualJson(delKit, esperadas)) return 'sin cambios';
+  const i = actual.findIndex((x) => RE_ALLOW_KIT.test(x));
+  const resto = actual.filter((x) => !RE_ALLOW_KIT.test(x));
+  resto.splice(i < 0 ? resto.length : i, 0, ...esperadas);
+  v.permissions.allow = resto;
+  if (!esperadas.length) return 'sacado';
+  return delKit.length ? 'actualizado' : 'agregado';
 }
 
 // Los PreToolUse ajenos cuyo archivo trae el prefijo del token: el anti-secretos viejo. [{ hook, archivo }]
@@ -246,21 +309,23 @@ function archivoDe(h, r) {
   return null;
 }
 
-// Saca lo del kit del valor (los dos eventos y el deny); los contenedores que quedan vacíos por eso se van.
+// Saca lo del kit del valor (los cuatro eventos, el deny y la regla del buzón); los contenedores que quedan vacíos por eso se van.
 function sinElKit(v, previo) {
   const c = JSON.parse(JSON.stringify(v));
   if (esMapa(c.hooks)) {
-    for (const ev of ['PreToolUse', 'UserPromptSubmit']) {
+    for (const ev of EVENTOS) {
       if (!Array.isArray(c.hooks[ev])) continue;
       const { sacados } = sacarHooks(c.hooks[ev], esDelKit);
       if (sacados && !c.hooks[ev].length) delete c.hooks[ev];
     }
   }
-  if (previo.denyAgregado && esMapa(c.permissions) && Array.isArray(c.permissions.deny)) {
-    const antes = c.permissions.deny.length;
-    c.permissions.deny = c.permissions.deny.filter((x) => !RE_DENY_KIT.test(x));
-    if (antes !== c.permissions.deny.length && !c.permissions.deny.length) {
-      delete c.permissions.deny;
+  // la regla del buzón se saca siempre: autoriza un archivo de hooks/kit/, que --quitar borra (red team de la construcción, 5)
+  for (const [k, re, agregado] of [['deny', RE_DENY_KIT, previo.denyAgregado], ['allow', RE_ALLOW_KIT, true]]) {
+    if (!agregado || !esMapa(c.permissions) || !Array.isArray(c.permissions[k])) continue;
+    const antes = c.permissions[k].length;
+    c.permissions[k] = c.permissions[k].filter((x) => !re.test(x));
+    if (antes !== c.permissions[k].length && !c.permissions[k].length) {
+      delete c.permissions[k];
       if (!Object.keys(c.permissions).length) delete c.permissions;
     }
   }
@@ -276,7 +341,7 @@ function podar(v) {
     if (!Object.keys(c.hooks).length) delete c.hooks;
   }
   if (esMapa(c.permissions)) {
-    if (Array.isArray(c.permissions.deny) && !c.permissions.deny.length) delete c.permissions.deny;
+    for (const k of ['deny', 'allow']) if (Array.isArray(c.permissions[k]) && !c.permissions[k].length) delete c.permissions[k];
     if (!Object.keys(c.permissions).length) delete c.permissions;
   }
   return c;
@@ -288,7 +353,7 @@ function planInstalar(r, s, o) {
   const avisos = [];
   const anterior = leerInstalado(r);
   // la primera instalación anota cómo estaba el settings (y guarda su texto para que --quitar lo deje byte a byte)
-  const previo = anterior || { existia: s.existe, denyAgregado: false, creadas: ['.claude', '.claude/hooks'].filter((c) => !fs.existsSync(path.join(r.home, c))), archivos: [] };
+  const previo = anterior || { existia: s.existe, denyAgregado: false, allowAgregado: false, creadas: ['.claude', '.claude/hooks'].filter((c) => !fs.existsSync(path.join(r.home, c))), archivos: [] };
 
   // 1. archivos
   const lista = archivosPc();
@@ -309,12 +374,27 @@ function planInstalar(r, s, o) {
   // 2. settings, regla por regla
   const v = JSON.parse(JSON.stringify(s.valor));
   if (!esMapa(v.hooks)) v.hooks = {};
-  for (const ev of ['PreToolUse', 'UserPromptSubmit']) if (!Array.isArray(v.hooks[ev])) v.hooks[ev] = [];
-  const reglas = {
-    PreToolUse: ponerGrupo(v, 'PreToolUse', grupoPre(r)),
-    UserPromptSubmit: ponerGrupo(v, 'UserPromptSubmit', grupoPrompt(r)),
-  };
+  for (const ev of EVENTOS) if (!Array.isArray(v.hooks[ev])) v.hooks[ev] = [];
+  const reglas = {};
+  for (const ev of EVENTOS) reglas[ev] = ponerEvento(v, ev, piezasDe(ev).map((p) => p.eventos[ev](r)));
   if (!esMapa(v.permissions)) v.permissions = {};
+  // la regla del buzón (D2): solo con config.json, con buzon.cjs en lo que se instala (red team de la construcción, 11: una regla
+  // hacia un archivo que no está no se pone) y con un home que la shell no interpreta (solo letras, números y . _ / -; red team, 8).
+  // Si falta algo, se saca: así se apaga el buzón de una PC.
+  const hayBuzon = fs.existsSync(r.configBuzon);
+  const traeBuzon = lista.includes('buzon/buzon.cjs');
+  const homeLimpio = homeSinRaros(r.home);
+  let porQue = 'no hay ~/.config/kit-buzon/config.json en esta PC';
+  if (hayBuzon && !traeBuzon) {
+    porQue = 'este kit todavía no trae buzon.cjs';
+    avisos.push(`ℹ️ hay config del buzón pero ${porQue}: no pongo la regla (vuelve a ponerse al instalar un kit que lo traiga)`);
+  } else if (hayBuzon && !homeLimpio) {
+    porQue = 'la ruta del home tiene espacios u otros caracteres que la shell interpreta';
+    avisos.push(`⚠️ ${porQue}: no pongo la regla del buzón (Claude Code compara el texto literal del comando). Contestar solo va a pedir permiso en esta PC`);
+  }
+  const reglaBuzon = ponerAllow(v, hayBuzon && traeBuzon && homeLimpio ? reglasBuzon(r.home) : []);
+  if (reglaBuzon === 'agregado' || reglaBuzon === 'actualizado') previo.allowAgregado = true;
+  if (Array.isArray(v.permissions.allow) && !v.permissions.allow.length && !(esMapa(s.valor.permissions) && 'allow' in s.valor.permissions)) delete v.permissions.allow;
   if (!Array.isArray(v.permissions.deny)) v.permissions.deny = [];
   const deny = denyAlmacen(r.home);
   const denyKit = v.permissions.deny.filter((x) => RE_DENY_KIT.test(x));
@@ -344,7 +424,7 @@ function planInstalar(r, s, o) {
     else avisos.push(`⚠️ anti-secretos viejo registrado (${barras(x.archivo)}): lo dejo. Demora cada Bash; cuando confirmes que el del kit anda, corré con --sacar-viejo`);
   }
   // no dejar contenedores vacíos que no estaban
-  for (const ev of ['PreToolUse', 'UserPromptSubmit']) if (!v.hooks[ev].length && !(esMapa(s.valor.hooks) && ev in s.valor.hooks)) delete v.hooks[ev];
+  for (const ev of EVENTOS) if (!v.hooks[ev].length && !(esMapa(s.valor.hooks) && ev in s.valor.hooks)) delete v.hooks[ev];
 
   const f = formato(s.texto);
   const nuevoTexto = igualJson(v, s.valor) && s.existe ? s.texto : serializar(v, f);
@@ -352,7 +432,13 @@ function planInstalar(r, s, o) {
 
   for (const a of archivos) if (a.cambia) acciones.push(`${a.nuevo ? 'copio' : 'actualizo'} hooks/kit/${a.rel}`);
   for (const rel of sobran) acciones.push(`borro hooks/kit/${rel} (ya no viene en el kit)`);
-  for (const [k, e] of Object.entries(reglas)) if (e !== 'sin cambios') acciones.push(`${e === 'agregado' ? 'registro' : 'actualizo'} ${k === 'deny' ? `el deny ${deny}` : `el ${k} del corrector`}`);
+  for (const [k, e] of Object.entries(reglas)) {
+    if (e === 'sin cambios') continue;
+    const que = k === 'deny' ? `el deny ${deny}` : `el ${k} (${piezasDe(k).map((p) => p.etiqueta).join(' y ')})`;
+    acciones.push(`${e === 'agregado' ? 'registro' : 'actualizo'} ${que}`);
+  }
+  if (reglaBuzon === 'sacado') acciones.push(`saco la regla del buzón (${porQue})`);
+  else if (reglaBuzon !== 'sin cambios') acciones.push(`${reglaBuzon === 'agregado' ? 'registro' : 'actualizo'} la regla del buzón (allow para turnos, leer y responder de hooks/kit/buzon/buzon.cjs)`);
 
   const hashes = archivos.map((a) => [a.rel, sha(a.buf)]);
   const instalado = textoInstalado(leerVersion(), previo, hashes);
@@ -381,7 +467,7 @@ function aplicarInstalar(r, s, p) {
 function planQuitar(r, s) {
   const acciones = [];
   const anterior = leerInstalado(r);
-  const previo = anterior || { existia: true, denyAgregado: true, creadas: [], archivos: [] }; // sin INSTALADO: igual saca lo del kit
+  const previo = anterior || { existia: true, denyAgregado: true, allowAgregado: true, creadas: [], archivos: [] }; // sin INSTALADO: igual saca lo del kit
   const limpio = sinElKit(s.valor, previo);
   let antesTexto = null;
   try {
@@ -515,4 +601,4 @@ if (require.main === module) {
 
 // leerSettings, planInstalar, aplicarInstalar, formato y serializar: los usa preparar-pc.cjs (SPEC-paquete-6, P2.2 paso 3) para armar
 // el plan de los hooks por PC sin duplicar la lógica y escribir el settings.json una sola vez (r1-12). Exportarlos no cambia nada acá.
-module.exports = { principal, denyAlmacen, esDelKit, rutas, MATCHER, VERSION, PC, leerSettings, planInstalar, aplicarInstalar, formato, serializar, hookPre, hookPrompt };
+module.exports = { principal, denyAlmacen, esDelKit, archivoKit, rutas, MATCHER, VERSION, PC, leerSettings, planInstalar, aplicarInstalar, formato, serializar, hookPre, hookPrompt, hookAviso, PIEZAS, EVENTOS, reglasBuzon, homeSinRaros, RE_ALLOW_KIT };
