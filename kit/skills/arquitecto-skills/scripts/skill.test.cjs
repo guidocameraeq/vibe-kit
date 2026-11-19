@@ -101,6 +101,29 @@ test('el SKILL.md no crece (SPEC-paquete-6 MODIFICA): tope en bytes', () => {
   assert.ok(bytes <= TOPE_BYTES, `el SKILL.md pesa ${bytes} bytes y el tope es ${TOPE_BYTES}: sacá prosa que ya hace el script`);
 });
 
+// SPEC-G1-buzon, "El tope del SKILL.md del Equipador": los nombres de las kit-owned viven en un solo lugar del código (SKILLS de
+// preparar-pc.cjs); el SKILL.md dice "las 🔑 de menu-skills.md", así que cada una tiene que tener su fila 🔑 (o ser de las dos fijas).
+test('cada skill de SKILLS (preparar-pc.cjs) tiene su fila 🔑 en el menú, o es arquitecto / arquitecto-skills', () => {
+  const pp = leer(path.join(SCRIPTS, 'preparar-pc.cjs'));
+  const m = /const SKILLS = \[([^\]]*)\]/.exec(pp);
+  assert.ok(m, 'preparar-pc.cjs trae su lista SKILLS');
+  const skills = [...m[1].matchAll(/'([a-z0-9-]+)'/g)].map((x) => x[1]);
+  assert.ok(skills.includes('buzon'));
+  const menu = leer(path.join(SCRIPTS, '..', 'menu-skills.md'));
+  for (const s of skills) {
+    if (s === 'arquitecto' || s === 'arquitecto-skills') continue;
+    assert.match(menu, new RegExp(`^\\| ${s} 🔑 kit-owned \\|`, 'm'), `${s} sin fila 🔑 en menu-skills.md`);
+  }
+  // y el SKILL.md ya no repite la lista: la nombra por la marca
+  assert.doesNotMatch(TEXTO, /`relevamiento`, `reflexion`/);
+  assert.match(TEXTO, /las 🔑 de `menu-skills\.md`/);
+});
+
+test('la skill buzon pesa 6.000 bytes o menos', () => {
+  const b = fs.statSync(path.join(SCRIPTS, '..', '..', 'buzon', 'SKILL.md')).size;
+  assert.ok(b <= 6000, `buzon/SKILL.md pesa ${b} bytes`);
+});
+
 test('flota.md (la puerta nueva, /arquitecto) deriva la PC a /arquitecto-skills', () => {
   const t = leer(FLOTA);
   const pc = /## La PC\n([\s\S]*?)(?=\n## )/.exec(t);

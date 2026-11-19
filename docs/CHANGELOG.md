@@ -2,6 +2,42 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-11-19 — Misión 7: la construcción del buzón, sesión 2 (`buzon.cjs`, la skill y el protocolo)
+
+La PC del probador de la beta (Opus 5.5), sesión `vibe-kit M7 · La construcción del buzón, sesión 2`, en `main`. Cierra
+`docs/kit-v3/SPEC-G1-buzon.md` (✅ IMPLEMENTADO; el sello sigue valiendo). Sin tag: va al `[Unreleased]` de `kit/CHANGELOG.md`.
+
+**Added**
+- **`buzon.cjs`** y su lógica al lado (`kit/skills/arquitecto-skills/pc/buzon/`: `protocolo`, `dueno`, `carpeta`, `salida`,
+  `medir`), con 9 verbos: `registrar`, `mudar`, `turnos`, `leer`, `verificar`, `juzgar`, `responder` (los 6 pasos del juicio de
+  salida y la entrada que no puede ser un archivo), `escribir` y `medir` (las 9 medidas del piloto y el corte). Cumple el contrato
+  `paraAviso`. **85 pruebas** en 7 archivos (más el andamio `armar-buzon.test.cjs`), entre ellas `redteam.test.cjs` (un caso por hallazgo) y `aviso-real.test.cjs` (el
+  criterio 1 con `dir /q` de verdad: p95 de 283 a 521 ms sobre 171 mensajes, en disco local).
+- **La skill global `buzon`** (`kit/skills/buzon/`, 5,6 KB, con prueba de tope) y **`PROTOCOLO-v1.md`**, kit-owned como `reflexion`
+  (`preparar-pc.cjs`, `kit-sync.sh` con 7 rutas, `lib/adoptar.cjs`, la fila 🔑 del menú con su cicatriz, los manuales, una receta en
+  la guía y una línea en el README).
+- **ADR-040**, con su línea en el índice.
+
+**Changed**
+- **El `SKILL.md` del Equipador** nombra las kit-owned por "las 🔑 de `menu-skills.md`" en vez de listarlas tres veces (10.166 →
+  10.151 bytes, el tope sigue en 10.202); una prueba de `skill.test.cjs` exige la fila 🔑 de cada nombre de `SKILLS`.
+- **`doctor.test.cjs`**: el caso "un kit sin `buzon.cjs`" sale de una copia del kit sin `buzon/` (el de verdad ya lo trae).
+
+**Fixed**
+- **El aviso de la sesión 1 no mostraba ningún remitente v0**: su patrón era `<persona>@<PC>` y el id v0 real lleva `/<proyecto>`.
+
+**Seguridad (el red team del código, Opus, 12 hallazgos, 11 probados; todos aplicados)**: dos críticos (una cuenta cualquiera quedaba
+verificada como otro agente por la disputa o borrando el registro) → la disputa nunca se resuelve sola y `registrar --resolver` es de
+cada PC (se aparta del spec; ADR-040). Además: solo cierra un turno un mensaje que verifica; el juicio de salida por ventanas de 25
+sobre el texto normalizado, con más datos con forma y los `.env`; fuera del cerco, solo lo que tiene forma; `dir /q` sin `...` ni
+cuentas del sistema; el cerco de 16 hex; nada fuera del buzón por una unión. **Mutación** en `responder`: **55/55**, en tres vueltas
+(la segunda y la tercera taparon 21 huecos con pruebas). **Medido**: con la regla puesta, `< <(cat archivo)` pide permiso.
+
+**Lo que se corrió**: 309 de 311 pruebas de lo tocado en una tanda (el buzón, el aviso, el instalador, la inyección, el `doctor`, la
+skill y `preparar-pc`; 1 salteada de antes, y la del criterio 1 dio rojo en paralelo y verde las dos veces sola). La suite entera, no
+(va antes del tag). **Con la carpeta real, solo leyendo**: los 180 mensajes verifican `v0` con el dueño de su registro, y la carpeta
+quedó igual.
+
 ## 2026-11-19 — Misión 7: la construcción del buzón, sesión 1 (el instalador, el aviso y el doctor)
 
 La PC del probador de la beta (Opus 5.5), sesión `vibe-kit M7 · La construcción del buzón`, en `main`. La primera de las dos sesiones

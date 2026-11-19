@@ -21,10 +21,10 @@
   **Guido, 2026-11-04: la próxima versión (después de la v3.0) junta tres cosas, cada una con su charla de diseño con él:**
   1. **El buzón**, que es esta mensajería. **Diseño ✅ 2026-11-19** ([DISENO-G1-buzon](kit-v3/DISENO-G1-buzon.md), ADR-037; lo decidió
      el probador con el OK de Guido). **Spec ✅ READY 2026-11-19** ([SPEC-G1-buzon](kit-v3/SPEC-G1-buzon.md), ADR-038, con red team).
-     **Construcción: la sesión 1 ✅ 2026-11-19** (la prueba 0, el instalador por PC, el aviso, el `doctor` y `correctorRegistrado`;
-     ADR-039). **Sigue la sesión 2**: `buzon.cjs` (con el contrato `paraAviso` del aviso, y `responder` negándose si su entrada es
-     un archivo), la skill y el protocolo, lo de kit-owned y el tope. Después, el tag que la lleve (lo decide Guido, con la suite
-     entera) y el piloto de un mes en la PC del probador, que arranca con `medir --linea-base`.
+     **Construcción ✅ 2026-11-19** (sesión 1: el instalador, el aviso y el `doctor`, ADR-039; sesión 2: `buzon.cjs`, la skill, el
+     protocolo, kit-owned y el tope, ADR-040; el spec, ✅ IMPLEMENTADO). **Sigue**: el tag que la lleve (lo decide Guido, con la suite
+     entera y el banco, abajo) y el piloto de un mes en la PC del probador: actualizar el kit, `registrame en el buzón`, "instalar
+     hooks por PC" y `buzon.cjs medir --linea-base`. Una disputa de registros la resuelve la persona en cada PC (ADR-040).
   2. **"Probar una idea nueva"** (los experimentos de método). Sale de la v3.0, donde estaba en D8c.1: "vamos a sacar esta versión bien
      armada y en la próxima versión traemos eso de la idea nueva".
   3. **Un "PO" como skill**: un rol al lado del director que responde el buzón, habla con los directores, entiende el proyecto en su
@@ -59,7 +59,7 @@
   en `molde` y `candado:raiz` frena todo archivo nuevo en `docs/` aunque el repo use su propio mapa. En la madre se quitó `candado:raiz`
   (aprobado `2026-11-16-quitar-arbol-docs-madre`). Arreglo: con `docs: no`, que la adopción proponga `hook-escritura: no` o el
   `candado:raiz` quitado con su razón, y que el banco sume un repo así. Para la `3.0.2` o la `v3.1`, con el ciclo (§6).
-- [ ] **`reflexion` en el próximo tag** (la skill nueva, 2026-11-19, ADR-036): entra en el `[Unreleased]` de `kit/CHANGELOG.md`; el tag y
+- [ ] **`reflexion` y el buzón en el próximo tag** (ADR-036 y ADR-037 a ADR-040): los dos en el `[Unreleased]` de `kit/CHANGELOG.md`; el tag y
   su número los decide Guido (`docs/CICLO-DE-MEJORA.md` §6). NO VERIFICADO hasta la primera sesión real con la skill instalada: que
   "reflexioná" o "¿quedó algo suelto?" la disparen solos (en la prueba la descripción se pasó a mano: `docs/kit-v3/PRUEBA-reflexion.md`).
 - [ ] **El hook v2.4.3 al Bot y a su Panel** (inyectaban 15.500 y ~18.000 caracteres el 2026-10-22: arrancan sin ver su estado).

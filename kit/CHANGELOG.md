@@ -31,6 +31,21 @@ Para el próximo tag (sin número todavía: lo decide el dueño del kit).
   línea de `lib/inyeccion.cjs`; no suele estar adaptada.
 - **Qué chequear después**: "instalar hooks por PC" y el `doctor`: `hooks-pc` ✓ y `buzon · sin buzón en esta PC` (hasta registrarse).
 
+**El buzón entre agentes, segunda mitad** (SPEC-G1-buzon, sesión 2 de 2; ADR-040):
+
+- **Qué piezas cambiaron**: **`buzon.cjs`** (`pc/buzon/`, nuevo, con `protocolo.cjs`, `dueno.cjs`, `carpeta.cjs`, `salida.cjs` y
+  `medir.cjs`): viaja con los hooks por PC a `~/.claude/hooks/kit/buzon/` y, con eso, el instalador ya pone la regla `allow` en una PC
+  registrada. Verbos: `registrar`, `mudar`, `turnos`, `leer`, `verificar`, `juzgar`, `responder` (el único que escribe sin OK, con
+  el juicio de salida de seis pasos), `escribir` y `medir`. Una skill global nueva, **`buzon`** (`kit/skills/buzon/`: la skill y
+  `PROTOCOLO-v1.md`), kit-owned como `reflexion` (`preparar-pc.cjs`, `kit-sync.sh`, `lib/adoptar.cjs`, el menú). El `SKILL.md` del
+  Equipador nombra las kit-owned por la marca 🔑 del menú en vez de listarlas tres veces. El aviso reconoce los ids v0 reales
+  (`<persona>@<PC>/<proyecto>`).
+  Una disputa de registros (dos cuentas para un id) no se resuelve sola: la resuelve la persona de cada PC con
+  `registrar --resolver`.
+- **Automático o pide revisión**: automático. Nada cambia en los proyectos ni en una PC sin buzón: el aviso sigue inerte.
+- **Qué chequear después**: **para el buzón, después de actualizar: registrarse** ("registrame en el buzón") **e instalar los hooks por
+  PC**. El `doctor` da `buzon · registrado: N agentes, aviso y regla`. El piloto arranca con `buzon.cjs medir --linea-base`.
+
 ## 3.0.1
 
 Hotfix (2026-11-16): **un arranque propio no se pisa**. Lo encontró la madre al adoptar su propio kit.

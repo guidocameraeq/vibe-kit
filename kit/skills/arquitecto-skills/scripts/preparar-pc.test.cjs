@@ -154,7 +154,7 @@ test('crit 1: en un HOME vacío deja skills, agente, VERSION, hooks/kit, setting
   const r = correrProceso(e);
   assert.equal(r.codigo, 0, r.texto);
   const c = path.join(e.home, '.claude');
-  for (const s of ['arquitecto', 'arquitecto-skills', 'docs-fyd', 'relevamiento', 'reflexion']) assert.ok(fs.existsSync(path.join(c, 'skills', s, 'SKILL.md')), s);
+  for (const s of ['arquitecto', 'arquitecto-skills', 'docs-fyd', 'relevamiento', 'reflexion', 'buzon']) assert.ok(fs.existsSync(path.join(c, 'skills', s, 'SKILL.md')), s);
   assert.ok(fs.existsSync(path.join(c, 'agents', 'redteam-spec.md')));
   assert.equal(fs.readFileSync(path.join(c, 'VERSION'), 'utf8'), fs.readFileSync(path.join(e.kit, 'kit', 'VERSION'), 'utf8'));
   assert.ok(fs.existsSync(path.join(c, 'hooks', 'kit', 'secretos.cjs')));

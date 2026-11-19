@@ -1,5 +1,5 @@
 #!/bin/bash
-# kit/ ↔ ~/.claude/ — compara (default) o sincroniza las 6 rutas canónicas y VERSION.
+# kit/ ↔ ~/.claude/ — compara (default) o sincroniza las 7 rutas canónicas y VERSION.
 #   bash .claude/scripts/kit-sync.sh          → diff (lo usa /inicio)
 #   bash .claude/scripts/kit-sync.sh sync     → copia kit/ → ~/.claude/ y después diff (lo usa /cierre)
 # La línea "Carpeta de proyectos de esta máquina" del Arquitecto es de cada PC (ADR-023):
@@ -7,7 +7,7 @@
 set -u
 P="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 H="$HOME/.claude"
-SKILLS="skills/arquitecto skills/arquitecto-skills skills/docs-fyd skills/relevamiento skills/reflexion"
+SKILLS="skills/arquitecto skills/arquitecto-skills skills/docs-fyd skills/relevamiento skills/reflexion skills/buzon"
 LINEA='^\*\*Carpeta de proyectos de esta máquina\*\*'
 ARQ="$H/skills/arquitecto/SKILL.md"
 

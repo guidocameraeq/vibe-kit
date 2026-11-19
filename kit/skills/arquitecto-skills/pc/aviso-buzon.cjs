@@ -39,7 +39,8 @@ const TOPE_ASUNTO = 80;
 const RE_NOMBRE = /^[A-Za-z0-9._-]{1,120}$/;
 const RE_CONV = /^C\d{1,6}$/;
 const RE_ID_V1 = /^[a-z0-9][a-z0-9-]{1,39}\/[a-z0-9][a-z0-9-]{1,39}$/;
-const RE_ID_V0 = /^[A-Za-z0-9._-]{1,60}@[A-Za-z0-9._-]{1,60}$/;
+// un id v0 es <persona>@<PC>/<proyecto> (el LEEME del v0; la sesión 1 lo tenía sin el /<proyecto> y no mostraba ningún v0)
+const RE_ID_V0 = /^[A-Za-z0-9._-]{1,60}@[A-Za-z0-9._-]{1,60}\/[A-Za-z0-9._-]{1,80}$/;
 const EVENTOS = new Set(['SessionStart', 'UserPromptSubmit', 'PostToolUse']);
 const VERIFICA = new Set(['verificado', 'v0']);
 

@@ -49,7 +49,7 @@ const PU = require('../pc/lib/publicar.cjs'); // 8d C2.2: el contrato de la auto
 const CX = require('../pc/lib/contexto.cjs'); // la ficha vigente (la de origin/<defecto>, no la del disco)
 const I = require('./instalar-hooks-pc.cjs');
 
-const SKILLS = ['arquitecto', 'arquitecto-skills', 'docs-fyd', 'relevamiento', 'reflexion'];
+const SKILLS = ['arquitecto', 'arquitecto-skills', 'docs-fyd', 'relevamiento', 'reflexion', 'buzon'];
 const FUENTES = [...SKILLS.map((s) => `skills/${s}`), 'agents/redteam-spec.md', 'VERSION']; // las de kit-sync.sh
 const LINEA_CARPETA = '**Carpeta de proyectos de esta máquina**';
 const LUGAR_CARPETA = '{{CARPETA_DE_PROYECTOS}}';

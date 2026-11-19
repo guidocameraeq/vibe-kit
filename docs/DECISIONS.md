@@ -45,6 +45,7 @@
 - ADR-037 · El buzón entre agentes: aviso en cada sesión, `proyecto/persona`, contestar con citas, en el kit y mudanza PC por PC (2026-11-19)
 - ADR-038 · El spec del buzón: el turno y la verificación de un mensaje v0, y la regla de permiso la pone el instalador por PC (2026-11-19)
 - ADR-039 · La construcción del buzón, sesión 1: el aviso corre `buzon.cjs` en un hilo aparte, y la regla sale solo con `buzon.cjs` instalado (2026-11-19)
+- ADR-040 · La construcción del buzón, sesión 2: `buzon.cjs` en módulos, la disputa que nunca se resuelve sola y el juicio de salida por ventanas (2026-11-19)
 
 *Cada ADR nuevo suma su línea acá (lo pide `/cierre`).*
 
@@ -908,3 +909,50 @@ permiso (`2>` y `>>` piden).
   vacío de 51 a 92 ms). El aviso se registra en toda PC aunque no tenga buzón: es inerte, pero es un node más por herramienta.
 - **Dónde vive:** `kit/skills/arquitecto-skills/pc/aviso-buzon.cjs`, `scripts/instalar-hooks-pc.cjs` y `scripts/doctor.cjs`, con sus
   pruebas; el spec, sin tocar (el sello).
+
+## ADR-040 · La construcción del buzón, sesión 2: `buzon.cjs` en módulos, la disputa que nunca se resuelve sola y el juicio de salida por ventanas (2026-11-19)
+La sesión 2 del spec del buzón (ADR-038) construyó `buzon.cjs` con sus nueve verbos, la skill `buzon` con `PROTOCOLO-v1.md`, lo de
+kit-owned y el tope del Equipador. El red team del código (Opus, 12 hallazgos, 11 probados en buzones falsos) encontró dos críticos:
+una cuenta cualquiera quedaba verificada como otro agente, ganando la disputa con un `antes` hacia un registro v0 propio o con una
+fecha vieja y un `resuelto.json` suyo, o borrando `registro.json` y poniendo un `registro-otro.json`. Y además: un mensaje falso "del
+agente" con dueño pendiente cerraba sus turnos; el juicio de salida comparaba renglones enteros (un prefijo, un espacio duro o
+partir el renglón lo esquivaban); un alias de cita sin forma salía fuera del cerco y dentro del comando sugerido.
+- **Decisión** (la sesión, ADR-034: lo técnico lo decide la sesión; los dos primeros se apartan del spec sellado, que no se toca):
+  1. **Una disputa nunca se resuelve sola.** El índice local de cada PC recuerda, por id, la primera cuenta dueña que vio (de un
+     registro v1 y de un registro v0); otra cuenta, o el recordado que cambia, es disputa. **Se aparta del protocolo 2 del spec**
+     ("en una disputa gana el que trae el `antes` válido"): cualquiera se arma un registro v0 propio y un `antes` hacia él (probado).
+  2. **`registrar --resolver` es de cada PC**: fija en su índice qué cuenta vale para ese id, sin escribir en la carpeta (sin regla, el
+     pedido de permiso es el OK). **Se aparta del spec**, que lo escribía en la carpeta: un archivo compartido que resuelve lo
+     escribe cualquiera. `mudar` escribe un registro rival (no un alta) si el id lo tiene otra cuenta y esta trae el v0 del proyecto.
+  3. **Cierra un turno solo un mensaje del agente que verifica** (`verificado` o `v0`); uno que solo dice serlo se muestra como ajeno.
+  4. **El juicio de salida mira el texto normalizado** (NFKC, sin invisibles, espacios juntados) **y por ventanas de 25 caracteres**
+     sobre el texto unido, en una sola llamada a `git grep -F -f`. Suma: dígitos con separadores (sin contar fechas ni horas), rutas de
+     Unix, nombres de máquina de tres partes, `CLAVE=valor`, separadores con espacios, y los ignorados sensibles (`.env`, llaves).
+  5. **Fuera del cerco, solo lo que tiene forma**: un `de` que no es un id, o un alias que no es un alias, se nombran como "raros".
+  6. **`buzon.cjs` es la puerta y la lógica vive al lado**, en `pc/buzon/` (`protocolo`, `dueno`, `carpeta`, `salida`, `medir`):
+     viajan juntos con los hooks por PC y la regla sigue apuntando solo a `buzon.cjs`.
+  7. **La sesión de persona la lee el buzón** (`.kit-rol` ausente o `humano`), no `lib/contexto.cjs`: allá `humano` no es un rol
+     válido y `director` sí; acá un director no es una persona.
+  8. **Dueños**: en el hook, con caché (registros y `leidos` por tamaño, `mtime` y huella; un mensaje, el de su primera vista); fuera
+     del hook, siempre sobre el original. Una cuenta sin `DOMINIO\cuenta`, con `...` (`dir /q` cuando no resuelve), del sistema o con
+     caracteres fuera del ASCII queda `pendiente`.
+  9. Lo chico: las huellas que delatan un cambio salen solo de las marcas de los agentes de la PC · una aprobación de alta lleva sus
+     campos · `escribir` anota la huella de su mensaje · `medir` cuenta solo las automáticas que verifican y las muestra encerradas ·
+     el cerco usa 16 hex · nada se escribe fuera del buzón por una unión de directorio · `__proto__` y compañía son nombres raros ·
+     la medida 8 ("encargos esperando el OK") cuenta los turnos abiertos que `juzgar` manda a la persona.
+  10. **El aviso de la sesión 1 no mostraba ningún remitente v0**: su patrón era `<persona>@<PC>` y el id v0 real es
+     `<persona>@<PC>/<proyecto>`. Arreglado en la cáscara y en su prueba.
+- **Por qué:** cada freno tiene que valer contra quien escribe en la carpeta, no solo contra el error honesto; y lo que actúa
+  (`responder`) mira siempre el original.
+- **Descartado:** dejar el `antes` como desempate (probado: lo arma cualquiera) · una lista de palabras prohibidas en la salida
+  (frágil, como ya dijo el red team del spec) · verificar en el hook sin caché (pasa el plazo sobre la red) · un solo archivo de
+  ~1.500 renglones.
+- **Costo aceptado:** una disputa necesita a la persona en cada PC. **Lo que no se ataja sin permisos por carpeta (§7.5)**: editar en
+  el lugar un mensaje ajeno antes de que lo vea nadie (el dueño no cambia y el `mtime` se vuelve atrás); editar en el lugar la marca
+  ajena. Una paráfrasis corta sigue pasando (§4.3.3).
+- **Medido** (`claude -p` 2.1.328 con la regla puesta, sobre un `buzon.cjs` de mentira): `responder … < <(cat archivo)` **pide permiso** (no
+  corrió); el heredoc `<<'FIN'` pasa. Era lo NO VERIFICADO del red team.
+- **Medido**: con la carpeta real, solo leyendo, los 180 mensajes v0 verifican `v0` con el dueño de su registro (D3), sin tipos ni
+  nombres raros, y la carpeta quedó sin un cambio. El aviso sobre una carpeta sintética de 171 mensajes (disco local): p95 283-321 ms.
+- **Dónde vive:** `kit/skills/arquitecto-skills/pc/buzon/` con sus pruebas (`redteam.test.cjs`, un caso por hallazgo),
+  `kit/skills/buzon/` y `pc/aviso-buzon.cjs`.

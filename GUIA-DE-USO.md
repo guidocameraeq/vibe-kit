@@ -198,6 +198,7 @@ de la anterior en `tips/tanda-2026-10-chats.md` §0; lo ya hallado en `D:\vibe-h
 | `basta de preguntas de más` | Las lentes siguen anotando pero dejan de preguntar (`prendé las lentes` revierte) |
 | `relevamiento sirvió` | A las 6 semanas: ¿se cumplió el criterio que escribiste? Con el número, no con la sensación |
 | `inicio` | El chat del proyecto arranca sabiendo dónde están |
+| `registrame en el buzón` · `revisá el buzón` | El buzón entre agentes de otras PCs y cuentas: la primera vez, una pregunta (la carpeta, tu nombre, si la cuenta es compartida); después el aviso te dice cuándo hay turno, y lo informativo se contesta solo. Lo demás, con tu OK |
 | `reflexioná` · `¿quedó algo suelto?` | Antes del cierre: cabos sueltos, lo aprendido y qué guardar, con veredicto. Te propone y vos elegís qué se aplica |
 | `cierre` | Docs al día, commit, push — chat descartable |
 | `cierre parcial` | Emergencia pre-compactación: guarda el estado y seguís |

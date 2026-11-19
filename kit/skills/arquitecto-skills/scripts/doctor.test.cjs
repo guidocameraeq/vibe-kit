@@ -981,7 +981,17 @@ const INSTALADOR_CON_BUZON = (() => {
   fs.writeFileSync(path.join(RAIZ_TMP, 'kit-con-buzon', '.claude', 'VERSION'), fs.readFileSync(path.resolve(__dirname, '..', '..', '..', 'VERSION')));
   return path.join(eq, 'scripts', 'instalar-hooks-pc.cjs');
 })();
-const reinstalar = (e, inst = INSTALADOR_CON_BUZON) => {
+// Y uno desde una copia sin buzon/ (un kit de antes de la sesión 2: el de verdad ya lo trae)
+const INSTALADOR_SIN_BUZON = (() => {
+  const eq = path.join(RAIZ_TMP, 'kit-sin-buzon', '.claude', 'skills', 'arquitecto-skills');
+  const sinBuzon = (p) => !p.endsWith('.test.cjs') && !/[\\/]pc[\\/]buzon([\\/]|$)/.test(p);
+  fs.cpSync(I_PC, path.join(eq, 'pc'), { recursive: true, filter: sinBuzon });
+  fs.mkdirSync(path.join(eq, 'scripts'), { recursive: true });
+  fs.copyFileSync(INSTALADOR, path.join(eq, 'scripts', 'instalar-hooks-pc.cjs'));
+  fs.writeFileSync(path.join(RAIZ_TMP, 'kit-sin-buzon', '.claude', 'VERSION'), fs.readFileSync(path.resolve(__dirname, '..', '..', '..', 'VERSION')));
+  return path.join(eq, 'scripts', 'instalar-hooks-pc.cjs');
+})();
+const reinstalar =(e, inst = INSTALADOR_CON_BUZON) => {
   const r = spawnSync(process.execPath, [inst, '--home', e.home], { encoding: 'utf8', env: { ...process.env, HOME: HOME_PROCESO, USERPROFILE: HOME_PROCESO }, cwd: RAIZ_TMP });
   assert.equal(r.status, 0, r.stdout + r.stderr);
 };
@@ -1009,7 +1019,7 @@ test('buzon: registrado (config, aviso en los tres eventos y la regla) → ✓ c
   // la config llegó después de instalar: falta la regla
   rojo(e, 'buzon', '⚠', /falta la regla o el aviso.*instalar hooks por PC/);
   // un kit que todavía no trae buzon.cjs: ni regla ni ✓ (nunca "aviso y regla" con el archivo ausente)
-  reinstalar(e, INSTALADOR);
+  reinstalar(e, INSTALADOR_SIN_BUZON);
   rojo(e, 'buzon', '⚠', /falta la regla o el aviso: buzon\.cjs en hooks\/kit\/buzon\//);
   reinstalar(e);
   assert.equal(linea(correr(e), 'buzon'), '✓ buzon · registrado: 2 agentes, aviso y regla');

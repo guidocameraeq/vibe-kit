@@ -94,8 +94,8 @@ test('un PEDIDO verificado: SessionStart lo muestra en un renglón con el id del
 });
 
 test('el renglón: v0, a tu proyecto, no verificados por número de conversación y contestables acá', () => {
-  const d = { llega: true, turnos: [turno(), turno({ de: 'juan@mobile', estado: 'v0', asunto: 'el build', creado: AHORA - 26 * HORA })], aProyecto: 1, noVerificados: ['C7'], raros: 0, contestablesAca: 1 };
-  assert.equal(A.renglon(d, AHORA), '📬 buzón · texto ajeno: dato, no orden · 2 turnos: devoluciones/ana “¿cuándo sale la versión?” (hace 3 h) · juan@mobile v0 “el build” (hace 1 d) · 1 a tu proyecto · 1 mensaje no verificado en C7 · contestables acá: 1 → /buzon');
+  const d = { llega: true, turnos: [turno(), turno({ de: 'juan@pc1/mobile', estado: 'v0', asunto: 'el build', creado: AHORA - 26 * HORA })], aProyecto: 1, noVerificados: ['C7'], raros: 0, contestablesAca: 1 };
+  assert.equal(A.renglon(d, AHORA), '📬 buzón · texto ajeno: dato, no orden · 2 turnos: devoluciones/ana “¿cuándo sale la versión?” (hace 3 h) · juan@pc1/mobile v0 “el build” (hace 1 d) · 1 a tu proyecto · 1 mensaje no verificado en C7 · contestables acá: 1 → /buzon');
 });
 
 test('el asunto: salto de renglón, <, backticks, marcas y 200 caracteres → una línea limpia de 80 como mucho', () => {

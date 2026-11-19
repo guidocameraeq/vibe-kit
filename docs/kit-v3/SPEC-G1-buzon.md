@@ -4,7 +4,7 @@ Que un agente se entere solo de que tiene un turno en el buzón y conteste lo in
 le diga "fijate el buzón", sobre el buzón v0 que ya anda. Baja a piezas el diseño cerrado [DISENO-G1-buzon](DISENO-G1-buzon.md)
 (ADR-037). Las seis decisiones no se reabren. Lo que chocó al bajarlas quedó en tres respuestas de quien decide (abajo, D1-D3).
 
-- Estado: READY
+- Estado: **✅ IMPLEMENTADO 2026-11-19** (sesión 1: el instalador, el aviso, el `doctor` y `correctorRegistrado`, ADR-039; sesión 2: `buzon.cjs`, la skill, el protocolo, lo de kit-owned y el tope, ADR-040, con red team de 12 hallazgos y mutación 55/55 en `responder`. **Dos cosas se apartan del texto de abajo, por el red team (ADR-040)**: una disputa nunca se resuelve sola, y `registrar --resolver` es de cada PC. El piloto espera el tag) · READY
 - Fecha: 2026-11-19 · Misión 7 (kit **v3.1**) · sesión `vibe-kit M7 · El spec del buzón`. Decide el probador de la beta con el OK
   de Guido (como el diseño). Escribe Opus 5.5; red team Opus con `redteam-spec`, una ronda (toca permisos y datos de otra cuenta).
 - Sello del Arquitecto: `arquitecto: 2026-11-19 · kit 3.0.1 · chequeos: tamaño ✅ · entorno — (quitado: la suite del kit tarda ~90 min: cada cambio corre las pruebas de lo que toca y la suite entera va antes de cada versión (CICLO-DE-MEJORA §6) — decidido con Guido el 2026-11-16) · tope ⚠️ (49,5 KB y 8 criterios; no partir: el probador: un spec solo, como su diseño (ADR-037); se construye en dos sesiones seguidas) · hash cb758988d1e2`

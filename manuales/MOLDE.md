@@ -280,7 +280,7 @@ cada una: `manuales/EQUIPADOR.md` §5.
 
 ## 12. Lo que no viene en el molde
 
-Las skills globales (`docs-fyd`, `relevamiento`, `reflexion`, el Arquitecto y el Equipador) viven en `~/.claude/`, no en el proyecto. El
+Las skills globales (`docs-fyd`, `relevamiento`, `reflexion`, `buzon`, el Arquitecto y el Equipador) viven en `~/.claude/`, no en el proyecto. El
 Equipador las instala y las pone al día (`manuales/EQUIPADOR.md`); `docs-fyd` y `relevamiento` tienen su guía propia
 (`HOJA-DE-MANO-relevamiento.md`, y el `SKILL.md` de `docs-fyd`).
 
