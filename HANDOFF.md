@@ -2,37 +2,42 @@
 
 > Dónde quedamos. El cierre lo sobreescribe entero.
 
-**Última sesión:** 2026-11-06 (pc-juan). Kit en la `3.0.0-rc.6`. Pasos 0, 1, 2 y 5 (rc.6) hechos; el 3 a medias.
+**Última sesión:** 2026-11-19 (pc-juan). Kit en la `3.0.1` (último tag). Pasos 0, 1, 2 y 5 hechos; el 3 y el 6 en "mirar".
 
 ## Dónde quedamos
 
-- **Paso 5, la PC en la rc.6:** hecho (`pruebas/2026-11-06-rc-6.md`). Doctor: 29 chequeos, 1 ✗ (`claude-code`: el `claude` de la
-  terminal es 2.1.252 y pide ≥ 2.1.295), 4 ⚠. Se aplicó con `--pisar-editados`: 3 archivos "editados a mano" eran idénticos a la rc.3.
-- **Suite en la rc.6:** hecha (`pruebas/2026-11-06-suite-rc6.md`). 3071 tests, 3061 pasan, 9 rojas. Repetidas desde PowerShell solo
-  queda `no hay sh`; las otras 8 pasan.
-- **Paso 3, `proyecto-x3`:** `--mirar` y `--aplicar` hechos **solo en un clon temporal** (2 commits, 77 archivos, barreras verde).
-  `pruebas/2026-11-06-proyecto-x3-mirar.md` y `-aplicar.md`. **No se subió nada** al repo de la empresa y no se tocó la carpeta de Juan.
-  El clon temporal se borró en el cierre: si se decide subir, se rehace la adopción (rápido, mismas elecciones).
-- `proyecto-x2` no existe en `<proyectos>` (la carpeta entera); corregido en la prueba de la rc.6.
+- **`actualizate`:** la PC ya estaba en 3.0.1, con `kit · sin cambios · 117 iguales` (`pruebas/2026-11-19-v3-0-1.md`). Juan no
+  aplicó el PreToolUse del corrector ni el `settings.json` que proponía el `--plan`. `claude-code` ahora da ✓ (2.1.327). **NO
+  VERIFICADO** cómo pasó la PC de la rc.6 a la 3.0.1: no hay prueba de ese salto (rc.7 y rc.8 en el medio).
+- **Skill `reflexion`:** Juan la pidió como skill global del kit; según Juan, Guido le dio el OK. La propuesta ajustada está en
+  `propuestas/reflexion/SKILL.md`, con una prueba de escritorio sobre esta sesión (`pruebas/2026-11-19-reflexion-prueba-1.md`).
+  Encontró la prueba del `actualizate` que faltaba y el `HANDOFF` desfasado.
+- **Buzón de agentes:** según Juan, Guido le encargó llevarlo al kit como skill de la organización y mejorarlo, sobre todo para que
+  el Arquitecto, el PO y los directores se enteren solos de los mensajes nuevos. Ya funciona: protocolo v0 en la unidad de red,
+  24 conversaciones, 9 agentes, y cruza PCs y cuentas. El kit ya acepta `transporte: buzon` en la ficha de la mesa. Su spec dice
+  que el diseño va en el racimo G de la misión 4 del kit, y que el red team dejó dos críticos abiertos: el contenido puede leerse
+  como orden, y el puntero de `leidos/` pierde mensajes.
+- Se commitearon los resultados del 2026-11-06 que habían quedado sin subir: `proyecto-x1` y `proyecto-x4` en "mirar"
+  (`proyectos.md` y `pruebas/2026-11-06-proyecto-x1-x4-mirar.md`).
 
 ## Qué sigue
 
-1. Juan **reinicia Claude Code** y se repite el `doctor` (mini-chequeo; nunca se corrió después del reinicio con la rc.6).
-2. Juan decide si hace `claude update` en la terminal (arregla el ✗).
-3. Para `proyecto-x3`: Juan commitea o guarda sus cambios locales (4 archivos + 1 carpeta nueva). Después decide el push a `main` del
-   repo de la empresa (conviene avisar antes a quien lo lleva) y se hace el `--traer`. Si no quiere, el paso 3 queda en "mirar" y
-   está bien. `docs/NORTE.md` tiene 5 `[completar]`.
-4. Paso 4 (usarlo de verdad) solo si el paso 3 sube. Cada prueba arranca con `kit: <versión>`.
+1. **El trabajo del kit no se hace acá:** se hace en `<proyectos>/vibe-kit`, con su protocolo (`/inicio`, editar en `kit/`,
+   `kit-sync` `LIMPIO`, `/cierre`). Ese clon estaba 622 commits atrás de `origin/main` el 2026-11-19, así que lo primero es `git pull`.
+   - Misión 1: skill `reflexion` (insumo: `propuestas/reflexion/SKILL.md` de esta rama).
+   - Misión 2: el buzón (insumo: su spec y el `LEEME` v0; antes, ver qué dejó el racimo G en `main`).
+   - Las dos de a una: tocan los mismos archivos de `main`.
+2. Antes de tocar `main`, confirmar con Guido que Juan trabaje en la sesión madre (para no chocar con él).
+3. Con la skill ya en una rc: probarla acá en una sesión limpia, con y sin la skill (la línea de base de `writing-skills`).
+4. Pendientes de antes: el `doctor` después de reiniciar, y las decisiones de `proyecto-x3` (push y `--traer`), `x1` y `x4` (D4:
+   declarar la clase de cada base).
 
 ## Para la sesión de Guido
 
-- **Falso "editado a mano" de rc.3 a rc.6:** 3 archivos idénticos a los del tag rc.3 (hash comprobado) figuraron como "no es ninguna
-  versión del kit"; sin `--pisar-editados`, `VERSION` no subía. Causa no investigada.
-- **`claude-code` ahora ✗** y el doctor lee bien la terminal (h10 anda para eso), pero deja exit 1.
-- **`no hay sh` sigue** (kit-githook) desde PowerShell en la rc.6; h10 no lo cambió acá. Las otras 8 rojas son de carga/tiempos (no probado
-  sin Docker). La suite tarda 38 min.
-- `automode` ⚠ persiste (esta rama comparte origin con el canónico). `copias-kit` ⚠ en `proyecto-x1`.
+- El salto rc.6 → 3.0.1 de esta PC no tiene prueba, y la suite no se corrió en 3.0.1.
+- Lo de antes sigue: el falso "editado a mano" de rc.3 a rc.6, `no hay sh` en kit-githook, y el ⚠ de `automode` (esta rama
+  comparte origin con el canónico).
 
 ## Trabado
 
-Nada. Esperan decisiones de Juan (push del paso 3).
+Nada. Falta el OK de Guido para que Juan trabaje en `main` del kit.
