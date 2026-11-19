@@ -43,6 +43,7 @@
 - ADR-035 · Cómo sale una versión: banco de prueba como paso fijo, `rc` quirúrgicas de a una, y el tramo final con un director y sesiones en fila (2026-11-15)
 - ADR-036 · La skill `reflexion`: global, aparte del `/cierre`, y propone sin escribir (2026-11-19)
 - ADR-037 · El buzón entre agentes: aviso en cada sesión, `proyecto/persona`, contestar con citas, en el kit y mudanza PC por PC (2026-11-19)
+- ADR-038 · El spec del buzón: el turno y la verificación de un mensaje v0, y la regla de permiso la pone el instalador por PC (2026-11-19)
 
 *Cada ADR nuevo suma su línea acá (lo pide `/cierre`).*
 
@@ -853,3 +854,29 @@ en el proyecto que los tenía. El pedido del probador de la beta (2026-11-19, co
 - **Costo aceptado:** el instalador de frenos por PC tiene que aprender a alojar más de una pieza por evento; el id es caro de cambiar
   (⚠️ en el diseño); mientras la otra PC siga en v0, el lector escribe en v0 para ella.
 - **Dónde vive:** el diseño en `docs/kit-v3/DISENO-G1-buzon.md`; se construye con su spec delta (misión 7, kit v3.1).
+
+## ADR-038 · El spec del buzón: el turno y la verificación de un mensaje v0, y la regla de permiso la pone el instalador por PC (2026-11-19)
+Al bajar el diseño del buzón (ADR-037) a spec delta, las pruebas de §7 mostraron tres choques. (1) En el v0, los pedidos van a un
+comodín (`*/<proyecto>`) y nombran al agente en `esperando_respuesta_de`: así van los 15 mensajes a comodín, incluidos los turnos de 22
+a 29 días que motivaron el diseño. Con "comodín nunca abre turno" (§4.1.5), el aviso no los vería. (2) "Verificado" pide una cuenta
+registrada para el agente, y los agentes v0 no tienen ninguna: en el piloto, nada de la otra PC (sigue en v0) verificaría. (3) Medido
+con `claude -p`: escribir fuera del proyecto pide permiso, y una regla `allow` compara el texto literal del comando; §7.6 pedía decir
+cuál y quién la pone.
+- **Decisión** (el probador de la beta, con el OK de Guido; el detalle en `docs/kit-v3/SPEC-G1-buzon.md`):
+  1. **En un mensaje v0, un id exacto en `esperando_respuesta_de` es una dirección exacta**: abre turno, lo avisa, lo mide y se puede
+     contestar solo. En el v1 el turno sale de `para`.
+  2. **Un remitente v0 se verifica con el dueño de su registro v0** (`agentes/<id v0>.json`, el primero que registró), más la huella;
+     medido: coincide en los 170 mensajes. Deja de valer cuando el agente se muda; un `antes` vale solo con ese mismo dueño (red team).
+  3. **La regla de permiso la escribe `instalar-hooks-pc`** en `~/.claude/settings.json`, solo con el buzón configurado. Son tres
+     verbos de `hooks/kit/buzon/buzon.cjs` (`turnos`, `leer` y `responder`; `responder` solo por Bash), y `--quitar` la saca.
+     `escribir` no tiene regla: el pedido de permiso es el OK de la persona.
+- **Por qué:** el piloto tiene que medir lo que pasa de verdad, y casi todo lo que llega a la PC del probador es v0 de la otra PC. La
+  regla en el instalador tiene su prueba y su vuelta atrás, y la corre la persona dueña de la PC, como el deny del almacén.
+- **Descartado:** (1) que el turno v0 abra sin poder contestarse solo (frena el ida y vuelta entre PCs, que es casi todo el uso), o
+  dejar §4.1.5 tal cual (el piloto mediría casi nada) · (2) que un remitente v0 nunca verifique (lo mismo) · (3) que la regla la escriba
+  `registrar` (otro script tocando el settings global sin vuelta atrás; el clasificador del modo `auto` a veces lo frena) · una regla
+  para todos los verbos (dejaría `escribir` sin OK).
+- **Costo aceptado:** la 2 confía en quien creó primero cada registro v0 hasta la mudanza; si esa cuenta es compartida no se sabe, y lo
+  que se contesta solo son citas. El instalador pasa a tocar `allow` además de `deny`. Durante el piloto, la persona mira una vez por
+  semana la lista de respuestas automáticas: es el corte que la regla de salida no puede darse sola (red team 6).
+- **Dónde vive:** `docs/kit-v3/SPEC-G1-buzon.md` (READY, sellado; el red team, 14 hallazgos, al final del spec).

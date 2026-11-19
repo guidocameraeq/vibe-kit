@@ -20,8 +20,10 @@
   no bien termine lo otro, lo hago".
   **Guido, 2026-11-04: la próxima versión (después de la v3.0) junta tres cosas, cada una con su charla de diseño con él:**
   1. **El buzón**, que es esta mensajería. **Diseño ✅ 2026-11-19** ([DISENO-G1-buzon](kit-v3/DISENO-G1-buzon.md), ADR-037; lo decidió
-     el probador con el OK de Guido). **Sigue: el spec delta y la construcción** (skill `buzon`, `buzon.cjs`, el aviso por PC y el
-     instalador de frenos que aloje más de una pieza), y después el piloto de un mes en la PC del probador (§5 del diseño).
+     el probador con el OK de Guido). **Spec ✅ READY 2026-11-19** ([SPEC-G1-buzon](kit-v3/SPEC-G1-buzon.md), ADR-038, con red team).
+     **Sigue: la construcción**, en dos sesiones seguidas (la 1, el instalador por PC, el `doctor` y el aviso; la 2, `buzon.cjs`, la
+     skill y el protocolo), con la prueba 0 antes. Después, el tag que la lleve (lo decide Guido) y el piloto de un mes en la PC del
+     probador, que arranca con `medir --linea-base`.
   2. **"Probar una idea nueva"** (los experimentos de método). Sale de la v3.0, donde estaba en D8c.1: "vamos a sacar esta versión bien
      armada y en la próxima versión traemos eso de la idea nueva".
   3. **Un "PO" como skill**: un rol al lado del director que responde el buzón, habla con los directores, entiende el proyecto en su

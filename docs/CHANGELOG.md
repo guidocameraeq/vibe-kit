@@ -2,6 +2,29 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-11-19 — Misión 7: el spec del buzón entre agentes
+
+La PC del probador de la beta (Opus 5.5), sesión `vibe-kit M7 · El spec del buzón`. Decidió el probador con el OK de Guido. Solo el spec:
+no se tocó `kit/`. Sin tag.
+
+**Added**
+- **`docs/kit-v3/SPEC-G1-buzon.md`**, READY y sellado (tope ⚠️ 49,5 KB: un solo spec, como su diseño), con su fila en `docs/README.md`:
+  - **las pruebas de §7, medidas**: listar la carpeta tarda 6-69 ms, y leer los 170 mensajes, 0,8-1,3 s (por eso va un índice local
+    que lee solo lo nuevo). Node no da el dueño de un archivo: lo da `dir /q` (~90 ms por carpeta), y PowerShell tarda 0,5-1,2 s.
+    Escribir fuera del proyecto pide permiso, y una regla `allow` compara el texto literal (probado con `claude -p` en una carpeta de
+    prueba: argumentos y heredoc pasan; comillas, `&&`, `>` y lo que la shell expande piden). Una `-p` llega con `sdk-cli`;
+  - **la línea base, turno por turno**: entre 0 y 14 turnos de más de 7 días, según cómo se lea el v0; el "~4" del diseño no se
+    reproduce (los más viejos iban a un comodín). Tiempos a un turno: mediana 8 a 27 min, p75 0,4 a 1,5 h;
+  - las piezas: el protocolo v1, `buzon.cjs` (viaja con los hooks por PC), la skill `buzon`, el aviso, los cambios al instalador por
+    PC, `correctorRegistrado` y el `doctor`, lo de kit-owned y el tope del Equipador (se saca la repetición, sin subirlo). Además, las
+    pruebas de cada pieza (en rojo primero) y el piloto con su corte.
+- **El red team** (Opus, 14 hallazgos): 12 aplicados enteros y 2 recortados. El crítico (lo que la shell expande) se midió y no
+  pasaba la regla.
+- **ADR-038** (el turno y la verificación de un mensaje v0, y la regla de permiso en el instalador) con su línea en el índice.
+
+**Changed**
+- `docs/TODO.md`: el buzón queda con el spec hecho y lo que sigue (la construcción en dos sesiones, el tag y el piloto).
+
 ## 2026-11-19 — Misión 7: el diseño del buzón entre agentes, con avisos
 
 La PC del probador de la beta (Opus 5.5), sesión `vibe-kit M7 · El buzón`. Decidió el probador con el OK de Guido, de a una. Solo
