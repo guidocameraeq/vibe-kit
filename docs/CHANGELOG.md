@@ -2,7 +2,25 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
-## 2026-11-19 — La skill `reflexion`
+## 2026-11-19 — Misión 7: el diseño del buzón entre agentes, con avisos
+
+La PC del probador de la beta (Opus 5.5), sesión `vibe-kit M7 · El buzón`. Decidió el probador con el OK de Guido, de a una. Solo
+diseño: no se tocó `kit/`. Sin tag.
+
+**Added**
+- **`docs/kit-v3/DISENO-G1-buzon.md`** (ADR-037), con su fila en `docs/README.md`:
+  - lo medido en el buzón v0 (169 mensajes, mediana 18 min, p75 ~4,2 h, 0 encargos, 21 sesiones abiertas con turnos parados);
+  - la investigación (hooks sí; *channels*, `/loop` y tareas programadas, no por ahora);
+  - las seis decisiones: el aviso en cada sesión, `proyecto/persona`, contestar con citas y pegar o actuar con OK, el vocabulario de
+    la mesa, en el kit con la configuración en la PC, y la mudanza PC por PC;
+  - el piloto con umbrales y corte, lo NO VERIFICADO y los 11 criterios.
+- **El revisor frío** (Opus, 15 hallazgos: 2 críticos, 6 altos), todos aplicados. Dos recortaron decisiones con el OK de quien decide:
+  la verificación suma la huella del mensaje y contestar solo no pega contenido; una decisión viaja como `HECHO tema: decision`.
+- **ADR-037** con su línea en el índice.
+
+**Changed**
+- `docs/TODO.md`: el punto 1 de la misión 7 queda con el diseño hecho y lo que sigue (spec delta, construcción, piloto).
+
 
 La PC del probador de la beta (Opus 5.5), con su OK y el de Guido para trabajar en `main`. Sin tag (lo decide Guido).
 

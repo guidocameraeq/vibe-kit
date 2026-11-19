@@ -42,6 +42,7 @@
 - ADR-034 · La vara suma la coherencia entre piezas; lo técnico lo decide la sesión; la revisión integral es paso fijo (2026-11-03)
 - ADR-035 · Cómo sale una versión: banco de prueba como paso fijo, `rc` quirúrgicas de a una, y el tramo final con un director y sesiones en fila (2026-11-15)
 - ADR-036 · La skill `reflexion`: global, aparte del `/cierre`, y propone sin escribir (2026-11-19)
+- ADR-037 · El buzón entre agentes: aviso en cada sesión, `proyecto/persona`, contestar con citas, en el kit y mudanza PC por PC (2026-11-19)
 
 *Cada ADR nuevo suma su línea acá (lo pide `/cierre`).*
 
@@ -828,3 +829,27 @@ del 2026-11-19 en la rama de prueba de la beta, y su prueba de escritorio). Se s
 - **Costo aceptado:** con el dueño ausente, las propuestas esperan hasta que vuelva. La descripción se probó pasada a mano: el disparo
   real de la plataforma queda NO VERIFICADO hasta la primera sesión con la skill instalada.
 - **Dónde vive:** `kit/skills/reflexion/SKILL.md`; la entrada del menú en `kit/skills/arquitecto-skills/menu-skills.md`.
+
+## ADR-037 · El buzón entre agentes: aviso en cada sesión, `proyecto/persona`, contestar con citas, en el kit y mudanza PC por PC (2026-11-19)
+El buzón v0 por carpeta compartida se usa (169 mensajes, 24 conversaciones, 9 agentes, 2 PCs), pero cada respuesta la dispara una
+persona que le dice a la sesión "fijate el buzón": p75 de ~4,2 h y turnos parados de semanas, aun con 21 sesiones abiertas en 14 días
+en el proyecto que los tenía. El pedido del probador de la beta (2026-11-19, con el OK de Guido): llevarlo a una skill con avisos.
+- **Decisión** (de a una, el probador con el OK de Guido; el detalle en `docs/kit-v3/DISENO-G1-buzon.md`):
+  1. **El aviso del buzón**: un hook por PC agrega en toda sesión un renglón con los turnos de la persona en todos sus proyectos de la
+     PC (cero si no hay nada; ~50 tokens por turno). El texto ajeno entra encerrado y recortado; contesta solo la sesión del proyecto.
+  2. **El id es `proyecto/persona`**: la PC es dato; varias cuentas por agente; palabras de rol prohibidas como persona.
+  3. **Contestar con citas sí, pegar contenido y actuar no**: con remitente verificado (dueño del archivo + huella + cuenta no
+     compartida) el agente contesta estado, fechas y `ruta:línea@sha`; pegar contenido, las 5 de A, código, push y borrar piden OK.
+  4. **Un solo vocabulario, el de la mesa del kit**; una decisión viaja como `HECHO tema: decision` con cita (G §7.4).
+  5. **En el kit** (protocolo, `buzon.cjs`, skill global `buzon`, aviso por PC inerte sin configuración); la ruta y la persona, solo en la PC.
+  6. **La mudanza PC por PC**, con convivencia v0/v1 de los dos lados.
+- **Por qué:** lo medido en el v0 (§2 del diseño) y la investigación (los hooks alcanzan para una sesión abierta; los *channels* están
+  en vista previa con un permiso peligroso). El revisor frío (15 hallazgos) recortó la 3 (el dueño del archivo no prueba el contenido;
+  "contestar leyendo el repo" es mandar algo afuera) y la 4 (`DECISION` como tipo contradecía G §7.4).
+- **Descartado:** una tarea programada con aviso de Windows (el hueco con la PC prendida y sin sesión es de horas; se reabre si el
+  piloto cuenta turnos parados con todo cerrado) · el agente que se despierta solo y la firma por agente (0 encargos en 169; es terreno
+  del PO; se reabre si aparecen encargos esperando el OK) · un código fijo como id · un repo privado de la organización · la mudanza de
+  una vez · la suscripción por tipo · `DECISION` como tipo nuevo.
+- **Costo aceptado:** el instalador de frenos por PC tiene que aprender a alojar más de una pieza por evento; el id es caro de cambiar
+  (⚠️ en el diseño); mientras la otra PC siga en v0, el lector escribe en v0 para ella.
+- **Dónde vive:** el diseño en `docs/kit-v3/DISENO-G1-buzon.md`; se construye con su spec delta (misión 7, kit v3.1).

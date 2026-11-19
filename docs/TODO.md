@@ -19,7 +19,9 @@
   P68, P77 y las "otras" 5, 8 y 24). Con investigación en internet y piloto. Guido, 2026-10-26: "no está bien claro todavía; siguiente versión;
   no bien termine lo otro, lo hago".
   **Guido, 2026-11-04: la próxima versión (después de la v3.0) junta tres cosas, cada una con su charla de diseño con él:**
-  1. **El buzón**, que es esta mensajería.
+  1. **El buzón**, que es esta mensajería. **Diseño ✅ 2026-11-19** ([DISENO-G1-buzon](kit-v3/DISENO-G1-buzon.md), ADR-037; lo decidió
+     el probador con el OK de Guido). **Sigue: el spec delta y la construcción** (skill `buzon`, `buzon.cjs`, el aviso por PC y el
+     instalador de frenos que aloje más de una pieza), y después el piloto de un mes en la PC del probador (§5 del diseño).
   2. **"Probar una idea nueva"** (los experimentos de método). Sale de la v3.0, donde estaba en D8c.1: "vamos a sacar esta versión bien
      armada y en la próxima versión traemos eso de la idea nueva".
   3. **Un "PO" como skill**: un rol al lado del director que responde el buzón, habla con los directores, entiende el proyecto en su
