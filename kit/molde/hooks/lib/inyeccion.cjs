@@ -25,6 +25,7 @@ const ficha = require('./ficha.cjs');
 const { DENY_FABRICA } = require('./fabrica.cjs');
 const docsRuta = require('./docs-ruta.cjs');
 const arbol = require('./arbol.cjs');
+const pruebas = require('./pruebas.cjs');
 
 const B = topes.BLOQUES;
 const PRESUPUESTO = topes.PRESUPUESTO;
@@ -518,13 +519,70 @@ function lineaPreCommit(raiz, gitOk, hooksPath, env) {
   return falta.length ? `pre-commit: ⚠️ ${falta.join(' · ')}` : `pre-commit: ✅${nota}`;
 }
 
-function bloqueLineasF({ raiz, gitOk, fv, home, ahora, hooksPath, env }) {
+// ---------------------------------------------------------------- el PO (SPEC-PO A3, M3)
+
+// La marca del PO vive en el git común (<común>/kit-po/marca.json: { desde, latido, referencia }) y la escribe po.cjs. Vigente si
+// su latido tiene menos de 12 h. Acá solo se lee (el arranque no escribe nada); po.cjs usa estas mismas funciones.
+const CARPETA_PO = 'kit-po';
+const VIGENCIA_PO_MS = 12 * 60 * 60 * 1000;
+const rutaMarcaPo = (gitComun) => path.join(gitComun, CARPETA_PO, 'marca.json');
+// leerMarcaPo(gitComun) → { desde, latido, referencia } (ms, ms, texto) o null si no hay o no se lee.
+function leerMarcaPo(gitComun) {
+  if (!gitComun) return null;
+  try {
+    const m = JSON.parse(fs.readFileSync(rutaMarcaPo(gitComun), 'utf8'));
+    const desde = Date.parse(m && m.desde);
+    const latido = Date.parse(m && m.latido);
+    if (!Number.isFinite(desde) || !Number.isFinite(latido) || typeof m.referencia !== 'string') return null;
+    return { desde, latido, referencia: m.referencia };
+  } catch (e) {
+    return null;
+  }
+}
+const marcaPoVigente = (m, ahora) => !!m && ahora - m.latido < VIGENCIA_PO_MS;
+// La hora de la marca: HH:MM si es de hoy; si no, AAAA-MM-DD HH:MM (hora local).
+function horaPo(ms, ahora) {
+  const d = new Date(ms);
+  const hm = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return hoyDe(ms) === hoyDe(ahora) ? hm : `${hoyDe(ms)} ${hm}`;
+}
+// ¿La ficha vigente prende la pieza? (como las demás: texto o mapa con estado; `no` es apagada).
+function piezaPrendida(fv, id) {
+  const p = fv && fv.estado === 'ok' && esMapaF(fv.datos) && esMapaF(fv.datos.piezas) ? fv.datos.piezas[id] : undefined;
+  const estado = esMapaF(p) ? p.estado : p;
+  return typeof estado === 'string' && estado !== 'no';
+}
+// La línea del PO, solo con piezas.po prendida; null sin la pieza.
+function lineaPo(fv, gitComun, ahora) {
+  if (!piezaPrendida(fv, 'po')) return null;
+  const m = leerMarcaPo(gitComun);
+  return marcaPoVigente(m, ahora) ? `este proyecto lleva PO (hay uno desde ${horaPo(m.desde, ahora)})` : 'este proyecto lleva PO';
+}
+
+// Las líneas de F: primero las fijas (barreras, corrector, pre-commit), cortadas a 500 como siempre; después las OPCIONALES (la del
+// PO y las que vengan), que entran solo con lo que sobre y se caen primero, la última antes: nunca se cae una ⚠️ por una opcional.
+// Sin opcionales, el bloque es byte a byte el de antes. Una opcional nueva se suma al final de `opcionales` (null = no va).
+function bloqueLineasF({ raiz, gitOk, fv, home, ahora, hooksPath, env, gitComun }) {
   const lineas = [
     lineaBarreras(raiz, fv, ahora),
     correctorRegistrado(home) ? 'corrector de la PC: ✅' : 'corrector de la PC: ⚠️ no está · pedile al Equipador "instalar hooks por PC"',
     lineaPreCommit(raiz, gitOk, hooksPath, env),
   ].map((l) => acortar(l, 240));
-  return cortarRenglones(lineas, B.lineasF, null).lineas;
+  const fijas = cortarRenglones(lineas, B.lineasF, null).lineas;
+  // La de las pruebas en curso (SPEC-prueba) va ULTIMA: si no entra, se cae ella, nunca una fija ni la del PO. lineaArranque no lanza.
+  const opcionales = [lineaPo(fv, gitComun, ahora), gitOk ? pruebas.lineaArranque(raiz) : null];
+  return conOpcionales(fijas, opcionales, B.lineasF);
+}
+
+// conOpcionales(fijas, opcionales, tope) → las fijas tal cual y, detrás, el prefijo más largo de las opcionales (cada una acortada a
+// 240) que entra en `tope` unido con \n. Las null o vacías no van. Sin opcionales que entren, las fijas: el mismo arreglo de antes.
+function conOpcionales(fijas, opcionales, tope) {
+  const ops = opcionales.filter((l) => typeof l === 'string' && l).map((l) => acortar(l, 240));
+  for (let k = ops.length; k > 0; k--) {
+    const todas = fijas.concat(ops.slice(0, k));
+    if (todas.join('\n').length <= tope) return todas;
+  }
+  return fijas;
 }
 
 // ---------------------------------------------------------------- el encargo del obrero
@@ -657,7 +715,7 @@ function armar(opciones = {}) {
   );
 
   // 3 · líneas de F
-  bloques.push(bloqueLineasF({ raiz, gitOk, fv, home, ahora, hooksPath: opciones.hooksPath, env: opciones.env || process.env }));
+  bloques.push(bloqueLineasF({ raiz, gitOk, fv, home, ahora, hooksPath: opciones.hooksPath, env: opciones.env || process.env, gitComun: g ? g.gitComun : null }));
 
   // 4 · por pestaña (con 5, las edades)
   if (pest.tipo === 'director' || pest.tipo === 'obrero') {
@@ -798,6 +856,15 @@ module.exports = {
   correctorRegistrado,
   lineaPreCommit,
   bloqueLineasF,
+  conOpcionales,
+  CARPETA_PO,
+  VIGENCIA_PO_MS,
+  rutaMarcaPo,
+  leerMarcaPo,
+  marcaPoVigente,
+  horaPo,
+  piezaPrendida,
+  lineaPo,
   lineaLento,
   miles,
   huella,

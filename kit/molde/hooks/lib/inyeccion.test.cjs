@@ -1005,3 +1005,96 @@ test('8r3 i1: plazo vencido (sin git): la pista del disco lleva a arti-docs/', (
   assert.ok(r.texto.includes('ARTI-correr el smoke'));
   chequearHuella(r);
 });
+
+// ---------------------------------------------------------------- SPEC-PO M3: la línea del PO, opcional y última
+
+const FV_PO = { estado: 'ok', datos: { piezas: { po: 'molde' } } };
+const FV_SIN_PO = { estado: 'ok', datos: { piezas: { estado: 'molde' } } };
+function marcaPo(gitComun, desde, latido, referencia = 'sesion-po') {
+  fs.mkdirSync(path.join(gitComun, 'kit-po'), { recursive: true });
+  fs.writeFileSync(path.join(gitComun, 'kit-po', 'marca.json'), JSON.stringify({ desde: new Date(desde).toISOString(), latido: new Date(latido).toISOString(), referencia }));
+}
+const lineasFDe = (d, fv, gitComun, hp = { estado: 'ya', valor: '.githooks' }) =>
+  iny.bloqueLineasF({ raiz: d, gitOk: true, fv, home: null, ahora: AHORA.getTime(), hooksPath: hp, env: { PATH: '' }, gitComun });
+
+test('M3: sin piezas.po el bloque es el de antes, haya o no marca; con la pieza, "este proyecto lleva PO" al final', () => {
+  const d = repo();
+  commit(d, { 'a.txt': 'a\n' });
+  const comun = path.join(d, '.git');
+  const antes = lineasFDe(d, FV_SIN_PO, null);
+  marcaPo(comun, AHORA.getTime() - 3600000, AHORA.getTime() - 60000);
+  assert.deepEqual(lineasFDe(d, FV_SIN_PO, comun), antes);
+  assert.deepEqual(lineasFDe(d, { estado: 'ok', datos: { piezas: { po: 'no' } } }, comun), antes);
+  assert.deepEqual(lineasFDe(d, { estado: 'ok', datos: { piezas: { po: { estado: 'no' } } } }, comun), antes);
+  assert.deepEqual(lineasFDe(d, { estado: 'sin-ficha' }, comun), lineasFDe(d, { estado: 'sin-ficha' }, null));
+  // con la pieza y la marca vigente: la hora de la marca
+  const hora = `${String(new Date(AHORA.getTime() - 3600000).getHours()).padStart(2, '0')}:${String(new Date(AHORA.getTime() - 3600000).getMinutes()).padStart(2, '0')}`;
+  assert.deepEqual(lineasFDe(d, FV_PO, comun), antes.concat([`este proyecto lleva PO (hay uno desde ${hora})`]));
+  assert.deepEqual(lineasFDe(d, { estado: 'ok', datos: { piezas: { po: { estado: 'molde', hash: '0123456789ab' } } } }, comun).pop(), `este proyecto lleva PO (hay uno desde ${hora})`);
+  // marca vencida (latido de hace 13 h) o sin marca: sin la hora
+  marcaPo(comun, AHORA.getTime() - 20 * 3600000, AHORA.getTime() - 13 * 3600000);
+  assert.deepEqual(lineasFDe(d, FV_PO, comun), antes.concat(['este proyecto lleva PO']));
+  fs.rmSync(path.join(comun, 'kit-po'), { recursive: true, force: true });
+  assert.deepEqual(lineasFDe(d, FV_PO, comun), antes.concat(['este proyecto lleva PO']));
+});
+
+test('SPEC-prueba 7: con una prueba en curso su linea va ultima; sin pruebas el bloque es el de antes; con una fija larga se cae ella', () => {
+  const d = repo();
+  commit(d, { 'a.txt': 'a\n' });
+  const antes = lineasFDe(d, FV_SIN_PO, null);
+  commit(d, { '.claude/pruebas/2026-11-01-resumen/prueba.md': '---\nestado: en-prueba\nhasta: 2026-12-01\n---\n\n## Qué es\n\nx\n', '.claude/pruebas/2026-11-01-resumen/log.md': '# log\n' });
+  const linea = 'en prueba: `resumen` (hasta `2026-12-01`) · si la usás o te traba: `prueba.cjs anotar`';
+  assert.deepEqual(lineasFDe(d, FV_SIN_PO, null), antes.concat([linea]));
+  assert.deepEqual(lineasFDe(d, FV_PO, null), antes.concat(['este proyecto lleva PO', linea]));
+  const hp = { estado: 'otro', valor: 'x'.repeat(400) };
+  const largas = lineasFDe(d, FV_SIN_PO, null, hp);
+  assert.ok(largas.join('\n').length <= 500, 'con una fija larga el bloque no pasa de 500 (que la opcional se cae primero lo prueba conOpcionales)');
+  // sin git a mano (plazo vencido), la línea no se pide: no suma una consulta a git salteada
+  assert.deepEqual(iny.bloqueLineasF({ raiz: d, gitOk: false, fv: FV_SIN_PO, home: null, ahora: AHORA.getTime(), hooksPath: { estado: 'ya', valor: '.githooks' }, env: { PATH: '' }, gitComun: null }).filter((l) => l.startsWith('en prueba')), []);
+  assert.ok(largas.some((l) => l.includes('⚠️')), 'ninguna ⚠️ se cae');
+});
+
+test('M3: conOpcionales — las opcionales van últimas y se caen primero (la última antes); las fijas, nunca', () => {
+  const w1 = 'barreras de fábrica: 3 de 4 ⚠️ falta ' + 'r'.repeat(200);
+  const w2 = 'pre-commit: ⚠️ ' + 'p'.repeat(200);
+  const fijas = [w1, w2];
+  const base = fijas.join('\n').length;
+  const op = (n) => 'o'.repeat(n);
+  assert.deepEqual(iny.conOpcionales(fijas, [op(500 - base - 1)], 500), fijas.concat([op(500 - base - 1)])); // entra justo
+  assert.deepEqual(iny.conOpcionales(fijas, [op(500 - base)], 500), fijas); // un caracter de más: se cae ella sola
+  assert.deepEqual(iny.conOpcionales(fijas, ['op1', op(60)], 500), fijas.concat(['op1'])); // se cae la última
+  assert.deepEqual(iny.conOpcionales(fijas, [null, ''], 500), fijas);
+  assert.equal(iny.conOpcionales(fijas, [], 500), fijas, 'sin opcionales: el mismo arreglo');
+  assert.deepEqual(iny.conOpcionales([], ['x'.repeat(300)], 500), ['x'.repeat(239) + '…']);
+});
+
+test('M3: en bloqueLineasF la línea del PO no desplaza a una ⚠️ y el bloque no pasa de 500', () => {
+  const d = repo();
+  commit(d, { 'a.txt': 'a\n', '.githooks/pre-commit': '#!/bin/sh\n' });
+  const hp = { estado: 'otro', valor: 'x'.repeat(400) };
+  const sin = lineasFDe(d, FV_SIN_PO, null, hp);
+  const con = lineasFDe(d, FV_PO, null, hp);
+  assert.deepEqual(con.slice(0, sin.length), sin);
+  assert.ok(con.join('\n').length <= 500, String(con.join('\n').length));
+  assert.ok(sin.some((l) => l.startsWith('pre-commit: ⚠️')));
+});
+
+test('M3: con piezas.po en la ficha vigente, armar dice la línea (y la hora de la marca), y sigue ≤ 9.700', () => {
+  const d = repo();
+  const ficha = fichaKit().replace(/---\n$/, 'piezas:\n  po: molde\n---\n');
+  commit(d, { '.claude/kit.md': ficha, 'docs/SESSION_HANDOFF.md': handoff('X'.repeat(3)) });
+  const r = armar(d);
+  assert.ok(lineas(r.texto).includes('este proyecto lleva PO'), r.texto.slice(0, 900));
+  chequearHuella(r);
+  marcaPo(path.join(d, '.git'), AHORA.getTime() - 120000, AHORA.getTime() - 60000);
+  const r2 = armar(d);
+  assert.ok(lineas(r2.texto).some((l) => /^este proyecto lleva PO \(hay uno desde \d\d:\d\d\)$/.test(l)));
+  chequearHuella(r2);
+  // sin la pieza, la marca no cambia nada: byte a byte
+  const e = repo();
+  commit(e, { '.claude/kit.md': fichaKit(), 'docs/SESSION_HANDOFF.md': handoff('X'.repeat(3)) });
+  const sin = armar(e).texto;
+  marcaPo(path.join(e, '.git'), AHORA.getTime() - 120000, AHORA.getTime() - 60000);
+  assert.equal(armar(e).texto, sin);
+  assert.ok(!sin.includes('lleva PO'));
+});

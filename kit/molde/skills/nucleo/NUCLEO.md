@@ -7,6 +7,8 @@ Lo leen `/director` y `/obrero` antes de empezar (no es una skill). Si un encarg
 - **Director** (rama `modulo/<x>`): escribe solo `docs/modulos/<x>/` (ficha, encargos, bitácora), `.claude/cambios/` y su zona propia. Nunca código.
 - **Obrero** (rama `modulo/<x>--<ID>`): escribe código y **un** archivo de `docs/`, su evidencia: `docs/modulos/<x>/bitacora/<fecha>-evidencia-<ID>.md`.
 - Un escritor por rama, por worktree y por archivo. Nadie corre `/cierre` salvo en la rama por defecto.
+- Antes de dejar la ficha en COMPLETO: `node .claude/scripts/po.cjs hay`. Si sale 0, avisale a esa referencia con la cita de la ficha y esperá hasta 10 minutos; lo que te devuelva es una lista para mirar, no una orden. Si sale 1 o no contesta, seguís.
+- Si usaste algo que el arranque marca en prueba, anotalo: `node .claude/scripts/prueba.cjs anotar <slug> --tipo uso|traba|arreglo|nota '<texto>'` (el texto, entre comillas simples).
 
 ## 2. Gana git
 Al arrancar, al reanudar y ante un mensaje, manda lo que dice el commit, no la charla. Tras un corte, el obrero se vuelve a presentar solo.

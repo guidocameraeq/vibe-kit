@@ -77,6 +77,7 @@ const PIEZAS_3 = [
   { id: 'githooks', clase: BASE, forma: 'ninguna', trato: 'pieza', en: ['githooks/'] },
   { id: 'docs', clase: BASE, forma: 'texto', trato: 'nacimiento', en: ['docs/'] },
   { id: 'estado', clase: OPCIONAL, forma: 'texto', trato: 'pieza', en: ['skills/estado/'] },
+  { id: 'po', clase: OPCIONAL, forma: 'texto', trato: 'pieza', en: ['skills/po/'] }, // SPEC-PO M4: la skill; po.cjs va con scripts (base)
   { id: 'director-obrero', clase: OPCIONAL, forma: 'texto', trato: 'pieza',
     en: ['skills/director/', 'skills/obrero/', 'skills/tramo/', 'skills/nucleo/', 'agents/'] },
   { id: 'smoke', clase: OPCIONAL, forma: 'texto', trato: 'pieza', en: ['rituales/smoke.md'] },

@@ -56,6 +56,14 @@ test('las base del delta están y son base; las opcionales, opcionales; docs sol
   assert.throws(() => C.piezasDe('2.1'), /no conozco el molde/);
 });
 
+test('SPEC-PO M4: la pieza po es opcional, de texto, y se queda con skills/po/ (no con scripts/po.cjs, que es base)', () => {
+  const po = C.piezasDe('3').find((p) => p.id === 'po');
+  assert.ok(po, 'falta la pieza po');
+  assert.deepEqual({ clase: po.clase, forma: po.forma, trato: po.trato, en: po.en }, { clase: C.OPCIONAL, forma: 'texto', trato: 'pieza', en: ['skills/po/'] });
+  assert.equal(C.piezaDeRuta('3', 'skills/po/SKILL.md').id, 'po');
+  assert.equal(C.piezaDeRuta('3', 'scripts/po.cjs').id, 'scripts');
+});
+
 test('las rutas del proyecto: la forma de kit/molde/ al derecho (la misma que rutaEnMolde de barreras, al revés)', () => {
   const casos = {
     'hooks/session-start.cjs': '.claude/hooks/session-start.cjs',
