@@ -101,6 +101,13 @@ function soloHumano(u, verbo) {
   if (!rem.ok || !rem.stdout.split('\n').map((s) => s.trim()).includes('origin')) no(`${verbo} sube lo que escribe y este repo no tiene origin`);
   const mid = ['MERGE_HEAD', 'rebase-merge', 'rebase-apply'].some((f) => fs.existsSync(path.join(u.comun, f)));
   if (mid) no('hay un merge o un rebase a medio hacer: terminalo primero');
+  // La carpeta principal la comparten otras sesiones (la de cierre, tras integrar): con cambios sin guardar de otro o con commits
+  // sin subir, este verbo no corre: su pull --rebase les movería el piso (revisor frío de la 3.2, hallazgo 1).
+  const st = G(u, ['status', '--porcelain', '--untracked-files=no']);
+  const ajenos = st.ok ? st.stdout.split('\n').map((l) => l.slice(3).trim()).filter((r) => r && !r.replace(/^"/, '').startsWith(`${P.CARPETA}/`)) : [];
+  if (!st.ok || ajenos.length) no(`${verbo} no corre con cambios sin guardar en la carpeta principal (${ajenos[0] || 'no pude mirar'}): guardalos o esperá a que termine la otra sesión`);
+  const ad = G(u, ['rev-list', '--count', `refs/remotes/origin/${u.nombre}..HEAD`]);
+  if (ad.ok && Number(ad.stdout.trim()) > 0) no(`${verbo} no corre con commits sin subir en ${u.nombre} (${ad.stdout.trim()}): subilos primero (git push)`);
 }
 
 // Commit por rutas, pull --rebase y push. → { ok, commit, linea }. `commit` dice si el commit anduvo.
@@ -112,7 +119,7 @@ function subir(u, rutas, mensaje) {
     G(u, ['reset', '-q', '--', ...rutas]);
     return { ok: false, commit: false, linea: `el commit falló: ${primera(c)}` };
   }
-  const pull = G(u, ['pull', '-q', '--rebase', '--autostash', 'origin', u.nombre], TIEMPO_RED);
+  const pull = G(u, ['pull', '-q', '--rebase', 'origin', u.nombre], TIEMPO_RED);
   if (!pull.ok) {
     G(u, ['rebase', '--abort']);
     return { ok: false, commit: true, linea: `quedó commiteado pero no subido: el pull --rebase falló (${primera(pull)}); traé la rama al día y corré git push` };

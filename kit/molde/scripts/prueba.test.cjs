@@ -314,3 +314,21 @@ test('mal llamado sale 2', () => {
   assert.equal(correr(d, ['bailar']).code, 2);
   assert.equal(correr(d, ['listar', '--raro']).code, 2);
 });
+
+test('revisor 3.2 (1) · abrir no corre con cambios ajenos sin guardar ni con commits sin subir en la carpeta principal', () => {
+  const { clon } = armar();
+  const d = clon('a');
+  fs.writeFileSync(path.join(d, 'README.md'), 'a medio hacer de otra sesion');
+  const sucio = abrir(d);
+  assert.equal(sucio.code, 1, sucio.out);
+  assert.match(sucio.err + sucio.out, /cambios sin guardar/);
+  assert.equal(fs.existsSync(path.join(d, '.claude', 'pruebas')), false);
+  git(d, 'add', '--', 'README.md');
+  git(d, 'commit', '-q', '-m', 'de otra sesion, sin subir');
+  const adelantado = abrir(d);
+  assert.equal(adelantado.code, 1, adelantado.out);
+  assert.match(adelantado.err + adelantado.out, /commits sin subir/);
+  assert.equal(fs.existsSync(path.join(d, '.claude', 'pruebas')), false);
+  git(d, 'push', '-q', 'origin', 'HEAD:refs/heads/main');
+  assert.equal(abrir(d).code, 0);
+});

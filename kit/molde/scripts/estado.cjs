@@ -581,7 +581,8 @@ function lineaObra(raiz, m, ctx) {
   partes.push(`carpeta abierta: ${abierta ? 'sí' : 'no'}`);
   const ult = (G(raiz, ['log', '-1', '--format=%H', sha, '--', m.rel]).stdout || '').trim();
   const rango = ult ? `${ult}..${sha}` : sha;
-  const lg = G(raiz, ['log', '--no-merges', '--format=%H', rango, '--', '.', `:(exclude)${ctx.carpeta}/`]);
+  // sin lo que ya está en la rama por defecto: lo que entra por traer-main no es del módulo (revisor frío de la 3.2, hallazgo 2)
+  const lg = G(raiz, ['log', '--no-merges', '--format=%H', rango, ...(ctx.defecto ? [`^${ctx.defecto}`] : []), '--', '.', `:(exclude)${ctx.carpeta}/`]);
   const fuera = lg.ok ? lg.stdout.split('\n').filter((s) => s.trim()).length : null;
   partes.push(fuera === null ? `— commit(s) fuera de ${ctx.carpeta}/ desde la ficha` : `${fuera} commit(s) fuera de ${ctx.carpeta}/ desde la ficha`);
   partes.push(cuentas);

@@ -214,7 +214,8 @@ function timbre(d, args) {
   let base = T(d.raiz, ['log', '-1', '--format=%H', ref.sha, '--', ficha]);
   if (!base && rv) base = T(d.raiz, ['merge-base', ref.sha, rv.ref]);
   const rango = base ? `${base}..${ref.sha}` : ref.sha;
-  const cuenta = T(d.raiz, ['rev-list', '--count', rango, '--', '.', `:(exclude)${carpeta}`]);
+  // sin lo que ya está en la rama por defecto: lo que entra por traer-main no es del módulo (revisor frío de la 3.2, hallazgo 2)
+  const cuenta = T(d.raiz, ['rev-list', '--count', '--no-merges', rango, ...(rv ? [`^${rv.ref}`] : []), '--', '.', `:(exclude)${carpeta}`]);
   if (cuenta === null || !/^\d+$/.test(cuenta)) sale(1, 'po.cjs: no pude contar los commits del módulo');
   return `${para}tu módulo tiene \`${cuenta}\` commits de código desde que se tocó la ficha`;
 }
