@@ -4,7 +4,7 @@
 > nuevo de esta carpeta. **Tope 5.500 bytes**; el hook corta y avisa "CORTADO" si se pasa, y termina con la huella.
 
 **CIERRE** 2026-11-20, sesión `vibe-kit M7 · La 3.2`, PC `Usuario` (Opus 5.5 y después Fable 5.2), en `main`.
-**Kit `3.2.0` construido, probado y subido a `main`. EL TAG `v3.2.0` ESPERA EL OK DE GUIDO** (si ya existe: `git tag`, está publicado).
+**Kit `v3.2.0` publicado** (tag sobre `26bcaaf`, con su página en GitHub), **en piloto**.
 
 ## Dónde estamos
 
@@ -19,7 +19,7 @@
 
 ## Próximo paso
 
-1. **El tag `v3.2.0`** sobre la punta de `main`, con su página en GitHub, con el OK de Guido. Después, "instalar hooks por PC".
+1. **"Instalar hooks por PC"** en esta PC (los hooks siguen en 3.1.0; lo corre Guido).
 2. **`vibe-kit Flota · Los repos reales a la v3.2.0`**: repo por repo con el OK de Guido. En los que quiera PO: "prendé la pieza po"
    (copiar la skill y `po: molde`; `po: sí` no alcanza).
 3. **`vibe-kit 3.2.1 · Lo que deje el uso`**: los cinco hallazgos del revisor que quedaron, prender una pieza opcional por script, y
@@ -28,7 +28,7 @@
 
 ## Te espera (Guido)
 
-- **El OK al tag `v3.2.0`.**
+- (el tag ya salió, con tu OK del 2026-11-20)
 - "Instalar hooks por PC" en `Usuario` y en `clientes` (y allá, "actualizá el kit"). No registres una segunda PC en el buzón hasta la 3.1.1.
 - El OK por repo de la flota real · decidir dónde van los ~20 arreglos sueltos "para la v3.1" del TODO.
 - Los chats al privado desde una PC con acceso: el de esta sesión (`aaed1faa`) y los de la PC del probador.
