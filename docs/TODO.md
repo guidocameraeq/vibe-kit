@@ -39,6 +39,24 @@
   - **Sin ubicar**: los arreglos de abajo ("para la v3.1") no se trataron en la charla: van a una 3.1.x o a la 3.2, lo decide Guido.
     Se suman tres que mostró el relevamiento: `mesa.cjs abiertos` lento (95 s y más de 3 min con la PC cargada) · los plazos de los
     hooks y del push de `integrar` con la PC cargada · el candado `topes` en rojo con cuatro módulos.
+  **El revisor frío de la 3.2 construida** (Opus, 2026-11-20, sobre `6162b6a..2ff16c1`): "con observaciones", nada traba el tag.
+  Confirmó `conTurno` idéntico en las tres copias y sin cambio de cuándo se toma o se suelta. Ocho hallazgos, **sin aplicar todavía**
+  (se decide con Guido cuáles van antes de la suite y cuáles a una 3.2.1):
+  1. `prueba.cjs:115`: `pull --rebase --autostash` sobre la carpeta principal puede pisarse con la sesión de cierre que corre ahí
+     (le guarda y repone cambios, le rebasa un commit sin subir). Arreglo: negar con la carpeta sucia o adelantada; sin `--autostash`.
+  2. `po.cjs:217` y `estado.cjs` (`lineaObra`): "commits de código desde la ficha" cuenta también lo que entra por `traer-main`.
+     Arreglo: excluir lo que ya está en la rama por defecto.
+  3. El latido de la marca del PO solo lo dejan los verbos de `po.cjs`; el repaso corre `estado.cjs --obra --cambios` y la marca
+     vence a las 12 h con el PO vivo. Arreglo: que `--cambios` deje el latido, o sumar `po.cjs hay` al repaso en la skill.
+  4. `estado.cjs` (`cambiosObra`): una fuente que falla una pasada sale como "ya no:" y vuelve como nueva en la siguiente.
+  5. `pruebas-flota.cjs:110-119, 239-253`: no valida el alias (con mayúsculas o espacios, `--vista` lo rechaza y la prueba queda
+     para siempre en el `/inicio`); alias y `hasta` salen sin encerrar.
+  6. (menor) `prueba.cjs:62`: un texto de `anotar` que empieza con `--` se toma como opción.
+  7. (menor) `prueba.cjs:322`: el veredicto se agrega al final del archivo, no dentro de `## Veredicto`.
+  8. (menor) `po.cjs:285`: un error inesperado sale como traza de node en vez de una línea.
+  No miró: si las pruebas pasan, el actualizador con una pieza aplicada a medias (`scripts` nuevo con `hooks-lib` viejo), el
+  tiempo que suman al arranque las consultas a git de la línea de pruebas.
+
   **Lo que el tramo final dejó para la v3.1** (de taller, sin charla de diseño; el detalle y su porqué en cada informe):
   - del plan del tramo (`TRAMO-FINAL-PLAN.md`, "Lo que ya está decidido", 2): el director corto, el aviso al celular, el kit como
     plugin (REJ-001), la poda de frenos por evidencia, el costo por encargo, el director sin `EnterWorktree`, el candado en repos con
