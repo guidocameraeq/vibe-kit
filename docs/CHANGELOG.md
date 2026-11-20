@@ -2,6 +2,31 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-11-20 — La versión 3.1.0: `reflexion` y el buzón, en piloto · v3.1.0
+
+PC `Usuario` (Opus 5.5), sesión `vibe-kit Tag · La 3.1.0-rc.1 con reflexion y el buzón`, en `main`. Guido decidió que salga **final**
+(no `rc.1`) y que el PO y "probar una idea nueva" pasen a la 3.2 (ADR-041).
+
+**Added**
+- `docs/kit-v3/AUDITORIA-3.1.md`: la mirada del sistema (una sesión Fable aparte): "visto bueno con condiciones".
+- ADR-041; la tanda 2 en `docs/kit-v3/TANDAS-DE-VERSIONES.md`; la página de la versión en GitHub.
+
+**Changed**
+- `kit/CHANGELOG.md`: las tres sub-notas de `[Unreleased]` fundidas en una `## 3.1.0` que dice qué cambia en toda PC (un node más por
+  herramienta), que registrarse es entrar al piloto y cómo se apaga, y los dos límites conocidos. `kit/VERSION` → `3.1.0`.
+- `kit/skills/buzon/SKILL.md`: código, base, push y borrar van por `escribir` **con el OK** (decía "ni se mandan"; el spec y el
+  protocolo dicen lo otro).
+- `docs/TODO.md`: la misión 7 partida en 3.1.0 y 3.2; un ítem nuevo para la 3.1.1 con lo del revisor frío y la auditoría.
+
+**Fixed**
+- `aviso-real.test.cjs` suponía una cuenta de menos de 22 caracteres; ahora mide los dos lados (pendiente en el hook, resuelta por
+  Get-Acl fuera). El comportamiento queda para la 3.1.1.
+- El título perdido de la entrada de `reflexion` (2026-11-19).
+
+**Verificado**: revisor frío Opus (6 hallazgos a la 3.1.1); la suite entera (64 min, las 5 rojas de carga pasan solas); los hooks por PC
+instalados en `Usuario` con el `doctor` (todo bien) y dos sesiones de prueba (el corrector frena, el aviso no molesta); la flota de prueba
+(mezclados y al día, salida 0); gitleaks sin hallazgos. **NO VERIFICADO**: la prueba de la cuenta corta en esta PC (pasaba en la del probador).
+
 ## 2026-11-19 — Misión 7: la construcción del buzón, sesión 2 (`buzon.cjs`, la skill y el protocolo)
 
 La PC del probador de la beta (Opus 5.5), sesión `vibe-kit M7 · La construcción del buzón, sesión 2`, en `main`. Cierra

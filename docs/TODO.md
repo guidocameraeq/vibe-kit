@@ -2,7 +2,7 @@
 
 > ÚNICA fuente de pendientes del proyecto. Completado → SE BORRA (la historia vive en `CHANGELOG.md` y git). Header de 1 línea, sin narrativa de sesión.
 
-2026-11-19 — ver SESSION_HANDOFF.md
+2026-11-20 — ver SESSION_HANDOFF.md
 
 > ⏰ **Fechas del ciclo** (si hoy ya pasó alguna, avisale a Guido al arrancar): **~2026-12-15** la medición de la `v3.0` ·
 > **2027-03-01** la vuelta 2. El detalle, abajo en "El ciclo".
@@ -11,7 +11,7 @@
 > **La hoja de ruta, reordenada el 2026-10-26 (ADR-025)**: 4 cerrar el diseño sin mensajería → 4½ ordenar la casa → 5 construir **v3.0** →
 > 6 el ciclo como proceso → 7 la mensajería agéntica (**v3.1**). Después, el reloj: una vuelta cada 3-4 meses (abajo, "El ciclo").
 
-- [ ] **Poner al día la flota real con la `v3.0.1`, repo por repo con el OK de Guido** (los siete con kit están en la `rc.6`, foto del
+- [ ] **Poner al día la flota real con la `v3.1.0`, repo por repo con el OK de Guido** (los siete con kit están en la `rc.6`, foto del
   banco del 15/11: Deptos en dos vueltas por G1; uno pide `pnpm` en la PC; otro, sin pruebas, la ficha con `gate:entorno-prueba` y su
   firma; los que tienen obra viva, cuando la cierren). Lo que cambia en cada uno: el resumen de la sesión 6 en la nota del director.
   Con la `3.0.1` un repo con arranque propio ya no lo pierde al ponerse al día.
@@ -22,7 +22,7 @@
   1. **El buzón**, que es esta mensajería. **Diseño ✅ 2026-11-19** ([DISENO-G1-buzon](kit-v3/DISENO-G1-buzon.md), ADR-037; lo decidió
      el probador con el OK de Guido). **Spec ✅ READY 2026-11-19** ([SPEC-G1-buzon](kit-v3/SPEC-G1-buzon.md), ADR-038, con red team).
      **Construcción ✅ 2026-11-19** (sesión 1: el instalador, el aviso y el `doctor`, ADR-039; sesión 2: `buzon.cjs`, la skill, el
-     protocolo, kit-owned y el tope, ADR-040; el spec, ✅ IMPLEMENTADO). **Sale en la 3.1.0** (2026-11-20, sin `rc` ni banco: ADR-041).
+     protocolo, kit-owned y el tope, ADR-040; el spec, ✅ IMPLEMENTADO). **✅ Publicado en la `v3.1.0`** (2026-11-20, sin `rc` ni banco: ADR-041).
      **Sigue**: el piloto de un mes en la PC del probador: actualizar el kit, `registrame en el buzón`, "instalar
      hooks por PC" y `buzon.cjs medir --linea-base`. Una disputa de registros la resuelve la persona en cada PC (ADR-040).
   2. **"Probar una idea nueva"** (los experimentos de método; **a la 3.2**, ADR-041). Sale de la v3.0, donde estaba en D8c.1: "vamos a sacar esta versión bien

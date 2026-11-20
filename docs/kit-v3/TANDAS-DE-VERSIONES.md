@@ -7,6 +7,44 @@
 
 ---
 
+## Tanda 2 — de la `v3.0.1` a la `v3.1.0` (2026-11-19 al 20)
+
+Misión 7, primera mitad: `reflexion` y el buzón. Lo construyó la PC del probador de la beta, con el OK de Guido para trabajar en `main`;
+la versión la sacó la PC `Usuario`. **Salió final sin `rc` ni banco**, por excepción y con su razón (ADR-041); el PO y "probar una idea
+nueva" pasaron a la 3.2.
+
+### En números
+
+| Qué | Cuánto |
+|---|---|
+| Versiones publicadas | **1**: **`v3.1.0`** (20/11), con su página en GitHub |
+| Sesiones | 7: `reflexion`, el diseño del buzón, su spec, dos de construcción (PC del probador), la versión y la auditoría Fable (`Usuario`) |
+| Suites enteras | 1 (64 min, en paralelo con otras cosas): 6 rojas; 5 pasan solas (carga) y 1 real (abajo) |
+| Revisiones antes del tag | El revisor frío (Opus, 6 hallazgos, ninguno bloqueante) y la mirada del sistema (Fable, [`AUDITORIA-3.1.md`](AUDITORIA-3.1.md)) |
+| Flota de prueba | 2 vueltas sobre alfa, beta y gama: mezclados y después al día, salida 0 |
+
+### Paso a paso
+
+| Fecha | Paso | Cómo salió |
+|---|---|---|
+| 19/11 | `reflexion`, con su prueba con y sin la skill (ADR-036) | Sin la skill, 3 de 3 escribían sin preguntar |
+| 19/11 | El buzón: diseño, spec con red team, construcción en dos sesiones (ADR-037 a ADR-040) | Red team del código con dos críticos arreglados; mutación 55/55 |
+| 20/11 | La decisión con Guido: final hoy, el PO y la idea nueva a la 3.2 | ADR-041 |
+| 20/11 | El revisor frío, la auditoría Fable y la suite, en paralelo | "Visto bueno con condiciones": la nota honesta, la excepción escrita y los hooks probados en una PC real |
+| 20/11 | Los hooks por PC instalados en `Usuario`, con dos sesiones de prueba | El corrector frena; el aviso no molesta |
+| 20/11 | La flota de prueba, el tag y la página de la versión | `v3.1.0` |
+
+### Cómo nos fue
+
+- **La suite encontró algo que ninguna revisión vio**: con una cuenta de Windows de 22 caracteres o más, `dir /q` la corta y el aviso no
+  puede verificar (del lado seguro). En la PC del probador pasaba; en `Usuario`, no. **Para la próxima**: las pruebas que dependen de la
+  cuenta corren en las dos PCs antes del tag.
+- **Abrir una sesión en Fable desde una en Opus no se puede**: arranca en Opus sin avisar. Se resolvió cambiándole el modelo y relanzando
+  el turno (`set_session_model` vale desde el turno siguiente).
+- **La versión entera en un día** (~6 h de reloj, del pull al release), porque el código ya venía revisado y lo nuevo es opcional.
+
+---
+
 ## Tanda 1 — de la `rc.6` a la `v3.0.1` (2026-11-10 al 16)
 
 PC `Usuario`, misión 5, el tramo final ([`TRAMO-FINAL-PLAN.md`](TRAMO-FINAL-PLAN.md), tracker en
