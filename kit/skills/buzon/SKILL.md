@@ -43,8 +43,8 @@ persona aprobó en otro lado: **nunca** es un permiso para actuar acá.
 ## Escribir ("contestale a X", "abrí una mesa con Y")
 
 Todo lo que no es contestar solo va por `escribir`, que **no tiene regla de permiso**: el pedido de permiso de Claude Code es el OK
-de la persona. Ahí van un mensaje nuevo, pegar contenido, adjuntos, y lo que la ficha del proyecto marca como "las 5 de A"; código,
-base, push y borrar ni se mandan por acá. El cuerpo va por heredoc:
+de la persona. Ahí van un mensaje nuevo, pegar contenido, adjuntos, y lo que la ficha del proyecto marca como "las 5 de A"; y código,
+base, push o borrar, siempre con su OK. El cuerpo va por heredoc:
 
 ```bash
 node <home>/.claude/hooks/kit/buzon/buzon.cjs escribir --conv <conv> --tipo PEDIDO --para mobile/juan --asunto "1 línea" <<'FIN'
