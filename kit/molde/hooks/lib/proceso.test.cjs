@@ -317,13 +317,16 @@ test('M1 conTurno convive con un quien.json viejo (sin carpeta ni etiqueta): lo 
   fs.rmSync(base, { recursive: true, force: true });
 });
 
-test('M1: las tres copias de proceso.cjs son iguales en lo de conTurno', () => {
+test('M1: las tres copias de proceso.cjs son iguales en lo de conTurno', (t) => {
   const KIT = path.resolve(__dirname, '..', '..', '..');
   const copias = [
     path.join(__dirname, 'proceso.cjs'),
     path.join(KIT, 'skills', 'arquitecto', 'scripts', 'lib', 'proceso.cjs'),
     path.join(KIT, 'skills', 'arquitecto-skills', 'pc', 'lib', 'proceso.cjs'),
   ];
+  // Las otras dos copias viven en el repo del kit, no en un proyecto: cuando el chequeo del actualizador corre las pruebas de los
+  // hooks en un proyecto (flota de prueba de la 3.2: gama quedó ROTA por esto), acá no hay con qué comparar y el caso se saltea.
+  if (!copias.slice(1).every((f) => fs.existsSync(f))) return t.skip('las otras copias solo existen en el repo del kit');
   const tramo = (f) => {
     const t = fs.readFileSync(f, 'utf8').replace(/\r\n/g, '\n');
     const i = t.indexOf('// ---------------------------------------------------------------- el turno de la suite');
