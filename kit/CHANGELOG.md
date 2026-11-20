@@ -5,46 +5,42 @@ Una sección por versión, la más nueva arriba. Cada una trae su **nota de migr
 Es lo que lee el agente de la fusión al actualizar un proyecto. La historia de sesiones del repo vive aparte, en `docs/CHANGELOG.md`.
 `kit/VERSION` lleva la versión del último tag y se sube en el commit que pone el tag siguiente.
 
-## [Unreleased]
+## 3.1.0
 
-Para el próximo tag (sin número todavía: lo decide el dueño del kit).
+Versión (2026-11-20): **la skill `reflexion` y el buzón entre agentes, en piloto** (ADR-036 a ADR-041). Sale sin `rc` ni banco por
+excepción (ADR-041): lo nuevo es de la PC y opcional, y a los proyectos les llega una sola línea del molde. El PO y "probar una idea
+nueva" pasan a la 3.2.
 
-- **Qué piezas cambiaron**: una skill global nueva, **`reflexion`** (`kit/skills/reflexion/SKILL.md`). Es una pasada por la sesión
-  antes de cerrarla: lo pedido contra lo hecho, los cabos sueltos, las contradicciones, lo aprendido, qué guardar y dónde, y un
-  veredicto. Propone y no escribe nada sin el OK de cada ítem. La instala y la pone al día el Equipador, como `docs-fyd` y
-  `relevamiento` (`preparar-pc.cjs`, `kit-sync.sh`, el menú). La adopción la cuenta entre las copias del kit que no van adentro de
-  un repo (`lib/adoptar.cjs`). Ningún hook, freno ni pieza del molde cambia; el `/cierre` del molde queda igual.
-- **Automático o pide revisión**: automático. Es una carpeta nueva en `~/.claude/skills/` y no toca nada de los proyectos.
-- **Qué chequear después**: que `~/.claude/skills/reflexion/SKILL.md` esté, y que "reflexioná" o "¿quedó algo suelto?" la disparen
-  en una sesión nueva. La prueba, con y sin la skill, está en `docs/kit-v3/PRUEBA-reflexion.md`.
-
-**El buzón entre agentes, primera mitad** (SPEC-G1-buzon, sesión 1 de 2; la skill `buzon` y `buzon.cjs` llegan en la sesión 2):
-
-- **Qué piezas cambiaron**: los hooks por PC (`instalar-hooks-pc.cjs`) registran ahora cuatro eventos, cada pieza en su grupo: el
-  corrector en `PreToolUse` y `UserPromptSubmit`, y **el aviso del buzón** (`pc/aviso-buzon.cjs`, nuevo) en `SessionStart`,
-  `UserPromptSubmit` y `PostToolUse`. El aviso es inerte sin `~/.config/kit-buzon/config.json` (no dice ni escribe nada) y falla
-  abierto. Con esa config, el instalador suma al `~/.claude/settings.json` la regla `allow` de `turnos`, `leer` y `responder` de
-  `hooks/kit/buzon/buzon.cjs` (sin config, o con espacios en el home, no la pone; reinstalar sin config la saca; `--quitar` la saca).
-  El `doctor` suma el chequeo `buzon` (30 chequeos) y mira en `hooks-pc` solo el hook de `secretos.cjs`; el arranque del molde
-  (`correctorRegistrado`) busca `secretos.cjs` por nombre.
-- **Automático o pide revisión**: automático en la PC (instalar hooks por PC). En los proyectos, el arranque del molde cambia una
-  línea de `lib/inyeccion.cjs`; no suele estar adaptada.
-- **Qué chequear después**: "instalar hooks por PC" y el `doctor`: `hooks-pc` ✓ y `buzon · sin buzón en esta PC` (hasta registrarse).
-
-**El buzón entre agentes, segunda mitad** (SPEC-G1-buzon, sesión 2 de 2; ADR-040):
-
-- **Qué piezas cambiaron**: **`buzon.cjs`** (`pc/buzon/`, nuevo, con `protocolo.cjs`, `dueno.cjs`, `carpeta.cjs`, `salida.cjs` y
-  `medir.cjs`): viaja con los hooks por PC a `~/.claude/hooks/kit/buzon/` y, con eso, el instalador ya pone la regla `allow` en una PC
-  registrada. Verbos: `registrar`, `mudar`, `turnos`, `leer`, `verificar`, `juzgar`, `responder` (el único que escribe sin OK, con
-  el juicio de salida de seis pasos), `escribir` y `medir`. Una skill global nueva, **`buzon`** (`kit/skills/buzon/`: la skill y
-  `PROTOCOLO-v1.md`), kit-owned como `reflexion` (`preparar-pc.cjs`, `kit-sync.sh`, `lib/adoptar.cjs`, el menú). El `SKILL.md` del
-  Equipador nombra las kit-owned por la marca 🔑 del menú en vez de listarlas tres veces. El aviso reconoce los ids v0 reales
-  (`<persona>@<PC>/<proyecto>`).
-  Una disputa de registros (dos cuentas para un id) no se resuelve sola: la resuelve la persona de cada PC con
-  `registrar --resolver`.
-- **Automático o pide revisión**: automático. Nada cambia en los proyectos ni en una PC sin buzón: el aviso sigue inerte.
-- **Qué chequear después**: **para el buzón, después de actualizar: registrarse** ("registrame en el buzón") **e instalar los hooks por
-  PC**. El `doctor` da `buzon · registrado: N agentes, aviso y regla`. El piloto arranca con `buzon.cjs medir --linea-base`.
+- **Qué piezas cambiaron**:
+  - **`reflexion`** (`kit/skills/reflexion/SKILL.md`), una skill global kit-owned: una pasada por la sesión antes de cerrarla (lo
+    pedido contra lo hecho, los cabos sueltos, las contradicciones, lo aprendido, qué guardar y dónde, y un veredicto). Propone y no
+    escribe nada sin el OK de cada ítem. El `/cierre` del molde queda igual.
+  - **El buzón** (SPEC-G1-buzon): **`buzon.cjs`** (`pc/buzon/`, con `protocolo.cjs`, `dueno.cjs`, `carpeta.cjs`, `salida.cjs` y
+    `medir.cjs`), que viaja con los hooks por PC a `~/.claude/hooks/kit/buzon/`. Verbos: `registrar`, `mudar`, `turnos`, `leer`,
+    `verificar`, `juzgar`, `responder` (el único que escribe sin OK, con el juicio de salida de seis pasos), `escribir` y `medir`. Una
+    skill global kit-owned, **`buzon`** (`kit/skills/buzon/`: la skill y `PROTOCOLO-v1.md`). Una disputa de registros (dos cuentas
+    para un id) no se resuelve sola: la resuelve la persona de cada PC con `registrar --resolver`.
+  - **Los hooks por PC** (`instalar-hooks-pc.cjs`) registran cuatro eventos, cada pieza en su grupo: el corrector en `PreToolUse` y
+    `UserPromptSubmit`, y **el aviso del buzón** (`pc/aviso-buzon.cjs`) en `SessionStart`, `UserPromptSubmit` y `PostToolUse`. Con la
+    config del buzón (`~/.config/kit-buzon/config.json`) suman al `~/.claude/settings.json` la regla `allow` de `turnos`, `leer` y
+    `responder` (sin config, o con un home con caracteres raros, no la ponen; `--quitar` la saca).
+  - El `doctor` suma el chequeo `buzon` (30 chequeos) y mira en `hooks-pc` solo el hook de `secretos.cjs`. El Equipador instala y pone
+    al día `reflexion` y `buzon` como `docs-fyd` y `relevamiento` (`preparar-pc.cjs`, `kit-sync.sh`, `lib/adoptar.cjs`, el menú con la
+    marca 🔑).
+  - En el molde, una línea de `lib/inyeccion.cjs`: el arranque (`correctorRegistrado`) busca `secretos.cjs` por nombre.
+- **Automático o pide revisión**: automático. En los proyectos cambia una línea de `lib/inyeccion.cjs`, que no suele estar adaptada.
+  **En toda PC que instale los hooks, aunque no use el buzón**: el corrector se reacomoda en `UserPromptSubmit` y el aviso queda
+  registrado, así que **cada herramienta lanza un node más** (ADR-039: p95 de 68 a 114 ms). Sin registrarse, el aviso no lee, no
+  escribe y no dice nada, y no se pone ninguna regla de permiso.
+- **Qué chequear después**:
+  - "Actualizá el kit" e **"instalar hooks por PC"**; el `doctor` da `hooks-pc ✓` y `buzon · sin buzón en esta PC`.
+  - **Registrarse en el buzón es entrar al piloto** ("registrame en el buzón"): "contestar solo" nace prendido y se apaga con
+    `buzon.cjs registrar --apagar`. Después, reinstalar los hooks por PC; el `doctor` da `buzon · registrado: N agentes, aviso y regla`.
+    El piloto arranca con `buzon.cjs medir --linea-base`.
+  - **La misma persona en dos PCs espera a la 3.1.1**: hoy la segunda PC termina en disputa. Registrate en una sola.
+  - **Una cuenta de Windows de 22 caracteres o más** (`DOMINIO\cuenta`): `dir /q` la corta, así que el aviso muestra sus mensajes
+    como "sin verificar todavía" (del lado seguro) hasta "revisá el buzón", que la resuelve entera. El arreglo, en la 3.1.1.
+  - Que "reflexioná" o "¿quedó algo suelto?" disparen `reflexion` en una sesión nueva (la prueba: `docs/kit-v3/PRUEBA-reflexion.md`).
 
 ## 3.0.1
 
