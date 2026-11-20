@@ -104,6 +104,21 @@ pregunta antes de publicarlo (no publica lo que no vio integrar). → [`manuales
 **`/estado`** en el proyecto (o `/estado <módulo>`): siempre cuatro secciones, en el mismo orden: **te necesito · el plan · lo que se
 hizo · lo que falta**. *"¿Cómo terminamos?"* suma el resumen del día. → [`manuales/ROLES.md`](manuales/ROLES.md) §6
 
+### 🧑‍✈️ "Quiero alguien que lleve todo el proyecto" (el PO)
+Prendé la pieza (`po: sí` en `piezas:` de la ficha, y "actualizá el kit") y en la sesión principal del proyecto decí **`/po`**. Te
+cuenta cómo va todo, atiende el buzón, les avisa a los directores, te trae las decisiones juntas y controla que cada módulo cierre
+documentado. Lo chico lo hace él solo si no hay nada en obra. Está **en piloto**. → [`manuales/ROLES.md`](manuales/ROLES.md) §10
+
+### 🧪 "Quiero probar una idea nueva" (una skill, un flujo)
+Decíselo al PO: **"quiero probar…"**. Te hace tres preguntas (qué es, qué cura, cómo se sabe si sirvió) y hasta cuándo, y queda
+anotada en el proyecto con su log. Las sesiones anotan cuando la usan o las traba; al vencer, el PO te pide el veredicto: **al kit**,
+**descartada** (con su razón) o **seguir**. Lo que mandás al kit aparece en el `/inicio` de vibe-kit para absorberlo.
+→ [`manuales/SCRIPTS.md`](manuales/SCRIPTS.md), `prueba`
+
+### 🚦 "La PC está lenta: ¿quién está corriendo qué?"
+`node .claude/scripts/turno.cjs ver` (o pedíselo a la sesión): quién tiene el turno de lo pesado y quién espera. El kit corre una
+cosa pesada a la vez por PC; lo que se lanza por fuera de sus scripts no se ve ahí. → [`manuales/SCRIPTS.md`](manuales/SCRIPTS.md), `turno`
+
 ### 🔏 "La sesión me pide aprobar un cambio de freno"
 Te aparece en "te necesito" de tu `/estado`, con su regla. Si estás de acuerdo, pedíselo a la sesión **en la pestaña del director** (o en tu carpeta principal) y apretá en la ventana: `cambios aprobar` lo corre la sesión cuando el dueño lo pide, y su clic en la ventana es la firma; nunca por su cuenta.
 Desde un obrero, de noche o de fondo se niega solo. → [`manuales/ROLES.md`](manuales/ROLES.md) §9
@@ -200,6 +215,8 @@ de la anterior en `tips/tanda-2026-10-chats.md` §0; lo ya hallado en `D:\vibe-h
 | `inicio` | El chat del proyecto arranca sabiendo dónde están |
 | `registrame en el buzón` · `revisá el buzón` | El buzón entre agentes de otras PCs y cuentas: la primera vez, una pregunta (la carpeta, tu nombre, si la cuenta es compartida); después el aviso te dice cuándo hay turno, y lo informativo se contesta solo. Lo demás, con tu OK |
 | `reflexioná` · `¿quedó algo suelto?` | Antes del cierre: cabos sueltos, lo aprendido y qué guardar, con veredicto. Te propone y vos elegís qué se aplica |
+| `/po` · `¿cómo viene el proyecto?` | El PO, en la sesión principal: el panorama de toda la obra, el buzón, los avisos a los directores y las decisiones juntas (en piloto) |
+| `quiero probar…` | Una idea de método nueva queda anotada como prueba, con su log; al vencer, el veredicto es tuyo |
 | `cierre` | Docs al día, commit, push — chat descartable |
 | `cierre parcial` | Emergencia pre-compactación: guarda el estado y seguís |
 | `dale con los defaults` | El Arquitecto salta a confirmar solo las 2 decisiones irreversibles |

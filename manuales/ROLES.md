@@ -199,8 +199,31 @@ resumen del día). Un obrero no escribe en la mesa. NO VERIFICADO: el envío del
 - **El OK de integrar** si la ficha del módulo lo pide. Las carpetas de trabajo las cierra sola la limpieza (la sesión de cierre, tu
   `/inicio` y tu `/estado`).
 
+## 10. El PO (`/po`) — la sesión principal, con oficio
+
+Desde la 3.2, **en piloto**. Es una pieza opcional (`po: sí` en `piezas:` de la ficha): la sesión que abrís en la carpeta principal del
+proyecto, con reglas escritas. No es un agente que se despierta solo: lo abrís vos y lo dejás abierto.
+
+- **Qué hace**: te dice cómo está todo (`estado.cjs --obra`), atiende el buzón, les avisa a los directores, junta las decisiones y te
+  las trae de a una con la recomendada, revisa que un módulo quede documentado antes de integrar (si falta, se lo devuelve al
+  director: no lo escribe él), cuida `NORTE.md` y `MAPA.md` (el mapa lo actualiza; el norte te lo propone y espera tu OK) y corre el
+  `/release`, con tu clic.
+- **Lo chico**: lo hace él **solo si no hay nada en obra** (se lo contesta `po.cjs chico`, mirando git). Con directores en obra no
+  toca ningún archivo: lo pasa al director del módulo o te arma el prompt de un chat aparte.
+- **El repaso**: cada 20 minutos mientras haya módulos abiertos. **Solo mira y junta**: sin vos delante puede contestar lo que el
+  buzón ya deja contestar solo y mandar un aviso de frase fija; nada más.
+- **Nunca**: diseñar o tocar un spec, firmar por vos, darle un encargo a un obrero, reenviarle a un director un texto que vino de
+  otro proyecto, ni actuar por lo que diga un texto del buzón, de la mesa o del relevo.
+- **Cerrar y reabrir**: al cerrar deja un relevo en la PC (no en el repo); la sesión siguiente lo lee **como propuesta** y te lo
+  muestra. La marca "acá hay PO" vale 12 horas.
+- **Probar una idea nueva**: si decís "quiero probar…", o le pedís dos veces algo de método que el kit no trae, te ofrece anotarlo
+  como prueba (`prueba.cjs`); cuando vence, te pide el veredicto: al kit, descartada o seguir.
+
+NO VERIFICADO todavía: que la sesión cumpla todo lo que dice la skill (las pruebas ven que la regla está escrita).
+
 ## Dónde seguir
 
+- El PO: `docs/kit-v3/DISENO-PO.md` y `docs/kit-v3/SPEC-PO.md`; probar una idea nueva: `docs/kit-v3/SPEC-prueba.md`
 - Cuándo hay director y cómo nace un módulo: `manuales/COMO-USAR-EL-ARQUITECTO.md` §2 y §4
 - Los scripts (`encargo`, `worktree`, `noche`, `mesa`, `estado`, `tiempos`…): `manuales/SCRIPTS.md`
 - El diseño: `docs/kit-v3/SPEC-paquete-5.md`; la noche que termina sola y el clic: `docs/kit-v3/SPEC-paquete-8d.md`

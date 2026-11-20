@@ -44,8 +44,9 @@ El encargo por script: lo que usan el director y el obrero.
 Lee el encargo y el spec **de git**, nunca del disco. `partida` imprime la línea `- Partida:`. `presentar` chequea rama, encargo y sello del spec. `mensaje` dice si un aviso vale (git tiene que respaldarlo). `autorizado` reescribe `permissions.allow` del `settings.local.json` del worktree e imprime las líneas de apertura: la del dueño (solo para un encargo con `- Apertura: dueño`; termina en `→ primer mensaje: /obrero <x>--<ID>`) y dos **de fondo**, que lanza el director: `apertura de fondo:` (en `auto`) y la de respaldo (en `acceptEdits`), con `KIT_FONDO=1`, `--name obrero-<x>--<ID>` y `--allowedTools` con la lista del encargo; sin `claude`, una línea que dice que la apertura es del dueño. **La tarea 0**: con el sello `entorno — (tarea 0: montar el entorno de prueba)` en el spec, `presentar`, `autorizado` y `worktree crear` niegan (1) todo encargo que no sea el `00` (y `presentar --spec` suma la línea `tarea 0 pendiente: el primer encargo es el 00`) mientras la `.claude/kit.md` de la punta de `modulo/<x>` no tenga un entorno `dummy` o `prueba`. `verificar` imprime **seis líneas** (remoto · limpio · pruebas · alcance · main · barreras) y sale 0 si ninguna es ❌.
 
 ### estado
-La vista de `/estado`.
-`node .claude/scripts/estado.cjs [<x>]` · `estado.cjs --director [<x>]`
+La vista de `/estado`, y el panorama de toda la obra.
+`node .claude/scripts/estado.cjs [<x>]` · `estado.cjs --director [<x>]` · `estado.cjs --obra [--cambios]`
+**`--obra`** (desde la 3.2; lo usa el PO): un solo `git fetch` y una línea por módulo `EN OBRA` o `PAUSADO` (la rama, la punta y su edad, cuánto le sobra y le falta contra la rama por defecto, si integró, si tiene carpeta abierta en esta PC, cuántos commits de código hay desde que se tocó su ficha —sin contar lo que entró por `traer-main`—, "te espera" y "parado"); después el turno de lo pesado, una integración en curso, y lo abierto de la mesa y del buzón **por alias** (cuentas y etiquetas `C<n>`: nunca el texto que escribió otro proyecto). No escribe en el árbol de trabajo. **`--cambios`** guarda la foto de la pasada anterior en el git común (`kit-po/foto.json`) e imprime solo lo que cambió; sin cambios, nada.
 Sin `--director`, **la del dueño**: siempre cuatro secciones, en este orden: `TE NECESITO` (la lista única de `hooks/lib/espera.cjs`), `EL PLAN`, `LO QUE SE HIZO` y `LO QUE FALTA` (con la mediana de los encargos cerrados; con menos de tres, "no sé todavía"); `- nada` si no hay. Con `<x>`, la de ese módulo. **`--director`**: la de antes de la `rc.7`: arriba "TE ESPERA", después una línea por módulo activo (avance medido, encargos, "podés cerrar", esperas, uso de contexto) y las líneas propias de `.claude/estado-lineas.md`. Solo informa. Sale 1 si el módulo no existe.
 
 ### estructura
@@ -75,10 +76,20 @@ Arma en un solo archivo lo que el revisor necesita ver (el revisor no tiene shel
 `node .claude/scripts/paquete.cjs <sha-base> [--salida <archivo>] [--plazo <min>] [--pruebas <cmd> | --sin-pruebas]`
 Junta el diff contra HEAD, el `git status`, los avisos de `afirmaciones` y la salida de las pruebas. Escribe en `.claude/paquetes/<sha7>.md` e imprime la ruta en la última línea. Sale 0 aunque las pruebas den rojo (el rojo es dato); 1 si no pudo armarlo.
 
+### po
+La marca, el relevo y los avisos del PO (desde la 3.2; la skill `/po`: [`ROLES.md`](ROLES.md) §10).
+`node .claude/scripts/po.cjs abrir <referencia> [--relevo]` · `hay` · `chico` · `relevo [--escribir]` · `timbre movio|buzon|ficha <x> [C<n>]` · `cerrar`
+Todo vive en `kit-po/` del git común, **sin versionar**. `abrir` deja la marca "acá hay PO" con la referencia de la sesión; con otra marca de menos de 12 h sale 1 ("ya hay un PO desde…") salvo `--relevo`. `hay` sale 0 con la referencia si hay marca vigente (es lo que corre un director antes de dejar su ficha en COMPLETO). **`chico`** contesta `sí` o `no` a "¿puedo tocar código?" mirando git: es `no` con una rama de módulo sin integrar, una carpeta de módulo abierta, una integración en curso o un módulo `EN OBRA`. `relevo` imprime lo que dejó la sesión anterior, encerrado como texto de otra sesión; `--escribir` lo guarda (tope 5.000 bytes). `timbre` imprime la frase **fija** de un aviso para un director, armada solo con datos de git o con la etiqueta del buzón. Salvo `hay`, todo verbo exige rol `humano` y el checkout principal.
+
 ### portada
 Arma el `README.md` de la raíz.
 `node .claude/scripts/portada.cjs armar [--plan] [--raiz <dir>]` · `chequear [--raiz <dir>]`
 `armar` escribe `README.md` (y `assets/banner.svg`) desde `docs/NORTE.md` y la ficha; no pisa lo que se tocó a mano; con el marcador `{{…}}` sin llenar no escribe. Con un README propio sale 1 y, si el banner quedó, un renglón: `el banner quedó en assets/banner.svg: enlazalo arriba del README si querés`. `--plan` dice qué haría. `chequear` sale 0 si cumple, 1 con una línea por lo que falta. Detalle: [`MOLDE.md`](MOLDE.md) §8.
+
+### prueba
+Probar una idea nueva de método en un proyecto, con su log y su veredicto (desde la 3.2).
+`node .claude/scripts/prueba.cjs abrir --slug <s> --hasta <fecha>` · `anotar <slug> --tipo uso|traba|arreglo|nota '<texto>'` · `listar [--vencidas]` · `volcar` · `veredicto <slug> al-kit|descartada|seguir --por "<razón>" [--hasta <fecha>]`
+Cada prueba es una carpeta `.claude/pruebas/<fecha>-<slug>/` con `prueba.md` (qué es, qué cura, cómo se sabe si sirvió, el veredicto) y `log.md`. **`anotar` lo corre cualquier sesión desde cualquier carpeta** y escribe en el git común: no toca el árbol ni commitea (el texto, entre comillas simples; queda en una línea de hasta 300). `volcar` pasa esos renglones a `log.md`. `abrir`, `volcar` y `veredicto` exigen rol `humano`, el checkout principal y la rama por defecto, **commitean y suben en el mismo paso**, y no corren con cambios sin guardar de otro ni con commits sin subir en esa carpeta. "En prueba" es lo commiteado en la rama por defecto local.
 
 ### resumen
 El resumen del día.
@@ -94,6 +105,11 @@ Lo mecánico del módulo, desde git y los transcripts.
 El cierre del TODO.
 `node todo.cjs cierre [--base <ref>]`
 Poda `docs/TODO.md` (lo que lleva 90 días sin tocarse baja a 🟢) y imprime `TODO: +n −m · k ítems · j bajaron a 🟢`. Sale 3 si no hay `docs/TODO.md`.
+
+### turno
+El turno de lo pesado de la PC, a la vista (desde la 3.2).
+`node .claude/scripts/turno.cjs ver` · `rastro [--desde <fecha>]`
+El kit deja una corrida pesada a la vez por PC (las pruebas de `presentar` y `verificar`, el gate de `integrar`, `publicar`, el sello). `ver` dice quién tiene el turno (carpeta, etiqueta, desde cuándo), quién espera y la memoria libre; "libre" si nadie. `rastro` imprime un renglón por corrida terminada (cuánto esperó, cuánto tardó, memoria libre al entrar) y dos cuentas. Solo lee. Lo que corre por fuera de los scripts del kit (compilar, rearmar una base local) no pasa por el turno ni se ve acá.
 
 ### worktree
 Los worktrees de los módulos: nacen, se abren y se cierran por script.
@@ -146,6 +162,11 @@ El actualizador del kit. Un script determinista; el único agente es el de la fu
 Lo que la flota aprendió, contado.
 `node cambios-flota.cjs [<repo>…] [--proyectos <carpeta>] [--urgentes] [--kit <raíz>]`
 Solo lectura y sin red: lee lo commiteado en la rama por defecto local de cada repo. Sin `--urgentes` imprime la tabla del ciclo (qué regla se repite, cuál entra al kit); con `--urgentes`, una línea por cambio urgente vivo (lo que corre el `/inicio` de vibe-kit). Sale 0 (es un informe) o 2.
+
+### pruebas-flota
+Las pruebas de método de la flota, para absorberlas en el kit (desde la 3.2).
+`node pruebas-flota.cjs [--para-absorber] [--vista <alias> <slug>]`
+Solo lectura y sin red: lee lo commiteado en la rama por defecto local de cada repo que tenga `.claude/pruebas/`. Lista las que están en prueba (con "vencida") y, con `--para-absorber`, las que el dueño mandó `al-kit` y todavía no se vieron (lo corre el `/inicio` de vibe-kit). `--vista` anota una como ya vista: esa lista vive en el git común de vibe-kit, **nunca en el repo** (es público).
 
 ### doctor
 El chequeo de salud de esta PC y de este repo.
