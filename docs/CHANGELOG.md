@@ -2,6 +2,38 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-11-20 — La 3.2, construida: el PO, el turno a la vista y "probar una idea nueva" · v3.2.0
+
+PC `Usuario` (Fable 5.2 dirigiendo; tres sesiones Opus en paralelo), la misma sesión `vibe-kit M7 · La 3.2`, en `main`. Guido
+decidió construir ya, sin compuerta, banco ni `rc` (ADR-044).
+
+**Added**
+- `kit/molde/scripts/turno.cjs`, `po.cjs` y `prueba.cjs`; `kit/molde/hooks/lib/pruebas.cjs`; `kit/molde/skills/po/`;
+  `kit/skills/arquitecto-skills/scripts/pruebas-flota.cjs`; `estado.cjs --obra [--cambios]`. Con sus pruebas.
+- La pieza opcional `po` en el catálogo; dos reglas `allow` en el `settings.json` del molde (con red team: 24 trucos, ninguno pasó);
+  `merge=union` para el log de las pruebas.
+- ADR-044; `kit/CHANGELOG.md` con la nota `## 3.2.0`; tres recetas y dos frases en `GUIA-DE-USO.md`; `manuales/SCRIPTS.md` y `ROLES.md` §10.
+
+**Changed**
+- `conTurno`, en las tres copias de `proceso.cjs`: anota quién tiene el turno, quién espera y un renglón por corrida. No cambia
+  cuándo se toma ni cuándo se suelta.
+- `hooks/lib/inyeccion.cjs`: dos líneas opcionales al final del bloque de fábrica (el PO y las pruebas en curso).
+- `NUCLEO.md` (dos renglones), el "NO usar" de `/arquitecto`, el `/inicio` de la madre (`pruebas-flota.cjs --para-absorber`).
+- Los dos specs, `✅ IMPLEMENTADO`.
+
+**Fixed** (antes del tag)
+- Tres hallazgos del revisor frío: `prueba.cjs` se pisaba con la sesión de cierre · el panorama contaba como del módulo lo que
+  entra por `traer-main` · la marca del PO vencía con el PO vivo.
+- La prueba de las tres copias de `conTurno` miraba fuera del molde y dejaba ROTA la puesta al día de un proyecto (lo encontró la
+  flota de prueba, no la suite).
+- La nota decía que el PO se prende con `po: sí`; no es así (probado): se copia la skill y va `po: molde`.
+
+**Cómo se probó**: las pruebas de cada pieza, de a una · la suite entera, sola: 3.475 de 3.476 (la roja, una expectativa vieja de
+`niega-aprobar.test.cjs`, corregida y verde sola) · revisor frío Opus sobre lo integrado · la flota de prueba, dos vueltas.
+
+**Lo que pasó en el camino**: dos de las tres carpetas de trabajo no dejaban commitear (el guardia `git-seguro`); una sesión lo
+rodeó antes del aviso y rompió la config de su carpeta. El trabajo se trajo a la carpeta principal y se commiteó ahí.
+
 ## 2026-11-20 — La 3.2, diseñada: el PO y "probar una idea nueva", con sus specs READY
 
 PC `Usuario` (Opus 5.5 y después Fable 5.2), sesión `vibe-kit M7 · La 3.2`, en `main`. Charla de diseño con Guido; `kit/` sin tocar.

@@ -11,7 +11,7 @@
 > **La hoja de ruta, reordenada el 2026-10-26 (ADR-025)**: 4 cerrar el diseño sin mensajería → 4½ ordenar la casa → 5 construir **v3.0** →
 > 6 el ciclo como proceso → 7 la mensajería agéntica (**v3.1**). Después, el reloj: una vuelta cada 3-4 meses (abajo, "El ciclo").
 
-- [ ] **Poner al día la flota real con la `v3.1.0`, repo por repo con el OK de Guido** (los siete con kit están en la `rc.6`, foto del
+- [ ] **Poner al día la flota real con la `v3.2.0`** (era con la `v3.1.0`; Guido, 2026-11-20: una sola puesta al día, con la 3.2), **repo por repo con el OK de Guido** (los siete con kit están en la `rc.6`, foto del
   banco del 15/11: Deptos en dos vueltas por G1; uno pide `pnpm` en la PC; otro, sin pruebas, la ficha con `gate:entorno-prueba` y su
   firma; los que tienen obra viva, cuando la cierren). Lo que cambia en cada uno: el resumen de la sesión 6 en la nota del director.
   Con la `3.0.1` un repo con arranque propio ya no lo pierde al ponerse al día.
@@ -25,18 +25,15 @@
      protocolo, kit-owned y el tope, ADR-040; el spec, ✅ IMPLEMENTADO). **✅ Publicado en la `v3.1.0`** (2026-11-20, sin `rc` ni banco: ADR-041).
      **Sigue**: el piloto de un mes en la PC del probador: actualizar el kit, `registrame en el buzón`, "instalar
      hooks por PC" y `buzon.cjs medir --linea-base`. Una disputa de registros la resuelve la persona en cada PC (ADR-040).
-  2. **"Probar una idea nueva"**. **Spec ✅ READY 2026-11-20** ([SPEC-prueba](kit-v3/SPEC-prueba.md), ADR-043, con red team). Sin construir.
-  3. **El PO** (la sesión principal del proyecto, skill `/po`). **Diseño y spec ✅ READY 2026-11-20** ([DISENO-PO](kit-v3/DISENO-PO.md),
-     [SPEC-PO](kit-v3/SPEC-PO.md), ADR-042; revisor frío y red team). Sin construir. Une la ficha `transporte: buzon` con el buzón.
+  2. **"Probar una idea nueva"**. **✅ Construida en la `3.2.0`** (2026-11-20; [SPEC-prueba](kit-v3/SPEC-prueba.md), ADR-043).
+  3. **El PO** (la sesión principal del proyecto, skill `/po`). **✅ Construido en la `3.2.0`** (2026-11-20;
+     [DISENO-PO](kit-v3/DISENO-PO.md), [SPEC-PO](kit-v3/SPEC-PO.md), ADR-042 y 044), con el turno a la vista y el panorama.
 
-  **Sigue: la tanda de construcción de la 3.2** (el detalle en `SPEC-PO.md`, "Ejecución"):
-  - **0, la compuerta**: los dos repos del piloto a la `v3.1.0` (el ítem de la flota, arriba). A la semana, las mismas preguntas de
-    `DISENO-PO.md` §3.1 a las sesiones que cumplan el rol, y medir si las sesiones de una PC comparten el temporal del candado. Con
-    eso Guido decide si entra lo marcado "solo si la compuerta lo pide" (el envoltorio del turno y `pesados:`).
-  - `vibe-kit 3.2 · El turno y el panorama` → `vibe-kit 3.2 · La skill del PO` → `vibe-kit 3.2 · Probar una idea nueva` →
-    `vibe-kit 3.2 · La rc.1 y el piloto` (banco vuelta 1, dos semanas de piloto, `rc` de arreglos, banco, versión).
+  **Sigue**: el tag `v3.2.0` con el OK de Guido · la flota real a la 3.2.0 (el ítem de arriba) · el uso real hace de piloto: mirar
+  las medidas de `DISENO-PO.md` §6 y **si las sesiones de una PC comparten el temporal del candado** · la 3.2.1 con lo de abajo.
+  - **No se construyó** (espera evidencia): `turno.cjs correr`, `pesados:` y el envoltorio en AUTORIZADO.
   - Sin leer: `docs/legacy/una-sola-identidad/` del proyecto del piloto (ese repo no está en `Usuario`).
-  - **Sin ubicar**: los arreglos de abajo ("para la v3.1") no se trataron en la charla: van a una 3.1.x o a la 3.2, lo decide Guido.
+  - **Sin ubicar**: los arreglos de más abajo ("para la v3.1") no se trataron: van a una 3.1.x o a la 3.2.x, lo decide Guido.
     Se suman tres que mostró el relevamiento: `mesa.cjs abiertos` lento (95 s y más de 3 min con la PC cargada) · los plazos de los
     hooks y del push de `integrar` con la PC cargada · el candado `topes` en rojo con cuatro módulos.
   **El revisor frío de la 3.2 construida** (Opus, 2026-11-20, sobre `6162b6a..2ff16c1`): "con observaciones", nada traba el tag.

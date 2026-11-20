@@ -3,7 +3,7 @@
 Que una idea de método que el dueño prueba en un proyecto (una skill, un flujo) quede anotada con su log y su veredicto, y que
 vibe-kit la vea para absorberla. Se apoya en [SPEC-PO](SPEC-PO.md): la ofrece y la cierra el PO. "El dueño" es la persona.
 
-- Estado: READY
+- Estado: **✅ IMPLEMENTADO 2026-11-20** en la `3.2.0` (ADR-044). El red team de la regla `allow`: 24 trucos, ninguno corrió sin pedir permiso; la regla entró. Se aparta en una cosa, por el revisor frío: `abrir`, `volcar` y `veredicto` no corren con cambios ajenos sin guardar ni con commits sin subir en la carpeta principal, y el `pull --rebase` va sin `--autostash` · READY
 - Fecha: 2026-11-20 · Misión 7 (kit **v3.2**) · sesión `vibe-kit M7 · La 3.2`. Decide Guido. Escribe Fable 5.2; lector y red team Opus.
 - Sello del Arquitecto: `arquitecto: 2026-11-20 · kit 3.1.0 · chequeos: tamaño ✅ · entorno — (quitado: la suite del kit tarda ~90 min: cada cambio corre las pruebas de lo que toca y la suite entera va antes de cada versión (CICLO-DE-MEJORA §6) — decidido con Guido el 2026-11-16) · tope ⚠️ (10,6 KB y 8 criterios; no partir: Guido) · hash 02f85f7aa758`
 - **Base**: `v3.1.0` más SPEC-PO construido. **Nivel: MEDIO-ALTO** (suma una regla `allow` al `settings.json` del molde).

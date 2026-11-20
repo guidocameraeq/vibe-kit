@@ -4,7 +4,7 @@ Que la sesión principal de un proyecto tenga un oficio escrito (saber cómo est
 directores, atender el buzón y llevarle al dueño las decisiones en lote), sobre el turno de lo pesado que el kit ya tiene, hecho
 visible. Baja a piezas el diseño [DISENO-PO](DISENO-PO.md). En este spec **"el PO" es la sesión y "el dueño" es la persona**.
 
-- Estado: READY
+- Estado: **✅ IMPLEMENTADO 2026-11-20** en la `3.2.0`, apartándose de "Ejecución" como dice ADR-044 (tres sesiones en paralelo, sin compuerta, banco ni `rc`; **lo marcado "solo si la compuerta lo pide" no se construyó**). Tres hallazgos del revisor frío aplicados después (el latido lo deja el repaso con `po.cjs hay`; la cuenta de commits sin lo de `traer-main`). Cómo se prende la pieza: `kit/CHANGELOG.md`, `## 3.2.0` · READY
 - Fecha: 2026-11-20 · Misión 7 (kit **v3.2**) · sesión `vibe-kit M7 · La 3.2`. Decide Guido. Escribe Fable 5.2 con lectores Sonnet y
   Opus; revisor frío Opus sobre la primera versión del diseño; red team Opus con `redteam-spec`, una ronda: 12 hallazgos, los 12
   aplicados (§ Red team).

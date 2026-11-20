@@ -7,6 +7,30 @@
 
 ---
 
+## Tanda 3 — de la v3.1.0 a la v3.2.0 (2026-11-20, un día)
+
+El PO, el turno a la vista, el panorama y "probar una idea nueva". Diseño, dos specs y construcción en una sola sesión directora
+(Fable), con tres sesiones Opus en paralelo. Sin compuerta, banco ni `rc`, por decisión de Guido (ADR-044).
+
+### En números
+| Qué | Cuánto |
+|---|---|
+| Versiones | una (`3.2.0`, final, "en piloto") |
+| Sesiones | 1 directora + 3 de construcción en paralelo (~1 h cada una) |
+| Lectores y revisores | 11 subagentes de lectura · 1 revisor frío del diseño · 2 red team de spec · 1 revisor frío del código |
+| Suite | una, entera y sola: 3.476 pruebas, 50 min, una roja (expectativa vieja) |
+| Flota de prueba | dos vueltas de ~18 min (la primera encontró un bug real) |
+
+### Cómo nos fue
+- **Preguntarles a las sesiones vivas** qué hacían fue la mejor fuente del diseño: evidencia en minutos.
+- **El red team de cada spec cambió el diseño** (tres y un hallazgo que bloqueaban): valió su media hora cada uno.
+- **En paralelo anduvo** porque cada sesión tenía su lista de archivos y la directora integró copiando, no mergeando.
+- **Costó**: las carpetas de trabajo de la app chocaron con el guardia `git-seguro` (dos de tres no podían commitear, y una sesión
+  lo rodeó). Y la estimación: "3 horas" fueron unas 5 de reloj, con un corte por el viaje.
+- **La flota de prueba encontró lo que la suite no ve**: una prueba del molde que miraba fuera del molde.
+- **Para la próxima**: decirles de entrada a las sesiones en paralelo que no commiteen · probar "cómo se prende" toda pieza
+  opcional nueva antes de escribirlo en la nota · el banco sigue debiendo una vuelta sobre copias de repos reales.
+
 ## Tanda 2 — de la `v3.0.1` a la `v3.1.0` (2026-11-19 al 20)
 
 Misión 7, primera mitad: `reflexion` y el buzón. Lo construyó la PC del probador de la beta, con el OK de Guido para trabajar en `main`;
