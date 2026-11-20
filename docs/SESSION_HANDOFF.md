@@ -15,7 +15,8 @@
   flota de prueba (mezclados y al día). El log: tanda 2 en `docs/kit-v3/TANDAS-DE-VERSIONES.md`.
 - **Lo que la suite encontró**: una cuenta de Windows de 22 caracteres o más (la de Guido en `Usuario` tiene 22) queda "sin verificar
   todavía" en el aviso hasta "revisá el buzón". Del lado seguro; está en la nota y arriba de la 3.1.1 en el TODO.
-- Esta PC: `kit-sync` LIMPIO con un aviso (los hooks de la PC dicen 3.0.1: falta reinstalarlos, solo sube el número).
+- Esta PC: `kit-sync` LIMPIO, los hooks de la PC en 3.1.0 y el `doctor` todo bien (un aviso viejo: el `CLAUDE.md` de la madre sin "El
+  tamaño del pedido"). Un clon fresco de GitHub baja la `v3.1.0`.
 
 ## Próximo paso
 
@@ -28,7 +29,6 @@
 
 ## Te espera (Guido)
 
-- En esta PC: "instalar hooks por PC" (sube el número a 3.1.0 y saca el aviso de `kit-sync`).
 - En la otra PC (`clientes`): "actualizá el kit" e "instalar hooks por PC". **No registres en el buzón una segunda PC tuya hasta la 3.1.1.**
 - El OK por repo de la flota real · el clic de P7 (`../vibe-kit-pruebas/rc7/p7-firma/LEEME-P7.txt`).
 - Los chats de la PC del probador al privado, desde una PC con acceso (ids en el handoff anterior, `git show e5e6d72:docs/SESSION_HANDOFF.md`).
