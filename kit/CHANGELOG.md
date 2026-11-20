@@ -5,6 +5,47 @@ Una sección por versión, la más nueva arriba. Cada una trae su **nota de migr
 Es lo que lee el agente de la fusión al actualizar un proyecto. La historia de sesiones del repo vive aparte, en `docs/CHANGELOG.md`.
 `kit/VERSION` lleva la versión del último tag y se sube en el commit que pone el tag siguiente.
 
+## 3.2.0
+
+Versión (2026-11-20): **el PO, el turno de lo pesado a la vista y "probar una idea nueva", en piloto** (ADR-042 a ADR-044). Sale sin
+`rc` ni banco por excepción (ADR-044), con la suite entera y la flota de prueba. Lo marcado "solo si la compuerta lo pide" en
+SPEC-PO (un envoltorio para lo pesado que corre por fuera del kit) **no viene** en esta versión.
+
+- **Qué piezas cambiaron**:
+  - **El turno de lo pesado** (`hooks/lib/proceso.cjs`, `conTurno`, en sus tres copias): el candado por PC ahora anota quién lo
+    tiene (carpeta y etiqueta), quién espera y **un renglón por corrida** (cuánto esperó, cuánto tardó, memoria libre). Todo de mejor
+    esfuerzo: cuándo se toma, se espera y se suelta **no cambia**. Script nuevo **`turno.cjs`** (`ver`, `rastro`).
+  - **El panorama**: **`estado.cjs --obra [--cambios]`**: una línea por módulo activo (rama, punta, edad, contra la rama por
+    defecto, commits de código desde que se tocó su ficha), el turno, la mesa y el buzón por alias. Nunca imprime texto de otro
+    proyecto y no escribe en el árbol. Las vistas que ya tenía `estado.cjs` quedan igual.
+  - **El PO**, pieza **opcional** nueva (`po`): la skill **`/po`** (`skills/po/`) para la sesión principal del proyecto, y
+    **`po.cjs`** (`abrir`, `hay`, `chico`, `relevo`, `timbre`, `cerrar`), que guarda la marca y el relevo en el git común (sin
+    versionar). `NUCLEO.md` suma un renglón: el director le avisa al PO antes de dejar la ficha en COMPLETO, si hay uno.
+  - **Probar una idea nueva**: **`prueba.cjs`** (`abrir`, `anotar`, `listar`, `volcar`, `veredicto`) y la carpeta
+    `.claude/pruebas/<fecha>-<slug>/`; `hooks/lib/pruebas.cjs`. `anotar` escribe en el git común: no toca el árbol ni commitea.
+    En la PC, **`pruebas-flota.cjs`** lista las pruebas de la flota (`--para-absorber`, `--vista`).
+  - **`settings.json`**: dos reglas `allow` nuevas, `Bash(node .claude/scripts/prueba.cjs anotar:*)` y la de PowerShell (red team
+    del 2026-11-20: 24 intentos de encadenar otro comando, ninguno corrió sin pedir permiso).
+  - **`gitattributes.snippet`**: `.claude/pruebas/*/log.md merge=union`.
+  - **Lo inyectado al arrancar** (`hooks/lib/inyeccion.cjs`): dos líneas opcionales al final del bloque de líneas de fábrica: "este
+    proyecto lleva PO" (con la pieza prendida) y "en prueba: …" (con una prueba en curso). Son las primeras en caerse si no entran.
+  - El "NO usar" de `/arquitecto` nombra a `/po`.
+- **Automático o pide revisión**: automático, salvo **`settings.json`** (suma dos reglas `allow`: en un proyecto con el settings
+  adaptado se mezcla regla por regla, como siempre). **Sin la pieza `po` y sin pruebas en curso, lo inyectado al arrancar es byte a
+  byte el de antes.** La pieza `po` llega apagada (`no`) a un proyecto que ya tiene el kit.
+- **Qué chequear después**:
+  - **Prender el PO** donde se quiera: `po: sí` en `piezas:` de la ficha y volver a poner al día; después, en la sesión principal,
+    `/po`. El arranque de toda sesión dice "este proyecto lleva PO".
+  - `node .claude/scripts/turno.cjs ver` responde "libre" o quién tiene el turno; después de una corrida de `verificar`, `turno.cjs
+    rastro` muestra su renglón.
+  - **No verificado todavía**: que las sesiones de una misma PC compartan el temporal donde vive el candado (si no, no se ven entre
+    sí) · el panorama contra el buzón real y contra un repo con obra viva · que la regla `allow` de `anotar` valga igual con el
+    settings del proyecto ya confiado (se midió pasándolo por `--settings`) · que la sesión cumpla lo que dice la skill `/po` (las
+    pruebas ven que la regla está escrita).
+  - Una sesión abierta en una carpeta de trabajo que crea la app puede no poder commitear en un repo con el kit: el guardia
+    `git-seguro` frena si los githooks de esa carpeta no apuntan a `.githooks` (visto el 2026-11-20). No se rodea: el trabajo se
+    pasa a la carpeta principal.
+
 ## 3.1.0
 
 Versión (2026-11-20): **la skill `reflexion` y el buzón entre agentes, en piloto** (ADR-036 a ADR-041). Sale sin `rc` ni banco por

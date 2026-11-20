@@ -4,7 +4,13 @@
 > nuevo de esta carpeta. **Tope 5.500 bytes**; el hook corta y avisa "CORTADO" si se pasa, y termina con la huella.
 
 **CIERRE** 2026-11-20, sesión `vibe-kit M7 · La 3.2`, PC `Usuario` (Opus 5.5 y después Fable 5.2), en `main`. Solo diseño: `kit/` sin tocar.
-**Kit `v3.1.0` publicado. La 3.2 está diseñada y con sus dos specs READY, sin construir.**
+**Kit `v3.1.0` publicado. PARCIAL 2026-11-20 16:00: la 3.2 está CONSTRUIDA y subida a `main` (ADR-044), SIN tag.**
+Commits `e5877c8` (turno y panorama), `6202fb2` (probar una idea nueva), `2ff16c1` (el PO) y la nota `## 3.2.0` de `kit/CHANGELOG.md`.
+Las pruebas de cada pieza pasan, de a una. **Falta, en este orden**: aplicar lo del revisor frío (si alcanzó a volver) · **la suite
+entera, sola** (`node --test "kit/**/*.test.cjs"`, ~65 min) · una vuelta de la flota de prueba (ahí, probar prender `po: sí` en un
+repo con kit) · `kit/VERSION` a `3.2.0` · guía y manuales · `kit-sync.sh sync` · el tag con el OK de Guido. Las tres carpetas de
+trabajo `.claude/worktrees/kit32-*` son respaldo: se borran al final (la de `skill-po` tiene su config de git rota; no repararla).
+Lo de abajo ("Próximo paso") es el plan viejo: lo reemplaza este párrafo.
 
 ## Dónde estamos
 
