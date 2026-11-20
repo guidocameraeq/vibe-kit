@@ -105,7 +105,8 @@ pregunta antes de publicarlo (no publica lo que no vio integrar). → [`manuales
 hizo · lo que falta**. *"¿Cómo terminamos?"* suma el resumen del día. → [`manuales/ROLES.md`](manuales/ROLES.md) §6
 
 ### 🧑‍✈️ "Quiero alguien que lleve todo el proyecto" (el PO)
-Prendé la pieza (`po: sí` en `piezas:` de la ficha, y "actualizá el kit") y en la sesión principal del proyecto decí **`/po`**. Te
+Con el proyecto ya en la 3.2, decile a la sesión **"prendé la pieza po"** (copia la skill del kit y la anota en la ficha) y después,
+en la sesión principal, **`/po`**. Te
 cuenta cómo va todo, atiende el buzón, les avisa a los directores, te trae las decisiones juntas y controla que cada módulo cierre
 documentado. Lo chico lo hace él solo si no hay nada en obra. Está **en piloto**. → [`manuales/ROLES.md`](manuales/ROLES.md) §10
 

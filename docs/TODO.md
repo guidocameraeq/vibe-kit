@@ -54,6 +54,12 @@
   6. (menor) `prueba.cjs:62`: un texto de `anotar` que empieza con `--` se toma como opción.
   7. (menor) `prueba.cjs:322`: el veredicto se agrega al final del archivo, no dentro de `## Veredicto`.
   8. (menor) `po.cjs:285`: un error inesperado sale como traza de node en vez de una línea.
+  **Aplicados antes del tag: 1, 2 y 3** (`1ab34fd`). Los otros cinco, a una 3.2.1.
+  **De la flota de prueba de la 3.2** (2026-11-20), también para la 3.2.1: **no hay un camino por script para prender una pieza
+  opcional después de adoptar** (`po: sí` y volver a poner al día: la flota lo saltea por "ficha al día" y `aplicar` lo marca
+  "adaptada (desvío detectado)"; a mano anda: copiar la skill y `po: molde`). Vale igual para `estado` y `release`.
+  **Del día**: una sesión en una carpeta de trabajo de la app no puede commitear en un repo con el kit si su `core.hooksPath` quedó
+  absoluto (`git-seguro`, `hooks-path-ausente`); pasó en dos de tres carpetas.
   No miró: si las pruebas pasan, el actualizador con una pieza aplicada a medias (`scripts` nuevo con `hooks-lib` viejo), el
   tiempo que suman al arranque las consultas a git de la línea de pruebas.
 

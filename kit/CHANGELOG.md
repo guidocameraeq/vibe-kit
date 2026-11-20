@@ -8,7 +8,8 @@ Es lo que lee el agente de la fusión al actualizar un proyecto. La historia de 
 ## 3.2.0
 
 Versión (2026-11-20): **el PO, el turno de lo pesado a la vista y "probar una idea nueva", en piloto** (ADR-042 a ADR-044). Sale sin
-`rc` ni banco por excepción (ADR-044), con la suite entera y la flota de prueba. Lo marcado "solo si la compuerta lo pide" en
+`rc` ni banco por excepción (ADR-044), con la suite entera (3.476 pruebas) y la flota de prueba (alfa, beta y gama, de la 2.4.2 a
+la 3.2.0, mezclados). Lo marcado "solo si la compuerta lo pide" en
 SPEC-PO (un envoltorio para lo pesado que corre por fuera del kit) **no viene** en esta versión.
 
 - **Qué piezas cambiaron**:
@@ -34,8 +35,11 @@ SPEC-PO (un envoltorio para lo pesado que corre por fuera del kit) **no viene** 
   adaptado se mezcla regla por regla, como siempre). **Sin la pieza `po` y sin pruebas en curso, lo inyectado al arrancar es byte a
   byte el de antes.** La pieza `po` llega apagada (`no`) a un proyecto que ya tiene el kit.
 - **Qué chequear después**:
-  - **Prender el PO** donde se quiera: `po: sí` en `piezas:` de la ficha y volver a poner al día; después, en la sesión principal,
-    `/po`. El arranque de toda sesión dice "este proyecto lleva PO".
+  - **Prender el PO** donde se quiera, en un proyecto que ya tiene el kit: copiar `skills/po/` del molde del kit a
+    `.claude/skills/po/` y poner `po: molde` en `piezas:` de la ficha (lo hace la sesión si le decís "prendé la pieza po"); después,
+    en la sesión principal, `/po`. El arranque de toda sesión dice "este proyecto lleva PO". **Poner `po: sí` y volver a poner al
+    día no alcanza**: con la ficha ya en 3.2.0 la flota lo saltea, y `aplicar` lo marca como desvío. No hay todavía un camino por
+    script para prender una pieza opcional después de adoptar (probado en la flota de prueba el 2026-11-20; queda para una 3.2.1).
   - `node .claude/scripts/turno.cjs ver` responde "libre" o quién tiene el turno; después de una corrida de `verificar`, `turno.cjs
     rastro` muestra su renglón.
   - **No verificado todavía**: que las sesiones de una misma PC compartan el temporal donde vive el candado (si no, no se ven entre

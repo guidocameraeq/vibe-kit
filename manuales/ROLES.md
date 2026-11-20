@@ -201,8 +201,9 @@ resumen del día). Un obrero no escribe en la mesa. NO VERIFICADO: el envío del
 
 ## 10. El PO (`/po`) — la sesión principal, con oficio
 
-Desde la 3.2, **en piloto**. Es una pieza opcional (`po: sí` en `piezas:` de la ficha): la sesión que abrís en la carpeta principal del
-proyecto, con reglas escritas. No es un agente que se despierta solo: lo abrís vos y lo dejás abierto.
+Desde la 3.2, **en piloto**. Es una pieza opcional, que llega apagada (`po: no`). Se prende copiando `skills/po/` del molde del kit a
+`.claude/skills/po/` y poniendo `po: molde` en `piezas:` de la ficha (poner `po: sí` no alcanza: no hay todavía un camino por script).
+Es la sesión que abrís en la carpeta principal del proyecto, con reglas escritas. No es un agente que se despierta solo: lo abrís vos y lo dejás abierto.
 
 - **Qué hace**: te dice cómo está todo (`estado.cjs --obra`), atiende el buzón, les avisa a los directores, junta las decisiones y te
   las trae de a una con la recomendada, revisa que un módulo quede documentado antes de integrar (si falta, se lo devuelve al
