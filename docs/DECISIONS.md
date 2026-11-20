@@ -49,6 +49,7 @@
 - ADR-041 · La 3.1.0 sale final con `reflexion` y el buzón, sin `rc` ni banco; el PO y "probar una idea nueva" pasan a la 3.2 (2026-11-20)
 - ADR-042 · El PO: la sesión principal del proyecto, con oficio; el turno de lo pesado, a la vista (2026-11-20)
 - ADR-043 · "Probar una idea nueva": una carpeta y un script aparte, y la ofrece el PO (2026-11-20)
+- ADR-044 · La 3.2 se construye ya, en paralelo y sin compuerta, banco ni `rc`; sale final "en piloto" (2026-11-20)
 
 *Cada ADR nuevo suma su línea acá (lo pide `/cierre`).*
 
@@ -1033,3 +1034,23 @@ de algo que nació en un proyecto (director y obrero, ADR-021; el buzón, ADR-03
 - **Revisiones:** red team (`redteam-spec`, Opus), 10 hallazgos, 1 que bloqueaba (los commits sin subir del script trababan la
   sesión de cierre: ahora suben en el mismo paso); todos aplicados.
 - **Dónde vive:** `docs/kit-v3/SPEC-prueba.md` (READY, sin construir). Una sesión, después de la skill del PO y antes de su `rc.1`.
+
+## ADR-044 · La 3.2 se construye ya, en paralelo y sin compuerta, banco ni `rc`; sale final "en piloto" (2026-11-20)
+Los specs de la 3.2 (ADR-042 y 043) pedían un paso 0 (poner al día los dos repos del piloto con la 3.1.0 y mirar una semana), tres
+sesiones en fila (~11 h), `rc.1`, banco y dos semanas de piloto antes de la versión. Guido, al leer el plan: "la próxima tanda es
+crear la versión 3.2, después esa usaré para poner al día todos mis repos".
+- **Decisión** (Guido, 2026-11-20): **la 3.2 se construye hoy**, con tres sesiones Opus en paralelo, cada una en su carpeta, y sale
+  **final, "en piloto"**, como la 3.1.0 (ADR-041). Los specs sellados no se tocan; lo que se aparta de su "Ejecución" es esto:
+  1. **Sin compuerta.** Los repos van directo a la 3.2. Por eso **lo marcado "solo si la compuerta lo pide" no se construye**
+     (`turno.cjs correr`, `pesados:`, el segundo renglón de `NUCLEO`, el envoltorio en AUTORIZADO, el criterio 8 de SPEC-PO): sigue
+     esperando su evidencia.
+  2. **Sin banco ni `rc` previa, sin mutación de `conTurno` ni red team de su cambio.** Antes del tag: las pruebas de cada pieza, un
+     revisor frío sobre lo integrado, **la suite entera** y **una vuelta de la flota de prueba**.
+  3. **Sí se hace el red team de la regla `allow`** de `prueba.cjs anotar` (SPEC-prueba): si no se prueba, la regla no entra.
+  4. El piloto pasa a ser el uso real en los repos de Guido, después de la versión.
+- **Por qué:** `[workflow]`. Guido quiere una sola puesta al día de la flota, con la versión que trae todo.
+- **Descartado:** clavar 2 horas (salía el PO sin el turno a la vista y sin "probar una idea nueva") · seguir el spec (días).
+- **Costo aceptado:** el banco prueba la actualización sobre copias de repos reales, que es lo que viene después con toda la flota:
+  lo que falle va a una 3.2.1. `conTurno` lo usa el gate de `integrar` y cambia sin mutación (lo nuevo es de mejor esfuerzo y las
+  pruebas que ya tiene no se tocan). Lo "no verificado" de los specs sigue así. Es la segunda versión seguida sin banco: **no es
+  regla nueva**, es otra excepción con su ADR.
