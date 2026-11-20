@@ -956,3 +956,22 @@ partir el renglón lo esquivaban); un alias de cita sin forma salía fuera del c
   nombres raros, y la carpeta quedó sin un cambio. El aviso sobre una carpeta sintética de 171 mensajes (disco local): p95 283-321 ms.
 - **Dónde vive:** `kit/skills/arquitecto-skills/pc/buzon/` con sus pruebas (`redteam.test.cjs`, un caso por hallazgo),
   `kit/skills/buzon/` y `pc/aviso-buzon.cjs`.
+
+## ADR-041 · La 3.1.0 sale final con `reflexion` y el buzón, sin `rc` ni banco; el PO y "probar una idea nueva" pasan a la 3.2 (2026-11-20)
+La 3.1 iba a juntar tres cosas (TODO, misión 7, Guido 2026-11-04): el buzón, "probar una idea nueva" y el PO. El buzón y `reflexion`
+quedaron construidos el 2026-11-19, sin piloto (nadie se registró en el buzón). El handoff proponía una `3.1.0-rc.1`.
+- **Decisión** (Guido, 2026-11-20): **la 3.1.0 sale hoy como versión final** con `reflexion` y el buzón; **el PO y "probar una idea
+  nueva" pasan a la 3.2**. Se saltea el `rc` y el banco (ADR-035, punto 1: "el banco es paso fijo") **solo para esta versión**.
+  Antes del tag: el revisor frío (Opus) y una auditoría del sistema (Fable, `docs/kit-v3/AUDITORIA-3.1.md`, "visto bueno con
+  condiciones"), la suite entera, la flota de prueba, una sola nota `## 3.1.0` honesta y los hooks por PC instalados una vez en una
+  PC real con el `doctor`.
+- **Por qué:** el banco mide adoptar, la flota y la noche; la 3.1 les toca una sola línea del molde (`inyeccion.cjs`), que la flota
+  de prueba ejercita. Lo nuevo es de la PC y opcional: el buzón no lee ni escribe sin registrarse, y `reflexion` corre solo si se
+  pide. Lo que la actualización sí cambia en toda PC (el aviso registrado, un node más por herramienta, el corrector reacomodado) lo
+  cubre la instalación real. Y el PO, que contesta el buzón, se diseña mejor con el buzón andando.
+- **Descartado:** `3.1.0-rc.1` y las otras dos como `rc.2`, `rc.3` (una `rc` arregla, no rediseña: §7 del ciclo; el piloto mediría
+  algo que se mueve) · `rc.1` y la final después del piloto de un mes (mismo riesgo acotado, un mes más sin versión) · esperar a
+  las tres (semanas sin nada y el buzón sin piloto).
+- **Costo aceptado:** sale "en piloto", no "probada": lo que encuentre el primer uso real va a una 3.1.1 (la misma persona en dos
+  PCs, el home con espacios o tildes, el aviso solo con config, VS Code en vivo; el detalle en la auditoría y el TODO). **El banco
+  sigue siendo paso fijo** para una versión que toque el molde, los frenos o el actualizador.

@@ -15,19 +15,19 @@
   banco del 15/11: Deptos en dos vueltas por G1; uno pide `pnpm` en la PC; otro, sin pruebas, la ficha con `gate:entorno-prueba` y su
   firma; los que tienen obra viva, cuando la cierren). Lo que cambia en cada uno: el resumen de la sesión 6 en la nota del director.
   Con la `3.0.1` un repo con arranque propio ya no lo pierde al ponerse al día.
-- [ ] **Misión 7 — la mensajería agéntica → kit v3.1** (lo que era G.1; brief en `DISENO-G` §18 + sus insumos del acta de contraste: hueco 3/P71,
+- [ ] **Misión 7 — la mensajería agéntica: el buzón y `reflexion` en la 3.1.0; el PO y "probar una idea nueva" en la 3.2** (ADR-041) (lo que era G.1; brief en `DISENO-G` §18 + sus insumos del acta de contraste: hueco 3/P71,
   P68, P77 y las "otras" 5, 8 y 24). Con investigación en internet y piloto. Guido, 2026-10-26: "no está bien claro todavía; siguiente versión;
   no bien termine lo otro, lo hago".
   **Guido, 2026-11-04: la próxima versión (después de la v3.0) junta tres cosas, cada una con su charla de diseño con él:**
   1. **El buzón**, que es esta mensajería. **Diseño ✅ 2026-11-19** ([DISENO-G1-buzon](kit-v3/DISENO-G1-buzon.md), ADR-037; lo decidió
      el probador con el OK de Guido). **Spec ✅ READY 2026-11-19** ([SPEC-G1-buzon](kit-v3/SPEC-G1-buzon.md), ADR-038, con red team).
      **Construcción ✅ 2026-11-19** (sesión 1: el instalador, el aviso y el `doctor`, ADR-039; sesión 2: `buzon.cjs`, la skill, el
-     protocolo, kit-owned y el tope, ADR-040; el spec, ✅ IMPLEMENTADO). **Sigue**: el tag que la lleve (lo decide Guido, con la suite
-     entera y el banco, abajo) y el piloto de un mes en la PC del probador: actualizar el kit, `registrame en el buzón`, "instalar
+     protocolo, kit-owned y el tope, ADR-040; el spec, ✅ IMPLEMENTADO). **Sale en la 3.1.0** (2026-11-20, sin `rc` ni banco: ADR-041).
+     **Sigue**: el piloto de un mes en la PC del probador: actualizar el kit, `registrame en el buzón`, "instalar
      hooks por PC" y `buzon.cjs medir --linea-base`. Una disputa de registros la resuelve la persona en cada PC (ADR-040).
-  2. **"Probar una idea nueva"** (los experimentos de método). Sale de la v3.0, donde estaba en D8c.1: "vamos a sacar esta versión bien
+  2. **"Probar una idea nueva"** (los experimentos de método; **a la 3.2**, ADR-041). Sale de la v3.0, donde estaba en D8c.1: "vamos a sacar esta versión bien
      armada y en la próxima versión traemos eso de la idea nueva".
-  3. **Un "PO" como skill**: un rol al lado del director que responde el buzón, habla con los directores, entiende el proyecto en su
+  3. **Un "PO" como skill** (**a la 3.2**, ADR-041; ahí también unir la ficha `mesa.<alias>.transporte: buzon` con el buzón): un rol al lado del director que responde el buzón, habla con los directores, entiende el proyecto en su
      totalidad y puede consultar las bases. Guido: "después me ayudás a desarrollarla".
 
   Para el diseño hay que mirar cuatro cosas:
@@ -59,9 +59,18 @@
   en `molde` y `candado:raiz` frena todo archivo nuevo en `docs/` aunque el repo use su propio mapa. En la madre se quitó `candado:raiz`
   (aprobado `2026-11-16-quitar-arbol-docs-madre`). Arreglo: con `docs: no`, que la adopción proponga `hook-escritura: no` o el
   `candado:raiz` quitado con su razón, y que el banco sume un repo así. Para la `3.0.2` o la `v3.1`, con el ciclo (§6).
-- [ ] **`reflexion` y el buzón en el próximo tag** (ADR-036 y ADR-037 a ADR-040): los dos en el `[Unreleased]` de `kit/CHANGELOG.md`; el tag y
-  su número los decide Guido (`docs/CICLO-DE-MEJORA.md` §6). NO VERIFICADO hasta la primera sesión real con la skill instalada: que
-  "reflexioná" o "¿quedó algo suelto?" la disparen solos (en la prueba la descripción se pasó a mano: `docs/kit-v3/PRUEBA-reflexion.md`).
+- [ ] **La 3.1.1, del piloto del buzón** (ADR-041; el detalle en `docs/kit-v3/AUDITORIA-3.1.md` y el revisor frío del 2026-11-20):
+  - **la misma persona en su segunda PC termina en disputa** (`buzon.cjs:656-666` contra la skill, que promete un alta): Guido no
+    registra su segunda PC hasta arreglarlo;
+  - **una cuenta de Windows de 22 caracteres o más** (la de Guido en `Usuario` tiene 22): `dir /q` la corta y el aviso deja sus mensajes
+    "sin verificar todavía" hasta "revisá el buzón" (Get-Acl). Arreglo: resolverla en el hilo aparte del aviso y guardarla en el
+    índice. Lo encontró la suite del 2026-11-20 (`aviso-real.test.cjs` mide hoy los dos lados);
+  - el aviso del buzón se registra en toda PC: que vaya con la misma condición que la regla `allow` (con config);
+  - el home con espacios (`rutaComando` sin comillas) y la cuenta con tilde o eñe (`whoami` leído como utf8; NO VERIFICADO);
+  - reinstalar sin config deja `"allow": []`;
+  - los manuales (`SCRIPTS.md` sin `buzon.cjs`, el Equipador sin el aviso) y las dos "mesas": el puntero de la skill va a `mesa.cjs`;
+  - lo NO VERIFICADO del primer uso real: VS Code en vivo (`CLAUDE_CODE_ENTRYPOINT` de la extensión), los tiempos del aviso sobre la
+    carpeta de red, y que "reflexioná" o "¿quedó algo suelto?" disparen `reflexion` solos.
 - [ ] **El hook v2.4.3 al Bot y a su Panel** (inyectaban 15.500 y ~18.000 caracteres el 2026-10-22: arrancan sin ver su estado).
   En un chat de cada uno: *"traé el hook de arranque del molde del kit y medilo"* (receta en `GUIA-DE-USO.md`). El molde nuevo solo
   llega a los proyectos que se montan desde ahora.

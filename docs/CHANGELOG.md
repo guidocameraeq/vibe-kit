@@ -113,6 +113,7 @@ diseño: no se tocó `kit/`. Sin tag.
 **Changed**
 - `docs/TODO.md`: el punto 1 de la misión 7 queda con el diseño hecho y lo que sigue (spec delta, construcción, piloto).
 
+## 2026-11-19 — La skill global `reflexion`
 
 La PC del probador de la beta (Opus 5.5), con su OK y el de Guido para trabajar en `main`. Sin tag (lo decide Guido).
 

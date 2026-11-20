@@ -68,6 +68,7 @@ El plano de la misión 5 y todo lo que se escriba para construirlo. Los specs de
 | [`kit-v3/SPEC-G1-buzon.md`](kit-v3/SPEC-G1-buzon.md) | El spec delta del buzón (misión 7, kit v3.1; 2026-11-19): lo medido de §7 del diseño (tiempos de la red, el dueño del archivo, los permisos, la línea base turno por turno), las tres respuestas de quien decide (D1-D3), el protocolo v1, `buzon.cjs`, la skill, el aviso, los cambios al instalador por PC, las pruebas, el piloto y el red team. Al implementarse se marca ✅ y se queda acá |
 | [`kit-v3/PRUEBA-reflexion.md`](kit-v3/PRUEBA-reflexion.md) | La prueba de la skill `reflexion` (2026-11-19): sin la skill contra con la skill sobre un proyecto ficticio con cabos plantados, y por qué va global y aparte del `/cierre`; el proyecto, en `pruebas/reflexion/` | Acta: no se reescribe |
 | [`kit-v3/PLAN-construccion.md`](kit-v3/PLAN-construccion.md) | **El tracker de la misión 5**: el estado por paquete, una fila por director (ADR-028), los pendientes, los NO VERIFICADO y los 20 criterios para tachar. Cada sesión de la misión 5 lo lee al abrir y lo actualiza al cerrar |
+| [`kit-v3/AUDITORIA-3.1.md`](kit-v3/AUDITORIA-3.1.md) | La mirada del sistema antes de la 3.1.0 (Fable, 2026-11-20): cómo encajan `reflexion` y el buzón con el kit entero y los criterios del proyecto; "visto bueno con condiciones", y qué va antes del tag, a la 3.1.1 y a la 3.2 (ADR-041) |
 
 ## La misión 4, el diseño del pack — [`mision-4/`](mision-4/)
 
