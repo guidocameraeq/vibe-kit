@@ -46,6 +46,9 @@
 - ADR-038 · El spec del buzón: el turno y la verificación de un mensaje v0, y la regla de permiso la pone el instalador por PC (2026-11-19)
 - ADR-039 · La construcción del buzón, sesión 1: el aviso corre `buzon.cjs` en un hilo aparte, y la regla sale solo con `buzon.cjs` instalado (2026-11-19)
 - ADR-040 · La construcción del buzón, sesión 2: `buzon.cjs` en módulos, la disputa que nunca se resuelve sola y el juicio de salida por ventanas (2026-11-19)
+- ADR-041 · La 3.1.0 sale final con `reflexion` y el buzón, sin `rc` ni banco; el PO y "probar una idea nueva" pasan a la 3.2 (2026-11-20)
+- ADR-042 · El PO: la sesión principal del proyecto, con oficio; el turno de lo pesado, a la vista (2026-11-20)
+- ADR-043 · "Probar una idea nueva": una carpeta y un script aparte, y la ofrece el PO (2026-11-20)
 
 *Cada ADR nuevo suma su línea acá (lo pide `/cierre`).*
 
@@ -975,3 +978,58 @@ quedaron construidos el 2026-11-19, sin piloto (nadie se registró en el buzón)
 - **Costo aceptado:** sale "en piloto", no "probada": lo que encuentre el primer uso real va a una 3.1.1 (la misma persona en dos
   PCs, el home con espacios o tildes, el aviso solo con config, VS Code en vivo; el detalle en la auditoría y el TODO). **El banco
   sigue siendo paso fijo** para una versión que toque el molde, los frenos o el actualizador.
+
+## ADR-042 · El PO: la sesión principal del proyecto, con oficio; el turno de lo pesado, a la vista (2026-11-20)
+El TODO pedía "un PO como skill" para la 3.2 (ADR-041). DISENO-D §4 había descartado un "agente PO vivo por proyecto". El
+2026-11-20 se relevó que el rol **ya existe improvisado**: dos sesiones lo cumplen con `/arquitecto` (en dos días: ~25 turnos de lo
+pesado cada una, ~28 mensajes de buzón, ~21 decisiones consolidadas), con la PC en 0,8 GB libres y cuatro pesados de dos repos,
+mensajes a la sesión equivocada y el dueño pidiendo "que documente todo" antes de cada integración.
+- **Decisión** (Guido, 2026-11-20, en la charla de diseño; siete puntos):
+  1. **Es una skill del molde, `/po`, para la sesión principal** (rol `humano`, checkout principal), que abre el dueño. Pieza
+     opcional, **una por proyecto, tenga o no varios directores**. "PO" es la sesión; la persona es "el dueño".
+  2. **El turno de lo pesado es de la PC y no lo lleva ninguna sesión**: se completa `conTurno` (se ve y deja rastro), sin orden de
+     llegada ni freno. Lo que corre por fuera del kit entra **solo si la compuerta lo pide** (poner al día los repos del piloto, que
+     están en la `rc.6`, anterior al turno, y volver a preguntar a la semana).
+  3. **Lo chico lo hace el PO solo si no hay nada en obra**, y eso lo contesta un script mirando git (`po.cjs chico`).
+  4. **Cuida la documentación**: revisa el contenido de la ficha antes de que un módulo integre y la devuelve si falta (no la
+     escribe, no frena). **`NORTE.md` y `MAPA.md` pasan a tener dueño**: el mapa lo actualiza; el norte lo propone y espera el OK.
+  5. **Habla con los directores por mensajes entre sesiones** (andan en VS Code: medido con entrada `claude-vscode`). **Nunca
+     reenvía texto de otro proyecto**: solo un timbre de frase fija, armado por script, con la etiqueta `C<n>` del buzón.
+  6. **Repasa solo cada 20 min** mientras haya módulos abiertos, y **un repaso solo mira y junta**: sin el dueño puede contestar lo
+     que el buzón ya deja contestar solo (ADR-037) y mandar un timbre; nada más.
+  7. **Corre el `/release` del proyecto** con el clic del dueño (sin cicatriz: lo pidió Guido; cuesta un renglón).
+- **Por qué:** `[workflow · acordarse de menos · consistencia]`. Las cuatro razones del descarte de D §4 cambiaron: lo que sabe
+  sale de git por script y el relevo ya funcionó una vez; no reemplaza a ningún dueño (suma lo que no lo tenía: el norte, el mapa,
+  el control del cierre de módulo, el turno visible); y no es otra pestaña: es la que ya está abierta.
+- **Descartado:** el agente que se despierta solo y despacha (0 encargos en 169 mensajes) · PO solo con varios directores (la
+  primera versión del diseño, "el organizador") · que nunca toque código · un PO por PC · una fila con orden de llegada (frágil y
+  sin cicatriz) · el relevo versionado en `docs/` · que el PO corra `/cierre` tras cada integración (ya lo hace la sesión de cierre
+  del director, en la misma carpeta) · un control de documentación en el gate de `integrar` (se reabre si siguen pasando módulos sin
+  documentar) · sumar renglones a `/director` y `/inicio` (a 14 y 16 bytes de su tope: van a `NUCLEO.md` y al arranque).
+- **Costo aceptado:** el PO es texto de una skill con la autonomía de una sesión `humano`: las pruebas ven que la regla está
+  escrita, no que se cumpla (lo mide el piloto) · de noche o sin PO nadie mira el contenido de una ficha · `po.cjs chico` es
+  prudente de más · el relevo es de la PC · el repaso gasta aunque no pase nada · **no verificado**: que las sesiones de una PC
+  compartan el temporal donde vive el candado (se mide en la compuerta).
+- **Revisiones:** revisor frío (Opus) sobre la primera versión, 10 hallazgos; red team (`redteam-spec`, Opus) sobre el spec, 12
+  hallazgos, 3 que bloqueaban el sello; todos aplicados.
+- **Dónde vive:** `docs/kit-v3/DISENO-PO.md` y `docs/kit-v3/SPEC-PO.md` (READY, sin construir). Tres sesiones más el piloto.
+
+## ADR-043 · "Probar una idea nueva": una carpeta y un script aparte, y la ofrece el PO (2026-11-20)
+La otra pieza de la 3.2 (ADR-041). El brief del 2026-11-03 pedía reusar el registro de cambios. Tres veces el kit se enteró tarde
+de algo que nació en un proyecto (director y obrero, ADR-021; el buzón, ADR-037; el PO, ADR-042) y hubo que reconstruirlo.
+- **Decisión** (Guido, 2026-11-20): cada prueba es una carpeta `.claude/pruebas/<fecha>-<slug>/` con su ficha (qué es, qué cura,
+  cómo se sabe si sirvió, hasta cuándo, veredicto) y su log. **La ofrece el PO**, y al vencer le pide el veredicto al dueño (al
+  kit · descartada con su razón · seguir). **Anotar en el log no toca el árbol ni commitea** (va al git común y el PO lo vuelca al
+  cerrar). vibe-kit lista las pruebas `al-kit` de los repos de esa PC al arrancar.
+- **Por qué:** `[acordarse de menos · consistencia]`. Depender de que el dueño diga "quiero probar X" no se usa: cuando improvisa,
+  improvisa. Y reconstruir después anduvo el 2026-11-20 solo porque las sesiones seguían abiertas.
+- **Descartado:** un estado "en prueba" **dentro del registro de cambios** (gramática cerrada y pieza de freno: un archivo distinto
+  ahí hace fallar el `/cierre` en toda PC con el kit viejo) · anotar directo en el archivo versionado · la lista de pruebas vistas
+  en `kit/` (publicaría alias y slugs de proyectos privados: va al git común de vibe-kit) · una skill propia.
+- **Costo aceptado:** sin PO nadie la ofrece ni pide el veredicto · el log depende de que la sesión anote (las cuentas son un
+  piso) · la regla `allow` para anotar entra **solo si** el red team de construcción prueba que no deja pasar una lista cerrada de
+  trucos (`$(…)` dentro de comillas no está en la doc oficial) · el spec se selló entero pasado del tope (10,6 de 10 KB; no partir:
+  Guido).
+- **Revisiones:** red team (`redteam-spec`, Opus), 10 hallazgos, 1 que bloqueaba (los commits sin subir del script trababan la
+  sesión de cierre: ahora suben en el mismo paso); todos aplicados.
+- **Dónde vive:** `docs/kit-v3/SPEC-prueba.md` (READY, sin construir). Una sesión, después de la skill del PO y antes de su `rc.1`.

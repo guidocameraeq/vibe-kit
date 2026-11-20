@@ -25,16 +25,20 @@
      protocolo, kit-owned y el tope, ADR-040; el spec, ✅ IMPLEMENTADO). **✅ Publicado en la `v3.1.0`** (2026-11-20, sin `rc` ni banco: ADR-041).
      **Sigue**: el piloto de un mes en la PC del probador: actualizar el kit, `registrame en el buzón`, "instalar
      hooks por PC" y `buzon.cjs medir --linea-base`. Una disputa de registros la resuelve la persona en cada PC (ADR-040).
-  2. **"Probar una idea nueva"** (los experimentos de método; **a la 3.2**, ADR-041). Sale de la v3.0, donde estaba en D8c.1: "vamos a sacar esta versión bien
-     armada y en la próxima versión traemos eso de la idea nueva".
-  3. **Un "PO" como skill** (**a la 3.2**, ADR-041; ahí también unir la ficha `mesa.<alias>.transporte: buzon` con el buzón): un rol al lado del director que responde el buzón, habla con los directores, entiende el proyecto en su
-     totalidad y puede consultar las bases. Guido: "después me ayudás a desarrollarla".
+  2. **"Probar una idea nueva"**. **Spec ✅ READY 2026-11-20** ([SPEC-prueba](kit-v3/SPEC-prueba.md), ADR-043, con red team). Sin construir.
+  3. **El PO** (la sesión principal del proyecto, skill `/po`). **Diseño y spec ✅ READY 2026-11-20** ([DISENO-PO](kit-v3/DISENO-PO.md),
+     [SPEC-PO](kit-v3/SPEC-PO.md), ADR-042; revisor frío y red team). Sin construir. Une la ficha `transporte: buzon` con el buzón.
 
-  Para el diseño hay que mirar cuatro cosas:
-  - Hermes ya tiene un PO de hecho: Guido decide "por clic" lo que le traen los directores.
-  - Cruzarlo con la mesa entre directores (paquete 5).
-  - Cruzarlo con lo que se escribió en Hermes (`docs/legacy/una-sola-identidad/`).
-  - Las consultas a las bases van con el rol de solo lectura (el módulo `lector` de Hermes).
+  **Sigue: la tanda de construcción de la 3.2** (el detalle en `SPEC-PO.md`, "Ejecución"):
+  - **0, la compuerta**: los dos repos del piloto a la `v3.1.0` (el ítem de la flota, arriba). A la semana, las mismas preguntas de
+    `DISENO-PO.md` §3.1 a las sesiones que cumplan el rol, y medir si las sesiones de una PC comparten el temporal del candado. Con
+    eso Guido decide si entra lo marcado "solo si la compuerta lo pide" (el envoltorio del turno y `pesados:`).
+  - `vibe-kit 3.2 · El turno y el panorama` → `vibe-kit 3.2 · La skill del PO` → `vibe-kit 3.2 · Probar una idea nueva` →
+    `vibe-kit 3.2 · La rc.1 y el piloto` (banco vuelta 1, dos semanas de piloto, `rc` de arreglos, banco, versión).
+  - Sin leer: `docs/legacy/una-sola-identidad/` del proyecto del piloto (ese repo no está en `Usuario`).
+  - **Sin ubicar**: los arreglos de abajo ("para la v3.1") no se trataron en la charla: van a una 3.1.x o a la 3.2, lo decide Guido.
+    Se suman tres que mostró el relevamiento: `mesa.cjs abiertos` lento (95 s y más de 3 min con la PC cargada) · los plazos de los
+    hooks y del push de `integrar` con la PC cargada · el candado `topes` en rojo con cuatro módulos.
   **Lo que el tramo final dejó para la v3.1** (de taller, sin charla de diseño; el detalle y su porqué en cada informe):
   - del plan del tramo (`TRAMO-FINAL-PLAN.md`, "Lo que ya está decidido", 2): el director corto, el aviso al celular, el kit como
     plugin (REJ-001), la poda de frenos por evidencia, el costo por encargo, el director sin `EnterWorktree`, el candado en repos con

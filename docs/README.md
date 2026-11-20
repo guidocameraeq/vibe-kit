@@ -69,6 +69,9 @@ El plano de la misión 5 y todo lo que se escriba para construirlo. Los specs de
 | [`kit-v3/PRUEBA-reflexion.md`](kit-v3/PRUEBA-reflexion.md) | La prueba de la skill `reflexion` (2026-11-19): sin la skill contra con la skill sobre un proyecto ficticio con cabos plantados, y por qué va global y aparte del `/cierre`; el proyecto, en `pruebas/reflexion/` | Acta: no se reescribe |
 | [`kit-v3/PLAN-construccion.md`](kit-v3/PLAN-construccion.md) | **El tracker de la misión 5**: el estado por paquete, una fila por director (ADR-028), los pendientes, los NO VERIFICADO y los 20 criterios para tachar. Cada sesión de la misión 5 lo lee al abrir y lo actualiza al cerrar |
 | [`kit-v3/AUDITORIA-3.1.md`](kit-v3/AUDITORIA-3.1.md) | La mirada del sistema antes de la 3.1.0 (Fable, 2026-11-20): cómo encajan `reflexion` y el buzón con el kit entero y los criterios del proyecto; "visto bueno con condiciones", y qué va antes del tag, a la 3.1.1 y a la 3.2 (ADR-041) |
+| [`kit-v3/DISENO-PO.md`](kit-v3/DISENO-PO.md) | El diseño del PO (misión 7, kit v3.2; 2026-11-20, decidido por Guido): lo relevado en las dos sesiones que hoy improvisan el rol, el cuadro conceptual, las decisiones, el piloto y lo que queda afuera. Con revisor frío y red team (ADR-042) |
+| [`kit-v3/SPEC-PO.md`](kit-v3/SPEC-PO.md) | El spec delta del PO (READY 2026-11-20, sin construir): el turno a la vista, `estado.cjs --obra`, `po.cjs`, la skill `/po` y lo que se toca; tres sesiones más el piloto. Si difiere del diseño, manda este |
+| [`kit-v3/SPEC-prueba.md`](kit-v3/SPEC-prueba.md) | El spec delta de "probar una idea nueva" (READY 2026-11-20, sin construir): `.claude/pruebas/`, `prueba.cjs`, el lector de la flota y las tres reglas del PO; una sesión (ADR-043) |
 
 ## La misión 4, el diseño del pack — [`mision-4/`](mision-4/)
 

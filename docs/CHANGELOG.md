@@ -2,6 +2,26 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-11-20 — La 3.2, diseñada: el PO y "probar una idea nueva", con sus specs READY
+
+PC `Usuario` (Opus 5.5 y después Fable 5.2), sesión `vibe-kit M7 · La 3.2`, en `main`. Charla de diseño con Guido; `kit/` sin tocar.
+
+**Added**
+- `docs/kit-v3/DISENO-PO.md` y `docs/kit-v3/SPEC-PO.md` (READY): el PO, la sesión principal del proyecto con oficio (ADR-042). Se
+  relevó preguntándoles por mensaje a las dos sesiones que hoy improvisan el rol con `/arquitecto`. Revisor frío Opus (10 hallazgos)
+  sobre la primera versión y red team Opus (12, tres que bloqueaban el sello) sobre el spec; todos aplicados.
+- `docs/kit-v3/SPEC-prueba.md` (READY): "probar una idea nueva" en una carpeta y un script aparte del registro de cambios, ofrecida
+  por el PO (ADR-043). Red team Opus: 10 hallazgos, uno que bloqueaba; aplicados. Sellado entero pasado del tope, por decisión de Guido.
+- ADR-042 y ADR-043; tres filas en el índice de `docs/`.
+
+**Changed**
+- `docs/TODO.md`: la misión 7 con las dos piezas de la 3.2 en READY y la tanda de construcción (la compuerta y cuatro sesiones).
+
+**Lo que se encontró**
+- El kit ya trae un turno de lo pesado por PC desde la `rc.7`; los dos repos donde nació el rol están en la `rc.6` y no lo tienen.
+- Nadie controla el contenido de la ficha de un módulo al integrar, y `NORTE.md` y `MAPA.md` no tienen dueño después de montar.
+- `director/SKILL.md` e `inicio/SKILL.md` están a 14 y 16 bytes de su tope.
+
 ## 2026-11-20 — La versión 3.1.0: `reflexion` y el buzón, en piloto · v3.1.0
 
 PC `Usuario` (Opus 5.5), sesión `vibe-kit Tag · La 3.1.0-rc.1 con reflexion y el buzón`, en `main`. Guido decidió que salga **final**
