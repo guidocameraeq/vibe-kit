@@ -199,11 +199,20 @@ function correrConPlazo(cmd, { cwd, plazoMs, stdio = 'ignore', shell = shellDeCo
 // El que espera lo dice cada tanto; un candado de un proceso que ya no existe se toma; a los 60 min de espera sigue igual, con un
 // aviso (nunca se cuelga). La espera NO cuenta en el plazo de lo que corre adentro: el plazo lo pone fn. Si el candado no se
 // puede tomar por otra cosa que "está tomado" (permisos), corre igual: el turno ordena, no frena.
-// opciones: { dir, esperaMaxMs, cadaMs, salida(texto), vivo(pid) } (las pruebas las inyectan).
+// opciones: { dir, esperaMaxMs, cadaMs, salida(texto), vivo(pid), etiqueta } (las pruebas las inyectan).
+// SPEC-PO M1: quien.json suma `carpeta` (process.cwd(), sin lanzar git) y `etiqueta` (la que pasa el que llama; si no, quien). Al
+// terminar, un renglón por corrida en kit-turno-rastro.log (tope 1 MB: pasado, se recorta a la mitad) y, mientras espera,
+// kit-turno-esperas/espera-<pid>.json (lo borra al entrar); los dos en path.dirname(dir), al lado de la carpeta del candado (que se
+// borra entera al soltarlo): así las pruebas con `dir` o KIT_TURNO_DIR no ensucian el temporal real. Todo eso es de mejor
+// esfuerzo: si no se puede escribir, la corrida sigue igual y sin ruido. El caso reentrante no deja renglón propio (lo deja el de
+// afuera). Cuándo se toma, se espera y se suelta el candado no cambia. Los lee `turno.cjs ver | rastro`.
 const TURNO_DIR = () => process.env.KIT_TURNO_DIR || path.join(os.tmpdir(), 'kit-turno-suite'); // la variable: solo para las pruebas
 const TURNO_ESPERA_MAX = 60 * 60 * 1000;
 const TURNO_CADA = 5000;
 const TURNO_AVISO = 5 * 60 * 1000;
+const TURNO_RASTRO = 'kit-turno-rastro.log';
+const TURNO_ESPERAS = 'kit-turno-esperas';
+const TURNO_RASTRO_TOPE = 1024 * 1024;
 function procesoVivo(pid) {
   if (!Number.isInteger(pid) || pid <= 0) return false;
   try {
@@ -214,6 +223,25 @@ function procesoVivo(pid) {
   }
 }
 const dormirMs = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+const dosT = (n) => String(n).padStart(2, '0');
+const horaT = (d) => `${d.getFullYear()}-${dosT(d.getMonth() + 1)}-${dosT(d.getDate())} ${dosT(d.getHours())}:${dosT(d.getMinutes())}:${dosT(d.getSeconds())}`;
+const planoT = (s) => String(s).replace(/[\r\n\t]+/g, ' ');
+// El renglón del rastro: "<hora> · <quien> · <carpeta> · espera <s> s · corrió <s> s · libre <MB> MB". Mejor esfuerzo.
+function anotarRastro(base, { quien, carpeta, esperaMs, corrioMs, libre }) {
+  try {
+    const archivo = path.join(base, TURNO_RASTRO);
+    const mb = Math.round(libre / (1024 * 1024));
+    fs.appendFileSync(archivo, `${horaT(new Date())} · ${planoT(quien)} · ${planoT(carpeta)} · espera ${Math.round(esperaMs / 1000)} s · corrió ${Math.round(corrioMs / 1000)} s · libre ${mb} MB\n`);
+    if (fs.statSync(archivo).size > TURNO_RASTRO_TOPE) {
+      const t = fs.readFileSync(archivo, 'utf8');
+      const mitad = t.slice(Math.floor(t.length / 2));
+      const i = mitad.indexOf('\n');
+      fs.writeFileSync(archivo, i >= 0 ? mitad.slice(i + 1) : '');
+    }
+  } catch (e) {
+    /* mejor esfuerzo: sin rastro, la corrida sigue igual */
+  }
+}
 function conTurno(quien, fn, opciones = {}) {
   const dir = opciones.dir || TURNO_DIR();
   const esperaMax = Number.isFinite(opciones.esperaMaxMs) ? opciones.esperaMaxMs : TURNO_ESPERA_MAX;
@@ -221,13 +249,24 @@ function conTurno(quien, fn, opciones = {}) {
   const vivo = opciones.vivo || procesoVivo;
   const decir = typeof opciones.salida === 'function' ? opciones.salida : () => {};
   const archivo = path.join(dir, 'quien.json');
+  const base = path.dirname(dir);
+  let carpeta = '';
+  try {
+    carpeta = process.cwd();
+  } catch (e) {
+    carpeta = '';
+  }
+  const etiqueta = opciones.etiqueta ? String(opciones.etiqueta) : String(quien);
+  const espera = path.join(base, TURNO_ESPERAS, `espera-${process.pid}.json`);
+  let anotado = false;
   const t0 = Date.now();
   let ultimoAviso = -Infinity;
   let mio = false;
+  let reentrante = false;
   for (;;) {
     try {
       fs.mkdirSync(dir);
-      fs.writeFileSync(archivo, JSON.stringify({ quien: String(quien), pid: process.pid, desde: new Date().toISOString() }));
+      fs.writeFileSync(archivo, JSON.stringify({ quien: String(quien), pid: process.pid, desde: new Date().toISOString(), carpeta, etiqueta }));
       mio = true;
       break;
     } catch (e) {
@@ -239,7 +278,10 @@ function conTurno(quien, fn, opciones = {}) {
         q = null;
       }
       // Adentro de un turno de este mismo proceso (integrar → su gate): no se espera a sí mismo, y no lo suelta al salir.
-      if (q && q.pid === process.pid) break;
+      if (q && q.pid === process.pid) {
+        reentrante = true;
+        break;
+      }
       // Sin quien.json todavía (el otro lo está escribiendo): se espera una vuelta; uno sin dueño vivo, se toma.
       if (q && !vivo(q.pid)) {
         fs.rmSync(dir, { recursive: true, force: true });
@@ -262,6 +304,15 @@ function conTurno(quien, fn, opciones = {}) {
         decir(`turno: esperé ${Math.round(esperado / 60000)} min a ${q ? q.quien : 'otra corrida'}; sigo igual (nunca me cuelgo)\n`);
         break;
       }
+      if (!anotado) {
+        anotado = true; // una sola vez: si no se pudo, no se reintenta
+        try {
+          fs.mkdirSync(path.dirname(espera), { recursive: true });
+          fs.writeFileSync(espera, JSON.stringify({ quien: String(quien), pid: process.pid, desde: new Date(t0).toISOString(), carpeta, etiqueta }));
+        } catch (e4) {
+          /* mejor esfuerzo: sin anotarse, espera igual */
+        }
+      }
       if (Date.now() - ultimoAviso >= TURNO_AVISO) {
         decir(`turno: espero que termine ${q ? q.quien : 'otra corrida'} (una corrida pesada a la vez en esta PC)\n`);
         ultimoAviso = Date.now();
@@ -269,6 +320,15 @@ function conTurno(quien, fn, opciones = {}) {
       dormirMs(cada);
     }
   }
+  if (anotado) {
+    try {
+      fs.rmSync(espera, { force: true });
+    } catch (e) {
+      /* mejor esfuerzo */
+    }
+  }
+  const t1 = Date.now();
+  const libre = os.freemem();
   try {
     return fn();
   } finally {
@@ -280,7 +340,8 @@ function conTurno(quien, fn, opciones = {}) {
         /* ya no estaba */
       }
     }
+    if (!reentrante) anotarRastro(base, { quien, carpeta, esperaMs: t1 - t0, corrioMs: Date.now() - t1, libre });
   }
 }
 
-module.exports = { conTurno, procesoVivo, claudeEnPath, rutaGitBash, claudeDeVSCode, comandoClaude, raizDeGit, shellDeComandos, comandoQueNoCorre, VIGIA, argsVigia, correrConPlazo };
+module.exports = { conTurno, procesoVivo, turnoDir: TURNO_DIR, TURNO_RASTRO, TURNO_ESPERAS, claudeEnPath, rutaGitBash, claudeDeVSCode, comandoClaude, raizDeGit, shellDeComandos, comandoQueNoCorre, VIGIA, argsVigia, correrConPlazo };

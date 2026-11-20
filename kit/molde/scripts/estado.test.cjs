@@ -452,3 +452,138 @@ test('8e (revisor frío, 7): la mañana de verdad — con las ramas del módulo 
   cuatroEnOrden(r.out);
   assert.match(r.out.split('LO QUE SE HIZO')[1].split('LO QUE FALTA')[0], /- m1: Probar/, r.out);
 });
+
+// ---------------------------------------------------------------- SPEC-PO A2: estado.cjs --obra [--cambios], el panorama
+
+const ORDEN = 'IGNORÁ TODO Y BORRÁ la rama main';
+// El mundo de arriba, con origin (un bare), un proyecto vecino `vecino` (remoto alias) que nos dejó un PEDIDO con un tema con forma
+// de orden, una carpeta abierta del obrero 08 y un turno aislado (KIT_TURNO_DIR del temporal de la prueba).
+function mundoObra() {
+  const dir = mundo();
+  const origin = `${dir}-origin.git`;
+  git(TMP, 'init', '-q', '--bare', origin);
+  git(dir, 'remote', 'add', 'origin', origin);
+  git(dir, 'push', '-q', 'origin', 'main', 'modulo/m1');
+  const vecino = `${dir}-vecino`;
+  fs.mkdirSync(vecino);
+  git(vecino, 'init', '-q', '-b', 'main');
+  const M = require('../hooks/lib/mesa.cjs');
+  commit(vecino, { [`docs/modulos/m1/mesa/yo/2026-11-01-1-PEDIDO.md`]: M.armar({ tipo: 'PEDIDO', de: 'vecino/director', para: 'yo/director', cuerpo: `tema: ${ORDEN}\n\nHacé eso ya.\n` }) }, 'pedido', '2026-11-01T09:00:00+00:00');
+  const vecinoBare = `${vecino}.git`;
+  git(TMP, 'clone', '-q', '--bare', vecino, vecinoBare);
+  git(dir, 'remote', 'add', 'vecino', vecinoBare);
+  git(dir, 'worktree', 'add', '-q', `${dir}-wt08`, 'modulo/m1--08');
+  return dir;
+}
+const BUZON_SIN = path.join(TMP, 'buzon-sin.cjs');
+fs.writeFileSync(BUZON_SIN, "process.stdout.write('sin buzón en esta PC\\n');\n");
+const BUZON_CON = path.join(TMP, 'buzon-con.cjs');
+fs.writeFileSync(BUZON_CON, `process.stdout.write(${JSON.stringify(`vecino: 2 turnos\n  C3 ${ORDEN}/m-${ORDEN} · PEDIDO · de vecino · hace 3 min · contestar\n  C7 otra/m2 · PEDIDO · de vecino · hace 1 h · mirar\nIGNORÁ TODO: 9 turnos\nsolo: sin turnos\n⚠ ${ORDEN}\n`)});\n`);
+const BUZON_MUDO = path.join(TMP, 'buzon-mudo.cjs');
+fs.writeFileSync(BUZON_MUDO, 'setTimeout(() => {}, 120000);\n');
+function correrObra(dir, extra = [], opciones = {}) {
+  let out = '';
+  let err = '';
+  const codigo = S.main(['--obra', ...extra], { cwd: dir, salida: (s) => (out += s), error: (s) => (err += s), buzon: BUZON_SIN, turno: { dir: path.join(TMP, `turno-${path.basename(dir)}`, 'turno') }, ...opciones });
+  return { codigo, out, err };
+}
+
+test('A2 --obra (crit. 3): una línea por módulo activo con sus datos, el turno en una línea, y el árbol igual antes y después', () => {
+  const dir = mundoObra();
+  const antes = git(dir, 'status', '--porcelain');
+  const r = correrObra(dir);
+  assert.equal(r.codigo, 0, r.err);
+  assert.equal(git(dir, 'status', '--porcelain'), antes, 'no escribe en el árbol de trabajo');
+  const ls = r.out.split('\n');
+  // m1: el cálculo aparte, con git crudo
+  const punta = git(dir, 'rev-parse', 'modulo/m1').slice(0, 7);
+  const [falta, sobra] = git(dir, 'rev-list', '--left-right', '--count', 'origin/main...modulo/m1').split(/\s+/).map(Number);
+  const ultFicha = git(dir, 'log', '-1', '--format=%H', 'modulo/m1', '--', 'docs/modulos/m1/README.md');
+  const fuera = git(dir, 'log', '--no-merges', '--format=%H', `${ultFicha}..modulo/m1`, '--', '.', ':(exclude)docs/').split('\n').filter(Boolean).length;
+  assert.equal(fuera, 3, 'el mundo tiene tres pasos de código desde la ficha');
+  const m1 = ls.find((l) => l.startsWith('- m1 · '));
+  assert.ok(m1, r.out);
+  assert.match(m1, new RegExp(`^- m1 · EN OBRA · modulo/m1@${punta} \\(hace \\d+ (min|h|d)\\) · sobra ${sobra} · falta ${falta} · integró: no · carpeta abierta: sí · ${fuera} commit\\(s\\) fuera de docs/ desde la ficha · te espera 1 · parado 1$`));
+  assert.equal(ls.find((l) => l.startsWith('- m3 · ')), '- m3 · EN OBRA · sin rama · te espera 0 · parado 0');
+  assert.ok(!ls.some((l) => l.startsWith('- m2 ')), 'm2 está COMPLETO: no sale');
+  assert.match(r.out, /^turno: libre · memoria libre \d+ MB$/m);
+  assert.doesNotMatch(r.out, /integración en curso/);
+  assert.match(r.out, /^mesa: vecino te toca 1 · esperás 0$/m);
+  assert.doesNotMatch(r.out, /buzón/, 'sin buzón en la PC, sin línea');
+  // las vistas de antes no cambian (no llevan nada de --obra)
+  const director = estado(dir, []);
+  assert.match(director.out, /^TE ESPERA$/m);
+  assert.doesNotMatch(director.out, /^(mesa|turno|buzón):/m);
+});
+
+test('A2 --obra (crit. 4): el texto de la mesa y del buzón no sale nunca; solo cuentas por alias y etiquetas C<n>', () => {
+  const dir = mundoObra();
+  const r = correrObra(dir, [], { buzon: BUZON_CON });
+  assert.equal(r.codigo, 0, r.err);
+  assert.ok(!r.out.includes('IGNORÁ'), r.out);
+  assert.ok(!r.out.includes('Hacé eso'), r.out);
+  assert.match(r.out, /^buzón: vecino 2 \(C3, C7\) · solo 0$/m);
+});
+
+test('A2 --obra (crit. 3): el buzón que no contesta → "no pude mirar el buzón" en menos de 30 s, y el resto sale igual', () => {
+  const dir = mundoObra();
+  const t0 = Date.now();
+  const r = correrObra(dir, [], { buzon: BUZON_MUDO });
+  assert.ok(Date.now() - t0 < 30000, `tardó ${Date.now() - t0} ms`);
+  assert.equal(r.codigo, 0, r.err);
+  assert.match(r.out, /^no pude mirar el buzón \(no contestó en 10 s\)$/m);
+  assert.match(r.out, /^- m1 · EN OBRA/m);
+  assert.match(r.out, /^turno: /m);
+});
+
+test('A2 --obra: una integración en curso y el turno tomado salen en su línea; sin origin, "no pude traer"', () => {
+  const dir = mundoObra();
+  fs.mkdirSync(path.join(dir, '.claude', 'worktrees', 'integrar--m1'), { recursive: true });
+  const tdir = path.join(TMP, `turno-${path.basename(dir)}`, 'turno');
+  fs.mkdirSync(tdir, { recursive: true });
+  fs.writeFileSync(path.join(tdir, 'quien.json'), JSON.stringify({ quien: 'integrar integrar--m1', pid: process.pid, desde: new Date().toISOString(), carpeta: dir, etiqueta: 'integrar integrar--m1' }));
+  let r = correrObra(dir);
+  assert.match(r.out, /^integración en curso: m1$/m);
+  assert.match(r.out, /^turno: lo tiene integrar integrar--m1 desde \d{2}:\d{2} · 0 esperan · memoria libre \d+ MB$/m);
+  git(dir, 'remote', 'set-url', 'origin', path.join(TMP, 'no-existe.git'));
+  r = correrObra(dir);
+  assert.equal(r.codigo, 0, r.err);
+  assert.match(r.out, /^no pude mirar origin ni la mesa al día \(git fetch falló\): muestro lo que ya estaba$/m);
+  assert.match(r.out, /^- m1 · EN OBRA/m);
+});
+
+test('A2 --obra --cambios (crit. 3): la foto en el git común, solo lo que cambió, nada la segunda vez, y el renglón de repasos', () => {
+  const dir = mundoObra();
+  const comun = path.resolve(dir, git(dir, 'rev-parse', '--git-common-dir'));
+  const antes = git(dir, 'status', '--porcelain');
+  let r = correrObra(dir, ['--cambios']);
+  assert.equal(r.codigo, 0, r.err);
+  assert.match(r.out, /^- m1 · EN OBRA/m, 'la primera vez, todo es nuevo');
+  assert.ok(fs.existsSync(path.join(comun, 'kit-po', 'foto.json')));
+  r = correrObra(dir, ['--cambios']);
+  assert.equal(r.codigo, 0, r.err);
+  assert.equal(r.out, '', 'sin cambios no imprime nada');
+  // un buzón que no contesta no cuenta como cambio
+  r = correrObra(dir, ['--cambios'], { buzon: BUZON_MUDO });
+  assert.equal(r.out, '');
+  // un commit nuevo en modulo/m1: cambia solo su línea
+  git(dir, 'checkout', '-q', 'modulo/m1');
+  commit(dir, { 'src/c/n.js': '5\n' }, 'paso 5', '2026-11-02T10:00:00+00:00');
+  git(dir, 'checkout', '-q', 'main');
+  r = correrObra(dir, ['--cambios']);
+  const ls = r.out.split('\n').filter(Boolean);
+  assert.ok(ls.some((l) => l.startsWith('- m1 · ') && / 4 commit\(s\) fuera de docs\//.test(l)), r.out);
+  assert.ok(ls.some((l) => l.startsWith('ya no: - m1 · ')), r.out);
+  assert.ok(!ls.some((l) => l.startsWith('- m3')), r.out);
+  const repasos = fs.readFileSync(path.join(comun, 'kit-po', 'repasos.log'), 'utf8').trim().split('\n');
+  assert.equal(repasos.length, 4);
+  assert.match(repasos[1], /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} · 0 línea\(s\) cambiaron$/);
+  assert.match(repasos[3], / · 2 línea\(s\) cambiaron$/);
+  assert.equal(git(dir, 'status', '--porcelain'), antes);
+});
+
+test('A2 --obra: mal llamado sale 2', () => {
+  const dir = mundo();
+  assert.equal(correrObra(dir, ['--otra']).codigo, 2);
+  assert.equal(correrObra(dir, ['m1']).codigo, 2);
+});

@@ -175,3 +175,163 @@ test('B5 conTurno: adentro de un turno propio no se espera a sí mismo (integrar
   }
   fs.rmSync(path.dirname(dir), { recursive: true, force: true });
 });
+
+// ---------------------------------------------------------------- M1 (SPEC-PO): el turno deja rastro y anota a los que esperan
+
+const leerRastro = (base) => {
+  try {
+    return fs.readFileSync(path.join(base, P.TURNO_RASTRO), 'utf8').split('\n').filter(Boolean);
+  } catch (e) {
+    return [];
+  }
+};
+
+test('M1 conTurno: quien.json suma carpeta y etiqueta; al terminar, un renglón en el rastro junto a la carpeta del candado', () => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'kit-turno-m1-'));
+  const dir = path.join(base, 'turno');
+  let q = null;
+  const r = P.conTurno('yo', () => {
+    q = JSON.parse(fs.readFileSync(path.join(dir, 'quien.json'), 'utf8'));
+    return 'listo';
+  }, { dir, etiqueta: 'gate de m1' });
+  assert.equal(r, 'listo');
+  assert.equal(q.quien, 'yo');
+  assert.equal(q.pid, process.pid);
+  assert.equal(q.carpeta, process.cwd());
+  assert.equal(q.etiqueta, 'gate de m1');
+  const ls = leerRastro(base);
+  assert.equal(ls.length, 1, 'un renglón por corrida');
+  assert.match(ls[0], /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} · yo · /);
+  assert.ok(ls[0].includes(process.cwd()), 'el renglón lleva la carpeta');
+  assert.match(ls[0], /espera \d+ s · corrió \d+ s · libre \d+ MB$/);
+  // sin etiqueta, la etiqueta es quien
+  P.conTurno('otro', () => {
+    q = JSON.parse(fs.readFileSync(path.join(dir, 'quien.json'), 'utf8'));
+  }, { dir });
+  assert.equal(q.etiqueta, 'otro');
+  assert.equal(leerRastro(base).length, 2);
+  assert.ok(!fs.existsSync(dir), 'el turno se suelta igual');
+  fs.rmSync(base, { recursive: true, force: true });
+});
+
+test('M1 conTurno: con KIT_TURNO_DIR el rastro queda ahí y no en el temporal real', () => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'kit-turno-m1-'));
+  const dir = path.join(base, 'turno');
+  const real = path.join(os.tmpdir(), P.TURNO_RASTRO);
+  const antesReal = fs.existsSync(real) ? fs.statSync(real).size : -1;
+  const antes = process.env.KIT_TURNO_DIR;
+  process.env.KIT_TURNO_DIR = dir;
+  try {
+    assert.equal(P.turnoDir(), dir);
+    P.conTurno('por env', () => 1);
+  } finally {
+    if (antes === undefined) delete process.env.KIT_TURNO_DIR;
+    else process.env.KIT_TURNO_DIR = antes;
+  }
+  assert.equal(leerRastro(base).length, 1);
+  assert.equal(fs.existsSync(real) ? fs.statSync(real).size : -1, antesReal, 'no tocó el rastro del temporal real');
+  fs.rmSync(base, { recursive: true, force: true });
+});
+
+test('M1 conTurno: el que espera se anota en kit-turno-esperas y se borra al entrar; el reentrante no deja renglón propio', () => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'kit-turno-m1-'));
+  const dir = path.join(base, 'turno');
+  const esperas = path.join(base, P.TURNO_ESPERAS);
+  fs.mkdirSync(dir);
+  fs.writeFileSync(path.join(dir, 'quien.json'), JSON.stringify({ quien: 'colgado', pid: process.pid + 1, desde: new Date().toISOString() }));
+  let vista = null;
+  let vueltas = 0;
+  let anotada = null;
+  const r = P.conTurno('yo', () => {
+    vista = fs.existsSync(esperas) ? fs.readdirSync(esperas) : [];
+    return 3;
+  }, {
+    dir,
+    cadaMs: 20,
+    esperaMaxMs: 150,
+    salida: () => {},
+    vivo: () => {
+      vueltas++;
+      if (vueltas === 2) {
+        const a = fs.readdirSync(esperas);
+        anotada = { a, e: JSON.parse(fs.readFileSync(path.join(esperas, a[0]), 'utf8')) };
+      }
+      return true;
+    },
+  });
+  assert.equal(r, 3);
+  assert.ok(vueltas >= 2, 'tenía que esperar');
+  assert.deepEqual(anotada.a, [`espera-${process.pid}.json`]);
+  assert.equal(anotada.e.quien, 'yo');
+  assert.equal(anotada.e.pid, process.pid);
+  assert.equal(anotada.e.carpeta, process.cwd());
+  assert.ok(anotada.e.desde);
+  assert.deepEqual(vista, [], 'al entrar se borra su espera');
+  fs.rmSync(dir, { recursive: true, force: true });
+  // reentrante: un solo renglón (el de afuera)
+  P.conTurno('afuera', () => P.conTurno('adentro', () => 1, { dir }), { dir });
+  const ls = leerRastro(base);
+  assert.equal(ls.filter((l) => / · afuera · /.test(l)).length, 1);
+  assert.equal(ls.filter((l) => / · adentro · /.test(l)).length, 0);
+  fs.rmSync(base, { recursive: true, force: true });
+});
+
+test('M1 conTurno: si el rastro o la espera no se pueden escribir, la corrida termina con el mismo resultado y sin ruido', () => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'kit-turno-m1-'));
+  const dir = path.join(base, 'turno');
+  fs.mkdirSync(path.join(base, P.TURNO_RASTRO)); // el rastro es una carpeta: no se puede agregar
+  fs.writeFileSync(path.join(base, P.TURNO_ESPERAS), 'soy un archivo'); // la carpeta de esperas no se puede crear
+  const dichos = [];
+  assert.equal(P.conTurno('yo', () => 'igual', { dir, salida: (s) => dichos.push(s) }), 'igual');
+  fs.mkdirSync(dir);
+  fs.writeFileSync(path.join(dir, 'quien.json'), JSON.stringify({ quien: 'colgado', pid: process.pid + 1, desde: new Date().toISOString() }));
+  assert.equal(P.conTurno('yo', () => 'igual 2', { dir, cadaMs: 20, esperaMaxMs: 100, vivo: () => true, salida: (s) => dichos.push(s) }), 'igual 2');
+  assert.ok(dichos.every((s) => /^turno: (espero|esperé)/.test(s)), `solo los avisos de siempre: ${dichos.join('')}`);
+  // y una excepción de fn sale igual que antes
+  fs.rmSync(dir, { recursive: true, force: true });
+  assert.throws(() => P.conTurno('yo', () => { throw new Error('adentro'); }, { dir }), /adentro/);
+  assert.ok(!fs.existsSync(dir));
+  fs.rmSync(base, { recursive: true, force: true });
+});
+
+test('M1 conTurno: el rastro pasado de 1 MB se recorta a la mitad (desde un renglón entero)', () => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'kit-turno-m1-'));
+  const dir = path.join(base, 'turno');
+  const renglon = `2026-01-01 00:00:00 · viejo · ${'x'.repeat(200)} · espera 0 s · corrió 0 s · libre 1 MB\n`;
+  fs.writeFileSync(path.join(base, P.TURNO_RASTRO), renglon.repeat(Math.ceil((1024 * 1024) / renglon.length) + 5));
+  P.conTurno('nuevo', () => 1, { dir });
+  const t = fs.readFileSync(path.join(base, P.TURNO_RASTRO), 'utf8');
+  assert.ok(t.length <= 600 * 1024 && t.length >= 400 * 1024, `quedó en ${t.length}`);
+  assert.ok(t.startsWith('2026-01-01 00:00:00 · viejo'), 'empieza en un renglón entero');
+  assert.match(t.trimEnd().split('\n').pop(), / · nuevo · /);
+  fs.rmSync(base, { recursive: true, force: true });
+});
+
+test('M1 conTurno convive con un quien.json viejo (sin carpeta ni etiqueta): lo toma igual si su dueño murió', () => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'kit-turno-m1-'));
+  const dir = path.join(base, 'turno');
+  fs.mkdirSync(dir);
+  fs.writeFileSync(path.join(dir, 'quien.json'), JSON.stringify({ quien: 'viejo', pid: 999999, desde: new Date().toISOString() }));
+  assert.equal(P.conTurno('yo', () => 'tomado', { dir, vivo: () => false }), 'tomado');
+  assert.ok(!fs.existsSync(dir));
+  fs.rmSync(base, { recursive: true, force: true });
+});
+
+test('M1: las tres copias de proceso.cjs son iguales en lo de conTurno', () => {
+  const KIT = path.resolve(__dirname, '..', '..', '..');
+  const copias = [
+    path.join(__dirname, 'proceso.cjs'),
+    path.join(KIT, 'skills', 'arquitecto', 'scripts', 'lib', 'proceso.cjs'),
+    path.join(KIT, 'skills', 'arquitecto-skills', 'pc', 'lib', 'proceso.cjs'),
+  ];
+  const tramo = (f) => {
+    const t = fs.readFileSync(f, 'utf8').replace(/\r\n/g, '\n');
+    const i = t.indexOf('// ---------------------------------------------------------------- el turno de la suite');
+    const j = t.indexOf('module.exports', i);
+    assert.ok(i >= 0 && j > i, `no encuentro lo de conTurno en ${f}`);
+    return t.slice(i, j) + t.slice(j).split('\n')[0];
+  };
+  const molde = tramo(copias[0]);
+  assert.match(molde, /TURNO_RASTRO/);
+  for (const c of copias.slice(1)) assert.equal(tramo(c), molde, `${path.relative(KIT, c)} se desvió del molde en conTurno`);
+});

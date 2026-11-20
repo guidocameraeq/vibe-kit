@@ -3,6 +3,7 @@
 //   node .claude/scripts/estado.cjs                       la del dueño: TE NECESITO · EL PLAN · LO QUE SE HIZO · LO QUE FALTA
 //   node .claude/scripts/estado.cjs <x>                   la del dueño, de un módulo
 //   node .claude/scripts/estado.cjs --director [<x>]      la vista del director (la de abajo; la de antes de la rc.7)
+//   node .claude/scripts/estado.cjs --obra [--cambios]    el panorama del PO (SPEC-PO A2; ver "el panorama", más abajo)
 // La del dueño: siempre las cuatro secciones, en ese orden ("- nada" si no hay); TE NECESITO sale de lib/espera.cjs (la lista
 // única); lo cerrado, de lib/encargo.cjs estadoEncargo (la cuenta única); lo que falta, con la mediana de los encargos cerrados
 // del módulo (con menos de tres: "no sé todavía"; nunca un número inventado). La del director:
@@ -35,6 +36,7 @@ const USO = [
   '  (sin nombre)          la vista del dueño: te necesito, el plan, lo que se hizo y lo que falta',
   '  <x>                   la vista del dueño, del módulo <x>',
   '  --director [<x>]      la del director: te espera, una línea por módulo activo (o el módulo <x>), uso y líneas propias',
+  '  --obra [--cambios]    el panorama: módulos en obra, el turno, la mesa y el buzón (con --cambios, solo lo que cambió)',
   '  --ayuda               este texto',
 ].join('\n');
 
@@ -515,6 +517,220 @@ function vistaDueno(raiz, ms, ahora, soloUno) {
   return L;
 }
 
+// ---------------------------------------------------------------- el panorama (SPEC-PO A2): --obra [--cambios]
+// Un solo `git fetch` (origin y los remotos alias de la mesa, juntos) y después: una línea por módulo activo, el turno, una
+// integración en curso, la mesa (sin traer: con lo de ese fetch) y el buzón (con plazo). Nunca imprime texto escrito por otro
+// proyecto: de la mesa y del buzón salen solo cuentas por alias y etiquetas C<n>. No escribe en el árbol de trabajo; --cambios
+// guarda la foto en el git común (kit-po/foto.json), imprime solo lo que cambió y suma un renglón a kit-po/repasos.log.
+
+const PLAZO_BUZON_MS = 10000;
+const NO_PUDE = /^no pude mirar/;
+const RE_ID_BUZON = /^[a-z0-9][a-z0-9._-]{0,39}$/i;
+
+function hace(segundos, ahora) {
+  const min = Math.max(0, Math.round((ahora.getTime() / 1000 - segundos) / 60));
+  if (min < 60) return `hace ${min} min`;
+  const h = Math.round(min / 60);
+  return h < 24 ? `hace ${h} h` : `hace ${Math.round(h / 24)} d`;
+}
+
+// Las ramas que tienen carpeta abierta en esta PC (git worktree list) y la carpeta principal (la primera).
+function worktreesDe(raiz) {
+  const r = G(raiz, ['worktree', 'list', '--porcelain']);
+  const out = [];
+  if (!r.ok) return out;
+  let w = null;
+  for (const l of r.stdout.replace(/\r\n/g, '\n').split('\n')) {
+    if (l.startsWith('worktree ')) {
+      w = { ruta: l.slice(9), rama: null };
+      out.push(w);
+    } else if (w && l.startsWith('branch refs/heads/')) w.rama = l.slice('branch refs/heads/'.length);
+  }
+  return out;
+}
+
+const shaRef = (raiz, ref) => {
+  const r = G(raiz, ['rev-parse', '--verify', '-q', `${ref}^{commit}`]);
+  return r.ok ? r.stdout.trim() || null : null;
+};
+
+function lineaObra(raiz, m, ctx) {
+  const f = m.ficha;
+  const partes = [m.x, (f.campos.estado || '').split(/\s+/).slice(0, 2).join(' ').replace(/^(EN OBRA|PAUSADO).*$/, '$1')];
+  const cuentas = `te espera ${bullets(seccion(f, /te espera/i)).length} · parado ${bullets(seccion(f, /^(Parado|Trabado)/i)).length}`;
+  const rama = f.campos.rama;
+  if (!rama) return { texto: `- ${[...partes, 'sin rama', cuentas].join(' · ')}`, firma: null };
+  const sha = E.puntaDe(raiz, rama);
+  if (!sha) return { texto: `- ${[...partes, `${rama}: no existe (ni acá ni en origin)`, cuentas].join(' · ')}`, firma: null };
+  const ct = Number((G(raiz, ['log', '-1', '--format=%ct', sha]).stdout || '').trim());
+  const edad = Number.isFinite(ct) && ct > 0 ? ` (${hace(ct, ctx.ahora)})` : '';
+  partes.push(`${rama}@${sha.slice(0, 7)}${edad}`);
+  if (ctx.defecto) {
+    const c = G(raiz, ['rev-list', '--left-right', '--count', `${ctx.defecto}...${sha}`]);
+    const [falta, sobra] = c.ok ? c.stdout.trim().split(/\s+/).map(Number) : [NaN, NaN];
+    partes.push(Number.isFinite(sobra) ? `sobra ${sobra} · falta ${falta}` : 'sobra — · falta —');
+    let integro = '—';
+    try {
+      integro = E.esAncestro(raiz, sha, ctx.defecto) ? 'sí' : 'no';
+    } catch (e) {
+      integro = '—';
+    }
+    partes.push(`integró: ${integro}`);
+  } else partes.push('sin rama por defecto: sobra — · falta — · integró: —');
+  const abierta = ctx.worktrees.some((w) => w.rama && (w.rama === rama || w.rama.startsWith(`${rama}--`)));
+  partes.push(`carpeta abierta: ${abierta ? 'sí' : 'no'}`);
+  const ult = (G(raiz, ['log', '-1', '--format=%H', sha, '--', m.rel]).stdout || '').trim();
+  const rango = ult ? `${ult}..${sha}` : sha;
+  const lg = G(raiz, ['log', '--no-merges', '--format=%H', rango, '--', '.', `:(exclude)${ctx.carpeta}/`]);
+  const fuera = lg.ok ? lg.stdout.split('\n').filter((s) => s.trim()).length : null;
+  partes.push(fuera === null ? `— commit(s) fuera de ${ctx.carpeta}/ desde la ficha` : `${fuera} commit(s) fuera de ${ctx.carpeta}/ desde la ficha`);
+  partes.push(cuentas);
+  const texto = `- ${partes.join(' · ')}`;
+  return { texto, firma: texto.replace(edad, '') };
+}
+
+// La mesa sin traer (lo dejó el fetch de arriba): por alias, cuántos le tocan a este proyecto y cuántos espera. Sin texto ajeno.
+function lineaMesa(raiz) {
+  let M;
+  try {
+    M = require('../hooks/lib/mesa.cjs');
+  } catch (e) {
+    return null;
+  }
+  const alias = M.remotosAlias(raiz);
+  if (!alias.length) return null;
+  let ab;
+  try {
+    ab = M.estado(M.todos(raiz)).abiertos;
+  } catch (e) {
+    return 'no pude mirar la mesa';
+  }
+  const cuenta = new Map(alias.map((a) => [a, { toca: 0, espero: 0 }]));
+  for (const m of ab) {
+    let a = m.lado;
+    if (a === null) {
+      const r = M.RE_RUTA_CUALQUIERA.exec(m.ruta);
+      a = r ? r[2] : null;
+    }
+    if (!a || !M.RE_ALIAS.test(a)) a = '?';
+    if (!cuenta.has(a)) cuenta.set(a, { toca: 0, espero: 0 });
+    cuenta.get(a)[m.lado === null ? 'espero' : 'toca']++;
+  }
+  return `mesa: ${[...cuenta.entries()].map(([a, c]) => `${a} te toca ${c.toca} · esperás ${c.espero}`).join(' · ')}`;
+}
+
+// El buzón: `buzon.cjs turnos` de esta PC, con plazo. Sin buzón, sin línea. Solo los ids de los agentes (validados), sus cuentas
+// y las etiquetas C<n>: nunca el nombre de la conversación ni del mensaje.
+function lineaBuzon(opciones) {
+  const script = opciones.buzon || path.join(require('os').homedir(), '.claude', 'hooks', 'kit', 'buzon', 'buzon.cjs');
+  if (!fs.existsSync(script)) return null;
+  const plazo = Number.isFinite(opciones.plazoBuzonMs) ? opciones.plazoBuzonMs : PLAZO_BUZON_MS;
+  const r = spawnSync(process.execPath, [script, 'turnos'], { cwd: opciones.cwd || process.cwd(), encoding: 'utf8', timeout: plazo, windowsHide: true });
+  if (r.error || r.signal) return `no pude mirar el buzón (no contestó en ${Math.round(plazo / 1000)} s)`;
+  const texto = String(r.stdout || '');
+  if (/sin buzón en esta PC/.test(texto)) return null;
+  if (r.status !== 0) return 'no pude mirar el buzón (salió con error)';
+  const agentes = [];
+  let actual = null;
+  for (const l of texto.replace(/\r\n/g, '\n').split('\n')) {
+    const a = /^(\S+): (?:(\d+) turnos?|sin turnos)$/.exec(l);
+    if (a) {
+      actual = RE_ID_BUZON.test(a[1]) ? { id: a[1], n: Number(a[2] || 0), c: [] } : null;
+      if (actual) agentes.push(actual);
+      continue;
+    }
+    const t = /^\s+(C\d+|C\?) /.exec(l);
+    if (t && actual) actual.c.push(t[1]);
+    else if (!/^\s/.test(l)) actual = null;
+  }
+  if (!agentes.length) return 'buzón: sin agentes';
+  return `buzón: ${agentes.map((g) => `${g.id} ${g.n}${g.c.length ? ` (${g.c.join(', ')})` : ''}`).join(' · ')}`;
+}
+
+function lineasObra(raiz, opciones, ahora) {
+  const L = [];
+  const remotos = git.correr(['remote'], { cwd: raiz });
+  const nombres = remotos.ok ? remotos.stdout.split('\n').map((s) => s.trim()).filter(Boolean) : [];
+  let alias = [];
+  try {
+    alias = require('../hooks/lib/mesa.cjs').remotosAlias(raiz);
+  } catch (e) {
+    alias = [];
+  }
+  const traer = [...(nombres.includes('origin') ? ['origin'] : []), ...alias];
+  if (traer.length) {
+    const f = git.correr(['fetch', '--multiple', '--prune', '--quiet', ...traer], { cwd: raiz, tiempo: 120000 });
+    if (!f.ok) L.push({ texto: 'no pude mirar origin ni la mesa al día (git fetch falló): muestro lo que ya estaba', firma: null });
+  }
+  let defecto = null;
+  try {
+    defecto = require('../hooks/lib/contexto.cjs').ramaPorDefecto(raiz);
+  } catch (e) {
+    defecto = null;
+  }
+  const refDefecto = defecto ? (shaRef(raiz, `refs/remotes/origin/${defecto}`) ? `origin/${defecto}` : shaRef(raiz, `refs/heads/${defecto}`) ? defecto : null) : null;
+  const wts = worktreesDe(raiz);
+  const ctx = { ahora, defecto: refDefecto, worktrees: wts, carpeta: docsRuta.deRaiz(raiz) };
+  const act = fichas(raiz).filter((m) => activo(m.ficha));
+  if (!act.length) L.push({ texto: '- (ningún módulo activo)', firma: null });
+  for (const m of act) L.push(lineaObra(raiz, m, ctx));
+  let turno;
+  try {
+    const T2 = require('./turno.cjs');
+    turno = T2.lineaCorta(opciones.turno || {});
+  } catch (e) {
+    turno = 'no pude mirar el turno';
+  }
+  L.push({ texto: turno, firma: turno.replace(/ · memoria libre \d+ MB$/, '') });
+  const principal = wts.length ? wts[0].ruta : raiz;
+  const enCurso = new Set();
+  for (const w of wts) {
+    const b = /^integrar--(.+)$/.exec(path.basename(w.ruta));
+    if (b) enCurso.add(b[1]);
+  }
+  try {
+    for (const d of fs.readdirSync(path.join(principal, '.claude', 'worktrees'))) {
+      const b = /^integrar--(.+)$/.exec(d);
+      if (b) enCurso.add(b[1]);
+    }
+  } catch (e) {
+    /* sin carpeta de worktrees */
+  }
+  for (const x of [...enCurso].sort()) if (E.RE_X.test(x)) L.push({ texto: `integración en curso: ${x}`, firma: null });
+  const mesa = lineaMesa(raiz);
+  if (mesa) L.push({ texto: mesa, firma: null });
+  const buzon = lineaBuzon({ ...opciones, cwd: raiz });
+  if (buzon) L.push({ texto: buzon, firma: null });
+  return L.map((l) => ({ texto: l.texto, firma: l.firma === null ? l.texto : l.firma }));
+}
+
+// --cambios: compara con la foto anterior (por firma: sin la edad ni la memoria) y deja la nueva. Las "no pude mirar" no cuentan.
+function cambiosObra(raiz, lineas, ahora) {
+  const comun = path.resolve(raiz, (G(raiz, ['rev-parse', '--git-common-dir']).stdout || '.git').trim());
+  const dir = path.join(comun, 'kit-po');
+  const foto = path.join(dir, 'foto.json');
+  let vieja = [];
+  try {
+    vieja = JSON.parse(fs.readFileSync(foto, 'utf8')).lineas || [];
+  } catch (e) {
+    vieja = [];
+  }
+  const cuentan = (ls) => ls.filter((l) => l && typeof l.firma === 'string' && !NO_PUDE.test(l.texto));
+  const nuevas = cuentan(lineas);
+  const antes = new Set(cuentan(vieja).map((l) => l.firma));
+  const ahoraF = new Set(nuevas.map((l) => l.firma));
+  const out = [...nuevas.filter((l) => !antes.has(l.firma)).map((l) => l.texto), ...cuentan(vieja).filter((l) => !ahoraF.has(l.firma)).map((l) => `ya no: ${l.texto}`)];
+  const sello = `${hoyDe(ahora)} ${dos(ahora.getHours())}:${dos(ahora.getMinutes())}:${dos(ahora.getSeconds())}`;
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(foto, JSON.stringify({ cuando: ahora.toISOString(), lineas: nuevas }, null, 1));
+    fs.appendFileSync(path.join(dir, 'repasos.log'), `${sello} · ${out.length} línea(s) cambiaron\n`);
+  } catch (e) {
+    out.push('no pude guardar la foto en el git común (kit-po/): la próxima pasada compara con la anterior');
+  }
+  return out;
+}
+
 // ---------------------------------------------------------------- principal
 
 function main(argv, opciones = {}) {
@@ -525,6 +741,22 @@ function main(argv, opciones = {}) {
   if (argv[0] === '--ayuda' || argv[0] === '-h') {
     salida(`${USO}
 `);
+    return 0;
+  }
+  if (argv[0] === '--obra') {
+    const resto = argv.slice(1);
+    if (resto.length > 1 || (resto[0] && resto[0] !== '--cambios')) {
+      error(`--obra lleva, a lo sumo, --cambios.\n${USO}\n`);
+      return 2;
+    }
+    const raiz = T.raizDe(cwd);
+    if (!raiz) {
+      error(`No estoy dentro de un repo git.\n${USO}\n`);
+      return 2;
+    }
+    const lineas = lineasObra(raiz, opciones, ahora);
+    const out = resto[0] === '--cambios' ? cambiosObra(raiz, lineas, ahora) : lineas.map((l) => l.texto);
+    if (out.length) salida(`${out.join('\n')}\n`);
     return 0;
   }
   if (argv[0] !== '--director') {
