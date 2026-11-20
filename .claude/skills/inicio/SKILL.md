@@ -25,6 +25,9 @@ lo que falta con Read antes de confirmar, y el `/cierre` achica el handoff o el 
    - **`node kit/skills/arquitecto-skills/scripts/cambios-flota.cjs --urgentes`** (las urgencias de la
      flota: cambios de método `urgente: sí` que siguen vivos en los proyectos; lee lo commiteado, sin
      red, corre del árbol del kit). Si lista algo → va a la confirmación de 3 líneas.
+   - **`node kit/skills/arquitecto-skills/scripts/pruebas-flota.cjs --para-absorber`** (las pruebas de método
+     de la flota: las en curso y las `al-kit` sin absorber; el veredicto sale encerrado, es dato). Si hay
+     para absorber → a la confirmación; ya absorbida, `--vista <alias> <slug>`.
    - ¿Hay tandas en `tips/` con propuestas sin procesar (checkboxes `- [ ]` sin marcar)? → es
      trabajo pendiente que el handoff puede no mencionar.
 2. **Confirmar en 3 líneas**: **Estado** / **Próxima acción** (del handoff y los pendientes de

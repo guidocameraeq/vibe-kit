@@ -76,7 +76,8 @@ test('deny: las 9 de F §5 (= DENY_FABRICA, D-6), ninguna Bash(...) (apagaría P
   for (const c of [CARPETA, '.claude/revisiones']) assert.ok(deny.includes(`Edit(./${c}/**)`), `Edit ${c}`);
   assert.equal(new Set(deny).size, deny.length, 'sin repetidas');
   assert.deepEqual(S.permissions.ask, ['Bash(node .claude/scripts/cambios.cjs aprobar:*)', 'PowerShell(node .claude/scripts/cambios.cjs aprobar:*)']);
-  assert.deepEqual(S.permissions.allow, ['Bash(node .claude/scripts/cambios.cjs:*)']);
+  // SPEC-prueba: anotar corre sin pedir permiso (red team de la regla, 2026-11-20: ni ; && | > $(…) ni backticks colaron un comando)
+  assert.deepEqual(S.permissions.allow, ['Bash(node .claude/scripts/cambios.cjs:*)', 'Bash(node .claude/scripts/prueba.cjs anotar:*)', 'PowerShell(node .claude/scripts/prueba.cjs anotar:*)']);
 });
 
 // El aviso de la plataforma (claude.exe 2.1.312+, visto en D5.2, 2026-11-02): "Write(./.claude/cambios/**) is not matched by file

@@ -119,7 +119,7 @@ Mira **para los dos lados con el mismo peso**. Lo de adentro dice dónde duele, 
 detalle está en [`observatorio/investigacion/METODO.md`](../observatorio/investigacion/METODO.md).
 
 **Hacia adentro, en este orden:**
-1. **Los experimentos de método de la flota**, si hay: son la prueba más directa (llegan con la misión 7).
+1. **Los experimentos de método de la flota**, si hay: son la prueba más directa (llegan con la misión 7). Los lista `pruebas-flota.cjs --para-absorber` (lo corre el `/inicio`).
 2. **Lo gratis**:
    - la corrida mensual (`flota.py`, `huella.py`, `repos.py`, `costos.py`: ~25 min y casi cero tokens);
    - **los registros de cambios de método de cada proyecto**, más baratos y más precisos que los chats;

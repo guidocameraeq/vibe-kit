@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(node .claude/scripts/cambios.cjs:*)"
+      "Bash(node .claude/scripts/cambios.cjs:*)",
+      "Bash(node .claude/scripts/prueba.cjs anotar:*)",
+      "PowerShell(node .claude/scripts/prueba.cjs anotar:*)"
     ],
     "ask": [
       "Bash(node .claude/scripts/cambios.cjs aprobar:*)",
