@@ -2,7 +2,7 @@
 
 > ÚNICA fuente de pendientes del proyecto. Completado → SE BORRA (la historia vive en `CHANGELOG.md` y git). Header de 1 línea, sin narrativa de sesión.
 
-2026-11-20 — ver SESSION_HANDOFF.md
+2026-11-22 — ver SESSION_HANDOFF.md
 
 > ⏰ **Fechas del ciclo** (si hoy ya pasó alguna, avisale a Guido al arrancar): **~2026-12-15** la medición de la `v3.0` ·
 > **2027-03-01** la vuelta 2. El detalle, abajo en "El ciclo".
@@ -29,61 +29,73 @@
   3. **El PO** (la sesión principal del proyecto, skill `/po`). **✅ Construido en la `3.2.0`** (2026-11-20;
      [DISENO-PO](kit-v3/DISENO-PO.md), [SPEC-PO](kit-v3/SPEC-PO.md), ADR-042 y 044), con el turno a la vista y el panorama.
 
-  **Sigue**: el tag `v3.2.0` con el OK de Guido · la flota real a la 3.2.0 (el ítem de arriba) · el uso real hace de piloto: mirar
-  las medidas de `DISENO-PO.md` §6 y **si las sesiones de una PC comparten el temporal del candado** · la 3.2.1 con lo de abajo.
+  **Sigue**: la flota real a la 3.2.0 (el ítem de arriba) · el uso real hace de piloto: mirar las medidas de `DISENO-PO.md` §6 y
+  **si las sesiones de una PC comparten el temporal del candado** · la 3.2.1 (el ítem de abajo).
   - **No se construyó** (espera evidencia): `turno.cjs correr`, `pesados:` y el envoltorio en AUTORIZADO.
   - Sin leer: `docs/legacy/una-sola-identidad/` del proyecto del piloto (ese repo no está en `Usuario`).
-  - **Sin ubicar**: los arreglos de más abajo ("para la v3.1") no se trataron: van a una 3.1.x o a la 3.2.x, lo decide Guido.
-    Se suman tres que mostró el relevamiento: `mesa.cjs abiertos` lento (95 s y más de 3 min con la PC cargada) · los plazos de los
-    hooks y del push de `integrar` con la PC cargada · el candado `topes` en rojo con cuatro módulos.
-  **El revisor frío de la 3.2 construida** (Opus, 2026-11-20, sobre `6162b6a..2ff16c1`): "con observaciones", nada traba el tag.
-  Confirmó `conTurno` idéntico en las tres copias y sin cambio de cuándo se toma o se suelta. Ocho hallazgos, **sin aplicar todavía**
-  (se decide con Guido cuáles van antes de la suite y cuáles a una 3.2.1):
-  1. `prueba.cjs:115`: `pull --rebase --autostash` sobre la carpeta principal puede pisarse con la sesión de cierre que corre ahí
-     (le guarda y repone cambios, le rebasa un commit sin subir). Arreglo: negar con la carpeta sucia o adelantada; sin `--autostash`.
-  2. `po.cjs:217` y `estado.cjs` (`lineaObra`): "commits de código desde la ficha" cuenta también lo que entra por `traer-main`.
-     Arreglo: excluir lo que ya está en la rama por defecto.
-  3. El latido de la marca del PO solo lo dejan los verbos de `po.cjs`; el repaso corre `estado.cjs --obra --cambios` y la marca
-     vence a las 12 h con el PO vivo. Arreglo: que `--cambios` deje el latido, o sumar `po.cjs hay` al repaso en la skill.
-  4. `estado.cjs` (`cambiosObra`): una fuente que falla una pasada sale como "ya no:" y vuelve como nueva en la siguiente.
-  5. `pruebas-flota.cjs:110-119, 239-253`: no valida el alias (con mayúsculas o espacios, `--vista` lo rechaza y la prueba queda
-     para siempre en el `/inicio`); alias y `hasta` salen sin encerrar.
-  6. (menor) `prueba.cjs:62`: un texto de `anotar` que empieza con `--` se toma como opción.
-  7. (menor) `prueba.cjs:322`: el veredicto se agrega al final del archivo, no dentro de `## Veredicto`.
-  8. (menor) `po.cjs:285`: un error inesperado sale como traza de node en vez de una línea.
-  **Aplicados antes del tag: 1, 2 y 3** (`1ab34fd`). Los otros cinco, a una 3.2.1.
-  **De la flota de prueba de la 3.2** (2026-11-20), también para la 3.2.1: **no hay un camino por script para prender una pieza
-  opcional después de adoptar** (`po: sí` y volver a poner al día: la flota lo saltea por "ficha al día" y `aplicar` lo marca
-  "adaptada (desvío detectado)"; a mano anda: copiar la skill y `po: molde`). Vale igual para `estado` y `release`.
-  **Del día**: una sesión en una carpeta de trabajo de la app no puede commitear en un repo con el kit si su `core.hooksPath` quedó
-  absoluto (`git-seguro`, `hooks-path-ausente`); pasó en dos de tres carpetas.
-  No miró: si las pruebas pasan, el actualizador con una pieza aplicada a medias (`scripts` nuevo con `hooks-lib` viejo), el
-  tiempo que suman al arranque las consultas a git de la línea de pruebas.
-
-  **Lo que el tramo final dejó para la v3.1** (de taller, sin charla de diseño; el detalle y su porqué en cada informe):
-  - del plan del tramo (`TRAMO-FINAL-PLAN.md`, "Lo que ya está decidido", 2): el director corto, el aviso al celular, el kit como
-    plugin (REJ-001), la poda de frenos por evidencia, el costo por encargo, el director sin `EnterWorktree`, el candado en repos con
-    historia (tracker, 58) y la mesa en lote;
-  - de la `rc.8` (`SPEC-paquete-8e.md`, "A la v3.1"): que `publicar` acepte lo que ya estaba en origin (c1), la flota que dice qué
-    ramas de módulo parecen muertas (b1), el checklist de "me voy" en criollo, la identidad de git en el `doctor` (c3), por qué el
-    director narra algunos renglones en inglés (b9) y que la flota pregunte en el momento (G1);
-  - del banco otra vez (`BANCO-rc8.md`): "no pude probar: falta pnpm" en vez de ROTA (n1), la fila "te espera una decisión" para un
-    repo sin pruebas (n2), cómo prender lo base en una adopción "todo en no" (n3), un encargo cerrado que sale dos veces en `/estado`
-    (n5), el renglón en inglés de Claude Code en el parte (n6) y los cinco arreglos del script del banco;
-  - **una decisión de Guido**, anotada sin tocar: si *cambiar* el `comando-test` de la ficha tiene que pedir su firma (hoy la pide
-    solo sacarlo).
+- [ ] **La 3.2.1 — lo que deje el uso.** Sale **después de ver el uso real**; no se construye antes. Qué vía le toca lo dice ADR-046: el
+  renglón 4 cambia una barrera y los renglones 1, 2 y 8 tocan la adopción y la flota, así que no va por la corta.
+  **⏳ Decisión de Guido, sin tomar**: cómo sale un arreglo x.y.1 que toca eso (los 16 pasos no le calzan). Recomendado: una `rc`
+  quirúrgica (§7 del ciclo) más el banco, con los cinco arreglos del script del banco hechos antes. Ordenado por cuánto muerde
+  (repartido con Guido el 2026-11-22; el detalle de cada uno, en su informe de origen):
+  1. **Prender una pieza por script.** No hay camino para prender una pieza opcional después de adoptar (`po: sí` y volver a poner
+     al día: con la ficha al día la flota lo saltea y `aplicar` lo marca "adaptada (desvío detectado)"; a mano anda: copiar la skill
+     y `po: molde`). Vale igual para `estado` y `release`. Se funden acá: cómo prender lo base en una adopción "todo en no" (6 de 18
+     en el banco; `BANCO-rc8.md`, n3) y que la flota pregunte en el momento (`SPEC-paquete-8e.md`, G1; el fondo ya se arregló en la `rc.8`).
+  2. **La flota dice ROTA cuando el repo no está roto**: "no pude probar: falta pnpm en esta PC" (n1) y la fila "te espera una
+     decisión" para un repo sin pruebas (n2). Los dos casos están en la flota real.
+  3. **La identidad de git en el `doctor`** (c3): el texto ya manda mirarla; el chequeo no existe. La cuenta de chequeos está fija
+     en las pruebas y en el manual.
+  4. **Que *cambiar* el `comando-test` pida firma** (ADR-045, 2026-11-22): ponerlo por primera vez, no. Se toca `idsFicha` en las
+     dos copias de `cambios.cjs` (`kit/molde/hooks/lib/` y `kit/skills/arquitecto-skills/pc/lib/`), con su prueba.
+  5. **Los cinco del revisor frío de la 3.2** (Opus, 2026-11-20, sobre `6162b6a..2ff16c1`; los otros tres se aplicaron en `1ab34fd`):
+     - `estado.cjs` (`cambiosObra`): una fuente que falla una pasada sale como "ya no:" y vuelve como nueva en la siguiente;
+     - `pruebas-flota.cjs:110-119, 239-253`: no valida el alias (con mayúsculas o espacios, `--vista` lo rechaza y la prueba queda
+       para siempre en el `/inicio`); alias y `hasta` salen sin encerrar;
+     - (menor) `prueba.cjs:62`: un texto de `anotar` que empieza con `--` se toma como opción;
+     - (menor) `prueba.cjs:322`: el veredicto se agrega al final del archivo, no dentro de `## Veredicto`;
+     - (menor) `po.cjs:285`: un error inesperado sale como traza de node en vez de una línea.
+  6. **Adoptar con `docs: no` deja prendido el freno del árbol de `docs/`** (visto en la madre, 2026-11-16): `hook-escritura` queda
+     en `molde` y `candado:raiz` frena todo archivo nuevo en `docs/` aunque el repo use su propio mapa. En la madre se quitó
+     `candado:raiz` (aprobado `2026-11-16-quitar-arbol-docs-madre`). Arreglo: con `docs: no`, que la adopción proponga
+     `hook-escritura: no` o el `candado:raiz` quitado con su razón, y que el banco sume un repo así. Es el mismo tema que "el
+     candado en repos con historia" (tracker, 58): 3 de 7 repos lo tienen apagado. Mudar los documentos de cada repo no es del kit.
+  7. **`mesa.cjs abiertos` lento** (95 s, y más de 3 min con la PC cargada; `DISENO-PO.md:60`): trae de cada remoto en fila. El
+     panorama (`estado.cjs --obra`) ya lo hace de una sola vez.
+  8. **La flota dice qué ramas de módulo parecen muertas** (b1; en el banco salteó 4 de 7 repos por ramas vivas): **solo si la
+     flota real lo repite**.
+  9. **Comprobar primero si siguen**: un encargo cerrado que sale dos veces en `/estado` (n5; un repo, una noche) · `SCRIPTS.md`
+     dice que `turno.cjs` "solo lee" y `ver` borra las esperas de un proceso muerto (NO VERIFICADO) · si un proyecto nuevo arranca
+     con `po: no` (NO VERIFICADO).
+  10. **Textos del kit** (del repaso de coherencia del 2026-11-22): la descripción del Equipador no trae "preparame esta PC", que
+      es la frase del README, la guía e `INSTALAR.md` · `kit.ejemplo.md` no muestra la pieza `po`.
+  11. **Una sesión en una carpeta de trabajo de la app no puede commitear** en un repo con el kit si su `core.hooksPath` quedó
+      absoluto (`git-seguro`, `hooks-path-ausente`); pasó en dos de tres carpetas el 2026-11-20. Hoy se rodea a mano (el handoff).
+  **No se miró** (2026-11-20): si las pruebas pasan, el actualizador con una pieza aplicada a medias (`scripts` nuevo con `hooks-lib`
+  viejo), el tiempo que suman al arranque las consultas a git de la línea de pruebas.
+- [ ] **Más adelante, cada uno con su disparador** (del tramo final y del relevamiento del PO; repartido el 2026-11-22):
+  - **El director corto y el director sin `EnterWorktree`**: una sola charla de diseño con Guido, con el piloto del PO a la vista
+    (384 mil y 801 mil tokens en una noche; 12 y 7 frenos; `REVISION-rc7-mirada2.md`, V1 y V8). El segundo pide antes una prueba en
+    la extensión.
+  - **El aviso al celular**: primero la prueba de 15 min de si llega desde la extensión (V2; 481 minutos esperando una noche).
+  - **El checklist de "me voy" en criollo**: cuando haya una noche real para probarlo.
+  - **Los plazos de los hooks y del push de `integrar` con la PC cargada**: espera el rastro del turno (`turno.cjs rastro`); la
+    causa no se midió.
+  - **El candado `topes` en rojo con cuatro módulos**: no hay caso anotado. La próxima vez, anotar qué tope y en qué proyecto.
 
 ## 🔁 El ciclo (cada 3-4 meses; la vuelta en `docs/CICLO-DE-MEJORA.md` §2 y §5, y cómo sacar una versión, §6)
 - [ ] **La medición de la `v3.0`**, al mes de la versión (~2026-12-15): la corrida mensual (`flota.py`, `huella.py`) contra la línea
   base del 2026-11-03 (§5.6 del ciclo). Es el primer insumo de la vuelta 2.
 - [ ] **La vuelta 2 arranca el 2027-03-01** (o antes por un disparador, §2). Lee desde el corte de la vuelta 1: **`Usuario`
   2026-11-15, 15:42 UTC** y **`clientes` 2026-11-05** (`CORTE.md` del privado). La v3.1 (misión 7) no la espera.
+  Entran a esa vuelta (repartido el 2026-11-22):
+  - **Los cinco arreglos del script del banco, antes de correrlo la próxima vez** (la 3.2.1 si le toca banco, o esta vuelta) (`BANCO-rc8.md:189-198`; ya lo manda el ciclo, §6): el pedido
+    por entrada estándar (10 de 16 `/inicio` lo sufrieron), `flota` con `--con-obra`, el `&` del `comando-test` en la plantilla
+    de la noche, no correr `barreras` en un repo "todo en no", y una tanda que mida los criterios de `/cierre`.
+  - **La poda de frenos por evidencia** (`REVISION-rc7-mirada2.md`, V4): primero contar en los `frenos.log` de la flota qué regla
+    frenó qué y cuántas veces de más; recién después sacar de a una, midiendo y con red team.
 
 ## 🟠 Importante
-- [ ] **Kit: adoptar con `docs: no` deja prendido el freno del árbol de `docs/`** (visto en la madre, 2026-11-16): `hook-escritura` queda
-  en `molde` y `candado:raiz` frena todo archivo nuevo en `docs/` aunque el repo use su propio mapa. En la madre se quitó `candado:raiz`
-  (aprobado `2026-11-16-quitar-arbol-docs-madre`). Arreglo: con `docs: no`, que la adopción proponga `hook-escritura: no` o el
-  `candado:raiz` quitado con su razón, y que el banco sume un repo así. Para la `3.0.2` o la `v3.1`, con el ciclo (§6).
 - [ ] **La 3.1.1, del piloto del buzón** (ADR-041; el detalle en `docs/kit-v3/AUDITORIA-3.1.md` y el revisor frío del 2026-11-20):
   - **la misma persona en su segunda PC termina en disputa** (`buzon.cjs:656-666` contra la skill, que promete un alta): Guido no
     registra su segunda PC hasta arreglarlo;
@@ -93,7 +105,7 @@
   - el aviso del buzón se registra en toda PC: que vaya con la misma condición que la regla `allow` (con config);
   - el home con espacios (`rutaComando` sin comillas) y la cuenta con tilde o eñe (`whoami` leído como utf8; NO VERIFICADO);
   - reinstalar sin config deja `"allow": []`;
-  - los manuales (`SCRIPTS.md` sin `buzon.cjs`, el Equipador sin el aviso) y las dos "mesas": el puntero de la skill va a `mesa.cjs`;
+  - las dos "mesas": el puntero de la skill va a `mesa.cjs`;
   - lo NO VERIFICADO del primer uso real: VS Code en vivo (`CLAUDE_CODE_ENTRYPOINT` de la extensión), los tiempos del aviso sobre la
     carpeta de red, y que "reflexioná" o "¿quedó algo suelto?" disparen `reflexion` solos.
 - [ ] **El hook v2.4.3 al Bot y a su Panel** (inyectaban 15.500 y ~18.000 caracteres el 2026-10-22: arrancan sin ver su estado).

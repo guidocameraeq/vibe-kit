@@ -2,8 +2,9 @@
 
 > La guía práctica del sistema completo, organizada por situación: **"quiero X → hacé Y"**.
 > No repite procedimientos (viven en el kit y las skills — si algo difiere, ganan ellos);
-> te dice qué decir, dónde, y qué esperar; el detalle está en `manuales/`. Al día con el kit `v3.0.1` (2026-11-16): la noche que
-> termina sola y su parte, tu `/estado` de cuatro secciones, el clic en la pestaña del director, traer repos y publicar sola.
+> te dice qué decir, dónde, y qué esperar; el detalle está en `manuales/`. Al día con el kit `v3.2.0` (2026-11-20): la noche que
+> termina sola y su parte, tu `/estado` de cuatro secciones, el clic en la pestaña del director, traer repos y publicar sola;
+> `reflexion` y el buzón (3.1); el PO, el turno de lo pesado a la vista, el panorama y probar una idea nueva (3.2).
 
 ## El mapa mental en 30 segundos
 
@@ -12,7 +13,7 @@ Tu sistema tiene **3 niveles**, cada uno con su herramienta:
 | Nivel | Herramienta | Se usa… |
 |---|---|---|
 | **La máquina** (esta PC, la del SAAS, cualquiera) | El Equipador (`/arquitecto-skills`) | Al estrenar una PC, actualizar skills, traer lo último (*"actualizate"*) o poner al día la flota |
-| **Cada proyecto** (Perseo, el ERP, apps nuevas) | `inicio` / `cierre` + su CLAUDE.md (y `/estado`, director y obrero en el kit v3) | Todos los días |
+| **Cada proyecto** (Perseo, el ERP, apps nuevas) | `inicio` / `cierre` + su CLAUDE.md (y `/estado`, director y obrero en el kit v3; `/po`, opcional) | Todos los días |
 | **Este repo** (el método mismo) | El Arquitecto, el Extractor, el playbook | Al arrancar proyectos, procesar tips, o mejorar el método |
 
 El Arquitecto es **la puerta**: si no sabés a quién llamar, `/arquitecto` y lo que querés; él te deriva.
@@ -79,6 +80,11 @@ Chat nuevo **en la carpeta del proyecto** → decís **`inicio`** → te confirm
 Cambió la misión → cambiá el chat. Compactar es emergencia (*"cierre parcial"*), no rutina.
 → Qué hacen `inicio` y `cierre` en el kit v3: [`manuales/ROLES.md`](manuales/ROLES.md) §1
 
+### 🪞 "Antes de cerrar, ¿quedó algo suelto?"
+Sobre todo después de una sesión larga, antes del `cierre`: **"reflexioná"** (o *"¿quedó algo suelto?"*, *"atá cabos"*, *"¿qué
+aprendiste?"*). Te trae una lista numerada (lo pedido contra lo hecho, los cabos sueltos, lo aprendido, qué vale guardar y dónde) con
+un veredicto; no escribe nada: vos elegís qué ítems se aplican. → `kit/skills/reflexion/SKILL.md`
+
 ### 🏗️ "Quiero una feature más que chica en una app existente"
 Chat nuevo **en la carpeta de esa app** → **`/arquitecto`** (o lo llama la sesión sola, si midió "más que chico"): explora el código
 (Modo B), deja el **spec delta sellado** y el módulo armado, y te da la línea para la sesión que lo construye (con director: una
@@ -95,20 +101,19 @@ Decile **"me voy"** al director: sin preguntarte nada te muestra el checklist de
 `/inicio` o `/estado` le avisan que ya es de día; de noche (de 20 a 6, o el mismo día en que dijiste "me voy") la dejan y te lo dicen; si volviste de verdad, decíselo y la borran. → [`manuales/ROLES.md`](manuales/ROLES.md) §7
 
 ### 🌙 "¿Qué pasó anoche?"
-Cuando el director termina un módulo, la noche termina sola: una sesión de cierre pone los papeles al día, publica si el proyecto y
-esta PC lo autorizan, limpia y te deja **el parte de la noche** (qué quedó, qué te necesita, qué se hizo, qué no pudo). Lo ves en la
-pestaña del director, y lo que te necesita aparece en tu `/estado`. Si de día hiciste algo chico en la rama principal, la noche te
-pregunta antes de publicarlo (no publica lo que no vio integrar). → [`manuales/ROLES.md`](manuales/ROLES.md) §7
+La noche termina sola y te deja **el parte de la noche**: lo ves en la pestaña del director, y lo que te necesita aparece en tu
+`/estado`. Si de día hiciste algo chico en la rama principal, la noche te pregunta antes de publicarlo. → Cómo termina y qué trae el parte: [`manuales/ROLES.md`](manuales/ROLES.md) §7, "La noche termina sola"
 
 ### 📊 "¿Cómo vamos?"
 **`/estado`** en el proyecto (o `/estado <módulo>`): siempre cuatro secciones, en el mismo orden: **te necesito · el plan · lo que se
 hizo · lo que falta**. *"¿Cómo terminamos?"* suma el resumen del día. → [`manuales/ROLES.md`](manuales/ROLES.md) §6
+Hay además **el panorama** de toda la obra: una línea por módulo en obra, más el turno, la mesa y el buzón; te lo trae el PO.
+→ [`manuales/ROLES.md`](manuales/ROLES.md) §10 · [`manuales/SCRIPTS.md`](manuales/SCRIPTS.md), `estado` (`--obra`)
 
 ### 🧑‍✈️ "Quiero alguien que lleve todo el proyecto" (el PO)
 Con el proyecto ya en la 3.2, decile a la sesión **"prendé la pieza po"** (copia la skill del kit y la anota en la ficha) y después,
-en la sesión principal, **`/po`**. Te
-cuenta cómo va todo, atiende el buzón, les avisa a los directores, te trae las decisiones juntas y controla que cada módulo cierre
-documentado. Lo chico lo hace él solo si no hay nada en obra. Está **en piloto**. → [`manuales/ROLES.md`](manuales/ROLES.md) §10
+en la sesión principal, **`/po`**. Esperá una sesión que lleva la obra entera y te trae las decisiones juntas. Está **en piloto**.
+→ Qué hace y qué nunca: [`manuales/ROLES.md`](manuales/ROLES.md) §10
 
 ### 🧪 "Quiero probar una idea nueva" (una skill, un flujo)
 Decíselo al PO: **"quiero probar…"**. Te hace tres preguntas (qué es, qué cura, cómo se sabe si sirvió) y hasta cuándo, y queda
@@ -119,6 +124,12 @@ anotada en el proyecto con su log. Las sesiones anotan cuando la usan o las trab
 ### 🚦 "La PC está lenta: ¿quién está corriendo qué?"
 `node .claude/scripts/turno.cjs ver` (o pedíselo a la sesión): quién tiene el turno de lo pesado y quién espera. El kit corre una
 cosa pesada a la vez por PC; lo que se lanza por fuera de sus scripts no se ve ahí. → [`manuales/SCRIPTS.md`](manuales/SCRIPTS.md), `turno`
+
+### 📬 "Quiero que mis agentes de otras PCs se hablen" (el buzón)
+**"Registrame en el buzón"** la primera vez; después, **"revisá el buzón"** (o *"¿hay algo en el buzón?"*, *"contestale a X"*,
+*"escribile a Z por el buzón"*). Esperá un aviso en la sesión cuando hay turno: lo informativo se contesta solo y lo demás espera tu
+OK. Está **en piloto**: registrarte es entrar al piloto, y **la misma persona en una segunda PC espera a la 3.1.1** (hoy termina en
+disputa): registrate en una sola. → `kit/skills/buzon/SKILL.md` · el aviso: [`manuales/SCRIPTS.md`](manuales/SCRIPTS.md), `aviso-buzon`
 
 ### 🔏 "La sesión me pide aprobar un cambio de freno"
 Te aparece en "te necesito" de tu `/estado`, con su regla. Si estás de acuerdo, pedíselo a la sesión **en la pestaña del director** (o en tu carpeta principal) y apretá en la ventana: `cambios aprobar` lo corre la sesión cuando el dueño lo pide, y su clic en la ventana es la firma; nunca por su cuenta.
@@ -217,14 +228,14 @@ de la anterior en `tips/tanda-2026-10-chats.md` §0; lo ya hallado en `D:\vibe-h
 | `registrame en el buzón` · `revisá el buzón` | El buzón entre agentes de otras PCs y cuentas: la primera vez, una pregunta (la carpeta, tu nombre, si la cuenta es compartida); después el aviso te dice cuándo hay turno, y lo informativo se contesta solo. Lo demás, con tu OK |
 | `reflexioná` · `¿quedó algo suelto?` | Antes del cierre: cabos sueltos, lo aprendido y qué guardar, con veredicto. Te propone y vos elegís qué se aplica |
 | `/po` · `¿cómo viene el proyecto?` | El PO, en la sesión principal: el panorama de toda la obra, el buzón, los avisos a los directores y las decisiones juntas (en piloto) |
-| `quiero probar…` | Una idea de método nueva queda anotada como prueba, con su log; al vencer, el veredicto es tuyo |
+| `quiero probar…` | (decíselo al PO, que llega apagado: hay que prenderlo antes) Una idea de método nueva queda anotada como prueba, con su log; al vencer, el veredicto es tuyo |
 | `cierre` | Docs al día, commit, push — chat descartable |
 | `cierre parcial` | Emergencia pre-compactación: guarda el estado y seguís |
 | `dale con los defaults` | El Arquitecto salta a confirmar solo las 2 decisiones irreversibles |
 | `/arquitecto` con el plan ya charlado | Modo B corto: sin entrevista, la charla se vuelve un spec sellado que ejecuta otra sesión |
 | `/estado` · `¿cómo terminamos?` | Cómo vamos: te necesito · el plan · lo que se hizo · lo que falta · más el resumen del día |
 | `me voy` | (al director) El checklist de la noche y qué queda andando; a la mañana, el parte; tu `/inicio` al volver dice que ya es de día |
-| `firmá el cambio que está en te necesito` | Aprobar un cambio de freno, en la pestaña del director (o tu carpeta principal): `cambios aprobar` lo corre la sesión cuando el dueño lo pide, y su clic en la ventana es la firma; nunca por su cuenta |
+| *(pedirlo con tus palabras, p. ej.: "firmá el cambio que está en te necesito")* | Aprobar un cambio de freno, en la pestaña del director (o tu carpeta principal); vos apretás en la ventana (receta 🔏, arriba) |
 | `preparame esta PC` | El Equipador deja la PC entera lista: kit, frenos y ajustes, con una sola pregunta; trae los repos que elijas y te pide el sí de publicar |
 | `instalame skills` | El Equipador instala lo que falte del menú curado |
 | `/docs-fyd` | Documenta el repo para la auditoría FyD (te pregunta por opciones lo que el código no sabe) |

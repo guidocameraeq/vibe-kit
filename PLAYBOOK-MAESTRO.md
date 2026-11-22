@@ -49,7 +49,7 @@ los errores técnicos causados por amnesia post-compactación; y ~45 mensajes de
 
 ## 1.2 Los principios (versión probada)
 
-1. **Una sola fuente de verdad por concepto.** Pendientes solo en TODO. Estado solo en STATUS.
+1. **Una sola fuente de verdad por concepto.** Pendientes solo en TODO. Estado solo en STATUS (en el kit v3 no hay STATUS: nota en §1.3).
    **Un número vive en UN archivo** — los demás docs referencian sin repetirlo. *(Medido: todo
    número duplicado divergió — el conteo de crons de Perseo llegó a tener 3 valores en 3 docs.)*
 2. **Una sola narrativa por sesión.** La historia de "qué se hizo hoy" vive en SESSION_HANDOFF
@@ -78,6 +78,8 @@ los errores técnicos causados por amnesia post-compactación; y ~45 mensajes de
 ## 1.3 Los archivos y sus reglas de oro
 
 > **En el kit v3 esto lo pone el molde**: *adoptá X* (`manuales/MOLDE.md`). Evidencia: R1b (2026-11-04), la adopción de Hermes probada sobre su clon.
+>
+> **En el kit v3 el árbol es otro**: no hay `STATUS.md`; `DECISIONS.md`, `REJECTED.md` y `ARCHITECTURE.md`, cuando los hay, viven en `docs/referencia/`; se suman `NORTE.md`, `MAPA.md` (opcional), `modulos/<x>/` y la ficha `.claude/kit.md`. El handoff tiene secciones fijas y tope de 5.000 bytes, sin "qué se hizo" ni "archivos tocados" (eso lo dice git). Detalle: `manuales/MOLDE.md` §2. Evidencia: repaso de coherencia del 2026-11-22, contra `kit/molde/CLAUDE.md` (mapa de documentación), `kit/molde/skills/cierre/SKILL.md` (paso 3) y `kit/molde/docs/MAPA.md`.
 
 ```
 proyecto/
@@ -145,15 +147,15 @@ proyecto largo, recibe pedidos chicos todos los días).
   (la pone el Arquitecto al abrir el primer módulo con director). Un proyecto personal con código es `estandar`, con toda la red.
 - **Lo que antes se le pedía "al proyecto grande" no se pierde, se reparte.** El respaldo probado, las rutas que no se tocan
   y los crons van con la ficha: cada base o servicio en `entornos:` con su `clase:` (`real` · `prueba` · `dummy`), lo que no
-  es pregunta en `autorizado:`, lo que duele en `sensible:`, y los frenos del molde (DISENO-F §9). Los documentos de
-  referencia (arquitectura, framework, datos de prueba) viven en `docs/referencia/` (DISENO-B §4).
+  es pregunta en `autorizado:`, lo que duele en `sensible:`, y los frenos del molde (DISENO-F §9, `docs/mision-4/DISENO-F-seguridad.md`). Los documentos de
+  referencia (arquitectura, framework, datos de prueba) viven en `docs/referencia/` (DISENO-B §4, `docs/mision-4/DISENO-B-documentos.md`).
 - **Con framework upstream** (bot sobre OpenClaw, fork): el doc del framework en `docs/referencia/`, con URLs y versiones
   validadas, y el **pin de versión documentado con su porqué** (en Perseo: "pineado a 2026.5.27, la 6.8 rompe el provider"
   — eso evitó dos roturas).
 
 *Cicatriz*: el 2026-10-24 había **cuatro vocabularios de tamaño** sin reconciliar (esta sección con su escala por proyecto,
 los módulos de B, el `nivel:` de la ficha y el handoff) y la vieja regla rápida de "una tarde, sin plata ni permisos"
-repetida en cinco lugares sin que ningún paso la aplicara: un hotfix de 15 líneas pasó por 3 auditores (DISENO-H §3). La
+repetida en cinco lugares sin que ningún paso la aplicara: un hotfix de 15 líneas pasó por 3 auditores (DISENO-H §3, `docs/mision-4/DISENO-H-niveles-y-puertas.md`). La
 revisión de H agregó que "largo" se calcula para no tener dos verdades (R-40) y que lo exigido a producción no se pierde (R-19).
 Diseño: DISENO-H §4-§5; lo construido: el `CLAUDE.md` del molde y el `SKILL.md` del Arquitecto (kit v3).
 
@@ -168,6 +170,8 @@ secuencia (que en la Parte 2 se convierte en el comando `/cierre`):
    implementadas.
 3. Verificación de números divergentes (¿algún dato quedó en dos docs?).
 4. Commit + push. Reporte con SHA y próximo paso.
+
+> **En el kit v3 el cierre es el de la skill del molde**: sin paso de STATUS; después de ver si cambió algo, cruza lo que anuncia el handoff contra lo anotado en el TODO y las fichas; corre los chequeos y el candado antes del commit (si el candado falla, no se commitea); commitea por rutas, nunca el árbol entero; si origin avanzó, `git pull --rebase` (nunca merge ni `--force`); y el reporte va sin códigos (sin SHA). Ese paso no archiva specs. Detalle: `kit/molde/skills/cierre/SKILL.md` y `manuales/ROLES.md` §1. Evidencia: repaso de coherencia del 2026-11-22, contra esa skill (pasos 2, 4, 6, 10 y 11) y `kit/CHANGELOG.md` (3.0.0: "el reporte, sin códigos").
 
 ## 1.7 Síntomas de que el sistema está fallando
 
@@ -205,6 +209,8 @@ archivos se llamen igual que acá.
 2. TRABAJAR — las reglas del CLAUDE.md operan solas.
 3. "cierre" → docs al día + commit + push + SHA → EL CHAT SE DESCARTA.
 ```
+
+> **En el kit v3**: el reporte del cierre va sin códigos (nota en §1.6). Y un proyecto con módulos suma roles: el director, los obreros (o un tramo) y, si se prende, el PO. Detalle: `manuales/ROLES.md`. Evidencia: repaso de coherencia del 2026-11-22, contra `kit/molde/skills/{director,obrero,tramo,po}/SKILL.md`.
 
 - **Cambió la tarea → cambiá el chat.** La compactación queda como emergencia, no como forma de
   vida. Para la emergencia existe **`cierre parcial`**: guarda el estado en el handoff y te deja
@@ -265,6 +271,15 @@ Mismos nombres en todos tus proyectos = memoria muscular.
 | `/cierre` (+ modo `parcial`) | **Siempre** | El protocolo de §1.6 completo + checklist de regresión de los bugs históricos del proyecto + actualizar memoria si cambió algo estructural + commit/push/SHA. |
 | `/smoke` | Si hay algo que verificar | Hermes: rebuild + launch + batería vía MCP. Perseo: mensaje real por WhatsApp + verificar la DB + **limpiar datos de prueba**. Una API: pegarle a los endpoints. Siempre: reporte con evidencia (estado inicial / test 1 / fixes / test 2). |
 | `/deploy` o `/release` | Si hay ritual de publicación | `/release` si publicás versiones (tags + CHANGELOG + gates). `/deploy` si aplicás a un servidor (push → pull → restart si toca runtime → health + smoke). |
+| `/director` (molde v3) | Módulo con director | La sesión directora de un módulo: chequea el sello del spec, reparte encargos commiteados, verifica y mergea por script, e integra el módulo a la rama por defecto. No escribe código. |
+| `/obrero` (molde v3) | Encargo commiteado | Ejecuta un encargo en su worktree: para si el spec no tiene sello, trabaja por sub-paso con prueba en rojo primero y revisor, y cierra con evidencia y la rama pusheada. |
+| `/tramo` (molde v3) | Encargo que trae `Skill: tramo` | Ejecuta un encargo coordinando subagentes (explorador, implementador, verificador y revisor) por sub-paso, sin escribir código ella. |
+| `/estado` (molde v3) | "¿Cómo vamos?" | Cuatro secciones fijas armadas por script (lo que te necesito, el plan, lo que se hizo y lo que falta) y el clic para firmar ahí mismo. Solo informa. |
+| `/po` (molde v3, **opcional**) | La sesión principal, si la pieza está prendida | El PO: sabe cómo está toda la obra, cuida el norte y el mapa, ordena a los directores, atiende el buzón y le lleva al dueño las decisiones en lote. Llega apagada: se prende con "prendé la pieza po". |
+| `/reflexion` (global, kit) | Antes del `/cierre` de una sesión larga | Pasada por el contexto de la sesión: cabos sueltos, lo aprendido y qué vale guardar. Propone; no escribe el handoff (eso es `/cierre`). |
+| `/buzon` (global, kit, **en piloto**) | Agentes de distintas PCs o cuentas | El buzón entre agentes: una carpeta compartida, protocolo v1. Revisar, contestar, abrir una mesa, registrarse. |
+
+> **En el kit v3** las cinco primeras las trae el molde y las dos últimas son globales del kit. Detalle: `manuales/MOLDE.md` §10, `manuales/ROLES.md` (§3-§6 y §10) y cada `SKILL.md`. Evidencia: repaso de coherencia del 2026-11-22, contra el frontmatter de `kit/molde/skills/*/SKILL.md` y `kit/skills/{reflexion,buzon}/SKILL.md`, y `kit/CHANGELOG.md` (3.2.0, cómo se prende el PO).
 
 Si dos proyectos comparten carpeta raíz, sufijá (`/inicio-mobile`) y anotá en cada CLAUDE.md qué
 skills le pertenecen.
@@ -284,6 +299,7 @@ skills le pertenecen.
 > (d:\SAAS — SQL Server, Twilio) vive en ESA máquina; copia de referencia archivada en
 > `Guia de vibe coding/legacy/KIT_SKILLS-maquina-dsaas-2026-07-05.md`. Pendiente: al llevar el
 > zip a esa PC, reconciliar su set con el menú del Equipador.
+> Desde 2026-11-22 suma dos kit-owned más: `reflexion` y `buzon` (las dos desde la 3.1.0, `kit/CHANGELOG.md`).
 > Cuando cambie el set de esta máquina, se actualiza esta nota — en ningún otro lado.
 
 ## 2.4 Hooks = automatismos que no dependen de que nadie se acuerde
@@ -304,6 +320,8 @@ En `<raíz>/.claude/settings.json` (se versiona) + scripts en `.claude/hooks/`:
   password). Existe porque los settings de Hermes llegaron a acumular 4 tokens en texto plano.
   **Es por-máquina: se recrea en cada PC** (§2.8).
 
+> **En el kit v3 el molde trae tres hooks**: el arranque (`session-start`), el de escritura en `docs/` (`escritura-docs`) y el portero, que junta `git-seguro`, `sensible` y `niega-aprobar` en un solo proceso. **No trae** el de post-edición según lenguaje. Los hooks por PC son el corrector de secretos (que también corre `niega-aprobar` en toda la PC) y, desde la 3.1.0, el aviso del buzón. Detalle: `manuales/MOLDE.md` §3 y `manuales/EQUIPADOR.md` §3. Evidencia: repaso de coherencia del 2026-11-22, contra `kit/molde/settings.json` y `kit/CHANGELOG.md` (3.0.0-rc.7: el portero; 3.1.0: los hooks por PC).
+
 Nota Windows: en los comandos de hooks usar siempre `$CLAUDE_PROJECT_DIR` entre comillas (las
 carpetas con espacios rompen todo lo demás).
 
@@ -317,6 +335,8 @@ carpetas con espacios rompen todo lo demás).
   permiso más que las allowlists.**
 - Nunca "always allow" a un comando que lleva un secreto adentro (el hook lo bloquea igual).
 - El skill `/fewer-permission-prompts` genera la allowlist desde tus transcripts reales.
+
+> **En el molde v3 la sesión resuelve sola**: *"Resolvés solo todo, producción incluida y el merge si el gate pasa"*, y pregunta solo las 5 de `sensible:` de la ficha (y lo que el `/inicio` manda preguntar). Lo demás lo frenan los hooks, no una allowlist: la del molde es mínima (sus propios scripts) más lecturas de secretos negadas. Detalle: `manuales/MOLDE.md` §4. Evidencia: repaso de coherencia del 2026-11-22, contra `kit/molde/CLAUDE.md` (Autonomía) y `kit/molde/settings.json`.
 
 ## 2.6 Seguridad y red de datos (lo que nadie mira hasta que duele)
 
@@ -381,6 +401,8 @@ carpetas con espacios rompen todo lo demás).
 | `.claude/hooks/` (los scripts) | PAT de GitHub / credenciales |
 | `CLAUDE.md`, `docs/`, `scripts/` | `settings.local.json` (preferencias locales) |
 
+> **En el kit v3** la capa por máquina suma, al anti-secretos, el aviso del buzón (nota en §2.4). Evidencia: repaso de coherencia del 2026-11-22, contra `kit/CHANGELOG.md` (3.1.0).
+
 ## 2.9 Receta de aplicación
 
 > **Todo lo de abajo ya existe armado**: el sistema (skills, hooks, CLAUDE esqueleto, docs mínimos) lo monta
@@ -391,7 +413,7 @@ carpetas con espacios rompen todo lo demás).
 ### Proyecto nuevo — el camino automático: `/arquitecto`
 
 Para un proyecto nuevo de verdad (idea → app), el camino canónico es la skill global
-**`/arquitecto`** (ver `PROPUESTA-VIBE-KIT-V2.md` en Guia de vibe coding): te entrevista, piensa
+**`/arquitecto`** (ver `legacy/PROPUESTA-VIBE-KIT-V2.md`): te entrevista, piensa
 los concerns que no viste (roles, listas configurables, multi-tenant ⚠️, i18n ⚠️), escribe el
 SPEC-0 con gate de aprobación real, y ejecuta esta receta completa por vos — el proyecto nace en
 régimen. Los pasos de abajo quedan como referencia y para montarlo a mano.
@@ -399,7 +421,7 @@ régimen. Los pasos de abajo quedan como referencia y para montarlo a mano.
 ### Proyecto nuevo a mano (~1-2 horas, lo hace Claude con tu OK)
 
 1. Definir la **raíz** (donde abrís los chats = donde viven `.claude/` y `CLAUDE.md`).
-2. `CLAUDE.md` mínimo viable (§2.2, 30 min) — instanciar `CLAUDE.template.md`.
+2. `CLAUDE.md` mínimo viable (§2.2, 30 min) — instanciar `kit/molde/CLAUDE.md` (el `CLAUDE.template.md` del v2 quedó en `legacy/templates-universales-v2/`).
 3. Docs de estado mínimos: `SESSION_HANDOFF` + `TODO` + `CHANGELOG` (el resto cuando el proyecto
    los pida; en el kit v3 los trae el molde).
 4. Skills que apliquen según la regla de 3+ (§2.3) — `/inicio` y `/cierre` van siempre; `/smoke`
@@ -448,3 +470,5 @@ referencia los docs con SUS nombres.
 
 *Versión 2026-07-04. Si este documento contradice a la práctica de un proyecto que funciona, ganó
 la práctica: actualizá esto.*
+
+*Las notas "En el kit v3" son del repaso de coherencia del 2026-11-22, contra el kit 3.2.0. Lo que el kit hace hoy lo mandan `kit/` y `manuales/`.*

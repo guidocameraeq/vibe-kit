@@ -34,22 +34,24 @@
 - ADR-026 · El registro de cambios de método es pieza del canon: por proyecto, en archivos chicos, clase 2 con diff; sube al kit por el ciclo con 3+ o cicatriz (2026-10-26)
 - ADR-027 · El OK de Guido a un cambio de barrera es el clic en la ventana de permiso, con tres candados; no una línea en la terminal (2026-10-27)
 - ADR-028 · La misión 5 se construye con un director Opus por paquete que reparte encargos a subagentes; no un orquestador para todo el spec (2026-10-28)
-- ADR-029 · Revisar y probar con presupuesto: contra accidentes, no contra trampas; pruebas proporcionales al riesgo; tope por sesión (2026-10-30)
-- ADR-030 · Las sesiones que deciden sin Guido usan su vara: las cuatro cosas, el filtro pragmático y los 11 criterios; si no alcanza, preguntan (2026-10-30)
+- ADR-029 · Revisar y probar con presupuesto: contra accidentes, no contra trampas; pruebas proporcionales al riesgo; tope por sesión (2026-10-30) · *ajustado por ADR-035*
+- ADR-030 · Las sesiones que deciden sin Guido usan su vara: las cuatro cosas, el filtro pragmático y los 11 criterios; si no alcanza, preguntan (2026-10-30) · *ampliado por ADR-034*
 - ADR-031 · El Arquitecto es la puerta única con cinco entradas; la PC y la flota derivan, no ejecutan (2026-10-30)
 - ADR-032 · El actualizador es un script de node; el único agente es el de la fusión con conflictos, y el clon lo juzga el runner del molde nuevo (2026-11-02)
 - ADR-033 · La credencial del Hub no pasa por el kit: el Equipador no maneja tokens, sin excepciones (2026-11-03)
 - ADR-034 · La vara suma la coherencia entre piezas; lo técnico lo decide la sesión; la revisión integral es paso fijo (2026-11-03)
-- ADR-035 · Cómo sale una versión: banco de prueba como paso fijo, `rc` quirúrgicas de a una, y el tramo final con un director y sesiones en fila (2026-11-15)
+- ADR-035 · Cómo sale una versión: banco de prueba como paso fijo, `rc` quirúrgicas de a una, y el tramo final con un director y sesiones en fila (2026-11-15) · *ver ADR-044 (la excepción de la 3.2)* · *ajustado por ADR-046*
 - ADR-036 · La skill `reflexion`: global, aparte del `/cierre`, y propone sin escribir (2026-11-19)
 - ADR-037 · El buzón entre agentes: aviso en cada sesión, `proyecto/persona`, contestar con citas, en el kit y mudanza PC por PC (2026-11-19)
 - ADR-038 · El spec del buzón: el turno y la verificación de un mensaje v0, y la regla de permiso la pone el instalador por PC (2026-11-19)
 - ADR-039 · La construcción del buzón, sesión 1: el aviso corre `buzon.cjs` en un hilo aparte, y la regla sale solo con `buzon.cjs` instalado (2026-11-19)
 - ADR-040 · La construcción del buzón, sesión 2: `buzon.cjs` en módulos, la disputa que nunca se resuelve sola y el juicio de salida por ventanas (2026-11-19)
-- ADR-041 · La 3.1.0 sale final con `reflexion` y el buzón, sin `rc` ni banco; el PO y "probar una idea nueva" pasan a la 3.2 (2026-11-20)
-- ADR-042 · El PO: la sesión principal del proyecto, con oficio; el turno de lo pesado, a la vista (2026-11-20)
-- ADR-043 · "Probar una idea nueva": una carpeta y un script aparte, y la ofrece el PO (2026-11-20)
-- ADR-044 · La 3.2 se construye ya, en paralelo y sin compuerta, banco ni `rc`; sale final "en piloto" (2026-11-20)
+- ADR-041 · La 3.1.0 sale final con `reflexion` y el buzón, sin `rc` ni banco; el PO y "probar una idea nueva" pasan a la 3.2 (2026-11-20) · *ver ADR-044 (sin banco)* · *ajustado por ADR-046*
+- ADR-042 · El PO: la sesión principal del proyecto, con oficio; el turno de lo pesado, a la vista (2026-11-20) · *construido en la 3.2.0*
+- ADR-043 · "Probar una idea nueva": una carpeta y un script aparte, y la ofrece el PO (2026-11-20) · *construido en la 3.2.0*
+- ADR-044 · La 3.2 se construye ya, en paralelo y sin compuerta, banco ni `rc`; sale final "en piloto" (2026-11-20) · *ajustado por ADR-046*
+- ADR-045 · Cambiar el `comando-test` de la ficha pide la firma del dueño, igual que sacarlo (2026-11-22) · *se construye en la 3.2.1*
+- ADR-046 · Dos vías para sacar una versión: la corta "en piloto" y la larga con `rc` y banco; en la duda, la larga (2026-11-22)
 
 *Cada ADR nuevo suma su línea acá (lo pide `/cierre`).*
 
@@ -643,6 +645,7 @@ gestione toda la construcción.
   encargos que haya que rehacer.
 
 ## ADR-029 · Revisar y probar con presupuesto: contra accidentes, no contra trampas; pruebas proporcionales al riesgo; tope por sesión (2026-10-30)
+> **↪️ Ajustado 2026-11-22 → ADR-035** (punto 4): un arreglo de `rc` que cambia una regla de un freno sí lleva mutación, solo de las reglas que cambió (regla 3: "nunca en un arreglo").
 D3.3 (el cierre del paquete 3) tardó ~11 h de reloj y **18 h de agentes, 21 M de tokens nuevos**, medidos en los transcripts de sus 17
 encargos. **El 61% (11,3 h, 12,6 M) se fue en arreglar lo que encontró el revisor frío**: dos vueltas, 24 hallazgos y ocho rondas de
 arreglos. Cada arreglo pagaba el ritual completo, aunque fuera de 20 renglones: pruebas, mutación (hasta 1 h), las 16.470 llamadas del
@@ -677,6 +680,7 @@ importa, con criterio"*.
   criterio: el director del paquete 5 lo lleva al canon.
 
 ## ADR-030 · Las sesiones que deciden sin Guido usan su vara: las cuatro cosas, el filtro pragmático y los 11 criterios; si no alcanza, preguntan (2026-10-30)
+> **↪️ Ampliado 2026-11-22 → ADR-034** (punto 1): la vara suma una quinta cosa, la coherencia entre piezas (`[coherencia]`).
 Desde D2.2, los directores de la misión 5 corren sin Guido con "decidís con la recomendada" y las ⚠️ arriba. **Nada les decía con qué
 vara elegir la recomendada**: las cuatro cosas de Guido estaban solo en la memoria de una PC y en el diseño H, y los 11 criterios en
 `docs/mision-4/PLAN.md`, usados para diseñar pero no para construir. D3.3 lo mostró: ocho rondas de arreglos chocaban con los criterios 2
@@ -769,6 +773,8 @@ proyecto real (7), una pieza adaptada sin la opción "tomar la nueva" (6). Ning�
   lo que toque más de una pieza* (casi todo toca más de una; sube la intervención, criterio 1).
 
 ## ADR-035 · Cómo sale una versión: banco de prueba como paso fijo, `rc` quirúrgicas de a una, y el tramo final con un director y sesiones en fila (2026-11-15)
+> **↪️ Nota 2026-11-22 → ADR-044**: la 3.2 se apartó de este ADR: salió sin banco ni `rc` y se construyó con tres sesiones en paralelo, como excepción con su ADR.
+> **↪️ Ajustado 2026-11-22 → ADR-046**: el banco y las `rc` son paso fijo de la vía larga; una versión que solo suma piezas sale por la vía corta, "en piloto".
 La v3 pasó de la beta a la candidata en siete `rc` y trece días (`docs/CICLO-DE-MEJORA.md` §9). La lectura de la 6b (2026-11-15, seis
 lectores sobre los chats del 03 al 15/11; lo crudo, en el privado) mostró tres cosas:
 1. **Lo real encontró siempre lo que la prueba de taller no veía**: R1b sobre un clon, la primera mañana de uso, las noches reales, y R2
@@ -962,6 +968,8 @@ partir el renglón lo esquivaban); un alias de cita sin forma salía fuera del c
   `kit/skills/buzon/` y `pc/aviso-buzon.cjs`.
 
 ## ADR-041 · La 3.1.0 sale final con `reflexion` y el buzón, sin `rc` ni banco; el PO y "probar una idea nueva" pasan a la 3.2 (2026-11-20)
+> **↪️ Nota 2026-11-22 → ADR-044**: la 3.2 tocó el molde y salió sin banco, como otra excepción con su ADR (ver "Costo aceptado", abajo).
+> **↪️ Ajustado 2026-11-22 → ADR-046**: "tocar el molde" solo, sumando piezas sin cambiar frenos, ya no obliga al banco: va por la vía corta.
 La 3.1 iba a juntar tres cosas (TODO, misión 7, Guido 2026-11-04): el buzón, "probar una idea nueva" y el PO. El buzón y `reflexion`
 quedaron construidos el 2026-11-19, sin piloto (nadie se registró en el buzón). El handoff proponía una `3.1.0-rc.1`.
 - **Decisión** (Guido, 2026-11-20): **la 3.1.0 sale hoy como versión final** con `reflexion` y el buzón; **el PO y "probar una idea
@@ -981,6 +989,7 @@ quedaron construidos el 2026-11-19, sin piloto (nadie se registró en el buzón)
   sigue siendo paso fijo** para una versión que toque el molde, los frenos o el actualizador.
 
 ## ADR-042 · El PO: la sesión principal del proyecto, con oficio; el turno de lo pesado, a la vista (2026-11-20)
+> **✅ Construido 2026-11-20 en la 3.2.0**, en paralelo, sin compuerta ni `rc` (nota del 2026-11-22): cómo se apartó de la "Ejecución" de su spec, en ADR-044.
 El TODO pedía "un PO como skill" para la 3.2 (ADR-041). DISENO-D §4 había descartado un "agente PO vivo por proyecto". El
 2026-11-20 se relevó que el rol **ya existe improvisado**: dos sesiones lo cumplen con `/arquitecto` (en dos días: ~25 turnos de lo
 pesado cada una, ~28 mensajes de buzón, ~21 decisiones consolidadas), con la PC en 0,8 GB libres y cuatro pesados de dos repos,
@@ -1016,6 +1025,7 @@ mensajes a la sesión equivocada y el dueño pidiendo "que documente todo" antes
 - **Dónde vive:** `docs/kit-v3/DISENO-PO.md` y `docs/kit-v3/SPEC-PO.md` (READY, sin construir). Tres sesiones más el piloto.
 
 ## ADR-043 · "Probar una idea nueva": una carpeta y un script aparte, y la ofrece el PO (2026-11-20)
+> **✅ Construido 2026-11-20 en la 3.2.0**, en paralelo, sin compuerta ni `rc` (nota del 2026-11-22): cómo se apartó de la "Ejecución" de su spec, en ADR-044.
 La otra pieza de la 3.2 (ADR-041). El brief del 2026-11-03 pedía reusar el registro de cambios. Tres veces el kit se enteró tarde
 de algo que nació en un proyecto (director y obrero, ADR-021; el buzón, ADR-037; el PO, ADR-042) y hubo que reconstruirlo.
 - **Decisión** (Guido, 2026-11-20): cada prueba es una carpeta `.claude/pruebas/<fecha>-<slug>/` con su ficha (qué es, qué cura,
@@ -1036,6 +1046,7 @@ de algo que nació en un proyecto (director y obrero, ADR-021; el buzón, ADR-03
 - **Dónde vive:** `docs/kit-v3/SPEC-prueba.md` (READY, sin construir). Una sesión, después de la skill del PO y antes de su `rc.1`.
 
 ## ADR-044 · La 3.2 se construye ya, en paralelo y sin compuerta, banco ni `rc`; sale final "en piloto" (2026-11-20)
+> **↪️ Ajustado 2026-11-22 → ADR-046**: el "no es regla nueva" de abajo ya no vale: lo que hizo la 3.2 es la vía corta, escrita como regla.
 Los specs de la 3.2 (ADR-042 y 043) pedían un paso 0 (poner al día los dos repos del piloto con la 3.1.0 y mirar una semana), tres
 sesiones en fila (~11 h), `rc.1`, banco y dos semanas de piloto antes de la versión. Guido, al leer el plan: "la próxima tanda es
 crear la versión 3.2, después esa usaré para poner al día todos mis repos".
@@ -1054,3 +1065,53 @@ crear la versión 3.2, después esa usaré para poner al día todos mis repos".
   lo que falle va a una 3.2.1. `conTurno` lo usa el gate de `integrar` y cambia sin mutación (lo nuevo es de mejor esfuerzo y las
   pruebas que ya tiene no se tocan). Lo "no verificado" de los specs sigue así. Es la segunda versión seguida sin banco: **no es
   regla nueva**, es otra excepción con su ADR.
+
+## ADR-045 · Cambiar el `comando-test` de la ficha pide la firma del dueño, igual que sacarlo (2026-11-22)
+El red team de la `rc.8` (`docs/kit-v3/SPEC-paquete-8e.md`, hallazgo 1, ALTO) encontró que un agente podía borrar `vars.comando-test`
+de la ficha en su rama sin firma de nadie, e `integrar` subía el módulo sin probar. Se arregló: **sacarlo es barrera** (id
+`vars:comando-test`; `kit/CHANGELOG.md`, `## 3.0.0-rc.8`), con la nota "Ponerlo o cambiarlo no cuenta" (la tabla del red team y
+el comentario de `idsFicha`). Quedó anotado como decisión del
+dueño (`SPEC-paquete-8e.md`, "Anotado, sin tocar"): *cambiarlo* por uno que no prueba nada no es barrera. Hoy la regla vive en
+`hooks/lib/cambios.cjs`, `idsFicha` (solo cuenta "antes tenía valor y después está vacío"), con su copia en
+`kit/skills/arquitecto-skills/pc/lib/cambios.cjs`.
+- **Decisión** (Guido, 2026-11-22): **cambiar el valor de `comando-test` pide su firma**, igual que sacarlo. **Ponerlo por primera
+  vez** (no había ninguno) **no la pide**. Se construye en la 3.2.1, en las dos copias de `cambios.cjs`, con su prueba; hoy queda
+  solo escrita.
+- **Por qué:** `[mejor código]`. Una sesión puede dejar las pruebas sin efecto cambiando el comando (por uno que siempre da bien)
+  sin que el dueño se entere: es el mismo agujero que sacarlo, por la otra puerta.
+- **Descartado:** *dejarlo como está* (cero fricción, pero el agujero queda) · *pedir firma también al ponerlo por primera vez* (ahí
+  no se pierde ninguna prueba que existiera).
+- **Costo aceptado:** un clic más cuando el cambio es legítimo; el comando se cambia pocas veces. El cambio legítimo pasa con la
+  firma, como el de sacarlo hoy.
+
+## ADR-046 · Dos vías para sacar una versión: la corta "en piloto" y la larga con `rc` y banco; en la duda, la larga (2026-11-22)
+El ciclo (`docs/CICLO-DE-MEJORA.md` §6, la tabla de los 16 pasos) manda beta, `rc` y banco para toda versión, y ADR-041 dejó "el
+banco sigue siendo paso fijo para una versión que toque el molde, los frenos o el actualizador". La 3.1.0 (ADR-041) y la 3.2.0
+(ADR-044) salieron finales "en piloto", sin `rc` ni banco, cada una como excepción; la 3.2 tocó el molde. Dos excepciones seguidas
+ya son la práctica, y la regla escrita no la describe. La vía corta igual agarró lo suyo: en la 3.2, la flota de prueba encontró
+que la prueba de las tres copias de `conTurno` miraba fuera del molde y dejaba ROTA la puesta al día de un proyecto (commit
+`681a2c5`; `docs/CHANGELOG.md`, 2026-11-20: "lo encontró la flota de prueba, no la suite"), y la suite entera, una expectativa
+vieja de `niega-aprobar.test.cjs`.
+- **Decisión** (Guido, 2026-11-22): **hay dos caminos para sacar una versión, y la regla es cuál toca.**
+  1. **La vía corta, versión final "en piloto"**: vale cuando la versión **suma piezas** (skills, scripts, verbos, piezas opcionales
+     que llegan apagadas) y **no cambia cómo se comporta lo que ya anda**. Pasos fijos antes del tag: las pruebas de cada pieza · un
+     revisor frío sobre lo integrado · la suite entera · una vuelta de la flota de prueba (alfa, beta y gama desde una versión
+     vieja) · red team de toda regla `allow` o freno nuevo. Sale marcada "en piloto" en `kit/CHANGELOG.md`, y lo que encuentre el
+     uso real va a una x.y.1.
+  2. **La vía larga, §6 entero con `rc` y banco**: obligatoria cuando la versión **cambia un freno o una barrera que ya existe, el
+     actualizador, la adopción o la flota**, o cuando es **una vuelta del ciclo** (la versión que sale de medir e investigar).
+  3. **En la duda, la larga.** Cada versión dice en su entrada de `kit/CHANGELOG.md` por cuál vía salió.
+  4. **Ajusta a ADR-041 en un punto**: "tocar el molde" solo, sumando piezas sin cambiar frenos, ya no obliga al banco. Y
+     **reemplaza el "no es regla nueva" de ADR-044**: ahora sí es regla. Y **acota el punto 1 de ADR-035** ("el banco es paso
+     fijo para sacar una versión") a la vía larga.
+  5. **Queda abierto** (lo marcó el revisor frío de este ADR): cómo sale un arreglo x.y.1 que toca una barrera o el actualizador.
+     Los 16 pasos no le calzan a un arreglo. Recomendado, sin decidir: una `rc` quirúrgica (§7 del ciclo) más el banco. Lo decide
+     Guido antes de la 3.2.1 (TODO).
+- **Por qué:** `[workflow · acordarse de menos]`. Una tercera excepción sería volver a discutir lo mismo; con la regla escrita, cada
+  versión sabe de entrada qué le toca.
+- **Descartado:** *seguir con excepciones de a una* (cada vez un ADR para lo mismo) · *volver al banco para toda versión* (días por
+  versión; el banco prueba la actualización sobre copias de repos reales, que es justo lo que viene después con la flota real, repo
+  por repo y con el OK del dueño).
+- **Costo aceptado:** una versión "en piloto" puede fallar en un repo real de un modo que el banco habría visto. Por eso la flota
+  real se pone al día repo por repo con el OK del dueño, y existe la x.y.1.
+- **Dónde vive:** `docs/CICLO-DE-MEJORA.md` §6, "Qué vía toca", antes de la tabla (que es la vía larga).

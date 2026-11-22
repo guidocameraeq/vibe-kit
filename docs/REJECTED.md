@@ -6,6 +6,8 @@
 
 - **REJ-001 · Formato plugin para el kit** — el v1 entero (plugin + marketplace + 7 comandos)
   murió sin instalarse. Ver ADR-001. Re-abrir solo si se publica para terceros.
+  *Nota 2026-11-22:* se volvió a proponer en la revisión de la `rc.7` (`docs/kit-v3/REVISION-rc7-mirada2.md`, V3: solo la parte
+  global como plugin, por lo que le costó instalarlo al compañero). Guido, 2026-11-22 (repaso del TODO): sigue descartado; la condición de reapertura no cambia.
 - **REJ-002 · Web wizard / arrancador externo** (concepto "B" del blueprint v1) — una app
   Next.js que mantener para mejorar el 5% del flujo (el arranque), reintroduciendo copy-paste.
   Los 3 jueces del v1 ya lo habían descartado; sigue muerto.
@@ -86,3 +88,27 @@
   que se frena (la primera, "unificar obrero y tramo", en la misión 6a: `CICLO-DE-MEJORA.md`). Lo que sí entra a la `rc.7`: que
   `autorizado` acepte `Skill: tramo` y que la plantilla del encargo diga cuándo /tramo y cuándo un obrero. Re-abrir solo si un
   proyecto grande (Hermes u otro) lo deja de usar durante una vuelta entera del ciclo.
+
+- **REJ-018 · El agente que se despierta solo y despacha encargos, y la firma por agente** — en el buzón v0 hubo 0 encargos en 169
+  mensajes, y es terreno del PO, que es la sesión que el dueño ya tiene abierta (ADR-037 y ADR-042, 2026-11-19 y 2026-11-20).
+  Re-abrir solo si aparecen encargos esperando el OK (ADR-037). Anotado 2026-11-22.
+
+- **REJ-019 · La excepción de la credencial del Hub** (que el Equipador instale la credencial de solo lectura del Hub en cada PC, como
+  pedía el diseño E §3 y §9) — el kit público instalaría y manejaría la llave del registro de la empresa: más superficie para una
+  filtración, y una regla con agujero es una regla que se olvida. La credencial la pone la capa privada o la persona; el kit solo
+  conoce su nombre (ADR-033, 2026-11-03). Re-abrir solo si Guido quiere la excepción: se reabre ADR-033 y se construye como un paso de
+  "preparame esta PC" con su red team. Anotado 2026-11-22.
+
+- **REJ-020 · Cinco arreglos "para la v3.1" que dejó el tramo final** — Guido, 2026-11-22 (repaso del TODO): ninguno tiene
+  evidencia de que duela; cada uno se reabre con su caso.
+  - *El costo por encargo* (lanzar al obrero con `--output-format json` y guardar costo y tokens; `REVISION-rc7-mirada2.md`, V5): hoy
+    se mide a mano, y medir a mano alcanzó para ADR-029; nadie lo pidió desde la `rc.7`. Re-abrir si una medición del ciclo necesita el costo y medirlo a mano no alcanza.
+  - *La mesa en lote* (firmar varios acuerdos de una vez; `REVISION-rc7-repos.md:145`): un solo repo, 14 firmas; la mesa no crece
+    (V6) y la mensajería nueva es el buzón. Re-abrir si pasa en otro repo.
+  - *Que `publicar` acepte lo que ya estaba en origin* (`SPEC-paquete-8e.md:110`, c1): es cambiar una red de seguridad de la noche,
+    sin un caso anotado. Re-abrir con una noche real que lo muestre.
+  - *Por qué el director narra algunos renglones en inglés* (b9): 1 de 32 y 1 de 12 textos (`BANCO-rc8.md:176`), en su charla y no
+    en lo que lee el dueño; la regla ya está escrita y `/director` está en su tope de tamaño. Re-abrir si aparece en un texto para
+    el dueño.
+  - *El renglón en inglés de Claude Code en el parte* (`BANCO-rc8.md:187`, n6): solo se vio en las carpetas del banco, que no son
+    de confianza. Re-abrir si se ve en una carpeta real.

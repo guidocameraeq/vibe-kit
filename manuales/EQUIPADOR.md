@@ -6,7 +6,7 @@
 > (`kit/skills/arquitecto-skills/SKILL.md` y la cabecera de cada script en `scripts/`).
 
 **La versión**: lo de este manual es el kit v3. "Preparame esta PC" y "actualizate" bajan **el último tag anotado** del repo (el que
-imprime `actualizar.cjs ultimo-tag`, rc incluido), y andan desde la beta `v3.0.0-rc.1`.
+imprime `actualizar.cjs ultimo-tag`; si la última fuera una beta, `-rc`, también cuenta), y andan desde la 3.0.0.
 
 ---
 
@@ -76,6 +76,12 @@ credencial. Lo instala `instalar-hooks-pc.cjs` (y "preparame esta PC" lo incluye
 - **Deshacer todo**: `--quitar` deja el `settings.json` como estaba antes de la primera instalación.
 - Si el `settings.json` está roto (JSON inválido, claves repetidas), no toca nada y te dice por qué: se arregla a mano.
 
+**El aviso del buzón** (desde la 3.1): el mismo instalador registra también `aviso-buzon.cjs` en `SessionStart`, `UserPromptSubmit` y
+`PostToolUse`, en toda PC, uses o no el buzón. Su costo: **cada herramienta lanza un proceso de node más** (medido en el portón de `PostToolUse`, el p95: de 68 a 114 ms; ADR-039).
+Sin registrarte en el buzón, el aviso no lee, no escribe, no dice nada y no se pone ninguna regla de permiso. **Registrarse
+("registrame en el buzón") es entrar al piloto**: después se reinstalan los hooks por PC, que suman la regla `allow` de `turnos`,
+`leer` y `responder` del buzón (con `--quitar` se va). Qué es el buzón: la skill `/buzon` y `manuales/SCRIPTS.md` (`buzon`).
+
 Nunca se edita `~/.claude/settings.json` a mano: el instalador es el único que lo escribe. Qué hacer si se filtró una credencial:
 `manuales/se-filtro-una-credencial.md`.
 
@@ -117,21 +123,22 @@ así que la sesión la corre en segundo plano). Por cada repo, uno detrás del o
    con un commit `kit: ROTA — <qué falló>` (la próxima vuelta la rehace). **Push rechazado** (rama protegida) → la rama queda
    "te espera". **Una pieza de `.claude/scripts/` que queda esperando tu decisión** (la tocaste a mano y la mezcla choca) → tampoco
    mezcla: sube `kit/<versión>` con el informe y la marca `kit: ESPERA`, y el repo queda **entero en la versión vieja**, nunca a
-   medias. La sesión te pregunta con qué te quedás (`resolver`) y la vuelta siguiente lo pone al día (desde la `rc.8`).
+   medias. La sesión te pregunta con qué te quedás (`resolver`) y la vuelta siguiente lo pone al día (desde la 3.0.0).
 5. **Un repo sin pruebas**: si sacaste sus pruebas (o nunca tuvo), la ficha lo tiene que decir (nivel `liviano`, o
    `gate:entorno-prueba` en `frenos.quitados` con su razón); si no, la flota no lo pone al día y la fila dice qué falta. Sacar el
    `comando-test` de la ficha es un cambio de freno: lo firmás vos.
 
 Te devuelve **una tabla** (mezclado · salteado con su porqué · ROTA · te espera) y la lista "te espera:". **Con obra en curso**
-(ramas `modulo/*` vivas) sale `salteado`; si sabés que podés, `--con-obra` actualiza `main` igual y prueba en el clon, sin subir nada,
-traer `main` a cada módulo: "te espera:" dice por módulo si pasa, si falla (lo aprobás vos antes) o si choca, y lo trae su director con
-`worktree.cjs traer-main <x>`. Una skill que pasa su tope **por su zona propia** da ⚠ y no ROTA (decidido por Guido, 2026-11-04).
+(ramas `modulo/*` vivas) sale `salteado`. Si sabés que podés (no se recomienda con un director trabajando: su rama queda atrás de
+`main` hasta que la traiga), **`--con-obra`** pone al día `main` igual y, si se mezcló, prueba en el clon, sin subir nada, qué pasa al
+traer `main` a cada módulo: "te espera:" dice por módulo si pasa, si falla (antes va un cambio de freno que aprobás vos) o si choca. La
+flota nunca sube a una `modulo/*`: lo trae su director con `worktree.cjs traer-main <x>`. Una skill que pasa su tope **por su zona propia** da ⚠ y no ROTA (decidido por Guido, 2026-11-04).
 **El lock del proyecto atrasado** (el `comando-setup` ya fallaba antes de la actualización por eso, y el kit no tocó ni el lock ni el
 setup) tampoco traba: el repo sale `mezclado` y "te espera:" dice que tus tests no se probaron hasta que regeneres el lock. Si
 `hooks-lib` te espera y un hook nuevo la necesita, la fila dice que la resuelvas primero (`resolver . hooks-lib …`).
 
-**`todo` sin `--tag` reparte el último tag anotado, rc incluido, a todo proyecto con ficha.** Hoy tienen ficha los siete repos que ya
-usan el kit, y una beta les llega igual: para repartir solo una versión final (sin beta), pasá `--tag v<X.Y.Z>`.
+**`todo` sin `--tag` reparte el último tag anotado a todo proyecto con ficha.** Hoy tienen ficha los siete repos que ya
+usan el kit. Si algún día el último tag es una beta (`-rc`), les llega igual: para repartir solo una versión final, pasá `--tag v<X.Y.Z>`.
 
 **Lo que adaptaste en un proyecto no se pisa.** Una pieza adaptada (la cambiaste a tu gusto; su porqué es el `por:` en la ficha):
 - con su porqué y una mezcla limpia (el kit cambió en otro lugar que vos) → se fusiona sola;
@@ -217,6 +224,8 @@ kit). Solo lee lo commiteado en la rama por defecto local, sin red.
 - Lo que sube al kit se anota en `kit/cubiertos.md` (lo escribe la sesión madre); al poner al día la flota, cada proyecto lo marca solo
   como "subió al kit".
 - Sin `~/.claude/kit-pc.md` (lo escribe "preparame esta PC") no sabe dónde está la flota: hay que pasarle `--proyectos`.
+- Su par de la 3.2, **`pruebas-flota.cjs`**: lista las pruebas de método (`.claude/pruebas/`) de cada proyecto y, con
+  `--para-absorber`, las que el dueño mandó al kit (`manuales/SCRIPTS.md`, `pruebas-flota`).
 
 ### `migrar-cambios` — el `CAMBIOS.md` gigante
 

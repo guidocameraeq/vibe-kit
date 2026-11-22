@@ -72,6 +72,7 @@ Cada pieza es una *skill*: instrucciones que Claude Code carga cuando las llamá
 | 📬 | **`/buzon`** | El buzón entre agentes de distintas PCs y cuentas, sobre una carpeta compartida: un aviso en cada sesión cuando hay turno, contesta solo estado, fechas y citas a quien está verificado, y lo demás espera tu OK |
 | 🔁 | **`inicio` / `cierre`** | Los rituales de cada chat: arrancar sabiendo dónde quedaste, cerrar con todo guardado, commiteado y listo para tirar el chat |
 | 🧭 | **`/director` · `/obrero` · `/estado`** | Vienen en cada proyecto nuevo y al adoptar uno con código: el director lleva un módulo de punta a punta repartiendo encargos, los obreros los hacen aparte, y `/estado` te cuenta cómo va en cuatro secciones. Con frenos que de noche paran en vez de preguntar |
+| 🧑‍✈️ | **`/po`** | Opcional, llega apagado: la sesión principal del proyecto, con oficio. Te cuenta cómo viene toda la obra, atiende el buzón, les avisa a los directores y te trae las decisiones juntas, de a una con la recomendada |
 | 🗂️ | **`/docs-fyd`** | La documentación técnica de auditoría de un repo, sacada del código; lo que el código no sabe, te lo pregunta con opciones |
 | 🔭 | **El observatorio** | Mira y anota, no toca: extrae tips de videos e investiga los chats reales para proponer mejoras ([más](observatorio/)) |
 
@@ -143,11 +144,12 @@ Hace falta: [Claude Code](https://claude.com/claude-code) funcionando y git.
 |---|---|
 | [`GUIA-DE-USO.md`](GUIA-DE-USO.md) | Recetas por situación y frases para decirle a Claude. **Empezá por acá** |
 | [`PLAYBOOK-MAESTRO.md`](PLAYBOOK-MAESTRO.md) | El método completo: documentación y sistema de trabajo, con su porqué |
-| [`kit/`](kit/) | **La fuente** de lo instalable: las skills, el agente red-team y el instalador |
+| [`kit/`](kit/) | **La fuente** de lo instalable: las skills, el agente red-team, el instalador y el molde (`kit/molde/`, lo que se copia a cada proyecto) |
 | [`manuales/`](manuales/) | El detalle a fondo de cada pieza |
 | [`observatorio/`](observatorio/) | El Extractor de tips y la investigación de chats |
 | [`tips/`](tips/) | Las actas del observatorio, con propuestas para aprobar |
 | [`docs/`](docs/) | Pendientes, historia, decisiones, descartes y planos ([índice](docs/README.md)) |
+| [`pruebas/`](pruebas/) | `rehacer.sh`, que arma los repos de prueba (alfa, beta y gama, afuera de este repo), `pedidos.md`, el banco de prueba (`banco/`) y el proyecto de la prueba de `reflexion` |
 | [`assets/`](assets/) | El banner y los diagramas |
 | [`legacy/`](legacy/) | Lo superado, archivado con su lápida (no se borra) |
 | `CLAUDE.md` · `.claude/` | Las reglas para Claude en este repo y sus rituales |

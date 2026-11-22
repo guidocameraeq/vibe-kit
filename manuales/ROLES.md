@@ -3,11 +3,12 @@
 > **Para qué sirve**: cuando un módulo es grande (varias tareas a la vez, o querés que siga de noche sin vos), no lo hace una sola
 > sesión: hay un **director** que reparte y **obreros** que construyen, cada uno en su carpeta y su rama. Esta página cuenta quién hace
 > qué, cómo ves en qué andan (`/estado`), cómo te vas a dormir ("me voy") y cómo hablan dos proyectos (la mesa). Si difiere del
-> kit, manda el kit: `kit/molde/skills/{nucleo,director,obrero,tramo,estado}/`.
+> kit, manda el kit: `kit/molde/skills/{nucleo,director,obrero,tramo,estado,po}/`.
 
 Todo esto viene con el **molde v3** (un proyecto con `.claude/kit.md`). Lo normal sigue siendo **una sola sesión**: `/inicio`, el
 pedido, `/cierre`. El director aparece solo si el Arquitecto lo decidió en Modo B (`manuales/COMO-USAR-EL-ARQUITECTO.md` §2) y la
-ficha del proyecto lo trae (`piezas.director-obrero: sí`; al adoptar un repo con código viene prendido).
+ficha del proyecto lo trae (`piezas.director-obrero: sí`; al adoptar un repo con código viene prendido). Para **llevar el proyecto
+en marcha** (cómo va todo, los avisos a los directores, las decisiones de a una) está el **PO** (`/po`), una pieza opcional: §10.
 
 ---
 
@@ -205,7 +206,8 @@ Desde la 3.2, **en piloto**. Es una pieza opcional, que llega apagada (`po: no`)
 `.claude/skills/po/` y poniendo `po: molde` en `piezas:` de la ficha (poner `po: sí` no alcanza: no hay todavía un camino por script).
 Es la sesión que abrís en la carpeta principal del proyecto, con reglas escritas. No es un agente que se despierta solo: lo abrís vos y lo dejás abierto.
 
-- **Qué hace**: te dice cómo está todo (`estado.cjs --obra`), atiende el buzón, les avisa a los directores, junta las decisiones y te
+- **Qué hace**: te dice cómo está todo (`estado.cjs --obra`), atiende el buzón (el de entre agentes de distintas PCs y cuentas: la skill `/buzon`,
+  [`kit/skills/buzon/SKILL.md`](../kit/skills/buzon/SKILL.md), en piloto), les avisa a los directores, junta las decisiones y te
   las trae de a una con la recomendada, revisa que un módulo quede documentado antes de integrar (si falta, se lo devuelve al
   director: no lo escribe él), cuida `NORTE.md` y `MAPA.md` (el mapa lo actualiza; el norte te lo propone y espera tu OK) y corre el
   `/release`, con tu clic.

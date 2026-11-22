@@ -43,6 +43,10 @@ que tengas en el disco: así nadie se baja un freno editando un archivo en una r
 **Frenos quitados**: para apagar un freno hay que anotarlo en `frenos.quitados` con razón y fecha. Un `hasta` vencido deja de valer.
 Unos pocos no se quitan nunca (las barreras del candado, §5).
 
+**Prender una pieza opcional** (hoy, la del PO, `po`, que llega apagada): le decís a la sesión "prendé la pieza po"; ella copia
+`skills/po/` del molde del kit a `.claude/skills/po/` y pone `po: molde` en `piezas:` de la ficha. Poner `po: sí` y volver a poner al
+día **no alcanza** (con la ficha ya en la 3.2.0, la flota lo saltea y `aplicar` lo marca como desvío): el camino por script queda para la 3.2.1. Más: `ROLES.md` §10.
+
 ## 2. `docs/` en capas
 
 El mapa vive en el `CLAUDE.md` del proyecto (una sola copia). En la raíz de `docs/` hay **seis archivos y tres carpetas**; lo que no
@@ -71,13 +75,13 @@ Un archivo suelto en la raíz de `docs/` que no es de los seis, o una carpeta qu
 
 ## 3. Los hooks de Claude (`.claude/hooks/`)
 
-Se registran en el `settings.json` del molde. Desde la `rc.7`, sobre Bash/PowerShell hay **un solo** registro, el portero
+Se registran en el `settings.json` del molde. Desde la 3.0.0, sobre Bash/PowerShell hay **un solo** registro, el portero
 (`hooks/lib/portero.cjs`, plazo 60 s), que corre los tres de abajo (`niega-aprobar`, `git-seguro`, `sensible`) en un proceso;
 `niega-aprobar` corre además en toda la PC (lo instalan los frenos de la PC). Los que **niegan** llevan `onFailure: "block"`: si el
 hook se rompe, frena y dice "freno roto: corré doctor". Los hooks son avisos y frenos de primer nivel, **no una frontera** (un
 script armado a propósito los esquiva); la red de verdad es el candado y los githooks.
 
-**Dónde queda cada frenada** (desde la `rc.7`): la firma de un cambio aprobado (`cambios:aprobar`) va a `.claude/frenos.log`, que
+**Dónde queda cada frenada** (desde la 3.0.0): la firma de un cambio aprobado (`cambios:aprobar`) va a `.claude/frenos.log`, que
 se versiona; todo lo demás (cada freno que negó o preguntó) va a `kit-frenos.log`, en la carpeta común de git (`.git/`), sin
 versionar y compartido por la carpeta principal y sus worktrees. Así el registro no ensucia el repo ni traba un merge.
 
@@ -253,9 +257,10 @@ llamás.
 
 ## 10. Las skills del molde (`.claude/skills/`)
 
-`inicio`, `cierre`, `estado`, `director`, `obrero`, `tramo` y el `nucleo` (que no es una skill: lo leen los demás antes de
+`inicio`, `cierre`, `estado`, `director`, `obrero`, `tramo`, `po` y el `nucleo` (que no es una skill: lo leen los demás antes de
 empezar). `director`, `obrero`, `tramo`, `nucleo` y los subagentes son la pieza `director-obrero`; con `estado`, vienen en todo
-proyecto nuevo y al adoptar uno con código. Cómo se usan: `manuales/ROLES.md`.
+proyecto nuevo y al adoptar uno con código. **`po`** (la skill `/po`, desde la 3.2) es aparte: una pieza **opcional** que llega
+apagada (`po: no`); cómo se prende, en §1. Cómo se usan: `manuales/ROLES.md`.
 
 Lo que hacen los scripts del módulo que vale saber desde acá (el detalle, en `ROLES.md` y `SCRIPTS.md`):
 - **Una sola ventana** (rc.5): `worktree.cjs crear` arranca con `en tu ventana de siempre, una sesión nueva de Claude; primer mensaje:
@@ -269,6 +274,13 @@ Lo que hacen los scripts del módulo que vale saber desde acá (el detalle, en `
   corre el `/inicio` después del `pull`) avisa si hubo un módulo integrado después del último handoff. `cerrar` borra la rama de
   origin si ya está mezclada en `origin/<madre>`; `limpiar` cierra de una todas las carpetas ya mezcladas.
 
+Lo de la 3.2 que también vive en el molde (el detalle, en [`SCRIPTS.md`](SCRIPTS.md)):
+- **Probar una idea nueva**: cada prueba es una carpeta `.claude/pruebas/<fecha>-<slug>/` (con `prueba.md` y `log.md`), y la lleva
+  `prueba.cjs`.
+- **El turno de lo pesado**: una corrida pesada a la vez por PC (`conTurno`, en `hooks/lib/proceso.cjs`), que ahora anota quién lo
+  tiene y quién espera; se mira con `turno.cjs ver` y `rastro`.
+- **`gitattributes`**: suma la regla `.claude/pruebas/*/log.md merge=union`, para que dos ramas que anotan en el mismo log no choquen.
+
 ## 11. Cuando el kit cambia algo que adaptaste
 
 Si cambiaste una pieza a tu gusto (`adaptada`, con su `por:`), el actualizador la pone al día sin pisarte: si el kit cambió en otro
@@ -280,7 +292,9 @@ cada una: `manuales/EQUIPADOR.md` §5.
 
 ## 12. Lo que no viene en el molde
 
-Las skills globales (`docs-fyd`, `relevamiento`, `reflexion`, `buzon`, el Arquitecto y el Equipador) viven en `~/.claude/`, no en el proyecto. El
+Las skills globales (`docs-fyd`, `relevamiento`, `reflexion`, `buzon`, el Arquitecto y el Equipador) viven en `~/.claude/`, no en el proyecto.
+`reflexion` es una pasada por la sesión antes de cerrarla (los cabos sueltos, lo aprendido, qué vale guardar); `buzon`, el buzón
+entre agentes de distintas PCs y cuentas (una carpeta compartida; en piloto). El
 Equipador las instala y las pone al día (`manuales/EQUIPADOR.md`); `docs-fyd` y `relevamiento` tienen su guía propia
 (`HOJA-DE-MANO-relevamiento.md`, y el `SKILL.md` de `docs-fyd`).
 

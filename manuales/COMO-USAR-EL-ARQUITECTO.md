@@ -27,7 +27,8 @@ Antes de elegir mira dos cosas: si quedó un spec a medias (`Estado: BORRADOR`; 
 un proyecto con código y el pedido es sobre él, es feature).
 
 **Lo que no entra por esta puerta**: el ecosistema ("¿qué tenemos y cómo se cruza?") es del Hub; un pedido que vino de otra persona
-y hay que relevar es `/relevamiento` (`manuales/HOJA-DE-MANO-relevamiento.md`). En los dos casos te lo dice en una línea.
+y hay que relevar es `/relevamiento` (`manuales/HOJA-DE-MANO-relevamiento.md`); llevar el proyecto en marcha (cómo va todo, los
+avisos a los directores, las decisiones de a una) es el PO, `/po` (`manuales/ROLES.md` §10). En todos los casos te lo dice en una línea.
 
 ---
 
@@ -114,7 +115,7 @@ Los pasos:
    real y ninguna de prueba, en un módulo con director la tarea 0 va como primer renglón de "Entorno de prueba"
    (`- **Tarea 0**: montar la base de prueba`): el sello la acepta y el primer encargo, el `00`, monta la base; hasta que esté,
    ningún otro obrero arranca. En un módulo solo no vale: la base de prueba es un módulo previo.
-   **Con director, desde la `rc.7`**, además: **"¿lista o cola?"** (una pregunta: *lista* son las tareas del spec y termina cuando
+   **Con director, desde la 3.0.0**, además: **"¿lista o cola?"** (una pregunta: *lista* son las tareas del spec y termina cuando
    están; *cola* va tomando pedidos con una regla y dice cuándo termina; queda en la ficha, `- Plan:`), **"Antes de lanzar: lo del
    dueño"** (la lista de los cambios de freno y los pasos que solo podés dar vos: el director no reparte un encargo que dependa de uno
    hasta que esté hecho) y las tareas **agrupadas por tramo** (`### Tramo N`: es lo que lee `/estado`).
@@ -166,7 +167,7 @@ specs READY. El obrero de un módulo con director también frena si el spec no t
 Qué mira `sello` antes de escribir la línea:
 - **tamaño**: que "Ejecución" diga `módulo solo` o `módulo con director` en su primera línea, y que coincida con la ficha del módulo.
 - **entorno** (solo con ficha): que haya dónde probar. Si la ficha declara un entorno real, tiene que haber uno de prueba al lado (o,
-  en un módulo con director y con el kit ≥ `3.0.0-rc.2`, la tarea 0 en el spec: el sello dice `entorno — (tarea 0: montar el entorno
+  en un módulo con director y con el kit 3.0.0 o más nuevo (vale desde su beta `3.0.0-rc.2`), la tarea 0 en el spec: el sello dice `entorno — (tarea 0: montar el entorno
   de prueba)`), o que la ficha diga que no hay pruebas (`gate:entorno-prueba` quitado, con su razón); si no, `comando-test` tiene que pasar (corre en la misma consola que el gate: Git Bash en Windows; si falla y la ficha tiene `comando-setup`, el sello te pregunta si lo corriste en esa carpeta). Y las herramientas que nombra la ficha tienen que andar.
 - **tope**: el tamaño del spec contra su límite (avisa; si decidiste seguir entero, va `--no-partir "Guido"`).
 

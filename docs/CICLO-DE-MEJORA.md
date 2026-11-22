@@ -7,8 +7,8 @@
 > Lo crudo de las dos lecturas está en el privado (`vibe-research/mision-6/lectura-6a/` y `lectura-6b/`). El plan de la 6a está en
 > [`mision-6/PLAN-6a.md`](mision-6/PLAN-6a.md).
 
-**Cómo se usa**: **la página que hay que leer es §6**, la tabla con los 16 pasos para sacar una versión: quién la hace y en qué
-modelo, qué hace el dueño y cuánto lleva. El resto es el detalle de cada paso. La vuelta entera son los pasos de §5. Una `rc` sigue §7 y un tramo de varias
+**Cómo se usa**: **la página que hay que leer es §6**, cómo sacar una versión: primero **qué vía toca** (la corta, "en piloto", o
+la larga, ADR-046) y después la tabla con los 16 pasos de la larga: quién la hace y en qué modelo, qué hace el dueño y cuánto lleva. El resto es el detalle de cada paso. La vuelta entera son los pasos de §5. Una `rc` sigue §7 y un tramo de varias
 sesiones, §8. Los prompts para copiar están en §9 y las plantillas en §10. Lo de la v3 (el anexo, §11 a §13) está para consultar, no
 para seguirlo.
 
@@ -45,9 +45,11 @@ y §8 (el corte) es §2.*
   `rc.8`, la 6 y lo que se haya trabajado en `clientes` desde el 05/11. Está copiado tal cual en el `CORTE.md` privado.
 - **La vuelta 2 arranca el 2027-03-01**, unos 3½ meses después del corte, o antes por uno de los disparadores. Mide la `v3.0` y,
   si ya salió y lleva un mes andando, la `v3.1`.
-- **La `v3.1` (misión 7) no espera la vuelta.** Es una versión con su propio diseño con el dueño (el buzón, "probar una idea nueva" y el
-  PO): sigue §6 desde el paso 1, con la corrida mensual como línea base. Su "investigar" es solo de afuera (la plataforma y cómo se
-  hace la mensajería hoy), y no relee chats.
+- **La `v3.1` (misión 7) no esperó la vuelta.** Iba a juntar el buzón, "probar una idea nueva" y el PO, siguiendo §6 desde el paso 1.
+  No fue así: la `3.1.0` salió con `reflexion` y el buzón (ADR-041), y el PO y "probar una idea nueva" pasaron a la `3.2.0`
+  (ADR-042 a ADR-044). Las dos salieron finales "en piloto", sin `rc` ni banco, cada una como excepción con su ADR (ADR-041 y
+  ADR-044); desde ADR-046 (2026-11-22) eso es **la vía corta** (§6), escrita como regla. El "investigar" del buzón fue solo de afuera (la plataforma y cómo se hace la mensajería hoy), sin releer chats; el del PO relevó
+  dos sesiones reales (ADR-042).
 - **La medición de la `v3.0` contra su línea base** (§5.6) va al mes de la versión, alrededor del 2026-12-15, con la corrida mensual.
   Es el primer insumo de la vuelta 2.
 - **Quién arranca**: la madre, con `/inicio` en vibe-kit, cuando el TODO lo diga; lee este documento, §5 y §6. Las tres fechas (la
@@ -237,6 +239,20 @@ Cierra lo que la 6a dejó para la 6b. Lo que se decidió y lo que enseñó la vu
 La receta de punta a punta. Es la secuencia de la v3 sin las vueltas que se dieron (§11 cuenta cómo fue de verdad). El presupuesto
 de cada paso sale de lo medido en la v3. Para planear: pasarlo es una señal para mirar, no para cortar.
 
+**Qué vía toca** (ADR-046, 2026-11-22). Hay dos caminos, y antes de arrancar se elige uno:
+- **La vía corta, versión final "en piloto"**: cuando la versión **suma piezas** (skills, scripts, verbos, piezas opcionales que
+  llegan apagadas) y **no cambia cómo se comporta lo que ya anda**. Pasos fijos antes del tag: las pruebas de cada pieza · un
+  revisor frío sobre lo integrado · la suite entera · una vuelta de la flota de prueba (alfa, beta y gama desde una versión vieja) ·
+  red team de toda regla `allow` o freno nuevo. Sale marcada "en piloto" en `kit/CHANGELOG.md`; lo que encuentre el uso real va a
+  una x.y.1. Así salieron la 3.1.0 y la 3.2.0.
+- **La vía larga, la tabla de abajo entera, con `rc` y banco**: obligatoria cuando la versión **cambia un freno o una barrera que ya
+  existe, el actualizador, la adopción o la flota**, o cuando es **una vuelta del ciclo** (la versión que sale de medir e investigar).
+- **En la duda, la larga.** Cada versión dice en su entrada de `kit/CHANGELOG.md` por cuál vía salió.
+- **Sin decidir todavía**: cómo sale un arreglo x.y.1 que toca una barrera o el actualizador (los 16 pasos no le calzan).
+  Recomendado: una `rc` quirúrgica (§7) más el banco. Está en el TODO.
+
+La tabla es la vía larga:
+
 | # | Paso | Quién y en qué modelo | **Qué hace el dueño** | Sale | Presupuesto |
 |---|---|---|---|---|---|
 | 1 | **El objetivo en una frase medible**, y la línea base medida | La madre (Opus) | Dice qué quiere y lo afila con la madre | El brief y la corrida mensual | Una charla y ~25 min de scripts |
@@ -262,7 +278,7 @@ tramo, trabajar con la beta, y dar los OK de publicar y de su flota. Todo lo dem
 - **El banco va en el paso 8, no después de R2.** En la v3 nació después de R2, porque R2 probó un solo repo real y ahí aparecieron tres
   de sus cinco grandes. Ahora que el script existe (`pruebas/banco/`), su vuelta 1 entra en la revisión de la candidata: lo que
   encuentre va al spec y no a otra `rc`. El banco del paso 14 queda como veredicto.
-- **Pasos fijos, porque fueron los que encontraron problemas de verdad**: revisar sobre un clon real, el banco, el revisor frío, y la
+- **Pasos fijos de la vía larga, porque fueron los que encontraron problemas de verdad**: revisar sobre un clon real, el banco, el revisor frío, y la
   suite y la flota de prueba antes de cada tag.
 - **Lo que sale, con su razón**:
   - *una tercera revisión integral antes de usar*: busca en el mismo lugar, y lo que falta lo muestra el uso;

@@ -2,6 +2,53 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-11-22 — El repaso del TODO y el de coherencia del método
+
+PC `Usuario` (Fable 5.2 decidiendo; nueve lectores Sonnet, cinco aplicadores y dos revisores fríos Opus), sesión
+`vibe-kit M7 · El repaso del TODO y de coherencia`, en `main`. Solo documentos: `kit/` no se tocó y no hay versión nueva.
+
+**Added**
+- **ADR-045**: cambiar el `comando-test` de la ficha pide la firma del dueño, igual que sacarlo; ponerlo por primera vez, no. Se
+  construye en la 3.2.1.
+- **ADR-046**: dos vías para sacar una versión. La corta, final "en piloto" (pruebas de cada pieza, revisor frío, suite entera,
+  flota de prueba y red team de toda regla `allow` o freno nuevo), cuando la versión suma piezas y no cambia lo que ya anda. La
+  larga, con `rc` y banco, cuando cambia un freno o barrera que ya existe, el actualizador, la adopción o la flota, o es una
+  vuelta del ciclo. En la duda, la larga. Queda abierto cómo sale un arreglo x.y.1 que toca una barrera.
+- **REJ-018** (el agente que se despierta solo), **REJ-019** (la excepción de la credencial del Hub) y **REJ-020** (cinco arreglos
+  del tramo final sin evidencia de dolor: el costo por encargo, la mesa en lote, `publicar` con lo de origin, el director en
+  inglés y el renglón en inglés del parte).
+- En la guía: recetas para `reflexion` y el buzón, el panorama y `/po`. En `manuales/SCRIPTS.md`: la entrada de `buzon.cjs`.
+- En el playbook: nueve notas "En el kit v3…" y siete filas en la tabla de skills.
+
+**Changed**
+- **`docs/TODO.md`, repartido con Guido**: los ~20 arreglos "para la v3.1" y los tres del relevamiento del PO quedaron en un ítem
+  "La 3.2.1" (once renglones, por cuánto muerde), un ítem "Más adelante" (cada uno con su disparador), dos renglones en el ciclo
+  o descartados. El ítem de `docs: no` se fundió con "el candado en repos con historia".
+- `docs/CICLO-DE-MEJORA.md` §6 abre con "Qué vía toca"; el párrafo de la v3.1 cuenta lo que pasó.
+- Seis ADR con una marca que apunta al que los ajustó (029, 030, 035, 041, 042, 043) y tres con la de ADR-046 (035, 041, 044).
+
+**Fixed** (lo que ya no cerraba entre los documentos y el kit 3.2.0)
+- La guía decía "al día con la `v3.0.1`" y repetía paso a paso la noche y el PO, que están en `manuales/ROLES.md`.
+- El índice de `docs/` daba al PO y a la prueba por "sin construir"; cinco specs sin fila; filas con una celda de más.
+- `SCRIPTS.md` ("las cuatro skills", sin `--con-obra` ni `--propuesta`), `ROLES.md` y `MOLDE.md` (sin el PO ni cómo se prende),
+  el manual del Arquitecto (sin la derivación a `/po`), `EQUIPADOR.md` (sin el aviso del buzón; una oración cortada).
+- El README sin el PO, `pruebas/` ni el molde. Cinco punteros rotos del playbook.
+
+**Las dos decisiones, con lo que se descartó**
+- *Cómo sale una versión*: seguir con excepciones de a una (cada vez un ADR para lo mismo) · volver al banco para toda versión
+  (días por versión). Elegida: la regla de las dos vías.
+- *El playbook viejo*: reescribir las secciones al v3 (una sesión entera, y duplica los manuales) · no tocarlo (quien lo lea arma
+  un proyecto con archivos que ya no existen). Elegida: una nota corta por sección que manda al molde.
+
+**Cómo se revisó**: dos vueltas de revisor frío Opus, una por tanda. 18 observaciones, todas corregidas; las de fondo: una razón
+de descarte que ningún informe decía (dos veces), una frase útil que se perdió al acortar la receta de la noche, un pendiente
+(el `core.hooksPath` absoluto) que se había caído del TODO y el hueco de ADR-046 con los arreglos x.y.1.
+
+**Va a la 3.2.1, del repaso**: la descripción del Equipador sin "preparame esta PC" · `kit.ejemplo.md` sin la pieza `po`.
+
+**NO VERIFICADO**: si `prueba.cjs` anda sin el PO prendido · si un proyecto nuevo arranca con `po: no` · que `turno.cjs ver`
+escriba (`SCRIPTS.md` dice "solo lee").
+
 ## 2026-11-20 — La 3.2, construida: el PO, el turno a la vista y "probar una idea nueva" · v3.2.0
 
 PC `Usuario` (Fable 5.2 dirigiendo; tres sesiones Opus en paralelo), la misma sesión `vibe-kit M7 · La 3.2`, en `main`. Guido
