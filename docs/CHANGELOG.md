@@ -32,7 +32,9 @@ decidió construir ya, sin compuerta, banco ni `rc` (ADR-044).
 `niega-aprobar.test.cjs`, corregida y verde sola) · revisor frío Opus sobre lo integrado · la flota de prueba, dos vueltas.
 
 **Lo que pasó en el camino**: dos de las tres carpetas de trabajo no dejaban commitear (el guardia `git-seguro`); una sesión lo
-rodeó antes del aviso y rompió la config de su carpeta. El trabajo se trajo a la carpeta principal y se commiteó ahí.
+rodeó antes del aviso y rompió la config de su carpeta. El trabajo se trajo a la carpeta principal y se commiteó ahí. Al cerrar, las
+tres carpetas se borraron sin forzar (descartando archivo por archivo las copias ya commiteadas y reponiendo esa config) y las tres
+sesiones se archivaron; el tag `v3.2.0` salió sobre `26bcaaf` con su página en GitHub.
 
 ## 2026-11-20 — La 3.2, diseñada: el PO y "probar una idea nueva", con sus specs READY
 

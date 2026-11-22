@@ -16,6 +16,8 @@
   2.4.2 a la 3.2.0; la primera vuelta encontró un bug real, arreglado).
 - **No viene**: el envoltorio para lo pesado que corre por fuera del kit (`turno.cjs correr`, `pesados:`): espera evidencia.
 - Esta PC: `kit-sync` LIMPIO. **Los hooks de la PC siguen en 3.1.0**: falta "instalar hooks por PC" (lo corre Guido).
+- Las tres carpetas de trabajo de la construcción se borraron (sin forzar) y sus sesiones se archivaron. Queda una rama **local**,
+  `claude/kit32-skill-po-fbd663`: su contenido entró a `main` como parche, así que git no la borra sin forzar. Se puede borrar.
 
 ## Próximo paso
 
@@ -28,7 +30,6 @@
 
 ## Te espera (Guido)
 
-- (el tag ya salió, con tu OK del 2026-11-20)
 - "Instalar hooks por PC" en `Usuario` y en `clientes` (y allá, "actualizá el kit"). No registres una segunda PC en el buzón hasta la 3.1.1.
 - El OK por repo de la flota real · decidir dónde van los ~20 arreglos sueltos "para la v3.1" del TODO.
 - Los chats al privado desde una PC con acceso: el de esta sesión (`aaed1faa`) y los de la PC del probador.
