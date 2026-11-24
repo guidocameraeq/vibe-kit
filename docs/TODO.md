@@ -12,7 +12,9 @@
 > 6 el ciclo como proceso → 7 la mensajería agéntica (**v3.1**). Después, el reloj: una vuelta cada 3-4 meses (abajo, "El ciclo").
 
 - [ ] **Poner al día la flota real con la `v3.2.0`, probar y juntar: el plan está en [PILOTO-3.2](kit-v3/PILOTO-3.2.md)** (la PC primero, de a
-  un repo, dos semanas de uso y la revisión antes de la 3.2.1). Sesión en Opus. (era con la `v3.1.0`; Guido, 2026-11-20: una sola puesta al día, con la 3.2), **repo por repo con el OK de Guido** (los siete con kit están en la `rc.6`, foto del
+  un repo, dos semanas de uso y la revisión antes de la 3.2.1). Sesión en Opus. **2026-11-24**: fase 0 hecha en `Usuario`; Deptos,
+  dos vueltas sin mezclar (sigue en `rc.6`, sano): falta la vuelta 3, con la PC enchufada (~1 h). Falta `clientes` entera (los otros
+  seis). Perseo no tiene ficha: se adopta, en sesión aparte, cuando Guido quiera. (era con la `v3.1.0`; Guido, 2026-11-20: una sola puesta al día, con la 3.2), **repo por repo con el OK de Guido** (los siete con kit están en la `rc.6`, foto del
   banco del 15/11: Deptos en dos vueltas por G1; uno pide `pnpm` en la PC; otro, sin pruebas, la ficha con `gate:entorno-prueba` y su
   firma; los que tienen obra viva, cuando la cierren). Lo que cambia en cada uno: el resumen de la sesión 6 en la nota del director.
   Con la `3.0.1` un repo con arranque propio ya no lo pierde al ponerse al día.

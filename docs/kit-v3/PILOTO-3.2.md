@@ -4,7 +4,7 @@
 > evidencia que decide qué entra a la 3.2.1. Armado el 2026-11-24, a pedido de Guido. **Acá se anota lo que aparezca**: las tablas
 > de abajo se van llenando. Regla de la madre: lo que se vea en otro repo se anota acá; no se le marcan tareas a ese repo.
 >
-> **Estado**: sin arrancar.
+> **Estado**: fase 0 hecha en `Usuario` (2026-11-24); fase 1 en curso.
 
 ## Cómo se trabaja
 
@@ -20,6 +20,13 @@
 3. *"corré el doctor"* → los 30 chequeos en verde, o anotar acá cuál no.
 
 No registres una segunda PC en el buzón: eso espera a la 3.1.1.
+
+**Cómo quedó** (anotado por la sesión de la flota):
+- `Usuario`, 2026-11-24: kit `3.2.0` ✅ · hooks por PC de 3.1.0 a 3.2.0 (cambió solo `lib/proceso.cjs`) ✅ · doctor `todo bien · 1 aviso ·
+  0 cosas a arreglar · 30 chequeos` (el aviso: el `CLAUDE.md` de vibe-kit sin "El tamaño del pedido", viene de antes).
+- La foto de `Usuario`: el único repo real con ficha es **Deptos** (`rc.6`). Los otros seis con kit están en `clientes`: su fase 0 y
+  su fase 1 se hacen allá. Perseo está en `Usuario` **sin ficha** (no tiene el kit v3): no se pone al día, se adopta.
+- `clientes`: pendiente.
 
 ## Fase 1 — Poner al día, repo por repo
 
@@ -37,7 +44,8 @@ y correr `/inicio`.
 
 | Repo | Fecha | PC | Resultado (mezclado · salteado · ROTA · te espera) | Qué apareció | ¿Ya estaba en la 3.2.1? |
 |---|---|---|---|---|---|
-| | | | | | |
+| Deptos (vuelta 1) | 2026-11-24 | `Usuario` | **te espera** (quedó entero en `rc.6`, `kit: ESPERA — scripts`) | (a) choque en `worktree.cjs`: el plazo del push de `integrar` subido a mano de 2 a 10 min (2026-11-10), y el kit trajo el mismo arreglo con otro nombre (`T_PUSH_INTEGRAR = 600000`); la pieza no tenía `por:`. (b) La línea 8 (`pruebas`) en ❌, "en base pasaba": sin explicar todavía. (c) `/inicio` del proyecto pesa 9.955 B, 1.355 de más por su zona propia (⚠, no traba). (d) **La vuelta tardó 57 min** (12:53 a 13:50; ~25 en las pruebas de los hooks), contra los ~18 de la flota de prueba | (a) sí: es el caso de la rc.8 ("un script tocado a mano"); (d) no |
+| Deptos (vuelta 2, después de `resolver . scripts nueva`) | 2026-11-24 | `Usuario` | **ROTA** sin estar roto: `main` sigue en `rc.6`, intacto | La línea 7 (`casos`): las pruebas de los hooks (27 archivos) no terminaron en 30 min, **dos veces** ("¿la PC estaba cargada?"); en la vuelta 1 habían terminado en ~25. Y no pudo subir `kit/v3.2.0` ("el remoto no respondió"): en GitHub quedó la de la vuelta 1. La vuelta: 13:52 a 15:39 (1 h 47) | **No cuenta como caso**: la PC se apagó sin batería en medio de la vuelta (lo contó Guido). Eso explica el tope pasado y el remoto que no respondió. Lo que sí deja: la flota se recupera bien de un apagón (nada a medias en `main`) |
 
 ## Fase 2 — Probar que anda (en cada repo puesto al día)
 

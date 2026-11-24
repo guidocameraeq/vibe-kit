@@ -2,6 +2,17 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-11-24 — La flota real a la 3.2.0: la PC y la primera vuelta de Deptos
+
+PC `Usuario` (Opus 5.5, sin subagentes), sesión `vibe-kit Flota · Los repos reales a la v3.2.0`, en `main`. `kit/` no se tocó.
+
+**Changed**
+- `docs/kit-v3/PILOTO-3.2.md`: el estado, cómo quedó la fase 0 en `Usuario` y dos filas de Deptos en la fase 1.
+- En la PC `Usuario`: los hooks por PC de 3.1.0 a 3.2.0 (solo `lib/proceso.cjs`); el doctor, `todo bien · 1 aviso · 0 cosas a arreglar`.
+- En Deptos (con el OK de Guido): `resolver . scripts nueva` (el plazo de 10 min del push de `integrar`, tocado a mano el 2026-11-10,
+  ya viene en la 3.2.0 como `T_PUSH_INTEGRAR`). Deptos sigue en `rc.6`: la vuelta 1 dio "te espera" por ese choque y la vuelta 2,
+  ROTA porque la PC se apagó sin batería en el medio.
+
 ## 2026-11-24 — El plan del piloto de la 3.2
 
 La misma sesión del repaso, dos días después. Guido: lo que sigue es poner al día los repos, y no lo quiere hacer en Fable.
