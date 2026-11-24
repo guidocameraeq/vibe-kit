@@ -3,7 +3,7 @@
 > **Save game** del proyecto madre. `/cierre` lo sobreescribe entero; el hook SessionStart lo inyecta en cada chat
 > nuevo de esta carpeta. **Tope 5.500 bytes**; el hook corta y avisa "CORTADO" si se pasa, y termina con la huella.
 
-**CIERRE** 2026-11-22, sesión `vibe-kit M7 · El repaso del TODO y de coherencia`, PC `Usuario` (Fable 5.2; lectores Sonnet,
+**CIERRE** 2026-11-24 (el repaso fue el 22; el 24 se sumó el plan del piloto), sesión `vibe-kit M7 · El repaso del TODO y de coherencia`, PC `Usuario` (Fable 5.2; lectores Sonnet,
 aplicadores y revisores Opus), en `main`. Kit `v3.2.0`, **en piloto**. Hoy solo documentos: `kit/` no se tocó.
 
 ## Dónde estamos
@@ -17,23 +17,25 @@ aplicadores y revisores Opus), en `main`. Kit `v3.2.0`, **en piloto**. Hoy solo 
   con su marca, REJ-018 y 019, y el playbook con notas "En el kit v3…" por sección (no se reescribió). Dos vueltas de revisor
   frío Opus, 18 observaciones, todas corregidas.
 - Esta PC: `kit-sync` LIMPIO. **Los hooks de la PC siguen en 3.1.0**: falta "instalar hooks por PC" (lo corre Guido).
-- Queda una rama **local**, `claude/kit32-skill-po-fbd663` (su contenido ya está en `main`): se puede borrar.
+- Queda una rama **local**, `claude/kit32-skill-po-fbd663` (ya está en `main`): se puede borrar.
 
 ## Próximo paso
 
-1. **"Instalar hooks por PC"** en esta PC (lo corre Guido).
-2. **`vibe-kit Flota · Los repos reales a la v3.2.0`**: repo por repo con el OK de Guido. En los que quiera PO: "prendé la pieza po"
-   (copiar la skill y `po: molde`; `po: sí` no alcanza). Mirar si aparecen los renglones 2 y 8 de la 3.2.1 (ROTA por `pnpm` o
-   sin pruebas; ramas de módulo muertas).
-3. **`vibe-kit 3.2.1 · Lo que deje el uso`**: la lista, en el TODO. Antes de arrancarla falta una decisión (abajo).
-4. Siguen aparte: el piloto del buzón, la 3.1.1 y la medición de la `v3.0` (~2026-12-15).
+**El plan entero está en `docs/kit-v3/PILOTO-3.2.md`** (armado el 2026-11-24): leelo antes de tocar nada y anotá ahí lo que aparezca.
+
+1. **`vibe-kit Flota · Los repos reales a la v3.2.0`**, **en Opus, no en Fable** (pedido de Guido). Fase 0: la PC al día y los
+   hooks. Fase 1: de a un repo, con su OK antes de cada uno, una fila por repo. Fase 2: una vuelta corta de uso en cada uno.
+2. Dos semanas de uso (fase 3): Guido cuenta en el chat lo que pasa y la sesión lo anota en el plan.
+3. **`vibe-kit 3.2.1 · La revisión del piloto`** (fase 4), junto con la medición de la `v3.0` (~2026-12-15): scripts, tablas,
+   reordenar la 3.2.1 y recién ahí construir.
+4. Siguen aparte: el piloto del buzón y la 3.1.1.
 
 ## Te espera (Guido)
 
 - **Una decisión, antes de la 3.2.1**: cómo sale un arreglo x.y.1 que toca una barrera o la flota (ADR-046 punto 5 lo deja
   abierto). Recomendado: una `rc` quirúrgica (§7 del ciclo) más el banco, con los cinco arreglos del script del banco antes.
 - **Leer la regla de ADR-046 tal como quedó escrita**: la redactó la sesión a partir de lo que hicieron la 3.1 y la 3.2.
-- "Instalar hooks por PC" en `Usuario` y en `clientes` (y allá, "actualizá el kit"). No registres una segunda PC en el buzón hasta la 3.1.1.
+- "Instalar hooks por PC" en `Usuario` y `clientes` (y allá, "actualizá el kit"). Sin segunda PC en el buzón hasta la 3.1.1.
 - El OK por repo de la flota real.
 - Los chats de la PC del probador, al privado desde una PC con acceso. Los de esta PC ya están subidos.
 - El clic de P7 (`../vibe-kit-pruebas/rc7/p7-firma/LEEME-P7.txt`).

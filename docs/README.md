@@ -77,6 +77,7 @@ El plano de la misión 5 y todo lo que se escriba para construirlo. Los specs de
 | [`kit-v3/DISENO-PO.md`](kit-v3/DISENO-PO.md) | El diseño del PO (misión 7, kit v3.2; 2026-11-20, decidido por Guido): lo relevado en las dos sesiones que hoy improvisan el rol, el cuadro conceptual, las decisiones, el piloto y lo que queda afuera. Con revisor frío y red team (ADR-042) |
 | [`kit-v3/SPEC-PO.md`](kit-v3/SPEC-PO.md) | El spec delta del PO (✅ IMPLEMENTADO 2026-11-20 en la `3.2.0`; lo de "solo si la compuerta lo pide" no se construyó): el turno a la vista, `estado.cjs --obra`, `po.cjs`, la skill `/po` y lo que se toca. Si difiere del diseño, manda este |
 | [`kit-v3/SPEC-prueba.md`](kit-v3/SPEC-prueba.md) | El spec delta de "probar una idea nueva" (✅ IMPLEMENTADO 2026-11-20 en la `3.2.0`): `.claude/pruebas/`, `prueba.cjs`, el lector de la flota y las tres reglas del PO (ADR-043) |
+| [`kit-v3/PILOTO-3.2.md`](kit-v3/PILOTO-3.2.md) | El plan del piloto de la 3.2 (2026-11-24): poner al día los repos reales de a uno, probar, juntar dos semanas de uso y recién ahí la 3.2.1. Sus tablas se van llenando: es donde se anota lo que aparezca |
 
 ## La misión 4, el diseño del pack — [`mision-4/`](mision-4/)
 

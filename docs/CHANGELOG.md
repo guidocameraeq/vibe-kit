@@ -2,6 +2,16 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-11-24 — El plan del piloto de la 3.2
+
+La misma sesión del repaso, dos días después. Guido: lo que sigue es poner al día los repos, y no lo quiere hacer en Fable.
+
+**Added**
+- `docs/kit-v3/PILOTO-3.2.md`: el plan en cinco fases (la PC primero · de a un repo, con su OK · una vuelta de uso en cada uno ·
+  dos semanas juntando, con las medidas de `DISENO-PO.md` §6 y lo que hay que mirar de la 3.2.1 · la revisión, junto con la
+  medición de la `v3.0`, y recién ahí la 3.2.1). Sus tablas se llenan con lo que aparezca. Con su fila en el índice y el
+  puntero en el TODO y el handoff.
+
 ## 2026-11-22 — El repaso del TODO y el de coherencia del método
 
 PC `Usuario` (Fable 5.2 decidiendo; nueve lectores Sonnet, cinco aplicadores y dos revisores fríos Opus), sesión
