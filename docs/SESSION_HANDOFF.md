@@ -37,7 +37,7 @@ aplicadores y revisores Opus), en `main`. Kit `v3.2.0`, **en piloto**. Hoy solo 
 - **Leer la regla de ADR-046 tal como quedó escrita**: la redactó la sesión a partir de lo que hicieron la 3.1 y la 3.2.
 - "Instalar hooks por PC" en `Usuario` y `clientes` (y allá, "actualizá el kit"). Sin segunda PC en el buzón hasta la 3.1.1.
 - El OK por repo de la flota real.
-- Los chats de la PC del probador, al privado desde una PC con acceso. Los de esta PC ya están subidos.
+- Los chats de la PC del probador, al privado. Los de esta PC ya están.
 - El clic de P7 (`../vibe-kit-pruebas/rc7/p7-firma/LEEME-P7.txt`).
 
 ## Cosas que muerden y no están en ningún otro doc
