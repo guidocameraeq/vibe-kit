@@ -2,6 +2,21 @@
 
 > Historia permanente. `/cierre` agrega una entrada AL TOPE en cada sesión; si hubo tag de versión, el título lo dice (` · vX.Y`). Orden descendente estricto. Nada de versiones duplicadas en otros docs. El porqué de cada cosa está en los ADR citados.
 
+## 2026-11-25 — La flota real a la 3.2.0, día 2: Deptos puesto al día y Perseo adoptado
+
+El mismo chat del 24 (Opus 5.5; una sesión de firmas en Perseo, Sonnet), PC `Usuario`, en `main`. `kit/` no se tocó.
+
+**Changed**
+- `docs/kit-v3/PILOTO-3.2.md`: cinco filas más en la fase 1 (Deptos vueltas 3 y 4, el arreglo, Perseo) y una en la fase 3 (la
+  adopción no se puede pushear desde el clon: el adoptador y `git-seguro` se contradicen).
+- **Deptos, en 3.2.0** (vuelta 4, mezclado). La vuelta 3 había dado ROTA de verdad: la prueba propia del freno de WhatsApp leía
+  `.claude/frenos.log`, y desde la `rc.8` lo que no es firma va a `<git común>/kit-frenos.log`. Arreglo de una línea en Deptos, con
+  `leerTodo` y la forma vieja de respaldo (la de la nota de la `rc.7`), con el OK de Guido.
+- **Perseo, adoptado en 3.2.0** "por el sello" (pedido de Guido): todo lo recomendado (D1 los del kit, D2 y D3 recomendadas, sin
+  `comando-test`, `publicar: no`, sensible en `vps.sh sql` y `vps.sh run`). Lo propio de su `/inicio` y `/cierre` (el VPS, los cuadernos
+  de errores, los 4 fantasmas, la memoria al repo) quedó en las zonas propias, con el detalle en un anexo. Dos cambios de freno
+  firmados por Guido desde una sesión abierta en Perseo, aplicados y anotados; barreras pasa sin excusas.
+
 ## 2026-11-24 — La flota real a la 3.2.0: la PC y la primera vuelta de Deptos
 
 PC `Usuario` (Opus 5.5, sin subagentes), sesión `vibe-kit Flota · Los repos reales a la v3.2.0`, en `main`. `kit/` no se tocó.

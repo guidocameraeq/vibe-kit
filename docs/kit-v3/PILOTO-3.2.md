@@ -4,7 +4,7 @@
 > evidencia que decide qué entra a la 3.2.1. Armado el 2026-11-24, a pedido de Guido. **Acá se anota lo que aparezca**: las tablas
 > de abajo se van llenando. Regla de la madre: lo que se vea en otro repo se anota acá; no se le marcan tareas a ese repo.
 >
-> **Estado**: fase 0 hecha en `Usuario` (2026-11-24); fase 1 en curso.
+> **Estado**: en `Usuario`, fases 0 y 1 hechas (Deptos y Perseo en 3.2.0, 2026-11-25); `clientes`, pendiente.
 
 ## Cómo se trabaja
 
@@ -46,6 +46,10 @@ y correr `/inicio`.
 |---|---|---|---|---|---|
 | Deptos (vuelta 1) | 2026-11-24 | `Usuario` | **te espera** (quedó entero en `rc.6`, `kit: ESPERA — scripts`) | (a) choque en `worktree.cjs`: el plazo del push de `integrar` subido a mano de 2 a 10 min (2026-11-10), y el kit trajo el mismo arreglo con otro nombre (`T_PUSH_INTEGRAR = 600000`); la pieza no tenía `por:`. (b) La línea 8 (`pruebas`) en ❌, "en base pasaba": sin explicar todavía. (c) `/inicio` del proyecto pesa 9.955 B, 1.355 de más por su zona propia (⚠, no traba). (d) **La vuelta tardó 57 min** (12:53 a 13:50; ~25 en las pruebas de los hooks), contra los ~18 de la flota de prueba | (a) sí: es el caso de la rc.8 ("un script tocado a mano"); (d) no |
 | Deptos (vuelta 2, después de `resolver . scripts nueva`) | 2026-11-24 | `Usuario` | **ROTA** sin estar roto: `main` sigue en `rc.6`, intacto | La línea 7 (`casos`): las pruebas de los hooks (27 archivos) no terminaron en 30 min, **dos veces** ("¿la PC estaba cargada?"); en la vuelta 1 habían terminado en ~25. Y no pudo subir `kit/v3.2.0` ("el remoto no respondió"): en GitHub quedó la de la vuelta 1. La vuelta: 13:52 a 15:39 (1 h 47) | **No cuenta como caso**: la PC se apagó sin batería en medio de la vuelta (lo contó Guido). Eso explica el tope pasado y el remoto que no respondió. Lo que sí deja: la flota se recupera bien de un apagón (nada a medias en `main`) |
+| Deptos (vuelta 3) | 2026-11-25 | `Usuario` | **ROTA, de verdad** (`main` sigue en `rc.6`, sano) | Las líneas 1 a 7 y 9, ✅; la 8 (`pruebas`), ❌: de las seis partes del `comando-test` falla una, `node scripts/test_whatsapp_freno.mjs` (1 de 316 casos: "la negativa no dejó su renglón whatsapp:envio-negado"); en la base pasa. **Causa**: el hook propio de Deptos (`whatsapp-no-envia.cjs`) escribe con la `frenos-log.cjs` del kit, que desde la rc.8 manda los renglones que no son firma a `<git común>/kit-frenos.log`; la prueba propia lee `.claude/frenos.log` directo. Es la nota de la `rc.7` (`fl.leerTodo`), que Deptos nunca necesitó porque venía de la `rc.6`. El arreglo es de una línea, en la prueba de Deptos. La vuelta: 09:07 a 09:38 (31 min) | (en parte) la nota de migración ya lo decía, pero la flota no la conecta con la falla: la fila dice "lo rompió la actualización" sin decir dónde. Nuevo: que la línea 8 diga qué parte del `comando-test` falló |
+| Deptos (después de la vuelta 3) | 2026-11-25 | `Usuario` | **sigue en `rc.6`**, con el arreglo de la prueba en `main` (`1f7acf51`, con su OK) | Con el commit de la flota traído a mano a `main`, todo verde en la carpeta (el `comando-test` entero y `adoptar --verificar`), pero **el pre-push no lo deja subir**: el commit del kit toca 25 frenos y permisos y, fuera de la flota, no tiene la exención (está bien que frene). Se subió solo el arreglo (anda con la lib vieja y con la nueva) y se dejó `main` igual a GitHub. Guido: la vuelta 4, otro día. Debería salir mezclado | no: el freno hizo lo que tenía que hacer |
+| **Perseo (adopción)** | 2026-11-25 | `Usuario` | **adoptado** ✅ (sin kit → `3.2.0`, "por el sello", con su OK de todo lo recomendado) | D1 los del kit, con lo propio (VPS, cuadernos de errores, los 4 fantasmas, memoria al repo) en las zonas propias y el detalle en `docs/referencia/rituales-perseo.md` · D2 y D3 recomendadas · sin `comando-test` (`gate:entorno-prueba`) · `publicar: no` · sensible: `vps.sh sql` y `vps.sh run` · dos cambios de freno firmados por Guido desde una sesión en Perseo (la firma no sale de un clon ni de otra carpeta), aplicados y anotados; barreras pasa. Quedan: el `NORTE.md` con 5 `[completar]`, el handoff de 5.353 B sobre el tope (el `/cierre` del kit lo baja), 5 falsos de gitleaks en pruebas viejas, y el worktree de agente del 2-nov | nuevo: la firma pide una sesión en la carpeta del proyecto; desde la madre, con la carpeta sin confiar o por control remoto, no se puede abrir |
+| **Deptos (vuelta 4)** | 2026-11-25 | `Usuario` | **mezclado** ✅ (`rc.6` → `3.2.0`, un commit a `main`) | Limpio: rehízo sola la `kit/v3.2.0` ROTA de antes. Queda el ⚠ del `/inicio` (1.355 B de más por su zona propia). En la carpeta: `pull`, `adoptar --verificar` "el repo quedó andando". La vuelta: 10:02 a 10:27 (25 min). Falta la fase 2 (abrir Deptos y `/inicio`) | — |
 
 ## Fase 2 — Probar que anda (en cada repo puesto al día)
 
@@ -87,7 +91,7 @@ Lo que falle o moleste va a la tabla de la fase 3, con el repo y la fecha.
 
 | Fecha | Repo | Qué pasó | ¿Renglón de la 3.2.1, nuevo, o de "Más adelante"? |
 |---|---|---|---|
-| | | | |
+| 2026-11-25 | Perseo (adopción) | **La adopción no se puede pushear desde la sesión.** El clon de la adopción no lleva `core.hooksPath` (el adoptador lo prende solo en la carpeta del dueño, con `--traer`), y el `git-seguro` de la sesión frena todo `git commit`/`push`/`rm` ahí (`hooks-path-ausente`). Prenderlo no sirve: el pre-push corre barreras, y la ficha y los permisos de la adopción fallan sin sello, como el mismo adoptador avisa ("lo cubre tu OK"). Los tres commits de la adopción sí pasaron (la misma cadena, antes); el que no pasó fue uno de `git rm` y el push. El adoptador y el guardia se contradicen | nuevo (parecido al renglón 11) |
 
 ## Fase 4 — La revisión, y recién ahí la 3.2.1
 
