@@ -15,7 +15,7 @@
   carpeta común): arreglo de una línea con `leerTodo`, y la 4 dio mezclado. Traer el commit del kit a mano a `main` no pasa el pre-push
   (bien: sin la flota no tiene exención); no lo vuelvas a intentar.
 - **Perseo**: adoptado "por el sello" (pedido de Guido). La firma sale solo de una sesión abierta en la carpeta del proyecto, en la rama
-  por defecto: no desde el clon ni desde la madre. Le quedan: `NORTE.md` con 5 `[completar]` (anotado en su TODO como KIT-NORTE), su
+  por defecto: no desde el clon ni desde la madre. Después, a pedido de Guido, sin preguntas en `vps.sh` (sensible en no). Le quedan: `NORTE.md` con 5 `[completar]` (anotado en su TODO como KIT-NORTE), su
   handoff sobre el tope, 5 falsos de gitleaks en pruebas viejas y un worktree de agente del 2-nov.
 - Guido pidió **no anotar** que una vuelta tarde ~1 h ni que la fusión llame a `claude -p` sin `--model`. No los re-propongas.
 
